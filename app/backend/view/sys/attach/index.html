@@ -1,0 +1,21 @@
+{include file="common/header"/}
+<style type="text/css">
+    /*{设置table每一行的height #}*/
+    .layui-table-cell {
+        height: auto;
+        line-height: 50px;
+    }
+</style>
+<div class="speed-container">
+    <div class="speed-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <blockquote class="layui-elem-quote">
+               {:lang('Attach')}{:lang('List')}
+            </blockquote>
+        </fieldset>
+
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+{include file="common/footer"/}

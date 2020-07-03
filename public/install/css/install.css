@@ -1,0 +1,146 @@
+body {
+
+    /*color: #fff;*/
+
+    font-size: 14px;
+
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+    height: 100%;
+    color: #7E96B3;
+
+}
+
+body:before {
+
+    content: '';
+
+    display: inline-block;
+
+    vertical-align: middle;
+
+    height: 100%;
+
+}
+::-webkit-input-placeholder {
+    color: #ccc
+}
+/** 滚动条 **/
+
+::-webkit-scrollbar { /*滚动条整体样式*/
+    width: 5px !important;; /*高宽分别对应横竖滚动条的尺寸*/
+    height: 6px !important;;
+    background: #ffffff !important;;
+    cursor: pointer !important;
+
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #9c9da0;
+    -webkit-border-radius: 2em;
+    -moz-border-radius: 2em;
+    border-radius: 2em
+}
+
+
+::-webkit-scrollbar-track { /*滚动条里面轨道*/
+    -webkit-box-shadow: inset 0 0 5px rgba(240, 240, 240, .5) !important;;
+    border-radius: 0 !important;;
+    background: rgba(240, 240, 240, 0.5) !important;;
+    cursor: pointer !important;
+}
+.layui-tabs-control{
+    max-width: 500px;
+    margin: 0 auto;
+}
+input {
+    -webkit-writing-mode: horizontal-tb !important;
+    text-rendering: auto;
+    color: #7E96B3;
+    /*color: -internal-light-dark-color(black, white);*/
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-indent: 0px;
+    text-shadow: none;
+    display: inline-block;
+    text-align: start;
+    -webkit-appearance: textfield;
+    background-color: rgb(255, 255, 255);
+    -webkit-rtl-ordering: logical;
+    cursor: text;
+    margin: 0em;
+    font: 400 13.3333px Arial;
+    padding: 1px 0px;
+    border-width: 2px;
+    border-style: inset;
+    border-color: rgb(118, 118, 118);
+    border-image: initial;
+    border-radius: 2px;
+}
+
+input::-webkit-input-placeholder {
+    /* placeholder颜色  */
+    color: #aab2bd;
+    /* placeholder字体大小  */
+    font-size: 12px;
+    /* placeholder位置  */
+}
+.layui-form-item,.layui-form-item input{
+    background: #EDF2F7;
+}
+
+.layui-form-item {
+    margin-bottom: 10px;
+}
+.layui-form-item.submit{
+    text-align: center;
+    background: #fff;
+}
+.layui-elem-field legend{
+    color: #009688;
+    font-weight: bold;
+}
+.form-main{
+    padding: 10px 10px;
+    border-radius: 3px;
+}
+.notice{
+    text-align: center;
+}
+#error, .error, #success, .success, #warmtips, .warmtips {
+    background: #D83E3E;
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+#success {
+    background: #3C5675;
+}
+
+#error a, .error a {
+    color: white;
+    text-decoration: underline;
+}
+
+#warmtips {
+    background: #ffcdcd;
+    font-size: 14px;
+    color: #e74c3c;
+}
+
+#warmtips a {
+    background: #ffffff7a;
+    display: block;
+    height: 30px;
+    line-height: 30px;
+    margin-top: 10px;
+    color: #e21a1a;
+    border-radius: 3px;
+}
+
+.layui-footer{
+    text-align: center;
+}

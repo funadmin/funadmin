@@ -1,0 +1,28 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <blockquote class="layui-elem-quote">
+              {:lang('AdminList')}
+            </blockquote>
+        </fieldset>
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+{include file="common/footer"/}
+
+<script type="text/html" id="action">
+    <a data-href="{:url('adminEdit')}?id={{d.id}}" class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    {{# if(d.id==1){ }}
+    <a href="#" class="layui-btn layui-btn-xs layui-btn-disabled">{:lang('del')}</a>
+    {{# }else{  }}
+    <a data-href="{:url('adminDel')}" class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+    {{# } }}
+</script>
+<script type="text/html" id="status">
+    {{# if(d.id==1){ }}
+    <input data-href="{:url('adminState')}" type="checkbox" disabled name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" checked>
+    {{# }else{  }}
+    <input data-href="{:url('adminState')}" type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+    {{# } }}
+</script>

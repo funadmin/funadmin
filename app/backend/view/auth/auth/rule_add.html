@@ -1,0 +1,132 @@
+{include file="common/header"/}
+<style> .layui-iconpicker-body.layui-iconpicker-body-page .hide {display: none;}</style>
+<div class="speed-container">
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{:lang('add')}权限节点</legend>
+            </fieldset>
+            <blockquote class="layui-elem-quote">
+                1、控制器/方法 例如 Wechat/index 或者 admin/wechat/index
+            </blockquote>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">父级</label>
+                    <div class="layui-input-inline">
+                        <select name="pid" lay-verify="required" lay-filter="pid">
+                            <option value="0">默认顶级</option>
+                            {volist name="ruleList" id="vo"}
+                            <option value="{$vo.id}" {if $rule and $rule['id']==$vo.id}selected
+                            {/if}>{$vo.lefthtml}{$vo.title}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">权限名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="title" lay-verify="required" placeholder="{:lang('pleaseEnter')}权限名称"
+                               class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">控制器/方法</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="href" lay-verify="required" placeholder="{:lang('pleaseEnter')}控制器/方法"
+                               class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">图标名称</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="icon" id="iconPicker" lay-filter="iconPicker" class="hide">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux"><a target="_blank" href="http://www.fontawesome.com.cn/">点击查看图标</a></div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">菜单状态</label>
+                    <div class="layui-input-inline">
+                        <input type="radio" name="menu_status" lay-filter="menu_status" checked value="1" title="开启">
+                        <input type="radio" name="menu_status" lay-filter="menu_status" value="0" title="关闭">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">排序</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="sort" value="50" placeholder="{:lang('pleaseEnter')}排序编号"
+                               class="layui-input">
+                        <input type="hidden" name="id">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">立即提交</button>
+                        <a data-href="{:url('adminRule')}" class="layui-btn layui-btn-primary back">返回</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: '__PLUGINS__/layui/extend/'
+    }).extend({
+        iconPickerFa: 'iconPicker/iconPickerFa'
+    }).use(['form', 'layer','iconPickerFa'], function () {
+        var form = layui.form,layer = layui.layer,$= layui.jquery;
+        var iconPickerFa = layui.iconPickerFa;
+        var info  = {:json_encode($info)};
+        var url = "{:url('ruleAdd')}";
+        var icon = '';
+        if(info){
+            form.val('form',info);
+            url = "{:url('ruleEdit')}";
+            icon= info.icon;
+        }
+        iconPickerFa.render({
+            // 选择器，推荐使用input
+            elem: '#iconPicker',
+            // fa 图标接口
+            url: "__PLUGINS__/font-awesome-4.7.0/less/variables.less",
+            // 是否开启搜索：true/false，默认true
+            search: true,
+            // 是否开启分页：true/false，默认true
+            page: true,
+            // 每页显示数量，默认12
+            limit: 20,
+            // 点击回调
+            click: function (data) {
+                $('#iconPicker').val('fa '+ data.icon);
+            },
+            // 渲染成功后的回调
+            success: function (d) {
+                $('#iconPicker').val('fa '+ d.icon);
+            }
+        });
+        //返回页面
+        $('body').on('click','.back',function() {
+            var url = $(this).attr('data-href');
+            layer.closeAll();
+            window.parent.location.href=url;
+
+        });
+        form.on('submit(submit)', function (data) {
+            // 提交到方法 默认为本身
+            if(data.field.icon=='fa undefined'){
+                data.field.icon = icon;
+            }
+            $.post(url,data.field,function(res){
+                if(res.code > 0){
+                    layer.msg(res.msg,{time:1000,icon:1},function(){
+                        location.href = res.url;
+                    });
+                }else{
+                    layer.msg(res.msg,{time:1000,icon:2});
+                }
+            });
+        })
+    });
+</script>

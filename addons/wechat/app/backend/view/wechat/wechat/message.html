@@ -1,0 +1,95 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('message')}{:lang('list')}</legend>
+
+
+        </fieldset>
+
+        <table class="layui-table" id="list" lay-filter="list"></table>
+
+    </div>
+
+</div>
+<script type="text/html" id="content">
+{{qqWechatEmotionParser(d.content)}}
+</script>
+
+<script type="text/html" id="action">
+    <a class="layui-btn layui-btn-xs" lay-event="reply">回复消息</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">{:lang('del')}</a>
+</script>
+
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script src="/static/addons/wechat/emoji/qq-wechat-emotion-parser.min.js?v={:time()}"></script>
+<script>
+    layui.use(['layer','table','element'],function () {
+
+        var $ = layui.jquery,
+            table = layui.table;
+        var tableIn = table.render({
+            elem: '#list',
+            url: '{:url("message")}',
+            method: 'post',
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'nickname', title: '昵称', width: 120,},
+                {field: 'openid', title: 'openid', width: 120,},
+                {field: 'content', title: '内容', width: 120,templet:"#content"},
+                {field: 'type', title: '类型', width: 120,},
+                {field: 'event', title: '事件', width: 120,},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '更新时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true
+
+        });
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    loading =layer.load(1, {shade: [0.1,'#fff']});
+                    $.post("{:url('messageDel')}",{id:data.id},function(res){
+                        layer.close(loading);
+                        layer.close(index);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                });
+            }else if(obj.event=='reply'){
+
+                var wx_aid = $("select[name='wx_aid']").val();
+
+                var index = layer.open({
+                    type: 2,
+                    content: '{:url("messageReply")}'+'?wx_aid='+wx_aid+"&id="+data.id,
+                    area: ['800px', '600px'],
+                    anim: 2,
+                    maxmin: true,
+                });
+                layer.full(index);
+
+            }
+
+        });
+    })
+</script>
+

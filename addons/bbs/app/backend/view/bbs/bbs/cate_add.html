@@ -1,0 +1,73 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">所属位置</label>
+                    <div class="layui-input-inline">
+                        <select name="pid" lay-verify="required">
+                            <option value="0">默认顶级</option>
+                            {volist name="BbsCate" id="vo"}
+                            <option value="{$vo.id}" {if !empty($info) && $info.pid==$vo.id} selected {/if} >{$vo.ltitle}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">分类名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="title" lay-verify="required" placeholder="{:lang('pleaseEnter')}标题" class="layui-input">
+                    </div>
+
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">分类别名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="title_alias" placeholder="{:lang('pleaseEnter')}描述" class="layui-input">
+                    </div>
+
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('status')}</label>
+                    <div class="layui-input-inline">
+                        <input type="radio" name="status" value="1" title="启用">
+                        <input type="radio" name="status" value="0" title="禁用">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a data-href="{:url('cate')}" class="layui-btn layui-btn-primary back">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+
+
+<script>
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin:'Admin',
+    }).use(['form','Admin'], function () {
+        var form = layui.form;
+        var info = '';
+        info = {:json_encode($info)};
+        form.val("form", info);
+        form.render();
+
+    });
+</script>

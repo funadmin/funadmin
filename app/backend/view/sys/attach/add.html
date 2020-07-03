@@ -1,0 +1,30 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <blockquote class="layui-elem-quote">
+                {$title}
+            </blockquote>
+        </fieldset>
+        <form class="layui-form layui-form-pane" lay-filter="form">
+            <div class="layui-upload">
+                <button type="button" class="layui-btn layui-btn-normal" id="UploadListBtn">选择多文件</button>
+                <div class="layui-upload-list">
+                    <table class="layui-table">
+                        <thead>
+                        <tr><th>文件名</th>
+                            <th>大小</th>
+                            <th>进度</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr></thead>
+                        <tbody class="uploadList"></tbody>
+                    </table>
+                </div>
+                <button type="button" class="layui-btn UploadSubBtn">开始上传</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{include file="common/footer"/}

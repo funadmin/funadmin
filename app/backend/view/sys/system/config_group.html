@@ -1,0 +1,51 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{:lang('config group')}{:lang('list')}</legend>
+            </fieldset>
+
+            <table class="layui-table layui-hide" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+
+<script type="text/html" id="action">
+    <a data-href="{:url('configGroupDel')}" class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+
+
+
+{include file="common/footer"/}
+<script>
+    var tableIn=null;
+    layui.config({
+        base: "__STATIC__/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['form', 'table','Admin'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+        var info = {:json_encode($info)};
+        var tableIn = table.render({
+            elem: '#list',
+            data:info,
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80,  sort: true},
+                {field: 'title', title: '分组标题', width: 250,sort: true},
+                {field: 'name', title: '分组名', width: 120,sort: true},
+                {title:'操作',width:120, toolbar: '#action',align:"center"}
+
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: false
+        });
+
+    });
+
+
+</script>

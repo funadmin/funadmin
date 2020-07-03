@@ -1,0 +1,131 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>文章分类{:lang('list')}</legend>
+                <blockquote class="layui-elem-quote">
+                    <div class="LM-table">
+                        <div class="layui-inline">
+                            <!--   <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">-->
+
+                        </div>
+                        <a data-href="{:url('cateAdd')}" class="layui-btn layui-btn-sm add ">{:lang('add')}文章分类</a>
+                        <a class="layui-btn layui-btn-sm layui-btn-warm" onclick="openAll();">展开或折叠全部</a>
+
+                    </div>
+                    <!--                        <div class="layui-inline">-->
+                    <!--                            <div class="layui-input-inline">-->
+                    <!--                                <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">-->
+                    <!--                            </div>-->
+                    <!--                            <button class="layui-btn data-add-btn" lay-submit="" lay-filter="add" id="search">{:lang('search')}</button>-->
+                    <!--                        </div>-->
+                </blockquote>
+
+            </fieldset>
+
+
+
+            <table class="layui-table" id="list" lay-filter="list"></table>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/html" id="action">
+    <a data-href="{:url('cateEdit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    <a data-href="{:url('cateDel')}" class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+<script type="text/html" id="status">
+    <input data-href="{:url('cateState')}" type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy/MM/dd HH:mm:ss')}}
+</script>
+<!--<script type="text/html" id="update_time">-->
+<!--    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}-->
+<!--</script>-->
+{include file="common/footer"/}
+<script>
+    var editObj=null,ptable=null,treeGrid=null,tableId='list',layer=null;
+    layui.config({
+        base: '/static/'
+    }).extend({
+        treeGrid: 'plugins/layui/extend/treeGrid/treeGrid'
+    }).use(['jquery','treeGrid','layer','form','table'], function(){
+        var $=layui.jquery ,form = layui.form;
+        treeGrid = layui.treeGrid;
+        layer=layui.layer;
+
+        ptable=treeGrid.render({
+            id:tableId
+            ,elem: '#'+tableId
+            ,idField:'id'
+            ,url:'{:url("")}'
+            ,cellMinWidth: 100
+            ,treeId:'id'//树形id字段名称
+            ,treeUpId:'pid'//树形父id字段名称
+            ,treeShowName:'title'//以树形式显示的字段
+            ,height:'full-140'
+            ,isFilter:false
+            ,iconOpen:true//是否显示图标【默认显示】
+            ,isOpenDefault:true//节点默认是展开还是折叠【默认展开】
+            ,cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'title', title: '分类名称', width: 120, fixed: true,},
+                {field: 'title_alias', title: '分类别名', width: 120, fixed: true,},
+                {field: 'status', title: '状态', width: 180, templet:'#status'},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                // {field: 'update_time', title: '修改时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"}
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true,
+        });
+        treeGrid.on('tool('+tableId+')',function (obj) {
+            var data = obj.data;
+            var url = $(this).attr('data-href');
+
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    var loading = layer.load(1, {shade: [0.1, '#fff']});
+                    $.post(url,{id:data.id},function(res){
+                        layer.close(loading);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                    layer.close(index);
+                });
+            }else if(obj.event === 'edit'){
+                iframe = layer.open({
+                    type: 2,
+                    content: url?url:'edit',
+                    area: ['600px', '800px'],
+                    maxmin: true
+                });
+                layer.full(iframe);
+
+            }
+        });
+
+    });
+    layui.config({
+        base: "/static/",
+        version: true
+    }).extend({
+        Admin:'admin/js/Admin',
+    }).use(['Admin'], function () {
+        var Admin = layui.Admin;
+    });
+
+    function openAll() {
+        var treedata=treeGrid.getDataTreeList(tableId);
+        treeGrid.treeOpenAll(tableId,!treedata[0][treeGrid.config.cols.isOpen]);
+    }
+</script>

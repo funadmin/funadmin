@@ -1,0 +1,833 @@
+/*!***/
+/* @Name：layui*/
+/* @Author：speedadmin*/
+/* @Site：https://www.speedadmin.cn/
+/* *!*/
+
+/* 全局 */
+html {
+    background-color: #f2f2f2;
+    color: #666;
+    font: 14px Helvetica Neue, Helvetica, PingFang SC, Tahoma, Arial, sans-serif;
+}
+
+*[lay-href],
+*[lay-ajax],
+*[lay-tips] {
+    cursor: pointer;
+}
+/*按钮通用  */
+.layui-layer.layui-layer-dialog .layui-layer-btn,.layui-layer-content{
+    text-align: center;
+}
+.layui-layer.layui-layer-dialog .layui-layer-btn a {
+    background-color: #95a5a6;
+    color: #fff !important;
+    height: 31px;
+    margin-top: 0;
+    border-color: #95a5a6;
+    border: 1px solid transparent;
+}
+.layui-layer.layui-layer-dialog .layui-layer-btn0 {
+    background-color: #1aa094!important;
+}
+
+
+/*!* 布局结构 *!*/
+.layui-layout-admin .layui-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+
+.layui-header .layui-nav .layui-nav-item.layui-this {
+    /*background-color: #197971 !important;*/
+    transition: all .3s;
+}
+
+.layui-header .layui-nav {
+    padding: 0 !important;
+}
+
+.layui-header .layui-layout-left {
+    left: 255px;
+}
+
+.layui-header .layui-layout-left {
+    position: absolute !important;
+    top: 0;
+    left: 220px;
+}
+
+.layui-header .layui-nav .layui-nav-item,
+.layui-layout-admin .layui-header .layui-tool,
+.layui-layout-admin .layui-layout-left,.layui-pagetabs,
+.layui-layout-admin .layui-body,
+.layui-layout-admin .layui-footer,
+.layui-layout-admin .layui-side,
+.layui-layout-admin .layui-logo,
+.layui-layout-admin .layui-header .layui-layout-right {
+    transition: all .3s;
+    -webkit-transition: all .3s;
+    padding: 0;
+}
+
+.layui-nav .layui-nav-child dd.layui-this a {
+    background-color: #18bc9c
+}
+
+.layui-header .layui-tool {
+    height: 100%;
+    line-height: 60px;
+    text-align: center;
+    color: #ffffff !important;
+}
+
+.layui-header .layui-tool:hover {
+    background: rgba(255, 255, 255, 0.3) 0 0 no-repeat;
+}
+
+.layui-header .layui-tool a {
+    color: #fff;
+}
+
+/**
+菜单
+ */
+.layui-layout-admin .layui-logo {
+    color: #FFF;
+    position: fixed;
+    z-index: 1002;
+    top: 0;
+    left: 0;
+    width: 220px;
+    height: 60px;
+    background-color: #20222A;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
+}
+
+.speed-app .layui-layout-admin .layui-logo cite {
+    font-style: normal;
+    display: inline-block;
+    width: 160px;
+    text-align: center;
+    transition: all .2s !important;
+    color: #fff;
+
+}
+
+.layui-side-shrink .layui-layout-admin .layui-logo cite {
+    display: none;
+    font-style: normal;
+    transition: all .2s !important;
+}
+
+.layui-layout-admin .layui-side {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 220px !important;
+    z-index: 1001
+}
+
+.layui-layout-admin .layui-side .layui-side-scroll {
+    width: 240px;
+}
+
+.layui-layout-admin .layui-side .layui-nav {
+    width: 220px;
+    margin-top: 60px;
+    background-color: transparent;
+    -webkit-transition: width .3s;
+    transition: width .3s;
+    /*background: #000*/
+}
+
+.layui-side-menu .layui-nav .layui-nav-item a i {
+    padding-right: 5px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-item a {
+    height: 40px;
+    line-height: 40px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-item a:hover {
+    background-color: #4E5465;
+}
+
+.layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
+    padding-left: 35px;
+    padding-right: 30px;
+
+}
+
+.layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
+    padding-left: 45px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 55px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 65px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 75px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 95px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
+    padding: 5px 0;
+}
+
+.speed-app .layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
+    padding: 5px 0;
+}
+
+.layui-nav-tree .layui-this, .layui-nav-tree .layui-this > a, .layui-nav-tree .layui-nav-child dd.layui-this, .layui-nav-tree .layui-nav-child dd.layui-this a {
+    background-color: #009688 !important;
+}
+
+.layui-nav .layui-this:after, .layui-nav-bar, .layui-nav-tree .layui-nav-itemed:after {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 5px;
+    background-color: rgba(0, 0, 0, .1);
+    transition: all .2s;
+    -webkit-transition: all .2s;
+}
+.layui-nav-tree .layui-nav-bar {
+    background: #009688
+}
+
+/**
+tab导航
+ */
+.layui-layout-admin .layui-pagetabs {
+    position: fixed;
+    left: 220px;
+    top: 60px;
+    right: 0;
+    height: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .1);
+}
+.layui-layout-admin .layui-pagetabs .layui-tabs-control {
+    position: absolute;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .3s;
+    -webkit-transition: all .3s;
+    box-sizing: border-box;
+    border-left: 1px solid #f6f6f6;
+    background: #fff;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tabs-control:hover {
+    background-color: #f6f6f6;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-icon-prev {
+    left: 0;
+    border-left: none;
+    border-right: 1px solid #f6f6f6;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-icon-next {
+    right: 40px;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-icon-down {
+    right: 0;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tab {
+    margin: 0;
+    height: 100%;
+    width: 100%;
+    padding: 0 80px 0 40px; /*border-bottom: 2px solid #292B34;*/
+    overflow: hidden;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: none;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-item {
+    line-height: 40px;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-item > a {
+    height: 40px;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-item a {
+    color: #666;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child {
+    top: 40px;
+    left: auto;
+    right: 0;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this,
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this a {
+    background-color: #f2f2f2 !important;
+    color: #333;
+}
+
+.layui-nav-tree .layui-nav-more:before {
+    content: "\e61a";
+    position: absolute;
+    right: -1px;
+    top: -4px;
+}
+
+.layui-nav-tree .layui-nav-itemed > a > .layui-nav-more {
+    -ms-transform: rotate(-180deg);
+    -moz-transform: rotate(-180deg);
+    -webkit-transform: rotate(-180deg);
+    -o-transform: rotate(-180deg);
+    transform: rotate(-180deg);
+    margin-top: auto;
+}
+
+.layui-nav-tree .layui-nav-more {
+    font-family: layui-icon !important;
+    font-size: 12px;
+    font-weight: 600;
+    font-style: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    line-height: normal;
+    border: 0;
+    margin: -3px 0 0 0;
+    padding: 0;
+    width: 10px;
+    height: 6px;
+    top: 50%;
+    display: inline-block;
+    -webkit-transition: all .3s ease;
+    transition: all .3s ease;
+}
+
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-more,
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-bar {
+    display: none;
+}
+
+.layui-layout-admin .layui-tab-title {
+    position: absolute;
+    left: 40px;
+    right: 80px;
+    background: #fff;
+}
+
+.layui-layout-admin .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
+    background-color: #f6f6f6;
+    border-top: 1px;
+}
+
+.layui-pagetabs .layui-tab-title li {
+    min-width: 0;
+    line-height: 40px;
+    max-width: 160px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    border-left: none;
+    /*border-right: 1px solid #f6f6f6;*/
+    vertical-align: top;
+}
+
+.layui-pagetabs .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
+    background-color: #F6F6F6;
+    color: #18bc9c !important;
+}
+
+.layui-pagetabs .layui-tab-title li.layui-this:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: none;
+    height: 1px;
+    border-radius: 0;
+    background-color: #E6E6E6;
+    transition: all .3s;
+    -webkit-transition: all .3s;
+}
+
+.layui-pagetabs .layui-tab-title li:first-child {
+    padding-right: 15px;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tab-title li:first-child .layui-tab-close {
+    display: none;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tab-title li .layui-tab-close {
+    border-radius: 50%;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tab-title li .layui-tab-close:hover {
+    border-radius: 50%;
+}
+
+.layui-layout-admin .layui-pagetabs .layui-tab-title li cite {
+    font-style: normal;
+    padding-left: 5px;
+}
+
+.layui-layout-admin .layui-tab-title .layui-tab-bar {
+    display: none;
+}
+
+/**
+遮蔽
+ */
+.layui-layout-admin .layui-body-shade {
+    position: fixed;
+    display: none;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, .3);
+    z-index: 1000;
+}
+
+/**
+版权+内容
+ */
+.layui-layout-admin .layui-body {
+    left: 0px;
+    top: 40px;
+    margin-bottom: 45px;
+    position: absolute;
+    z-index: auto;
+    overflow: auto;
+    -webkit-transition: left .3s;
+    transition: left .3s;
+    -webkit-overflow-scrolling: touch;
+}
+
+.layui-layout-admin .layui-body .layui-body-tabs {
+    width: 100%;
+    height: 100%;
+}
+
+.layui-layout-admin .layui-footer {
+    left: 220px;
+    z-index: 999;
+    padding: 0 10px;
+}
+
+/**
+侧边伸缩
+ */
+.layui-side-shrink .layui-side {
+    width: 60px !important;
+    left: 0;
+}
+
+
+.layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
+    line-height: 40px;
+    height: 40px;
+}
+
+.layui-side-shrink .layui-layout-admin .layui-logo {
+    width: 60px; /*background-image: url(../images/logo.png);*/
+    overflow: hidden;
+}
+
+.layui-side-shrink .layui-layout-admin .layui-layout-left, .layui-side-shrink .layui-layout-admin .layui-body, .layui-side-shrink .layui-layout-admin .layui-footer {
+    left: 0px;
+}
+
+.layui-body.layui-tab-content .layui-tab-item.layui-show {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+}
+
+.layui-side-shrink .layui-pagetabs {
+    left: 60px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav-item cite,
+.layui-side-shrink .layui-header .layui-layout-left {
+    left: 60px
+}
+
+.layui-side-shrink .layui-nav-tree li a cite {
+    display: none !important;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item a i {
+    padding-left: 0;
+    padding-right: 6px;
+}
+
+.layui-side-shrink .layui-layout-admin .layui-side .layui-nav {
+    width: 60px;
+    background-color: transparent;
+    -webkit-transition: width .3s;
+    transition: width .3s;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
+    padding: 0 20px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
+    padding-left: 20px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 20px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 20px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 20px;
+}
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 20px;
+}
+
+.layui-site-mobile {
+    display: none;
+}
+
+
+/*
+动画
+*/
+.speed-loading {
+    position: absolute;
+    display: block;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 19891017;
+    background-color: #fff
+}
+
+.speed-loading.close {
+    animation: close 1s;
+    -webkit-animation: close 1s;
+    animation-fill-mode: forwards;
+}
+
+.speed-loading .loading {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+    -webkit-transform: translate(-50%, -50%)
+}
+
+.speed-loading .loading > span, .signal-loader > span {
+    background-color: #00a65a;
+    display: inline-block
+}
+
+.speed-loading .loading > span:nth-child(1), .loading.sm > span:nth-child(1), .signal-loader > span:nth-child(1), .signal-loader.sm > span:nth-child(1) {
+    -webkit-animation-delay: 0s;
+    animation-delay: 0s
+}
+
+.speed-loading .loading > span:nth-child(2), .loading.sm > span:nth-child(2), .signal-loader > span:nth-child(2), .signal-loader.sm > span:nth-child(2) {
+    -webkit-animation-delay: .1s;
+    animation-delay: .1s
+}
+
+.speed-loading .loading > span:nth-child(3), .loading.sm > span:nth-child(3), .signal-loader > span:nth-child(3), .signal-loader.sm > span:nth-child(3) {
+    -webkit-animation-delay: .15s;
+    animation-delay: .15s
+}
+
+.speed-loading .loading > span:nth-child(4), .loading.sm > span:nth-child(4), .signal-loader > span:nth-child(4), .signal-loader.sm > span:nth-child(4) {
+    -webkit-animation-delay: .2s;
+    animation-delay: .2s
+}
+
+.speed-loading .loading > span {
+    width: 15px;
+    height: 15px;
+    margin: 0 3px;
+    border-radius: 50%;
+    transform: scale(0);
+    -ms-transform: scale(0);
+    -webkit-transform: scale(0);
+    animation: ball-load 1s ease-in-out infinite;
+    -webkit-animation: 1s ball-load ease-in-out infinite
+}
+
+
+@-webkit-keyframes ball-load {
+    0% {
+        transform: scale(0);
+        -webkit-transform: scale(0)
+    }
+    50% {
+        transform: scale(1);
+        -webkit-transform: scale(1)
+    }
+    100% {
+        transform: scale(0);
+        -webkit-transform: scale(0)
+    }
+}
+
+@keyframes ball-load {
+    0% {
+        transform: scale(0);
+        -webkit-transform: scale(0)
+    }
+    50% {
+        transform: scale(1);
+        -webkit-transform: scale(1)
+    }
+    100% {
+        transform: scale(0);
+        -webkit-transform: scale(0)
+    }
+}
+
+@-webkit-keyframes close {
+    0% {
+        opacity: 1;
+        /*display: block;*/
+    }
+    100% {
+        opacity: 0;
+        /*display: none;*/
+    }
+}
+
+/**
+动画结束
+ */
+
+
+/**
+主题
+ */
+.layui-speed-color .color-title {
+    padding: 10px 0 10px 20px;
+    border-bottom: 1px solid #d9dada;
+    margin-bottom: 8px;
+}
+
+.layui-speed-color .color-content {
+    padding: 0 5px 0 5px;
+}
+
+.layui-speed-color .color-content ul {
+    list-style: none;
+    text-align: center;
+}
+
+.layui-speed-color .color-content ul li {
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+    width: 80px;
+    height: 50px;
+    margin: 0 15px 15px 0;
+    padding: 2px 2px 4px 2px;
+    background-color: #f2f2f2;
+    cursor: pointer;
+    font-size: 12px;
+    color: #666;
+}
+
+.layui-speed-color .color-content li.layui-this:after, .layui-speed-color .color-content li:hover:after {
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    top: -5px;
+    left: -5px;
+    border-color: #5FB878;
+    opacity: 1;
+}
+
+.layui-speed-color .color-content li:after {
+    content: '';
+    position: absolute;
+    z-index: 20;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 0;
+    border: 1px solid #f2f2f2;
+    transition: all .3s;
+    -webkit-transition: all .3s;
+    opacity: 0;
+}
+
+.layui-speed-color .color-content li:after {
+    content: '';
+    position: absolute;
+    z-index: 20;
+    top: 50%;
+    left: 50%;
+    width: 1px;
+    height: 0;
+    border: 1px solid #f2f2f2;
+    transition: all .3s;
+    -webkit-transition: all .3s;
+    opacity: 0;
+}
+
+/* 侧边菜单 - 平板移动设备 */
+@media screen and (max-width: 768px) {
+    .speed-app .layui-pagetabs {
+        left: 0px;
+    }
+
+    .layui-layout-admin .layui-side {
+        transform: translate3d(-220px, 0, 0);
+        -webkit-transform: translate3d(-220px, 0, 0);
+        width: 220px;
+    }
+
+    .layui-layout-admin .layui-layout-left,
+    .layui-layout-admin .layui-body,
+    .layui-layout-admin .layui-footer {
+        left: 0;
+    }
+
+    .layui-side-shrink .layui-header .layui-layout-left {
+        left: 0px
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-body {
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        left: 0;
+        top: 40px;
+    }
+
+    /*小屏幕缩放*/
+    .layui-side-shrink .layui-side {
+        transform: translate3d(0px, 0, 0);
+        -webkit-transform: translate3d(0px, 0, 0);
+        width: 220px !important;
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-body-shade {
+        display: block;
+    }
+
+    .layui-side-shrink .layui-pagetabs, .layui-side-shrink .layui-layout-admin .layui-footer,
+    .layui-side-shrink .layui-layout-admin .layui-layout-left {
+        left: 0;
+        transform: translate3d(220px, 0, 0);
+        -webkit-transform: translate3d(220px, 0, 0)
+    }
+
+    .layui-layout-admin .layui-layout-right {
+        margin-right: 20px;
+
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-layout-right {
+        transform: translate3d(220px, 0, 0);
+        -webkit-transform: translate3d(220px, 0, 0);
+
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-side .layui-nav {
+        width: 220px;
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-logo {
+        width: 220px !important;
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-logo cite {
+        display: inline-block;
+        width: 160px;
+        text-align: center;
+        font-style: normal;
+        transition: all .2s !important;
+    }
+
+    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav-tree li a cite {
+        display: inline-block !important;
+    }
+
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
+        padding-left: 35px;
+    }
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
+        padding-left: 45px;
+    }
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
+        padding-left: 55px;
+    }
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+        padding-left: 65px;
+    }
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+        padding-left: 75px;
+    }
+
+    .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+        padding-left: 85px;
+    }
+
+    .layui-site-mobile {
+        display: block !important;
+        position: fixed;
+        z-index: 99999;
+        bottom: 15px;
+        left: 15px;
+        width: 40px;
+        height: 40px;
+        line-height: 40px;
+        border-radius: 2px;
+        text-align: center;
+        background-color: rgba(0, 0, 0, .7);
+        color: #fff;
+    }
+}

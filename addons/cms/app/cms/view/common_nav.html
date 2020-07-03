@@ -1,0 +1,75 @@
+<nav class="gj-nav3">
+    <div class="navb-top hidd-xs">
+        <div class="top-text">
+            <div class="gj-left">
+                <span>欢迎您访问lemocms官方网站!</span>
+            </div>
+            <div class="gj-right">
+<!--                <a href="javascript:;" target="_blank"><i class="fa fa-weibo" aria-hidden="true"></i></a>-->
+<!--                <div class="top-wx">-->
+<!--                    <i class="fa fa-weixin" aria-hidden="true"></i>-->
+<!--                    <img src="/static/addons/cms/frontend/picture/190707024719856.jpg" alt="">-->
+<!--                </div>-->
+<!--                <a href="javascript:;" target="_blank"><i class="fa fa-qq" aria-hidden="true"></i></a>-->
+                {if session('uid')}
+                <a href="javascript:;" target="_blank">{:session('user.username')}</a>
+                <a href="{:url('cms/user/logout')}" target="_blank">退出</a>
+
+                {else/}
+                <a href="{:url('cms/user/login')}" target="_blank">登录</a>
+                <a href="{:url('cms/user/register')}" target="_blank">注册</a>
+                {/if}
+
+            </div>
+        </div>
+    </div>
+    <div class="nav-navb">
+        <div class="navb">
+            <div class="gj-left">
+<!--                <a href="index1.html"><img class="logo" src="/static/addons/cms/frontend/picture/logo.png" alt=""></a>-->
+                <a href="http://www.lemocms.com/"><h3>lemocms</h3></a>
+            </div>
+            <div class="gbar hidd-sm hidd-md hidd-lg">
+                <i class="fa fa-bars" aria-hidden="true"></i>
+            </div>
+            <div class="gj-right hidd-xs">
+                <p><i class="fa fa-clock-o" aria-hidden="true"></i>
+                    <span>09:00~18:00</span></p>
+                <p><i class="fa fa-phone-square" aria-hidden="true"></i>
+                    <span>188 8888 8888</span></p>
+            </div>
+        </div>
+    </div>
+    <div class="gj-menu">
+        <div class="menu">
+            <ul>
+                <li class="{if $cateid==''}gxz{/if}"><a href="{:url('index/index')}">网站首页</a></li>
+                {nav cache="0"}
+                {volist name="data" id="vo"}
+                <li class="{if $cateid && in_array($cateid,explode(',',$vo['arrchildid']))} gxz {/if} jnav">
+                    <a href="{$vo.url}">{$vo.catename}</a>
+                    {nav cache="3600" pid="$vo['id']"}
+                    {if $data}
+                    <ul>
+                        {volist name="data" id="v"}
+                        <li><a href="{$v.url}">{$v.catename}</a></li>
+                        {/volist}
+                    </ul>
+                    {/if}
+                    {/nav}
+                </li>
+                {/volist}
+                {/nav}
+
+            </ul>
+            <div class="gj-ss1 hidd-sm">
+                <form action="{:url('index/search')}">
+                    <input type="hidden" name="cateid" value="{$cateid}" id="cateid">
+                    <input type="hidden" name="moduleid" value="{$moduleid}" id="moduleid">
+                    <input type="text" name="keys" placeholder="请输入搜索关键词···">
+                    <button type="submit" id="searchbtn"></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>    <!--Top-IMG-->

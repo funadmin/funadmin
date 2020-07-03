@@ -1,0 +1,54 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">配置分组</label>
+                    <div class="layui-input-inline">
+                        <select name="pid" lay-verify="required">
+                            <option value="">配置分组</option>
+                            {volist name="$configGroup" id="vo"}
+                            <option value="{$vo.name}" {if !empty($info) && $info.type==$vo.name} selected {/if} >{$vo.title}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">配置名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="code" lay-verify="required" placeholder="{:lang('pleaseEnter')}配置名" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        英文字符。不能和当前已有的重复
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">配置值</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="value" lay-verify="required" placeholder="{:lang('pleaseEnter')}配置值" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">备注</label>
+                    <div class="layui-input-inline">
+                        <textarea type="text" name="remark"  placeholder="{:lang('pleaseEnter')}备注" class="layui-textarea"></textarea>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a data-href="{:url('configList')}"  class="layui-btn layui-btn-primary back">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}

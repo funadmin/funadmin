@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>主页</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="lemocms,前端社区">
+  <meta name="description" content="lemobbs社区是模块化后端框架lemocms的官网社区，致力于为php开发提供强劲动力">
+  {include file="common/link" /}
+</head>
+<body style="margin-top: 65px;">
+
+{include file="common/header" /}
+
+<div class="fly-home fly-panel" style="background-image: url();">
+  <img src="{$ouser.avatar}" alt="{$ouser.username}">
+  <i class="iconfont icon-renzheng" title="LEMOBBS社区认证"></i>
+  <h1>
+    {$ouser.username}
+
+    <i class="iconfont  {if $user.sex==1}icon-nan{elseif $user.sex==2 }icon-nv{else /}保密{/if}"></i>
+    <!-- <i class="iconfont icon-nv"></i>  -->
+    <i class="layui-badge fly-badge-vip">VIP{$user.level_id}</i>
+    <!--
+    <span style="color:#c00;">（管理员）</span>
+    <span style="color:#5FB878;">（社区之光）</span>
+    <span>（该号已被封）</span>
+    -->
+  </h1>
+  {if $ouser.auth_info}
+  <p style="padding: 10px 0; color: #5FB878;">认证信息：{$ouser.auth_info} </p>
+  {/if}
+  <p class="fly-home-info">
+    <i class="iconfont icon-kiss" title="L币"></i><span style="color: #FF7200;">{$ouser.scores} L币</span>
+    <i class="iconfont icon-shijian"></i><span>{:timeAgo($ouser.create_time)} 加入</span>
+    {if $ouser.province}<i class="iconfont icon-chengshi"></i><span>来自{:getRegionById($ouser.province)['name']}</span>{/if}
+  </p>
+  {if $ouser.sign}
+  <p class="fly-home-sign">（{$ouser.sign}）</p>
+  {/if}
+<!--  <div class="fly-sns" data-user="">-->
+<!--    <a href="javascript:;" class="layui-btn layui-btn-primary fly-imActive" data-type="addFriend">加为好友</a>-->
+<!--    <a href="javascript:;" class="layui-btn layui-btn-normal fly-imActive" data-type="chat">发起会话</a>-->
+<!--  </div>-->
+
+</div>
+
+<div class="layui-container">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md6 fly-home-jie">
+      <div class="fly-panel">
+        <h3 class="fly-panel-title">{$ouser.username} 最近的提问</h3>
+        <ul class="jie-row">
+          {if $article}
+          {volist name="article" id="vo"}
+          <li>
+            {if $vo.is_fine==1}
+            <span class="fly-jing">精</span>
+            {/if}
+            <a href="{:url('bbs/detail',['id'=>$vo.id])}" class="jie-title">{$vo.title}</a>
+            <i>{:timeAgo($vo.create_time)}</i>
+            <em class="layui-hide-xs">{$vo.click}阅/{$vo.comment_count}答</em>
+          </li>
+          {/volist}
+          {else /}
+           <div class="fly-none" style="min-height: 50px; padding:30px 0; height:auto;"><i style="font-size:14px;">没有发表任何求解</i></div>
+          {/if}
+        </ul>
+        {$article|raw}
+      </div>
+    </div>
+    
+    <div class="layui-col-md6 fly-home-da">
+      <div class="fly-panel">
+        <h3 class="fly-panel-title">{$ouser.username} 最近的文章</h3>
+        <ul class="home-jieda">
+          {if $comment}
+          {volist name="comment" id="vo"}
+          <li>
+          <p>
+          <span>{:timeAgo($vo.create_time)}</span>
+          在<a href="{:url('bbs/detail')}?id={$vo.bbs_id}" target="_blank">{$vo['bbs']['title']}</a>中回答：
+          </p>
+          <div class="home-dacontent">
+            {$vo.content}
+          </div>
+        </li>
+          {/volist}
+
+          {else /}
+           <div class="fly-none" style="min-height: 50px; padding:30px 0; height:auto;"><span>没有回答任何问题</span></div>
+          {/if}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{include file="common/footer" /}
+<script>layui.cache.page = 'user';</script>
+
+</body>
+</html>

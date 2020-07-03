@@ -1,0 +1,132 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">表单名字</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="name" lay-verify="required" placeholder="{:lang('pleaseEnter')}表单名字" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        在4到25个字符之间。
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('title')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="title" placeholder="{:lang('pleaseEnter')}{:lang('title')}"  lay-verify="required" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('seotitle')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="seotitle" placeholder="{:lang('pleaseEnter')}{:lang('seotitle')}"  lay-verify="required" class="layui-input">
+                    </div>
+
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('keywords')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="keywords" placeholder="{:lang('pleaseEnter')}{:lang('keywords')}"  lay-verify="" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('description')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="description" placeholder="{:lang('pleaseEnter')}{:lang('description')}"  lay-verify="" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('tablename')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" value="cms_" name="tablename" placeholder="{:lang('pleaseEnter')}{:lang('tablename')}"  lay-verify="" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        请加上 cms_ 前缀
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('needlogin')}</label>
+                    <div class="layui-input-inline">
+                        <input type="radio" name="needlogin" checked lay-verify="number" value="0" placeholder="{:lang('pleaseEnter')}{:lang('needlogin')}" title='不需要'>
+                        <input type="radio" name="needlogin" lay-verify="number" value="1" placeholder="{:lang('pleaseEnter')}{:lang('needlogin')}" title="需要">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('successtips')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" value="" name="successtips" placeholder="{:lang('pleaseEnter')}{:lang('successtips')}"  lay-verify="" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        成功跳转提示
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('redirecturl')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" value="" name="redirecturl" placeholder="{:lang('pleaseEnter')}{:lang('redirecturl')}"  lay-verify="" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        跳转地址
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('template')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" value="" name="redirecturl" placeholder="{:lang('pleaseEnter')}{:lang('redirecturl')}"  lay-verify="" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                       模板
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('status')}</label>
+                    <div class="layui-input-inline">
+                        <input type="radio" name="status" lay-verify="number" value="1" checked placeholder="{:lang('pleaseEnter')}{:lang('status')}" title="激活">
+                        <input type="radio" name="status" lay-verify="number" value="0" placeholder="{:lang('pleaseEnter')}{:lang('status')}" title='不激活'>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a href="{:url('index')}" class="layui-btn layui-btn-primary">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.use(['form', 'layer','upload'], function () {
+        var form = layui.form, layer = layui.layer,$= layui.jquery,upload = layui.upload;
+        var info = '';
+        info = {:json_encode($info)};
+        form.val("form", info);
+        form.on('submit(submit)', function (data) {
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+            $.post("", data.field, function (res) {
+                layer.close(loading);
+                if (res.code > 0) {
+                    layer.msg(res.msg, {time: 1800, icon: 1}, function () {
+                        location.href = res.url;
+                    });
+                } else {
+                    layer.msg(res.msg, {time: 1800, icon: 2});
+                }
+            });
+        });
+
+    });
+</script>

@@ -1,0 +1,114 @@
+{include file="common/header"/}
+<style type="text/css">
+    /*{设置table每一行的height #}*/
+    .layui-table-cell {
+        height: auto;
+        line-height: 50px;
+    }
+</style>
+<div class="speed-container">
+    <div class="speed-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('attach')}{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="speed-table">
+                    <div class="layui-inline">
+                        <input type="text" id='keys' name="keys" lay-verify="required"
+                               placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
+                    </div>
+                    <a  href="javascript:;" class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="search" id="search">
+                        {:lang('search')}
+                    </a>
+                    <a href="javascript:;" data-href="{:url('add')}" class="layui-btn layui-btn-sm layui-btn-warm add">{:lang('add')}{:lang('attach')}</a>
+                    <a href="javascript:;"  class="layui-btn layui-btn-sm layui-btn-danger" id="delAll">{:lang('delete checked')}</a>
+                </div>
+            </blockquote>
+        </fieldset>
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+<script type="text/html" id="action">
+    <a  class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="selectAttach">{:lang('select')}</a>
+</script>
+
+<script type="text/html" id="mime">
+
+{{# if(d.mime=='image/jpeg' || d.mime=='image/gif' || d.mime=='image/png' || d.mime=='image/webp' || d.mime=='image/bmp')  { }}
+<img src="__STATIC__/admin/images/filetype/image.jpg" alt="图片" width="50">
+{{# }else if(d.mime=='application/pdf') { }}
+<img src="__STATIC__/admin/images/filetype/pdf.jpg" alt="pdf" width="50">
+{{# }else if(d.mime=='application/zip') { }}
+<img src="__STATIC__/admin/images/filetype/zip.jpg" alt="zip" width="50">
+{{# }else if(d.mime=='application/msexcel' || d.mime=='application/mspowerpoint' || d.mime=='application/msword') { }}
+<img src="__STATIC__/admin/images/filetype/office.jpg" alt="文档" width="50">
+{{# }else{ }}
+<img src="__STATIC__/admin/images/filetype/file.jpg" alt="文件" width="50">
+{{# } }}
+
+</script>
+
+<script type="text/html" id="path">
+    <a href="{{d.path}}" target="_blank"><img class="layui-bg-green" src="{{d.path}}" width="50" ></a>
+</script>
+
+<!--<script type="text/html" id="toolbar">-->
+<!--    <div class="layui-btn-container">-->
+<!--        &lt;!&ndash;        <button class="layui-btn layui-btn-sm" lay-event="getCheckData">获取选中行数据</button>&ndash;&gt;-->
+<!--        &lt;!&ndash;        <button class="layui-btn layui-btn-sm" lay-event="getCheckLength">获取选中数目</button>&ndash;&gt;-->
+<!--        &lt;!&ndash;        <button class="layui-btn layui-btn-sm" lay-event="isAll">验证是否全选</button>&ndash;&gt;-->
+<!--    </div>-->
+<!--</script>-->
+{include file="common/footer"/}
+<script>
+    var tableIn;
+    layui.config({
+        base: "__STATIC__/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['element', 'layer', 'Admin'], function () {
+        var $ = layui.jquery,
+            layer = layui.layer,
+            form = layui.form,
+            table = layui.table;
+        tableIn = table.render({
+            elem: '#list',
+            url: '{:url("")}'+'?mime='+'{$mime}',
+            method: 'post',
+            title: '附件数据表',
+            // toolbar: '#toolbar', //开启头部工具栏，并为其绑定左侧模板
+
+            defaultToolbar: ['filter', 'exports', 'print', { //自定义头部工具栏右侧图标。如无需自定义，去除该参数即可
+                title: '提示'
+                ,layEvent: 'LAYTABLE_TIPS'
+                ,icon: 'layui-icon-tips' }],
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'name', title: '文件名', width: 120,},
+                {field: 'mime', title: '文件类型', width: 120, templet:'#mime'},
+                {field: 'path', title: '图片', minWidth: 120,  templet:'#path'},
+                {field: 'ext', title: '后缀', width: 80,},
+                {field: 'size', title: '大小', width: 80, },
+                {field: 'driver', title: '驱动', width: 80, },
+                {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true
+        });
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'selectAttach'){
+                $(".attach", window.parent.document).val(data.path);
+                $(".layui-upload-img", window.parent.document).attr('src',data.path);
+                index = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(index)
+            }
+
+        });
+    });
+</script>

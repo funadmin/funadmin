@@ -1,0 +1,217 @@
+{include file="common/header"/}
+<style>
+    /* 防止下拉框的下拉列表被隐藏---必须设置--- 此样式和表格的样式有冲突 如果表格列数太多 会出现错乱的情况 目前我的解决方法是忽略下拉框的美化渲染 <select lay-ignore> */
+    .layui-table-cell {
+        overflow: visible;
+    }
+
+    .layui-table-box {
+        overflow: visible;
+    }
+
+    .layui-table-body {
+        overflow: visible;
+    }
+</style>
+<div class="LM-container">
+    <div class="LM-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('fans')}{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="LM-table">
+                    <form class="layui-form" action="">
+
+                        <div class="layui-input-inline">
+
+                            <select name="wx_aid" lay-filter="select" lay-verify="required" lay-search="">
+                                <option value="">直接选择或搜索选择</option>
+                                {volist name='wxAccount' id ='vo'}
+                                <option value="{$vo.id}" {if $vo.status==1 } selected {/if}>{$vo.wxname}</option>
+                                {/volist}
+                            </select>
+                        </div>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-warm aysn">同步粉丝</a>
+
+                        <div class="layui-inline">
+                            <input type="text" id='keys' name="keys" lay-verify="required"
+                                   placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
+                        </div>
+                        <a href="javascript:;" class="layui-btn data-add-btn layui-btn-sm" lay-submit=""
+                           lay-filter="search" id="search">{:lang('search')}</a>
+
+                    </form>
+                </div>
+
+            </blockquote>
+
+        </fieldset>
+
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+
+<!--<script type="text/html" id="action">-->
+<!--    <a href="{:url('edit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>-->
+<!--    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>-->
+<!--</script>-->
+<script type="text/html" id="subscribe">
+    <input type="checkbox" name="status" value="{{d.id}}" disabled lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+
+<script type="text/html" id="headimgurl">
+    {{d.nickname}}<img src="/static/addons/wechat/images/image.gif" onmouseover="layer.tips('<img src={{d.headimgurl}}>',this,{tips: [1, '#fff']});" onmouseout="layer.closeAll();">
+</script>
+<script type="text/html" id="sex">
+    {{# if(d.sex==1){ }}
+    男
+    {{# }else if( d.sex==2){ }}
+    女
+    {{# }else{ }}
+    保密
+    {{# } }}
+</script>
+<script type="text/html" id="tag">
+
+    <select name="tag" lay-filter="tagSelect" lay-verify="required" data-value="{{d.tag}}" >
+        <option value=""></option>
+        {{# layui.each(d.tag_list, function(index, item){ }}
+            {{# if(d.tag==item.name){ }}
+            <option value="{{item.name}}" title="{{d.fans_id}}" selected>{{item.name}}</option>
+            {{# }else{ }}
+            <option value="{{item.name}}" title="{{d.fans_id}}" >{{item.name}}</option>
+
+            {{# } }}
+        {{# }); }}
+
+    </select>
+</script>
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.subscribe_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+
+<script type="text/html" id="update_time">
+    {{# if(d.unsubscribe_time) { }}
+    {{layui.util.toDateString(d.unsubscribe_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+    {{# } }}
+</script>
+{include file="common/footer"/}
+<script>
+    layui.use(['form', 'table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+        var tableIn = table.render({
+            elem: '#list',
+            url: '{:url("fans")}',
+            method: 'post',
+            size: 'lg',
+            parseData: function(res){ //res 即为原始返回的数据
+                return {
+                    "code": res.code, //解析接口状态
+                    "msg": res.msg, //解析提示文本
+                    "count": res.total, //解析数据长度
+                    "data": res.data, //解析数据列表
+                    'tag':res.tag,
+                };
+            },
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'fans_id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'uid', title: '会员id', width: 80, fixed: true, sort: true},
+                {field: 'nickname', title: '昵称', width: 180,sort: true},
+                {field: 'headimgurl', title: '头像', width: 150,templet:'#headimgurl',sort: true},
+                {field: 'sex', title: '性别', width: 120, templet:'#sex',sort: true},
+                // {field: 'openid', title: 'openid', width: 120, sort: true},
+                // {field: 'unionid', title: 'unionid', width: 120, sort: true},
+                {field: 'groupid', title: '粉丝所在组id', width: 120,sort: true},
+                {field: 'subscribe', title: '是否关注', width: 120,templet:'#subscribe',sort: true},
+                {field: 'remark', title: '类型', width: 120, sort: true},
+                {field: 'tag', title: '标签', width: 120,sort: true,templet:'#tag'},
+                {field: 'subscribe_time', title: '订阅时间', width: 180,templet:'#create_time',sort: true},
+                {field: 'unsubscribe_time', title: '解订阅时间', width: 180,templet:'#update_time',sort: true},
+                // {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+            done: function (res, curr, count) {
+
+                form.render();
+            },
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true,
+        });
+
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    loading =layer.load(1, {shade: [0.1,'#fff']});
+                    $.post("{:url('delete')}",{id:data.id},function(res){
+                        layer.close(loading);
+                        layer.close(index);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                });
+            }
+
+        });
+        // 监听修改update到表格中
+        form.on('select(tagSelect)', function (data) {
+            // debugger;
+            var indexGID = data.elem.selectedIndex;
+            //获取当前选中下拉项的自定义属性值 title
+            var id = data.elem[indexGID].title;
+            $.post('{:url("fansTagGroup")}',{id:id,tag:data.value},function (res) {
+                if(res.code>0){
+                    tableIn.reload({ page: {page: 1} });
+                }
+            });
+
+        });
+        form.on('select(select)', function(data) {
+
+            var wx_aid = data.value;
+            tableIn.reload({ page: {page: 1},where: {wx_aid: wx_aid}});
+
+
+
+        })
+        //同步
+        $('.aysn').click(function () {
+            var url = '{:url("fansAysn")}';
+            var wx_aid = $("select[name='wx_aid']").val();
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+
+            $.post(url,{'wx_aid':wx_aid},function (res) {
+                layer.close(loading);
+                if(res.code>0){
+                    layer.msg(res.msg)
+                    tableIn.reload();
+                }else{
+                    return layer.msg(res.msg)
+
+                }
+            })
+        })
+        $('#search').click(function () {
+            var $keys = $('#keys').val();
+            if(!$keys){
+                return layer.msg('请输入关键词');
+            }
+
+            tableIn.reload({ page: {page: 1},where: {keys: $keys}});
+
+        })
+
+
+    });
+
+
+</script>

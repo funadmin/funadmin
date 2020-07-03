@@ -1,0 +1,107 @@
+{include file="common/header"/}
+
+<div class="LM-container">
+    <div class="LM-main">
+
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>回复{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="LM-table">
+
+                    <a href="{:url('replyAdd')}" class="layui-btn layui-btn-sm layui-btn-warm">{:lang('add')}关键词回复</a>
+
+                </div>
+
+            </blockquote>
+
+        </fieldset>
+
+        <div class="layui-tab layui-tab-brief" lay-filter="lemo-brief">
+            <ul class="layui-tab-title">
+                {volist name="typeList" id="vo"}
+                <li {if $vo.type== $type } class="layui-this" {/if}><a href="{$vo.url}">{$vo.item}</a></li>
+                {/volist}
+            </ul>
+            <div class="layui-tab-content" style="height: auto;">
+                <div class="layui-tab-item layui-show">
+                    <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+                        <legend>字段信息</legend>
+                    </fieldset>
+
+
+                    <table class="layui-table" id="list" lay-filter="list"></table>
+
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/html" id="action">
+    <a href="{:url('replyEdit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    {{# if(d.type=='keyword') { }}
+    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+    {{# } }}
+</script>
+
+
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script>
+    layui.use(['form', 'table','element'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table,
+            element = layui.element;
+        var info = {:json_encode($info)};
+        var tableIn = table.render({
+            elem: '#list',
+            data:info,
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'keyword', title: '关键字', width: 120,},
+                {field: 'type', title: '事件类型', width: 120,},
+                {field: 'msg_type', title: '回复消息类型 ', width: 120, },
+                {field: 'data', title: '文本回复内容', width: 120, },
+                {field: 'material_id', title: '媒体id', width: 120,},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '更新时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+
+        });
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    loading =layer.load(1, {shade: [0.1,'#fff']});
+                    $.post("{:url('replyDel')}",{id:data.id},function(res){
+                        layer.close(loading);
+                        layer.close(index);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                });
+            }
+
+        });
+
+    });
+
+
+</script>

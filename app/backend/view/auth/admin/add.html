@@ -1,0 +1,96 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <blockquote class="layui-elem-quote">
+                    {$title}
+                </blockquote>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('AuthGroup')}</label>
+                    <div class="layui-input-inline">
+                        <select name="group_id" lay-verify="required" {if !empty($formData) && $formData.group_id !=1 }disabled{/if}>
+                            <option value="">请选择用户组</option>
+                            {volist name="authGroup" id="vo"}
+                            <option value="{$vo.id}" {if !empty($formData) && $formData.group_id==$vo.id} selected {/if} >{$vo.title}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('username')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="username" lay-verify="required" placeholder="{:lang('pleaseEnter')}登录用户名" class="layui-input {if $formData && $formData.id!==1}layui-disabled{/if}"  {if  $formData && $formData.id!==1}readonly="readonly"{/if}>
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        用户名在4到25个字符之间。
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('password')}</label>
+                    <div class="layui-input-inline">
+                        <input type="password" name="password" placeholder="{:lang('pleaseEnter')}登录密码" autocomplete="true" {if !empty($formData)} lay-verify="required"{/if} class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        密码必须大于6位，小于15位。
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">头像</label>
+                    <input type="hidden" name="avatar" id="avatar">
+                    <div class="layui-input-inline">
+                        <div class="layui-upload">
+                            <button type="button" class="layui-btn layui-btn-primary" data-path="user" id="uploads"><i class="icon icon-upload3"></i>点击上传</button>
+                            <div class="layui-upload-list">
+                                <img class="layui-upload-img" id="addPic">
+                                <p id="notice"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('email')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="email" lay-verify="email" placeholder="{:lang('pleaseEnter')}用户邮箱" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        用于密码找回，请认真填写。
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('mobile')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="mobile" lay-verify="phone" value="" placeholder="{:lang('pleaseEnter')}手机号" class="layui-input">
+                    </div>
+                </div>
+                {include file="common/subBtn"/}
+
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: '__STATIC__/admin/js/',
+        version: true
+    }).extend({
+        Admin: 'Admin',
+    }).use(['form','Admin'], function () {
+        var form = layui.form, layer = layui.layer,$= layui.jquery;
+        var formData = '';
+        formData = {:json_encode($formData)};
+        form.val("form", formData);
+        if(formData){
+            $('#addPic').attr('src',formData.avatar);
+        }
+        form.render();
+
+    });
+</script>

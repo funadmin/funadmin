@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>lemo bbs社区</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="SpeedAdmin,lemomall,php开发社区">
+  <meta name="description" content="lemo社区是SpeedAdmin官方社区，致力于为php开发提供强劲动力">
+  {include file='common/link' /}
+</head>
+<body>
+{include file="common/header" /}
+{include file="common/column" /}
+
+<div class="layui-container fly-marginTop">
+	<div class="fly-panel">
+	  <div class="fly-none">
+          {if $info.code==0}
+	         <h2><i class="iconfont icon-404"></i></h2>
+          <p>{$info.msg}<a href="{:url('user/activate')}" target="_blank" class="">重新激活</a></p>
+
+          {else /}
+          <h2><i class="iconfont layui-icon-ok" style="color: #009688"></i></h2>
+          <p>{$info.msg}<a href="https://bbs.SpeedAdmin.com" target="_blank" class="">进入 lemobbs 社区</a></p>
+          {/if}
+
+      </div>
+	</div>
+</div>
+
+{include file='common/footer' /}
+
+
+</body>
+</html>

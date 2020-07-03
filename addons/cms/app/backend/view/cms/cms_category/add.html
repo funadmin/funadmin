@@ -1,0 +1,236 @@
+{include file="common/header"/}
+<div class="lemo-container">
+    <div class="lemo-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+
+                <div class="layui-tab layui-tab-brief" lay-filter="docDemoTabBrief">
+                    <ul class="layui-tab-title">
+                        <li class="layui-this">基本设置</li>
+                        <li class="">SEO设置</li>
+                        <li>选项设置</li>
+                        <li>模板设置</li>
+                        <li>栏目介绍</li>
+
+                    </ul>
+                    <div class="layui-tab-content">
+                        <div class="layui-tab-item layui-show">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">所属位置</label>
+                                <div class="layui-input-inline">
+                                    <select name="pid" lay-verify="required">
+                                        <option value="0">默认顶级</option>
+                                        {volist name="colGroup" id="vo"}
+                                        <option value="{$vo.id}" {if !empty($info) && $info.pid==$vo.id} selected {/if} >{$vo.lcatename}</option>
+                                        {/volist}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">模型</label>
+                                <div class="layui-input-inline">
+                                    <select name="moduleid" lay-verify="required">
+                                        <option value="">请选择</option>
+                                        {volist name="moduleGroup" id="vo"}
+                                        <option value="{$vo.id}" {if !empty($info) && $info.moduleid==$vo.id} selected {/if} >{$vo.name}</option>
+                                        {/volist}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">栏目名</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="catename" lay-verify="required" placeholder="{:lang('pleaseEnter')}栏目名" class="layui-input">
+                                </div>
+
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">栏目标识</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="catedir" lay-verify="" placeholder="{:lang('pleaseEnter')}栏目标识" class="layui-input">
+                                </div>
+
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">缩略图</label>
+                                <input type="hidden" name="thumb" id="avatar">
+                                <div class="layui-input-inline">
+                                    <div class="layui-upload">
+                                        <button type="button" class="layui-btn layui-btn-primary"  data-path="cms" id="uploads"><i class="icon icon-upload3"></i>点击上传</button>
+                                        <div class="layui-upload-list">
+                                            <img class="layui-upload-img" id="addPic">
+                                            <p id="notice"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layui-tab-item">
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">SEO标题</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="title" lay-verify="require" placeholder="{:lang('pleaseEnter')}标题" class="layui-input">
+                                </div>
+
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">SEO关键词</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="keywords" lay-verify="require" placeholder="{:lang('pleaseEnter')}关键词" class="layui-input">
+                                </div>
+                                <div class="layui-form-mid layui-word-aux">
+                                    (多个关键词用空格隔开)
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">SEO描述</label>
+                                <div class="layui-input-inline">
+                                    <textarea type="text" name="description" lay-verify="require" placeholder="{:lang('pleaseEnter')}描述" class="layui-textarea"></textarea>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="layui-tab-item">
+                                            <div class="layui-form-item">
+                                                <label class="layui-form-label">页面类型</label>
+                                                <div class="layui-input-inline">
+                                                    <input type="radio" name="type" lay-filter="type" value="0" title="列表"  checked="">
+                                                    <input type="radio" name="type" lay-filter="type" value="1" title="单页" >
+                                                    <input type="radio" name="type" lay-filter="type" value="2" title="外链" >
+                                                    <input style="display: none" type="text" class="layui-input" id="type" name="url" placeholder="请输入完整链接https://www.lemocms.com " >
+                                                </div>
+                                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">排序</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="sort" value="50" placeholder="{:lang('pleaseEnter')}描述" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">点击量</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="click" value="100" lay-verify="number" placeholder="{:lang('pleaseEnter')}点击量" class="layui-input">
+                                </div>
+
+                            </div>
+
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">分页大小</label>
+                                <div class="layui-input-inline">
+                                    <input type="text" name="page_size" value="15" lay-verify="number" placeholder="{:lang('pleaseEnter')}分页" class="layui-input">
+                                </div>
+
+                            </div>
+
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">菜单显示</label>
+                                <div class="layui-input-block">
+                                    <input type="radio" name="is_menu" value="1" title="显示" checked>
+                                    <input type="radio" name="is_menu" value="0" title="不显示">
+                                </div>
+                            </div>
+
+                            <div class="layui-form-item">
+                                <label class="layui-form-label">{:lang('status')}</label>
+                                <div class="layui-input-inline">
+                                    <input type="radio" name="status" value="1" title="启用" checked>
+                                    <input type="radio" name="status" value="0" title="禁用">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layui-tab-item">
+                            <div class="layui-form-item web_list">
+                                <label class="layui-form-label">列表模板</label>
+                                <div class="layui-input-inline">
+                                    <select name="template_list">
+                                        <option value="list.html" selected>默认栏目列表页:list.html</option>
+                                        {volist name="_list" id="vo"}
+                                        <option value="{$vo}">{$vo}</option>
+                                        {/volist}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-form-item web_list">
+                                <label class="layui-form-label">内容模板</label>
+                                <div class="layui-input-inline">
+                                    <select name="template_show">
+                                        <option value="show.html" selected>默认内容页:show.html</option>
+                                        {volist name="_show" id="vo"}
+                                        <option value="{$vo}">{$vo}</option>
+                                        {/volist}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="layui-tab-item">
+                            <div class="layui-form-item ">
+                                <label class="layui-form-label">栏目详情介绍</label>
+                            </div>
+                            <script id="container" name="content" type="text/plain"></script>
+                            {$ueditor|raw}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a href="{:url('index')}" class="layui-btn layui-btn-primary">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['element','form', 'layer', 'Admin'], function () {
+        var form = layui.form, $= layui.jquery,element = layui.element;
+        var info = '';
+
+        info = {:json_encode($info)};
+        form.val("form", info);
+        if(info){
+            $('#addPic').attr('src',info.thumb);
+        }
+        form.render();
+        form.on('radio(type)',function (data) {
+           if(data.value==2){
+               $('#type').show();
+           }else{
+               $('#type').hide();
+
+           }
+        })
+        UE.Editor.prototype._bkGetActionUrl = UE.Editor.prototype.getActionUrl;
+        UE.Editor.prototype.getActionUrl = function (action) {
+            if (action == 'uploadimage' || action == 'uploadscrawl' || action == 'uploadimage') {
+                return '{:url("sys.uploads/uploads")}?type=image&path=cms';
+            } else if (action == 'uploadvideo') {
+                return '{:url("sys.uploads/uploads")}?type=video&path=cms';
+            }else if(action == 'uploadvoice'){
+                return '{:url("sys.uploads/uploads")}?type=voice&path=cms'
+            }else if (action == 'listimage') {
+                return  '{:url("sys.uploads/getList")}?type=image&path=cms';
+            } else {
+                return this._bkGetActionUrl.call(this, action);
+            }
+        };
+        UE.getEditor('container').addListener("selectionchange", function () {
+            changeElement('content');
+        });
+        var ue = UE.getEditor('container', {scaleEnabled: false});
+    });
+</script>

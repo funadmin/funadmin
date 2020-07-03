@@ -1,0 +1,80 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>权限组{:lang('list')}</legend>
+                <blockquote class="layui-elem-quote">
+                    <div class="speed-table">
+                        <form class="layui-form layui-form-pane" action="{:url('groupAdd')}" lay-filter="form" method="post" >
+                            <div class="layui-inline">
+                                <input type="text" name="title" lay-verify="required" placeholder="{:lang('pleaseEnter')}添加" autocomplete="off" class="layui-input">
+                            </div>
+                            <button class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="submit">{:lang('add')}</button>
+                        </form>
+                    </div>
+                  </blockquote>
+
+            </fieldset>
+
+
+
+            <table class="layui-table" id="list" lay-filter="list"></table>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/html" id="action">
+    <a data-href="{:url('groupAccess')}?id={{d.id}}" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="edit">配置规则</a>
+    <a data-href="{:url('groupEdit')}?id={{d.id}}" class="layui-btn layui-btn-warm layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    {{# if(d.id==1){ }}
+    <a class="layui-btn layui-btn-danger layui-btn-xs layui-btn-disabled">{:lang('del')}</a>
+    {{# }else{  }}
+    <a class="layui-btn layui-btn-danger layui-btn-xs"  data-href="{:url('groupDel')}" lay-event="del">{:lang('del')}</a>
+    {{# } }}
+</script>
+<script type="text/html" id="status">
+    {{# if(d.id==1){ }}
+    <input type="checkbox" disabled name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" data-href="{:url('groupState')}" lay-filter="status" checked>
+    {{# }else{  }}
+    <input type="checkbox" name="status"  value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" data-href="{:url('groupState')}" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+    {{# } }}
+</script>
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script>
+    var tableIn;
+    layui.config({
+        base: "__STATIC__/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['element','form', 'layer', 'Admin','table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+        tableIn = table.render({
+            elem: '#list',
+            url: '{:url("group")}',
+            method: 'post',
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'title', title: '组名', width: 150,},
+                {field: 'status', title: '状态', width: 180, templet:'#status'},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '修改时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:250, toolbar: '#action',align:"center"},
+
+            ]],
+
+        });
+    });
+
+</script>

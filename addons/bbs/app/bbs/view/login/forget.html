@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>找回密码/重置密码</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="lemocms,前端社区">
+  <meta name="description" content="lemobbs社区是模块化后端框架lemocms的官网社区，致力于为php开发提供强劲动力">
+  {include file="common/link" /}
+</head>
+<body>
+
+{include file="common/header"}
+<div class="layui-container fly-marginTop">
+  <div class="fly-panel fly-panel-user" pad20>
+    <div class="layui-tab layui-tab-brief" lay-filter="user">
+      <ul class="layui-tab-title">
+        <li><a href="login.html">登入</a></li>
+        <li class="layui-this">找回密码<!--重置密码--></li>
+      </ul>
+      <div class="layui-form layui-tab-content" id="LAY_ucm" style="padding: 20px 0;">
+        <div class="layui-tab-item layui-show">
+          <!-- 重置密码 -->
+          {if cookie('forget_uid') && cookie('forget_code')}
+
+          <div class="fly-msg">{:getUserById(cookie('forget_uid'))['username']}，请重置您的密码 <a href="{:url('forget',['type'=>1])}"> 没收到邮件？点击重新发送</a></div>
+          <div class="layui-form layui-form-pane"  style="margin-top: 30px;">
+            <form action="{:url('repass')}" method="post">
+              <div class="layui-form-item">
+                <label for="L_pass" class="layui-form-label">密码</label>
+                <div class="layui-input-inline">
+                  <input type="password" id="L_pass" name="password" required lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-form-mid layui-word-aux">6到16个字符</div>
+              </div>
+              <div class="layui-form-item">
+                <label for="L_repass" class="layui-form-label">确认密码</label>
+                <div class="layui-input-inline">
+                  <input type="password" id="L_repass" name="repassword" required lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+              </div>
+              <div class="layui-form-item">
+                <label for="L_vercode" class="layui-form-label">验证码</label>
+                <div class="layui-input-inline">
+                  <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请输入邮箱验证码" autocomplete="off" class="layui-input">
+                </div>
+<!--                <div class="layui-form-mid" style="padding: 0!important;">-->
+<!--                  <span style="color: #c00;">-->
+<!--                    <img  id="captchaPic" src="{:url('verify')}?{:time()}" alt="验证码" onclick="this.src='{:url("verify")}?'+'id='+Math.random()" style="height: 36px;border: 1px solid #ececec;"/>-->
+<!--                  </span>-->
+<!--                </div>-->
+              </div>
+              {:token_field('__token__', 'sha1')}
+              <div class="layui-form-item">
+                <input type="hidden" name="id" value="{:cookie('forget_uid')}">
+                <input type="hidden" name="email" value="{:cookie('email')}">
+                <button class="layui-btn" lay-filter="*" lay-submit>提交</button>
+              </div>
+            </form>
+          </div>
+
+          {if cookie('forget_uid') && !cookie('forget_code')}
+          <div class="fly-error">该重置密码链接已失效，请重新校验您的信息</div>
+          <div class="fly-error">非法链接，请重新校验您的信息</div>
+          {/if}
+          {else/}
+          <div class="layui-form layui-form-pane">
+            <form method="post">
+              <div class="layui-form-item">
+                <label for="L_email" class="layui-form-label">邮箱</label>
+                <div class="layui-input-inline">
+                  <input type="text" id="L_email" name="email" required lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+              </div>
+              <div class="layui-form-item">
+                <label for="L_vercode" class="layui-form-label">验证码</label>
+                <div class="layui-input-inline">
+                  <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请回答后面的问题" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-form-mid" style="padding: 0!important;">
+                  <span style="color: #c00;">
+                    <img  id="captchaPic" src="{:url('verify')}?{:time()}" alt="验证码" onclick="this.src='{:url("verify")}?'+'id='+Math.random()" style="height: 36px;border: 1px solid #ececec;"/>
+                  </span>
+                </div>
+              </div>
+              {:token_field('__token__', 'sha1')}
+              <div class="layui-form-item">
+                <button class="layui-btn"  lay-filter="*" lay-submit>提交</button>
+              </div>
+            </form>
+          </div>
+          {/if}
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+</div>
+
+{include file="common/footer" /}
+<script>layui.cache.page = 'user';</script>
+
+</body>
+</html>

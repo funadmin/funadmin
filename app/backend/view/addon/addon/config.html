@@ -1,0 +1,126 @@
+{include file="common/header"/}
+<div class="speed-container">
+    <div class="speed-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>插件配置-{$info.title}</legend>
+        </fieldset>
+        <form class="layui-form layui-form-pane" lay-filter="form">
+            {foreach name="info.config" item="vo" key="k"}
+            {switch name="vo.type"}
+            {case value="text"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="config[{$k}]" lay-verify="{$vo.rule}" placeholder="请输入{$vo.title}" autocomplete="off" class="layui-input" value="{$vo.value}">
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="textarea"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-input-inline">
+                    <textarea name="config[{$k}]" placeholder="请输入{$vo.title}" lay-verify="{$vo.rule}" class="layui-textarea" >{$vo.value}</textarea>
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="password"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-input-inline">
+                    <input type="password" name="config[{$k}]" lay-verify="{$vo.rule}" placeholder="请输入{$vo.title}" autocomplete="off" class="layui-input" value="{$vo.value}">
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="radio"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-input-inline">
+                    {foreach name="vo.content" item="v" key="_k"}
+                    <input type="radio" name="config[{$k}]" lay-verify="{$vo.rule}" value="{$_k}" title="{$v}" {eq name="vo.value" value="$_k"} checked{/eq}>
+                    {/foreach}
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="select"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-input-inline">
+                    <select name="config[{$k}]" lay-verify="{$vo.rule}">
+                        <option value=""></option>
+                        {foreach name="vo.content" item="v" key="_k"}
+                        <option value="{$_k}" {eq name="vo.value" value="$_k"}selected{/eq}>{$v}</option>
+                        {/foreach}
+                    </select>
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="image"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <input type="hidden" name="config[{$k}]" id="avatar" value="{$vo.value}">
+                <div class="layui-input-inline">
+                    <div class="layui-upload">
+                        <button type="button" class="layui-btn layui-btn-primary" data-path="{$info.name}" id="uploads"><i class="icon icon-upload3"></i>点击上传</button>
+                        <div class="layui-upload-list">
+                            <img class="layui-upload-img"  src="{$vo.value}" id="addPic">
+                            <p id="notice"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {case value="array"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{$vo.title}</label>
+                <div class="layui-inline">
+                    {php} $i=-1;{/php}
+                    {foreach name="vo.content" item="v" key="_k"}
+                    {php}$i++;{/php}
+                    <div class="layui-inline">
+                        <label class="layui-form-label">键</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="config[{$k}][{$i}][key]" lay-verify="{$vo.rule}" placeholder="请输入键" autocomplete="off" class="layui-input" value="{$_k}">                        </div>
+                    </div>
+                    <div class="layui-inline">
+                        <label class="layui-form-label">值</label>
+                        <div class="layui-input-inline">
+                            <input type="text" name="config[{$k}][{$i}][value]" lay-verify="{$vo.rule}" placeholder="请输入值" autocomplete="off" class="layui-input" value="{$v}">                        </div>
+                    </div>
+                    <br>
+                    {/foreach}
+                </div>
+
+                <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
+            </div>
+            {/case}
+            {/switch}
+            {/foreach}
+
+            <input type="hidden" name="id" value="{:input('id')}" >
+            <input type="hidden" name="name" value="{:input('name')}" >
+            <div class="layui-form-item">
+                <button class="layui-btn" lay-submit="" lay-filter="submit">立即提交</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: "__STATIC__/admin/js/",
+        version: true
+    }).extend({
+        Admin:'Admin',
+    }).use(['Admin'], function () {
+
+    });
+
+</script>
+

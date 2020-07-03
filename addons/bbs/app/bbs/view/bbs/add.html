@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>发表问题 编辑问题 公用</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="fly,layui,前端社区">
+  <meta name="description" content="lemo社区是模块化前端UI框架Layui的官网社区，致力于为web开发提供强劲动力">
+  {include file="common/link" /}
+
+</head>
+<body>
+
+{include file="common/header" /}
+
+<div class="layui-container fly-marginTop">
+  <div class="fly-panel" pad20 style="padding-top: 5px;">
+    <!--<div class="fly-none">没有权限</div>-->
+    <div class="layui-form layui-form-pane">
+      <div class="layui-tab layui-tab-brief" lay-filter="user">
+        <ul class="layui-tab-title">
+          <li class="layui-this">              {if $list}编辑帖子{else/}发表新帖{/if}
+            </li>
+        </ul>
+
+        <div class="layui-form layui-tab-content" id="LAY_ucm" style="padding: 20px 0;">
+          <div class="layui-tab-item layui-show">
+            <form  class="layui-form" method="post" lay-filter="form">
+              <div class="layui-row layui-col-space15 layui-form-item">
+                <div class="layui-col-md3">
+                  <label class="layui-form-label">所在专栏</label>
+                  <div class="layui-input-block">
+                    <select lay-verify="required" name="pid" lay-filter="column">
+                      <option value=""></option>
+                      {volist name="cates" id='vo'}
+                      <option value="{$vo.id}">{$vo.title}</option>
+                      {/volist}
+                    </select>
+                  </div>
+                </div>
+                <div class="layui-col-md9">
+                  <label for="L_title" class="layui-form-label">标题</label>
+                  <div class="layui-input-block">
+                    <input type="text" id="L_title" name="title" required lay-verify="required" autocomplete="off" class="layui-input">
+                     <input type="hidden" name="id" value="">
+                  </div>
+                </div>
+              </div>
+
+              <div class="layui-form-item layui-form-text">
+                <div class="layui-input-block">
+                  <textarea id="L_content" name="content" required lay-verify="required" placeholder="详细描述" class="layui-textarea fly-editor" style="height: 260px;"></textarea>
+                </div>
+              </div>
+              <div class="layui-form-item">
+                <div class="layui-inline">
+                  <label class="layui-form-label">悬赏</label>
+                  <div class="layui-input-inline" style="width: 190px;">
+                    <select name="score">
+                      <option value="0">不悬赏</option>
+                      <option value="20">20</option>
+                      <option value="30">30</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="80">80</option>
+                      <option value="80">100</option>
+                    </select>
+                  </div>
+                  <div class="layui-form-mid layui-word-aux">发表后无法更改飞吻</div>
+                </div>
+              </div>
+              <div class="layui-form-item">
+                <label for="L_vercode" class="layui-form-label">验证码</label>
+                <div class="layui-input-inline">
+                  <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请回答后面的问题" autocomplete="off" class="layui-input">
+                </div>
+                <div class="">
+                  <img  src="{:captcha_src()}" onclick="this.src='{:captcha_src()}?'+Math.random();" style="float:left; cursor:pointer;height: 38px;" id="captcha" alt="captcha"  />
+
+                </div>
+              </div>
+              {if $list }<input type="hidden" name="id" >{/if}
+              {:token_field('__token__', 'sha1')}
+              <div class="layui-form-item">
+                <button class="layui-btn" lay-filter="*" lay-submit>立即发布</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{include file="common/footer" /}
+<script>layui.cache.page = 'jie';
+layui.use('form',function () {
+  var form = layui.form;
+  var list = '';
+  list = {:json_encode($list)};
+  form.val("form", list);
+  form.render();
+
+})
+</script>
+
+
+</body>
+</html>
