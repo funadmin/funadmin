@@ -92,7 +92,13 @@ class Config extends Backend {
         $fieldType = FieldType::select();
         $view = ['title'=>lang('Add'),'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
         View::assign($view);
-        return view('edit');
+        return view('add');
+    }
+
+    public function setValue(){
+
+
+        
     }
 
 }

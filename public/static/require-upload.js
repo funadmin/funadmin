@@ -6,7 +6,8 @@ define(["jquery"], function ($) {
                 upload_url: 'ajax/uploads',
                 attach_url: 'ajax/getAttach',
             },
-            upload_exts: 'doc|bmp|jpg|png|tif|gif|pcx|tga|exif|fpx|svg|psd|cdr|pcd|dxf|ufo|eps|ai|raw|WMF|webp|mp3|mp4|rm|rar|zip|pptx|ppt|xsl|xslx',
+            upload_exts: Config.upload.upload_exts,
+            upload_size: Config.upload.upload_size,
 
         },
         //事件
@@ -95,7 +96,7 @@ define(["jquery"], function ($) {
                             uploadNum = $(this).attr('lay-num'),
                             uploadPath = $(this).attr('lay-path');
                             uploadAccept = $(this).attr('lay-accept');
-                        uploadSize = $(this).attr('lay-size');
+                        uploadSize = $(this).attr('lay-size') || Upload.init.upload_size;
                         uploadmultiple = $(this).attr('lay-multiple');
                         uploadExts = uploadExts || Upload.init.upload_exts;
                         uploadNum = uploadNum || 1;

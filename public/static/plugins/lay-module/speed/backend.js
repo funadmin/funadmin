@@ -188,11 +188,11 @@ layui.define(["jquery",'layer'], function (exports) {
                         formType: 1
                     }, function (value, index, elem) {
                         if (value.length < 1) {
-                            layer.msg(__('Input Password'));
+                            Speed.msg.error(__('Input Password'));
                             return false;
                         } else {
                             if(value == layui.data('BackendLock').lock){
-                                layer.close(index);
+                                Speed.msg.close(index);
                                 //清除密码
                                 layui.data('BackendLock', {
                                     key: 'lock'
@@ -223,7 +223,7 @@ layui.define(["jquery",'layer'], function (exports) {
                     child = val.child;
                     MenuHtml += '<a href="javascript:;" lay-id="'+val.id+'" title="'+ __(val.title) +'"  lay-tips="'+ __(val.title) +'" ><i class="' + val.icon + '"></i><cite> ' + __(val.title) + '</cite> </a>';
                     var addChildHtml = function (html, child) {
-                        html += '<dl class="layui-nav-child">\n';
+                        html += '<dl class="layui-nav-child">\n'
                         $.each(child, function (k,v) {
                             html += '<dd>';
                             if (v.child!=[] && v.child!=undefined && v.child.length>0) {
@@ -375,7 +375,7 @@ layui.define(["jquery",'layer'], function (exports) {
             options.text = options.text || null;
             options.icon = options.icon || null;
             if ($(".layui-tab .layui-tab-title li").length >= options.maxTabs) {
-                layer.msg('window is create by maxnum');
+                Speed.msg.error('window is create by maxnum');
                 return false;
             }
             var speedTabInfo =layui.sessionData("speedTabInfo");
@@ -623,7 +623,7 @@ layui.define(["jquery",'layer'], function (exports) {
                         formType: 1
                     }, function (value, index, elem) {
                         if (value.length < 1) {
-                            layer.msg(__('Input Password'));
+                            Speed.msg.error(__('Input Password'));
                             return false;
                         } else {
                             layui.data('BackendLock', {
@@ -638,7 +638,7 @@ layui.define(["jquery",'layer'], function (exports) {
                                 formType: 1
                             }, function (value, index, elem) {
                                 if (value.length < 1) {
-                                    layer.msg(___('Input Password'));
+                                    Speed.msg.error(___('Input Password'));
                                     return false;
                                 } else {
                                     if(value == layui.data('BackendLock').lock){
@@ -649,9 +649,9 @@ layui.define(["jquery",'layer'], function (exports) {
                                             key: 'lock'
                                             ,remove: true
                                         });
-                                        layer.msg(__('Unlock Success'));
+                                        Speed.msg.success(__('Unlock Success'));
                                     }else{
-                                        layer.msg(__('Password Error'), {anim: 6, time: 1000});
+                                        Speed.msg.error(__('Password Error'));
                                         return false;
                                     }
                                 }
@@ -713,17 +713,21 @@ layui.define(["jquery",'layer'], function (exports) {
                     Speed.ajax({url:url},function (res) {
                         Speed.msg.success(res.msg);
                         $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+
                     },function (res) {
                         Speed.msg.error(res.msg);
                         $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+
                     })
 
                 },
                 refresh: function (othis) {  //刷新
-
                     Speed.msg.success(__('Refresh Success'));
-                    $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
-
+                    Speed.msg.loading('',setTimeout(function () {
+                        $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+                            Speed.msg.close();
+                        },1200)
+                    );
                 }
                 //关闭当前标签页
                 , closeThisTabs: function (othis) {

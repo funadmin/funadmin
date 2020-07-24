@@ -26,7 +26,7 @@ if (!function_exists('syscfg')) {
      * @param $code
      *
      */
-    function syscfg($group,$code)
+    function syscfg($group,$code= null)
     {
         $where = ['group' => $group];
         $value = empty($code) ? cache("syscfg_{$group}") : cache("syscfg_{$group}_{$code}");
@@ -45,7 +45,6 @@ if (!function_exists('syscfg')) {
 
     }
 }
-
 
 //重写url 助手函数
 if (!function_exists('url')) {

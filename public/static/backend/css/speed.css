@@ -20,6 +20,11 @@ html {
 .layui-layer.layui-layer-dialog .layui-layer-btn,.layui-layer-content{
     text-align: center;
 }
+/*//layui*/
+body .speed-layer-class .layui-layer-title{background: #1aa094; color:#fff; border: none;}
+body .speed-layer-class .layui-layer-btn a{background:#333;}
+body .speed-layer-class .layui-layer-btn .layui-layer-btn1{background:#999;}
+
 .layui-layer.layui-layer-dialog .layui-layer-btn a {
     background-color: #95a5a6;
     color: #fff !important;
@@ -106,7 +111,7 @@ html {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
 }
 .layui-layout-admin .layui-logo img {
-    margin: 10px 20px;
+    margin: 10px 10px;
     width: 40px;
 }
 .speed-app .layui-layout-admin .layui-logo cite {

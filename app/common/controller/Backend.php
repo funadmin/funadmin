@@ -82,6 +82,7 @@ class Backend extends \app\common\controller\CommonController
         $this->pageSize = input('limit', 15);
         //加载语言包
         $this->loadlang(strtolower($controller));
+
     }
 
     //自动加载语言

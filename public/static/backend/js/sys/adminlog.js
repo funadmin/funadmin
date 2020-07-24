@@ -1,6 +1,6 @@
 define(['jquery','table'], function (undefined,Table) {
 
-    let Controller = {
+    var Controller = {
         index: function () {
             Table.init = {
                 table_elem: 'list',
@@ -46,27 +46,9 @@ define(['jquery','table'], function (undefined,Table) {
                 page: true
             });
 
-            let table = $('#'+Table.init.table_elem);
+            var table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
-        add:function () {
-            Controller.api.bindevent()
-        },
-        edit:function () {
-            Controller.api.bindevent()
-        },
-        del:function () {
-            Controller.api.bindevent()
-        },
-        delAll:function () {
-            Controller.api.bindevent()
-        },
-
-        api: {
-            bindevent: function () {
-                Form.api.bindEvent($('form'))
-            }
-        }
     };
     return Controller;
 });

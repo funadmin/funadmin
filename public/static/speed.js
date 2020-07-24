@@ -24,9 +24,6 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
         hideMethod: "fadeOut"
     };
     var Speed = {
-        // config: {
-        //     shade: [0.02, '#000'],
-        // },
         url: function (url) {
             if(!Config.addonname){
                 if(url.indexOf(Config.entrance) ===-1){
@@ -53,6 +50,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
         },
         ajax: function (option, success, error, ex) {
             option.method = option.method || 'post';
+            option.tips = option.tips || '';
             option.url = option.url || '';
             option.data = option.data || {};
             option.statusName = option.statusName || 'code';
@@ -60,6 +58,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
             success = success || function (res) {
                 var msg = (res.msg == undefined && res.message==undefined) ? __('Return data is not right') : res.msg?res.msg:res.message;
                 Speed.msg.success(msg);
+                Speed.msg.close()
                 return false;
             };
             error = error || function (res) {
@@ -75,7 +74,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                 return false;
             }
             option.url = Speed.url(option.url);
-            var index = Speed.msg.loading(__('loading'));
+            var index = Speed.msg.loading(option.tips);
             $.ajax({
                 url: option.url,
                 type:option.method,

@@ -1,24 +1,42 @@
-<div class="speed-container">
-    <div class="speed-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <form class="layui-form" lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Code')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="code" lay-verify="required" placeholder="{:lang('Config Code')}" class="layui-input">
-
+<div class="speed-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Config Group')}</label>
+                <div class="layui-input-block">
+                    <select name="group" lay-verify="required">
+                        <option value="">--{:lang('Select')}</option>
+                        {volist name="$configGroup" id="vo"}
+                        <option value="{$vo.name}" {if !empty($info) && $info.type==$vo.name} selected {/if} >{$vo.title}</option>
+                        {/volist}
+                    </select>
+                </div>
+            </div>
+            {include file="common/fieldType"}
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Config Code')}</label>
+                <div class="layui-input-block">
+                    <input type="text" name="code" lay-verify="required" placeholder="{:lang('Config Code')}" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">
+                        英文字符。不能和当前已有的重复
                     </div>
                 </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Value')}</label>
-                    <div class="layui-input-block">
-                        <textarea  name="extra"  placeholder="{:lang('Config Value')}" class="layui-textarea"></textarea>
-                    </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Config Value')}</label>
+                <div class="layui-input-block">
+                    <textarea  name="valie"  placeholder="{:lang('Config Value')}" class="layui-textarea"></textarea>
                 </div>
-                {include file="common/subBtn"/}
-            </form>
-        </div>
-
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Config Remark')}</label>
+                <div class="layui-input-block">
+                    <textarea type="text" name="remark"  placeholder="{:lang('Config Default Value')}" class="layui-textarea"></textarea>
+                </div>
+            </div>
+            {include file="common/subBtn"/}
+        </form>
     </div>
+
 </div>
 

@@ -1,4 +1,4 @@
-define(['jquery','table','form','upload'], function (undefined,Table,Form,Upload) {
+define(['jquery','table','upload'], function (undefined,Table,Upload) {
 
     var Controller = {
         index: function () {
@@ -42,11 +42,11 @@ define(['jquery','table','form','upload'], function (undefined,Table,Form,Upload
 
                         }
                     },
-                    {field: 'path', title: __('Path'), width: 80, sort: true, templet:Table.templet.image},
+                    {field: 'path', title: __('Path'), width: 80,sort: true, templet:Table.templet.image},
                     {field: 'ext', title: __('Ext'), width: 120,sort: true},
                     {field: 'size', title: __('Size(K)'), width: 80, sort: true},
                     {field: 'driver', title: __('Driver'), width: 80,sort: true },
-                    {field: 'status', title: __('Status'), width: 180, templet:Table.templet.switch,sort: true,
+                    {field: 'status', title: __('Status'), width: 180, filter: 'status', templet:Table.templet.switch,sort: true,
                         search: 'select',selectList: {0: __('Disabled'), 1: __('Enabled')},
                     },
                     {field: 'create_time', title: __('CreateTime'), width: 180,templet:Table.templet.time,search: 'range'},
@@ -58,7 +58,7 @@ define(['jquery','table','form','upload'], function (undefined,Table,Form,Upload
                 limit: 15,
                 page: true
             });
-            let table = $('#'+Table.init.table_elem);
+            var table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add:function () {
@@ -67,6 +67,8 @@ define(['jquery','table','form','upload'], function (undefined,Table,Form,Upload
         api: {
             bindevent: function () {
                 Upload.api.bindEvent();
+                Form.api.bindEvent($('form'))
+
             }
         }
     };

@@ -12,7 +12,14 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                     add_url: 'sys.config/add',
                     edit_url: 'sys.config/edit',
                     modify_url: 'sys.config/modify',
-
+                    setValue:{
+                        type: 'open',
+                        class: 'layui-btn-sm layui-btn-green',
+                        url: 'sys.config/setValue',
+                        text: __('Set'),
+                        title: __('Set'),
+                        full: 1,
+                    },
                 },
             }
             Table.render({

@@ -1,6 +1,6 @@
 define(['jquery','table','form'], function (undefined,Table,Form) {
 
-    let Controller = {
+    var Controller = {
 
         index: function () {
             Table.init = {
@@ -43,7 +43,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 page: true
             });
 
-            let table = $('#'+Table.init.table_elem);
+            var table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add:function () {

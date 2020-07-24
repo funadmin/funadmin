@@ -1,4 +1,4 @@
-define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (undefined,tableSelect,Upload,Table,Date,Editor) {
+define(['jquery','tableSelect', 'upload', 'table','dates','editor'], function (undefined,tableSelect,Upload,Table,Dates,Editor) {
 
     var form = layui.form;
     var tableSelect = layui.tableSelect;
@@ -8,6 +8,9 @@ define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (un
         },
         //事件
         events: {
+            dates:function(){
+                Dates.api.bindEvent()
+            },
             uploads: function () {
                 Upload.api.uploads();
             },
@@ -140,7 +143,6 @@ define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (un
                 var index = parent.layer.getFrameIndex(window.name);
                 parent.layer.close(index);
                 if (option.refreshTable != false) {
-                    console.log(self)
                     if(self!=top && parent.$('#'+option.refreshTable).length>0){
                         parent.layui.table.reload(option.refreshTable)
                         return false;
@@ -179,19 +181,28 @@ define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (un
                 Speed.ajax({
                     url: url,
                     data: data,
+                    tips:__('loading'),
+                    complete: function (xhr) {
+                        var token = xhr.getResponseHeader('__token__');
+                        if (token) {
+                            $("input[name='__token__']").val(token);
+                        }
+                    },
                 }, success, error);
 
                 // Speed.ajax({
                 //     method: 'post',
                 //     url: url,
                 //     data: data,
+                //     tips:__('loading'),
                 //     complete: function (xhr) {
                 //         var token = xhr.getResponseHeader('__token__');
                 //         if (token) {
                 //             $("input[name='__token__']").val(token);
                 //         }
                 //     }
-                // }, function (res) {
+                // },
+                //     function (res) {
                 //     Speed.msg.success(res.msg, function () {
                 //         //返回页面
                 //         if(self!=top) {
@@ -202,14 +213,15 @@ define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (un
                 //                 });
                 //             }, 2000)
                 //         }
-                //     return false;
+                //         return false;
                 //     });
                 //     return false;
                 // }, function (res) {
-                //     res.msg = res.msg || 'error';
+                //     res.msg = res.msg || __('Error');
                 //     Speed.msg.error(res.msg);
                 //     return false;
-                // });
+                // }
+                // );
 
                 return false;
             },
@@ -314,13 +326,12 @@ define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (un
                 events.uploads() //上传
                 events.editor() //编辑器
                 events.chooseFiles() //选择文件
-                Date.api.bindEvent()
-
+                events.dates() //日期
                 //初始化数据
                 this.initForm();
                 $('body').on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
-                    eval('Form.events.'+attrEvent+'(_that)');
+                    Form.events[attrEvent] && Form.events[attrEvent].call(this,_that)
 
                 });
             }

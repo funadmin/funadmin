@@ -1,5 +1,5 @@
 define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
-    let Controller = {
+    var Controller = {
         index: function () {
             Table.init = {
                 table_elem: 'list',
@@ -88,7 +88,7 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
                 page: true
 
             });
-            let table = $('#'+Table.init.table_elem);
+            var table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add:function () {

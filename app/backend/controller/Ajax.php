@@ -16,7 +16,7 @@ use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
-use app\common\service\UploadService;
+use app\common\service\OssService;
 use app\common\traits\Curd;
 use speed\helper\DataHelper;
 use speed\helper\FileHelper;
@@ -115,7 +115,7 @@ class Ajax extends Backend
         $type = $this->request->param('type', 'file');
         $path = $this->request->param('path', 'uploads');
         $files = request()->file();
-        $uploadService = UploadService::instance();
+        $uploadService = OssService::instance();
         //        $file =request()->file('file') ? request()->file('file'): request()->file('upfile');
         foreach ($files as $k => $file) {
             $file_size = $file->getSize();
@@ -153,8 +153,8 @@ class Ajax extends Backend
                         $path = $uploadService->alioss($paths, './' . $paths);
                     } elseif ($this->driver == 'qiniuoss') {
                         $path = $uploadService->qiniuoss($paths, './' . $paths);
-                    } elseif ($this->driver == 'qcloudoss') {
-                        $path = $uploadService->qcloudoss($paths, './' . $paths);
+                    } elseif ($this->driver == 'teccos') {
+                        $path = $uploadService->teccos($paths, './' . $paths);
                     }
                 }catch (Exception $e){
                         $this->error($e->getMessage());
@@ -273,11 +273,7 @@ class Ajax extends Backend
     */
     public function clearData()
     {
-        $dir = app()->getRootPath() . 'runtime/backend';
         Cache::clear();
-        if (FileHelper::delDir($dir)) {
-            $this->success('清除成功');
-        }
         $this->success('清除成功');
     }
 

@@ -1,4 +1,4 @@
-define(["jquery", 'upload'], function ($, Upload) {
+define(["jquery"], function ($) {
 
     var form = layui.form,
         layer = layui.layer,
@@ -35,17 +35,17 @@ define(["jquery", 'upload'], function ($, Upload) {
                 Table.initSearch(options.cols, options.elem, options.id);
             }
             // 初始化表格左上方工具栏
-            options.toolbar = Table.initToolbar(options.toolbar, options.elem, options.id, options.init);
+            options.toolbar = Table.initToolbar(options.toolbar, options.elem, options.id,);
             var newTable = table.render(options);
             // 监听表格开关切换
-            Table.api.switch(options.cols, options.init);
+            Table.api.switch(options.cols, options.init,options.id);
             // 监听表格搜索开关和toolbar按钮显示等
             Table.api.toolbar(options.layFilter, options.id);
             // 监听表格编辑
             Table.api.edit(options.init, options.layFilter, options.id);
             return newTable;
         },
-        initToolbar: function (d, elem, tableId, init) {
+        initToolbar: function (d, elem, tableId) {
             d = d || [];
             var toolbarHtml = '';
             var requests = Table.init.requests;
@@ -225,7 +225,6 @@ define(["jquery", 'upload'], function ($, Upload) {
                 var checked = d[ele.field] == ele.checked ? 'checked' : '';
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >';
             },
-
             //解析
             resolution: function (d) {
                 var ele = $(this)[0];
@@ -352,6 +351,7 @@ define(["jquery", 'upload'], function ($, Upload) {
                 table.reload(tableId);
             },
             request: function (othis) {
+                console.log(othis)
                 var title = othis.attr('lay-title'),
                     url = othis.attr('lay-url'),
                     tableId = othis.attr('lay-table-id'),
@@ -364,11 +364,14 @@ define(["jquery", 'upload'], function ($, Upload) {
                         Speed.msg.success(res.msg, function () {
                             table.reload(tableId)
                         });
+
                     }, function (res) {
                         Speed.msg.error(res.msg, function () {
                             table.reload(tableId);
                         });
                     })
+                    Speed.msg.close();
+
                 }, function (res) {
                     if (res == undefined) {
                         Speed.msg.close();
@@ -378,6 +381,7 @@ define(["jquery", 'upload'], function ($, Upload) {
                         table.reload(tableId);
                     });
                 });
+
                 return false;
             },
             // 数据表格多删除
@@ -400,8 +404,6 @@ define(["jquery", 'upload'], function ($, Upload) {
                         ids.push(v.id);
                     });
                 }
-
-
                 Speed.msg.confirm(__('Are you sure you want to delete the %s selected item?', ids.length), function () {
                     Speed.ajax({
                         url: url,
@@ -411,6 +413,11 @@ define(["jquery", 'upload'], function ($, Upload) {
                     }, function (res) {
                         Speed.msg.success(res.msg, function () {
                             table.reload(tableId);
+                            Speed.msg.close()
+                        });
+                    },function (res) {
+                        Speed.msg.error(res.msg, function () {
+                            Speed.msg.close()
                         });
                     });
                 });
@@ -420,15 +427,13 @@ define(["jquery", 'upload'], function ($, Upload) {
             closeOpen: function (othis) {
                 Speed.api.closeCurrentOpen();
             },
-            uploads: function () {
-                Upload.api.uploads();
-            },
         },
         api: {
             reload: function (tableId) {
                 tableId = tableId ? tableId : Table.init.tablId;
                 table.reload(tableId)
             },
+            //表格收索
             tableSearch: function (tableId) {
                 form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
@@ -454,6 +459,7 @@ define(["jquery", 'upload'], function ($, Upload) {
                     return false;
                 });
             },
+            //开关
             switch: function (cols, tableInit, tableId) {
                 url = tableInit.requests.modify_url ? tableInit.requests.modify_url : false;
                 cols = cols[0] || {};
@@ -476,14 +482,14 @@ define(["jquery", 'upload'], function ($, Upload) {
                                 }, function (res) {
 
                                     Speed.msg.success(res.msg, function () {
-                                        // table.reload(option.tableId);
+                                        table.reload(tableId);
                                     });
                                 }, function (res) {
                                     Speed.msg.error(res.msg, function () {
-                                        // table.reload(option.tableId);
+                                        table.reload(tableId);
                                     });
                                 }, function () {
-                                    table.reload(v.tableId);
+                                    table.reload(tableId);
                                 });
                             });
                         }
@@ -555,16 +561,10 @@ define(["jquery", 'upload'], function ($, Upload) {
                 $('body').on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     if (Table.events.hasOwnProperty(attrEvent)) {
-                        eval('Table.events.' + attrEvent + '(_that)');
+                        Table.events[attrEvent] &&  Table.events[attrEvent].call(this,_that)
                     }
                 });
-                // 表格修改
-                $("body").on("mouseenter", ".table-edit-tips", function () {
-                    var openTips = layer.tips(__('Click the content to edit'), $(this), {
-                        tips: [2, '#e74c3c'],
-                        time: 4000
-                    });
-                });
+
 
 
             },

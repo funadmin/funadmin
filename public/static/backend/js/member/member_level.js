@@ -1,5 +1,5 @@
 define(['jquery',"speed",'table','form'], function ($, speed,Table,Form) {
-    let Controller = {
+    var Controller = {
         /**
          * 会员等级
          *

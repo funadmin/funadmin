@@ -1,6 +1,6 @@
 define(['jquery'], function (undefined) {
     var laydate = layui.laydate;
-    var Date = {
+    var Dates = {
         init: {},
         //事件
         events: {
@@ -41,7 +41,7 @@ define(['jquery'], function (undefined) {
 
             //绑定事件
             bindEvent: function () {
-                var events = Date.events;
+                var events = Dates.events;
                 events.date();
                 events.bindevent();
 
@@ -49,6 +49,6 @@ define(['jquery'], function (undefined) {
         }
     }
 
-    return Date;
+    return Dates;
 
 })

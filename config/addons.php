@@ -13,7 +13,7 @@ return [
     'autoload' => true,
     'hooks' => [],
     'route' => [
-        'database/backend/sys'=>'database/backend/sys.index/index'
+//        'database/backend/sys'=>'database/backend/sys.index/index'
     ],
     'service' => [],
 ];

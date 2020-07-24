@@ -2,13 +2,16 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{:config('admin.sys_name')}后台管理</title>
+    <title>{$config['site']['site_name']}</title>
     <meta name="renderer" content="webkit">
+    <meta property="og:description" content="{$config['site']['site_seo_desc']}" />
+    <meta property="og:keywords" content="{$config['site']['site_seo_keywords']}" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="referrer" content="origin" />
+    <meta name="viewport"  content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="format-detection" content="telephone=no"  >
     <link rel="stylesheet" href="__PLUGINS__/layui/css/layui.css" media="all" />
     <link rel="stylesheet" href="__STATIC__/backend/css/speed.css?v={:time()}" media="all">
     <link rel="stylesheet" href="__PLUGINS__/font-awesome-4.7.0/css/font-awesome.min.css" media="all">
@@ -144,11 +147,11 @@
 
         <div class="layui-footer">
             <!-- 底部固定区域 -->
-            © speedadmin.cn - 版权所有SpeedAdmin <span class="pull-right">Version 1.0</span>
+            {$config['site']['site_copyright']} <span class="pull-right">{$config['site']['site_version']}</span>
         </div>
     </div>
 </div>
-{include file="common/footer" /}
 
 </body>
 </html>
+{include file="common/footer" /}

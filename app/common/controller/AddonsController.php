@@ -100,7 +100,7 @@ class AddonsController extends Controller
         $jspath ="addons/{$this->addon}/{$modulename}/js/{$jsname}.js";
         $auth = new \app\backend\service\AuthService();
         $authNode = $auth->nodeList();
-        $data = [
+        $config = [
             'entrance'    => $this->entrance,//入口
             'modulename'    => $modulename,
             'addonname'    => $this->addon,
@@ -113,8 +113,10 @@ class AddonsController extends Controller
             'authNode'           => $authNode,
             'superAdmin'           => session('admin.id')==1?1:0,
             'lang'           =>  strip_tags( Lang::getLangset()),
+            'site'           =>  syscfg('site'),
+            'upload'           =>  syscfg('upload'),
         ];
-        View::assign($data);
+        View::assign('config',$config);
     }
 
     //自动加载语言

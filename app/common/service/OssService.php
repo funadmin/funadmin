@@ -5,7 +5,7 @@ namespace app\common\service;
 use app\common\model\Config as ConfigModel;
 use think\App;
 
-class UploadService extends AbstractService
+class OssService extends AbstractService
 {
 
     public function __construct(App $app)
@@ -72,24 +72,24 @@ class UploadService extends AbstractService
      * @return string
      * 腾迅oss
      */
-    public function qcloudoss($object, $path)
+    public function teccos($object, $path)
     {
-        $config = ConfigModel::where('group', 'qcloudoss')->column('value', 'code');
+        $config = ConfigModel::where('group', 'teccos')->column('value', 'code');
         try {
             $ossClient = new \Qcloud\Cos\Client(
                 [
-                    'region' => $config['qcloudoss_region'],
+                    'region' => $config['teccos_region'],
                     'credentials' => [
-                        'secretId' => $config['qcloudoss_secretId'],
-                        'secretKey' => $config['qcloudoss_secretKey'],
+                        'secretId' => $config['teccos_secretId'],
+                        'secretKey' => $config['teccos_secretKey'],
                     ]
                 ]);
             $oss = $ossClient->Upload(
-                $config['qcloudoss_bucket'],
-                $config['qcloudoss_key'],
+                $config['teccos_bucket'],
+                $config['teccos_secretKey'],
                 $body = fopen($path, 'rb'));
-            if ($config['qcloudoss_cdn_domain']) {
-                $osspath = ltrim($config['qcloudoss_cdn_domain'], '/') . '/' . ltrim($object, '/');
+            if ($config['teccos_cdn_domain']) {
+                $osspath = ltrim($config['teccos_cdn_domain'], '/') . '/' . ltrim($object, '/');
             } else {
                 $osspath = $oss['info']['url'];
             }

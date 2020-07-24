@@ -1,6 +1,6 @@
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
 require.config({
-    urlArgs: 'v=' + Config.site_version? Config.site_version:(new Date().getTime()),
+    urlArgs: 'v=' + Config.version? Config.version:(new Date().getTime()),
     // urlArgs: 'v=' + (new Date().getTime()),
     packages: [
         {
@@ -29,7 +29,6 @@ require.config({
         'xm-select'     : 'plugins/layui/extend/xm-select/xm-select',//下拉多选
         'toastr'        : 'plugins/layui/extend/toastr/toastr',//提示框
         'step-lay'        : 'plugins/layui/extend/step-lay/step',
-        'inputTags'        : 'plugins/layui/extend/inputTags/inputTags',
 
         //其他组件
         'ueditor'       : 'plugins/ueditor/ueditor.all.min',//百度
@@ -48,7 +47,7 @@ require.config({
         'icon'          : 'require-icon',
         'table'         : 'require-table',
         'upload'        : 'require-upload',
-        'dates'          : 'require-dates',
+        'date'          : 'require-date',
         'editor'        : 'require-editor',
     },
     map: {
@@ -81,7 +80,7 @@ require.config({
 // 配置语言包的路径
 var paths = {};
 paths['lang'] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
-paths['backend/'] = 'backend/';
+paths['fontend/'] = 'fontend/';
 //初始化控制器对应的JS自动加载
 require.config({paths: paths});
 require(['jquery'], function ($) {
