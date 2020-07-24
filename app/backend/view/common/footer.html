@@ -4,6 +4,8 @@
 <![endif]-->
 <script>
     window.Config = {
+        entrance:"{$entrance}",
+        addonname:"{$addonname}",
         modulename:"{$modulename}",
         moduleurl:"{$moduleurl}",
         controllername:"{$controllername|default=''}",
@@ -12,14 +14,13 @@
         lang: "{$lang}",
         autojs:"{$autojs|default='false'}",
         superAdmin:"{$superAdmin}",
-        authNode:"{$authNode|json_encode}",
-        formData : {:isset($formData)?(json_encode($formData)):'""'},
+        authNode:{:json_encode($authNode)},
+    formData : {:isset($formData)?(json_encode($formData)):'""'},
     };
     window.STATIC ='__STATIC__'
     window.ADDONS = '__ADDONS__'
     window.PLUGINS = '__PLUGINS__';
 </script>
-
 
 <script src="__PLUGINS__/layui/layui.all.js" charset="utf-8"></script>
 <script src="__PLUGINS__/require-2.3.6/require.js?v={:time()}" charset="utf-8"></script>

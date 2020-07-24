@@ -1,0 +1,28 @@
+<div class="speed-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form " lay-filter="form">
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Group Name')}</label>
+                <div class="layui-input-block">
+                    <input type="text" name="name" lay-verify="required" placeholder="{:lang('pleaseEnter')}等级名" class="layui-input">
+                </div>
+                <div class="layui-form-mid layui-word-aux">
+                    在4到25个字符之间。
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Status')}</label>
+                <div class="layui-input-block">
+                    <input type="radio" name="status" lay-filter="status" checked value="1" title="{:lang('Open')}">
+                    <input type="radio" name="status" lay-filter="status" value="0" title="{:lang('Close')}">
+
+                </div>
+
+            </div>
+            {include file="common/subBtn"/}
+
+        </form>
+    </div>
+
+</div>

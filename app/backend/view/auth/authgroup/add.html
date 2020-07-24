@@ -1,43 +1,27 @@
-{include file="common/header"/}
-<div class="speed-container">
-    <div class="speed-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <fieldset class="layui-elem-field layui-field-title">
-                <blockquote class="layui-elem-quote">
-                    {$title}
-                </blockquote>
-            </fieldset>
-            <form class="layui-form layui-form-pane" lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">用户组名</label>
-                    <div class="layui-input-inline">
-                        <input type="text" name="title"  lay-verify="required" placeholder="{:lang('pleaseEnter')}用户组名" class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <div class="layui-input-block">
-                        <input type="hidden" name="id">
-                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
-                        <a data-href="{:url('group')}" class="layui-btn layui-btn-primary back">{:lang('back')}</a>
-                    </div>
-                </div>
-            </form>
-        </div>
+<div class="speed-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
 
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('AuthGroupPid')}</label>
+                <div class="layui-input-block">
+                    <select name="pid" lay-verify="required" {if !empty($formData) && $formData.id ==1}disabled{/if}>
+                    <option value="0">--{:lang('Pid')}</option>
+                    {volist name="authGroup" id="vo"}
+                    <option value="{$vo.id}" {if !empty($formData) && $formData.id==$vo.id} selected {/if} >{$vo.title}</option>
+                    {/volist}
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">用户组名</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="title"  lay-verify="required" placeholder="{:lang('pleaseEnter')}用户组名" class="layui-input">
+                </div>
+            </div>
+            {include file="common/subBtn"/}
+
+        </form>
     </div>
-</div>
 
-{include file="common/footer"/}
-<script>
-    layui.config({
-        base: "__STATIC__/admin/js/",
-        version: true
-    }).extend({
-        Admin: 'Admin'
-    }).use(['element','form', 'layer', 'Admin','form',], function () {
-        var form = layui.form, $= layui.jquery;
-        var info = {:json_encode($info)};
-        form.val("form", info);
-        form.render();
-    });
-</script>
+</div>

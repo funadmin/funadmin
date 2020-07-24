@@ -57,50 +57,6 @@ class AuthRule extends BackendModel
         return $arr;
     }
 
-    /**
-     * 权限设置选中状态
-     * @param $cate  栏目
-     * @param int $pid 父ID
-     * @param $rules 规则
-     * @return array
-     */
-    public static function authChecked($cate , $pid = 0,$rules){
-        $list = [];
-        $rulesArr = explode(',',$rules);
-        foreach ($cate as $v){
-            if ($v['pid'] == $pid) {
-                $v['spread'] = true;
-                if(self::authChecked($cate,$v['id'],$rules)){
-                    $v['children'] =self::authChecked($cate,$v['id'],$rules);
-                }else{
-                    if (in_array($v['id'], $rulesArr)) {
-                        $v['checked'] = true;
-                    }
-                }
-                $list[] = $v;
-            }
-        }
-        return $list;
-    }
-    /**
-     * 权限多维转化为二维
-     * @param $cate  栏目
-     * @param int $pid 父ID
-     * @param $rules 规则
-     * @return array
-     */
-    public static function authNormal($cate){
-        $list = [];
-        foreach ($cate as $v){
-            $list[]['id'] = $v['id'];
-//        $list[]['title'] = $v['title'];
-//        $list[]['pid'] = $v['pid'];
-            if (!empty($v['children'])) {
-                $listChild =  self::authNormal($v['children']);
-                $list = array_merge($list,$listChild);
-            }
-        }
-        return $list;
-    }
+
 
 }

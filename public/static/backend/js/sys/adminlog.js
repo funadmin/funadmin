@@ -8,6 +8,15 @@ define(['jquery','table'], function (undefined,Table) {
                 requests:{
                     index_url: 'sys.adminlog/index',
                     del_url: 'sys.adminlog/delete',
+                    delall_url:{
+                            type: 'request',
+                            class: 'layui-btn-sm layui-btn-danger',
+                            icon:'layui-icon layui-icon-delete',
+                            url: 'sys.adminlog/delete?id=all',
+                            text: __('DeleteAll'),
+                            title: __('DeleteAll'),
+                            // full: 1,
+                    },
                 }
             }
             Table.render({
@@ -15,7 +24,7 @@ define(['jquery','table'], function (undefined,Table) {
                 id: Table.init.tablId,
                 url: Speed.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','delete'],
+                toolbar: ['refresh','delete','delall_url'],
                 cols: [[
                     {type: "checkbox"},
                     {field: 'id', title: 'ID', sort: true,width: 80,search: false},

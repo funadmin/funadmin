@@ -12,10 +12,10 @@
  */
 use think\facade\Route;
 ////一般路由规则，访问的url为：v1/user/1,对应的文件为Address类下的read方法
-Route::get(':version/address/:id','api/:version.user/address');
+Route::get(':version/address/:id','api/:version.member/address');
 //
 ////资源路由，详情查看tp手册资源路由
-Route::resource(':version/user','api/:version.user')->app('api');
+Route::resource(':version/member','api/:version.member')->app('api');
 //
 ////生成access_token，post访问Token类下的token方法
 //Route::post(':version/token','api/:version.token/accessToken')->app('api');;

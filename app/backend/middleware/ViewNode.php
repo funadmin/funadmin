@@ -2,7 +2,7 @@
 
 namespace app\backend\middleware;
 
-use app\backend\lib\Auth;
+use app\backend\service\AuthService;
 use think\App;
 use think\Console;
 use think\facade\Cache;
@@ -15,17 +15,21 @@ class ViewNode
 {
     public function handle($request, \Closure $next)
     {
+
         [$modulename, $controllername, $actionname] = [app('http')->getName(), $request->controller(), Request::action()];
         $controllers = explode('.', $controllername);
         $jsname = '';
         foreach ($controllers as $vo) {
             empty($jsname) ? $jsname = parse_name($vo) : $jsname .= '/' . parse_name($vo);
         }
-        $autojs = file_exists(app()->getRootPath()."public".DIRECTORY_SEPARATOR."static".DIRECTORY_SEPARATOR."{$modulename}".DIRECTORY_SEPARATOR."js".DIRECTORY_SEPARATOR."{$jsname}.js") ? true : false;
+        $this->entrance = config('entrance.backendEntrance');
+        $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$modulename}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$modulename}/js/{$jsname}.js";
-        $auth = new Auth();
+        $auth = new AuthService();
         $authNode = $auth->nodeList();
         $data = [
+            'entrance'    => $this->entrance,//入口
+            'addonname'    => '',
             'modulename'    => $modulename,
             'moduleurl'    => rtrim(url("/{$modulename}", [], false), '/'),
             'controllername'       => parse_name($controllername),
@@ -37,7 +41,6 @@ class ViewNode
             'superAdmin'           => session('admin.id')==1?1:0,
             'lang'           =>  strip_tags( Lang::getLangset()),
         ];
-
         View::assign($data);
         $request->modulename =$modulename;
         return $next($request);

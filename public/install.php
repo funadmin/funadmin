@@ -1,17 +1,16 @@
 <?php
-
+//文件格式
+header("Content-type: text/html; charset=utf-8");
+//错误级别
 error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE);
+//初始化
 ini_set('display_errors', '1');
 //定义目录分隔符
 define("DS", DIRECTORY_SEPARATOR);
-//定义项目目录
-define('APP_PATH', dirname(dirname(__FILE__)) . DS . 'application' . DS);
 //定义web根目录
 define('WWW_ROOT', dirname(__FILE__) . DS);
-
 //定义后台名称
 $siteName = "SpeedAdmin";
-
 //错误信息
 $msg = '';
 //安装文件
@@ -21,6 +20,9 @@ $runtimeDir =  '..'.DS. 'runtime';
 //后台入口文件
 $backendFile = "."  . DS . 'backend.php';
 
+$databaseConfigFile = "../config" . DS . "database.php";
+
+$entranceConfigFile = "../config" . DS . "entrance.php";
 // 判断文件或目录是否有写的权限
 function is_really_writable($file)
 {
@@ -34,7 +36,7 @@ function is_really_writable($file)
     fclose($fp);
     return true;
 }
-$databaseConfigFile = "../config" . DS . "database.php";
+
 
 if (is_file($lockFile)) {
     $msg = "当前已经安装{$siteName}，如果需要重新安装，请手动移除SpeedAdmin/public/install.lock文件";
@@ -110,7 +112,7 @@ if ($_GET['s'] = 'start' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUE
         die('密码请输入5~16位字符！');
     }
     //检测能否读取安装文件
-    $sql = @file_get_contents(WWW_ROOT . DS . "install" . DS . 'SpeedAdmin.sql');
+    $sql = @file_get_contents(WWW_ROOT . DS . "install" . DS . 'speedadmin.sql');
     if (!$sql) {
         throw new Exception("无法读取/public/install/SpeedAdmin.sql文件，请检查是否有读权限");
     }
@@ -221,7 +223,7 @@ return [
 ];
 Speed;
 
-        $putConfig = @file_put_contents("../config" . DS . "database.php", $config);
+        $putConfig = @file_put_contents($databaseConfigFile, $config);
         if (!$putConfig) {
             die('安装失败、请确定database.php是否有写入权限！:'.$error);
         }
@@ -230,7 +232,7 @@ Speed;
             die("安装失败、请确定install.lock是否有写入权限！:$error");
         }
 
-        $password = password_hash($adminPassword, PASSWORD_BCRYPT,['cost'=>12]);
+        $password = password_hash($adminPassword, PASSWORD_BCRYPT);
         $result = $link->query("UPDATE {$mysqlPreFix}admin SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
         if (!$result) {
             die("安装数据库失败！:$error");
@@ -240,9 +242,23 @@ Speed;
             $x = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $adminName = substr(str_shuffle(str_repeat($x, ceil(10 / strlen($x)))), 1, 10) . '.php';
             rename($backendFile, "."  . DS .  $adminName);
+            if (!file_exists($entranceConfigFile)) {
+                @mkdir($entranceConfigFile,755);
+            }
+            $entrance = <<<Speed
+<?php
+return [
+    
+    'backendEntrance'=>'/{$adminName}/',
+];
+Speed;
+            $entranceConfig = @file_put_contents($entranceConfigFile, $entrance);
+
         }
+
        echo  $msg = 'success|'.$adminName;exit();
-    } catch (PDOException $e) {
+    } catch (\PDOException $e) {
+        var_dump($e->getMessage());
         $errMsg = $e->getMessage();
     } catch (Exception $e) {
         $errMsg = $e->getMessage();
@@ -252,6 +268,7 @@ Speed;
 
 }
 ?>
+
 <!doctype html>
 <html>
 <head>
@@ -389,7 +406,7 @@ Speed;
 
 </div>
 
-<script type="text/javascript" src="./static/plugins/jquery-3.4.1/jquery-3.4.1.min.js"></script>
+<script type="text/javascript" src="static/plugins/jquery/jquery-3.4.1.min.js"></script>
 <script type="text/javascript">
 
     layui.use(['layer','jquery','form'],function (res) {

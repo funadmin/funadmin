@@ -18,7 +18,6 @@
 </head>
 <body class="layui-layout-body">
 <div id="speed-app" class="speed-app">
-
     <!--        加载层-->
     <div class="speed-loading">
         <div class="loading">
@@ -29,8 +28,6 @@
             <span></span>
         </div>
     </div>
-
-
     <div class="layui-layout layui-layout-admin">
         <div class="layui-header layui-bg-green">
             <!-- 头部区域（可配合layui已有的水平导航） -->
@@ -49,23 +46,27 @@
             <ul class="layui-nav layui-layout-right">
 
                 <li class="layui-nav-item" lay-unselect>
-                    <a href="javascript:;" lay-event="refresh" lay-ajax="{:url('ajax/clearData')}"><i
-                            class="layui-icon layui-icon-refresh-3"></i></a>
+                    <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" lay-ajax="{:url('ajax/clearData')}"><i
+                            class="layui-icon layui-icon-refresh-1"></i></a>
+                </li>
+                <li class="layui-nav-item layui-hide-xs" lay-unselect>
+                    <a href="javascript:;" lay-event="clear" title="{:lang('Clear')}" lay-ajax="{:url('ajax/clearData')}"><i
+                            class="layui-icon layui-icon-fonts-clear"></i></a>
                 </li>
                 <li class="layui-nav-item mobile layui-hide-xs" lay-unselect>
-                    <a href="javascript:;" lay-event="fullscreen"><i class="layui-icon layui-icon-screen-full"></i></a>
+                    <a href="javascript:;" lay-event="fullscreen" title="{:lang('Fullscreen')}"><i class="layui-icon layui-icon-screen-full"></i></a>
                 </li>
                 <li class="layui-nav-item layui-hide-xs" lay-unselect="">
-                    <a lay-event="lockScreen" title="锁屏"><i class="layui-icon layui-icon-password"></i></a>
+                    <a lay-event="lockScreen" title="{:lang('Lock')}"><i class="layui-icon layui-icon-password"></i></a>
                 </li>
                 <li class="layui-nav-item">
                     <a href="javascript:;">
                         {:session('admin.username')}
                     </a>
                     <dl class="layui-nav-child">
-                        <dd><a lay-id="speed-info" lay-href="{:url('sys.auth/adminEdit')}" lay-tips="基本资料">{:lang('Basic Information')}</a></dd>
-                        <dd><a lay-id="speed-safe" lay-href="{:url('index/password')}" lay-tips="安全设置">{:lang('Safe Setting')}</a></dd>
-                        <dd><a lay-event="logout" lay-ajax="{:url('index/logout')}">{:lang('Logout')}</a></dd>
+                        <dd><a lay-id="speed-info" lay-href="{:url('auth.admin/edit')}" title="{:lang('Basic Info')}">{:lang('Basic Info')}</a></dd>
+                        <dd><a lay-id="speed-safe" lay-href="{:url('auth.admin/password')}" title="{:lang('Safe Setting')}">{:lang('Safe Setting')}</a></dd>
+                        <dd><a lay-event="logout" lay-ajax="{:url('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
                     </dl>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
@@ -73,12 +74,12 @@
                         lang
                     </a>
                     <dl class="layui-nav-child">
-                        <dd><a lay-event="langset" lay-ajax="{:url('enlang',['lang'=>'zh-cn'])}">zh-cn</a></dd>
-                        <dd><a lay-event="langset" lay-ajax="{:url('enlang',['langset'=>'en-us'])}">english</a></dd>
+                        <dd><a lay-event="langset" title="{:lang('zh-cn')}" lay-ajax="{:url('enlang',['lang'=>'zh-cn'])}">{:lang('zh-cn')}</a></dd>
+                        <dd><a lay-event="langset" title="en-us" lay-ajax="{:url('enlang',['langset'=>'en-us'])}">en-us</a></dd>
                     </dl>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
-                    <a href="javascript:;" lay-event="opentheme">
+                    <a href="javascript:;" title="{:lang('Theme')}" lay-event="opentheme">
                         <i class="layui-icon layui-icon-theme"></i>
                     </a>
 
@@ -143,7 +144,7 @@
 
         <div class="layui-footer">
             <!-- 底部固定区域 -->
-            © speedadmin.cn - 版权所有SpeedAdmin <span class="pull-right">Version 2.5</span>
+            © speedadmin.cn - 版权所有SpeedAdmin <span class="pull-right">Version 1.0</span>
         </div>
     </div>
 </div>

@@ -1,0 +1,29 @@
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <form class="layui-form" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label required">{:lang('Group Title')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="title" lay-verify="required" placeholder="{:lang('Config Title')}" class="layui-input">
+                        <div class="layui-form-mid layui-word-aux">
+                            备注
+                        </div>
+                    </div>
+
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Group Name')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="name" lay-verify="required" placeholder="{:lang('Config Name')}" class="layui-input">
+                        <div class="layui-form-mid layui-word-aux">
+                            英文字符。不能和当前已有的重复
+                        </div>
+                    </div>
+
+                </div>
+                {include file="common/subBtn"/}
+            </form>
+        </div>
+
+    </div>
+

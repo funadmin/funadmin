@@ -1,0 +1,24 @@
+<div class="speed-container">
+    <div class="speed-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <form class="layui-form" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Config Code')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="code" lay-verify="required" placeholder="{:lang('Config Code')}" class="layui-input">
+
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Config Value')}</label>
+                    <div class="layui-input-block">
+                        <textarea  name="extra"  placeholder="{:lang('Config Value')}" class="layui-textarea"></textarea>
+                    </div>
+                </div>
+                {include file="common/subBtn"/}
+            </form>
+        </div>
+
+    </div>
+</div>
+

@@ -1,6 +1,6 @@
 define(['jquery', 'table', 'form'], function ($, Table, Form) {
 
-    let Controller = {
+    var Controller = {
         index: function () {
             Table.init = {
                 table_elem: 'list',
@@ -11,28 +11,36 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     del_url: 'auth.admin/delete',
                     add_url: 'auth.admin/add',
                     edit_url: 'auth.admin/edit',
-                    access:  {
+                    add_full:{
                         type: 'open',
-                        class: 'layui-btn-nomarl',
-                        icon: 'layui-icon-add-circle-fine',
-                        url: 'auth.authgroup/access',
-                        text: __('Access Group'),
-                        title:  __('Access Group'),
+                        class: 'layui-btn-sm layui-btn-green',
+                        url: 'auth.admin/add',
+                        text: __('Add'),
+                        title: __('Add'),
+                        full: 1,
+                    },
+                    edit_full: {
+                        type: 'open',
+                        class: 'layui-btn-xs layui-btn-green',
+                        url: 'auth.admin/edit',
+                        text: __('Edit'),
+                        title: __('Edit'),
+                        full: 1,
                     },
 
                 },
             },
-                Table.render({
+            Table.render({
                     elem: '#' + Table.init.table_elem,
                     id: Table.init.tablId,
                     url: Speed.url(Table.init.requests.index_url),
                     init: Table.init,
-                    toolbar: ['refresh', 'add', 'delete'],
+                    toolbar: ['refresh', 'add_full', 'delete'],
                     cols: [[
                         {checkbox: true, fixed: true},
                         {field:'id', title: 'ID', width:60,fixed: true}
                         ,{field:'username', title: __('username'), width:180}
-                        ,{field:'authGroup.title', title: __("AuthGroup")}
+                        ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolve}
                         ,{field:'email', title: __("email"), width:200}
                         ,{field:'mobile', title: __("mobile"), width:150}
                         ,{field:'ip', title: __("Ip"),width:150,hide:true},
@@ -53,7 +61,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                             title: __('Operat'),
                             init: Table.init,
                             templet: Table.templet.operat,
-                            operat: ['edit', 'delete']
+                            operat: ['edit_full', 'delete']
                         }
 
                     ]],
@@ -61,7 +69,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     limit: 15,
                     page: true
                 });
-            let table = $('#' + Table.init.table_elem);
+            var table = $('#' + Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add: function () {
@@ -70,6 +78,12 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
         },
         edit: function () {
             Controller.api.bindevent()
+
+        },
+        password:function(){
+            Controller.api.bindevent()
+        },
+        rule:function(){
 
         },
         api: {

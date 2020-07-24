@@ -1334,6 +1334,7 @@ layui.define(['laytpl', 'laypage', 'layer', 'form'], function(exports){
                     var n = temList[i];
                     if(o[table.config.cols.isOpen]){//打开状态的，关闭
                         if(e[table.config.cols.isOpen]&&e[table.config.cols.isShow]){//该节点显示
+                            console.log(22)
                             var temo=that.layBody.find('tr[data-index="'+ n[table.config.indexName] +'"]');
                             temo.show();
                             n[table.config.cols.isShow]=true;

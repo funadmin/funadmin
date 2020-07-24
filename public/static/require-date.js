@@ -1,39 +1,39 @@
 define(['jquery'], function (undefined) {
-
-    let laydate = layui.laydate;
-    let Date = {
+    var laydate = layui.laydate;
+    var Date = {
         init: {},
         //事件
         events: {
             date: function () {
-                var dateList = document.querySelectorAll("[data-date]");
+                var dateList = document.querySelectorAll("[lay-date]");
                 if (dateList.length > 0) {
                     $.each(dateList, function (i, v) {
-                        var format = $(this).attr('data-date'),
-                            type = $(this).attr('data-date-type'),
-                            range = $(this).attr('data-date-range');
-                        if (type === undefined || type === '' || type === null) {
+                        var format = $(this).attr('lay-date'),
+                            type = $(this).attr('lay-type'),
+                            range = $(this).attr('lay-range');
+                        if (type == undefined || type == '' || type == null) {
                             type = 'datetime';
                         }
                         var options = {
                             elem: this,
                             type: type,
                         };
-                        if (format !== undefined && format !== '' && format !== null) {
+                        if (format != undefined && format != '' && format != null) {
                             options['format'] = format;
                         }
-                        if (range !== undefined) {
-                            if (range === null || range === '') {
+                        if (range != undefined) {
+                            if (range != null || range == '') {
                                 range = '-';
                             }
                             options['range'] = range;
                         }
+                        console.log(options)
                         laydate.render(options);
                     });
                 }
 
             },
-            bindevent:function(){
+            bindevent: function () {
 
             }
         },
@@ -41,8 +41,9 @@ define(['jquery'], function (undefined) {
 
             //绑定事件
             bindEvent: function () {
-                let events = Date.events;
-                events.bindevent(form);
+                var events = Date.events;
+                events.date();
+                events.bindevent();
 
             }
         }

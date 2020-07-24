@@ -21,6 +21,9 @@ class BackendModel extends BaseModel
         parent::__construct($data);
     }
 
+    public function after_update(){
+
+    }
 
 
 }

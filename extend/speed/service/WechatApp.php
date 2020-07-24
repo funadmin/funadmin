@@ -55,15 +55,15 @@ class WechatApp
                         ],
                     ];
     public $wechat;
-    public $store_id;
+    public $merchant_id;
     public $wechatApp;
 
-    public function __construct($store_id=1)
+    public function __construct($merchant_id=1)
     {
         // 微信配置
-        $this->store_id = $store_id;
+        $this->merchant_id = $merchant_id;
         $this->wechat = WxAccount::where('status', 1)
-            ->where('store_id', $this->store_id)
+            ->where('merchant_id', $this->merchant_id)
             ->find();
         if ($this->wechat) {
             $this->config = ['app_id' => $this->wechat->app_id,

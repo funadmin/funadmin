@@ -6,66 +6,46 @@
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
-// | Author: 
+// | Author: yuege
 // +----------------------------------------------------------------------
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use \think\facade\Db; 
+use \think\facade\Db;
 
 error_reporting(0);
 
+if (!function_exists('region')) {
 
-/**
- * @return mixed
- * 获取用户更信息
- */
-if (!function_exists('getUserById')) {
-
-    function getUserById($id)
+    function region($id)
     {
-        return Db::name('user')->find($id);
+        return \app\common\model\Region::cache('region_'.$id)->find($id);
     }
 }
 
-if (!function_exists('getRegionById')) {
-
-    function getRegionById($id)
+if (!function_exists('syscfg')) {
+    /**
+     * @param $group
+     * @param $code
+     *
+     */
+    function syscfg($group,$code)
     {
-        return Db::name('region')->find($id);
-    }
-}
-/**
- * @return mixed
- * 获取站点信息
- */
-if (!function_exists('site_name')) {
-
-    function site_name()
-    {
-        return Db::name('config')->where('code', 'site_name')
-            ->value('value');
-    }
-}
-
-if (!function_exists('site_logo')) {
-
-    function site_logo()
-    {
-        return Db::name('config')->where('code', 'site_logo')
-            ->value('value');
-    }
-}
-//获取配置信息
-if (!function_exists('getConfigByCode')) {
-
-    function getConfigByCode($code)
-    {
-        return Db::name('config')->where('code', $code)
-            ->value('value');
+        $where = ['group' => $group];
+        $value = empty($code) ? cache("syscfg_{$group}") : cache("syscfg_{$group}_{$code}");
+        if (!empty($value)) {
+            return $value;
+        }
+        if (!empty($code)) {
+            $where['code'] = $code;
+            $value = \app\common\model\Config::where($where)->value('value');
+            cache("syscfg_{$group}_{$code}", $value, 3600);
+        } else {
+            $value = \app\common\model\Config::where($where)->column('value', 'code');
+            cache("syscfg_{$group}", $value, 3600);
+        }
+        return $value;
 
     }
 }
+
 
 //重写url 助手函数
 if (!function_exists('url')) {
@@ -94,8 +74,9 @@ if (!function_exists('__url')) {
         return $url;
     }
 }
-/*
- * 百度编辑器内容
+
+/**
+ * 百度编辑器
  */
 if (!function_exists('build_ueditor')) {
 function build_ueditor($params = array())
@@ -132,7 +113,7 @@ function build_ueditor($params = array())
             break;
     }
     /* 配置界面语言 */
-    switch (config('default_lang')) {
+    switch (config('think_var')) {
         case 'zh-cn':
             $lang = '__PLUGINS__/ueditor/lang/zh-cn/zh-cn.js';
             break;
@@ -163,12 +144,18 @@ EOT;
 }
 }
 
+/**
+ * 打印
+ */
 if (!function_exists('p')) {
     function p($var, $die = 0) {
         print_r($var);
         $die && die();
     }
 }
+/**
+ * 手机
+ */
 if (!function_exists('isMobile')) {
     function isMobile()
     {
@@ -227,8 +214,8 @@ if (!function_exists('isMobile')) {
 
 //是否https;
 
-if (!function_exists('is_https')) {
-    function is_https() {
+if (!function_exists('isHttps')) {
+    function isHttps() {
         if ( !empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') {
             return true;
         } elseif ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https' ) {
@@ -245,19 +232,24 @@ if (!function_exists('is_https')) {
 /**
  * 获取http类型
  */
-if(!function_exists('get_http_type')) {
-    function get_http_type()
+if(!function_exists('getHttpType')) {
+    /**
+     * http 类型
+     * @return string
+     */
+    function getHttpType()
     {
         return $http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
 
     }
 }
-/**
- * 从前日期
- */
 
 if (!function_exists('timeAgo')) {
-
+    /**
+     * 从前
+     * @param $posttime
+     * @return string
+     */
     function timeAgo($posttime)
     {
         //当前时间的时间戳

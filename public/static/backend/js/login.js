@@ -1,5 +1,9 @@
-define(['jquery',"form"], function ($, Form) {
+define(['jquery',"form",'toastr'], function ($, Form,toastr) {
 
+    Toastr.options = {
+        positionClass:"toast-top-center",//弹出的位置,
+
+    }
     let Controller = {
 
         index: function () {
@@ -11,13 +15,14 @@ define(['jquery',"form"], function ($, Form) {
         },
         api: {
             bindevent: function () {
-                Form.api.bindEvent($('form'),function (data) {
-                    Speed.msg.success(data.msg,function () {
-                        location.href = data.url;
-                    });
-                }, function (data) {
+                Form.api.bindEvent($('form'),function (res) {
+                    Speed.msg.success(res.msg,setTimeout(function () {
+                        window.location = res.url;
+                    },2000))
+                }, function (res) {
                     $("#captchaPic").trigger("click");
-                    Speed.msg.error(data.msg);
+                    $('input[name="__token__"]').val(res.data.token)
+                    Speed.msg.error(res.msg);
                 })
             }
         },

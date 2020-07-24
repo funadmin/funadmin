@@ -37,14 +37,14 @@ return [
     // 开启应用快速访问 如果你完全不需要单应用模式，也可以设置使用严格的多应用模式
     'app_express'    =>    true,
     // 默认应用
-    'default_app'      => 'index',
+    'default_app'      => 'frontend',
     // 默认时区
     'default_timezone' => 'Asia/Shanghai',
 
     // 空控制器名
     'empty_controller'      => 'Error',
     // 默认异常页面的模板文件
-//    'exception_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/hink_exception.tpl',
+//    'exception_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/think_exception.tpl',
     // 默认跳转页面对应的模板文件
     'dispatch_success_tmpl' => \think\facade\App::getAppPath(). '/common/view/tpl/dispatch_jump.tpl',
     'dispatch_error_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/dispatch_jump.tpl',

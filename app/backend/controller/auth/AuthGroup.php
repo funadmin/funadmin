@@ -1,10 +1,10 @@
 <?php
 namespace app\backend\controller\auth;
 use app\backend\model\AuthGroup as AuthGroupModel ;
-use think\facade\Config;
+use app\backend\model\AuthRule;
+use app\backend\service\AuthService;
 use think\facade\Session;
 use think\facade\View;
-
 class AuthGroup extends \app\common\controller\Backend
 {
     /*-----------------------用户组管理----------------------*/
@@ -25,57 +25,58 @@ class AuthGroup extends \app\common\controller\Backend
     {
         if ($this->request->isPost()) {
             $data = $this->request->post();
-            try {
-                $this->validate($data, 'AuthGroup');
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
+            $rule = [
+                'title|用户组名' => [
+                    'require' => 'require',
+                    'max'     => '100',
+                    'unique'  => 'auth_group',
+                ]
+            ];
+            $this->validate($data, $rule);
             $result =  $this->modelClass->save($data);
             if ($result) {
-                $this->success(lang('Add success'), url('sys.Auth/group'));
+                $this->success(lang('Add Success'));
             } else {
                 $this->error(lang('Add Failed'));
             }
 
         } else {
+            $authGroup = $this->modelClass->where('status',1)->select();
             $view = [
-                'formData' => null
+                'formData' => null,
+                'authGroup' => $authGroup,
             ];
             View::assign($view);
-            return view('add');
+            return view();
         }
     }
 
     // 用户组修改
-    public function edit()
+    public function edit($id)
     {
+        $list = $this->modelClass->find($id);
         if ($this->request->isPost()) {
             $data = $this->request->post();
-            if($data['id']==1){
+            if($id==1){
                 $this->error(lang('SupperAdmin cannot edit'));
             }
-            try{
-                $this->validate($data, 'AuthGroup');
-            }catch (\ValidateException $e){
-                $this->error($e->getMessage());
-            }
-            $list = $this->modelClass->find($data['id']);
             $res = $list->save($data);
             if($res){
-                $this->success(lang('edit success'), url('sys.Auth/group'));
+                $this->success(lang('Edit Success'));
             }else{
-                $this->error(lang('edit fail'));
+                $this->error(lang('Edit Failed'));
             }
 
         } else {
             $id = $this->request->param('id');
             $list = $this->modelClass->find(['id' => $id]);
+            $authGroup = $this->modelClass->where('status',1)->select();
             $view = [
                 'formData' => $list,
-                'title' => lang('edit')
+                'authGroup' => $authGroup,
             ];
             View::assign($view);
-            return view();
+            return view('add');
         }
     }
 
@@ -87,18 +88,95 @@ class AuthGroup extends \app\common\controller\Backend
             if($id==1){
                 $this->error(lang('SuperGroup Cannot Edit'));
             }
-            $list = $this->modelClass->find($id);
-            $list->status = $list['status'] == 1 ? 0 : 1;
-//            if($this->uid==3){
-//                $this->error(lang('test data cannot edit'));
-//            }
-            $list->save();
-            $this->success(lang('edit success'));
+            $field = $this->request->param('field');
+            $value = $this->request->param('value');
+            if($id){
+                $list = $this->modelClass->find($id);
+                $list->$field = $value;
+                $save = $list->save();
+                $save ? $this->success(lang('Modify Success')) :  $this->error(lang("Modify Failed"));
+            }else{
+                $this->error(lang('Invalid Data'));
+            }
 
         }
     }
 
+    public function delete()
+    {
+        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
+        if($ids==1 || in_array(1,$ids)){
+            $this->error(lang('SuperGroup Cannot Edit'));
+        }else{
+            $list = $this->modelClass->whereIn('id', $ids)->select();
+            try {
+                $save = $list->delete();
+            } catch (\Exception $e) {
+                $this->error(lang("Delete Success"));
+            }
+            $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
 
+        }
+    }
+    // 用户组显示权限
+    public function access()
+    {
+        $AuthModel = new AuthRule();
+        $group_id = $this->request->param('id');
+        if($this->request->isAjax()){
+            if($this->request->isGet()){
+                $idList = cache('authIdList');
+                if(!$idList){
+                    $idList = $AuthModel->cache('authIdList')->column('id');
+                    sort($idList);
+                }
+                $admin_rule = $AuthModel->field('id, pid, title')
+                    ->where('status',1)
+                    ->order('sort asc')->cache(3600)
+                    ->select()->toArray();
+                $rules = $this->modelClass->where('id', $group_id)
+                    ->where('status',1)
+                    ->cache(3600)
+                    ->value('rules');
+                $list = cache('authCheckedList_'.session('admin.id'));
+                if(!$list){
+                    $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
+                    cache('authCheckedList_'.session('admin.id'),$list);
+                }
+                $view = [
+                    'code'=>1,
+                    'msg'=>'ok',
+                    'data'=>[
+                        'list' => $list,
+                        'idList' => $idList,
+                        'group_id' => $group_id,
+                    ]
+                ];
+                return json($view);
+            }else{
+                $rules = $this->request->post('rules');
+                if (empty($rules)) {
+                    $this->error(lang('please choose rule'));
+                }
+                $rules = (new AuthService())->authNormal($rules);
+                $rls = '';
+                foreach ($rules as $k=>$v){
+                    $rls.=$v['id'].',';
+                }
+                $where['id'] = $group_id;
+                $where['rules'] = $rls;
+                if ($this->modelClass->save($where)) {
+                    $admin = Session::get('admin');
+                    $admin['rules'] = $rls;
+                    Session::set('admin', $admin);
+                    $this->success(lang('rule assign success'),url('sys.Auth/group'));
+                } else {
+                    $this->error(lang('rule assign fail'));
+                }
+            }
+        }
+        return view();
+    }
 
 
 }

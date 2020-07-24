@@ -1,0 +1,84 @@
+<div class="speed-main">
+    <form class="layui-form" lay-filter="form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">用户名</label>
+                <div class="layui-input-block">
+                    <input type="text" name="username" lay-verify="required" placeholder="{:lang('Username')}昵称" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">
+                        在4到25个字符之间。
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('mobile')}</label>
+                <div class="layui-input-block">
+                    <input type="text" name="mobile" placeholder="{:lang('Mobile')}" lay-verify="phone" class="layui-input">
+                    <div class="layui-form-mid layui-word-aux">
+                        必须是正确的手机号
+                    </div>
+                </div>
+
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label required">{:lang('Avatar')}</label>
+                <div class="layui-input-block">
+                    <div class="layui-upload">
+                        <input type="text" name="avatar" class="layui-input attach" lay-verify="required">
+                        <button type="button" class="layui-btn layui-btn-normal" lay-path='avatar' lay-type="radio" lay-num="1" lay-upload><i class="layui-icon layui-icon-upload-circle"></i>{:lang('Uploads')}</button>
+                        <button type="button" class="layui-btn layui-btn-danger"  lay-mime="image" lay-type="radio" lay-num="1"  id="header"  lay-upload-select><i class="layui-icon layui-icon-align-center"></i>{:lang('Choose')}</button>
+                        <div class="layui-upload-list">
+                            {if $formData}
+                            {volist name=":explode(',',$formData['avatar'])" id="vo"}
+                            <li>
+                                <img lay-event="photos" class="layui-upload-img fl"
+                                     width="150" src="{$vo}">
+                                <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                                   lay-fileurl="{$vo}"></i></li>
+                            {/volist}
+                            {/if}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('Email')}</label>
+                <div class="layui-input-block">
+                    <input type="text" name="email" lay-verify="email" placeholder="{:lang('pleaseEnter')}邮箱" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label required">所属等级</label>
+                <div class="layui-input-block">
+                    <select name="level_id" lay-verify="required">
+                        <option value="">{:lang('Please Select')}</option>
+                        {volist name="memberLevel" id="vo"}
+                        <option value="{$vo.id}" {if !empty($formData) && $formData.level_id==$vo.id} selected {/if} >{$vo.name}</option>
+                        {/volist}
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label required">{:lang('Group Name')}</label>
+                <div class="layui-input-block">
+                    <select name="group_id" lay-verify="required">
+                        <option value="">{:lang('Please Select')}</option>
+                        {volist name="memberGroup" id="vo"}
+                        <option value="{$vo.id}" {if !empty($formData) && $formData.group_id==$vo.id} selected {/if} >{$vo.name}</option>
+                        {/volist}
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('sex')}</label>
+                <div class="layui-input-block">
+                        <input type="radio" name="sex" lay-filter="sex" checked value="1" title="男">
+                        <input type="radio" name="sex" lay-filter="sex" value="2" title="女">
+                        <input type="radio" name="sex" lay-filter="sex" value="0" title="保密">
+                </div>
+            </div>
+            {include file="common/subBtn" /}
+
+        </form>
+</div>

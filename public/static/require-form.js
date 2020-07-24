@@ -1,17 +1,23 @@
-define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
+define(['jquery','tableSelect', 'upload', 'table','date','editor'], function (undefined,tableSelect,Upload,Table,Date,Editor) {
 
-    let form = layui.form,
-        laydate = layui.laydate,
-        element = layui.element;
-    let Form = {
+    var form = layui.form;
+    var tableSelect = layui.tableSelect;
+    var Form = {
         init: {
 
         },
         //事件
         events: {
-            uploads: function (form) {
-                Upload.api.upload();
+            uploads: function () {
+                Upload.api.uploads();
             },
+            chooseFiles:function(){
+                Form.api.chooseFiles()
+            },
+            editor:function(){
+                Editor.api.wangeditor();
+            },
+
             submit: function (formObj, success, error,submit) {
                 var formList = document.querySelectorAll("[lay-submit]");
                 // 表单提交自动处理
@@ -50,7 +56,7 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                             }else if (typeof submit == 'function') {
                                 submit(url, dataField);
                             } else {
-                                Form.api.formSubmit(url, dataField, success, error, submit, refresh);
+                                Form.api.formSubmit(url, dataField, success, error,refresh);
                             }
                             return false;
                         });
@@ -65,7 +71,7 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                 var verifyList = document.querySelectorAll("[lay-verify]");
                 if (verifyList.length > 0) {
                     $.each(verifyList, function (i, v) {
-                        let verify = $(this).attr('lay-verify');
+                        var verify = $(this).attr('lay-verify');
                         // todo 必填项处理
                         if (verify == 'required') {
                             var label = $(this).parent().prev();
@@ -83,18 +89,40 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                     });
                 }
             },
-            chooseattach:function(){
-              Upload.api.chooseattach()
+
+            upfileDelete: function (othis) {
+                var fileurl = othis.attr('lay-fileurl');
+                var confirm = Speed.msg.confirm(__('Are you sure？'), function () {
+                    that = othis.parents('.layui-upload-list').parents('.layui-upload');
+                    var input = that.find('input[type="text"]');
+                    var inputVal = input.val();
+                    var input_temp = '';
+                    if (othis.parents('li').index() == 0) {
+                        input_temp = inputVal.replace(fileurl, '');
+                        input.val(input_temp);
+                    } else {
+
+                        input_temp = inputVal.replace(',' + fileurl, '');
+                        input.val(input_temp);
+                    }
+                    othis.parents('li').remove();
+                    Speed.msg.close(confirm);
+                });
+                return false;
+            },
+            photos: function(otihs){
+                Speed.events.photos(otihs)
             },
             bindevent: function (form) {
 
             },
         },
         api: {
+
             //关闭窗口并回传数据
             close: function (data) {
-                let index = parent.Layer.getFrameIndex(window.name);
-                let callback = parent.$("#layui-layer" + index).data("callback");
+                var index = parent.Layer.getFrameIndex(window.name);
+                var callback = parent.$("#layui-layer" + index).data("callback");
                 //再执行关闭
                 parent.layer.close(index);
                 //再调用回传函数
@@ -111,22 +139,32 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                 }
                 var index = parent.layer.getFrameIndex(window.name);
                 parent.layer.close(index);
-                if (option.refreshTable !== false) {
-                    parent.layui.table.reload(option.refreshTable);
+                if (option.refreshTable != false) {
+                    console.log(self)
+                    if(self!=top && parent.$('#'+option.refreshTable).length>0){
+                        parent.layui.table.reload(option.refreshTable)
+                        return false;
+                    }else{
+                        location.reload();
+                    }
+
                 }
                 if (option.refreshFrame) {
-                    parent.location.reload();
+                    location.reload();
+                    return false;
+
                 }
                 return false;
             },
 
-            formSubmit: function (url, data, success, error, submit, refresh) {
+            formSubmit: function (url, data, success, error,refresh) {
                 success = success || function (res) {
-                    res.msg = res.msg || 'ok';
+                    res.msg = res.msg || 'success';
                     Speed.msg.success(res.msg, function () {
-                        //返回页面
+                        // 返回页面
                         Form.api.closeCurrentOpen({
-                            refreshTable: refresh
+                            refreshTable: refresh,
+                            refreshFrame: refresh
                         });
                     });
                     return false;
@@ -139,10 +177,39 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                     return false;
                 };
                 Speed.ajax({
-                    method: 'post',
                     url: url,
                     data: data,
-                }, success, error, submit);
+                }, success, error);
+
+                // Speed.ajax({
+                //     method: 'post',
+                //     url: url,
+                //     data: data,
+                //     complete: function (xhr) {
+                //         var token = xhr.getResponseHeader('__token__');
+                //         if (token) {
+                //             $("input[name='__token__']").val(token);
+                //         }
+                //     }
+                // }, function (res) {
+                //     Speed.msg.success(res.msg, function () {
+                //         //返回页面
+                //         if(self!=top) {
+                //             setTimeout(function () {
+                //                 Form.api.closeCurrentOpen({
+                //                     refreshFrame: refresh,
+                //                     refreshTable: refresh
+                //                 });
+                //             }, 2000)
+                //         }
+                //     return false;
+                //     });
+                //     return false;
+                // }, function (res) {
+                //     res.msg = res.msg || 'error';
+                //     Speed.msg.error(res.msg);
+                //     return false;
+                // });
 
                 return false;
             },
@@ -153,19 +220,109 @@ define(['jquery', 'upload', 'table'], function (undefined, Upload, Table) {
                     form.render();
                 }
             },
+            //选择文件
+            chooseFiles: function () {
+                var fileSelectList = document.querySelectorAll("[lay-upload-select]");
+                if (fileSelectList.length > 0) {
+                    $.each(fileSelectList, function (i, v) {
+                        var uploadType = $(this).attr('lay-type'),
+                            uploadNum = $(this).attr('lay-num'),
+                            uploadMine = $(this).attr('lay-mime');
+                        uploadMine = uploadMine || '';
+                        uploadType = uploadType ? uploadType : 'radio';
+                        uploadNum = uploadType=='checkbox'?uploadNum : 1;
+                        var input = $(this).parents('.layui-upload').find('input[type="text"]');
+                        var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
+                        var id = $(this).attr('id')
+                        tableSelect.render({
+                            elem: '#'+id,
+                            checkedKey: 'id',
+                            searchType: 2,
+                            searchList: [
+                                {searchKey: 'name', searchPlaceholder: __('FileName or FileMine')},
+                            ],
+                            table: {
+                                url: Speed.url(Upload.init.requests.attach_url+'?mime='+uploadMine),
+                                cols: [[
+                                    {type: uploadType},
+                                    {field: 'id', title: 'ID'},
+                                    {
+                                        field: 'url',
+                                        minWidth: 80,
+                                        search: false,
+                                        title: __('Path'),
+                                        imageHeight: 40,
+                                        align: "center",
+                                        templet: Table.templet.image,
+                                    },
+                                    {field: 'original_name', width: 150, title: __('OriginalName'), align: "center"},
+                                    {field: 'mime', width: 120, title: __('MimeType'), align: "center"},
+                                    {field: 'create_time', width: 200, title: __('CreateTime'), align: "center", search: 'range'},
+                                ]]
+                            },
+                            done: function (elem, data) {
+                                var fileArr = [];
+                                var html = '';
+                                $.each(data.data, function (index, val) {
+                                    if (uploadMine == 'image') {
+                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+
+                                    } else if (uploadMine == 'video') {
+                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+
+                                    } else if (uploadMine == 'audio') {
+                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+                                    } else {
+                                        html += '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+
+                                    }
+                                    fileArr.push(val.path)
+                                });
+                                var fileurl = fileArr.join(',');
+                                Speed.msg.loading();
+                                Speed.msg.success(__('Choose Success'), function () {
+                                    var inptVal = input.val();
+                                    if(uploadNum==1){
+                                        input.val(fileurl)
+                                        uploadList.html(html)
+                                    }else{
+                                        if(inptVal){
+                                            input.val(inptVal+','+fileurl);
+                                        }else{
+                                            input.val(fileurl)
+                                        }
+                                        uploadList.append(html)
+                                    }
+                                    Speed.msg.close()
+                                });
+                            }
+                        })
+
+                    });
+
+                }
+
+            },
 
             //绑定事件
             bindEvent: function (form, success, error,submit) {
                 form = typeof form == 'object' ? form : $(form);
-                let events = Form.events;
+                var events = Form.events;
                 events.bindevent(form);
                 events.submit(form, success, error,submit);
                 events.required(form)
-                events.uploads(form)
-                events.chooseattach()
+                events.uploads() //上传
+                events.editor() //编辑器
+                events.chooseFiles() //选择文件
+                Date.api.bindEvent()
+
                 //初始化数据
                 this.initForm();
+                $('body').on('click', '[lay-event]', function () {
+                    var _that = $(this), attrEvent = _that.attr('lay-event');
+                    eval('Form.events.'+attrEvent+'(_that)');
 
+                });
             }
         }
     }

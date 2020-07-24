@@ -76,8 +76,8 @@ class Addon extends Backend
 //                ->order($sort)
 //                ->page($this->page  ,$this->pageSize)
 //                ->select();
-//            $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list,'count'=>$count];
-            $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $addons, 'count' => count($addons)];
+//            $result = ['code'=>0,'msg'=>lang('Delete Data Success'),'data'=>$list,'count'=>$count];
+            $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $addons, 'count' => count($addons)];
             return json($result);
         }
         return view();
@@ -242,7 +242,7 @@ class Addon extends Backend
         if ($this->request->isAjax()) {
             $params = $this->request->param('config/a',[],'trim');
             $name   =  $this->request->param("name");
-            $info =  $this->modelClass->find(input('id'));
+            $info =  $this->modelClass->find($this->request->param('id'));
             if ($params) {
                 $config = @unserialize($info->config);
                 foreach ($config as $k => &$v) {
@@ -287,10 +287,10 @@ class Addon extends Backend
         $info->config = $info->config ? unserialize($info->config):get_addons_instance($name)->getConfig(true);
 //        //模板引擎初始化
 //        View::engine('Think')->config([
-//            'view_path' => 'view' .DIRECTORY_SEPARATOR.'admin'. DIRECTORY_SEPARATOR
+//            'view_path' => 'view' .DS.'admin'. DS
 //        ]);
         View::assign("info", $info);
-        $configFile = app()->getRootPath() . 'addons' . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . 'config.html';
+        $configFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'config.html';
         $viewFile = is_file($configFile) ? $configFile : '';
         return view($viewFile);
     }

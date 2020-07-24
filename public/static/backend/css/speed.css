@@ -71,6 +71,7 @@ html {
     transition: all .3s;
     -webkit-transition: all .3s;
     padding: 0;
+    text-align: left;
 }
 
 .layui-nav .layui-nav-child dd.layui-this a {
@@ -92,9 +93,7 @@ html {
     color: #fff;
 }
 
-/**
-菜单
- */
+/*菜单*/
 .layui-layout-admin .layui-logo {
     color: #FFF;
     position: fixed;
@@ -106,14 +105,18 @@ html {
     background-color: #20222A;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
 }
-
+.layui-layout-admin .layui-logo img {
+    margin: 10px 20px;
+    width: 40px;
+}
 .speed-app .layui-layout-admin .layui-logo cite {
     font-style: normal;
     display: inline-block;
-    width: 160px;
+    width: 120px;
     text-align: center;
     transition: all .2s !important;
     color: #fff;
+    position: absolute;
 
 }
 

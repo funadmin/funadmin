@@ -35,7 +35,7 @@ trait Curd
                 ->order($sort)
                 ->page($this->page,$this->pageSize)
                 ->select();
-            $result = ['code' => 0, 'msg' => lang('Get info success'), 'data' => $list, 'count' => $count];
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
         return view();
@@ -57,9 +57,9 @@ trait Curd
             try {
                 $save = $this->modelClass->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('Save failed'));
+                $this->error(lang('Save Failed'));
             }
-            $save ? $this->success(lang('Save success')) : $this->error(lang('Save failed'));
+            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
         }
         $view = [
             'formData' => '',
@@ -87,9 +87,9 @@ trait Curd
             try {
                 $save = $list->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('Save failed'));
+                $this->error(lang('Save Failed'));
             }
-            $save ? $this->success(lang('Save success')) : $this->error(lang('Save failed'));
+            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
         }
         $view = ['formData'=>$list,'title' => lang('Add'),];
         return view('add',$view);
@@ -101,16 +101,20 @@ trait Curd
      */
     public function delete()
     {
-        $ids = input('ids')?input('ids'):input('id');
-        $list = $this->modelClass->whereIn('id', $ids)->select();
+        $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
+        if($ids=='all'){
+            $list = $this->modelClass->select();
+        }else{
+            $list = $this->modelClass->whereIn('id', $ids)->select();
+        }
         if(empty($list))$this->error('Data is not exist');
         try {
             $save = $list->delete();
         } catch (\Exception $e) {
-            $this->error(lang("Delete success"));
+            $this->error(lang("Delete Success"));
         }
 
-        $save ? $this->success(lang('Delete success')) :  $this->error(lang("Delete failed"));
+        $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
     }
 
     /**
@@ -128,10 +132,10 @@ trait Curd
                 $v->save();
             }
         } catch (\Exception $e) {
-            $this->error(lang("Delete success"));
+            $this->error(lang("Delete Success"));
         }
 
-        $this->success(lang("Delete success"));
+        $this->success(lang("Delete Success"));
 
     }
     public function sort($id)
@@ -140,7 +144,7 @@ trait Curd
         if(empty($model))$this->error('Data is not exist');
         $sort = input('sort');
         $save = $model->sort = $sort;
-        $save ? $this->success(lang('Save success')) :  $this->error(lang("Save failed"));
+        $save ? $this->success(lang('Save Success')) :  $this->error(lang("Save Failed"));
 
 
     }
@@ -149,15 +153,21 @@ trait Curd
      * 修改字段
      */
     public function modify(){
-        $data = $this->request->post();
         $id = input('id');
         $field = input('field');
         $value = input('value');
         if($id){
+            if(!$this->allowModifyFileds = ['*'] and !in_array($field, $this->allowModifyFileds)){
+
+                $this->error(lang('Field Is Not Allow Modify：' . $field));
+            }
             $model = $this->findModel($id);
+            if (!$model) {
+                $this->error(lang('Data Is Not 存在'));
+            }
             $model->$field = $value;
             $save = $model->save();
-            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify failed"));
+            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
 
         }else{
             $this->error(lang('Invalid data'));

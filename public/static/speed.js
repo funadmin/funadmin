@@ -1,21 +1,43 @@
 /**
  * 后台总控制js
  */
-define(["jquery","lang"], function ($,Lang) {
-    let form = layui.form,
-        layer = layui.layer,
-        table = layui.table,
-        laydate = layui.laydate,
-        upload = layui.upload,
-        element = layui.element;
-
-    let Speed = {
-        config: {
-            shade: [0.02, '#000'],
-        },
+define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
+    var layer = layui.layer,
+        table = layui.table;
+        layer.config({
+            skin: 'speed-layer-class'
+        });
+    Toastr= parent.Toastr || Toastr;
+    Toastr.options = {
+        closeButton:true,//显示关闭按钮
+        debug:false,//启用debug
+        positionClass:"toast-top-right",//弹出的位置,
+        showDuration:"300",//显示的时间
+        hideDuration:"1000",//消失的时间
+        timeOut:"3000",//停留的时间
+        extendedTimeOut:"1000",//控制时间
+        showEasing:"swing",//显示时的动画缓冲方式
+        hideEasing:"linear",//消失时的动画缓冲方式
+        iconClass: 'toast-info', // 自定义图标，有内置，如不需要则传空 支持layui内置图标/自定义iconfont类名
+        onclick: null, // 点击关闭回调
+        showMethod: "fadeIn",
+        hideMethod: "fadeOut"
+    };
+    var Speed = {
+        // config: {
+        //     shade: [0.02, '#000'],
+        // },
         url: function (url) {
+            if(!Config.addonname){
+                if(url.indexOf(Config.entrance) ===-1){
+                    return Config.entrance  + $.trim(url,'/');
+                }else{
+                    return url;
+                }
+            }else{
+                return '/'+$.trim(url,'/');
+            }
 
-            return Config.moduleurl + '/' + url;
         },
         checkAuth: function (node) {
             // todo 有问题，先全部返回true
@@ -23,7 +45,7 @@ define(["jquery","lang"], function ($,Lang) {
                 return true;
             }
             node = Speed.common.parseNodeStr(node);
-            let check = authNode[node] == undefined ? false : true;
+            var check = Config.authNode[node] == undefined ? false : true;
             return check;
         },
         parame: function (param, defaultParam) {
@@ -33,14 +55,15 @@ define(["jquery","lang"], function ($,Lang) {
             option.method = option.method || 'post';
             option.url = option.url || '';
             option.data = option.data || {};
-            option.prefix = option.prefix || false;
             option.statusName = option.statusName || 'code';
             option.statusCode = option.statusCode || 1;
             success = success || function (res) {
-
+                var msg = (res.msg == undefined && res.message==undefined) ? __('Return data is not right') : res.msg?res.msg:res.message;
+                Speed.msg.success(msg);
+                return false;
             };
             error = error || function (res) {
-                let msg = (res.msg == undefined && res.message==undefined) ? __('Return data is not right') : res.msg?res.msg:res.message;
+                var msg = (res.msg == undefined && res.message==undefined) ? __('Return data is not right') : res.msg?res.msg:res.message;
                 Speed.msg.error(msg);
                 return false;
             };
@@ -51,43 +74,42 @@ define(["jquery","lang"], function ($,Lang) {
                 Speed.msg.error(__('Request url can not empty'));
                 return false;
             }
-            if (option.prefix == true) {
-                option.url = Speed.url(option.url);
-            }
-            let index = Speed.msg.loading(__('loading'));
+            option.url = Speed.url(option.url);
+            var index = Speed.msg.loading(__('loading'));
             $.ajax({
                 url: option.url,
                 type:option.method,
                 contentType: "application/x-www-form-urlencoded; charset=UTF-8",
                 dataType: "json",
                 data: option.data,
-                timeout: 60000,
+                timeout: 6000,
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                beforeSend:function(res){
-                    //请求前的处理
+                beforeSend:function(xhr){
+
                 },
                 success: function (res) {
                     Speed.msg.close(index);
-                    if (eval('res.' + option.statusName) == option.statusCode) {
+                    if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
                     } else {
+                        $("input[name='__token__']").val(res.data.token);
                         return error(res);
                     }
-
                 },
                 error: function (xhr, textstatus, thrown) {
-                    Speed.msg.error('Status:' + xhr.status + '，' + xhr.statusText + __('，Try again later!'), function () {
+                    var message = xhr.responseJSON.message?__(xhr.responseJSON.message): __('，Try again later!')
+
+                    Speed.msg.error('Status:' + xhr.status +'\n'+ message , function () {
+                        // $("input[name='__token__']").val(xhr.responseJson);
                         ex(this);
                     });
                     return false;
                 },
                 complete: function (xhr,textstatus, thrown) {
-                    var responseText = xhr.responseText;
-                    responseText = JSON.parse(responseText);
-                    if (responseText.data['__token__']) {
-                        let token = responseText.data['__token'];
+                    var token = xhr.getResponseHeader('__token__');
+                    if (token) {
                         $("input[name='__token__']").val(token);
                     }
                 }
@@ -96,27 +118,31 @@ define(["jquery","lang"], function ($,Lang) {
         },
         common: {
             parseNodeStr: function (node) {
-                let array = node.split('/');
-                $.each(array, function (key, val) {
+                if(node.indexOf('/')===-1){
+                    node = Config.controllername+'/'+node;
+                }
+                var arrayNode = node.split('/');
+                $.each(arrayNode, function (key, val) {
                     if (key == 0) {
                         val = val.split('.');
                         $.each(val, function (i, v) {
-                            val[i] = Speed.common.snake(v.replace(v[0], v[0].toLowerCase()));
+                            v = Speed.common.camel(v);
+                            val[i] = v.slice(0,1).toLowerCase() + v.slice(1);
                         });
                         val = val.join(".");
-                        array[key] = val;
+                        arrayNode[key] = val;
                     }
                 });
-                node = array.join("/");
+                node = arrayNode.join("/");
                 return node;
             },
-            //驼峰
+            //下划线变驼峰
             camel: function (name) {
                 return name.replace(/\_(\w)/g, function (all, letter) {
                     return letter.toUpperCase();
                 });
             },
-            //下划线
+            //大写变下划线
             snake: function (name) {
                 return name.replace(/([A-Z])/g, "_$1").toLowerCase();
             },
@@ -129,7 +155,7 @@ define(["jquery","lang"], function ($,Lang) {
 
                     }
                 }
-                let index = layer.msg(msg, {icon: 1, shade: Speed.config.shade, scrollbar: false, time: 2000, shadeClose: true}, callback);
+                var index = Toastr.success(msg,callback);
                 return index;
             },
             // 失败消息
@@ -139,17 +165,17 @@ define(["jquery","lang"], function ($,Lang) {
 
                     }
                 }
-                let index = layer.msg(msg, {icon: 2, shade: Speed.config.shade, scrollbar: false, time: 3000, shadeClose: true}, callback);
+                var index = Toastr.error(msg,callback);
                 return index;
             },
             // 警告消息框
             alert: function (msg, callback) {
-                let index = layer.alert(msg, {end: callback, scrollbar: false});
+                var index =  Toastr.warning(msg,callback)
                 return index;
             },
             // 对话框
-                confirm: function (msg, success, error) {
-                let index = layer.confirm(msg, {title: __('Are you sure'), btn: [__('Confirm'), __('Cancel')]}, function () {
+            confirm: function (msg, success, error) {
+                var index = layer.confirm(msg, {title: __('Are you sure'), btn: [__('Confirm'), __('Cancel')]}, function () {
                     typeof success === 'function' && success.call(this);
                 }, function () {
                     typeof error === 'function' && error.call(this);
@@ -158,13 +184,13 @@ define(["jquery","lang"], function ($,Lang) {
                 return index;
             },
             // 消息提示
-            tips: function (msg, time, callback) {
-                let index = layer.msg(msg, {time: (time || 3) * 1000, shade: this.shade, end: callback, shadeClose: true});
+            tips: function (msg, callback) {
+                var index =  Toastr.info(msg,callback)
                 return index;
             },
             // 加载中提示
             loading: function (msg, callback) {
-                let index = msg ? layer.msg(msg, {icon:16, scrollbar: false, shade: this.shade, time: 0, end: callback}) : layer.load(0, {time: 0, scrollbar: false, shade: this.shade, end: callback});
+                var index = msg ? layer.msg(msg, {icon:16, scrollbar: false, shade: this.shade, time: 0, end: callback}) : layer.load(0, {time: 0, scrollbar: false, shade: this.shade, end: callback});
                 return index;
             },
             // 关闭消息框
@@ -178,9 +204,41 @@ define(["jquery","lang"], function ($,Lang) {
             }
         },
 
-        listen: function (formCallback, success, error, ex) {
+        events:{
+            photos: function (othis) {
+                var title = othis.attr('lay-photos'),
+                    src = othis.attr('src'),
+                    alt = othis.attr('alt');
+                var photos = {
+                    "title": title,
+                    "id": Math.random(),
+                    "data": [
+                        {
+                            "alt": alt,
+                            "pid": Math.random(),
+                            "src": src,
+                            "thumb": src
+                        }
+                    ]
+                };
+                layer.photos({
+                    photos: photos,
+                    anim: 5
+                });
+                return false;
+            },
+            open:function (othis) {
+                var options = {
+                    title:othis.attr('lay-title'),
+                    url:Speed.url(othis.attr('lay-url')),
+                    width:othis.attr('lay-width'),
+                    height:othis.attr('lay-height'),
+                    isResize:othis.attr('lay-isResize'),
+                    full:othis.attr('lay-full'),
 
-
+                }
+                Speed.api.open(options)
+            },
         },
 
         //接口
@@ -191,40 +249,51 @@ define(["jquery","lang"], function ($,Lang) {
              */
             checkScreen: function () {
                 //屏幕类型 大小
-                let ua = navigator.userAgent.toLocaleLowerCase();
-                let pl = navigator.platform.toLocaleLowerCase();
-                let isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
+                var ua = navigator.userAgent.toLocaleLowerCase();
+                var pl = navigator.platform.toLocaleLowerCase();
+                var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
                     || (/ucweb.*linux/i.test(ua));
-                let isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
-                let isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
-                let $win = $(window),$body = $('body'), container = $('#speed-app');
-                let width = $win.width();
+                var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
+                var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
+                var $win = $(window),$body = $('body'), container = $('#speed-app');
+                var width = $win.width();
                 if (!isAndroid && !isIOS && !isWinPhone && width > 768) {
                     return false;
                 } else {
                     return true;
                 }
             },
-            open: function (title, url, width, height, isResize) {
+            open: function (options) {
+                var title= options.title,
+                    url = options.url, width=options.width,
+                    height = options.height, isResize = options.isResize,
+                    isFull = options.full;
                 if (isResize == undefined) isResize = true;
+                if (isFull == undefined) isFull = false;
                 isResize = isResize == undefined ? true : isResize;
-                width= width || '800px';
-                height= height || '600px';
+                width= width || '600';
+                height= height || '600';
+                width = width+'px';
+                height = height+'px';
                 options  = {
                     title: title,
                     type: 2,
                     area: [width, height],
                     content: url,
                     shadeClose : true,
-                    anim : 5,
+                    anim : 0,
                     isOutAnim  : true,
                     maxmin   : true,
                     resize    : isResize,
                     scrollbar     : true,
                 }
-                let index = layer.open(options);
+                var index = layer.open(options);
                 if (Speed.api.checkScreen() || width == undefined || height == undefined) {
                     layer.full(index);
+                }
+                if(isFull){
+                    layer.full(index);
+                    return false;
                 }
                 if (isResize) {
                     $(window).on("resize", function () {
@@ -245,7 +314,7 @@ define(["jquery","lang"], function ($,Lang) {
         },
         //语言
         lang: function () {
-            let args = arguments,
+            var args = arguments,
                 string = args[0],
                 i = 1;
             string = string.toLowerCase();
@@ -255,9 +324,9 @@ define(["jquery","lang"], function ($,Lang) {
                     return Lang[string];
                 string = Lang[string];
             } else if (string.indexOf('.') !== -1 && false) {
-                let arr = string.split('.');
-                let current = Lang[arr[0]];
-                for (let i = 1; i < arr.length; i++) {
+                var arr = string.split('.');
+                var current = Lang[arr[0]];
+                for (var i = 1; i < arr.length; i++) {
                     current = typeof current[arr[i]] != 'undefined' ? current[arr[i]] : '';
                     if (typeof current != 'object')
                         break;
@@ -270,7 +339,7 @@ define(["jquery","lang"], function ($,Lang) {
             }
             return string.replace(/%((%)|s|d)/g, function (m) {
 
-                let val = null;
+                var val = null;
                 if (m[2]) {
                     val = m[2];
                 } else {
@@ -290,8 +359,14 @@ define(["jquery","lang"], function ($,Lang) {
             });
         },
 
+        bineEvent: function (formCallback, success, error, ex) {
+
+
+        },
+
     };
     window.__ = Speed.lang;
+    window.Toastr = Toastr;
     window.Speed = Speed;
     return Speed;
 });

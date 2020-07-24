@@ -2,10 +2,10 @@
 -- version 4.9.0.1
 -- https://www.phpmyadmin.net/
 --
--- Host: localhost
--- Generation Time: Feb 19, 2020 at 03:29 PM
--- Server version: 5.7.27-log
--- PHP Version: 7.3.10
+-- 主机： localhost
+-- 生成日期： 2020-07-19 14:23:33
+-- 服务器版本： 5.7.26
+-- PHP 版本： 7.3.4
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
@@ -19,13 +19,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `demo_SpeedAdmin_com`
+-- 数据库： `speedadmin`
 --
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_addon`
+-- 表的结构 `sp_addon`
 --
 
 CREATE TABLE `sp_addon` (
@@ -49,7 +49,7 @@ CREATE TABLE `sp_addon` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_admin`
+-- 表的结构 `sp_admin`
 --
 
 CREATE TABLE `sp_admin` (
@@ -61,6 +61,7 @@ CREATE TABLE `sp_admin` (
   `realname` varchar(10) DEFAULT NULL COMMENT '真实姓名',
   `mobile` varchar(30) DEFAULT NULL COMMENT '电话号码',
   `ip` varchar(20) DEFAULT NULL COMMENT 'IP地址',
+  `token` varchar(100) DEFAULT NULL,
   `mdemail` varchar(50) DEFAULT '0' COMMENT '传递修改密码参数加密',
   `status` tinyint(2) DEFAULT '1' COMMENT '审核状态',
   `avatar` varchar(120) DEFAULT '' COMMENT '头像',
@@ -69,43 +70,48 @@ CREATE TABLE `sp_admin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='后台管理员';
 
 --
--- Dumping data for table `sp_admin`
+-- 转存表中的数据 `sp_admin`
 --
 
-INSERT INTO `sp_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`) VALUES
-(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', 1, '994927909@qq.com', '', '18397423845', '127.0.0.1', '0', 1, '/storage/uploads/20190817\\294faa45405fa24da59c311f55ce313f.png', 1482132862, 1577337495),
-(3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', 1, '994927909@qq.com', '', '18397423845', '119.122.91.146', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1581824839);
+INSERT INTO `sp_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`) VALUES
+(1, 'admin', '$2y$12$a4Ilf1YcGusAAF7nxEoPHuv/0gxHfW13JaTpqxmGAoajGp12OqsSK', 1, NULL, NULL, NULL, '127.0.0.1', '79d6ce793cf2e6e96411dd1319c6a3ff8086809d', '0', 1, '', NULL, 1595078479),
+(2, 'admin1', '$2y$12$LAiB79KCH0df1BbK5D/daOJFRRdFtPXMMyfDjZ5QbtfqIdGun9opq', 3, 'limingyue0312@163.com', NULL, '18397423845', NULL, NULL, '0', 1, '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', 1594436813, 1594436813),
+(3, 'admin3', '$2y$12$3p8QlgXTMj.Zn16ATVdTBOPw79S73NsjDAh7wC/185e2Ai2dwNqTu', 3, 'yuegetec@163.com', NULL, '18397423845', NULL, NULL, '0', 1, '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', 1594437400, 1594437647),
+(4, 'admin2', '$2y$12$H.OhqEanvB6P9c8zcPZgXOs8gxROPIAWYmFF83q9MhxfWeqyTtrUG', 3, '13539175253@qq.com', NULL, '13539175253', '127.0.0.1', '', '0', 1, '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', 1594437448, 1594440504);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_admin_log`
+-- 表的结构 `sp_admin_log`
 --
 
 CREATE TABLE `sp_admin_log` (
   `id` bigint(16) UNSIGNED NOT NULL COMMENT '表id',
   `admin_id` int(10) DEFAULT NULL COMMENT '管理员id',
   `username` varchar(100) DEFAULT NULL,
-  `log_url` varchar(100) DEFAULT NULL,
-  `log_content` text,
-  `log_title` varchar(100) DEFAULT NULL COMMENT '日志描述',
-  `log_agent` varchar(200) DEFAULT NULL,
-  `log_ip` varchar(30) DEFAULT NULL COMMENT 'ip地址',
+  `method` varchar(50) DEFAULT NULL COMMENT '请求方式',
+  `url` varchar(100) DEFAULT NULL,
+  `content` text,
+  `title` varchar(100) DEFAULT NULL COMMENT '日志描述',
+  `agent` varchar(200) DEFAULT NULL,
+  `ip` varchar(30) DEFAULT NULL COMMENT 'ip地址',
   `create_time` int(11) DEFAULT NULL COMMENT '日志时间',
   `update_time` int(11) DEFAULT NULL,
-  `status` tinyint(1) DEFAULT '1'
+  `status` tinyint(1) DEFAULT '1',
+  `module` varchar(50) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_attach`
+-- 表的结构 `sp_attach`
 --
 
 CREATE TABLE `sp_attach` (
   `id` int(11) NOT NULL,
   `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '管理员id',
   `user_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表id',
+  `original_name` varchar(255) DEFAULT NULL COMMENT '文件原名',
   `name` varchar(255) DEFAULT NULL COMMENT '文件名',
   `thumb` varchar(255) DEFAULT NULL COMMENT '缩略图',
   `path` varchar(255) DEFAULT NULL COMMENT '路径',
@@ -123,14 +129,31 @@ CREATE TABLE `sp_attach` (
   `sort` int(5) NOT NULL DEFAULT '50'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- 转存表中的数据 `sp_attach`
+--
+
+INSERT INTO `sp_attach` (`id`, `admin_id`, `user_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `mime`, `driver`, `create_time`, `update_time`, `status`, `sort`) VALUES
+(1, 1, 0, '6991562840779.png', '59f359d1649925f3b00e12973ff4181b.png', '/storage/avatar/20200704\\59f359d1649925f3b00e12973ff4181b.png', '/storage/avatar/20200704\\59f359d1649925f3b00e12973ff4181b.png', 'http://127.0.0.1:8000/storage/avatar/20200704\\59f359d1649925f3b00e12973ff4181b.png', 'png', 269, '800', '530', '5c94f9f8a18d3e4ae73023d800530da7', 'image/png', 'lcoal', 1593846776, 1593846776, 1, 50),
+(2, 1, 0, '558532ff31aa3db722bc23b3bfa39dee.jpg', 'f280a509e2748ba1d4df35e42673df99.jpg', '/storage/avatar/20200704\\f280a509e2748ba1d4df35e42673df99.jpg', '/storage/avatar/20200704\\f280a509e2748ba1d4df35e42673df99.jpg', 'http://127.0.0.1:8000/storage/avatar/20200704\\f280a509e2748ba1d4df35e42673df99.jpg', 'jpg', 299, '770', '1089', 'fd25734dc4ce1f612d7875799bd550cd', 'image/jpeg', 'lcoal', 1593846921, 1593846921, 1, 50),
+(3, 1, 0, '1933.png', 'bc4ae2637b63d3d5d6bd86d13288159d.png', '/storage/avatar/20200704\\bc4ae2637b63d3d5d6bd86d13288159d.png', '/storage/avatar/20200704\\bc4ae2637b63d3d5d6bd86d13288159d.png', 'http://127.0.0.1:8000/storage/avatar/20200704\\bc4ae2637b63d3d5d6bd86d13288159d.png', 'png', 14687, '3635', '3635', '053dde68991163af12fdd3461b8a9cf7', 'image/png', 'lcoal', 1593846930, 1593846930, 1, 50),
+(4, 1, 0, '1572.png', '3e81577127c2f68e4e9d9a921da6b545.png', '/storage/uploads/20200704\\3e81577127c2f68e4e9d9a921da6b545.png', '/storage/uploads/20200704\\3e81577127c2f68e4e9d9a921da6b545.png', 'http://127.0.0.1:8000/storage/uploads/20200704\\3e81577127c2f68e4e9d9a921da6b545.png', 'png', 1148, '4142', '4142', '638dce25969cd4206add0be0f49e0181', 'image/png', 'lcoal', 1593862058, 1593862058, 1, 50),
+(5, 1, 0, '2052.png', '5a55e17a3f0c7829bfe30fc3cf135c9e.png', '/storage/uploads/20200706\\5a55e17a3f0c7829bfe30fc3cf135c9e.png', '/storage/uploads/20200706\\5a55e17a3f0c7829bfe30fc3cf135c9e.png', 'http://127.0.0.1:8000/storage/uploads/20200706\\5a55e17a3f0c7829bfe30fc3cf135c9e.png', 'png', 35, '200', '200', '58cc263f4bb996b7133a8353afde402a', 'image/png', 'lcoal', 1594003356, 1594003356, 1, 50),
+(6, 1, 0, '1588746338784.png', '756ebb2545b7a9cbb02b0c7514366d65.png', '/storage\\avatar/20200709\\756ebb2545b7a9cbb02b0c7514366d65.png', 'storage\\avatar/20200709\\756ebb2545b7a9cbb02b0c7514366d65.png', 'storage\\avatar/20200709\\756ebb2545b7a9cbb02b0c7514366d65.png', 'png', 475, '853', '481', 'aaf4bc045810549b9adff0414c59b364', 'image/png', 'lcoal', 1594296647, 1594296647, 1, 50),
+(7, 1, 0, '1589873191(1).jpg', '4eb2990cab22cae28999cdc67b6e1eb5.jpg', '/storage\\avatar/20200709\\4eb2990cab22cae28999cdc67b6e1eb5.jpg', 'storage\\avatar/20200709\\4eb2990cab22cae28999cdc67b6e1eb5.jpg', 'storage\\avatar/20200709\\4eb2990cab22cae28999cdc67b6e1eb5.jpg', 'jpg', 253, '486', '279', 'e0d4305f9d2bd628929181fbb181c573', 'image/png', 'lcoal', 1594296679, 1594296679, 1, 50),
+(8, 1, 0, '168_1535351333114_70495.jpg', '28fe38876c48cc4ed1efaf6c433bea66.jpg', '\\storage\\avatar/20200709\\28fe38876c48cc4ed1efaf6c433bea66.jpg', '\\storage\\avatar/20200709\\28fe38876c48cc4ed1efaf6c433bea66.jpg', '\\storage\\avatar/20200709\\28fe38876c48cc4ed1efaf6c433bea66.jpg', 'jpg', 120, '3840', '800', '8094d152873eb7269bbe39f9dfcf8260', 'image/jpeg', 'lcoal', 1594297218, 1594297218, 1, 50),
+(9, 1, 0, 'home-04.png', '2a307f9e653898590a7828eb80e44bdf.png', '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', '\\storage\\avatar/20200711\\2a307f9e653898590a7828eb80e44bdf.png', 'png', 1, '120', '120', 'bf0c82914581c3689cbd459e8e00ff91', 'image/png', 'lcoal', 1594436805, 1594436805, 1, 50),
+(10, 1, 0, 'home-01.png', '2389f72a7e2c57971ed7bbf121224170.png', '\\storage\\avatar/20200711\\2389f72a7e2c57971ed7bbf121224170.png', '\\storage\\avatar/20200711\\2389f72a7e2c57971ed7bbf121224170.png', '\\storage\\avatar/20200711\\2389f72a7e2c57971ed7bbf121224170.png', 'png', 1, '120', '120', '2e8486a99612f79bbc798aed2d0603a2', 'image/png', 'lcoal', 1594436927, 1594436927, 1, 50);
+
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_auth_group`
+-- 表的结构 `sp_auth_group`
 --
 
 CREATE TABLE `sp_auth_group` (
   `id` smallint(8) UNSIGNED NOT NULL COMMENT '分组id',
+  `pid` int(8) DEFAULT '0' COMMENT '父级',
   `title` char(100) NOT NULL DEFAULT '' COMMENT '标题',
   `status` tinyint(1) DEFAULT '0' COMMENT '状态',
   `rules` longtext COMMENT '规则',
@@ -139,16 +162,18 @@ CREATE TABLE `sp_auth_group` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员分组';
 
 --
--- Dumping data for table `sp_auth_group`
+-- 转存表中的数据 `sp_auth_group`
 --
 
-INSERT INTO `sp_auth_group` (`id`, `title`, `status`, `rules`, `create_time`, `update_time`) VALUES
-(1, '超级管理员', 1, '174,175,2603,2604,2615,2617,2616,2610,2614,2613,2612,2611,2618,2622,2621,2620,2619,2605,2608,2609,2607,2606,2624,2628,2627,2626,2625,2623,2638,2643,2646,2645,2644,2639,2642,2641,2640,1,6,26,33,32,31,30,29,28,27,35,38,37,36,7,19,18,17,16,15,14,8,2,34,39,21,40,20,148,154,152,151,150,149,153,73,1659,1660,1663,1661,1662,1664,76,82,86,85,84,83,77,78,79,80,81,', 1465114224, 1582014376);
+INSERT INTO `sp_auth_group` (`id`, `pid`, `title`, `status`, `rules`, `create_time`, `update_time`) VALUES
+(1, 0, '超级管理员', 1, '174,175,1,2,21,40,34,39,148,149,150,151,152,157,158,6,7,15,8,14,16,17,18,19,26,27,28,29,30,32,33,35,36,37,38,176,177,178,179,180,76,82,83,84,85,86,77,80,79,78,81,', NULL, 1594302865),
+(3, 1, '其他', 1, '1,2,21,40,34,39,62,52,53,54,55,56,57,59,60,61,58,6,7,17,8,14,19,26,29,27,28,30,32,35,36,37,38,63,64,65,66,67,68,69,41,42,43,44,45,46,47,48,49,50,51,', 1594298659, 1594468914),
+(4, 3, '其他1', 0, NULL, 1594469062, 1594469062);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_auth_rule`
+-- 表的结构 `sp_auth_rule`
 --
 
 CREATE TABLE `sp_auth_rule` (
@@ -168,173 +193,166 @@ CREATE TABLE `sp_auth_rule` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限节点';
 
 --
--- Dumping data for table `sp_auth_rule`
+-- 转存表中的数据 `sp_auth_rule`
 --
 
 INSERT INTO `sp_auth_rule` (`id`, `href`, `title`, `type`, `status`, `auth_open`, `menu_status`, `icon`, `condition`, `pid`, `sort`, `create_time`, `update_time`) VALUES
-(1, 'admin/sys', '系统', 1, 1, 0, 1, 'fa fa-home', '', 0, 50, 1446535750, 1581825710),
-(2, 'admin/sys.System', '系统设置', 1, 1, 0, 1, 'fa fa-gears', '', 1, 0, 1446535789, 1571882291),
-(6, 'admin/sys.Auth', '权限管理', 1, 1, 0, 1, 'fa fa-cog', '', 1, 0, 0, 0),
-(7, 'admin/sys.Auth/adminRule', '权限列表', 1, 1, 0, 1, 'fa fa-cog', '', 6, 0, 0, 0),
-(8, 'admin/sys.Auth/ruleEdit', '权限编辑', 2, 1, 0, 0, 'fa fa-cog', '', 7, 0, 0, 0),
-(14, 'admin/sys.Auth/ruleState', '菜单显示或者隐藏', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(15, 'admin/sys.Auth/ruleOpen', '权限是否验证', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(16, 'admin/sys.Auth/ruleSort', '权限排序', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(17, 'admin/sys.Auth/ruleDel', '权限删除', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(18, 'admin/sys.Auth/ruleSelectDel', '权限批量删除', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(19, 'admin/sys.Auth/ruleAdd', '权限增加', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
-(20, 'admin/sys.System/index', '站点设置', 1, 1, 0, 1, 'fa fa-gears', '', 2, 0, 0, 1567228601),
-(21, 'admin/sys.Adminlog/index', '日志管理', 1, 1, 0, 1, 'fa fa-life-ring', '', 2, 0, 0, 1566007925),
-(26, 'admin/sys.Auth/group', '权限组', 1, 1, 0, 1, 'fa fa-globe', '', 6, 0, 0, 0),
-(27, 'admin/sys.Auth/groupDel', '用户组删除', 1, 1, 0, 0, '', '', 26, 0, 0, 1581662964),
-(28, 'admin/sys.Auth/groupAdd', '用户组添加', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(29, 'admin/sys.Auth/groupEdit', '用户组修改', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(30, 'admin/sys.Auth/groupState', '用户组状态修改', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(31, 'admin/sys.Auth/groupSelectDel', '用户组批量删除', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(32, 'admin/sys.Auth/groupAccess', '用户组显示权限', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(33, 'admin/sys.Auth/groupSetaccess', '用户组保存权限', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
-(34, 'admin/sys.Uploads/uploads', '上传文件', 1, 1, 0, 0, 'fa fa-adjust', '', 2, 0, 0, 1571966280),
-(35, 'admin/sys.Auth/adminList', '管理员列表', 1, 1, 0, 1, 'fa fa-user-circle', '', 6, 0, 1, 0),
-(36, 'admin/sys.Auth/adminAdd', '添加管理员', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
-(37, 'admin/sys.Auth/adminDel', '删除管理员', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
-(38, 'admin/sys.Auth/adminState', '管理员状态', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
-(39, 'admin/Index/password', '修改密码', 1, 1, 0, 0, '', '', 2, 0, 0, 0),
-(40, 'admin/sys.Adminlog/delete', '广告编辑', 1, 1, 0, 0, '', '', 21, 50, 1566264200, 1567229266),
-(73, 'admin/sys.System/site', '站点修改', 1, 1, 0, 0, '', '', 2, 50, 1567225373, 1567225410),
-(76, 'admin/ucenter', '会员', 1, 1, 0, 1, 'fa fa-address-card-o', '', 0, 100, 1567327942, 1581825718),
-(77, 'admin/ucenter.User/index', '会员管理', 1, 1, 0, 1, 'fa fa-address-card-o', '', 76, 50, 1567327992, 1581662864),
-(78, 'admin/ucenter.User/add', '会员添加', 1, 1, 0, 0, NULL, '', 77, 0, 0, 1581662843),
-(79, 'admin/ucenter.User/delete', '会员删除', 1, 1, 0, 0, NULL, '', 77, 0, 0, NULL),
-(80, 'admin/ucenter.User/edit', '会员编辑', 1, 1, 0, 0, NULL, '', 77, 0, 0, NULL),
-(81, 'admin/ucenter.User/state', '会员状态', 1, 1, 0, 0, NULL, '', 77, 0, 0, NULL),
-(82, 'admin/ucenter.User/levelIndex', '会员等级', 1, 1, 0, 1, 'fa fa-align-center', '', 76, 50, 1567563846, 1567565085),
-(83, 'admin/ucenter.User/levelState', '会员等级状态', 1, 1, 0, 0, '', '', 82, 50, 1567568251, 1581662817),
-(84, 'admin/ucenter.User/levelDel', '会员等级删除', 1, 1, 0, 0, '', '', 82, 50, 1567568283, 1581662829),
-(85, 'admin/ucenter.User/levelAdd', '会员等级添加', 1, 1, 0, 0, '', '', 82, 50, 1567568305, 1567568333),
-(86, 'admin/ucenter.User/levelEdit', '会员等级编辑', 1, 1, 0, 0, 'fa fa-adjust', '', 82, 50, 1567568357, 1581858492),
-(148, 'admin/sys.System/configlist', '配置列表', 1, 1, 0, 1, 'fa fa-align-justify', '', 2, 0, 0, NULL),
-(149, 'admin/sys.System/configAdd', '添加配置', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(150, 'admin/sys.System/configEdit', '编辑配置', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(151, 'admin/sys.System/configDel', '删除配置', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(152, 'admin/sys.System/configState', '配置状态', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(153, 'admin/sys.System/configGroupAdd', '配置组添加', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(154, 'admin/sys.System/configGroupDel', '配置组删除', 1, 1, 0, 0, NULL, '', 148, 0, 0, NULL),
-(174, 'admin/addon', '插件管理', 1, 1, 1, 1, 'fa fa-futbol-o', '', 0, 1, 1580880615, 1582014450),
-(175, 'admin/sys.addon/index', '插件列表', 1, 1, 0, 1, 'fa fa-adjust', '', 174, 50, 1580880674, 1580880674),
-(1659, 'admin/attach', '附件管理', 1, 1, 0, 1, 'fa  fa-picture-o', '', 1, 50, 1581588790, 1581588790),
-(1660, 'admin/sys.attach/index', '附件列表', 1, 1, 0, 1, 'fa  fa-picture-o', '', 1659, 50, 1581588855, 1581588855),
-(1661, 'admin/sys.attach/add', '附件上传', 1, 1, 0, 0, 'fa fa-adjust', '', 1660, 50, 1581588904, 1581588989),
-(1662, 'admin/sys.attach/delete', '附件删除', 1, 1, 0, 0, 'fa fa-adjust', '', 1660, 50, 1581588934, 1581588934),
-(1663, 'admin/sys.attach/select', '附件选择', 1, 1, 0, 0, 'fa fa-adjust', '', 1660, 50, 1581588960, 1581588960);
+(1, 'sys', 'Sys', 1, 1, 1, 1, 'layui-icon layui-icon-home', '', 0, 1, 1446535750, 1594978978),
+(2, 'sys.system', 'System', 1, 1, 0, 1, 'layui-icon layui-icon-set', '', 1, 0, 1446535789, 1571882291),
+(6, 'auth.auth', 'Auth', 1, 1, 0, 1, 'layui-icon layui-icon-set-fill', '', 1, 0, 0, 0),
+(7, 'auth.auth/index', 'Rule', 1, 1, 0, 1, 'layui-icon layui-icon-set-fill', '', 6, 0, 0, 0),
+(8, 'auth.auth/edit', 'RuleEdit', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
+(14, 'auth.auth/modify', 'RuleModify', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
+(17, 'auth.auth/delete', 'RuleDel', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
+(19, 'auth.auth/ruleAdd', 'RuleAdd', 2, 1, 0, 0, '', '', 7, 0, 0, 0),
+(21, 'sys.adminlog/index', 'Log', 1, 1, 0, 1, 'layui-icon layui-icon-log', '', 2, 0, 0, 1566007925),
+(26, 'auth.authgroup/index', 'AuthGroup', 1, 1, 0, 1, 'layui-icon layui-icon-list', '', 6, 0, 0, 0),
+(27, 'auth.authgroup/delete', 'AuthGroupDel', 1, 1, 0, 0, '', '', 26, 0, 0, 1581662964),
+(28, 'auth.authgroup/add', 'AuthGroupAdd', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
+(29, 'auth.authgroup/edit', 'AuthGroupEdit', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
+(30, 'auth.authgroup/modify', 'AuthGroupModify', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
+(32, 'auth.authgroup/access', 'AuthGroupAccess', 1, 1, 0, 0, '', '', 26, 0, 0, 0),
+(34, 'ajax/uploads', 'Uploads', 1, 1, 0, 0, '', '', 2, 0, 0, 1571966280),
+(35, 'auth.admin/index', 'Admin', 1, 1, 0, 1, 'layui-icon layui-icon-username', '', 6, 0, 1, 0),
+(36, 'auth.admin/add', 'AdminAdd', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
+(37, 'auth.admin/delete', 'AdminDel', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
+(38, 'auth.admin/modify', 'AdminModify', 1, 1, 0, 0, '', '', 35, 0, 0, 0),
+(39, 'index/password', 'password', 1, 1, 0, 0, '', '', 2, 0, 0, 0),
+(40, 'sys.adminlog/delete', 'LogDel', 1, 1, 0, 0, '', '', 21, 50, 1566264200, 1567229266),
+(41, 'ucenter', 'Ucenter', 1, 1, 1, 1, 'layui-icon layui-icon-user', '', 0, 100, 1567327942, 1594978941),
+(42, 'ucenter.user/index', 'User', 1, 1, 0, 1, 'layui-icon layui-icon-user', '', 41, 50, 1567327992, 1581662864),
+(43, 'ucenter.user/add', 'UserAdd', 1, 1, 0, 0, NULL, '', 42, 0, 0, 1581662843),
+(44, 'ucenter.user/delete', 'UserDel', 1, 1, 0, 0, NULL, '', 42, 0, 0, NULL),
+(45, 'ucenter.user/edit', 'UserEdit', 1, 1, 0, 0, NULL, '', 42, 0, 0, NULL),
+(46, 'ucenter.user/modify', 'UserModify', 1, 1, 0, 0, NULL, '', 42, 0, 0, NULL),
+(47, 'member.memberLevel/index', 'UserLevel', 1, 1, 0, 1, 'layui-icon layui-icon-diamond', '', 41, 50, 1567563846, 1567565085),
+(48, 'member.memberLevel/modify', 'UserLevelModify', 1, 1, 0, 0, '', '', 47, 50, 1567568251, 1581662817),
+(49, 'member.memberLevel/delete', 'UserLevelDel', 1, 1, 0, 0, '', '', 47, 50, 1567568283, 1581662829),
+(50, 'member.memberLevel/add', 'UserLevelAdd', 1, 1, 0, 0, '', '', 47, 50, 1567568305, 1567568333),
+(51, 'member.memberLevel/edit', 'UserLevelEdit', 1, 1, 0, 0, '', '', 47, 50, 1567568357, 1581858492),
+(52, 'sys.config/index', 'Config', 1, 1, 0, 1, 'layui-icon layui-icon-align-center', '', 2, 0, 0, NULL),
+(53, 'sys.config/add', 'ConfigAdd', 1, 1, 0, 0, NULL, '', 52, 0, 0, NULL),
+(54, 'sys.config/edit', 'ConfigEdit', 1, 1, 0, 0, NULL, '', 52, 0, 0, NULL),
+(55, 'sys.config/delete', 'ConfigDel', 1, 1, 0, 0, NULL, '', 52, 0, 0, NULL),
+(56, 'sys.config/modify', 'ConfigModify', 1, 1, 0, 0, NULL, '', 52, 0, 0, NULL),
+(57, 'sys.configGroup/index', 'ConfigGroup', 1, 1, 0, 1, 'layui-icon layui-icon-list', '', 2, 0, 0, NULL),
+(58, 'sys.configGroup/add', 'ConfigGroupAdd', 1, 1, 0, 0, NULL, '', 57, 0, 0, NULL),
+(59, 'sys.configGroup/delete', 'ConfigGroupDel', 1, 1, 0, 0, NULL, '', 57, 0, 0, NULL),
+(60, 'sys.configGroup/edit', 'ConfigGroupEdit', 1, 1, 0, 0, NULL, '', 57, 0, 0, NULL),
+(61, 'sys.configGroup/modify', 'ConfigGroupModify', 1, 1, 0, 0, NULL, '', 57, 0, 0, NULL),
+(62, 'sys.config/set', 'ConfigSet', 1, 1, 0, 1, 'layui-icon layui-icon-set-sm', '', 2, 0, 1581588960, 1581588960),
+(63, 'attach', 'Attach', 1, 1, 0, 1, 'layui-icon layui-icon-picture-fine', '', 1, 50, 1581588790, 1581588790),
+(64, 'sys.attach/index', 'Attach', 1, 1, 0, 1, 'layui-icon layui-icon-picture-fine', '', 63, 50, 1581588855, 1581588855),
+(65, 'sys.attach/add', 'AttachAdd', 1, 1, 0, 0, '', '', 64, 50, 1581588904, 1581588989),
+(66, 'sys.attach/delete', 'AttachDelete', 1, 1, 0, 0, '', '', 64, 50, 1581588934, 1581588934),
+(67, 'sys.attach/select', 'AttachSelect', 1, 1, 0, 0, '', '', 64, 50, 1581588960, 1581588960),
+(68, 'addon', 'Addon', 1, 1, 1, 1, 'layui-icon layui-icon-app', '', 0, 50, 1580880615, 1594976049),
+(69, 'addon.addon/index', 'Addon', 1, 1, 0, 1, 'layui-icon layui-icon-app', '', 68, 1, 1580880674, 1580880674),
+(74, 'auth.auth/child', 'Add ChildRule', 1, 1, 0, 1, 'layui-icon-face-smile-fine', '', 7, 50, 1595081813, 1595081813);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_config`
+-- 表的结构 `sp_config`
 --
 
 CREATE TABLE `sp_config` (
   `id` smallint(5) NOT NULL,
   `code` varchar(30) NOT NULL,
+  `default_value` varchar(50) DEFAULT NULL COMMENT '默认值',
+  `extra` varchar(500) DEFAULT NULL COMMENT '配置值',
   `value` mediumtext,
   `remark` varchar(100) DEFAULT '解释,备注',
-  `type` varchar(20) DEFAULT 'site',
+  `type` varchar(30) DEFAULT NULL,
+  `group` varchar(20) DEFAULT 'site',
   `status` tinyint(1) DEFAULT '1',
   `create_time` int(11) DEFAULT NULL,
   `update_time` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置参数表';
 
 --
--- Dumping data for table `sp_config`
+-- 转存表中的数据 `sp_config`
 --
 
-INSERT INTO `sp_config` (`id`, `code`, `value`, `remark`, `type`, `status`, `create_time`, `update_time`) VALUES
-(1, 'site_name', 'SpeedAdmin', '网站名称', 'site', 1, 0, 1581900083),
-(2, 'site_phone', '3', '网站客服服务电话', 'site', 1, 0, 1581831391),
-(3, 'site_state', '1', '状态', 'site', 1, 0, 1581825436),
-(4, 'site_logo', '/storage/uploads/logo.png', '网站logo图1', 'site', 0, 0, 1581996172),
-(5, 'site_mobile_logo', 'site_mobile_logo.png', '默认网站手机端logo', 'site', 0, 0, 1581825453),
-(6, 'site_logowx', 'site_logowx.jpg', '微信网站二维码', 'site', 0, 0, 1581825453),
-(7, 'site_icp', '2', 'ICP备案号', 'site', 0, 0, 1581825454),
-(8, 'site_tel400', '40002541852', '解释,备注', 'site', 1, 0, 0),
-(9, 'site_email', '858761000@qq.com', '电子邮件', 'site', 1, 0, 0),
-(10, 'site_copyright', 'SpeedAdmin版权所有@2019', '底部版权信息', 'site', 1, 0, 0),
-(11, 'captcha_status_login', '1', '会员登录是否需要验证码', 'site', 1, 0, 0),
-(12, 'captcha_status_register', '1', '会员注册是否验证码', 'site', 1, 0, 0),
-(14, 'sms_appid', 'LTAIesI7qxnHLgKE', '短信平台账号', 'sms', 1, 0, 0),
-(15, 'sms_secret', 'sbA6wnefJLD7pv7WipcxL0M3IMb3l9', '短信平台密钥', 'sms', 1, 0, 0),
-(16, 'email_host', 'smtp.qq.com', '邮箱地址', 'email', 1, 0, 0),
-(17, 'email_port', '25', '邮箱端口', 'email', 1, 0, 0),
-(18, 'email_addr', '994927909@qq.com', '邮箱发件人地址', 'email', 1, 0, 0),
-(19, 'email_id', '994927909@qq.com', '身份验证用户名', 'email', 1, 0, 0),
-(20, 'email_pass', '11211', '用户名密码', 'email', 1, 0, 0),
-(21, 'email_secure', 'smtp', '邮箱发送协议', 'email', 1, 0, 0),
-(22, 'upload_file_type', 'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4|php', '图片上传保存方式', 'upload', 1, 0, 0),
-(23, 'cache_open', '0', '是否开启缓存', 'site', 1, 0, 0),
-(24, 'alioss_accessid', '', 'accessid', 'oss', 1, 0, 0),
-(25, 'alioss_accesssecret', '', 'oss_accesssecret', 'oss', 1, 0, 0),
-(26, 'alioss_bucket', '', 'oss_bucket', 'oss', 1, 0, 0),
-(27, 'alioss_endpoint', '', 'oss_endpoint', 'oss', 1, 0, 0),
-(28, 'aliendpoint_type', '0', 'aliendpoint_type', 'oss', 1, 0, 0),
-(29, 'node_site_url', '', '站内IM服务器地址', 'im', 1, 0, 0),
-(30, 'node_site_use', '0', '是否启用im', 'im', 1, 0, 0),
-(31, 'qq_isuse', '1', '是否使用QQ互联', 'qq', 1, 0, 0),
-(32, 'qq_appid', '', 'qq互联id', 'qq', 1, 0, 0),
-(33, 'qq_appkey', '', 'qq秘钥', 'qq', 1, 0, 0),
-(34, 'sina_isuse', '1', '是的使用微博登录', 'sina', 1, 0, 0),
-(35, 'sina_wb_akey', '', '新浪id', 'sina', 1, 0, 0),
-(36, 'sina_wb_skey', '', '新浪秘钥', 'sina', 1, 0, 0),
-(37, 'sms_register', '0', '是否手机注册', 'mobile', 1, 0, 0),
-(38, 'sms_login', '0', '是否手机登录', 'mobile', 1, 0, 0),
-(39, 'sms_password', '0', '是否手机找回密码', 'mobile', 1, 0, 0),
-(43, 'baidu_ak', '22bb7221fc279a484895afcc6a0bb33a', '百度地图AK密钥', 'baidu', 1, 0, 0),
-(44, 'site_licence', '', '营业执照', 'site', 1, 0, 0),
-(45, 'site_domain', 'https://www.SpeedAdmin.cn', '网站地址', 'site', 1, 0, 0),
-(46, 'upload_file_max', '200', '最大文件上传大小', 'upload', 1, 0, 0),
-(47, 'site_seo_title', 'SpeedAdmin-PHP-THINKPHP内容管理系统', '首页标题', 'site', 1, 0, 0),
-(48, 'site_seo_keywords', 'SpeedAdmin,SpeedAdmin官网,SpeedAdmin社区,PHP内容管理系统,开源CMS,php cms,thinkphp', '首页关键词', 'site', 1, 0, 0),
-(49, 'site_seo_desc', 'SpeedAdmin内容管理系统是一款高效建站的PHP内容管理系统，同时也是一款开源CMS系统。SpeedAdmin官网主要发布一些官网最新动态，同时也为广大建站爱好者提供一个交流探讨的平台。 - Powered by SpeedAdmin', '首页描述', 'site', 1, 0, 0),
-(50, 'upload_water', '1', '水印开始关闭', 'upload', 1, 0, 0),
-(51, 'upload_water_position', '', '水印位置', 'upload', 1, 0, 0),
-(52, 'sms_product', 'SpeedAdmin', '产品', 'sms', 1, 0, 0),
-(53, 'sms_template', 'SMS_158941284', '模板id', 'sms', 1, 0, 0),
-(54, 'site_version', 'v1.7', '版本', 'site', 1, NULL, NULL),
-(56, 'djrn', 'd', '', 'site', 1, 1581833955, 1581833955),
-(57, '3edc', '1', '1', 'site', 1, 1581996383, 1581996383),
-(58, 'eddd', '3333', '3333', 'site', 1, 1582019173, 1582019173);
+INSERT INTO `sp_config` (`id`, `code`, `default_value`, `extra`, `value`, `remark`, `type`, `group`, `status`, `create_time`, `update_time`) VALUES
+(1, 'site_name', NULL, NULL, 'lemocms', '网站名称', NULL, 'site', 1, 0, 1584799684),
+(2, 'site_phone', NULL, NULL, '3', '网站客服服务电话', NULL, 'site', 1, 0, 1581831391),
+(3, 'site_state', NULL, NULL, '1', '状态', NULL, 'site', 1, 0, 1581825436),
+(4, 'site_logo', NULL, NULL, '/storage/avatar/20200704\\59f359d1649925f3b00e12973ff4181b.png', '网站logo图1', NULL, 'site', 1, 0, 1583583460),
+(5, 'site_mobile_logo', NULL, NULL, 'site_mobile_logo.png', '默认网站手机端logo', NULL, 'site', 1, 0, 1583583460),
+(6, 'site_logowx', NULL, NULL, 'site_logowx.jpg', '微信网站二维码', NULL, 'site', 1, 0, 1583583460),
+(7, 'site_icp', NULL, NULL, '2', 'ICP备案号', NULL, 'site', 1, 0, 1583583461),
+(8, 'site_tel400', NULL, NULL, '40002541852', '解释,备注', NULL, 'site', 1, 0, 0),
+(9, 'site_email', NULL, NULL, '15151711601@qq.com', '电子邮件', NULL, 'site', 1, 0, 0),
+(10, 'site_copyright', NULL, NULL, '© 2019 www.SpeedAdmin.cn MIT license', '底部版权信息', NULL, 'site', 1, 0, 0),
+(18, 'email_addr', NULL, NULL, '994927909@qq.com', '邮箱发件人地址', NULL, 'email', 1, 0, 0),
+(19, 'email_id', NULL, NULL, '994927909@qq.com', '身份验证用户名', NULL, 'email', 1, 0, 0),
+(20, 'email_pass', NULL, NULL, '11211', '用户名密码', NULL, 'email', 1, 0, 0),
+(21, 'email_secure', NULL, NULL, 'smtp', '邮箱发送协议', NULL, 'email', 1, 0, 0),
+(22, 'upload_file_type', NULL, NULL, 'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4', '图片上传保存方式', NULL, 'upload', 1, 0, 0),
+(23, 'cache_open', NULL, NULL, '0', '是否开启缓存', NULL, 'site', 1, 0, 0),
+(24, 'alioss_accessid', NULL, NULL, '', 'accessid', NULL, 'oss', 1, 0, 0),
+(25, 'alioss_accesssecret', NULL, NULL, '', 'oss_accesssecret', NULL, 'oss', 1, 0, 0),
+(26, 'alioss_bucket', NULL, NULL, '', 'oss_bucket', NULL, 'oss', 1, 0, 0),
+(27, 'alioss_endpoint', NULL, NULL, '', 'oss_endpoint', NULL, 'oss', 1, 0, 0),
+(28, 'aliendpoint_type', NULL, NULL, '0', 'aliendpoint_type', NULL, 'oss', 1, 0, 0),
+(29, 'node_site_url', NULL, NULL, '', '站内IM服务器地址', NULL, 'im', 1, 0, 0),
+(30, 'node_site_use', NULL, NULL, '0', '是否启用im', NULL, 'im', 1, 0, 0),
+(31, 'qq_isuse', NULL, NULL, '1', '是否使用QQ互联', NULL, 'qq', 1, 0, 0),
+(32, 'qq_appid', NULL, NULL, '', 'qq互联id', NULL, 'qq', 1, 0, 0),
+(33, 'qq_appkey', NULL, NULL, '', 'qq秘钥', NULL, 'qq', 1, 0, 0),
+(34, 'sina_isuse', NULL, NULL, '1', '是的使用微博登录', NULL, 'sina', 1, 0, 0),
+(35, 'sina_wb_akey', NULL, NULL, '', '新浪id', NULL, 'sina', 1, 0, 0),
+(36, 'sina_wb_skey', NULL, NULL, '', '新浪秘钥', NULL, 'sina', 1, 0, 0),
+(37, 'sms_register', NULL, NULL, '0', '是否手机注册', NULL, 'mobile', 1, 0, 0),
+(38, 'sms_login', NULL, NULL, '0', '是否手机登录', NULL, 'mobile', 1, 0, 0),
+(39, 'sms_password', NULL, NULL, '0', '是否手机找回密码', NULL, 'mobile', 1, 0, 0),
+(43, 'baidu_ak', NULL, NULL, '22bb7221fc279a484895afcc6a0bb33a', '百度地图AK密钥', NULL, 'baidu', 1, 0, 0),
+(44, 'site_licence', NULL, NULL, '', '营业执照', NULL, 'site', 1, 0, 0),
+(45, 'site_domain', NULL, NULL, 'https://www.lemocms.com', '网站地址', NULL, 'site', 1, 0, 0),
+(46, 'upload_file_max', NULL, NULL, '2048', '最大文件上传大小', NULL, 'upload', 1, 0, 0),
+(47, 'site_seo_title', NULL, NULL, 'SPEEDADMIN', '首页标题', NULL, 'site', 1, 0, 0),
+(48, 'site_seo_keywords', NULL, NULL, 'SPEEDADMIN,LAYUI,THINKPHP6', '首页关键词', NULL, 'site', 1, 0, 0),
+(49, 'site_seo_desc', NULL, NULL, 'SPEEDADMIN,LAYUI,THINKPHP6', '首页描述', NULL, 'site', 1, 0, 0),
+(50, 'upload_water', NULL, NULL, '1', '水印开始关闭', NULL, 'upload', 1, 0, 0),
+(51, 'upload_water_position', NULL, NULL, '', '水印位置', 'text', 'upload', 1, 0, 0),
+(52, 'sms_product', NULL, NULL, 'SpeedAdmin', '产品', 'text', 'sms', 1, 0, 0),
+(58, 'sms_template', NULL, NULL, NULL, 'sms模板', 'text', 'site', 1, NULL, NULL),
+(59, 'upload_driver', 'local', NULL, 'alioss', '上传配置', 'text', 'upload', 1, 1594213311, 1594213418);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_config_group`
+-- 表的结构 `sp_config_group`
 --
 
 CREATE TABLE `sp_config_group` (
   `id` int(11) NOT NULL,
   `name` varchar(30) NOT NULL,
-  `title` varchar(60) NOT NULL
+  `title` varchar(60) NOT NULL,
+  `status` tinyint(1) DEFAULT '1' COMMENT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Dumping data for table `sp_config_group`
+-- 转存表中的数据 `sp_config_group`
 --
 
-INSERT INTO `sp_config_group` (`id`, `name`, `title`) VALUES
-(1, 'site', '网站'),
-(2, 'qq', 'qq'),
-(3, 'sms', '短信'),
-(4, 'email', '邮箱'),
-(5, 'oss', 'oss'),
-(6, 'sina', '新浪'),
-(7, 'im', 'im'),
-(8, 'upload', '上传'),
-(9, 'mobile', '手机'),
-(10, '百度', '百度配置');
+INSERT INTO `sp_config_group` (`id`, `name`, `title`, `status`) VALUES
+(1, 'site', '网站', 1),
+(2, 'qq', 'qq', 1),
+(3, 'sms', '短信', 1),
+(4, 'email', '邮箱', 1),
+(5, 'oss', 'oss', 1),
+(6, 'sina', '新浪', 1),
+(7, 'im', 'im', 1),
+(8, 'upload', '上传', 1),
+(9, 'mobile', '手机', 1),
+(10, '百度', '百度配置', 1);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_field_type`
+-- 表的结构 `sp_field_type`
 --
 
 CREATE TABLE `sp_field_type` (
@@ -349,7 +367,7 @@ CREATE TABLE `sp_field_type` (
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='字段类型表';
 
 --
--- Dumping data for table `sp_field_type`
+-- 转存表中的数据 `sp_field_type`
 --
 
 INSERT INTO `sp_field_type` (`id`, `name`, `title`, `sort`, `default_define`, `isoption`, `istring`, `rules`) VALUES
@@ -364,21 +382,44 @@ INSERT INTO `sp_field_type` (`id`, `name`, `title`, `sort`, `default_define`, `i
 (9, 'tags', '标签', 10, 'varchar(255) NOT NULL DEFAULT \'\'', 0, 1, ''),
 (10, 'number', '数字', 11, 'int(11) UNSIGNED NOT NULL DEFAULT \'0\'', 0, 0, 'isNumber'),
 (11, 'datetime', '日期和时间', 12, 'int(11) UNSIGNED NOT NULL DEFAULT \'0\'', 0, 0, ''),
-(12, 'ueditor', '百度编辑器', 13, 'text NOT NULL  DEFAULT \'\'', 0, 1, ''),
+(12, 'ueditor', '百度编辑器', 13, 'longtext NOT NULL  DEFAULT \'\'', 0, 1, ''),
 (13, 'images', '多张图', 9, 'varchar(256) NOT NULL DEFAULT \'\'', 0, 0, ''),
 (14, 'color', '颜色值', 17, 'varchar(7) NOT NULL DEFAULT \'\'', 0, 0, ''),
 (15, 'file', '单文件', 15, 'varcgar(255) NOT NULL DEFAULT \' \'', 0, 0, ''),
-(16, 'files', '多文件', 16, 'varchar(255) NOT NULL DEFAULT \' \'', 0, 0, '');
+(16, 'files', '多文件', 16, 'varchar(255) NOT NULL DEFAULT \' \'', 0, 0, ''),
+(17, 'wangEditor', 'wang编辑器', 0, 'longtext NOT NULL  DEFAULT \'\'', 0, 0, '');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_oauth2_client`
+-- 表的结构 `sp_language`
+--
+
+CREATE TABLE `sp_language` (
+  `id` int(11) UNSIGNED NOT NULL,
+  `name` varchar(20) NOT NULL,
+  `create_time` int(11) DEFAULT NULL,
+  `update_time` int(11) DEFAULT NULL,
+  `is_default` tinyint(1) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- 转存表中的数据 `sp_language`
+--
+
+INSERT INTO `sp_language` (`id`, `name`, `create_time`, `update_time`, `is_default`) VALUES
+(1, 'zh-cn', NULL, NULL, 1),
+(2, 'en-us', NULL, NULL, 0);
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `sp_oauth2_client`
 --
 
 CREATE TABLE `sp_oauth2_client` (
   `id` int(11) UNSIGNED NOT NULL,
-  `store_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
   `title` varchar(100) NOT NULL DEFAULT '' COMMENT '标题',
   `appid` varchar(64) NOT NULL,
   `appsecret` varchar(150) NOT NULL,
@@ -391,16 +432,16 @@ CREATE TABLE `sp_oauth2_client` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='oauth2_授权客户端';
 
 --
--- Dumping data for table `sp_oauth2_client`
+-- 转存表中的数据 `sp_oauth2_client`
 --
 
-INSERT INTO `sp_oauth2_client` (`id`, `store_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`) VALUES
+INSERT INTO `sp_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`) VALUES
 (1, 1, 'SpeedAdmin', 'SpeedAdmin', '123456', '', NULL, '', 1, 0, 0);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_region`
+-- 表的结构 `sp_region`
 --
 
 CREATE TABLE `sp_region` (
@@ -411,7 +452,7 @@ CREATE TABLE `sp_region` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Dumping data for table `sp_region`
+-- 转存表中的数据 `sp_region`
 --
 
 INSERT INTO `sp_region` (`id`, `name`, `level`, `pid`) VALUES
@@ -47937,12 +47978,13 @@ INSERT INTO `sp_region` (`id`, `name`, `level`, `pid`) VALUES
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_user`
+-- 表的结构 `sp_user`
 --
 
 CREATE TABLE `sp_user` (
   `id` mediumint(8) UNSIGNED NOT NULL COMMENT '表id',
-  `store_id` int(11) DEFAULT '1',
+  `merchant_id` int(11) DEFAULT '1',
+  `group_id` int(11) DEFAULT '1',
   `email` varchar(60) NOT NULL DEFAULT '' COMMENT '邮件',
   `username` varchar(255) DEFAULT NULL,
   `password` varchar(100) NOT NULL DEFAULT '' COMMENT '密码',
@@ -47990,23 +48032,45 @@ CREATE TABLE `sp_user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 --
--- Dumping data for table `sp_user`
+-- 转存表中的数据 `sp_user`
 --
 
-INSERT INTO `sp_user` (`id`, `store_id`, `email`, `username`, `password`, `paypwd`, `sex`, `birthday`, `user_money`, `frozen_money`, `distribut_money`, `underling_number`, `pay_points`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `mobile_validated`, `oauth`, `openid`, `unionid`, `avatar`, `province`, `city`, `district`, `email_validated`, `nickname`, `level_id`, `discount`, `total_amount`, `status`, `is_distribut`, `first_leader`, `second_leader`, `third_leader`, `token`, `message_mask`, `push_id`, `distribut_level`, `is_vip`, `min_qrcode`, `poster`) VALUES
-(7, 1, '9033100326@qq.com', 'ny8zxovm', '519475228fe35ad067744465c42a19b2', NULL, 0, 0, '0.00', '0.00', '0.00', 0, 100, 0, 1523608222, 1582085633, 1523608222, 0, '', '', '15274857485', 1, '', NULL, NULL, '/storage/uploads/20200217/badf68589b41f560e76257c5a4a8893c.jpg', 0, 0, 0, 0, '15274857485', 1, '1.00', '0.00', 1, 0, 3, 0, 0, '001b3f89dc686ad2f53f5481e8c9fb30', 63, '0', 0, 0, NULL, NULL),
-(13, 1, '994927909@qq.com', 'ces', '', NULL, 1, 0, '0.00', '0.00', '0.00', 0, 0, 0, 1581900766, 1582086004, 1581933805, 1, '27.38.173.227', '', '18397423845', 0, '', NULL, NULL, '/storage/uploads/20200216/8bbf8203b6b66185f10149b35a1cb75b.jpg', 0, 0, 0, 0, NULL, 1, '1.00', '0.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, NULL, NULL),
-(14, 1, '123@163.com', 'admin', '', NULL, 1, 0, '0.00', '0.00', '0.00', 0, 0, 0, 1581943304, 1582085206, 0, 0, '', '', '18812345678', 0, '', NULL, NULL, '/storage/uploads/20200216/8bbf8203b6b66185f10149b35a1cb75b.jpg', 0, 0, 0, 0, NULL, 2, '1.00', '0.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, NULL, NULL);
+INSERT INTO `sp_user` (`id`, `merchant_id`, `group_id`, `email`, `username`, `password`, `paypwd`, `sex`, `birthday`, `user_money`, `frozen_money`, `distribut_money`, `underling_number`, `pay_points`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `mobile_validated`, `oauth`, `openid`, `unionid`, `avatar`, `province`, `city`, `district`, `email_validated`, `nickname`, `level_id`, `discount`, `total_amount`, `status`, `is_distribut`, `first_leader`, `second_leader`, `third_leader`, `token`, `message_mask`, `push_id`, `distribut_level`, `is_vip`, `min_qrcode`, `poster`) VALUES
+(1, 1, 1, '15151711601@qq.com', 'r6ohhtqt', '', NULL, 1, 0, '0.00', '0.00', '0.00', 0, 0, 0, 1593675483, 1594973657, 0, 0, '', '', '1', 0, '', NULL, NULL, '/storage/avatar/20200704\\e27abf491e72f5458e3213893f3badd7.jpg', 0, 0, 0, 0, NULL, 1, '1.00', '0.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, NULL, NULL),
+(2, 1, 1, '15151711601@qq.com', 'r6ohhtqt112312', '', NULL, 1, 0, '0.00', '0.00', '0.00', 0, 0, 0, 1593675678, 1594973725, 0, 0, '', '', '18', 0, '', NULL, NULL, '/storage/avatar/20200702\\99b3cf52c1bad4d38c121c20baf9369c.png', 0, 0, 0, 0, NULL, 2, '1.00', '0.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, NULL, NULL),
+(3, 1, 1, '15151711601@qq.com', 'if8tlljz', '', NULL, 1, 0, '0.00', '0.00', '0.00', 0, 0, 0, 1594011035, 1594973718, 0, 0, '', '', '18397423845', 0, '', NULL, NULL, '/storage/avatar/20200704\\59f359d1649925f3b00e12973ff4181b.png', 0, 0, 0, 0, NULL, 1, '1.00', '0.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `sp_user_level`
+-- 表的结构 `sp_user_group`
+--
+
+CREATE TABLE `sp_user_group` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(50) DEFAULT '' COMMENT '组名',
+  `rules` mediumtext COMMENT '权限节点',
+  `createtime` int(10) DEFAULT NULL COMMENT '添加时间',
+  `updatetime` int(10) DEFAULT NULL COMMENT '更新时间',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会员组表' ROW_FORMAT=COMPACT;
+
+--
+-- 转存表中的数据 `sp_user_group`
+--
+
+INSERT INTO `sp_user_group` (`id`, `name`, `rules`, `createtime`, `updatetime`, `status`) VALUES
+(1, '默认组', '', 1515386468, 1516168298, 1);
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `sp_user_level`
 --
 
 CREATE TABLE `sp_user_level` (
   `id` smallint(4) UNSIGNED NOT NULL COMMENT '表id',
-  `level_name` varchar(30) DEFAULT NULL COMMENT '头衔名称',
+  `name` varchar(30) DEFAULT NULL COMMENT '头衔名称',
   `amount` decimal(10,2) DEFAULT NULL COMMENT '等级必要金额',
   `discount` smallint(4) DEFAULT '100' COMMENT '折扣',
   `status` tinyint(1) DEFAULT '1',
@@ -48017,26 +48081,22 @@ CREATE TABLE `sp_user_level` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户等级表';
 
 --
--- Dumping data for table `sp_user_level`
+-- 转存表中的数据 `sp_user_level`
 --
 
-INSERT INTO `sp_user_level` (`id`, `level_name`, `amount`, `discount`, `status`, `sort`, `description`, `create_time`, `update_time`) VALUES
-(1, '倔强青铜', '0.00', 100, 1, NULL, '人生若只如初相见', NULL, 1576155565),
+INSERT INTO `sp_user_level` (`id`, `name`, `amount`, `discount`, `status`, `sort`, `description`, `create_time`, `update_time`) VALUES
+(1, '倔强青铜', '0.00', 100, 1, NULL, '人生若只如初相见', NULL, 1593419330),
 (2, '秩序白银', '1000.00', 99, 1, NULL, '', NULL, 1575531170),
-(3, '荣耀黄金', '3000.00', 94, 1, NULL, '', NULL, 1575531169),
+(3, '荣耀黄金', '3000.00', 94, 1, NULL, '', NULL, 1589179721),
 (4, '尊贵铂金', '10000.00', 95, 1, NULL, '', NULL, 1575531168),
-(5, '永恒钻石', '50000.00', 93, 1, NULL, '', NULL, 1576723983),
-(6, '至尊星耀', '100000.00', 91, 1, NULL, '', NULL, 1576724646),
-(7, '最强王者', '3000000.00', 90, 1, NULL, '', NULL, 1580137654),
-(8, '任性', '99999999.99', 70, 1, 0, '', 1568098240, 1581661725),
-(10, '其他', '99999.00', 100, 1, 0, '测试', 1581309013, 1581935452);
+(5, '永恒钻石', '50000.00', 93, 1, NULL, '', NULL, 1576723983);
 
 --
--- Indexes for dumped tables
+-- 转储表的索引
 --
 
 --
--- Indexes for table `sp_addon`
+-- 表的索引 `sp_addon`
 --
 ALTER TABLE `sp_addon`
   ADD PRIMARY KEY (`id`),
@@ -48044,14 +48104,14 @@ ALTER TABLE `sp_addon`
   ADD KEY `status` (`status`);
 
 --
--- Indexes for table `sp_admin`
+-- 表的索引 `sp_admin`
 --
 ALTER TABLE `sp_admin`
   ADD PRIMARY KEY (`id`),
   ADD KEY `admin_username` (`username`);
 
 --
--- Indexes for table `sp_admin_log`
+-- 表的索引 `sp_admin_log`
 --
 ALTER TABLE `sp_admin_log`
   ADD PRIMARY KEY (`id`),
@@ -48059,13 +48119,13 @@ ALTER TABLE `sp_admin_log`
   ADD KEY `admin_id` (`admin_id`);
 
 --
--- Indexes for table `sp_attach`
+-- 表的索引 `sp_attach`
 --
 ALTER TABLE `sp_attach`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `sp_auth_group`
+-- 表的索引 `sp_auth_group`
 --
 ALTER TABLE `sp_auth_group`
   ADD PRIMARY KEY (`id`),
@@ -48073,7 +48133,7 @@ ALTER TABLE `sp_auth_group`
   ADD UNIQUE KEY `title` (`title`);
 
 --
--- Indexes for table `sp_auth_rule`
+-- 表的索引 `sp_auth_rule`
 --
 ALTER TABLE `sp_auth_rule`
   ADD PRIMARY KEY (`id`),
@@ -48081,7 +48141,7 @@ ALTER TABLE `sp_auth_rule`
   ADD KEY `href` (`href`);
 
 --
--- Indexes for table `sp_config`
+-- 表的索引 `sp_config`
 --
 ALTER TABLE `sp_config`
   ADD PRIMARY KEY (`id`),
@@ -48089,32 +48149,38 @@ ALTER TABLE `sp_config`
   ADD UNIQUE KEY `code` (`code`);
 
 --
--- Indexes for table `sp_config_group`
+-- 表的索引 `sp_config_group`
 --
 ALTER TABLE `sp_config_group`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `sp_field_type`
+-- 表的索引 `sp_field_type`
 --
 ALTER TABLE `sp_field_type`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `sp_oauth2_client`
+-- 表的索引 `sp_language`
+--
+ALTER TABLE `sp_language`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- 表的索引 `sp_oauth2_client`
 --
 ALTER TABLE `sp_oauth2_client`
   ADD PRIMARY KEY (`id`),
   ADD KEY `client_id` (`appid`);
 
 --
--- Indexes for table `sp_region`
+-- 表的索引 `sp_region`
 --
 ALTER TABLE `sp_region`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `sp_user`
+-- 表的索引 `sp_user`
 --
 ALTER TABLE `sp_user`
   ADD PRIMARY KEY (`id`),
@@ -48126,93 +48192,111 @@ ALTER TABLE `sp_user`
   ADD KEY `unionid` (`unionid`);
 
 --
--- Indexes for table `sp_user_level`
+-- 表的索引 `sp_user_group`
+--
+ALTER TABLE `sp_user_group`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- 表的索引 `sp_user_level`
 --
 ALTER TABLE `sp_user_level`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- 在导出的表使用AUTO_INCREMENT
 --
 
 --
--- AUTO_INCREMENT for table `sp_addon`
+-- 使用表AUTO_INCREMENT `sp_addon`
 --
 ALTER TABLE `sp_addon`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键', AUTO_INCREMENT=147;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键';
 
 --
--- AUTO_INCREMENT for table `sp_admin`
+-- 使用表AUTO_INCREMENT `sp_admin`
 --
 ALTER TABLE `sp_admin`
-  MODIFY `id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=7;
+  MODIFY `id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT for table `sp_admin_log`
+-- 使用表AUTO_INCREMENT `sp_admin_log`
 --
 ALTER TABLE `sp_admin_log`
   MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id';
 
 --
--- AUTO_INCREMENT for table `sp_attach`
+-- 使用表AUTO_INCREMENT `sp_attach`
 --
 ALTER TABLE `sp_attach`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- AUTO_INCREMENT for table `sp_auth_group`
+-- 使用表AUTO_INCREMENT `sp_auth_group`
 --
 ALTER TABLE `sp_auth_group`
-  MODIFY `id` smallint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=33;
+  MODIFY `id` smallint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT for table `sp_auth_rule`
+-- 使用表AUTO_INCREMENT `sp_auth_rule`
 --
 ALTER TABLE `sp_auth_rule`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2803;
+  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
--- AUTO_INCREMENT for table `sp_config`
+-- 使用表AUTO_INCREMENT `sp_config`
 --
 ALTER TABLE `sp_config`
-  MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
--- AUTO_INCREMENT for table `sp_config_group`
+-- 使用表AUTO_INCREMENT `sp_config_group`
 --
 ALTER TABLE `sp_config_group`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
--- AUTO_INCREMENT for table `sp_field_type`
+-- 使用表AUTO_INCREMENT `sp_field_type`
 --
 ALTER TABLE `sp_field_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
--- AUTO_INCREMENT for table `sp_oauth2_client`
+-- 使用表AUTO_INCREMENT `sp_language`
+--
+ALTER TABLE `sp_language`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- 使用表AUTO_INCREMENT `sp_oauth2_client`
 --
 ALTER TABLE `sp_oauth2_client`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT for table `sp_region`
+-- 使用表AUTO_INCREMENT `sp_region`
 --
 ALTER TABLE `sp_region`
   MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=47503;
 
 --
--- AUTO_INCREMENT for table `sp_user`
+-- 使用表AUTO_INCREMENT `sp_user`
 --
 ALTER TABLE `sp_user`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=15;
+  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=4;
 
 --
--- AUTO_INCREMENT for table `sp_user_level`
+-- 使用表AUTO_INCREMENT `sp_user_group`
+--
+ALTER TABLE `sp_user_group`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- 使用表AUTO_INCREMENT `sp_user_level`
 --
 ALTER TABLE `sp_user_level`
-  MODIFY `id` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=13;
+  MODIFY `id` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=6;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -33,6 +33,15 @@ body{
     background: #fff;
     padding: 5px;
 }
+.fl{
+    float: left;
+}
+.fr{
+    float: right;
+}
+.clearfix{
+    clear: both;
+}
 /*
 工具
 */
@@ -45,10 +54,11 @@ body{
 }
 .layui-layer.layui-layer-dialog .layui-layer-btn a {
     background-color: #95a5a6;
-    border-color: #95a5a6;
+
     color: #fff !important;
     height: 31px;
     margin-top: 0;
+    border-color: #95a5a6;
     border: 1px solid transparent;
 }
 .layui-layer.layui-layer-dialog .layui-layer-btn0 {
@@ -61,7 +71,6 @@ body{
 /**
 表单
  */
-
 .layui-form > .layui-form-item .required::after {
     content: "*";
     color: red;
@@ -72,5 +81,59 @@ body{
     top: 6px;
     right: 5px;
 }
+.center{
+    text-align: center;
+}
+
+/**
+文件上传列表
+ */
+.layui-upload-list li{
+    display: inline-block;
+}
+.layui-upload-list li i{
+    background: #f2f2f2;
+    cursor: pointer;
+}
+
+/**
+搜索
+ */
+#searchFieldList_list  .layui-btn {
+    height: 32px;
+    line-height: 28px;
+    font-size: 12px;
+    padding: 0 10px;
+}
+
+#searchFieldList_list .layui-form-label {
+    padding: 0 8px;
+    height: 32px;
+    line-height: 30px;
+}
+
+#searchFieldList_list .layui-input-inline {
+    width: 170px;
+}
+
+#searchFieldList_list .layui-input-inline input,
+#searchFieldList_list .layui-input-inline select {
+    width: 100%;
+    height: 32px;
+    padding: 2px 8px;
+    line-height: 1em;
+}
+
+#searchFieldList_list .layui-form-select dl {
+    top: 31px;
+    padding: 0;
+}
 
 
+
+
+/*//layui*/
+body .speed-layer-class .layui-layer-title{background: #1aa094; color:#fff; border: none;}
+body .speed-layer-class .layui-layer-btn{border-top:1px solid #E9E7E7}
+body .speed-layer-class .layui-layer-btn a{background:#333;}
+body .speed-layer-class .layui-layer-btn .layui-layer-btn1{background:#999;}

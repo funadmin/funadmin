@@ -2,14 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Document</title>
-    <meta name="keywords" content="speedAdmin 基于thinkphp6,thinkphp,layui,easywechat框架,框架,组件">
-    <meta name="description" content="lemoui 是一款采用 layui开发的极简后台管理框架 基于thinkphp6 ,easywechat,开发的cms后台管理系统,thinkphp,cms,php后台管理系统,cms,cms系统,restful api,thinkphp后台管理系统">
+    <title>SpeedAdmin后台管理系统</title>
+    <meta name="keywords" content="SpeedAdmin 基于thinkphp6,thinkphp,layui,easywechat框架,框架,组件">
+    <meta name="description" content="lemoui 是一款采用 layui开发的极简后台管理框架 基于thinkphp6 ,easywechat,开发的后台管理系统,thinkphp,cms,php,插件后台管理系统,商城,cms系统,restful api,thinkphp后台管理系统">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <meta http-equiv="Access-Control-Allow-Origin" content="*">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -21,7 +20,6 @@
 </head>
 <body>
 <style>body{background:url("{$loginbg}")}</style>
-
 <div class="layui-container">
     <div class="layui-login-body">
         <div class="layui-form layui-card-body">
@@ -33,24 +31,24 @@
                 {:token_field()}
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-user"></label>
-                    <input type="text" name="username" lay-verify="required|account" placeholder="用户名或者邮箱" autocomplete="off" class="layui-input" value="">
+                    <input type="text" name="username" lay-verify="required|account" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" value="">
                 </div>
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-password"></label>
-                    <input type="password" name="password" lay-verify="required|password" placeholder="密码" autocomplete="off" class="layui-input" value="">
+                    <input type="password" name="password" lay-verify="required|password" placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" value="">
                 </div>
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-vercode" ></label>
-                    <input type="text" name="captcha" lay-verify="required|captcha" placeholder="图形验证码" autocomplete="off" class="layui-input verification captcha" value="">
+                    <input type="text" name="captcha" lay-verify="required|captcha" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" value="">
                     <div class="captcha-img">
                         <img  id="captchaPic" src="{:url('verify')}?{:time()}" alt="captcha" onclick="this.src='{:url("verify")}?'+'id='+Math.random()"/>
                     </div>
                 </div>
                 <div class="layui-form-item">
-                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="keep login">
+                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
                 </div>
                 <div class="layui-form-item">
-                    <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">login in</button>
+                    <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
                 </div>
                 <div class="layui-form-item copyright">
                     © 2018-2020 <a href="https://www.speedadmin.cn" target="_blank">SpeedAdmin</a> All Rights Reserved.

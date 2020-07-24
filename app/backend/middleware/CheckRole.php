@@ -6,7 +6,7 @@
 
 namespace app\backend\middleware;
 
-use app\backend\lib\Auth;
+use app\backend\service\AuthService;
 use app\common\traits\Jump;
 use think\facade\Request;
 
@@ -19,7 +19,7 @@ class CheckRole
     public function handle($request, \Closure $next)
     {
 
-        $auth = new Auth();
+        $auth = new AuthService();
         $auth->checkNode();
         //中间件handle方法的返回值必须是一个Response对象。
         return $next($request);

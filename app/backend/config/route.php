@@ -10,9 +10,11 @@
 
 return [
     'middleware' => [
+        //节点
         app\backend\middleware\ViewNode::class,
+        //角色权限
         app\backend\middleware\CheckRole::class,
         //日志
-        app\backend\middleware\AdminLog::class,
+        app\backend\middleware\SystemLog::class,
     ],
 ];

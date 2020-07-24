@@ -17,7 +17,7 @@ use think\facade\Env;
 
 return [
     // 默认语言
-    'default_lang'    => Env::get('lang.default_lang', 'en-us'),
+    'default_lang'    => Env::get('lang.default_lang', 'zh-cn'),
     // 允许的语言列表
     'allow_lang_list' => ['zh-cn','en-us'],
     // 多语言自动侦测变量名 / 自动侦测的GET变量名

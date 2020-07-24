@@ -19,6 +19,7 @@ use speed\helper\SignHelper;
 use speed\helper\StringHelper;
 use think\facade\Db;
 use think\facade\Request;
+use think\facade\Session;
 use think\facade\View;
 use app\backend\model\Admin as AdminModel;
 use think\App;
@@ -63,16 +64,25 @@ class Admin extends Backend
     {
         if ($this->request->isPost()) {
             $data = $this->request->post();
-            try{
-                $this->validate($data, 'Admin');
-            }catch (\ValidateException $e){
-                $this->error($e->getMessage());
-            }
+            $rule = [
+                'username|用户名' => [
+                    'require' => 'require',
+                    'max'     => '100',
+                    'unique'  => 'admin',
+                ],
+                'password|密码' =>[
+                    'require' => 'require',
+                ],
+                'group_id|用户组'=>[
+                    'require' => 'require',
+                ],
+            ];
+            $this->validate($data, $rule);
             $data['password'] = StringHelper::filterWords($data['password']);
             if(!$data['password']){
                 $data['password']='123456';
             }
-            $data['password'] = password_hash($data['password'],PASSWORD_BCRYPT, SignHelper::passwordSalt());
+            $data['password'] = SignHelper::password($data['password']);
             //添加
 
             $result = $this->modelClass->save($data);
@@ -97,28 +107,26 @@ class Admin extends Backend
     // 管理员添加
     public function edit()
     {
+        $id = $this->request->param('id');
         if ($this->request->isPost()) {
             $data = $this->request->post();
-            try{
-                $this->validate($data, 'Admin');
-            }catch (\ValidateException $e){
-                $this->error($e->getMessage());
-            }
+            $rule = [];
+            $this->validate($data, $rule);
             $data['password'] = StringHelper::filterWords($data['password']);
             if(!$data['password']){
                 $data['password']='123456';
             }
-            $data['password'] = password_hash($data['password'],PASSWORD_BCRYPT, SignHelper::passwordSalt());
+            $data['password'] = SignHelper::password($data['password']);
             //添加
-            $list =  $this->modelClass->find($data['id']);
+            $list =  $this->modelClass->find($id);
             $result = $list->save($data);
             if ($result) {
-                $this->success(lang('Add Success'));
+                $this->success(lang('Edit Success'));
             } else {
-                $this->error(lang('Add Failed'));
+                $this->error(lang('Edit Failed'));
             }
         }
-        $list =  $this->modelClass->find($this->request->param('id'));
+        $list =  $this->modelClass->find($id);
         $auth_group = AuthGroupModel::where('status', 1)->select();
         $view = [
             'formData'  =>$list,
@@ -130,43 +138,105 @@ class Admin extends Backend
 
     }
 
+    // 管理员删除
+    public function modify()
+    {
+        $id = $this->request->param('id');
+        $field = $this->request->param('field');
+        $value = $this->request->param('value');
+        if($id){
+            if($id==1){
+                $this->error(lang('SupperAdmin can not modify'));
+            }
+            $model = $this->findModel($id);
+            $model->$field = $value;
+            $save = $model->save();
+            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
+        }else{
+            $this->error(lang('Invalid data'));
+        }
+
+    }
 
     // 管理员删除
     public function delete()
     {
-        $ids = $this->request->post('ids');
+        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
         if (!empty($ids)) {
-            foreach ($ids as $k=>$id) {
-                if($id==1){
-                    unset($ids[$k]);
-                }
-                $list = $this->modelClass->find($id);
-                $list->delete();
+            if($ids==1){
+                $this->error(lang('SupperAdmin can not delete'));
             }
-            $this->success(lang('Delete success'));
+            $list = $this->modelClass->whereIn('id', $ids)->select();
+            $save = $list->delete();
+            $save ?  $this->success(lang('Delete success')):$this->error(lang('SupperAdmin can not delete'));
         } else {
-            $this->error(lang('SupperAdmin can not delete'));
+            $this->error(lang('Ids can not empty'));
 
         }
     }
 
-    /********************************权限管理*******************************/
-    // 权限列表
-    public function adminRule()
+
+
+    /*
+     * 修改密码
+     */
+    public function password()
     {
-        if($this->request->isAjax()){
-            $uid = $this->uid;
+        if ($this->request->isAjax()) {
 
-            $arr = Db::name('auth_rule')
-                ->order('pid asc,sort asc')
-                ->select()->toArray();
-            foreach($arr as $k=>$v){
-                $arr[$k]['lay_is_open']=false;
+            if (Request::isAjax() and Session::get('admin.id') === 3) {
+                $this->error(lang('Test data cannot edit'));
             }
-            cache('authRuleList_'.$uid, $arr, 3600);
 
-            return $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$arr,'is'=>true,'tip'=>'操作成功'];
+            $oldpassword = $this->request->post('oldpassword');
+            $one = $this->modelClass->find(session('admin.id'));
+            if (!password_verify($oldpassword, $one['password'])) {
+                $this->error(lang('Old Password Error'),'',['token'=>$this->token()]);
+            }
+            $password = $this->request->post('password');
+            try {
+                $data['password'] = SignHelper::password($password);
+                $one->save($data);
+            } catch (\Exception $e) {
+                $this->error($e->getMessage(),'',['token'=>$this->token()]);
+            }
+            $this->success(lang('Edit success'));
+
         }
-        return view('admin_rule');
+        return view();
+    }
+
+    /*
+     * 基本信息
+     */
+    public function base()
+    {
+        if (!Request::isAjax()) {
+            return View::fetch('index/password');
+        } else {
+            $data = Request::post();
+            $admin = Admin::find($data['id']);
+            $oldpassword = Request::post('oldpassword', '123456', 'speed\helper\StringHelper::filterWords');
+            if (!password_verify($oldpassword, $admin['password'])) {
+                $this->error(lang('Origin password error'));
+            }
+            $password = Request::post('password', '123456', 'speed\helper\StringHelper::filterWords');
+            try {
+                $data['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
+
+                if (Session::get('admin.id') == 1) {
+                    Admin::update($data);
+                } elseif (Session::get('admin.id') == $data['id']) {
+                    Admin::update($data);
+                } else {
+                    $this->error(lang('Permission denied'));
+                }
+
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
+            $this->success(lang('Edit success'));
+
+        }
     }
 }
