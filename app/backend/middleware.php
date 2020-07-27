@@ -16,7 +16,8 @@ return [
      \think\middleware\LoadLangPack::class,
 
      \think\middleware\SessionInit::class,
-
+        //全局请求缓存
+//     \think\middleware\CheckRequestCache::class,
 
 ];
 

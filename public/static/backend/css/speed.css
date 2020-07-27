@@ -6,7 +6,7 @@
 
 /* 全局 */
 html {
-    background-color: #f2f2f2;
+    /*background-color: #f2f2f2;*/
     color: #666;
     font: 14px Helvetica Neue, Helvetica, PingFang SC, Tahoma, Arial, sans-serif;
 }
@@ -450,6 +450,9 @@ tab导航
     left: 220px;
     z-index: 999;
     padding: 0 10px;
+    line-height: 30px;
+    height: 30px;
+    font-size: 12px;
 }
 
 /**

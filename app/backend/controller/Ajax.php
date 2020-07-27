@@ -48,60 +48,18 @@ class Ajax extends Backend
         'voice' => 'filesize:2048|mp3,wma,wav,amr'
 
     ];
-    protected $driver = 'lcoal';
+    protected $driver = 'local';
 
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->modelClass = new AttachModel();
+        $this->driver = syscfg('upload','uplad_driver');
         $fileExt = syscfg('upload','upload_file_type');
         $filemax = syscfg('upload', 'upload_file_max') * 1024;
-        $this->imageValidate = ['image' => 'filesize' . $filemax . '|' . $fileExt,];
+        $this->uploadValidate = ['file' => 'filesize:' . $filemax . '|fileExt:' . $fileExt,];
 
     }
-    /**
-     * 初始化后台接口地址
-     * @return \think\response\Json
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    public function initMenuConfig()
-    {
-        $admin_id = session('admin.id');
-        $cacheData = Cache::get('initMenuConfig' . $admin_id);
-        if (!empty($cacheData)) {
-            return json($cacheData);
-        }
-        $menus = Cache::get('adminMenus_' . $admin_id);
-        if (!$menus) {
-            $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
-            $menus = (new AuthService())->authMenu($cate);
-            cache('adminMenus_' . $admin_id, $menus, ['expire' => 3600]);
-        }
-        $logoInfo = ["title" => syscfg('site','site_name'), "image" => syscfg('site','site_logo'), "href" => "https://www.speedadmin.cn"];
-        $data = ['clearInfo' => url('ajax/clearData'), 'menuInfo' => $menus, 'logoInfo' => $logoInfo];
-        Cache::set('initMenuConfig' . $admin_id, $data, 3600);
-        return json($data);
-    }
-
-    /**
-     * @return \think\response\Jsonp
-     * 自动加载语言函数
-     */
-    public function lang()
-    {
-        header('Content-Type: application/javascript');
-        $controllername = $this->request->param("controllername");
-        $controllername = parse_name($controllername);
-        //驼峰
-        $controllername = strtolower(Str::camel($controllername));
-        $addon = $this->request->param('addons');
-        //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
-        $this->loadlang($controllername,$addon);
-        return jsonp(Lang::get(), 200, [], ['json_encode_param' => JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE]);
-    }
-
     /**
      * @return \think\response\Json
      * @throws \think\db\exception\DataNotFoundException
@@ -218,6 +176,53 @@ class Ajax extends Backend
         $result['code'] = 1;//默认
         $result['msg'] = lang('upload success');
         return json($result);
+    }
+
+    /**
+     * 初始化后台接口地址
+     * @return \think\response\Json
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function initMenuConfig()
+    {
+        $admin_id = session('admin.id');
+        $cacheData = Cache::get('initMenuConfig' . $admin_id);
+        if (!empty($cacheData)) {
+            return json($cacheData);
+        }
+        $menus = Cache::get('adminMenus_' . $admin_id);
+        if (!$menus) {
+            $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
+            $menus = (new AuthService())->authMenu($cate);
+            cache('adminMenus_' . $admin_id, $menus, ['expire' => 3600]);
+        }
+        $logoInfo = ["title" => syscfg('site','site_name'), "image" => syscfg('site','site_logo'), "href" => "https://www.speedadmin.cn"];
+        $data = ['clearInfo' => url('ajax/clearData'), 'menuInfo' => $menus, 'logoInfo' => $logoInfo];
+        Cache::set('initMenuConfig' . $admin_id, $data, 3600);
+        return json($data);
+    }
+
+    /**
+     * @return \think\response\Jsonp
+     * 自动加载语言函数
+     */
+    public function lang()
+    {
+        header('Content-Type: application/javascript');
+        $controllername = $this->request->get("controllername");
+        $controllername = parse_name($controllername);
+        //驼峰
+        $controllername = strtolower(Str::camel($controllername));
+        $addon = $this->request->param('addons');
+        //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
+        $this->loadlang($controllername,$addon);
+        return jsonp(Lang::get())->code(200)->options([
+                    'var_jsonp_handler'     => 'callback',
+                    'default_jsonp_handler' => 'jsonpReturn',
+                    'json_encode_param'     => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,
+                ])->allowCache(true)->expires(3600);
     }
 
     /**

@@ -72,6 +72,7 @@ class Backend extends \app\common\controller\CommonController
 
     public function __construct(App $app)
     {
+
         parent::__construct($app);
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
@@ -88,6 +89,7 @@ class Backend extends \app\common\controller\CommonController
     //自动加载语言
     protected function loadlang($name,$addon=null)
     {
+
         $lang = Cookie::get('think_lang');
         if($addon){
             Lang::load([

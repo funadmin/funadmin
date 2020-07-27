@@ -119,7 +119,7 @@ return [
     'Select Attach'                                 => '选择附件',
     'CreateTime'                                 => '创建时间',
     'UpdateTime'                                 => '更新时间',
-    //    addons
+    'addon'                                    =>'插件',
     'Login  Tips'                                 => '登录提示：此处为SpeedAdmin官方账号',
     'Your Password'                                 => '您的密码',
     'UserName Or Email'                                 => '账号或密码',
@@ -152,7 +152,7 @@ return [
     'ConfigDel'                                 =>"配置删除",
     'ConfigModify'                                 =>"配置编辑",
     'ConfigSet'                                 =>"配置设置",
-    'Auth'                                 =>"权限设置",
+    'Auth'                                 =>"权限",
     'AuthGroup'                                 =>"权限组",
     'AuthGroupAdd'                                 =>"权限组添加",
     'AuthGroupEdit'                                 =>"权限组编辑",

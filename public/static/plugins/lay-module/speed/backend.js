@@ -171,7 +171,8 @@ layui.define(["jquery",'layer'], function (exports) {
         },
         //加载层,锁屏
         hideLoading:function(time){
-            time = time || 600;
+            time = time || 300;
+            console.log(time)
             setTimeout(function () {
                 $(document).find('.speed-loading').fadeOut();
                 //判断是否锁定了界面
@@ -781,15 +782,13 @@ layui.define(["jquery",'layer'], function (exports) {
                  */
                 langset:function (othis) {
                    var url =  othis.attr('lay-ajax')
-                    $.post(url,function (res) {
-                        if(res.code>0){
-                            Speed.msg.success(res.msg,setTimeout(function () {
-                                window.location = res.url;
-                            },2500))
+                    Speed.ajax({url:url},function (res) {
+                        Speed.msg.success(res.msg,setTimeout(function () {
+                            window.location.reload();
+                        },1500))
 
-                        }else{
-                            Speed.msg.error(res.msg)
-                        }
+                    },function (res) {
+                        Speed.msg.error(res.msg)
                     })
                 }
 

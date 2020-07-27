@@ -1,20 +1,11 @@
 <?php
 return [
-        'Id'                                       => 'ID',
         'Member'                                     =>"会员 ",
         'Memberadd'                                  =>"会员添加",
         'Memberdel'                                  =>"会员删除",
         'Memberedit'                                 =>"会员编辑",
         'MemberLevel'                                 =>"会员等级",
-
         'Level'                                     =>"等级",
-        'Leveladd'                                 =>"等级添加",
-        'Leveldel'                                 =>"等级删除",
-        'Leveledit'                                =>"等级编辑",
-        'Leveldesc'                                =>"等级描述",
-        'Levelname'                                =>"等级名字",
-        'Levelmoney'                                =>"等级金额",
-        'Leveldiscount'                                =>"等级折扣 ",
         'Membername'                                  =>"名称 ",
         'Nickname'                                  => '昵称',
         'Password'                                  => '密码',

@@ -28,8 +28,8 @@ require.config({
         'iconFonts'     : 'plugins/layui/extend/iconPicker/iconFonts',
         'xm-select'     : 'plugins/layui/extend/xm-select/xm-select',//下拉多选
         'toastr'        : 'plugins/layui/extend/toastr/toastr',//提示框
-        'step-lay'        : 'plugins/layui/extend/step-lay/step',
-        'inputTags'        : 'plugins/layui/extend/inputTags/inputTags',
+        'step-lay'      : 'plugins/layui/extend/step-lay/step',
+        'inputTags'     : 'plugins/layui/extend/inputTags/inputTags',
 
         //其他组件
         'ueditor'       : 'plugins/ueditor/ueditor.all.min',//百度
@@ -42,7 +42,7 @@ require.config({
 
         //自定义
         'speed'         : 'speed', // api扩展
-        'backend' : 'plugins/lay-module/speed/backend', // speed后台扩展
+        'backend'       : 'plugins/lay-module/speed/backend', // speed后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'form'          : 'require-form',
         'icon'          : 'require-icon',

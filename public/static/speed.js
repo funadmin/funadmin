@@ -99,7 +99,6 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                 },
                 error: function (xhr, textstatus, thrown) {
                     var message = xhr.responseJSON.message?__(xhr.responseJSON.message): __('，Try again later!')
-
                     Speed.msg.error('Status:' + xhr.status +'\n'+ message , function () {
                         // $("input[name='__token__']").val(xhr.responseJson);
                         ex(this);

@@ -17,4 +17,9 @@ return [
         //日志
         app\backend\middleware\SystemLog::class,
     ],
+
+//    'request_cache_key'	=>	'__URL__',
+//    'request_cache_expire'	=>	3600,
+
+
 ];

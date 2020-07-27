@@ -181,7 +181,7 @@ define(['jquery','tableSelect', 'upload', 'table','dates','editor'], function (u
                 Speed.ajax({
                     url: url,
                     data: data,
-                    tips:__('loading'),
+                    // tips:__('loading'),
                     complete: function (xhr) {
                         var token = xhr.getResponseHeader('__token__');
                         if (token) {
