@@ -33,7 +33,7 @@ class SignHelper{
      * @return int[]
      *
      */
-    public static function passwordOption($length=32){
+    public static function passwordOption($length=13){
         $options = [
             'cost' => $length,
         ];
@@ -46,7 +46,7 @@ class SignHelper{
      */
     public static function password($password){
 
-        return password_hash($password,PASSWORD_BCRYPT,self::passwordOption(12));
+        return password_hash($password,PASSWORD_BCRYPT,self::passwordOption(13));
     }
 
     public static function salt($length=32){

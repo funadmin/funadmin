@@ -126,7 +126,7 @@ define(["jquery"], function ($) {
                                         html = '<li><audio controls class="layui-upload-img fl"  src="' + res.url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
                                     }else{
-                                        html = '<li><image  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
                                     }
                                     var inputVal = input.val();

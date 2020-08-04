@@ -18,7 +18,7 @@ define(['jquery','tableSelect', 'upload', 'table','dates','editor'], function (u
                 Form.api.chooseFiles()
             },
             editor:function(){
-                Editor.api.wangeditor();
+                Editor.api.bindEvent();
             },
 
             submit: function (formObj, success, error,submit) {

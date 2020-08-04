@@ -78,7 +78,7 @@ define(['jquery','ueditor','wangEditor','xss'], function ($,undefined,wangEditor
              * 百度编辑器
              */
             ueditor: function () {
-                var edior = document.querySelectorAll('script[type="text/plain"]')
+                var edior = document.querySelectorAll('script[lay-ueditor]')
                 if (edior.length > 0) {
                     $.each(edior, function (i, v) {
                         var id = $(this).attr('id');
@@ -109,7 +109,7 @@ define(['jquery','ueditor','wangEditor','xss'], function ($,undefined,wangEditor
              * wangEditor  编辑器
              */
             wangeditor:function () {
-                var edior = document.querySelectorAll('div[type="text/plain"]')
+                var edior = document.querySelectorAll('div[lay-wangeditor]')
                 if (edior.length > 0) {
                     $.each(edior, function (i, v) {
                         var id = $(this).attr('id');
@@ -132,6 +132,16 @@ define(['jquery','ueditor','wangEditor','xss'], function ($,undefined,wangEditor
                 }
 
 
+            },
+            bindEvent:function () {
+                console.log(Config)
+                if(Config.editor){
+                    config  = Config.editor.editor
+                }else{
+                    config = 'ueditor';
+                }
+                console.log(config)
+                Editor.api[config] && Editor.api[config];
             }
         },
     };

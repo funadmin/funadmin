@@ -41,6 +41,7 @@ class ViewNode
             'lang'           =>  strip_tags( Lang::getLangset()),
             'site'           =>   syscfg('site'),
             'upload'           =>  syscfg('upload'),
+            'editor'           =>  syscfg('editor'),
         ];
         View::assign('config',$config);
         $request->modulename =$modulename;

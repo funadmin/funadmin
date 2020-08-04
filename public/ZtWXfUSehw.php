@@ -12,7 +12,7 @@
 // [ 应用入口文件 ]
 namespace think;
 //定义目录分隔符
-define("DS", DIRECTORY_SEPARATOR);
+//define("DS", DIRECTORY_SEPARATOR);
 
 if (version_compare(PHP_VERSION, '7.1.0', '<')) {
     header("Content-type: text/html; charset=utf-8");

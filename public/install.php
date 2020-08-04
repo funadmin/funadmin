@@ -5,24 +5,20 @@ header("Content-type: text/html; charset=utf-8");
 error_reporting(E_ERROR | E_WARNING | E_PARSE | E_NOTICE);
 //初始化
 ini_set('display_errors', '1');
-//定义目录分隔符
-define("DS", DIRECTORY_SEPARATOR);
 //定义web根目录
-define('WWW_ROOT', dirname(__FILE__) . DS);
+define('WWW_ROOT', dirname(__FILE__) . DIRECTORY_SEPARATOR);
 //定义后台名称
 $siteName = "SpeedAdmin";
 //错误信息
 $msg = '';
 //安装文件
-$lockFile = "."  . DS . "install.lock";
-//缓存文件
-$runtimeDir =  '..'.DS. 'runtime';
+$lockFile = "."  . DIRECTORY_SEPARATOR . "install.lock";
 //后台入口文件
-$backendFile = "."  . DS . 'backend.php';
+$backendFile = "."  . DIRECTORY_SEPARATOR . 'backend.php';
 
-$databaseConfigFile = "../config" . DS . "database.php";
+$databaseConfigFile = "../config" . DIRECTORY_SEPARATOR . "database.php";
 
-$entranceConfigFile = "../config" . DS . "entrance.php";
+$entranceConfigFile = "../config" . DIRECTORY_SEPARATOR . "entrance.php";
 // 判断文件或目录是否有写的权限
 function is_really_writable($file)
 {
@@ -32,7 +28,6 @@ function is_really_writable($file)
     if (!is_file($file) OR ($fp = @fopen($file, "r+")) === false) {
         return false;
     }
-
     fclose($fp);
     return true;
 }
@@ -42,8 +37,8 @@ if (is_file($lockFile)) {
     $msg = "当前已经安装{$siteName}，如果需要重新安装，请手动移除SpeedAdmin/public/install.lock文件";
 
 } else {
-    if (version_compare(PHP_VERSION, '7.1.0', '<')) {
-        $msg = "当前版本(" . PHP_VERSION . ")过低，请使用PHP7.1.0以上版本";
+    if (version_compare(PHP_VERSION, '7.2.0', '<')) {
+        $msg = "当前版本(" . PHP_VERSION . ")过低，请使用PHP7.2.0以上版本";
     } else {
         if (!extension_loaded("PDO")) {
             $msg = "当前未开启PDO，无法进行安装";
@@ -112,7 +107,7 @@ if ($_GET['s'] = 'start' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUE
         die('密码请输入5~16位字符！');
     }
     //检测能否读取安装文件
-    $sql = @file_get_contents(WWW_ROOT . DS . "install" . DS . 'speedadmin.sql');
+    $sql = @file_get_contents(WWW_ROOT . DIRECTORY_SEPARATOR . "install" . DIRECTORY_SEPARATOR . 'speedadmin.sql');
     if (!$sql) {
         throw new Exception("无法读取/public/install/SpeedAdmin.sql文件，请检查是否有读权限");
     }
@@ -232,7 +227,7 @@ Speed;
             die("安装失败、请确定install.lock是否有写入权限！:$error");
         }
 
-        $password = password_hash($adminPassword, PASSWORD_BCRYPT);
+        $password = password_hash($adminPassword, PASSWORD_BCRYPT,['cost'=>13]);
         $result = $link->query("UPDATE {$mysqlPreFix}admin SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
         if (!$result) {
             die("安装数据库失败！:$error");
@@ -241,7 +236,7 @@ Speed;
         if (is_file($backendFile)) {
             $x = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
             $adminName = substr(str_shuffle(str_repeat($x, ceil(10 / strlen($x)))), 1, 10) . '.php';
-            rename($backendFile, "."  . DS .  $adminName);
+            rename($backendFile, "."  . DIRECTORY_SEPARATOR .  $adminName);
             if (!file_exists($entranceConfigFile)) {
                 @mkdir($entranceConfigFile,755);
             }

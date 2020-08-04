@@ -35,7 +35,10 @@
         "phpmailer/phpmailer": "^6.1",
         "aliyuncs/oss-sdk-php": "^2.3",
         "qcloud/cos-sdk-v5": "^2.0",
-        "qiniu/php-sdk": "^7.2"
+        "qiniu/php-sdk": "^7.2",
+        "speed/speed-addons": "v1.1",
+        "xaboy/form-builder": "~2.0",
+        "ext-json": "*"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2"

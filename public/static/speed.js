@@ -280,10 +280,11 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                     content: url,
                     shadeClose : true,
                     anim : 0,
-                    isOutAnim  : true,
-                    maxmin   : true,
-                    resize    : isResize,
-                    scrollbar     : true,
+                    isOutAnim : true,
+                    maxmin : true,
+                    resize  : isResize,
+                    scrollbar : true,
+
                 }
                 var index = layer.open(options);
                 if (Speed.api.checkScreen() || width == undefined || height == undefined) {

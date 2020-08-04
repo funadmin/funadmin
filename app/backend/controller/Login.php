@@ -13,6 +13,7 @@
 namespace app\backend\controller;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
+use Exception;
 use speed\helper\SignHelper;
 use think\exception\ValidateException;
 use think\facade\Request;
@@ -44,7 +45,7 @@ class Login extends Backend {
             try {
                 $auth = new AuthService();
                 $auth->checkLogin($username, $password, $rememberMe);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                  $this->error(lang('Login Failed')."：{$e->getMessage()}",'',['token'=>$this->token()]);
             }
             $this->success(lang('Login Success').'...',url('index/index'));

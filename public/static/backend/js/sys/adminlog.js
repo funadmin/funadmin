@@ -1,5 +1,5 @@
 define(['jquery','table'], function (undefined,Table) {
-
+    var Table = Table;
     var Controller = {
         index: function () {
             Table.init = {

@@ -30,6 +30,7 @@ require.config({
         'toastr'        : 'plugins/layui/extend/toastr/toastr',//提示框
         'step-lay'      : 'plugins/layui/extend/step-lay/step',
         'inputTags'     : 'plugins/layui/extend/inputTags/inputTags',
+        'timeago'       : 'plugins/layui/extend/timeago/timeago',
 
         //其他组件
         'ueditor'       : 'plugins/ueditor/ueditor.all.min',//百度

@@ -35,7 +35,7 @@ define(["jquery"], function ($) {
                 Table.initSearch(options.cols, options.elem, options.id);
             }
             // 初始化表格左上方工具栏
-            options.toolbar = Table.initToolbar(options.toolbar, options.elem, options.id,);
+            options.toolbar = Table.initToolbar(options.toolbar, options.elem, options.id);
             var newTable = table.render(options);
             // 监听表格开关切换
             Table.api.switch(options.cols, options.init,options.id);

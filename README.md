@@ -22,9 +22,6 @@ SpeedAdmin v1.0管理系统：为二次开发而生，让开发变得更简单
 
 SpeedAdmin 方便二次开发，您可以方便的使用到自己或企业的项目中,你可以免费学习或者使用
 
-禁止在SpeedAdmin整体或任何部分基础上发展任何派生版本、修改版本或第三方版本用于重新分发，经发现必追责。
-
-
 本项目包含的第三方源码和二进制文件之版权信息另行标注。
 版权所有Copyright © 2018-2020 by SpeedAdmin [www.SpeedAdmin.cn](https://www.SpeedAdmin.cn) All rights reserved。
 

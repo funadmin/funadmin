@@ -8,7 +8,11 @@
 // +----------------------------------------------------------------------
 // | Author: yuege
 // +----------------------------------------------------------------------
-use \think\facade\Db;
+
+use app\common\model\Region;
+use speed\helper\FormHelper;
+use think\App;
+use think\facade\Route;
 
 error_reporting(0);
 
@@ -16,15 +20,16 @@ if (!function_exists('region')) {
 
     function region($id)
     {
-        return \app\common\model\Region::cache('region_'.$id)->find($id);
+        $model = new Region();
+        return $model->where('id',$id)->cache('region_'.$id)->find();
     }
 }
 
 if (!function_exists('syscfg')) {
     /**
      * @param $group
-     * @param $code
-     *
+     * @param null $code
+     * @return array|mixed|object|App
      */
     function syscfg($group,$code= null)
     {
@@ -51,7 +56,7 @@ if (!function_exists('url')) {
 
     function url($url='', array $vars = [], $suffix = true, $domain = false)
     {
-        $url = (string) \think\facade\Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
+        $url = (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
         $pos = strpos($url,'/backend');
         if($pos!==false){
             $url = substr_replace($url,'',$pos,strlen('/backend'));
@@ -65,7 +70,7 @@ if (!function_exists('__url')) {
 
     function __url($url='', array $vars = [], $suffix = true, $domain = false)
     {
-        $url = (string) \think\facade\Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
+        $url = (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
         $pos = strpos($url,'/backend');
         if($pos!==false){
             $url = substr_replace($url,'',$pos,strlen('/backend'));
@@ -74,9 +79,88 @@ if (!function_exists('__url')) {
     }
 }
 
-/**
- * 百度编辑器
- */
+
+if (!function_exists('form_build_input')) {
+    /**
+     * @param $type
+     * @param $name
+     * @return string
+     */
+    function form_build_input($type, $name)
+    {
+        return FormHelper::input($type,$name,$options = []);
+    }
+}
+
+if (!function_exists('form_build_select')) {
+    /**
+     * @param null $name
+     * @param array $options
+     * @return string
+     */
+    function form_build_select($name = null,$value=[], $options = [])
+    {
+        return FormHelper::select($name, $value, $options);
+    }
+}
+
+if (!function_exists('form_build_date')) {
+    /**
+     * @param array $options
+     * @return string
+     */
+
+    function form_build_date($name=null,$options = [])
+    {
+        return FormHelper::date($name, $options);
+    }
+}
+
+if (!function_exists('form_build_submitbtn')) {
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    function form_build_submitbtn($reset = true, $options=[])
+    {
+        return FormHelper::submitbtn($reset, $options);
+    }
+}
+if (!function_exists('form_build_upload')) {
+    /**
+     * @param $name
+     * @param null $formdata
+     * @return string
+     */
+    function form_build_upload($name,$formdata=null)
+    {
+        return FormHelper::upload($name,$formdata);
+    }
+}
+if (!function_exists('form_build_ueditor')) {
+    /**
+     * @param $id
+     * @param $name
+     * @return string
+     */
+    function form_build_ueditor($id,$name)
+    {
+        return FormHelper::ueditor($id,$name);
+    }
+}
+if (!function_exists('form_build_wangeditor')) {
+    /**
+     * @param $id
+     * @param $name
+     * @return string
+     */
+    function form_build_wangeditor($id,$name)
+    {
+        return FormHelper::wangeditor($id,$name);
+    }
+}
+/** 百度编辑器*/
 if (!function_exists('build_ueditor')) {
 function build_ueditor($params = array())
 {
@@ -104,18 +188,12 @@ function build_ueditor($params = array())
         case 'simple':
             $theme_config = $themes['simple'];
             break;
-        case 'normal':
-            $theme_config = $themes['normal'];
-            break;
         default:
             $theme_config = $themes['normal'];
             break;
     }
     /* 配置界面语言 */
     switch (config('think_var')) {
-        case 'zh-cn':
-            $lang = '__PLUGINS__/ueditor/lang/zh-cn/zh-cn.js';
-            break;
         case 'en-us':
             $lang =  '__PLUGINS__/ueditor/lang/en/en.js';
             break;
@@ -125,21 +203,21 @@ function build_ueditor($params = array())
     }
     $include_js = '<script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.config.js"></script> <script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.all.min.js""> </script><script type="text/javascript" charset="utf-8" src="' . $lang . '"></script>';
     $content = json_encode($content);
-    $str = <<<EOT
+    return <<<EOT
 $include_js
 <script type="text/javascript">
-var ue = UE.getEditor('{$name}',{
+let ue = UE.getEditor('{$name}',{
     toolbars:[{$theme_config}],
-        });
+        })
     if($content){
 ue.ready(function() {
-       this.setContent($content);	
+       this.setContent($content)	
 })
    }
       
 </script>
 EOT;
-    return $str;
+
 }
 }
 

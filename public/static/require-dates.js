@@ -8,7 +8,7 @@ define(['jquery'], function (undefined) {
                 var dateList = document.querySelectorAll("[lay-date]");
                 if (dateList.length > 0) {
                     $.each(dateList, function (i, v) {
-                        var format = $(this).attr('lay-date'),
+                        var format = $(this).attr('lay-format'),
                             type = $(this).attr('lay-type'),
                             range = $(this).attr('lay-range');
                         if (type == undefined || type == '' || type == null) {
