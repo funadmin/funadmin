@@ -44,7 +44,7 @@
     </div>
  	<script type="text/javascript">
         (function(){
-            var wait = document.getElementById('wait'),
+            var wait = document.getElementById('wait')
                 href = document.getElementById('href').href;
             var interval = setInterval(function(){
                 var time = --wait.innerHTML;

@@ -1,79 +1,24 @@
-<div class="speed-main">
+<div class="fun-main">
         <div class="admin-main layui-anim layui-anim-upbit">
-           
             <form class="layui-form" lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('AuthGroup')}</label>
-                    <div class="layui-input-block">
-                        <select name="group_id" lay-verify="required" {if !empty($formData) && $formData.group_id ==1 }disabled{/if}>
-                            <option value="">请选择用户组</option>
-                            {volist name="authGroup" id="vo"}
-                            <option value="{$vo.id}" {if !empty($formData) && $formData.group_id==$vo.id} selected {/if} >{$vo.title}</option>
-                            {/volist}
-                        </select>
-                    </div>
-                </div>
 
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('username')}</label>
                     <div class="layui-input-block">
-                        <input type="text" name="username" lay-verify="required" placeholder="{:lang('pleaseEnter')}登录用户名" class="layui-input {if $formData && $formData.id!==1}layui-disabled{/if}"  {if  $formData && $formData.id!==1}readonly="readonly"{/if}>
+                        <input type="text" name="username" lay-verify="required" placeholder="{:lang('username')}" class="layui-input {if $formData && $formData.id!==1}layui-disabled{/if}"  {if  $formData && $formData.id!==1}readonly="readonly"{/if}>
                         <div class="layui-form-mid layui-word-aux">
                             用户名在4到25个字符之间。
                         </div>
                     </div>
-
                 </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('password')}</label>
-                    <div class="layui-input-block">
-                        <input type="password" name="password" placeholder="{:lang('pleaseEnter')}登录密码" autocomplete="true" {if !empty($formData)} lay-verify="required"{/if} class="layui-input">
-                        <div class="layui-form-mid layui-word-aux">
-                            密码必须大于6位，小于15位。
-                        </div>
-                    </div>
-
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label required">{:lang('Avatar')}</label>
-                    <div class="layui-input-block">
-                        <div class="layui-upload">
-                            <input type="text" name="avatar" class="layui-input attach" lay-verify="required">
-                            <button type="button" class="layui-btn layui-btn-normal" lay-path='avatar' lay-num="1" lay-upload><i class="layui-icon layui-icon-upload-circle"></i>上传</button>
-                            <button type="button" class="layui-btn layui-btn-danger"  lay-mime="image"  lay-type="radio" id="header"  lay-upload-select><i class="layui-icon layui-icon-align-center"></i>选择</button>
-                            <div class="layui-upload-list">
-                                {if $formData}
-                                {volist name=":explode(',',$formData['avatar'])" id="vo"}
-                                <li>
-                                    <img lay-event="photos" class="layui-upload-img fl"
-                                         width="150" src="{$vo}">
-                                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                                                                                                                                                           lay-fileurl="\storage\avatar/20200711\2389f72a7e2c57971ed7bbf121224170.png"></i></li>
-                                {/volist}
-                                {/if}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('email')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="email" lay-verify="email" placeholder="{:lang('pleaseEnter')}用户邮箱" class="layui-input">
-                        <div class="layui-form-mid layui-word-aux">
-                            用于密码找回，请认真填写。
-                        </div>
-                    </div>
-
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('mobile')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="mobile" lay-verify="phone" value="" placeholder="{:lang('pleaseEnter')}手机号" class="layui-input">
-                    </div>
-                </div>
-                {include file="common/subBtn"/}
+                {if !$formData}
+                {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 digits and less than 15 digits'] )}
+                {/if}
+                {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formdata)?$formdata['group_id']:''))}
+                {:form_upload('avatar',$formData)}
+                {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
+                {:form_input('mobile','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.'] )}
+                {:form_submitbtn()}
 
             </form>
         </div>

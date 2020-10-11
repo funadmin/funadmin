@@ -1,9 +1,9 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -15,10 +15,12 @@ namespace app\common\controller;
 use app\backend\lib\AuthService;
 use app\backend\model\Admin;
 use app\backend\model\AuthRule;
+use app\BaseController;
 use app\common\traits\Jump;
-use speed\helper\SignHelper;
+use fun\helper\SignHelper;
 use think\App;
 use think\captcha\facade\Captcha;
+use think\exception\ValidateException;
 use think\facade\Cookie;
 use think\facade\Db;
 use think\facade\Lang;
@@ -27,7 +29,7 @@ use think\facade\Session;
 use think\facade\View;
 use think\helper\Str;
 
-class Backend extends \app\common\controller\CommonController
+class Backend extends BaseController
 {
     use Jump;
 
@@ -63,7 +65,7 @@ class Backend extends \app\common\controller\CommonController
         'status',
         'sort',
         'title',
-        'auth_open',
+        'auth_verfiy',
     ];
     /**
      * 是否是关联查询
@@ -76,13 +78,12 @@ class Backend extends \app\common\controller\CommonController
         parent::__construct($app);
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
-        $controller = parse_name($this->request->controller());
-        $controller = Str::camel($controller);
+        $controller = parse_name($this->request->controller(),1);
+        $controller = strtolower($controller);
         //过滤参数
-        $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->pageSize = input('limit', 15);
         //加载语言包
-        $this->loadlang(strtolower($controller));
+        $this->loadlang($controller);
 
     }
 
@@ -102,7 +103,54 @@ class Backend extends \app\common\controller\CommonController
         }
 
     }
+    public function enlang()
+    {
+        $lang = input('langset');
+        switch ($lang) {
+            case 'zh-cn':
+                cookie('think_lang', 'zh-cn');
+                break;
+            case 'en-us':
+                cookie('think_lang', 'en-us');
+                break;
+            default:
+                cookie('think_lang', 'zh-cn');
+                break;
+        }
+        $this->success('切换成功');
+    }
 
+    /**
+     * @return \think\Response
+     * 验证码
+     */
+    public function verify()
+    {
+        return Captcha::create();
+    }
+
+    protected function validate(array $data, $validate, array $message = [], bool $batch = false)
+    {
+        try {
+            parent::validate($data, $validate, $message, $batch);
+            $this->checkToken();
+        } catch (ValidateException $e) {
+            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
+        }
+        return true;
+    }
+
+    /**
+     * 检测token 并刷新
+     *
+     */
+    protected function checkToken()
+    {
+        $check = $this->request->checkToken('__token__', $this->request->param());
+        if (false === $check) {
+            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
+        }
+    }
 
     /**
      * 组合参数
@@ -128,7 +176,6 @@ class Backend extends \app\common\controller\CommonController
         $tableName = '';
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
-                $name = parse_name(basename(str_replace('\\', '/', get_class($this->modelClass))));
                 $name = $this->modelClass->getTable();
                 $tableName = $name . '.';
             }
@@ -152,6 +199,7 @@ class Backend extends \app\common\controller\CommonController
         }
         foreach ($filters as $key => $val) {
             $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
+            $key =stripos($key, ".") === false ? $tableName . $key :$key;
             switch (strtolower($op)) {
                 case '=':
                     $where[] = [$key, '=', $val];
@@ -179,13 +227,12 @@ class Backend extends \app\common\controller\CommonController
                         $op = $op == 'BETWEEN' ? '>=' : '<';
                         $arr = $arr[0];
                     }
-                    $where[] = [$k, $op, $arr];
+                    $where[] = [$key, $op, $arr];
                     break;
-                case 'range':
+                case 'RANGE':
                     [$beginTime, $endTime] = explode(' - ', $val);
                     $where[] = [$key, '>=', strtotime($beginTime)];
                     $where[] = [$key, '<=', strtotime($endTime)];
-                    var_dump($where);die;
                     break;
                 case 'NOT RANGE':
                     $val = str_replace(' - ', ',', $val);
@@ -201,13 +248,13 @@ class Backend extends \app\common\controller\CommonController
                         $op = $op == 'RANGE' ? '>=' : '<';
                         $arr = $arr[0];
                     }
-                    $where[] = [$k, str_replace('RANGE', 'BETWEEN', $op) . ' time', $arr];
+                    $where[] = [$key, str_replace('RANGE', 'BETWEEN', $op) . ' time', $arr];
                     break;
                 case 'NULL':
                 case 'IS NULL':
                 case 'NOT NULL':
                 case 'IS NOT NULL':
-                    $where[] = [$k, strtolower(str_replace('IS ', '', $op))];
+                    $where[] = [$key, strtolower(str_replace('IS ', '', $op))];
                     break;
                 default:
                     $where[] = [$key, $op, "%{$val}%"];

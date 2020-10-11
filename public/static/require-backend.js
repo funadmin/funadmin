@@ -1,6 +1,6 @@
-var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
+let BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
 require.config({
-    urlArgs: 'v=' + Config.site_version? Config.site_version:(new Date().getTime()),
+    urlArgs: 'v=' + (Config.site.app_debug ? (new Date().getTime()): Config.site.site_version),
     // urlArgs: 'v=' + (new Date().getTime()),
     packages: [
         {
@@ -19,38 +19,32 @@ require.config({
         //layui等组件
         'layuiall'      : 'plugins/layui/layui.all',
         'layui'         : 'plugins/layui/layui',
-        'treeGrid'      : 'plugins/layui/extend/treeGrid/treeGrid',
-        'tableSelect'   : 'plugins/layui/extend/tableSelect/tableSelect',
-        'treeTable'     : 'plugins/layui/extend/treeTable/treeTable',
-        'tableEdit'     : 'plugins/layui/extend/tableTree/tableEdit',
-        'tableTree'     : 'plugins/layui/extend/tableTree/tableTree',
-        'iconPicker'    : 'plugins/layui/extend/iconPicker/iconPicker',
-        'iconFonts'     : 'plugins/layui/extend/iconPicker/iconFonts',
-        'xm-select'     : 'plugins/layui/extend/xm-select/xm-select',//下拉多选
-        'toastr'        : 'plugins/layui/extend/toastr/toastr',//提示框
-        'step-lay'      : 'plugins/layui/extend/step-lay/step',
-        'inputTags'     : 'plugins/layui/extend/inputTags/inputTags',
-        'timeago'       : 'plugins/layui/extend/timeago/timeago',
-
-        //其他组件
-        'ueditor'       : 'plugins/ueditor/ueditor.all.min',//百度
-        'uelang'        : 'plugins/ueditor/lang/'+Config.lang+'/'+Config.lang,
-        'ueconfig'      : 'plugins/ueditor/ueditor.config',
-        'ZeroClipboard' : "plugins/ueditor/third-party/zeroclipboard/ZeroClipboard.min",
-        'wangEditor'    : 'plugins/wangEditor/wangEditor.min',//wang
-        'xss'           : 'plugins/xss/xss.min',//xss
-        'vue'           : 'plugins/vue/vue',//vue
+        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
+        'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
+        'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
+        'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',
+        'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
+        'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
+        'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
+        'xm-select'     : 'plugins/lay-module/xm-select/xm-select',//下拉多选
+        'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
+        'step-lay'      : 'plugins/lay-module/step-lay/step',
+        'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
+        'timeago'       : 'plugins/lay-module/timeago/timeago',
+        'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
+        'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
+        'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
+        'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
 
         //自定义
-        'speed'         : 'speed', // api扩展
-        'backend'       : 'plugins/lay-module/speed/backend', // speed后台扩展
+        'fun'          : 'fun', // api扩展
+        'backend'       : 'plugins/lay-module/fun/backend', // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'form'          : 'require-form',
-        'icon'          : 'require-icon',
+        'fu'            : 'require-fu',
         'table'         : 'require-table',
         'upload'        : 'require-upload',
-        'dates'          : 'require-dates',
-        'editor'        : 'require-editor',
+        'addons'        : 'require-addons',//编辑器以及其他安装的插件
     },
     map: {
         '*': {
@@ -61,18 +55,18 @@ require.config({
         'layui': {
             deps: ['css!plugins/layui/layui/css/layui.css'],
             init: function () {
-                return this.layui.config({dir: 'plugins/layui/layui'});
+                return this.layui.config({dir: 'plugins/'});
             },
         },
-        //百度编辑器依赖
-        'uelang':{deps:['ueditor','ueconfig']},
-        'ueditor': {
-            deps: ['ZeroClipboard','ueconfig','css!plugins/ueditor/themes/default/css/ueditor.css',],
-            exports: 'UE',
-            init:function(ZeroClipboard){
-                //导出到全局变量，供ueditor使用
-                window.ZeroClipboard = ZeroClipboard;
-            }
+
+        'multiSelect': {
+            deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
+        },
+        'timePicker': {
+            deps: [
+                'moment/moment'
+            ],
+            exports: "moment"
         },
     },
 
@@ -80,21 +74,21 @@ require.config({
     charset: 'utf-8' // 文件编码
 });
 // 配置语言包的路径
-var paths = {};
+let paths = {};
 paths['lang'] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
 paths['backend/'] = 'backend/';
 //初始化控制器对应的JS自动加载
 require.config({paths: paths});
 require(['jquery'], function ($) {
     $(function () {
-        require(['speed'], function (Speed) {
+        require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     require([BASE_URL + Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('error')
+                            console.log('no action')
                         }
                     });
                 }

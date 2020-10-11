@@ -8,7 +8,7 @@ ini_set('display_errors', '1');
 //定义web根目录
 define('WWW_ROOT', dirname(__FILE__) . DIRECTORY_SEPARATOR);
 //定义后台名称
-$siteName = "SpeedAdmin";
+$siteName = "FunAdmin";
 //错误信息
 $msg = '';
 //安装文件
@@ -34,7 +34,7 @@ function is_really_writable($file)
 
 
 if (is_file($lockFile)) {
-    $msg = "当前已经安装{$siteName}，如果需要重新安装，请手动移除SpeedAdmin/public/install.lock文件";
+    $msg = "当前已经安装{$siteName}，如果需要重新安装，请手动移除FunAdmin/public/install.lock文件";
 
 } else {
     if (version_compare(PHP_VERSION, '7.2.0', '<')) {
@@ -75,7 +75,7 @@ if ($_GET['s'] = 'start' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUE
 //mysql的账户相关
     $mysqlUserName = isset($_POST['username']) ? $_POST['username'] : 'root';
     $mysqlPassword = isset($_POST['password']) ? $_POST['password'] : 'root';
-    $mysqlDatabase = isset($_POST['database']) ? $_POST['database'] : 'SpeedAdmin';
+    $mysqlDatabase = isset($_POST['database']) ? $_POST['database'] : 'FunAdmin';
     $mysqlPreFix = isset($_POST['prefix']) ? $_POST['prefix'] : 'lm_';
     $mysqlPreFix = rtrim($mysqlPreFix, "_") . "_";
     $adminUserName = isset($_POST['adminUserName']) ? $_POST['adminUserName'] : 'admin';
@@ -107,9 +107,9 @@ if ($_GET['s'] = 'start' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUE
         die('密码请输入5~16位字符！');
     }
     //检测能否读取安装文件
-    $sql = @file_get_contents(WWW_ROOT . DIRECTORY_SEPARATOR . "install" . DIRECTORY_SEPARATOR . 'speedadmin.sql');
+    $sql = @file_get_contents(WWW_ROOT . DIRECTORY_SEPARATOR . "install" . DIRECTORY_SEPARATOR . 'FunAdmin.sql');
     if (!$sql) {
-        throw new Exception("无法读取/public/install/SpeedAdmin.sql文件，请检查是否有读权限");
+        throw new Exception("无法读取/public/install/FunAdmin.sql文件，请检查是否有读权限");
     }
     //替换表前缀
     $sql = str_replace("`lm_", "`{$mysqlPreFix}", $sql);
@@ -152,7 +152,7 @@ if ($_GET['s'] = 'start' && isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUE
     //        $link->multi_query($sql);
         $databaseConfig= @file_get_contents($databaseConfigFile);
         //替换数据库相关配置
-        $config = <<<Speed
+        $config = <<<Fun
 <?php
 use think\\facade\Env;
 
@@ -216,7 +216,7 @@ return [
         // 更多的数据库配置信息
     ],
 ];
-Speed;
+Fun;
 
         $putConfig = @file_put_contents($databaseConfigFile, $config);
         if (!$putConfig) {
@@ -240,13 +240,13 @@ Speed;
             if (!file_exists($entranceConfigFile)) {
                 @mkdir($entranceConfigFile,755);
             }
-            $entrance = <<<Speed
+            $entrance = <<<Fun
 <?php
 return [
     
     'backendEntrance'=>'/{$adminName}/',
 ];
-Speed;
+Fun;
             $entranceConfig = @file_put_contents($entranceConfigFile, $entrance);
 
         }
@@ -295,7 +295,7 @@ Speed;
                 <div id="warmtips" style="display:none"></div>
             </div>
 
-            <div id="speed-box" style="background: #fff;padding:5px;">
+            <div id="fun-box" style="background: #fff;padding:5px;">
                 <p style="font-size: 26px;margin-bottom:20px;font-weight: bolder;text-align: center;color: #3C5675;"><?= $siteName ?>安装向导</p>
                 <div class="layui-form-item form-main">
                     <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
@@ -313,7 +313,7 @@ Speed;
                         <div class="layui-form-item">
                             <label class="layui-form-label">数据库名</label>
                             <div class="layui-input-block">
-                                <input type="text" name="database" value="SpeedAdmin" class="layui-input"
+                                <input type="text" name="database" value="FunAdmin" class="layui-input"
                                        lay-verify="required" placeholder="请输入数据库名">
                             </div>
                         </div>
@@ -392,8 +392,8 @@ Speed;
 
             <br>
             <div class="layui-footer footer">
-                <h5>Powered by <font>SpeedAdmin</font><font class="orange"></font></h5>
-                <h6>版权所有 2018-2020 © <a href="https://www.SpeedAdmin.cn" target="_blank">SpeedAdmin</a></h6>
+                <h5>Powered by <font>FunAdmin</font><font class="orange"></font></h5>
+                <h6>版权所有 2018-2020 © <a href="https://www.FunAdmin.cn" target="_blank">FunAdmin</a></h6>
             </div>
         </div>
 
@@ -414,7 +414,7 @@ Speed;
                 .done(function (res) {
                     if (res.substr(0, 7) === 'success') {
                         $('#error').hide();
-                        $("#speed-box").remove();
+                        $("#fun-box").remove();
                         that.remove();
                         $("#success").text("恭喜您安装成功！请开始<?php echo $siteName; ?>之旅吧！").show();
                         $('.layui-show').css('margin-top','200px');

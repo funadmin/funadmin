@@ -1,9 +1,9 @@
 <?php
 /**
  * ============================================================================
- * Created by SpeedAdmin.
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * Created by FunAadmin.
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -51,7 +51,7 @@ class Attach extends Backend
     public function delete()
     {
         $ids = $this->request->param('ids') ? $this->request->param('ids') : $this->request->param('id');
-        $list = $this->modelClass->whereIn('id', $ids)->select();
+        $list = $this->modelClass->where('id','in', $ids)->select();
         if (empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $v) {

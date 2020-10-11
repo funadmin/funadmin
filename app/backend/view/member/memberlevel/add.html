@@ -1,0 +1,16 @@
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
+            {:form_input('name','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
+            {:form_input('amount','text',['verify'=>'required|number','tips'=>'Integer'])}
+            {:form_input('discount','text',['verify'=>'required|number','tips'=>'100 not discounted, 90%
+            off'],'100')}
+            {:form_radio('status',['Close','Open'],['filter'=>'status','select'=>1])}
+            {:form_input('description','text')}
+            {:form_editor('c','c')}
+            {:form_submitbtn()}
+
+        </form>
+    </div>
+
+</div>

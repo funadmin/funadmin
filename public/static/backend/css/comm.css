@@ -1,5 +1,8 @@
+@import url("../../common/css/iconfont.css");
+
 ::-webkit-input-placeholder {
-    color: #ccc
+    color: #ccc;
+    font-size: 12px;
 }
 /** 滚动条 **/
 ::-webkit-scrollbar { /*滚动条整体样式*/
@@ -30,15 +33,22 @@ html {
     overflow: -moz-scrollbars-none;
 }
 body {
-    background: #fff;
+    /*background: #fff;*/
+    background: #f1f4f6;
     padding: 10px;
 }
 .speed-container {
     background: #fff;
     /*padding: 5px;*/
 }
+.layui-table, .layui-table-view{
+    margin: 0 auto;
+}
 .fl{float: left;}  .fr {float: right;}  .clearfix {clear: both;}
 /*工具*/
+.layui-table-tool{
+    z-index: 80;
+}
 .layui-table-tool-temp {
     padding-right: 60px;
 }
@@ -89,6 +99,9 @@ body {
 }
 
 /**搜索*/
+#searchFieldList_list form{
+    padding: 10px;
+}
 #searchFieldList_list .layui-btn {
     height: 32px;
     line-height: 28px;
@@ -102,9 +115,9 @@ body {
     line-height: 30px;
 }
 
-#searchFieldList_list .layui-input-inline {
-    width: 170px;
-}
+/*#searchFieldList_list .layui-input-inline {*/
+/*    width: 170px;*/
+/*}*/
 
 #searchFieldList_list .layui-input-inline input,
 #searchFieldList_list .layui-input-inline select {
@@ -113,23 +126,69 @@ body {
     padding: 2px 8px;
     line-height: 1em;
 }
-
+#searchFieldList_list .layui-between .layui-input-inline{
+    margin-right: 3%;
+    width: 30%;
+}
+#searchFieldList_list .layui-between .layui-input-inline + .layui-input-inline:before{
+    content: "-";
+    position: absolute;
+    left: -6%;
+    top: 6px;
+}
 #searchFieldList_list .layui-form-select dl {
     top: 31px;
     padding: 0;
 }
 
-/** layui */
-body .speed-layer-class .layui-layer-title {
-    background: #1aa094;
+
+/** layui 自定义皮肤*/
+
+.layui-form-select dl dd.layui-this{
+    background: #607d8b !important;
+}
+.speed-layer-class .layui-layer-setwin > a:after {
+    content: "\e623";
+    font-family: iconfont;
+    font-style: normal;
+    font-weight: normal;
+    text-decoration: inherit;
+    position: absolute;
+    font-size: 18px;
+    color: #fff;
+    margin: 0;
+    z-index: 1;
+}
+.speed-layer-class .layui-layer-setwin{
+    background: none !important;
+}
+.speed-layer-class .layui-layer-setwin .layui-layer-min:hover cite{
+    background: none!important;
+    opacity:.7;
+}
+.speed-layer-class .layui-layer-setwin .layui-layer-max:hover{
+    background: none!important;
+    opacity:.7;
+}
+.speed-layer-class .layui-layer-setwin > a:focus {
+    text-decoration: none !important;
+}
+.speed-layer-class .layui-layer-title {
+    background: #2c3e50 !important;
     color: #fff;
     border: none;
 }
 
-body .speed-layer-class .layui-layer-btn a {
+.speed-layer-class .layui-layer-setwin .layui-layer-min:after {
+    content: "\e625";
+}
+.speed-layer-class .layui-layer-setwin .layui-layer-close1:after {
+    content: "\e626";
+}
+.speed-layer-class .layui-layer-btn a {
     background: #333;
 }
 
-body .speed-layer-class .layui-layer-btn .layui-layer-btn1 {
+.speed-layer-class .layui-layer-btn .layui-layer-btn1 {
     background: #999;
 }

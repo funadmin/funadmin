@@ -1,4 +1,4 @@
-<div class="speed-main">
+<div class="fun-main">
         <blockquote class="layui-elem-quote layui-text">
             <legend>{:lang('config')}{:lang('list')}</legend>
         </blockquote>
@@ -10,7 +10,7 @@
             <div class="layui-tab-content">
 <!--网站配置-->
                     <div class="layui-tab-item layui-show">
-                        <form class="layui-form" action="{:url('site')}" lay-filter="form">
+                        <form class="layui-form" action="{:__u('site')}" lay-filter="form">
 
                             <div class="layui-form-item">
                                 <label class="layui-form-label">{:lang('site name')}</label>
@@ -35,27 +35,8 @@
                                            placeholder="{:lang('Site Email')}" value="" class="layui-input">
                                 </div>
                             </div>
-                            <div class="layui-form-item">
-                                <label class="layui-form-label">{:lang('Site Logo')}</label>
-                                <div class="layui-input-block">
-                                    <div class="layui-upload">
-                                        <input type="text" name="site_logo" class="layui-input attach" lay-verify="required">
-                                        <button type="button" class="layui-btn layui-btn-normal" lay-path='site' lay-type="radio" lay-num="1" lay-upload><i class="layui-icon layui-icon-upload-circle"></i>{:lang('Uploads')}</button>
-                                        <button type="button" class="layui-btn layui-btn-danger"  lay-mime="image" lay-type="radio" lay-num="1"  id="header"  lay-upload-select><i class="layui-icon layui-icon-align-center"></i>{:lang('Choose')}</button>
-                                        <div class="layui-upload-list">
-                                            {if $formData}
-                                            {volist name=":explode(',',$formData['site_logo'])" id="vo"}
-                                            <li>
-                                                <img lay-event="photos" class="layui-upload-img fl"
-                                                     width="150" src="{$vo}">
-                                                <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                                   lay-fileurl="{$vo}"></i></li>
-                                            {/volist}
-                                            {/if}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
+                            {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
 
                             <div class="layui-form-item layui-form-text">
                                 <label class="layui-form-label">{:lang('Site title')}</label>
@@ -80,11 +61,11 @@
                             <div class="layui-form-item layui-form-text">
                                 <label class="layui-form-label required">{:lang('All right')}</label>
                                 <div class="layui-input-block">
-                                    <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2019 www.SpeedAdmin.cn MIT license</textarea>
+                                    <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2019 www.FunAadmin.cn MIT license</textarea>
                                 </div>
                             </div>
 
-                            {include file="common/subBtn"/}
+                            {:form_submitbtn()}
 
                         </form>
                     </div>
@@ -122,7 +103,7 @@
                                     <div class="layui-form-mid layui-word-aux">M  {:lang('Driver')}：1 M = 1024 KB</div>
                                 </div>
                             </div>
-                            {include file="common/subBtn"/}
+                            {:form_submitbtn()}
                         </form>
                     </div>
 

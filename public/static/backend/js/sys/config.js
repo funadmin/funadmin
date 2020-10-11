@@ -1,21 +1,20 @@
 define(['jquery','table','form'], function (undefined,Table,Form) {
-
     let Controller = {
-
         index: function () {
             Table.init = {
                 table_elem: 'list',
-                tablId: 'list',
+                tableId: 'list',
                 requests: {
                     index_url: 'sys.config/index',
-                    del_url: 'sys.config/delete',
+                    delete_url: 'sys.config/delete',
                     add_url: 'sys.config/add',
                     edit_url: 'sys.config/edit',
                     modify_url: 'sys.config/modify',
                     setValue:{
                         type: 'open',
-                        class: 'layui-btn-sm layui-btn-green',
+                        class: 'layui-btn-xs layui-btn-danger',
                         url: 'sys.config/setValue',
+                        icon: 'layui-icon layui-icon-set',
                         text: __('Set'),
                         title: __('Set'),
                         full: 1,
@@ -24,8 +23,8 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
-                id: Table.init.tablId,
-                url: Speed.url(Table.init.requests.index_url),
+                id: Table.init.tableId,
+                url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh','add','delete'],
                 cols: [[
@@ -45,7 +44,12 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch},
                     {
-                        width: 250, align: 'center', title:__('Oprate'), init: Table.init, templet : Table.templet.operat, operat: ['edit','delete',]
+                        width: 250,
+                        align: 'center',
+                        title:__('Oprate'),
+                        init: Table.init,
+                        templet : Table.templet.operat,
+                        operat: ['edit','setValue','delete',]
                     }
 
                 ]],
@@ -64,6 +68,9 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
             Controller.api.bindevent()
         },
         set:function(){
+            Controller.api.bindevent()
+        },
+        setvalue:function(){
             Controller.api.bindevent()
         },
         api: {

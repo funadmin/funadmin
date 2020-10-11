@@ -1,25 +1,24 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 
 namespace app\backend\controller\addon;
 
-use app\backend\model\AuthRule;
+use app\backend\service\AddonService;
 use app\common\controller\Backend;
 use app\common\traits\Curd;
-use speed\helper\FileHelper;
-use think\addons\Service;
+use fun\helper\FileHelper;
+use fun\addons\Service;
 use think\App;
-use think\db\exception\PDOException;
 use think\Exception;
 use think\facade\View;
 use app\common\model\Addon as AddonModel;
@@ -48,35 +47,21 @@ class Addon extends Backend
     {
         if ($this->request->isAjax()) {
             $list = get_addons_list();
-            $addons =  $this->modelClass->order('id desc')->column('*', 'name');
+//            var_dump($list);
+            $addons =  $this->modelClass->column('*', 'name');
             foreach ($list as $key => $value) {
                 //是否已经安装过
                 if (!isset($addons[$key])) {
                     $class = get_addons_instance($key);
                     $addons[$key] = $class->getInfo();
-                    $config = $class->getConfig(true);
-                    $addons[$key]['config'] = $config;
                     if ($addons[$key]) {
                         $addons[$key]['install'] = 0;
                         $addons[$key]['status'] = 0;
                     }
                 } else {
                     $addons[$key]['install'] = 1;
-                    $addons[$key]['config'] = unserialize($addons[$key]['config']);
-
                 }
             }
-//            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-//            $count = $this->modelClass
-//                ->where($where)
-//                ->order($sort)
-//                ->count();
-//            $list =$this->modelClass->where($where)
-//                ->with('auth_group')
-//                ->order($sort)
-//                ->page($this->page  ,$this->pageSize)
-//                ->select();
-//            $result = ['code'=>0,'msg'=>lang('Delete Data Success'),'data'=>$list,'count'=>$count];
             $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $addons, 'count' => count($addons)];
             return json($result);
         }
@@ -94,7 +79,7 @@ class Addon extends Backend
         $name = $this->request->param("name");
 //        插件名是否为空
         if (!$name) {
-            $this->error(lang('parameter %s can not be empty', ['name']));
+            $this->error(lang('parameter %s can not be empty', [$name]));
         }
         //插件名是否符合规范
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
@@ -103,27 +88,29 @@ class Addon extends Backend
         //检查插件是否安装
         if ($this->isInstall($name)) {
 
-            $this->error(lang('addons %s is already installed', ['name']));
+            $this->error(lang('addons %s is already installed', [$name]));
         }
         $class = get_addons_instance($name);
         if (empty($class)) {
-            $this->error(lang('addons %s is not ready', ['name']));
+            $this->error(lang('addons %s is not ready', [$name]));
         }
         //安装插件
-        $install = $class->install();
+        $class->install();
         // 安装菜单
         $menu_config=$this->get_menu_config($class);
-        if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
-            $pid = 0;
-        }else{
-            $pid = $this->addAddonManager()->id;
+        $addonService = new AddonService();
+        if(!empty($menu_config)){
+            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+                $pid = 0;
+            }else{
+                $pid = $addonService->addAddonManager()->id;
+            }
+            $menu[] = $menu_config['menu'];
+            $addonService->addAddonMenu($menu,$pid);
         }
-        $menu[] = $menu_config['menu'];
-        $this->addAddonMenu($menu,$pid);
         //添加数据库
         $info = get_addons_info($name);
         $info['status'] = 1;
-        $info['config'] =  serialize($class->getConfig(true));
         $res =  $this->modelClass->create($info);
         if (!$res) {
             $this->error(lang('addon install fail'));
@@ -134,19 +121,22 @@ class Addon extends Backend
         if (is_dir($sourceAssetsDir)) {
             FileHelper::copyDir($sourceAssetsDir, $destAssetsDir);
         }
+
         //复制文件到目录
         if(Service::getCheckDirs()){
             foreach (Service::getCheckDirs() as $k => $dir) {
                 $sourcedir = Service::getAddonsNamePath($name). $dir;
                 if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath() . $dir);
+                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name);
                 }
             }
         }
 
         try {
-            Service::updateAddonsInfo($name,1);
+            Service::updateAddonsInfo($name);
             Service::updateAdddonsConfig();
+            //刷洗addon文件
+            refreshaddons();
 
         }catch (\Exception $e){
             $this->error($e->getMessage());
@@ -175,18 +165,29 @@ class Addon extends Backend
         if (empty($info)) {
             $this->error(lang('addon is not exist'));
         }
+        if($info->status==1){
+            $this->error(lang('Please disable addons %s first',[$name]));
+
+        }
         if (!$info->delete()) {
             $this->error(lang('addon uninstall fail'));
         }
+
         //卸载插件
         $class = get_addons_instance($name);
-        $uninstall = $class->uninstall();
+        $class->uninstall();
         //删除菜单
         $menu_config=$this->get_menu_config($class);
-        $menu[] = $menu_config['menu'];
-        $this->delAddonMenu($menu);
+        if(!empty($menu_config)){
+            $menu[] = $menu_config['menu'];
+            $addonService = new AddonService();
+            $addonService->delAddonMenu($menu);
+        }
+
         //卸载sql;
         uninstallsql($name);
+
+
         // 移除插件基础资源目录
         $destAssetsDir = Service::getDestAssetsDir($name);
         if (is_dir($destAssetsDir)) {
@@ -197,11 +198,12 @@ class Addon extends Backend
         foreach ($list as $k => $v) {
             @unlink(app()->getRootPath() . $v);
         }
-        Service::updateAddonsInfo($name,0);
+        Service::updateAddonsInfo($name,1,0);
 
         try {
             Service::updateAdddonsConfig();
-
+            //刷洗addon文件
+            refreshaddons();
         }catch (\Exception $e){
             $this->error($e->getMessage());
         }
@@ -212,25 +214,31 @@ class Addon extends Backend
     /**
      * 禁用启用
      */
-    public function state()
+    public function modify()
     {
         $id = $this->request->param("id");
         $name = $this->request->param("name");
 
         if (!$id) {
-            $this->error(lang('parameter %s can not be empty', ['id']));
+            $this->error(lang('parameter %s can not be empty', [$id]));
         }
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('Addon name is not correct'));
         }
         $info =  $this->modelClass->find($id);
-        $info->status = $info->status == 1 ? 0 : 1;
-        if ($info->save()) {
-            $this->success(lang('edit success'));
-        } else {
+        $addoninfo = get_addons_info($name);
+        $addoninfo['status'] = $addoninfo['status']?0:1;
+        try {
+            $info->status =$addoninfo['status'];
+            Service::updateAddonsInfo($name,$addoninfo['status']);
+            refreshaddons();
+            $info->save();
+        }catch (\Exception $e){
+            $this->error(lang($e->getMessage()));
 
-            $this->error(lang(lang('edit fail')));
         }
+        $this->success(lang('edit success'));
+
 
     }
 
@@ -241,7 +249,6 @@ class Addon extends Backend
     {
         if ($this->request->isAjax()) {
             $params = $this->request->param('config/a',[],'trim');
-            $name   =  $this->request->param("name");
             $info =  $this->modelClass->find($this->request->param('id'));
             if ($params) {
                 $config = @unserialize($info->config);
@@ -305,92 +312,12 @@ class Addon extends Backend
         return $addons;
     }
 
-
-
     //获取菜单配置
     protected function get_menu_config($class){
         $menu = $class->menu;
         return $menu;
     }
-    //添加菜单
-    protected function addAddonMenu($menu,$pid = 0){
 
-        foreach ($menu as $k=>$v){
-            $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
-            try {
-               $v['pid'] = $pid ;
-                $v['href'] = trim($v['href'],'/');
-                if(AuthRule::where('href',$v['href'])->find()){
-                    continue;
-                }
-
-
-                $menu = AuthRule::create($v);
-                if ($hasChild) {
-                    $this->addAddonMenu($v['menulist'], $menu->id);
-                }
-            } catch (PDOException $e) {
-                throw new Exception($e->getMessage());
-            }
-        }
-
-    }
-    //循环删除菜单
-    protected function delAddonMenu($menu){
-        foreach ($menu as $k=>$v){
-            $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
-            try {
-                $v['href'] = trim($v['href'],'/');
-                $menu_rule = AuthRule::where('href',$v['href'])->find();
-                if($menu_rule){
-                    $menu_rule->delete();
-                    if ($hasChild) {
-                        $this->delAddonMenu($v['menulist']);
-                    }
-                }
-                //删除主菜单；
-                $manager = AuthRule::where('href','addon/manager')->find();
-                if($manager){
-                    $manager_child =  AuthRule::where('pid',$manager->id)->find();
-                    if(!$manager_child){
-                        $manager->delete();
-                    }
-                }
-            } catch (PDOException $e) {
-                throw new Exception($e->getMessage());
-            }
-        }
-
-
-    }
-    //添加管理菜单
-    protected function addAddonManager(){
-        $addon_auth =  AuthRule::where('href','addon')->cache(3600)->find();
-        $data = array(
-            "title" => '插件管理',
-            'href'=>'addon/manager',
-            'menu_status'=>1,
-
-            //状态，1是显示，0是不显示
-            "status" => 1,
-
-            "icon" =>'fa fa-circle-o',
-            //父ID
-            "pid" => $addon_auth->id,
-            //排序
-            "sort" => 50,
-        );
-        $manager = AuthRule::where('href','addon/manager')->find();
-        if(!$manager){
-            $manager = AuthRule::create($data);
-        }elseif($manager and $manager->menu_status==0){
-            $manager->menu_status=1;
-            $manager->status=1;
-            $manager->save();
-        }
-        return $manager;
-
-    }
 
 
 }

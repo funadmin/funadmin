@@ -10,11 +10,8 @@
 // +----------------------------------------------------------------------
 
 use app\common\model\Region;
-use speed\helper\FormHelper;
 use think\App;
 use think\facade\Route;
-
-error_reporting(0);
 
 if (!function_exists('region')) {
 
@@ -52,23 +49,9 @@ if (!function_exists('syscfg')) {
 }
 
 //重写url 助手函数
-if (!function_exists('url')) {
+if (!function_exists('__u')) {
 
-    function url($url='', array $vars = [], $suffix = true, $domain = false)
-    {
-        $url = (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
-        $pos = strpos($url,'/backend');
-        if($pos!==false){
-            $url = substr_replace($url,'',$pos,strlen('/backend'));
-        }
-        return $url;
-    }
-}
-
-//重写url 助手函数
-if (!function_exists('__url')) {
-
-    function __url($url='', array $vars = [], $suffix = true, $domain = false)
+    function __u($url='', array $vars = [], $suffix = true, $domain = false)
     {
         $url = (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
         $pos = strpos($url,'/backend');
@@ -80,86 +63,7 @@ if (!function_exists('__url')) {
 }
 
 
-if (!function_exists('form_build_input')) {
-    /**
-     * @param $type
-     * @param $name
-     * @return string
-     */
-    function form_build_input($type, $name)
-    {
-        return FormHelper::input($type,$name,$options = []);
-    }
-}
 
-if (!function_exists('form_build_select')) {
-    /**
-     * @param null $name
-     * @param array $options
-     * @return string
-     */
-    function form_build_select($name = null,$value=[], $options = [])
-    {
-        return FormHelper::select($name, $value, $options);
-    }
-}
-
-if (!function_exists('form_build_date')) {
-    /**
-     * @param array $options
-     * @return string
-     */
-
-    function form_build_date($name=null,$options = [])
-    {
-        return FormHelper::date($name, $options);
-    }
-}
-
-if (!function_exists('form_build_submitbtn')) {
-    /**
-     * @param bool $reset
-     * @param array $options
-     * @return string
-     */
-    function form_build_submitbtn($reset = true, $options=[])
-    {
-        return FormHelper::submitbtn($reset, $options);
-    }
-}
-if (!function_exists('form_build_upload')) {
-    /**
-     * @param $name
-     * @param null $formdata
-     * @return string
-     */
-    function form_build_upload($name,$formdata=null)
-    {
-        return FormHelper::upload($name,$formdata);
-    }
-}
-if (!function_exists('form_build_ueditor')) {
-    /**
-     * @param $id
-     * @param $name
-     * @return string
-     */
-    function form_build_ueditor($id,$name)
-    {
-        return FormHelper::ueditor($id,$name);
-    }
-}
-if (!function_exists('form_build_wangeditor')) {
-    /**
-     * @param $id
-     * @param $name
-     * @return string
-     */
-    function form_build_wangeditor($id,$name)
-    {
-        return FormHelper::wangeditor($id,$name);
-    }
-}
 /** 百度编辑器*/
 if (!function_exists('build_ueditor')) {
 function build_ueditor($params = array())
@@ -220,6 +124,7 @@ EOT;
 
 }
 }
+
 
 /**
  * 打印

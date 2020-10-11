@@ -1,7 +1,7 @@
 <?php
 /**
- * Created by SpeedAdmin.
- * Copyright SpeedAdmin.
+ * Created by FunAadmin.
+ * Copyright FunAadmin.
  * Author: Yuege
  * Date: 2020/3/9
  * Time: 14:39

@@ -1,25 +1,20 @@
-<div class="speed-main">
+<div class="fun-main">
     <div class="admin-main layui-anim layui-anim-upbit">
         <form class="layui-form" lay-filter="form">
 
             <div class="layui-form-item">
                 <label class="layui-form-label">{:lang('AuthGroupPid')}</label>
                 <div class="layui-input-block">
-                    <select name="pid" lay-verify="required" {if !empty($formData) && $formData.id ==1}disabled{/if}>
-                    <option value="0">--{:lang('Pid')}</option>
+                    <select name="pid" lay-verify="required"  {if !empty($formData) && $formData.id ==1}disabled{/if}>
+                    <option value="">--{:lang('Pid')}</option>
                     {volist name="authGroup" id="vo"}
                     <option value="{$vo.id}" {if !empty($formData) && $formData.id==$vo.id} selected {/if} >{$vo.title}</option>
                     {/volist}
                     </select>
                 </div>
             </div>
-            <div class="layui-form-item">
-                <label class="layui-form-label">用户组名</label>
-                <div class="layui-input-inline">
-                    <input type="text" name="title"  lay-verify="required" placeholder="{:lang('pleaseEnter')}用户组名" class="layui-input">
-                </div>
-            </div>
-            {include file="common/subBtn"/}
+            {:form_input('title','text',['lable'=>'Groupname','verify'=>'required'])}
+            {:form_submitbtn()}
 
         </form>
     </div>

@@ -1,4 +1,4 @@
-{include file="common/header"}
+{include file="layout/header"}
 <style>
     .layui-card .layui-card-header .layui-badge.pull-right {
         top: 50%;
@@ -58,8 +58,8 @@
     }
 </style>
 <body>
-<div class="speed-app" id="app">
-<div class="speed-container" style="background:#f2f2f2">
+<div class="fun-app" id="app">
+<div class="fun-container" style="background:#f2f2f2">
     <div class="layui-row layui-col-space15">
         <div class="layui-col-xs12 layui-col-sm6 layui-col-md3">
             <div class="layui-card">
@@ -113,25 +113,25 @@
         <div class="layui-col-sm6" style="padding-bottom: 0;">
             <div class="layui-row layui-col-space15">
                 <div class="layui-col-xs6 layui-col-sm3">
-                    <div class="console-app-group">
+                    <div class="console-app-group" title="用户" lay-id="" lay-iframe lay-href="{:__u('member.member/index')}">
                         <i class="console-app-icon layui-icon layui-icon-group" style="font-size: 26px;padding-top: 3px;margin-right: 6px;"></i>
                         <div class="console-app-name">用户</div>
                     </div>
                 </div>
                 <div class="layui-col-xs6 layui-col-sm3">
-                    <div class="console-app-group">
+                    <div class="console-app-group" title="分析" lay-id="" lay-iframe  lay-href="{:__u('member.member/index')}">
                         <i class="console-app-icon layui-icon layui-icon-chart" style="color: #95de64;"></i>
                         <div class="console-app-name">分析</div>
                     </div>
                 </div>
                 <div class="layui-col-xs6 layui-col-sm3">
-                    <div class="console-app-group">
+                    <div class="console-app-group" title="商品"  lay-id="" lay-iframe lay-href="{:__u('member.member/index')}">
                         <i class="console-app-icon layui-icon layui-icon-cart" style="color: #ff9c6e;"></i>
                         <div class="console-app-name">商品</div>
                     </div>
                 </div>
                 <div class="layui-col-xs6 layui-col-sm3">
-                    <div class="console-app-group">
+                    <div class="console-app-group"  title="订单"  lay-id=""  lay-iframe lay-href="{:__u('member.member/index')}">
                         <i class="console-app-icon layui-icon layui-icon-form" style="color: #b37feb;font-size: 30px;"></i>
                         <div class="console-app-name">订单</div>
                     </div>
@@ -520,14 +520,14 @@
                         <dd>
                             <div class="layui-status-img"><a href="javascript:;"><img src="http://bbs.lemocms.com/static/addons/bbs/images/avatar/5.jpg"></a></div>
                             <div>
-                                <p>胡歌 在 <a lay-href="https://www.speedadmn.cn">speedadmin专区</a> 回答问题</p>
+                                <p>胡歌 在 <a lay-href="https://www.FunAadmin.cn">FunAadmin专区</a> 回答问题</p>
                                 <span>几秒前</span>
                             </div>
                         </dd>
                         <dd>
                             <div class="layui-status-img"><a href="javascript:;"><img src="http://bbs.lemocms.com/static/addons/bbs/images/avatar/5.jpg"></a></div>
                             <div>
-                                <p>彭于晏 在 <a lay-href="https://www.speedadmn.cn">speedadmin专区</a> 进行了 <a lay-href="https://www.speedadmn.cncolumn/quiz/">提问</a></p>
+                                <p>彭于晏 在 <a lay-href="https://www.funadmn.cn">FunAadmin专区</a> 进行了 <a lay-href="https://www.FunAadmin.cncolumn/quiz/">提问</a></p>
                                 <span>2天前</span>
                             </div>
                         </dd>
@@ -555,7 +555,7 @@
                         <dd>
                             <div class="layui-status-img"><a href="javascript:;"><img src="http://bbs.lemocms.com/static/addons/bbs/images/avatar/5.jpg"></a></div>
                             <div>
-                                <p>小蚊子 在 <a lay-href="https://www.speedadmn.cn">speedadmin专区</a> 进行了 <a lay-href="https://www.speedadmn.cncolumn/quiz/">提问</a></p>
+                                <p>小蚊子 在 <a lay-href="https://www.funadmn.cn">FunAadmin专区</a> 进行了 <a lay-href="https://www.funadmn.cncolumn/quiz/">提问</a></p>
                                 <span>8天前</span>
                             </div>
                         </dd>
@@ -563,12 +563,14 @@
                 </div>
             </div>
         </div>
-
     </div>
-
 </div>
 </div>
-
-
-
-
+<script src="__CDN____PLUGINS__/layui/layui.all.js" charset="utf-8"></script>
+<script>
+    layui.config({
+        base:'/static/plugins/lay-module/fun/'
+    }).extend({Backend:'backend'}).use('Backend',function (){
+        layui.Backend.api.bindEvent();
+    })
+</script>

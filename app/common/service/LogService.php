@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\common\service;
 
@@ -51,7 +51,7 @@ class LogService extends AbstractService
         $ip         = Request::ip();
         $agent      = Request::server('HTTP_USER_AGENT');
         $content    = Request::param();
-        $module     = app('http')->getName();;
+        $module     = app('http')->getName();
         if ($content && Request::isGet()) {
             $contents = json_encode($content);
             if(strpos($contents,'limit') !==false && strpos($contents,'page')!==false ){
@@ -59,9 +59,7 @@ class LogService extends AbstractService
             }else{
                 //去除登录密码
                 foreach ($content as $k => $v) {
-                    if (stripos($k, 'password') !== false) {
-                        unset($content[$k]);
-                    }
+                    if (stripos($k, 'password') !== false)  unset($content[$k]);
                 }
                 $content = json_encode($content);
             }
@@ -71,7 +69,6 @@ class LogService extends AbstractService
             $content = '菜单点击|刷新';
         }elseif (!$content && Request::isPost()){
             $content = '清除缓存|切换语言';
-
         }
         if (strpos($url, 'enlang') !== false && Request::isAjax()) {
             $title = '[切换语言]';
@@ -79,19 +76,23 @@ class LogService extends AbstractService
             $title = '[清楚缓存]';
         }elseif (strpos($url, 'login/index') !== false && Request::isAjax()) {
             $title = '[登录成功]';
+            $username = json_decode($content,true)['username'];
+
         }else{
             //权限
             $auth = AuthRule::column('href','id');
             foreach ($auth as $k=>&$v){
-               $v = url($v);
+               $v = __u($v);
             }
             $url = str_replace('.html','',$url).'.html';
             $key = array_search($url,$auth);
             if($key>=0){
                 $auth = AuthRule::where('id',$key)->find();
                 if($auth) $title=$auth->title;
-                $config = config('backend');
             }
+        }
+        if(strpos($url,'addons/')!==false){
+            $module = 'addons';
         }
         //插入数据
         if (!empty($title) and $content) {

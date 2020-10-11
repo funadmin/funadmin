@@ -1,4 +1,4 @@
-<div class="speed-main">
+<div class="fun-main">
         <fieldset class="layui-elem-field layui-field-title">
             <legend>插件配置-{$info.title}</legend>
         </fieldset>
@@ -78,15 +78,15 @@
                 <label class="layui-form-label">{$vo.title}</label>
                 <div class="layui-inline">
                     {php} $i=-1;{/php}
-                    {foreach name="vo.content" item="v" key="_k"}
+                    {foreach name="vo.value" item="v" key="_k"}
                     {php}$i++;{/php}
                     <div class="layui-inline">
-                        <label class="layui-form-label">键</label>
+                        <label class="layui-form-label">{:lang('Key')}</label>
                         <div class="layui-input-inline">
                             <input type="text" name="config[{$k}][{$i}][key]" lay-verify="{$vo.rule}" placeholder="请输入键" autocomplete="off" class="layui-input" value="{$_k}">                        </div>
                     </div>
                     <div class="layui-inline">
-                        <label class="layui-form-label">值</label>
+                        <label class="layui-form-label">{:lang('Value')}</label>
                         <div class="layui-input-inline">
                             <input type="text" name="config[{$k}][{$i}][value]" lay-verify="{$vo.rule}" placeholder="请输入值" autocomplete="off" class="layui-input" value="{$v}">                        </div>
                     </div>
@@ -102,8 +102,6 @@
 
             <input type="hidden" name="id" value="{:input('id')}" >
             <input type="hidden" name="name" value="{:input('name')}" >
-            {
-            include file="common/subBtn"
-            }
+            {:form_submitbtn()}
         </form>
     </div>

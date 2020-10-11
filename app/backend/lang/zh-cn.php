@@ -1,10 +1,10 @@
 <?php
 
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -14,6 +14,7 @@
 
 return [
     'Lang'                                 => '语言',
+    'Input'                                 => '输入',
     'Top'                                   =>"顶级",
     'Pid'                                   =>'上级id',
     'Oprate'                                =>'操作',
@@ -45,29 +46,32 @@ return [
     'Sex'                                 => '性别',
     'Level'                                 => '等级',
     'Please choose data'                                 => '请选择数据',
+    'Defaults'                              =>'默认',
+
     'Wechat'                                 => '微信',
     'Message'                                 => '消息',
     'Material'                                 => '素材',
     'Tag'                                 => '标签',
+    'Tags'                                 => '标签',
     'Fans'                                 => '粉丝',
     'Reply'                                 => '回复',
-    'Supper man'                                 => '超级管理',
+    'Supperman'                                 => '超级管理',
+
+
     'Sort'                                 => '排序',
     'Field'                                 => '字段',
     'Name'                                 => '名字',
+    'Value'                                 => '值',
     'Config'                                 => '配置',
-    'Qrcode'                                 => "二维码",
-    'Tips'                                 => "提示",
-    'Maxfilesize'                                 => "最大文件大小",
-    'File type'                                 => "文件类型",
+
     'Upload'                                 => "上传",
     'Refresh Success'                       =>'刷新成功',
+    'Description'                           =>"描述",
     'Set Password To Lock Screen'                       =>'输入密码锁屏',
     'Lock now'                       =>'立即锁屏',
     'Input Password'                       =>'输入密码',
     'Unlock Now'                       =>'立即解锁',
     'Unlock Success'                       =>'解锁成功',
-
 
     'Delete checked'                                 => '批量删除',
     'Get Data Success'                                 => '获取成功',
@@ -86,17 +90,11 @@ return [
     'Asny Failed'                                 => '同步失败',
     'Empty Failed'                                 => '清除失败',
 
-    'Supper man cannot delete'                                 => '超级管理员不能删除',
-    'Supper man cannot edit'                                 => '超级管理员不能修改',
-    'Supper man cannot edit state'                                 => '超级管理员不能修改状态',
+
     'Test Data Cannot Edit'                                 => '测试数据不能修改',
     'Test Data Cannot Delete'                                 => '测试数据不能删除',
     'Please Choose Rule'                                 => '请选择权限',
-    'Rule Assign Failed'                                 => '权限分配失败',
-    'Rule Assign Success'                                 => '权限分配成功',
-    'Rule Name cannot null'                                 => '权限名不能为空',
-    'Permission Denied'                                 => '没有权限',
-    'Delete Child First'                                 => '先删除下级',
+
     'Not exist'                                 => '不存在',
     'Data Not Exist'                                 => '数据不存在',
     'Cannot Null'                                 => '不能为空',
@@ -105,31 +103,17 @@ return [
 
 
     'Logout Success'                                 => '退出成功',
-    'Origin Password Error'                                 => '原密码错误',
     'QrcodeName'                                 => "二维码名字",
-    'Child'                                 => '下级',
-    'Attachment'                                 => '附件',
-    'Addons'                                 => '插件',
-    'Addon'                                 => '插件',
-    'AddonName'                                 => '插件名',
-    'Install'                                 => '安装',
-    'Uninstall'                                 => '卸载',
-    'Select'                                 => '选择',
-    'Address'                                 => '地址',
     'Select Attach'                                 => '选择附件',
     'CreateTime'                                 => '创建时间',
     'UpdateTime'                                 => '更新时间',
-    'addon'                                    =>'插件',
-    'Login  Tips'                                 => '登录提示：此处为SpeedAdmin官方账号',
-    'Your Password'                                 => '您的密码',
-    'UserName Or Email'                                 => '账号或密码',
     'Verify'                                        => '验证码',
-
     'Please check data'                                 => '请选择数据',
     'Are you sure you want to delete it'                                 => '确定删除此项?',
     'Are you sure you want to delete the %s selected item?'                                 => '确定删除选中的 %s 项?',
     'Are you sure you want to delete or empty?'                                 => '确定删除或清空?',
     'Are you sure you want to empty?'                                 => '确定清空?',
+    'English characters. Canot duplicate the current existing'        => '英文字符,不能重复',
 
     //菜单
     'Fullscreen'                                =>"全屏",
@@ -142,6 +126,7 @@ return [
     'Log'                                 =>"日志",
     'LogDel'                                 =>"日志删除",
     'Uploads'                                 =>"上传",
+    'Group'                                 =>"组别",
     'ConfigGroup'                                 =>"配置组",
     'ConfigGroupAdd'                                 =>"配置组添加",
     'ConfigGroupEdit'                                 =>"配置组编辑",
@@ -189,6 +174,11 @@ return [
     'AdminEdit'                                  =>"管理员编辑",
     'AdminModify'                                  =>"管理员修改",
     'AdminDel'                                  =>"管理员删除",
+    'Child'                                 => '下级',
+    'Attachment'                                 => '附件',
+    'Addons'                                 => '插件',
+    'Addon'                                 => '插件',
+    'AddonName'                                 => '插件名',
 
 
 ];

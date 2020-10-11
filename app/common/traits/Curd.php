@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\common\traits;
 /**
@@ -105,7 +105,7 @@ trait Curd
         if($ids=='all'){
             $list = $this->modelClass->select();
         }else{
-            $list = $this->modelClass->whereIn('id', $ids)->select();
+            $list = $this->modelClass->where('id','in', $ids)->select();
         }
         if(empty($list))$this->error('Data is not exist');
         try {

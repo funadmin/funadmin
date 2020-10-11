@@ -1,16 +1,17 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\backend\controller;
+use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use think\facade\Db;
@@ -25,14 +26,22 @@ class Index extends Backend{
      * 首页
      */
     public function index(){
-        // 所有显示的菜单；
+        $menulsit = [];
+//        $menulsit = Cache::get('adminmenushtml' .session('admin.id'));
+        if (!$menulsit) {
+            $cate = AuthRule::where('menu_status', 1)
+                ->where('type',1)
+                ->where('status',1)
+                ->order('sort asc')->select()->toArray();
+            $menulsit = (new AuthService())->menuhtml($cate,false);
+            cache('adminmenushtml' . session('admin.id'), $menulsit, ['expire' => 3600]);
+        }
+        View::assign('menulist',$menulsit);
         return view();
     }
+
     /**
-     * @return string
-     * @throws \think\db\exception\BindParamException
-     * @throws \think\db\exception\PDOException
-     * 主页面
+     * @return \think\response\View
      */
     public function console(){
         $version = Db::query('SELECT VERSION() AS ver');
@@ -64,7 +73,7 @@ class Index extends Backend{
     {
 
         (new AuthService())->logout();
-        $this->success(lang('Logout success'), url('login/index'));
+        $this->success(lang('Logout success'), __u('login/index'));
     }
 
 

@@ -4,13 +4,10 @@ namespace app\backend\middleware;
 
 use app\backend\service\AuthService;
 use think\App;
-use think\Console;
-use think\facade\Cache;
-use think\facade\Env;
 use think\facade\Lang;
 use think\facade\Request;
 use think\facade\View;
-
+use think\helper\Str;
 class ViewNode
 {
     public function handle($request, \Closure $next)
@@ -20,8 +17,11 @@ class ViewNode
         $controllers = explode('.', $controllername);
         $jsname = '';
         foreach ($controllers as $vo) {
-            empty($jsname) ? $jsname = parse_name($vo) : $jsname .= '/' . parse_name($vo);
+            empty($jsname) ? $jsname = strtolower(Str::camel(parse_name($vo))) : $jsname .= '/' . strtolower(Str::camel(parse_name($vo)));
         }
+        $controllername = strtolower(Str::camel(parse_name($controllername)));
+        $actionname = strtolower(Str::camel(parse_name($actionname)));
+        $requesturl = "{$modulename}/{$controllername}/{$actionname}";
         $this->entrance = config('entrance.backendEntrance');
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$modulename}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$modulename}/js/{$jsname}.js";
@@ -30,18 +30,17 @@ class ViewNode
             'entrance'    => $this->entrance,//入口
             'addonname'    => '',
             'modulename'    => $modulename,
-            'moduleurl'    => rtrim(url("/{$modulename}", [], false), '/'),
-            'controllername'       => parse_name($controllername),
-            'actionname'           => parse_name($actionname),
-            'requesturl'          => parse_name("{$modulename}/{$controllername}/{$actionname}"),
+            'moduleurl'    => rtrim(__u("/{$modulename}", [], false), '/'),
+            'controllername'       =>$controllername,
+            'actionname'           => $actionname,
+            'requesturl'          => $requesturl,
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
             'authNode'           => $authNode,
-            'superAdmin'           => session('admin.id')==1?1:0,
-            'lang'           =>  strip_tags( Lang::getLangset()),
+            'superAdmin'           => session('admin.id')==1?true:false,
+            'lang'           =>  strip_tags(Lang::getLangset()),
             'site'           =>   syscfg('site'),
             'upload'           =>  syscfg('upload'),
-            'editor'           =>  syscfg('editor'),
         ];
         View::assign('config',$config);
         $request->modulename =$modulename;

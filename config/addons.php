@@ -1,19 +1,23 @@
 <?php
-// +----------------------------------------------------------------------
-// | thinkphp5 Addons [ WE CAN DO IT JUST THINK IT ]
-// +----------------------------------------------------------------------
-// | Copyright (c) 2016 http://www.zzstudio.net All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
-// +----------------------------------------------------------------------
-// | Author: Byron Sampson <xiaobo.sun@qq.com>
-// +----------------------------------------------------------------------
 
-return [
-    'autoload' => true,
-    'hooks' => [],
-    'route' => [
-//        'database/backend/sys'=>'database/backend/sys.index/index'
-    ],
-    'service' => [],
-];
+return array (
+  'autoload' => true,
+  'hooks' => 
+  array (
+    'Testhook' => 
+    array (
+      0 => 'database',
+    ),
+    'Testhook1' => 
+    array (
+      0 => 'ueditor',
+    ),
+  ),
+  'route' => 
+  array (
+    'database/backend/index' => 'database/backend/index/index/index',
+  ),
+  'service' => 
+  array (
+  ),
+);

@@ -45,7 +45,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
 
     //获取用户信息
     function getUserinfo() {
-        var userinfo = localStorage.getItem("speedadmin_userinfo");
+        var userinfo = localStorage.getItem("FunAdmin_userinfo");
         return userinfo ? JSON.parse(userinfo) : null;
 
     };
@@ -53,9 +53,9 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
     //设置用户信息
     function setUserinfo(data) {
         if (data) {
-            localStorage.setItem("speedadmin_userinfo", JSON.stringify(data));
+            localStorage.setItem("FunAdmin_userinfo", JSON.stringify(data));
         } else {
-            localStorage.removeItem("speedadmin_userinfo");
+            localStorage.removeItem("FunAdmin_userinfo");
         }
 
     };
@@ -71,25 +71,37 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                     config_url: 'addon.addon/config',
                     modify_url: 'addon.addon/modify',
                     // 配置
-                    api_url: 'https://www.speedadmin.com',   // 接口地址
+                    api_url: 'https://www.FunAdmin.com',   // 接口地址
                     login_url: '/api/v1.token/accessToken',   // 登陆地址获取token地址
                 },
-                appid: 'lemocms',   // appid
+                appid: 'FunAdmin',   // appid
                 appsecret: 'L9EwqM1jQQFOvniYnpe6K0SavguQOgoS',   // appserct
             }
 
             let tableIn = Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,
-                url: Speed.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh'],
                 cols: [[
                     {checkbox: true, fixed: true},
-                    {field: 'title', title: __('Title'), width: 120, sort: true,},
-                    {field: 'name', title: __('Name'), width: 100, sort: true, imageHeight: 40, align: "center",},
                     {
-                        field: 'image',
+                        field: 'title',
+                        title: __('Title'),
+                        width: 120,
+                        sort: true,
+                    },
+                    {
+                        field: 'name',
+                        title: __('Name'),
+                        width: 100,
+                        sort: true,
+                        imageHeight: 40,
+                        align: "center",
+                    },
+                    {
+                        field: 'thumb',
                         title: __('Logo'),
                         width: 100,
                         sort: true,
@@ -98,22 +110,22 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                         templet: Table.templet.image
                     },
                     {field: 'description', title: __('Description'), minWidth: 220, sort: true,},
-                    {field: 'version', title: __('Addon version'), width: 60, sort: true, search: false},
-                    {field: 'require', title: __('Addon require'), width: 60, sort: true, search: false},
+                    {field: 'version', title: __('Addon version'), width: 160, sort: true, search: false},
+                    {field: 'require', title: __('Addon require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120, sort: true},
-                    {field: 'create_time', title: __('Createtime'), width: 180, search: false},
+                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false},
                     {width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install == 1) {
-                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  lay-request="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
+                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  lay-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
                                 if (d.status == 1) {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  lay-request="' + Table.init.requests.status_url + '?name=' + d.name + '&id=' + d.id + '">启用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  lay-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   lay-request="' + Table.init.requests.status_url + '?name=' + d.name + '&id=' + d.id + '">禁用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   lay-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall"  lay-request="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall"  lay-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
                             } else {
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="install" lay-request="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="install" lay-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
                             if (d.install == 1) {
                                 if (d.website != '') {
@@ -128,87 +140,94 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 limit: 15,
                 page: true
             });
-            $('body').on('click', '[lay-event]', function () {
-                var url = $(this).attr('lay-request');
-                url = Speed.url(url);
+            layui.table.on('tool('+Table.init.table_elem+')', function(obj) {
+                var url = $(this).attr('lay-url');
+                url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
-                    if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
-                        Speed.msg.confirm('Are you sure you want to install it', function () {
-                            Speed.ajax({
-                                url: url,
-                            }, function (res) {
-                                speed.msg.success(res.msg, function () {
-                                    layui.table.reload(init.requests.tableId);
-                                });
-                            })
-                        });
-                    } else {
-                        var index = layer.open({
-                            type: 1,
-                            content: $("#login"),
-                            zIndex: 9999,
-                            area: ['450px', '350px'],
-                            title: [__('Login') + 'SpeedAdmin', 'text-align:center'],
-                            resize: false,
-                            btn: [__('Login'), __('Register')],
-                            yes: function (index, layero) {
-                                var url = Table.init.requests.api_url + Table.init.requests.login_url;
-                                var nonce = getNonce();
-                                var timestamp = getTimestamp();
-                                var data = {
-                                    appid: Table.init.requests.appid,
-                                    appsecret: Table.init.requests.appsecret,
-                                    username: $("#inputUsername", layero).val(),
-                                    password: $("#inputPassword", layero).val(),
-                                    nonce: nonce,
-                                    key: Table.init.requests.appsecret,
-                                    timestamp: timestamp,
-                                };
-                                var sign = getSign(data);
-                                data.sign = sign;
-                                $.post(url, data, function (res) {
-                                    res = JSON.parse(res)
-                                    if (res.code == 200) {
-                                        setUserinfo(res.data);
-                                        Speed.msg.success(res.message, Speed.api.closeCurrentOpen())
-                                    } else {
-                                        Speed.msg.alert(res.message)
-                                    }
-                                })
-                            },
-                            btn2: function () {
-                                Speed.api.closeCurrentOpen();
-                                return false;
-                            },
-                            success: function (layero, index) {
-                                $(".layui-layer-btn1", layero).prop("href", "https://www.SpeedAdmin.cn/bbs/login/reg.html").prop("target", "_blank");
-                            },
-                            end: function () {
-                                $("#login").hide();
-                            },
-                        });
-                    }
+                    // if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
+                    Fun.toastr.confirm('Are you sure you want to install it', function () {
+                        Fun.ajax({
+                            url: url,
+                        }, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                Fun.refreshmenu();
+                                Fun.toastr.close()
+                                layui.table.reload(Table.init.tableId);
+
+                            });
+                        })
+                    });
+                    // } else {
+                    //     var index = layer.open({
+                    //         type: 1,
+                    //         content: $("#login"),
+                    //         zIndex: 9999,
+                    //         area: ['450px', '350px'],
+                    //         title: [__('Login') + 'FunAdmin', 'text-align:center'],
+                    //         resize: false,
+                    //         btn: [__('Login'), __('Register')],
+                    //         yes: function (index, layero) {
+                    //             var url = Table.init.requests.api_url + Table.init.requests.login_url;
+                    //             var nonce = getNonce();
+                    //             var timestamp = getTimestamp();
+                    //             var data = {
+                    //                 appid: Table.init.requests.appid,
+                    //                 appsecret: Table.init.requests.appsecret,
+                    //                 username: $("#inputUsername", layero).val(),
+                    //                 password: $("#inputPassword", layero).val(),
+                    //                 nonce: nonce,
+                    //                 key: Table.init.requests.appsecret,
+                    //                 timestamp: timestamp,
+                    //             };
+                    //             var sign = getSign(data);
+                    //             data.sign = sign;
+                    //             $.post(url, data, function (res) {
+                    //                 res = JSON.parse(res)
+                    //                 if (res.code == 200) {
+                    //                     setUserinfo(res.data);
+                    //                     Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
+                    //                 } else {
+                    //                     Fun.toastr.alert(res.message)
+                    //                 }
+                    //             })
+                    //         },
+                    //         btn2: function () {
+                    //             Fun.api.closeCurrentOpen();
+                    //             return false;
+                    //         },
+                    //         success: function (layero, index) {
+                    //             $(".layui-layer-btn1", layero).prop("href", "https://www.FunAdmin.cn/bbs/login/reg.html").prop("target", "_blank");
+                    //         },
+                    //         end: function () {
+                    //             $("#login").hide();
+                    //         },
+                    //     });
+                    // }
                 }
                 if (event === 'uninstall') {
-                    Speed.msg.confirm('Are you sure you want to uninstall it', function () {
-                        Speed.ajax({
+                    Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
+                        Fun.ajax({
                             url: url,
                             method:'post'
                         }, function (res) {
-                            Speed.msg.success(res.msg, function () {
-                                layui.table.reload(init.tableId);
+                            Fun.toastr.success(res.msg, function () {
+                                Fun.refreshmenu();
+                                layui.table.reload(Table.init.tableId);
+                                Fun.toastr.close()
                             });
                         })
                     });
                 }
                 if (event === 'status') {
-                    Speed.msg.confirm('Are you sure you want to uninstall it', function () {
-                        Speed.ajax({
+                    Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
+                        Fun.ajax({
                             url: url,
                         }, function (res) {
-                            Speed.msg.success(res.msg, function () {
-                                layui.table.reload(init.tableId);
+                            Fun.toastr.success(res.msg, function () {
+                                layui.table.reload(Table.init.tableId);
+                                Fun.toastr.close()
+
                             });
                         })
                     });
@@ -225,10 +244,10 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
 
                 }
                 return false;
-            });
+            })
 
-            let table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+            // let table = $('#' + Table.init.table_elem);
+            // Table.api.bindEvent(table);
         },
         config: function () {
             Controller.api.bindevent()

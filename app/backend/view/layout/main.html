@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{:config('admin.sys_name')}后台管理</title>
+    <title>{:syscfg('site','sys_name')}后台管理</title>
     <meta property="og:keywords" content="{$config['site']['site_seo_keywords']}" />
     <meta property="og:description" content="{$config['site']['site_seo_desc']}" />
     <meta name="renderer" content="webkit">
@@ -11,14 +11,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
-    <link rel="stylesheet" href="__PLUGINS__/layui/css/layui.css" media="all" />
-    <link rel="stylesheet" href="__STATIC__/backend/css/comm.css?v={:time()}" media="all">
-    <link rel="stylesheet" href="__PLUGINS__/font-awesome-4.7.0/css/font-awesome.min.css" media="all">
+    <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:time()}" media="all">
+    <link rel="stylesheet" href="__CDN____PLUGINS__/font-awesome-4.7.0/css/font-awesome.min.css" media="all">
     {:token_meta()}
 </head>
-<body>
+<body style="padding: 10px;background: #fff">
 
-<div class="speed-container" id="app">
+<div class="fun-container" id="app" style="min-height: 250px;">
 
 {__CONTENT__}
 
@@ -39,7 +39,6 @@
     window.PLUGINS = '__PLUGINS__';
 </script>
 
-<script src="__PLUGINS__/layui/layui.all.js" charset="utf-8"></script>
-<script src="__PLUGINS__/require-2.3.6/require.js?v={$config['site']['site_version']}"  charset="utf-8"></script>
-<script src="__STATIC__/require-backend.js?v={$config['site']['site_version']}" charset="utf-8"></script>
-
+<script src="__CDN____PLUGINS__/layui/layui.all.js" charset="utf-8"></script>
+<script src="__CDN____PLUGINS__/require-2.3.6/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8" ></script>
+<script src="__CDN____STATIC__/require-backend.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>

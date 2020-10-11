@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\backend\controller\member;
 
@@ -20,6 +20,7 @@ use app\backend\model\MemberLevel;
 use app\backend\model\MemberGroup;
 use app\backend\model\Member as MemberModel;
 use think\App;
+
 class Member extends Backend{
 
     use Curd;
@@ -28,6 +29,7 @@ class Member extends Backend{
         parent::__construct($app);
         $this->modelClass =  new MemberModel();
     }
+
 
     public function index(){
         if ($this->request->isAjax()) {
@@ -48,6 +50,7 @@ class Member extends Backend{
         return view();
 
     }
+
 
     public function add(){
         if ($this->request->isPost()) {
@@ -90,7 +93,7 @@ class Member extends Backend{
             $this->validate($data, $rule);
             $res = $list->save($data);
             if ($res) {
-                $this->success(lang('Edit success'), url('index'));
+                $this->success(lang('Edit success'), __u('index'));
             } else {
                 $this->error(lang('Edit fail'));
             }

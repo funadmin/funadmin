@@ -18,6 +18,14 @@ return [
     'Email Address' => '邮箱地址',
     'Sms setting' => '短信设置',
     'Upload setting' => '上传设置',
+    'Remark' =>"备注",
+    'Default_value' =>"默认值",
+    'Extra' =>"附加",
+    'Verfiy' =>"验证",
+    'value' =>"值",
+
+    'Identifier' => '识别码',
+    'Code' => '识别码',
 
     'Sms appid' => '短信APPID',
     'Sms appsecret' => '短密钥',
@@ -29,7 +37,6 @@ return [
     'Alioss'=>'阿里oss',
     'Qiniuoss'=>'七牛oss',
     'Teccos'=>'腾讯oss',
-
     'Email server' => '邮箱服务器',
     'Email address' => '邮箱地址',
     'Email port' => '邮箱端口',
@@ -40,10 +47,15 @@ return [
     'All right' => '所有权',
     'Site name' => '网站名',
     'Site title' => '网站标题',
-    'Site logo' => '网站logo',
+    'Site_logo' => '网站logo',
     'Site email' => '网站邮箱',
     'Site domain' => '网站域名',
     'Meta keywords' => '网站关键字',
     'Meta description' => '网站描述',
+    'Qrcode'           => "二维码",
+    'Tips'              => "提示",
+    'Maxfilesize'       => "最大文件大小",
+    'Size'              => "文件大小",
+    'File type'          => "文件类型",
 
 ];

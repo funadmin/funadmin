@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\backend\controller\sys;
 
@@ -35,6 +35,9 @@ class Adminlog extends Backend {
         if($this->request->isAjax()){
 
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+                if(session('admin.group_id') != 1){
+                    $where[] = ['admin_id','=',session('admin.id')];
+                }
                 $count = $this->modelClass
                     ->where($where)
                     ->count();
@@ -43,12 +46,7 @@ class Adminlog extends Backend {
                     ->order($sort)
                     ->page($this->page,$this->pageSize)
                     ->select();
-//                if(!empty($list)){
-//                    foreach ($list['data'] as $k => $v) {
-//                        $useragent = explode('(', $v['log_agent']);
-//                        $list['data'][$k]['log_agent'] = $useragent[0]??'';
-//                    }
-//                }
+
                 $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $list, 'count' => $count];
                 return json($result);
 

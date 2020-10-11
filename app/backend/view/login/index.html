@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SpeedAdmin后台管理系统</title>
-    <meta name="keywords" content="SpeedAdmin 基于thinkphp6,thinkphp,layui,easywechat框架,框架,组件">
+    <title>FunAadmin后台管理系统</title>
+    <meta name="keywords" content="FunAadmin 基于thinkphp6,thinkphp,layui,easywechat框架,框架,组件">
     <meta name="description" content="lemoui 是一款采用 layui开发的极简后台管理框架 基于thinkphp6 ,easywechat,开发的后台管理系统,thinkphp,cms,php,插件后台管理系统,商城,cms系统,restful api,thinkphp后台管理系统">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
@@ -26,22 +26,22 @@
             <form class="layui-form layui-form-pane" action="">
                 <div class="layui-icon-header"><i class="layui-icon">&#xe770;</i></div>
                 <div class="layui-card-header">
-                    SpeedAdmin-{:lang('Login')}
+                    FunAadmin
                 </div>
                 {:token_field()}
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-user"></label>
-                    <input type="text" name="username" lay-verify="required|account" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" value="">
+                    <input type="text" name="username" lay-verify="required" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" value="">
                 </div>
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-password"></label>
-                    <input type="password" name="password" lay-verify="required|password" placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" value="">
+                    <input type="password" name="password" lay-verify="pass" placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" value="">
                 </div>
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-vercode" ></label>
-                    <input type="text" name="captcha" lay-verify="required|captcha" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" value="">
+                    <input type="text" name="captcha" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" value="">
                     <div class="captcha-img">
-                        <img  id="captchaPic" src="{:url('verify')}?{:time()}" alt="captcha" onclick="this.src='{:url("verify")}?'+'id='+Math.random()"/>
+                        <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
                     </div>
                 </div>
                 <div class="layui-form-item">
@@ -51,10 +51,10 @@
                     <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
                 </div>
                 <div class="layui-form-item copyright">
-                    © 2018-2020 <a href="https://www.speedadmin.cn" target="_blank">SpeedAdmin</a> All Rights Reserved.
+                    © 2018-2020 <a href="https://www.FunAadmin.cn" target="_blank">FunAadmin</a> All Rights Reserved.
                 </div>
             </form>
         </div>
     </div>
 </div>
-{include file="common/footer"}
+{include file="layout/footer"}

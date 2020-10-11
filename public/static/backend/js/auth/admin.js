@@ -4,17 +4,18 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
         index: function () {
             Table.init = {
                 table_elem: 'list',
-                tablId: 'list',
+                tableId: 'list',
                 requests: {
                     modify_url: 'auth.admin/modify',
                     index_url: 'auth.admin/index',
-                    del_url: 'auth.admin/delete',
+                    delete_url: 'auth.admin/delete',
                     add_url: 'auth.admin/add',
                     edit_url: 'auth.admin/edit',
                     add_full:{
                         type: 'open',
                         class: 'layui-btn-sm layui-btn-green',
                         url: 'auth.admin/add',
+                        icon: 'layui-icon layui-icon-add-circle',
                         text: __('Add'),
                         title: __('Add'),
                         full: 1,
@@ -23,24 +24,34 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-green',
                         url: 'auth.admin/edit',
+                        icon: 'layui-icon layui-icon-edit',
                         text: __('Edit'),
                         title: __('Edit'),
                         full: 1,
                     },
+                    password: {
+                        type: 'open',
+                        class: 'layui-btn-xs layui-btn-green',
+                        url: 'auth.admin/password',
+                        icon: 'layui-icon layui-icon-password',
+                        text: __('Password'),
+                        title: __('Password'),
+                    },
+
 
                 },
             },
             Table.render({
                     elem: '#' + Table.init.table_elem,
-                    id: Table.init.tablId,
-                    url: Speed.url(Table.init.requests.index_url),
+                    id: Table.init.tableId,
+                    url: Fun.url(Table.init.requests.index_url),
                     init: Table.init,
                     toolbar: ['refresh', 'add_full', 'delete'],
                     cols: [[
                         {checkbox: true, fixed: true},
                         {field:'id', title: 'ID', width:60,fixed: true}
                         ,{field:'username', title: __('username'), width:180}
-                        ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolve}
+                        ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution}
                         ,{field:'email', title: __("email"), width:200}
                         ,{field:'mobile', title: __("mobile"), width:150}
                         ,{field:'ip', title: __("Ip"),width:150,hide:true},
@@ -61,7 +72,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                             title: __('Operat'),
                             init: Table.init,
                             templet: Table.templet.operat,
-                            operat: ['edit_full', 'delete']
+                            operat: ['password','edit_full', 'delete']
                         }
 
                     ]],

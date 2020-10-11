@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 
 
@@ -43,7 +43,7 @@ class AuthRule extends BackendModel
      * @param int $lvl         层级
      * @return array
      */
-    public static function cateTree($cate , $lefthtml = '|— ' , $pid = 0 , $level = 0 ){
+    public static function cateTree($cate , $lefthtml = '|---- ' , $pid = 0 , $level = 0 ){
         $arr = array();
         foreach ($cate as $v){
             if ($v['pid'] == $pid) {

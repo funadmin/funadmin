@@ -1,19 +1,20 @@
-define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
-    var Controller = {
+define(['jquery','table','form'], function ($,Table,Form) {
+    let Controller = {
         index: function () {
             Table.init = {
                 table_elem: 'list',
-                tablId: 'list',
+                tableId: 'list',
                 requests: {
                     modify_url: 'member.member/modify',
                     index_url: 'member.member/index',
-                    del_url: 'member.member/delete',
+                    delete_url: 'member.member/delete',
                     // add_url: 'member.member/add',
                     // edit_url: 'member.member/edit',
                     add_full:{
                         type: 'open',
                         class: 'layui-btn-sm layui-btn-green',
                         url: 'member.member/add',
+                        icon: 'layui-icon layui-icon-add',
                         text: __('Add'),
                         title: __('Add'),
                         full: 1,
@@ -22,6 +23,7 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-green',
                         url: 'member.member/edit',
+                        icon: 'layui-icon layui-icon-edit',
                         text: __('Edit'),
                         title: __('Edit'),
                         // full: 1,
@@ -34,8 +36,8 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
             };
             Table.render({
                 elem: '#' + Table.init.table_elem,
-                id: Table.init.tablId,
-                url: Speed.url(Table.init.requests.index_url),
+                id: Table.init.tableId,
+                url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh','add_full','delete'],
                 cols: [[
@@ -72,14 +74,14 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
                         templet: Table.templet.switch
                     },
                     {field: 'create_time', title: __('Registertime'), width: 180,search:'range'},
-                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'range', templet: Table.templet.time},
+                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'time', templet: Table.templet.time},
                     {
-                        width: 250,
+                        minwidth: 250,
                         align: 'center',
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_full', 'delete',]
+                        operat: ['edit_full', 'delete']
                     }
 
                 ]],
@@ -88,7 +90,7 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
                 page: true
 
             });
-            var table = $('#'+Table.init.table_elem);
+            let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add:function () {
@@ -98,7 +100,6 @@ define(['jquery','table','form','upload'], function ($,Table,Form,Upload) {
             Controller.api.bindevent()
 
         },
-
         api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'))

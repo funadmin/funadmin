@@ -5,7 +5,7 @@
     "license": "Apache-2.0",
     "keywords": [
         "speed-admmin",
-        "speedadmin",
+        "HeekAdmin",
         "easywechat",
         "framework",
         "thinkphp",
@@ -20,7 +20,7 @@
         }
     ],
     "require": {
-        "php": ">=7.1.0",
+        "php": ">=7.2.0",
         "topthink/framework": "6.0.*-dev",
         "topthink/think-orm": "2.0.*-dev",
         "topthink/think-view": "^1.0",
@@ -29,16 +29,18 @@
         "topthink/think-captcha": "^3.0",
         "topthink/think-helper": "^3.1",
         "topthink/think-multi-app": "^1.0",
-        "topthink/think-throttle": "^1.0",
         "overtrue/wechat": "^4.2",
         "ramsey/uuid": "^3.8",
         "phpmailer/phpmailer": "^6.1",
         "aliyuncs/oss-sdk-php": "^2.3",
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
-        "speed/speed-addons": "v1.1",
-        "xaboy/form-builder": "~2.0",
-        "ext-json": "*"
+        "ext-json": "*",
+        "funadmin/fun-addons": "v0.31",
+        "topthink/think-ide-helper": "^1.0",
+        "topthink/think-annotation": "^1.1",
+        "topthink/think-throttle": "^1.1",
+        "james-heinrich/getid3": "^1.9"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2"

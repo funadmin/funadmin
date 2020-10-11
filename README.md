@@ -1,12 +1,12 @@
 
 ### 如果对你有帮助，请帮忙点个赞 star 一下谢谢
 
-+ SpeedAdmin v1.0
++ HeekAdmin v1.0
 
 + QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=f7p5ic6W)
 
 ### 前言
-SpeedAdmin v1.0管理系统：为二次开发而生，让开发变得更简单
+HeekAdmin v1.0管理系统：为二次开发而生，让开发变得更简单
 
  + 这是一款快速、高效、便捷、灵活的应用开发框架。
  + 系统采用最新版TinkPHP6框架开发，底层安全可靠，数据查询更快，运行效率更高，网站速度更快, 后续随官网升级而升级
@@ -20,10 +20,10 @@ SpeedAdmin v1.0管理系统：为二次开发而生，让开发变得更简单
 
 ### 版权信息
 
-SpeedAdmin 方便二次开发，您可以方便的使用到自己或企业的项目中,你可以免费学习或者使用
+HeekAdmin 方便二次开发，您可以方便的使用到自己或企业的项目中,你可以免费学习或者使用
 
 本项目包含的第三方源码和二进制文件之版权信息另行标注。
-版权所有Copyright © 2018-2020 by SpeedAdmin [www.SpeedAdmin.cn](https://www.SpeedAdmin.cn) All rights reserved。
+版权所有Copyright © 2018-2020 by HeekAdmin [www.HeekAdmin.cn](https://www.HeekAdmin.cn) All rights reserved。
 
 
 若此项目能得到你的青睐，支持开源项目，可以捐赠支持作者持续开发与维护。
@@ -35,7 +35,7 @@ SpeedAdmin 方便二次开发，您可以方便的使用到自己或企业的项
 在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流
 QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=f7p5ic6W)
 
-Github：https://github.com/speed-admin/SpeedAdmin
+Github：https://github.com/speed-admin/HeekAdmin
 
 
 ## 项目目录结构

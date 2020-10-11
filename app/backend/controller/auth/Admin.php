@@ -1,22 +1,21 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\backend\controller\auth;
-
 use app\backend\model\AuthGroup as AuthGroupModel;
 use app\common\controller\Backend;
 use app\common\traits\Curd;
-use speed\helper\SignHelper;
-use speed\helper\StringHelper;
+use fun\helper\SignHelper;
+use fun\helper\StringHelper;
 use think\facade\Db;
 use think\facade\Request;
 use think\facade\Session;
@@ -48,10 +47,14 @@ class Admin extends Backend
                 ->order($sort)
                 ->count();
             $list =$this->modelClass->where($where)
-                ->with('authGroup')
                 ->order($sort)
                 ->page($this->page  ,$this->pageSize)
-                ->select();
+                ->select()->toArray();
+            foreach ($list as $k=>&$v){
+                $title = AuthGroupModel::where('id','in',$v['group_id'])->column('title');
+                $v['authGroup']['title'] = join(',',$title);
+            }
+            unset($v);
             $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$list,'count'=>$count];
             return json($result);
         }
@@ -110,13 +113,8 @@ class Admin extends Backend
         $id = $this->request->param('id');
         if ($this->request->isPost()) {
             $data = $this->request->post();
-            $rule = [];
+            $rule = ['group_id'=>'require'];
             $this->validate($data, $rule);
-            $data['password'] = StringHelper::filterWords($data['password']);
-            if(!$data['password']){
-                $data['password']='123456';
-            }
-            $data['password'] = SignHelper::password($data['password']);
             //添加
             $list =  $this->modelClass->find($id);
             $result = $list->save($data);
@@ -128,6 +126,7 @@ class Admin extends Backend
         }
         $list =  $this->modelClass->find($id);
         $auth_group = AuthGroupModel::where('status', 1)->select();
+        if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
         $view = [
             'formData'  =>$list,
             'authGroup' => $auth_group,
@@ -166,7 +165,10 @@ class Admin extends Backend
             if($ids==1){
                 $this->error(lang('SupperAdmin can not delete'));
             }
-            $list = $this->modelClass->whereIn('id', $ids)->select();
+            if(is_array($ids) && in_array(1,$ids)){
+                $this->error(lang('SupperAdmin can not delete'));
+            }
+            $list = $this->modelClass->where('id','in', $ids)->select();
             $save = $list->delete();
             $save ?  $this->success(lang('Delete success')):$this->error(lang('SupperAdmin can not delete'));
         } else {
@@ -183,11 +185,6 @@ class Admin extends Backend
     public function password()
     {
         if ($this->request->isAjax()) {
-
-            if (Request::isAjax() and Session::get('admin.id') === 3) {
-                $this->error(lang('Test data cannot edit'));
-            }
-
             $oldpassword = $this->request->post('oldpassword');
             $one = $this->modelClass->find(session('admin.id'));
             if (!password_verify($oldpassword, $one['password'])) {
@@ -216,11 +213,11 @@ class Admin extends Backend
         } else {
             $data = Request::post();
             $admin = Admin::find($data['id']);
-            $oldpassword = Request::post('oldpassword', '123456', 'speed\helper\StringHelper::filterWords');
+            $oldpassword = Request::post('oldpassword', '123456', 'fun\helper\StringHelper::filterWords');
             if (!password_verify($oldpassword, $admin['password'])) {
                 $this->error(lang('Origin password error'));
             }
-            $password = Request::post('password', '123456', 'speed\helper\StringHelper::filterWords');
+            $password = Request::post('password', '123456', 'fun\helper\StringHelper::filterWords');
             try {
                 $data['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
 

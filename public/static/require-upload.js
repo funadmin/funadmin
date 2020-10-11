@@ -12,7 +12,6 @@ define(["jquery"], function ($) {
         },
         //事件
         events: {
-
             //附件多图
             mutiUpload: function () {
                 Upload.api.mutiUpload()
@@ -29,7 +28,7 @@ define(["jquery"], function ($) {
                 var uploadListView = $('.uploadList')
                     , uploadListIns = upload.render({
                     elem: '#uploadListBtn'
-                    , url: Speed.url(Upload.init.requests.upload_url) //改成您自己的上传接口
+                    , url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
                     , accept: 'file'
                     , drag: true
                     , multiple: true
@@ -45,17 +44,17 @@ define(["jquery"], function ($) {
                                 , '<td class="progress"> 0 </td>'
                                 , '<td>等待上传</td>'
                                 , '<td>'
-                                , '<button class="layui-btn layui-btn-xs speed-upload-reload layui-hide">重传</button>'
-                                , '<button class="layui-btn layui-btn-xs layui-btn-danger speed-upload-delete">删除</button>'
+                                , '<button class="layui-btn layui-btn-xs fun-upload-reload layui-hide">重传</button>'
+                                , '<button class="layui-btn layui-btn-xs layui-btn-danger fun-upload-delete">删除</button>'
                                 , '</td>'
                                 , '</tr>'].join(''));
                             //单个重传
-                            tr.find('.speed-upload-reload').on('click', function () {
+                            tr.find('.fun-upload-reload').on('click', function () {
                                 obj.upload(index, file);
                             });
 
                             //删除
-                            tr.find('.speed-upload-delete').on('click', function () {
+                            tr.find('.fun-upload-delete').on('click', function () {
                                 delete files[index]; //删除对应的文件
                                 tr.remove();
                                 uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
@@ -110,9 +109,9 @@ define(["jquery"], function ($) {
                             , exts: uploadExts
                             , size: uploadSize
                             ,multiple:uploadmultiple
-                            , url: Speed.url(Upload.init.requests.upload_url) + '?path=' + uploadPath
+                            , url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath
                             , before: function (obj) {
-                                var index = Speed.msg.loading(__('uploading...'))
+                                var index = Fun.toastr.loading(__('uploading...'))
                             },
                             done: function (res) {
                                 if (res.code > 0) {
@@ -144,9 +143,9 @@ define(["jquery"], function ($) {
                                         input.val(val_temp);
                                     }else{
                                         if(that.find('li').length>=uploadNum){
-                                            Speed.msg.error(__('File nun is limited'), function () {
+                                            Fun.toastr.error(__('File nun is limited'), function () {
                                                 setTimeout(function () {
-                                                    Speed.msg.close();
+                                                    Fun.toastr.close();
                                                 }, 2000)
                                             })
                                             return false;
@@ -162,24 +161,24 @@ define(["jquery"], function ($) {
                                         }
 
                                     }
-                                    Speed.msg.success(__('Upload Success'), function () {
+                                    Fun.toastr.success(__('Upload Success'), function () {
                                         setTimeout(function () {
-                                            Speed.msg.close();
+                                            Fun.toastr.close();
                                         }, 2000)
                                     })
                                 } else {
-                                    Speed.msg.error(__('Upload Failed'), function () {
+                                    Fun.toastr.error(__('Upload Failed'), function () {
                                         setTimeout(function () {
-                                            Speed.msg.close();
+                                            Fun.toastr.close();
                                         }, 2000)
                                     })
                                 }
 
                             }
                             , error: function () {
-                                Speed.msg.error(__('Upload Failed'), function () {
+                                Fun.toastr.error(__('Upload Failed'), function () {
                                     setTimeout(function () {
-                                        Speed.msg.close();
+                                        Fun.toastr.close();
                                     }, 2000)
                                 })
                             }

@@ -1,71 +1,15 @@
-    <div class="speed-main">
+    <div class="fun-main">
         <div class="admin-main layui-anim layui-anim-upbit">
             <form class="layui-form" lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Group')}</label>
-                    <div class="layui-input-block">
-                        <select name="group" lay-verify="required">
-                            <option value="">--{:lang('Select')}</option>
-                            {volist name="$configGroup" id="vo"}
-                            <option value="{$vo.name}" {if !empty($info) && $info.type==$vo.name} selected {/if} >{$vo.title}</option>
-                            {/volist}
-                        </select>
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Type')}</label>
-                    <div class="layui-input-block">
-                        <select name="type" lay-verify="required" lay-search>
-                            <option value="">--{:lang('Select')}--</option>
-                            {volist name="$fieldType" id="vo"}
-                            <option value="{$vo.name}" {if !empty($formData) && $formData.type==$vo.name} selected {/if} >{$vo.title}</option>
-                            {/volist}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Code')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="code" lay-verify="required" placeholder="{:lang('Config Code')}" class="layui-input">
-                        <div class="layui-form-mid layui-word-aux">
-                            英文字符。不能和当前已有的重复
-                        </div>
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Value')}</label>
-                    <div class="layui-input-block">
-                        <textarea  name="valie"  placeholder="{:lang('Config Value')}" class="layui-textarea"></textarea>
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Extra Value')}</label>
-                    <div class="layui-input-block">
-                        <textarea  name="extra"  placeholder="{:lang('Config Extra Value')}" class="layui-textarea"></textarea>
-                    </div>
-                </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Default Value')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="default_value" lay-verify="" placeholder="{:lang('Config Default Value')}" class="layui-input">
-                        <div class="layui-form-mid layui-word-aux">
-                            键值对就填写键
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Config Remark')}</label>
-                    <div class="layui-input-block">
-                        <textarea type="text" name="remark"  placeholder="{:lang('Config Default Value')}" class="layui-textarea"></textarea>
-                    </div>
-                </div>
-                {include file="common/subBtn"/}
+                {:form_select('group',$configGroup,['verfiy'=>'required'],['name','title'],$formData?$formData.type:'')}
+                {:form_select('type',$fieldType,['verfiy'=>'required'],['name','title'],$formData?$formData.type:'')}
+                {:form_input('code','text',['verify'=>'required','lable'=>"Code",'tips'=>"English characters. Canot duplicate the current existing"])}
+                {:form_select('verfiy',$fieldVerfiy,['verfiy'=>'required'],['verfiy','title'],$formData?$formData.verfiy:'')}
+                {:form_textarea('value')}
+                {:form_textarea('extra')}
+                {:form_textarea('remark','',['tips'=>'Remarks'])}
+                {:form_submitbtn()}
             </form>
         </div>
-
     </div>
 

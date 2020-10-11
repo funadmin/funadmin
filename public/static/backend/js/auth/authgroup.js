@@ -4,11 +4,11 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
         index: function () {
             Table.init = {
                 table_elem: 'list',
-                tablId: 'list',
+                tableId: 'list',
                 requests: {
                     modify_url: 'auth.authgroup/modify',
                     index_url: 'auth.authgroup/index',
-                    del_url: 'auth.authgroup/delete',
+                    delete_url: 'auth.authgroup/delete',
                     add_url: 'auth.authgroup/add',
                     edit_url: 'auth.authgroup/edit',
                     access: {
@@ -25,8 +25,8 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
             };
             Table.render({
                     elem: '#' + Table.init.table_elem,
-                    id: Table.init.tablId,
-                    url: Speed.url(Table.init.requests.index_url),
+                    id: Table.init.tableId,
+                    url: Fun.url(Table.init.requests.index_url),
                     init: Table.init,
                     toolbar: ['refresh', 'add', 'delete'],
                     cols: [[
@@ -76,7 +76,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 form = layui.form,
                 tree = layui.tree;
             var idList = {};
-            Speed.ajax({
+            Fun.ajax({
                 url: window.location.href,
                 method: 'get'
             }, function (res) {
@@ -87,10 +87,11 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     , data: list
                     , showCheckbox: true  //是否显示复选框
                     , id: 'treebox'
-                    // ,edit: ['add', 'update', 'del']
+                    ,edit: ['add', 'update']
                     , showLine: true
                     , accordion: true//是否开启手风琴模式，默认 false
                     , isJump: false //是否允许点击节点时弹出新窗口跳转
+
                 });
                 //修改权限样式
                 // var stype = "<style>.layui-tree-line .layui-tree-set::before{height: 0}" +
@@ -121,11 +122,11 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
             }, function () {
             }, function (e) {
                 var dataRule = tree.getChecked('treebox');
-                Speed.ajax({
+                Fun.ajax({
                     url: window.location.href,
                     data: {rules: dataRule},
                 }, function (res) {
-                    Speed.msg.success(res.msg, function () {
+                    Fun.toastr.success(res.msg, function () {
                         Form.api.closeCurrentOpen()
                     })
                 })

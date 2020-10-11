@@ -1,14 +1,14 @@
 <?php
 /**
- * SpeedAdmin
+ * FunAadmin
  * ============================================================================
- * 版权所有 2018-2027 SpeedAdmin，并保留所有权利。
- * 网站地址: https://www.SpeedAdmin.cn
+ * 版权所有 2017-2028 FunAadmin，并保留所有权利。
+ * 网站地址: https://www.FunAadmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2017/8/2
  */
 namespace app\backend\controller;
 
@@ -18,14 +18,13 @@ use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
 use app\common\service\OssService;
 use app\common\traits\Curd;
-use speed\helper\DataHelper;
-use speed\helper\FileHelper;
+use fun\helper\DataHelper;
+use fun\helper\FileHelper;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
 use think\facade\Lang;
-use think\helper\Str;
-
+use getID3;
 
 class Ajax extends Backend
 {
@@ -105,8 +104,10 @@ class Ajax extends Backend
                     $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                     $path = DS . 'storage' . DS . $savename;
                     $paths = trim($path, '/');
-                    //整合上传接口
-
+                    //整合上传接口 获取视频音频长度
+                    $getID3 = new getID3();
+                    $analyzeFileInfo = $getID3->analyze('./'.$path);
+                    $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                     if ($this->driver == 'alioss') {
                         $path = $uploadService->alioss($paths, './' . $paths);
                     } elseif ($this->driver == 'qiniuoss') {
@@ -143,6 +144,7 @@ class Ajax extends Backend
                         'size' => $file_size / 1024,
                         'width' => $width,
                         'height' => $height,
+                        'duration' => $duration,
                         'md5' => $md5,
                         'sha1' => $sha1,
                         'mime' => $file_mime,
@@ -178,32 +180,19 @@ class Ajax extends Backend
         return json($result);
     }
 
+
     /**
-     * 初始化后台接口地址
-     * @return \think\response\Json
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
+     * 刷新菜单
      */
-    public function initMenuConfig()
-    {
-        $admin_id = session('admin.id');
-        $cacheData = Cache::get('initMenuConfig' . $admin_id);
-        if (!empty($cacheData)) {
-            return json($cacheData);
-        }
-        $menus = Cache::get('adminMenus_' . $admin_id);
-        if (!$menus) {
-            $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
-            $menus = (new AuthService())->authMenu($cate);
-            cache('adminMenus_' . $admin_id, $menus, ['expire' => 3600]);
-        }
-        $logoInfo = ["title" => syscfg('site','site_name'), "image" => syscfg('site','site_logo'), "href" => "https://www.speedadmin.cn"];
-        $data = ['clearInfo' => url('ajax/clearData'), 'menuInfo' => $menus, 'logoInfo' => $logoInfo];
-        Cache::set('initMenuConfig' . $admin_id, $data, 3600);
-        return json($data);
-    }
+    public function refreshmenu(){
+        $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
+        $menulsit = (new AuthService())->menuhtml($cate);
+        $this->success($menulsit);
 
+    }
     /**
      * @return \think\response\Jsonp
      * 自动加载语言函数
@@ -212,9 +201,7 @@ class Ajax extends Backend
     {
         header('Content-Type: application/javascript');
         $controllername = $this->request->get("controllername");
-        $controllername = parse_name($controllername);
-        //驼峰
-        $controllername = strtolower(Str::camel($controllername));
+        $controllername = strtolower(parse_name($controllername,1));
         $addon = $this->request->param('addons');
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
         $this->loadlang($controllername,$addon);
@@ -276,7 +263,7 @@ class Ajax extends Backend
     /*
      * 清除缓存
     */
-    public function clearData()
+    public function clearcache()
     {
         Cache::clear();
         $this->success('清除成功');

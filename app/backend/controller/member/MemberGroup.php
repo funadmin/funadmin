@@ -5,6 +5,7 @@ use app\backend\model\MemberGroup as MemberGroupModel;
 use app\common\controller\Backend;
 use app\common\traits\Curd;
 use think\App;
+use think\Exception;
 class MemberGroup extends Backend{
 
     use Curd;
@@ -20,11 +21,11 @@ class MemberGroup extends Backend{
     public function add(){
         if ($this->request->isAjax()) {
             $post = $this->request->post();
-            $rule = ['name|组名'=>'require|unique'];
+            $rule = ['name|组名'=>'require|unique:member_group'];
             $this->validate($post, $rule);
             try {
                 $save = $this->modelClass->save($post);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->error(lang('Save Failed'));
             }
             $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
@@ -44,8 +45,9 @@ class MemberGroup extends Backend{
     public function delete()
     {
         $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-        $list = $this->modelClass->whereIn('id', $ids)->select();
-        if(in_array(1,$ids) ||$ids ==1){
+
+        $list = $this->modelClass->where('id','in', $ids)->select();
+        if($ids ==1 || is_array($ids) and in_array(1,$ids)){
             $this->error(lang("Default Group Cannot Delete"));
         }
         if(empty($list))$this->error('Data is not exist');

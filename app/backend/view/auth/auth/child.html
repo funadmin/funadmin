@@ -1,9 +1,6 @@
 <style> .layui-iconpicker-body.layui-iconpicker-body-page .hide {display: none;}</style>
-<div class="speed-main">
+<div class="fun-main">
         <div class="admin-main layui-anim layui-anim-upbit">
-            <fieldset class="layui-elem-field layui-field-title">
-                <legend>{:lang('add')}权限节点</legend>
-            </fieldset>
             <blockquote class="layui-elem-quote">
                 1、控制器/方法 例如 Wechat/index
             </blockquote>
@@ -12,7 +9,7 @@
                     <label class="layui-form-label">父级</label>
                     <div class="layui-input-block">
                         <select name="pid" lay-verify="required" lay-filter="pid">
-                            <option value="0">——{:lang('Top')}——</option>
+                            <option value="0">—{:lang('Top')}—</option>
                             {volist name="ruleList" id="vo"}
                             <option value="{$vo.id}" {if $parent and $parent['id']==$vo.id} selected
                             {/if}>{$vo.lefthtml}{:lang($vo.title)}</option>
@@ -20,42 +17,14 @@
                         </select>
                     </div>
                 </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Auth Name')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="title" lay-verify="required" placeholder="{:lang('AuthName')}"
-                               class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Controller/Action')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="href" lay-verify="required" placeholder="{:lang('Controller/Action')}"
-                               class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label for="" class="layui-form-label">{:lang('Icon')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="icon"  id="iconPicker" value="layui-icon-face-smile-fine" lay-filter="iconPicker" class="hide">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Menu Status')}</label>
-                    <div class="layui-input-block">
-                        <input type="radio" name="menu_status" lay-filter="menu_status"  value="1" title="开启">
-                        <input type="radio" name="menu_status" lay-filter="menu_status" checked value="0" title="关闭">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Sort')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="sort" lay-verify="number"  value="50" placeholder="{:lang('Sort')}"
-                               class="layui-input">
-                        <input type="hidden" name="id">
-                    </div>
-                </div>
-                {include file="common/subBtn"}
+                {:form_input('title','text',['verify'=>'required','lable'=>"Name"])}
+                {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
+                {:form_icon('icon')}
+                {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','select'=>0,'lable'=>'Menu Status'])}
+                {:form_radio('target',['_self'=>'_self','_blank'=>'_blank','_top'=>'_top','_parent'=>'_parent'],
+                ['filter'=>'target','select'=>'_self'])}
+                {:form_input('sort','text',['verify'=>'number'])}
+                {:form_submitbtn()}
             </form>
         </div>
     </div>
