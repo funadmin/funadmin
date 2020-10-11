@@ -74,10 +74,10 @@ require(['form'],function (Form){
                                     action === 'uploadvideo' ||
                                     action === 'uploadvoice'
                                 ) {
-                                    return Speed.url('ajax/uploads');
+                                    return Fun.url('ajax/uploads');
 
                                 } else if (action === 'listimage') {
-                                    return Speed.url('ajax/getList');
+                                    return Fun.url('ajax/getList');
                                 } else {
                                     return this._bkGetActionUrl.call(this, action);
                                 }

@@ -1,9 +1,9 @@
 <?php
 /**
- * HeekAdmin
+ * FunAdmin
  * ============================================================================
- * 版权所有 2017-2028 HeekAdmin，并保留所有权利。
- * 网站地址: https://www.HeekAdmin.cn
+ * 版权所有 2017-2028 FunAdmin，并保留所有权利。
+ * 网站地址: https://www.FunAdmin.cn
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -59,7 +59,7 @@ class SignHelper{
      * 加密
      */
     public static function encryptValue($value){
-        $value = sha1('heek_') . md5($value) . md5('_encrypt') . sha1($value);
+        $value = sha1('fun_') . md5($value) . md5('_encrypt') . sha1($value);
         return sha1($value);
     }
 }

@@ -10,7 +10,7 @@ require.config({
     }
     ],
     baseUrl: BASE_URL,
-    include: ['css','jquery','bootstrap','layuiall', 'layui','layer','toastr', 'speed', 'backend', 'table', 'form',],
+    include: ['css','jquery','bootstrap','layuiall', 'layui','layer','toastr', 'fun', 'backend', 'table', 'form',],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery

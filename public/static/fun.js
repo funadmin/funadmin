@@ -5,7 +5,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
     let layer = layui.layer,
         table = layui.table;
     layer.config({
-            skin: 'speed-layer-class'
+            skin: 'fun-layer-class'
         });
     Toastr= parent.Toastr || Toastr;
     Toastr.options = {
