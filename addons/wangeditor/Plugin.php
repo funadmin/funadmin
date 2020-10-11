@@ -19,7 +19,7 @@ use fun\Addons;
  * 插件测试
  *
  */
-class Plugin extends Addons    // 需继承think\Addons类
+class Plugin extends Addons    // 需继承fun\Addons类
 {
     // 该插件的基础信息
     public $menu = [

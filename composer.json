@@ -36,7 +36,7 @@
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
         "ext-json": "*",
-        "funadmin/fun-addons": "v0.31",
+        "funadmin/fun-addons": "v0.32",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",
