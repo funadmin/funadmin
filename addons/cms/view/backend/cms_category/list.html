@@ -1,0 +1,74 @@
+{include file="common/header"/}
+<div class="lemo-container">
+    <div class="lemo-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+
+            <div class="layui-row">
+                <div class="layui-col-md2 layui-col-sm12">
+                    <div class="layui-card">
+                        <div class="layui-card-header">栏目列表</div>
+                        <div class="layui-card-body">
+                            <div id="tree" class="demo-tree"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md10 layui-col-sm12" style="padding:0 10px;">
+                    <div class="layui-card">
+                        <div class="layui-card-header">内容管理</div>
+                        <div class="layui-card-body">
+                            <iframe name="right" id="categorys_list" src="{:url('board')}"   style="height: 100%; width:100%;border:none;" frameborder="0" scrolling="auto"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{include file="common/footer"/}
+<script>
+    layui.use(['form','tree'], function() {
+        var $ = layui.jquery,tree = layui.tree;
+        var P_frame_height = parent.layui.$("#lemoHomeTabIframe").height() - 100;
+        $(window).on('resize', function () {
+            setTimeout(function () {
+                P_frame_height = parent.layui.$("#lemoHomeTabIframe").height() -300;
+                frameheight();
+            }, 100);
+        });
+
+        function frameheight() {
+            $("#categorys").height(P_frame_height);
+            $("#categorys_list").height(P_frame_height);
+        }
+
+        (function () {
+            frameheight();
+        })();
+
+        var data = {:json_encode($list)};
+            //点击节点新窗口跳转
+            tree.render({
+                elem: '#tree'
+                ,data: data
+                ,isJump: false  //link 为参数匹配
+                ,click: function(obj){
+                    var data = obj.data;  //获取当前点击的节点数据
+                    // if(!data.children){
+                        $('#categorys_list').attr('src',data.href);
+                    // }
+                }
+            });
+
+        $('#clear').click(function (){
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+            $.post("{:url('flashCache')}",{},function(res){
+                layer.close(loading);
+                if(res.code>0){
+                    layer.msg(res.msg,{time:1000,icon:1});
+                }else{
+                    layer.msg(res.msg,{time:1000,icon:2});
+                }
+            });
+        });
+    })
+</script>

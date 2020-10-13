@@ -3,9 +3,9 @@
 
 namespace app\common\model;
 
-use app\common\model\Common;
+use app\common\model\BaseModel;
 
-class Attach extends Common {
+class Attach extends BaseModel {
 
     public function __construct(array $data = [])
     {

@@ -12,7 +12,7 @@
  */
 namespace app\common\model;
 
-class  Member extends Common{
+class  Member extends BaseModel{
 
     public function __construct(array $data = [])
     {

@@ -1,0 +1,51 @@
+{include file="common/header"}
+
+<body class="col-sl">
+
+
+<!--顶部导航栏-->
+{include file="common/nav"}
+<!--Top-IMG-->
+{adv id="5" cache="3600"}
+<div class="top-img" style="background-image: url('{$data['ad_image']}')">
+    <div class="cont">
+        <h2>{$category.catename}</h2>
+    </div>
+</div>
+{/adv}
+<!--菜单栏目-->
+<div class="nav-btn">
+    <div class="cont">
+        <i class="fa fa-home" aria-hidden="true"></i>
+        <a href="{:url('index/index')}">首页</a> &gt; {:cateStep($cateid)}
+    </div>
+</div>
+<!--成功案例-->
+<div class="cont">
+    <div class="row">
+        {volist name="list" id="vo"}
+        <div class="gj-sm-6 gj-md-4">
+            <div class="case-list">
+                <div class="list">
+                    <img src="{$vo.thumb}" alt="">
+                    <div class="shx">
+                        <h4>{$vo.title}</h4>
+                        <p>2019-07-09</p>
+                        <a href="{:url('index/page',['cateid'=>$vo.cateid,'id'=>$vo.id])}">查看详情</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {/volist}
+        <nav class="gj-page">
+            {$list|raw}
+
+        </nav>
+    </div>
+</div>
+
+
+{include file="common/footer"}
+</body>
+
+</html>

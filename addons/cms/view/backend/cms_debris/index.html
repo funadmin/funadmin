@@ -1,0 +1,75 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{:lang('debris')}{:lang('list')}</legend>
+                <blockquote class="layui-elem-quote">
+
+                    <div class="LM-table">
+                        <div class="layui-inline">
+                            <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
+                        </div>
+                        <a href="javascript:;" class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="add" id="search">{:lang('search')}</a>
+                        <a href="{:url('add')}"  class="layui-btn layui-btn-sm layui-btn-warm">{:lang('add')}{:lang('debris')}</a>
+                    </div>
+                </blockquote>
+            </fieldset>
+            <table class="layui-table layui-hide" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+
+<script type="text/html" id="action">
+    <a href="{:url('edit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+<script type="text/html" id="status">
+    <input type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="image">
+    {{d.image}}<img src="/static/admin/images/image.gif" onmouseover="layer.tips('<img src={{d.image}}>',this,{tips: [1, '#fff']});" onmouseout="layer.closeAll();">
+</script>
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+
+{include file="common/footer"/}
+<script>
+    var tableIn;
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['element','Admin','table'], function () {
+        var $ = layui.jquery,
+            table = layui.table;
+        tableIn = table.render({
+            elem: '#list',
+            url: '{:url("index")}',
+            method: 'post',
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80,  sort: true},
+                {field: 'title', title: '名称', width: 120,},
+                {field: 'tid', title: '位置', width: 250},
+                {field: 'url', title: '链接', width: 220,},
+                {field: 'image', title: '图片', width: 180, templet:'#image'},
+                {field: 'status', title: '状态', width: 180, templet:'#status'},
+
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                // {field: 'update_time', title: '修改时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:120, toolbar: '#action',align:"center"}
+
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true
+        });
+    });
+
+
+</script>

@@ -11,7 +11,7 @@
  * Date: 2017/8/2
  */
 
-namespace funapi\validate;
+namespace fun\api\validate;
 use think\Validate;
 /**
  * 生成token参数验证器

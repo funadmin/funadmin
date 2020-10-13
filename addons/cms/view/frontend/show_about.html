@@ -1,0 +1,33 @@
+{include file="common/header"}
+
+
+<body class="col-sl">
+
+
+<!--顶部导航栏-->
+{include file="common/nav"}
+<!--Top-IMG-->
+{adv id="5" cache="3600"}
+<div class="top-img" style="background-image: url({$data['ad_image']})">
+    <div class="cont">
+        <h2>{$category.catename}</h2>
+    </div>
+</div>
+{/adv}
+<!--单页内容-->
+<div class="cont">
+    <div class="row">
+        <div class="page-content">
+            <h3>{$list.title}</h3>
+            <p>{$list.content|raw}
+            </p>
+        </div>
+    </div>
+</div>
+
+
+{include file="common/footer"}
+
+</body>
+
+</html>

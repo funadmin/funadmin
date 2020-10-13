@@ -10,8 +10,8 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace funapi\validate;
-use funapi\Send;
+namespace fun\api\validate;
+use fun\api\Send;
 
 /**
  * 公共验证码方法

@@ -13,7 +13,7 @@
 
 
 namespace app\common\model;
-class ConfigGroup extends Common
+class ConfigGroup extends BaseModel
 {
     public function __construct(array $data = [])
     {

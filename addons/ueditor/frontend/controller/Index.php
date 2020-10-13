@@ -12,7 +12,6 @@ class Index extends AddonsFrontend
     }
 
     public function index(){
-//        echo 1;
-        $this->error("当前插件暂无前台页面");
+        return '<h1 style="text-align: center">此插件无前端页面</h1>';
     }
 }

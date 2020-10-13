@@ -1,7 +1,7 @@
 <?php
-namespace funapi;
+namespace fun\api;
 
-use funapi\Send;
+use fun\api\Send;
 use think\Exception;
 use think\facade\Request;
 use think\facade\Cache;

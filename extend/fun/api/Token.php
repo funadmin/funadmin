@@ -10,13 +10,13 @@
  * Author: yuege
  * Date: 2019/10/3
  */
-namespace funapi;
+namespace fun\api;
 
 use think\facade\Request;
-use funapi\Send;
-use funapi\Oauth;
+use fun\api\Send;
+use fun\api\Oauth;
 use think\facade\Cache;
-use funapi\util\wxBizDataCrypt;
+use fun\api\util\wxBizDataCrypt;
 use app\common\model\WxFans;
 use think\facade\Db;
 use think\Lang;
@@ -74,7 +74,7 @@ class Token
     public function accessToken(Request $request)
     {
         //参数验证
-        $validate = new \funapi\validate\Token;
+        $validate = new \fun\api\validate\Token;
         if (!$validate->check(Request::post())) {
             return self::returnMsg(401, $validate->getError());
         }

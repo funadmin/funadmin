@@ -1,0 +1,253 @@
+{include file="common/header"}
+<body class="col-sl">
+
+
+<!--顶部导航栏-->
+{include file="common/nav"}  <!--通栏banner-->
+
+<div class="cont-tl">
+    <div class="row">
+        <div class="gj-slide2">
+            <div class="swiper-container">
+                <div class="swiper-wrapper">
+                    {adv pid='1' cache="3600"}
+                    {volist name="data" id="vo"}
+                    <div class="swiper-slide"><a href="{$vo.ad_link}"><img src="{$vo.ad_image}" alt="{$vo.ad_name}"></a></div>
+                    {/volist}
+                    {/adv}
+                     </div>
+                <!-- 如果需要分页器 -->
+                <div class="swiper-pagination"></div>
+
+                <!-- 如果需要导航按钮 -->
+                <div class="swiper-button-prev btn"><i class="fa fa-3x fa-angle-left" aria-hidden="true"></i></div>
+                <div class="swiper-button-next btn"><i class="fa fa-3x fa-angle-right" aria-hidden="true"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--关于我们-->
+
+<div class="gj-tl gj-about gj-bg-bs">
+    <div class="cont">
+        <div class="row">
+            <div class="gj-bt">
+                <h2>关于我们</h2>
+                <p>懂你，服务总会多一点</p>
+            </div>
+            {lmy cateid="16" cache="3600"}
+            <div class="gj-body">
+                <div class="gj-sm-6">
+                    <div class="text" style="background-image: url('')">
+                        <h3>{$vo['title']}</h3>
+                        <p>
+                            {$vo['description']|raw}
+                        </p>
+                        <a href="{:url('index/page',['cateid'=>16,'id'=>$vo['id']])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 了解更多</a>
+                    </div>
+                </div>
+                <div class="gj-sm-6">
+                    <div class="about-img">
+                        <img src="{$vo.thumb}" alt="">
+                        <div class="img1 hidd-xs hidd-sm"></div>
+                        <div class="img2 hidd-xs hidd-sm"></div>
+                    </div>
+                </div>
+            </div>
+            {/lmy}
+        </div>
+    </div>
+</div>
+<!--服务项目-->
+<div class="gj-tl gj-product gj-bg-hs">
+    <div class="cont">
+        <div class="row">
+            <div class="gj-bt">
+                <h2>产品项目</h2>
+                <p>我们致力于让服务改善人们的生活</p>
+            </div>
+            <div class="gj-body product gclear">
+                {lmy cateid="13"}
+                <div class="gj-xs-6 gj-sm-4 gj-md-3">
+                    <div class="lis">
+                        <span>{$vo.title}</span>
+                        <a href="{:url('index/page',['cateid'=>13,'id'=>$vo.id])}"><img src="{$vo.thumb}" alt="{$vo.title}"></a>
+                        <a href="">
+                            <h4>{$vo.title}</h4>
+                        </a>
+                    </div>
+                </div>
+                {/lmy}
+            </div>
+            <div class="more">
+                <a href="{:url('index/lists',['cateid'=>13])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
+            </div>
+        </div>
+    </div>
+</div>
+<!--新闻动态-->
+<div class="gj-tl gj-news gj-bg-bs">
+    <div class="cont">
+        <div class="row">
+            <div class="gj-bt">
+                <h2>新闻动态</h2>
+                <p>分享最新行业资讯，引领未来</p>
+            </div>
+            <div class="gj-body news">
+                {lmy cateid="5" num='6'}
+                <div class="gj-md-6">
+                    <div class="lis gclear">
+                        <div class="img">
+                            <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                                <img src="{$vo.thumb}"
+                                                   alt="{$vo.title}"></a>
+                        </div>
+                        <div class="text">
+                            <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                                <h3>{$vo.title}</h3>
+                            </a>
+                            <p class="hidd-xs">{$vo.descriptioin}</p>
+                            <span class="hidd-md"><i class="fa fa-eye" aria-hidden="true"></i> {$vo.hits}</span>
+                            <span class="hidd-md">{$vo.create_time|date="Y-m-d"}</span>
+                        </div>
+                    </div>
+                </div>
+                {/lmy}
+            </div>
+            <div class="more">
+                <a href="{:url('index/lists',['cateid'=>5])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--案例精选-->
+<div class="gj-tl gj-anli gj-bg-hs">
+    <div class="cont">
+        <div class="row">
+            <div class="gj-bt">
+                <h2>案例精选</h2>
+                <p>互联网大数据首选·专业个性化信息服务</p>
+            </div>
+            <div class="gj-body anli">
+                <div class="swiper-container">
+                    <div class="swiper-wrapper">
+                        {lmy cateid="15" num="3"}
+                        <div class="swiper-slide">
+                            <div class="ul-mt2">
+                                <div class="cul">
+                                    <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}"><img src="{$vo.thumb}"
+                                                           alt="{$vo.title}"></a>
+                                    <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                                        <h4>{$vo.title}</h4>
+                                    </a>
+                                    <p>{$vo.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {/lmy}
+
+                    </div>
+                    <div class="botm">
+<!--                        <div class="swiper-button-prev btn"><i class="fa fa-angle-left" aria-hidden="true"></i></div>-->
+                        <div class="more"><a href="{:url('index/lists',['cateid'=>15])}"><i class="fa fa-angle-double-left"
+                                                                                     aria-hidden="true"></i> 查看更多</a>
+                        </div>
+<!--                        <div class="swiper-button-next btn"><i class="fa fa-angle-right" aria-hidden="true"></i></div>-->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--招商加盟-->
+<div id="Join" class="gj-tl gj-join-in gj-bg-bs">
+    <div class="cont">
+        <div class="row">
+            <div class="gj-bt">
+                <h2>加盟合作</h2>
+                <p>我们诚挚的邀请你加入我们</p>
+            </div>
+            <div class="gj-body join">
+                <div class="hidd-xs hidd-sm gj-md-6">
+                    <div class="form">
+                        <form class="gclear" action="{:url('index/diyform')}"
+                              enctype="multipart/form-data" method="post" onsubmit="return checkall()">
+                            <table>
+                                <div class="bd"><input type="text" name="username" id="username" value="" placeholder="称呼"></div>
+                                <div class="bd"><input type="text" name="company" id="company" value="" placeholder="公司"></div>
+                                <div class="bd"><input type="text" name="mobile" id="mobile" value="" placeholder="手机"></div>
+                                <div class="bd"><input type="text" name="wechat" id="weixin" value="" placeholder="微信"></div>
+                                <div class="bd"><textarea name="content" id="content" class="form-text" placeholder="留言"></textarea>
+                                </div>
+                                <button type="submit">提交留言</button>
+                            </table>
+                        </form>
+                    </div>
+                </div>
+                <div class="gj-md-6">
+                    <div class="text">
+                        <div class="tr-top">
+                            <h1>Hi</h1>
+                            <h2>准备好开始了吗?<br>那就与我们取得联系吧！</h2>
+                            <p>
+                                我们有一个非常不错的项目，正在面向全国招商加盟，您可以填写左边的表单，让我们了解您的合作需求，这是一个良好的开始，我们将会尽快与您取得联系。当然也欢迎您添加我们的微信或是拨打我们的电话，让我们听到你的声音!</p>
+                            <h3>摸索是最大的成本，犹豫是最大的阻碍！</h3>
+                        </div>
+                        <div class="tr-bottom hidd-sm">
+                            <img src="/static/addons/cms/frontend/picture/wxcard-Yuege.jpg" alt="扫一扫，加我为好友！">
+                            <ul>
+                                <li><b>联系人：</b>xxx</li>
+                                <li><b>客服电话：</b>xxxxxxxxxxx</li>
+                                <li><b>电子邮箱：</b>xxxxxxxxxxxx</li>
+                                <li><b>联系地址：</b>xxxxxxxxxxxx</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{include file="common/footer"}
+<script src="/static/addons/cms/frontend/js/swiper.min.js" type="text/javascript"></script>
+
+<!--GJ-UI组件模块js代码结束-->    <!--轮播图js-->
+<script>
+    var mySwiper = new Swiper('.gj-slide2 .swiper-container', {
+        loop: true,
+        autoplay: true,
+
+        autoplay: {
+            disableOnInteraction: false,
+        },
+
+        pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+        },
+
+        navigation: {
+            nextEl: '.gj-slide2 .swiper-button-next',
+            prevEl: '.gj-slide2 .swiper-button-prev',
+        },
+    })
+</script>
+<!--案例js-->
+<script>
+    var swiper = new Swiper('.gj-anli .swiper-container', {
+        slidesPerView: 'auto',
+        spaceBetween: 10,
+        navigation: {
+            nextEl: '.gj-anli .swiper-button-next',
+            prevEl: '.gj-anli .swiper-button-prev',
+        },
+    });
+</script>
+
+</body>
+
+</html>

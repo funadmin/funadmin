@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2019/9/6
  */
-namespace funservice;
+namespace fun\service;
 use think\facade\Log;
 
 class Predis

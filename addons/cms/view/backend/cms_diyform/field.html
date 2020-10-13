@@ -1,0 +1,78 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('field')}:{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="LM-table">
+
+                    <div class="layui-inline">
+                        <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
+
+                    </div>
+                    <button class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="add" id="search">{:lang('search')}</button>
+                    <a href="{:url('fieldAdd')}?moduleid={$moduleid}"  class="layui-btn layui-btn-sm layui-btn-warm">{:lang('add')}:{:lang('field')}</a>
+
+                </div>
+            </blockquote>
+        </fieldset>
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script type="text/html" id="action">
+    <a data-href='{:url("fieldEdit")}?id={{d.id}}' class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    {{# if(d.del==1){ }}
+    <a data-href="{:url('fieldDel')}?id={{d.id}}" class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+    {{# }else{ }}
+     <a data-href="{:url('fieldDel')}?id={{d.id}}" class="layui-btn layui-btn-danger layui-btn-xs layui-btn-disabled"  >{:lang('del')}</a>
+
+    {{# }}}
+</script>
+<script type="text/html" id="sort">
+    <input data-href="{:url("fieldSort")}" name="{{d.id}}" data-id="{{d.id}}" class="list_order layui-input" value=" {{d.sort}}" size="10"/>
+</script>
+<script type="text/html" id="required">
+    <input  type="checkbox" name="required"  value="{{d.id}}" lay-skin="switch" lay-text="必须|非必须" lay-filter="required" disabled {{ d.required == 1 ? 'checked' : '' }}/>
+</script>
+<script type="text/html" id="status">
+    <input  data-href="{:url('fieldState')}?id={{d.id}}" type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|禁用" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+
+<script>
+    var tableIn;
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin: 'Admin'
+    }).use(['element','Admin','table'], function () {
+        var $ = layui.jquery,
+            table = layui.table;
+        tableIn = table.render({
+            elem: '#list',
+            url: '{:url("field")}?id='+'{$moduleid}',
+            method: 'post',
+            toolbar: true,
+            autoSort: false,
+            page:false,
+            cols: [[
+                {field: 'id', title: '{:lang("id")}', width:90, fixed: true,sort:true,},
+                // {field: 'moduleid', title: '{:lang("moduleid")}', width: 120},
+                {field: 'name', title: '{:lang("field")} {:lang("name")}', width: 120,sort:true},
+                {field: 'field', title: '{:lang("field")}', width: 120,sort:true},
+                // {field: 'maxlength', title: '{:lang("maxlength")}', width: 50,sort:true},
+                {field: 'msg', title: '{:lang("msg")}', width: 180,sort:true},
+                // {field: 'rule', title: '{:lang("rule")}', width: 180},
+                {field: 'type', title: '{:lang("type")}', width: 180,sort:true},
+                {field: 'value', title: '{:lang("value")}', width: 180,sort:true},
+                {field: 'required', title: '{:lang("required")}', width: 100,templet:'#required',sort:true,},
+                {field: 'sort', title: '{:lang("sort")}', width: 80,templet: '#sort',sort:true},
+                {field: 'status', align: 'center',title: '{:lang("status")}', width: 120,templet: '#status',sort:true},
+                // {field: 'status', align: 'center',title: '{:lang("status")}', width: 120,sort:true},
+                {title:'操作',width: 220, align: 'center', toolbar: '#action'}
+            ]]
+        });
+    })
+</script>

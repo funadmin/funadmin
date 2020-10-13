@@ -11,7 +11,7 @@
  * Date: 2019/9/7
  */
 
-namespace funservice;
+namespace fun\service;
 
 use app\common\model\WxAccount;
 use EasyWeChat\Factory;

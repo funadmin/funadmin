@@ -1,0 +1,351 @@
+{include file="common/header"/}
+<style>
+    .img-box {
+        position: relative;
+        overflow: hidden;
+        width: 230px;
+        height: 150px;
+        vertical-align: middle;
+        text-align: center;
+        cursor: pointer;
+        border: 1px #efefed solid;
+        color: #76838f;
+    }
+    .img-box img{
+        max-width:100% ;
+    }
+    .layui-col-md3 {
+        padding:0 10px;
+        text-align: center
+    }
+
+    .media-body {
+        padding: 10px 5px;
+        border: 1px solid rgb(231, 231, 235);
+    }
+
+    .media-btn {
+        margin-top: 10px;
+        text-align: center
+    }
+    .media-desc img{
+        width: 100%;
+        height: 180px;
+    }
+    .mdedia-lists-box {
+        border-bottom: 1px solid rgb(231, 231, 235);
+        display: inline-block;
+        padding: 5px 0 5px 0px;
+        height: 48px;
+        width: 100%;
+    }
+    .media-img-box img{
+        width: 100%;
+        height: 48px;
+    }
+    .media-content{
+        position: relative;
+        height: 180px;
+    }
+    .media-content img{
+        width: 100%;
+        height: 180px;
+    }
+    .media-desc {
+
+        position: absolute;
+        background: rgba(0, 0, 0, 0.5) none repeat scroll 0 0;
+        color: #ffffff;
+        width: 100%;
+        bottom: 0;
+        height: 45px;
+        text-align: left;
+    }
+</style>
+
+<div class="LM-container">
+    <div class="LM-main">
+
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>回复{$title}</legend>
+
+        </fieldset>
+
+        <form class="layui-form layui-form-pane" lay-filter="form">
+
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">关键词</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="keyword" lay-verify="required" placeholder="{:lang('pleaseEnter')}{:lang('keyword')}" class="layui-input">
+                </div>
+
+            </div>
+            <input type="hidden" name="msg_type" value="">
+            <input type="hidden" name="type" value="">
+            <input type="hidden" name="id" value="">
+            <input type="hidden" name="material_id" value="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">{:lang('status')}</label>
+                <div class="layui-input-block">
+                    <input type="radio" name="status" lay-filter="required" checked value="1" title="启用">
+                    <input type="radio" name="status" lay-filter="required" value="0" title="禁用">
+                </div>
+            </div>
+
+
+            <div class="layui-tab layui-tab-brief" lay-filter="docDemoTabBrief">
+            <ul class="layui-tab-title">
+                <li class="layui-this">内容</li>
+                <li>图片</li>
+                <li>图文</li>
+                <li>视频</li>
+                <li>音频</li>
+            </ul>
+
+            <div class="layui-tab-content" style="padding: 15px;">
+                <div class="layui-tab-item layui-show text">
+                    <div class="layui-form-item layui-form-text">
+                        <label class="layui-form-label">回复内容</label>
+                        <div class="layui-input-block">
+                            <textarea placeholder="请输入内容" class="layui-textarea" name="data"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-tab-item image">
+                    <div class="img-box" id="image">
+                        <img src="/static/addons/wechat/images/add-img.png" alt="" style="height:auto;padding-top:40px">                                        <div class="bottomBar">点击选择</div>
+                    </div>
+                    <div class="layui-row"  style="display: none">
+                        {volist name="materialGroup['image']" id="vo"}
+                        <div class="layui-col-md3">
+                            <div class="media-body">
+                                <div class="media-time">
+                                    发布时间：2019-08-12 : 10:38
+                                </div>
+                                <span style="display: block;">
+                                  <div class="media-content">
+                                        <div class="media-desc"><p class="media-desc-sp"></p></div>
+                                        <img class="media-img" width="100%" height="180" src="{$vo.media_url}">
+                                  </div>
+                                 </span>
+                                <div>
+                                    <ul>
+                                    </ul>
+                                </div>
+                                <div class="media-item-type2">
+                                    <div class="layui-btn-group media-btn">
+                                        <a href="javascript:;" onclick="materialSelect(this,'{$vo.id}','image')"
+                                                class="layui-btn layui-btn-primary layui-btn-sm">
+                                            <i class="layui-icon"></i>选择
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {/volist}
+                    </div>
+                </div>
+                <div class="layui-tab-item news">
+                    <div class="img-box" id="news">
+                        <img src="/static/addons/wechat/images/add-img.png" alt="" style="height:auto;padding-top:40px">                                        <div class="bottomBar">点击选择</div>
+                    </div>
+                    <div class="layui-row"  style="display: none">
+                        {volist name="materialGroup['news']" id="vo"}
+
+                        <div class="layui-col-md3">
+                            <div class="media-body">
+                                <div class="media-time">
+                                    发布时间 {$vo.create_time|date="Y-m-d H:i:s"}
+                                </div>
+                                <span style="display: block;">
+                                     <div class="media-content">
+                                         <div class="media-desc">
+                                             <p class="media-desc-sp">{if isset($vo['item_info'][0]['title'])}{$vo['item_info'][0]['title']}{/if}</p>
+                                         </div>
+                                            <img class="media-img"  src="{if isset($vo['item_info'][0]['cover'])}{$vo['item_info'][0]['cover']}{/if}">
+                                      </div>
+                                </span>
+                                <!--                                //多图文&ndash;&gt;-->
+                                {if count($vo['item_info'])>1}
+                                <div>
+                                    <ul>
+                                        {volist name="vo.item_info" id="v" offset='1' }
+                                        <li>
+                                            <div class="mdedia-lists-box">
+                                                <div class="media-title-box layui-col-md9 fl">
+                                                    {$v.title}
+                                                </div>
+                                                <div class="media-img-box layui-col-md3 fr">
+                                                    <img class="media-lists-img" src="{$v.cover}">
+                                                </div>
+                                            </div>
+                                        </li>
+                                        {/volist}
+                                    </ul>
+                                </div>
+                                {/if}
+                                <div class="media-item-type2">
+                                    <div class="layui-btn-group media-btn">
+                                        <a href="javascript:;" onclick="materialSelect(this,'{$vo.id}','news')"
+                                                class="layui-btn layui-btn-primary layui-btn-sm">
+                                            <i class="layui-icon"></i>选择
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/volist}
+                    </div>
+                </div>
+                <div class="layui-tab-item video">
+                    <div class="img-box" id="video">
+                        <img src="/static/addons/wechat/images/add-img.png" alt="" style="height:auto;padding-top:40px">                                        <div class="bottomBar">点击选择</div>
+                    </div>
+                    <div class="layui-row"  style="display: none">
+                        {volist name="materialGroup['video']" id="vo"}
+                        <div class="layui-col-md3">
+                            <div class="media-body">
+                                <div class="media-time">
+                                    发布时间 {$vo.create_time|date="Y-m-d H:i:s"}
+                                </div>
+                                <span style="display: block;">
+                                     <div class="media-content">
+                                         <div class="media-desc">
+                                             <p class="media-desc-sp"></p>
+                                         </div>
+                                         <div  style="font-size: 50px;height: 180px;line-height:180px;text-align: center">
+                                             <i class="fa fa-play-circle-o"></i>
+                                         </div>
+                                      </div>
+                                </span>
+                                <!--                                //多图文&ndash;&gt;-->
+
+                                <div class="media-item-type2">
+                                    <div class="layui-btn-group media-btn">
+                                        <a href="javascript:;" onclick="materialSelect(this,'{$vo.id}','video')"
+                                                class="layui-btn layui-btn-primary layui-btn-sm">
+                                            <i class="layui-icon"></i>选择
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {/volist}
+                    </div>
+                </div>
+                <div class="layui-tab-item voice">
+                    <div class="img-box" id="voice">
+                        <img src="/static/addons/wechat/images/add-img.png" alt="" style="height:auto;padding-top:40px">                                        <div class="bottomBar">点击选择</div>
+                    </div>
+                    <div class="layui-row"  style="display: none">
+                        {volist name="materialGroup['voice']" id="vo"}
+                        <div class="layui-col-md3">
+                            <div class="media-body">
+                                <div class="media-time">
+                                    发布时间 {$vo.create_time|date="Y-m-d H:i:s"}
+                                </div>
+                                <span style="display: block;">
+                                     <div class="media-content">
+                                         <div class="media-desc">
+                                             <p class="media-desc-sp"></p>
+                                         </div>
+                                         <audio class="media-img"  src="{$vo.media_url}"></audio>
+                                      </div>
+                                </span>
+                                <!--                                //多图文&ndash;&gt;-->
+
+                                <div class="media-item-type2">
+                                    <div class="layui-btn-group media-btn">
+                                        <a  href="javascript:;" onclick="materialSelect(this,'{$vo.id}','video')"
+                                                class="layui-btn layui-btn-primary layui-btn-sm">
+                                            <i class="layui-icon"></i>选择
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        {/volist}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <div class="layui-form-item">
+                <div class="layui-input-inline">
+                    <input type="hidden" name="id"  >
+                    <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                    <a href="{:url('reply')}" class="layui-btn layui-btn-primary">{:lang('back')}</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/html" id="action">
+    <a href="{:url('replyEdit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+
+
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script>
+    var $='';
+    var layer;
+    var index='';
+    layui.use(['form', 'table','element','layer'], function () {
+
+        var form = layui.form,
+            layer = layui.layer,
+            table = layui.table,
+            element = layui.element;
+        $ = layui.jquery;
+        var info = {:json_encode($info)};
+        form.val('form',info)
+        form.on('submit(submit)', function(data){
+                loading =layer.load(1, {shade: [0.1,'#fff']});
+                $.post('{:url("")}',data.field,function(res){
+                    layer.close(loading);
+                    if(res.code>0){
+                        layer.msg(res.msg,{time:1000,icon:1});
+                    }else{
+                        layer.msg(res.msg,{time:1000,icon:2});
+                    }
+                });
+        });
+
+
+        $('.img-box').click(function (e) {
+            index = layer.open({
+                type: 1,
+                content: $(this).next('.layui-row'),
+                area: ['800px', '600px'],
+                anim: 2,
+                maxmin: true,
+            });
+        })
+
+
+    });
+
+    function materialSelect(obj,id,type) {
+        var src = $(obj).parents('.layui-tab-item').find('.media-img').attr('src');
+        console.log(src);
+        $("input[name='material_id']").val(id)
+        $("input[name='msg_type']").val(type)
+        $(obj).parents('.layui-tab-item').find('.img-box').find('img').attr('src',src);
+        layer.close(index);
+
+    }
+</script>

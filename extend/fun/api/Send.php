@@ -1,5 +1,5 @@
 <?php
-namespace funapi;
+namespace fun\api;
 
 use think\facade\Request;
 

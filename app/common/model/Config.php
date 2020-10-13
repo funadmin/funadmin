@@ -1,7 +1,7 @@
 <?php
 
 namespace app\common\model;
-class Config extends Common
+class Config extends BaseModel
 {
     public function __construct(array $data = [])
     {

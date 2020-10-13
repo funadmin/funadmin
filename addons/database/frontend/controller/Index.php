@@ -11,7 +11,7 @@ class Index extends AddonsFrontend{
     }
 
     public function index(){
-        return '此插件没有前端';
+        return '<h1 style="text-align: center">此插件无前端页面</h1>';
     }
 
 }

@@ -1,0 +1,176 @@
+{include file="common/header"/}
+<div class="lemo-container">
+    <div class="lemo-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{:lang('category')} {:lang('list')}</legend>
+                <blockquote class="layui-elem-quote">
+                    <div class="lemo-table">
+                        <div class="layui-inline">
+                               <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
+
+                        </div>
+                        <button class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="search" id="search">{:lang('search')}</button>
+                        <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openAll();">展开或折叠全部</a>
+                        <a data-href="{:url('add')}" class="layui-btn layui-btn-sm layui-btn-warm add">{:lang('add')} {:lang('category')}</a>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-danger" lay-filter="clear" id="clear">{:lang('clear category cache')}</a>
+
+                    </div>
+                </blockquote>
+            </fieldset>
+
+            <!--            <div class="layui-row">-->
+<!--                <div class="layui-col-md3 layui-col-sm12">-->
+<!--                    <div class="layui-card">-->
+<!--                        <div class="layui-card-header">栏目列表</div>-->
+<!--                        <div class="layui-card-body">-->
+<!--                            <iframe name="left" id="categorys" src="{:url('categorys')}" style="height: 100%; width: 100%;"  frameborder="0" scrolling="auto"></iframe>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="layui-col-md9 layui-col-sm12" style="padding:0 10px;">-->
+<!--                    <div class="layui-card">-->
+<!--                        <div class="layui-card-header">内容管理</div>-->
+<!--                        <div class="layui-card-body">-->
+<!--                            <iframe name="right" id="categorys_list" src="{:url('list')}"   style="height: 100%; width:100%;border:none;" frameborder="0" scrolling="auto"></iframe>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+            <table class="layui-table" id="treeGrid" lay-filter="treeGrid"></table>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/html" id="action">
+    <a data-href="{:url('edit')}?id={{d.id}}" class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+<script type="text/html" id="status">
+    <input type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="type">
+    <input type="checkbox" name="type" value="{{d.id}}" lay-skin="switch" lay-text="单页|栏目" lay-filter="status" {{ d.type == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="is_menu">
+    <input type="checkbox" name="is_menu" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.is_menu == 1 ? 'checked' : '' }}>
+</script>
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy/MM/dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script>
+    var tableIn;
+    var editObj=null,ptable=null,treeGrid=null,tableId='treeGrid',layer=null;
+    layui.config({
+        base: '/static/',
+        version: true
+    }).extend({
+        treeGrid: 'plugins/layui/extend/treeGrid/treeGrid',
+    }).use(['jquery','treeGrid','layer','form','table'], function(){
+        var $=layui.jquery ,form = layui.form;
+        treeGrid = layui.treeGrid;
+        layer=layui.layer;
+
+        ptable=treeGrid.render({
+            id:tableId
+            ,elem: '#'+tableId
+            ,idField:'id'
+            ,url:'{:url("index")}'
+            ,cellMinWidth: 100
+            ,treeId:'id'//树形id字段名称
+            ,treeUpId:'pid'//树形父id字段名称
+            ,treeShowName:'catename'//以树形式显示的字段
+            ,height:'full-140'
+            ,isFilter:false
+            ,iconOpen:true//是否显示图标【默认显示】
+            ,isOpenDefault:true//节点默认是展开还是折叠【默认展开】
+            ,cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'catename', title: '栏目名', width: 180,},
+                {field: 'module', title: '模型', width: 120, },
+                {field: 'catedir', title: '栏目标识', width: 120, fixed: true,},
+                {field: 'type', title: '类型', width: 80, templet:'#type'},
+                {field: 'status', title: '状态', width: 180, templet:'#status'},
+                {field: 'is_menu', title: '菜单', width: 180, templet:'#is_menu'},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '修改时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"}
+            ]],
+            limits: [10, 15, 20, 25, 50, 100],
+            limit: 15,
+            page: true,
+        });
+        treeGrid.on('tool('+tableId+')',function (obj) {
+            var data = obj.data;
+            var url = $(this).attr('data-href');
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    var loading = layer.load(1, {shade: [0.1, '#fff']});
+                    $.post(url?url:'delete',{id:data.id},function(res){
+                        layer.close(loading);
+                        if(res.code==1){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                    layer.close(iframe);
+                });
+            }else if(obj.event === 'add'){
+                 iframe = layer.open({
+                    type: 2,
+                    content: url?url:'add',
+                    area: ['800px', '600px'],
+                    maxmin: true
+                });
+                layer.full(iframe);
+
+            }else if(obj.event === 'edit'){
+
+                 iframe = layer.open({
+                    type: 2,
+                    content: url?url:'edit',
+                    area: ['600px', '800px'],
+                    maxmin: true
+                });
+                layer.full(iframe);
+
+            }
+        });
+        $('#clear').click(function (){
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+            $.post("{:url('flashCache')}",{},function(res){
+                layer.close(loading);
+                if(res.code>0){
+                    layer.msg(res.msg,{time:1000,icon:1});
+                }else{
+                    layer.msg(res.msg,{time:1000,icon:2});
+                }
+            });
+        });
+
+
+    });
+
+    layui.config({
+        base: '/static/',
+        version: true
+    }).extend({
+        Admin: 'admin/js/Admin',
+    }).use(['Admin'], function(){
+        Admin = layui.Admin
+    });
+    function openAll() {
+        var treedata=treeGrid.getDataTreeList(tableId);
+        treeGrid.treeOpenAll(tableId,!treedata[0][treeGrid.config.cols.isOpen]);
+    }
+
+
+</script>

@@ -3,9 +3,9 @@
 
 namespace app\common\model;
 
-use app\common\model\Common;
+use app\common\model\BaseModel;
 
-class Addon extends Common {
+class Addon extends BaseModel {
 
     public function __construct(array $data = [])
     {

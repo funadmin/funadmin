@@ -1,0 +1,166 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('tag')}{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="LM-table">
+
+                    <form class="layui-form" action="">
+
+                        <a href="javascript:;"  class="layui-btn layui-btn-sm layui-btn-warm LM-add">{:lang('add')}{:lang('标签')}</a>
+
+                        <div class="layui-input-inline">
+
+                            <select name="wx_aid" lay-filter="select" lay-verify="required" lay-search="">
+                                <option value="">直接选择或搜索选择</option>
+                                {volist name='wxaccount' id ='vo'}
+                                <option value="{$vo.id}" {if $vo.status==1 } selected {/if}>{$vo.wxname}</option>
+                                {/volist}
+                            </select>
+                        </div>
+                        <a href="javascript:;" class="layui-btn layui-btn-sm layui-btn-danger aysn">{:lang('aysn')}{:lang('标签')}</a>
+                    </form>
+                </div>
+
+            </blockquote>
+
+        </fieldset>
+
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+<script type="text/html" id="action">
+    <a  class="layui-btn  layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
+    <a  class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
+</script>
+<script type="text/html" id="status">
+    <input type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
+</script>
+
+<script type="text/html" id="create_time">
+    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+<script type="text/html" id="update_time">
+    {{layui.util.toDateString(d.update_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
+</script>
+{include file="common/footer"/}
+<script>
+    layui.use(['form', 'table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+
+        var tableIn = table.render({
+            elem: '#list',
+            url: '{:url("tag")}',
+            method: 'post',
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'name', title: '标签名', width: 120,},
+                {field: 'tag_id', title: '标签id', width: 120,},
+                {field: 'status', title: '状态', width: 180, templet:'#status'},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '更新时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+
+        });
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    loading =layer.load(1, {shade: [0.1,'#fff']});
+                    $.post("{:url('tagDel')}",{id:data.id},function(res){
+                        layer.close(loading);
+                        layer.close(index);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                });
+            }
+            if(obj.event === 'edit'){
+                var index = layer.open({
+                    type: 2,
+                    content: '{:url("tagEdit")}'+'?id='+data.id,
+                    area: ['800px', '600px'],
+                    anim: 2,
+                    maxmin: true,
+                });
+                layer.full(index);
+            }
+
+        });
+
+        form.on('switch(status)', function(data){
+                loading =layer.load(1, {shade: [0.1,'#fff']});
+                $.post("{:url('tagState')}",{id:data.value},function(res){
+                    layer.close(loading);
+                    if(res.code>0){
+                        layer.msg(res.msg,{time:1000,icon:1});
+                        tableIn.reload();
+                    }else{
+                        layer.msg(res.msg,{time:1000,icon:2});
+                    }
+                });
+        });
+
+        form.on('select(select)', function(data) {
+
+            var wx_aid = data.value;
+            tableIn.reload({ page: {page: 1},where: {wx_aid: wx_aid}});
+
+
+
+        })
+
+        $('.LM-add').click(function () {
+            var wx_aid = $("select[name='wx_aid']").val();
+            var index = layer.open({
+                type: 2,
+                content: '{:url("tagAdd")}'+'?wx_aid='+wx_aid,
+                area: ['800px', '600px'],
+                anim: 2,
+                maxmin: true,
+            });
+            layer.full(index);
+        })
+        $('.aysn').click(function () {
+            var url = '{:url("tagAysn")}';
+            var wx_aid = $("select[name='wx_aid']").val();
+            loading =layer.load(1, {shade: [0.1,'#fff']});
+
+            $.post(url,{'wx_aid':wx_aid},function (res) {
+                layer.close(loading);
+                if(res.code>0){
+                    layer.msg(res.msg)
+                    tableIn.reload();
+                }else{
+                    return layer.msg(res.msg)
+
+                }
+            })
+        })
+        $('#search').click(function () {
+            var $keys = $('#keys').val();
+            if(!$keys){
+                return layer.msg('请输入关键词');
+            }
+
+            tableIn.reload({ page: {page: 1},where: {keys: $keys}});
+
+        })
+
+
+    });
+
+
+</script>

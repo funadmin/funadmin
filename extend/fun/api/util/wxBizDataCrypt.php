@@ -1,5 +1,5 @@
 <?php
-namespace funapi\util;
+namespace fun\api\util;
 
 class wxBizDataCrypt
 {

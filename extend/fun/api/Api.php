@@ -1,9 +1,9 @@
 <?php
-namespace funapi;
+namespace fun\api;
 
 use think\facade\Request;
-use funapi\Send;
-use funapi\Oauth;
+use fun\api\Send;
+use fun\api\Oauth;
 
 /**
  * api 入口文件基类，需要控制权限的控制器都应该继承该类

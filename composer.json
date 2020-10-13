@@ -1,10 +1,9 @@
 {
-    "name": "speed/speedadmmin",
-    "description": "SpeedAmin是一个基于thinkphp6和layui的快速开发应用框架",
+    "name": "funadmin/funadmin",
+    "description": "FunAdmin是一个基于thinkphp6和layui的快速开发应用框架",
     "type": "project",
     "license": "Apache-2.0",
     "keywords": [
-        "speed-admmin",
         "FunAdmin",
         "easywechat",
         "framework",
@@ -12,15 +11,16 @@
         "thinkphp6",
         "ORM"
     ],
-    "homepage": "https://www.speedadmmin.com",
+    "homepage": "https://www.funadmin.com",
     "authors": [
         {
             "name": "yue909",
-            "email": "speed@gmail.com"
+            "email": "fun@gmail.com"
         }
     ],
     "require": {
         "php": ">=7.2.0",
+        "ext-json": "*",
         "topthink/framework": "6.0.*-dev",
         "topthink/think-orm": "2.0.*-dev",
         "topthink/think-view": "^1.0",
@@ -29,18 +29,18 @@
         "topthink/think-captcha": "^3.0",
         "topthink/think-helper": "^3.1",
         "topthink/think-multi-app": "^1.0",
-        "overtrue/wechat": "^4.2",
         "ramsey/uuid": "^3.8",
         "phpmailer/phpmailer": "^6.1",
         "aliyuncs/oss-sdk-php": "^2.3",
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
-        "ext-json": "*",
-        "funadmin/fun-addons": "v0.32",
+        "funadmin/fun-addons": "v0.35",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",
-        "james-heinrich/getid3": "^1.9"
+        "james-heinrich/getid3": "^1.9",
+        "overtrue/wechat": "^5.1",
+        "overtrue/socialite": "^3.0"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.2"
