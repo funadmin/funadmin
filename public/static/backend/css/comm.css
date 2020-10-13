@@ -37,7 +37,7 @@ body {
     background: #f1f4f6;
     padding: 10px;
 }
-.speed-container {
+.fun-container {
     background: #fff;
     /*padding: 5px;*/
 }
@@ -147,7 +147,7 @@ body {
 .layui-form-select dl dd.layui-this{
     background: #607d8b !important;
 }
-.speed-layer-class .layui-layer-setwin > a:after {
+.fun-layer-class .layui-layer-setwin > a:after {
     content: "\e623";
     font-family: iconfont;
     font-style: normal;
@@ -159,36 +159,36 @@ body {
     margin: 0;
     z-index: 1;
 }
-.speed-layer-class .layui-layer-setwin{
+.fun-layer-class .layui-layer-setwin{
     background: none !important;
 }
-.speed-layer-class .layui-layer-setwin .layui-layer-min:hover cite{
+.fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{
     background: none!important;
     opacity:.7;
 }
-.speed-layer-class .layui-layer-setwin .layui-layer-max:hover{
+.fun-layer-class .layui-layer-setwin .layui-layer-max:hover{
     background: none!important;
     opacity:.7;
 }
-.speed-layer-class .layui-layer-setwin > a:focus {
+.fun-layer-class .layui-layer-setwin > a:focus {
     text-decoration: none !important;
 }
-.speed-layer-class .layui-layer-title {
+.fun-layer-class .layui-layer-title {
     background: #2c3e50 !important;
     color: #fff;
     border: none;
 }
 
-.speed-layer-class .layui-layer-setwin .layui-layer-min:after {
+.fun-layer-class .layui-layer-setwin .layui-layer-min:after {
     content: "\e625";
 }
-.speed-layer-class .layui-layer-setwin .layui-layer-close1:after {
+.fun-layer-class .layui-layer-setwin .layui-layer-close1:after {
     content: "\e626";
 }
-.speed-layer-class .layui-layer-btn a {
+.fun-layer-class .layui-layer-btn a {
     background: #333;
 }
 
-.speed-layer-class .layui-layer-btn .layui-layer-btn1 {
+.fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     background: #999;
 }
