@@ -281,20 +281,24 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                     isFull = options.full !== undefined;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';
-                height = height || '600';
-                width = width + 'px';
-                height = height + 'px';
+                height = height || '800';
+                width = width+'px';
+                height = height+'px';
+                if(isFull){
+                    width = '100%';
+                    height = '100%';
+                }
                 options = {
                     title: title,
                     type: 2,
-                    area: [width, height],
+                    area: [width,height],
                     content: url,
                     shadeClose: true,
-                    // anim: 0,
-                    // isOutAnim: true,
+                    anim: 0,
+                    isOutAnim: true,
                     maxmin: true,
                     moveOut: true,
-                    // resize: isResize,
+                    resize: isResize,
                     scrollbar: true,
 
                 }
