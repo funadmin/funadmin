@@ -17,6 +17,7 @@ use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
 use app\common\service\OssService;
+use app\common\service\UploadService;
 use app\common\traits\Curd;
 use fun\helper\DataHelper;
 use fun\helper\FileHelper;
@@ -68,6 +69,15 @@ class Ajax extends Backend
      */
     public function uploads()
     {
+//        try {
+//            $upload = UploadService::instance();
+//            $result = $upload->uploads();
+//            return json($result);
+//
+//        }catch(Exception $e){
+//            $this->error($e->getMessage());
+//        }
+
         //获取上传文件表单字段名
         $type = $this->request->param('type', 'file');
         $path = $this->request->param('path', 'uploads');
@@ -81,6 +91,7 @@ class Ajax extends Backend
             $sha1 = $file->sha1();;
             $file_mime = $file->getMime();
             $attach = $this->modelClass->where('md5', $md5)->find();
+            var_dump(validate($validate)->check(DataHelper::objToArray($file)));die;
             if (!$attach) {
                 try {
                     switch ($type == 'file') {
@@ -100,7 +111,7 @@ class Ajax extends Backend
                             $validate = $this->uploadValidate;
 
                     }
-                    validate($validate)->check(DataHelper::objToArray($file));
+
                     $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                     $path = DS . 'storage' . DS . $savename;
                     $paths = trim($path, '/');
@@ -115,11 +126,11 @@ class Ajax extends Backend
                     } elseif ($this->driver == 'teccos') {
                         $path = $uploadService->teccos($paths, './' . $paths);
                     }
-                }catch (Exception $e){
-                        $this->error($e->getMessage());
                 }catch (\think\exception\ValidateException $e) {
                     $path = '';
                     $error = $e->getMessage();
+                }catch (Exception $e){
+                        $this->error($e->getMessage());
                 }
                 $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
                 $file_name = basename($savename);

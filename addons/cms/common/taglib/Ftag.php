@@ -41,7 +41,7 @@ class Ftag extends Taglib
 
 
 
-        $parseStr = <<<EXO
+        $parseStr = <<<EOD
 <?php 
       \$debrisModel = new \\app\\common\\model\\CmsDebris();
         if ({$id}) {
@@ -56,7 +56,7 @@ class Ftag extends Taglib
         }
 ?>
 {$content}
-EXO;
+EOD;
         return $parseStr;
 
     }
@@ -70,7 +70,7 @@ EXO;
         $num   =  isset($tag['num']) && trim($tag['num']) ? trim($tag['num']) : 5;
         $order =  isset($tag['order']) && trim($tag['order'])? trim($tag['order']): 'id desc';
         $data = 'tags';
-        $parseStr = <<<EXO
+        $parseStr = <<<EOD
 <?php 
         \$CmsTags = new \\app\\common\\model\\CmsTags();
         \${$data}  = \$CmsTags->where('{$where}')->order('{$order}')->limit('{$num}')->cache({$cache})->select();
@@ -80,7 +80,7 @@ EXO;
 {$content}
 <?php endforeach;?>
 
-EXO;
+EOD;
         return $parseStr;
 
     }
@@ -93,25 +93,25 @@ EXO;
         $id =  isset($tag['id']) && trim($tag['id'])? trim($tag['id']): '0';
         $pid   = (isset($tag['pid'])) ? ((substr($tag['pid'], 0, 1) == '$') ? $tag['pid'] : (int) $tag['pid']) : 0;
         if(!$id){
-            $parseStr = <<<EXO
+            $parseStr = <<<EOD
 <?php 
 
  \$data  = \\app\\common\\model\\CmsAdv::where('status',1)->where('pid',{$pid})->order('{$order}')->cache({$cache})->select();
    
 ?>
 {$content}
-EXO;
+EOD;
         }else{
 
 
-            $parseStr = <<<EXO
+            $parseStr = <<<EOD
 <?php 
 
  \$data  = \\app\\common\\model\\CmsAdv::where('status',1)->find({$id});
    
 ?>
 {$content}
-EXO;
+EOD;
         }
 
         return $parseStr;
@@ -126,7 +126,7 @@ EXO;
         $order =  isset($tag['order']) && trim($tag['order'])? trim($tag['order']): 'id desc';
         $num =  isset($tag['num']) && trim($tag['num'])? trim($tag['num']): 0;
         $data = 'links';
-        $parseStr = <<<EXO
+        $parseStr = <<<EOD
 <?php 
 
 \$linkModel = new \\app\\common\\model\\CmsLink();
@@ -144,7 +144,7 @@ if('{$num}'){
 {$content}
 <?php endforeach;?>
 
-EXO;
+EOD;
         return $parseStr;
 
     }
@@ -156,7 +156,7 @@ EXO;
         $pid   = (isset($tag['pid'])) ? ((substr($tag['pid'], 0, 1) == '$') ? $tag['pid'] : (int) $tag['pid']) : 0;
 
 
-        $parseStr = <<<EXO
+        $parseStr = <<<EOD
 <?php 
         \$data  = \\app\\common\\model\\CmsCategory::where('status',1)->where('is_menu',1)->where('pid',{$pid})->order('{$order}')->cache({$cache})->select();
         if(!\$data){
@@ -169,7 +169,7 @@ EXO;
         }
 ?>
 {$content}
-EXO;
+EOD;
         return $parseStr;
 
     }
@@ -185,7 +185,7 @@ EXO;
 
        if(isset($cateid) && $cateid){
 
-            $parseStr = <<<EXO
+            $parseStr = <<<EOD
 <?php 
     \$data = \\think\\facade\\Db::name('cms_category')->where('{$where}')->where('pid',{$cateid})->where('status',1)->order('{$order}')->field('{$field}')->cache({$cache})->select();
     foreach(\$data as &\$v){
@@ -195,7 +195,7 @@ EXO;
     }
 ?>
 {$content}
-EXO;
+EOD;
         }else{
             return false;
         }
@@ -226,12 +226,12 @@ EXO;
                 if(strpos($sql,'insert')!==false || strpos($sql,'update')!==false || strpos($sql,'delete')!==false ){
                   return false;
                 }else{
-                    $parseStr = <<<EXO
+                    $parseStr = <<<EOD
 <?php 
     \$data = \\think\\facade\\Db::query('{$sql}');
 ?>
 {$content}
-EXO;
+EOD;
                 }
 
 
@@ -242,7 +242,7 @@ EXO;
                 $tablename  = $category->module;
                 $childid= $category->arrchildid;
                 $cateid = $childid.','.$cateid;
-                $parseStr = <<<EXO
+                $parseStr = <<<EOD
 <?php 
     \$table = \\think\\facade\\Db::name('{$tablename}');
      \${$data}  = \$table->where('{$where}')->where('status',1)->whereIn('cateid','{$cateid}')->order('{$order}')->field('{$field}')->cache({$cache})->paginate(['list_rows' => {$num} ,'page' =>{$page}]);
@@ -252,7 +252,7 @@ EXO;
 {$content}
 <?php endforeach;?>
 
-EXO;
+EOD;
             }
 
 
@@ -300,7 +300,7 @@ EXO;
         //如果使用table参数方式，使用类似tp的查询语言效果
         if (isset($table) && $table) {
             $table = strtolower($table);
-            $parseStr =<<<EXO
+            $parseStr =<<<EOD
 <?php
 
    \$tabEXOdel = \\think\\facade\\Db::name(strtolower('{$table}'));
@@ -317,12 +317,12 @@ EXO;
 ?>
 
 {$content}
-EXO;
+EOD;
 
         }else{
 
             $tagString =implode('',$tag);
-            $parseStr =<<<EXO
+            $parseStr =<<<EOD
 <?php
     
     \$cacheID = \\EXO\\helper\\StringHelper::uuid('md5','{$tagString}');
@@ -364,7 +364,7 @@ EXO;
  
 ?>
 {$content}
-EXO;
+EOD;
 
         }
 

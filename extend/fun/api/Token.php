@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2019/10/3
  */
+
 namespace fun\api;
 
 use think\facade\Request;
@@ -32,11 +33,10 @@ class Token
      * 请求时间差
      */
     public static $timeDif = 10000;
-
     public static $accessTokenPrefix = 'accessToken_';
     public static $refreshAccessTokenPrefix = 'refreshAccessToken_';
     public static $expires = 7200;
-    public static $refreshExpires = 3600*24*30;   //刷新token过期时间
+    public static $refreshExpires = 3600 * 24 * 30;   //刷新token过期时间
     /**
      * 测试appid，正式请数据库进行相关验证
      */
@@ -53,16 +53,20 @@ class Token
     public function __construct(Request $request)
     {
 
+        header('Access-Control-Allow-Origin:*');
+        header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
+        header('Access-Control-Allow-Credentials:true');
+        header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
         $this->request = Request::instance();
         $appid = Request::post('appid');
         $appsecret = Request::post('appsecret');
         $oauth2_client = Db::name('oauth2_client')->where('appid', $appid)->find();
         if (!$oauth2_client) {
-            return self::returnMsg(401, 'Invalid authorization credentials');
+            self::error('Invalid authorization credentials', '', 401);
 
         }
-        if($oauth2_client['appsecret']!=$appsecret){
-            return self::returnMsg('401',lang('appsecret is not right'));
+        if ($oauth2_client['appsecret'] != $appsecret) {
+            self::error(lang('appsecret is not right'));
         }
         self::$appid = $oauth2_client['appid'];
         self::$appsecret = $oauth2_client['appsecret'];
@@ -76,69 +80,69 @@ class Token
         //参数验证
         $validate = new \fun\api\validate\Token;
         if (!$validate->check(Request::post())) {
-            return self::returnMsg(401, $validate->getError());
+            self::error($validate->getError());
         }
         self::checkParams(Request::post());  //参数校验
         //数据库已经有一个用户,这里需要根据input('mobile')去数据库查找有没有这个用户
-        $userInfo = self::getUser(Request::post('username'),Request::post('password'));
+        $userInfo = self::getUser(Request::post('username'), Request::post('password'));
         //虚拟一个uid返回给调用方
         try {
             $accessToken = self::setAccessToken(array_merge($userInfo, Request::post()));  //传入参数应该是根据手机号查询改用户的数据
-            return self::returnMsg(200, 'success', $accessToken);
+            self::success('success', $accessToken);
         } catch (\Exception $e) {
-            return self::returnMsg(500, 'fail', $e);
+            self::error($e, 'fail', 500);
         }
     }
 
-    /** 小程序
-     * @param string $code
-     * @param string $encryptedData
-     * @param string $iv
-     * @param array $appInfo
-     */
-	public function getOpenId($code = '',$encryptedData = '',$iv = '',$appInfo = [])
-	{
-        $result = json_decode(file_get_contents("https://api.weixin.qq.com/sns/jscode2session?appid=" . $appInfo['wx_appid'] . "&secret=" . $appInfo['wx_appsecret'] . "&js_code=" . $code . "&grant_type=authorization_code"), true);
-		if(empty($result['session_key'])){
-			return $this->returnmsg(401,'获取token失败!'.$result['errmsg']);
-		}else{
-            $pc = new wxBizDataCrypt($appInfo['wx_appid'], $result['session_key']);
-            $data = $pc->decryptData($encryptedData, $iv); //解密用户基础信息
-            $data = json_decode($data, true);
-            if (!empty($data['openId'])) {
-                if (isset($data['unionId'])) { //含有unionid
-                    $is_unionid['is_unionid'] = true;
-                    $userInfo = WxFans::get(['unionid' => $data['unionId']]); //按照unionid查找
-                    if(empty($userInfo)){
-                        $userInfo = WxFans::get(['openid' => $data['openId']]); //按照openid查找
-                    }
-                } else {
-                    $is_unionid['is_unionid'] = false;
-                    $userInfo = WxFans::get(['openid' => $data['openId']]); //按照openid查找
-                }
-                $userAdd['openid']     = $data['openId'];
-                $userAdd['unionid']    = isset($data['unionId']) ? $data['unionId'] : '';
-                $userAdd['nickname']   = $data['nickName'];
-                $userAdd['headimgurl']     = $data['avatarUrl'];
-                $userAdd['sex']        = $data['gender'];
-                $userAdd['province']   = $data['province'];
-                $userAdd['country']    = $data['country'];
-				if(empty($userInfo)){   //用户没有在fans表里面
-                    $userAdd['subscribe_scene'] = 'WEIXIN';
-                    $userAdd['source'] = 2;
-                    WxFans::create($userAdd);  //插入到粉丝表
-				}else{
-                    $userAdd['update_time'] = time();
-                    WxFans::where('fans_id',$userInfo['fans_id'])->update($userAdd);
-                    $userAdd['uid'] = $userInfo['id'];
-				}
-				return $userAdd;
-			}else{
-				return $this->returnmsg(401,'获取token失败!解析数据失败');
-			}
-		}
-
-	}
+//    /** 小程序
+//     * @param string $code
+//     * @param string $encryptedData
+//     * @param string $iv
+//     * @param array $appInfo
+//     */
+//	public function getOpenId($code = '',$encryptedData = '',$iv = '',$appInfo = [])
+//	{
+//        $result = json_decode(file_get_contents("https://api.weixin.qq.com/sns/jscode2session?appid=" . $appInfo['wx_appid'] . "&secret=" . $appInfo['wx_appsecret'] . "&js_code=" . $code . "&grant_type=authorization_code"), true);
+//		if(empty($result['session_key'])){
+//           $this->returnmsg('获取token失败!'.$result['errmsg'],'',401);
+//		}else{
+//            $pc = new wxBizDataCrypt($appInfo['wx_appid'], $result['session_key']);
+//            $data = $pc->decryptData($encryptedData, $iv); //解密用户基础信息
+//            $data = json_decode($data, true);
+//            if (!empty($data['openId'])) {
+//                if (isset($data['unionId'])) { //含有unionid
+//                    $is_unionid['is_unionid'] = true;
+//                    $userInfo = WxFans::get(['unionid' => $data['unionId']]); //按照unionid查找
+//                    if(empty($userInfo)){
+//                        $userInfo = WxFans::get(['openid' => $data['openId']]); //按照openid查找
+//                    }
+//                } else {
+//                    $is_unionid['is_unionid'] = false;
+//                    $userInfo = WxFans::get(['openid' => $data['openId']]); //按照openid查找
+//                }
+//                $userAdd['openid']     = $data['openId'];
+//                $userAdd['unionid']    = isset($data['unionId']) ? $data['unionId'] : '';
+//                $userAdd['nickname']   = $data['nickName'];
+//                $userAdd['headimgurl']     = $data['avatarUrl'];
+//                $userAdd['sex']        = $data['gender'];
+//                $userAdd['province']   = $data['province'];
+//                $userAdd['country']    = $data['country'];
+//				if(empty($userInfo)){   //用户没有在fans表里面
+//                    $userAdd['subscribe_scene'] = 'WEIXIN';
+//                    $userAdd['source'] = 2;
+//                    WxFans::create($userAdd);  //插入到粉丝表
+//				}else{
+//                    $userAdd['update_time'] = time();
+//                    WxFans::where('fans_id',$userInfo['fans_id'])->update($userAdd);
+//                    $userAdd['uid'] = $userInfo['id'];
+//				}
+//				return $userAdd;
+//			}else{
+//				return $this->returnmsg(401,'获取token失败!解析数据失败');
+//			}
+//		}
+//
+//	}
 
     /**
      * token 过期 刷新token
@@ -147,14 +151,14 @@ class Token
     {
         $cache_refresh_token = Cache::get(self::$refreshAccessTokenPrefix . $appid);  //查看刷新token是否存在
         if (!$cache_refresh_token) {
-            return self::returnMsg(401, 'fail', 'refresh_token is null');
+            self::error('refresh_token is null', '', 401);
         } else {
             if ($cache_refresh_token !== $refresh_token) {
-                return self::returnMsg(401, 'fail', 'refresh_token is error');
+                self::error('refresh_token is error', '', 401);
             } else {    //重新给用户生成调用token
                 $data['appid'] = $appid;
                 $accessToken = self::setAccessToken($data);
-                return self::returnMsg(200, 'success', $accessToken);
+                self::success('success', $accessToken);
             }
         }
     }
@@ -167,18 +171,18 @@ class Token
         //时间戳校验
         if (abs($params['timestamp'] - time()) > self::$timeDif) {
 
-            return self::returnMsg(401, '请求时间戳与服务器时间戳异常', 'timestamp：' . time());
+             self::error('请求时间戳与服务器时间戳异常' . time(), '', 401);
         }
 
         //appid检测，这里是在本地进行测试，正式的应该是查找数据库或者redis进行验证
         if ($params['appid'] !== self::$appid) {
-            return self::returnMsg(401, 'appid 错误');
+             self::error('appid 错误','',401);
         }
 
         //签名检测
         $sign = Oauth::makeSign($params, self::$appsecret);
         if ($sign !== $params['sign']) {
-            return self::returnMsg(401, 'sign错误', 'sign：' . $sign);
+             self::error('sign错误',401);
         }
     }
 
@@ -247,22 +251,22 @@ class Token
         cache(self::$refreshAccessTokenPrefix . $appid, $refresh_token, self::$refreshExpires);
     }
 
-    protected static function getUser($username,$password)
+    protected static function getUser($username, $password)
     {
         $user = Db::name('user')->where('username', $username)
-            ->whereOr('mobile',$username)
-            ->whereOr('email',$username)->find();
+            ->whereOr('mobile', $username)
+            ->whereOr('email', $username)->find();
         if ($user) {
-            if(password_verify($password,$user['password'])){
+            if (password_verify($password, $user['password'])) {
                 $user['uid'] = $user['id'];
                 return $user;
-            }else{
-                return self::returnMsg(401, lang('密码错误'));
+            } else {
+                 self::error(lang('Password is not right'),'',401 );
 
             }
 
         } else {
-            return self::returnMsg(401, lang('Account is not exist'));
+             self::error( lang('Account is not exist'),'',401);
         }
     }
 }

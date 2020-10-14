@@ -12,7 +12,6 @@ use think\facade\Cache;
 class Oauth
 {
     use Send;
-    
     /**
      * accessToken存储前缀
      *
@@ -56,7 +55,7 @@ class Oauth
             $clientInfo['access-token'] = $authorizationInfo[1];
             return $clientInfo;
         } catch (Exception $e) {
-            return self::returnMsg(401,'Invalid authorization credentials',Request::header(''));
+            self::error('Invalid authorization credentials','',401,'',Request::header(''));
         }
     }
 
@@ -68,11 +67,11 @@ class Oauth
 
         $getCacheAccessToken = Cache::get(self::$accessTokenPrefix . $data['access-token']);  //获取缓存access-token
         if(!$getCacheAccessToken){
-            return self::returnMsg(401,'fail',"access-token不存在或为空");
+            self::error('access-token不存在或为空','',401);
+
         }
         if($getCacheAccessToken['client']['appid'] !== $data['appid']){
-
-            return self::returnMsg(401,'fail',"appid错误");  //appid与缓存中的appid不匹配
+            self::error('appid错误','',401);//appid与缓存中的appid不匹配
         }
         return $data;
     }
@@ -110,13 +109,13 @@ class Oauth
     {   
         unset($data['version']);
         unset($data['sign']);
-        return self::_getOrderMd5($data,$app_secret);
+        return self::buildSign($data,$app_secret);
     }
 
     /**
      * 计算ORDER的MD5签名
      */
-    private static function _getOrderMd5($params = [] , $app_secret = '') {
+    private static function buildSign($params = [] , $app_secret = '') {
         ksort($params);
         $params['key'] = $app_secret;
         return strtolower(md5(urldecode(http_build_query($params))));

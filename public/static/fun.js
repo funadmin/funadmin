@@ -290,10 +290,11 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                     area: [width, height],
                     content: url,
                     shadeClose: true,
-                    anim: 0,
-                    isOutAnim: true,
+                    // anim: 0,
+                    // isOutAnim: true,
                     maxmin: true,
-                    resize: isResize,
+                    moveOut: true,
+                    // resize: isResize,
                     scrollbar: true,
 
                 }

@@ -16,6 +16,7 @@ use app\backend\service\AuthService;
 use app\common\traits\Jump;
 use fun\addons\Controller;
 use think\App;
+use think\exception\ValidateException;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\View;
@@ -117,6 +118,29 @@ class AddonsFrontend extends Controller
     }
 
 
+
+    protected function validate(array $data, $validate, array $message = [], bool $batch = false)
+    {
+        try {
+            parent::validate($data, $validate, $message, $batch);
+            $this->checkToken();
+        } catch (ValidateException $e) {
+            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
+        }
+        return true;
+    }
+
+    /**
+     * 检测token 并刷新
+     *
+     */
+    protected function checkToken()
+    {
+        $check = $this->request->checkToken('__token__', $this->request->param());
+        if (false === $check) {
+            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
+        }
+    }
     //自动加载语言
     protected function loadlang($name)
     {
