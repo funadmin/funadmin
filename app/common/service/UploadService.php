@@ -2,7 +2,6 @@
 namespace app\common\service;
 
 use app\common\model\Attach as AttachModel;
-use fun\helper\DataHelper;
 use think\App;
 use think\Exception;
 use think\facade\Request;
@@ -29,22 +28,6 @@ class UploadService extends AbstractService
      * @var
      */
     protected $fileMaxsize;
-    //上传验证规则
-    protected $uploadValidate = [
-        'file' => 'filesize:102400|fileExt:jpg,png,gif,jpeg,rar,zip,avi,mp4,rmvb,3gp,flv,mp3,txt,doc,xls,ppt,pdf,xls,docx,xlsx,doc'
-    ];
-    protected $imageValidate = [
-        'image' => 'filesize:10240|fileExt:jpg,png,gif,jpeg,bmp,svg,webp'
-
-    ];
-    protected $videoValidate = [
-        'video' => 'filesize:10240|avi,rmvb,3gp,flv,mp4'
-
-    ];
-    protected $voiceValidate = [
-        'voice' => 'filesize:2048|mp3,wma,wav,amr'
-
-    ];
     /**
      * Service constructor.
      * @param App $app
@@ -92,7 +75,6 @@ class UploadService extends AbstractService
             $attach = AttachModel::where('md5', $md5)->find();
             if (!$attach) {
                 try {
-
                     $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                     $path = DS . 'storage' . DS . $savename;
                     $paths = trim($path, '/');
@@ -108,8 +90,6 @@ class UploadService extends AbstractService
                         $path = $uploadService->teccos($paths, './' . $paths);
                     }
                 }catch (Exception $e){
-                    throw new Exception($e->getMessage());
-                }catch (\think\exception\ValidateException $e) {
                     $path = '';
                     $error = $e->getMessage();
                 }
@@ -127,8 +107,9 @@ class UploadService extends AbstractService
                 if (!empty($path)) {
                     $data = [
                         'admin_id' => session('admin.id'),
-                        'name' => $file_name,
+                        'user_id'     => cookie('uid'),
                         'original_name' => $original_name,
+                        'name' => $file_name,
                         'path' => $path,
                         'thumb' => $path,
                         'url' => $this->driver == 'local' ? Request::domain() . $path : $path,
@@ -180,34 +161,22 @@ class UploadService extends AbstractService
      */
     protected function checkFile($file)
     {
-        $ext = $file->extension();
-        switch ($ext == 'file') {
-            case 'image':
-                $validate = $this->imageValidate;
-                break;
-            case 'video':
-                $validate = $this->videoValidate;
-                break;
-            case 'voice' :
-                $validate = $this->voiceValidate;
-                break;
-            default:
-                $validate = $this->uploadValidate;
 
-        }
-        try {
-            validate($validate)->check(['image'=>$file]);
-        } catch (\think\exception\ValidateException $e) {
-            throw new Exception($e->getMessage());
-        }
         //禁止上传PHP和HTML.ssh文件
-        if (in_array($file->getMime(), ['application/octet-stream', 'text/html','application/x-javascript','application/java']) || in_array($$file['suffix'], ['php', 'html', 'htm'])) {
+        if (in_array($file->getMime(), ['application/octet-stream', 'text/html','application/x-javascript']) || in_array($file->extension(), ['php', 'html', 'htm','xml','ssh'])) {
             throw new Exception(lang('File format is limited'));
         }
-        //禁止上传PHP和HTML文件
+
+        //文件大小限制
         if (($file->getSize() > $this->fileMaxsize)) {
             throw new Exception(lang('File size is limited'));
         }
+        //文件类型限制
+        if ($this->fileExt !='*' || !in_array($file->extension(),explode(',',$this->fileExt))) {
+            throw new Exception(lang('File type is limited'));
+        }
         return true;
     }
+
+
 }

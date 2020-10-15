@@ -3579,12 +3579,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "1e69d247b96cad39b18280c7c27484dfca3b7b79"
+                "reference": "64aa8b1f7648447b3013e836c137b9dfcd361b95"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/1e69d247b96cad39b18280c7c27484dfca3b7b79",
-                "reference": "1e69d247b96cad39b18280c7c27484dfca3b7b79",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/64aa8b1f7648447b3013e836c137b9dfcd361b95",
+                "reference": "64aa8b1f7648447b3013e836c137b9dfcd361b95",
                 "shasum": ""
             },
             "require": {
@@ -3632,7 +3632,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "time": "2020-10-08T15:49:06+00:00"
+            "time": "2020-10-14T06:45:00+00:00"
         },
         {
             "name": "topthink/think-annotation",

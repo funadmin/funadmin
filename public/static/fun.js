@@ -281,7 +281,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
                     isFull = options.full !== undefined;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';
-                height = height || '800';
+                height = height || '600';
                 width = width+'px';
                 height = height+'px';
                 if(isFull){

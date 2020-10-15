@@ -76,12 +76,12 @@ define(["jquery"], function ($) {
                             tds.eq(4).html(''); //清空操作
                             return delete this.files[index]; //删除文件队列已经上传成功的文件
                         }
-                        this.error(index, upload);
+                        this.error(index, upload, res);
                     }
-                    , error: function (index, upload) {
+                    , error: function (index, upload, res) {
                         var tr = uploadListView.find('tr#upload-' + index)
                             , tds = tr.children();
-                        tds.eq(3).html('<span style="color: #FF5722;">上传失败</span>');
+                        tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
                         tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
                     }
                 });
@@ -94,7 +94,7 @@ define(["jquery"], function ($) {
                         var uploadExts = $(this).attr('lay-exts'),
                             uploadNum = $(this).attr('lay-num'),
                             uploadPath = $(this).attr('lay-path');
-                            uploadAccept = $(this).attr('lay-accept');
+                        uploadAccept = $(this).attr('lay-accept');
                         uploadSize = $(this).attr('lay-size') || Upload.init.upload_size;
                         uploadmultiple = $(this).attr('lay-multiple');
                         uploadExts = uploadExts || Upload.init.upload_exts;
@@ -108,23 +108,23 @@ define(["jquery"], function ($) {
                             , accept: uploadAccept
                             , exts: uploadExts
                             , size: uploadSize
-                            ,multiple:uploadmultiple
+                            , multiple: uploadmultiple
                             , url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath
                             , before: function (obj) {
                                 var index = Fun.toastr.loading(__('uploading...'))
                             },
                             done: function (res) {
                                 if (res.code > 0) {
-                                    if(uploadAccept=='image'){
+                                    if (uploadAccept == 'image') {
                                         html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
-                                    }else if(uploadAccept=='video'){
+                                    } else if (uploadAccept == 'video') {
                                         html = '<li><video controls class="layui-upload-img fl" width="150" src="' + res.url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
-                                    }else if(uploadAccept=='audio') {
+                                    } else if (uploadAccept == 'audio') {
                                         html = '<li><audio controls class="layui-upload-img fl"  src="' + res.url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
-                                    }else{
+                                    } else {
                                         html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
 
                                     }
@@ -132,29 +132,29 @@ define(["jquery"], function ($) {
                                     if (uploadNum == 1) {
                                         input.val(res.url);
                                         that.find('.layui-upload-list').html(html)
-                                    } else if(uploadNum=='*') {
+                                    } else if (uploadNum == '*') {
                                         that.find('.layui-upload-list').append(html)
-                                        if(inputVal){
+                                        if (inputVal) {
                                             val_temp = (inputVal + ',' + res.url)
 
-                                        }else{
+                                        } else {
                                             val_temp = res.url
                                         }
                                         input.val(val_temp);
-                                    }else{
-                                        if(that.find('li').length>=uploadNum){
+                                    } else {
+                                        if (that.find('li').length >= uploadNum) {
                                             Fun.toastr.error(__('File nun is limited'), function () {
                                                 setTimeout(function () {
                                                     Fun.toastr.close();
                                                 }, 2000)
                                             })
                                             return false;
-                                        }else{
+                                        } else {
                                             that.find('.layui-upload-list').append(html)
-                                            if(inputVal){
+                                            if (inputVal) {
                                                 val_temp = (inputVal + ',' + res.url)
 
-                                            }else{
+                                            } else {
                                                 val_temp = res.url
                                             }
                                             input.val(val_temp);
@@ -167,7 +167,7 @@ define(["jquery"], function ($) {
                                         }, 2000)
                                     })
                                 } else {
-                                    Fun.toastr.error(__('Upload Failed'), function () {
+                                    Fun.toastr.error(__('Upload Failed ') + __(res.msg), function () {
                                         setTimeout(function () {
                                             Fun.toastr.close();
                                         }, 2000)
