@@ -3,7 +3,7 @@
 * @Date:   2018-09-14 10:00:00
 */
 
-    layui.define(['laydate', 'jquery','moment'], function (exports) {
+layui.define(['laydate', 'jquery',['moment']], function (exports) {
         "use strict";
 
 

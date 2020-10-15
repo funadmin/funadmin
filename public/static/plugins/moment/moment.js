@@ -4,8 +4,8 @@
 //! license : MIT
 //! momentjs.com
 
+//! moment.js
 layui.define(function (exports) {
-    //! moment.js
     function moment(a) {
         ;(function (global, factory) {
             typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
@@ -4645,6 +4645,5 @@ layui.define(function (exports) {
 
         })));
     }
-
     exports('moment', new moment());
 });

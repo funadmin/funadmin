@@ -63,7 +63,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         templet: Table.templet.resolution
                     },
                     {field: 'avatar', title: __('Avatar'), width: 120, templet: Table.templet.image},
-                    // {field: 'merchant_id', title: '店铺id', width: 120,sort: true},
+                    // {field: 'shop_id', title: '店铺id', width: 120,sort: true},
                     {
                         field: 'status',
                         title: __('Status'),
@@ -74,7 +74,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         templet: Table.templet.switch
                     },
                     {field: 'create_time', title: __('Registertime'), width: 180,search:'range'},
-                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'time', templet: Table.templet.time},
+                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
                         minwidth: 250,
                         align: 'center',

@@ -87,22 +87,20 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     , data: list
                     , showCheckbox: true  //是否显示复选框
                     , id: 'treebox'
-                    ,edit: ['add', 'update']
+                    // ,edit: ['add','update']
                     , showLine: true
                     , accordion: true//是否开启手风琴模式，默认 false
                     , isJump: false //是否允许点击节点时弹出新窗口跳转
 
                 });
-                //修改权限样式
-                // var stype = "<style>.layui-tree-line .layui-tree-set::before{height: 0}" +
-                // ".layui-form-item .layui-tree-main{padding:10px;}"+
-                // ".layui-form-item .layui-tree-entry{padding:10px;}"+
-                // ".layui-tree-set{margin-right:10px;}"+
-                // ".layui-tree-pack.layui-tree-lineExtend .layui-tree-set.layui-tree-spread{display:inline-block;width:auto}"+
-                // ".layui-tree-checkedFirst{display:inline-block;width:auto}"+
-                // ".layui-tree-spread{width:100%}"+
-                //     "<\/style>"
-                // $('body').append(stype)
+                var stype = "<style>" +
+                    ".layui-tree-entry{padding: 10px 15px;} .layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex!important;}" +
+                    ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst{display: inline-flex!important;}" +
+                    ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst.layui-tree-set{width: auto!important;}" +
+                    ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
+                    ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
+                    "<\/style>"
+                $('body').append(stype)
             })
             // 按钮事件
             util.event('lay-event', {

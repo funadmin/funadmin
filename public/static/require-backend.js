@@ -4,10 +4,10 @@ require.config({
     // urlArgs: 'v=' + (new Date().getTime()),
     packages: [
         {
-        name: 'moment',
-        location: 'plugins/moment',
-        main: 'moment'
-    }
+            name: 'moment',
+            location: 'plugins/moment',
+            main: 'moment'
+        }
     ],
     baseUrl: BASE_URL,
     include: ['css','jquery','bootstrap','layuiall', 'layui','layer','toastr', 'fun', 'backend', 'table', 'form',],
@@ -64,7 +64,7 @@ require.config({
         },
         'timePicker': {
             deps: [
-                'moment/moment'
+                'plugins/moment/moment'
             ],
             exports: "moment"
         },

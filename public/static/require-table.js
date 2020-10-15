@@ -211,11 +211,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
                         let timeList = document.querySelectorAll("*[lay-filter='timePicker']");
-                        console.log(timePicker)
+                        console.log(layui.timePicker)
                         if (timeList.length > 0) {
                             $.each(timeList, function () {
                                 let id = $(this).attr('id');
-                                console.log(layui.timePicker)
                                 layui.timePicker.render({
                                     elem: '#' + id, //定义输入框input对象
                                     options:{      //可选参数timeStamp，format
@@ -231,7 +230,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         laydate.render({type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
                     }
                     if (ncV.search === 'timerange') {
-                        laydate.render({type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
+                        laydate.render({range: true, type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
                     }
                 });
 
