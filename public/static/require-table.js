@@ -211,7 +211,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
                         let timeList = document.querySelectorAll("*[lay-filter='timePicker']");
-                        console.log(layui.timePicker)
                         if (timeList.length > 0) {
                             $.each(timeList, function () {
                                 let id = $(this).attr('id');

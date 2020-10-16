@@ -244,7 +244,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang('Icon').'</label>
                     <div class="layui-input-block">
-                        <input type="text" name="'.$name.'"  id="'.$id.'" value="'.$value.'" 
+                        <input type="hidden" name="'.$name.'"  id="'.$id.'" value="'.$value.'" 
                           lay-filters="iconPickers" lay-filter="'.$id.'" class="hide">
                     </div>
                 </div>';
@@ -313,7 +313,21 @@ class FormHelper
     //裁剪上传
     public static function croper($name='avatar', $formdata='', $options=[]){
 
-
+        $str = '<div class="layui-form-item">
+                <label class="layui-form-label">头像</label>
+                <div class="layui-input-inline">
+                    <input type="text" name="'.$name.'"  '.self::verify() . self::filter().' id="inputimgurl" placeholder="path" value="" class="layui-input">
+                </div>
+                <div class="layui-input-inline">
+                    <div class="layui-upload-list" style="margin:0">
+                        <img src="" id="srcimgurl" class="layui-upload-img">
+                    </div>
+                </div>
+                <div class="layui-input-inline layui-btn-container" style="width: auto;">
+                    <button class="layui-btn layui-btn-primary" id="editimg">'.lang('Edit').'</button >
+                </div>
+                <div class="layui-form-mid layui-word-aux">头像的尺寸限定150x150px,大小在500kb以内</div>
+                </div>';
     }
 
     /**
@@ -325,6 +339,7 @@ class FormHelper
      */
     public static function upload($name='avatar', $formdata='', $options=[])
     {
+
         if (!isset($options['type'])) {
             $options['type'] = 'radio';
         }
@@ -338,6 +353,11 @@ class FormHelper
             $options['path'] = 'upload';
         }
         $li = '';
+        $croper_container = '<button class="layui-btn layui-btn-primary"  lay-cropper id="cropper">'.lang('Cropper').'</button>';
+        if(isset($options['cropper'])){
+            $options['num'] = 1;
+            $options['type'] = 'radio';
+        }
         if ($formdata) {
             foreach (explode(',', $formdata[$name]) as $k => $v) {
                 switch ($options['mime']) {
@@ -387,6 +407,7 @@ class FormHelper
                 <div class="layui-input-block">
                     <div class="layui-upload">
                         <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '>
+                       '.$croper_container.'
                         <button type="button" class="layui-btn layui-btn-normal"  '.$op.' lay-upload><i class="layui-icon layui-icon-upload-circle"></i>'.lang('Uploads').'</button>
                         <button id="select-upload" type="button" class="layui-btn layui-btn-danger"  '.$op.'  lay-upload-select><i class="layui-icon layui-icon-align-center"></i>'.lang('Choose').'</button>
                         <div class="layui-upload-list">'

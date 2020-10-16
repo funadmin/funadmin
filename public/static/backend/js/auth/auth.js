@@ -46,7 +46,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,isPage:false
                 ,cols: [[
                     // {checkbox: true, fixed: true},
-                    {field: 'id', title: __('ID'), width: 80, fixed: true, sort: true},
+                    // {field: 'id', title: __('ID'), width: 80, fixed: true, sort: true},
                     {field: 'icon',title: __("icon"), width: 60,templet: Table.templet.icon},
                     {field: 'title', title: __('Auth Name'), minwidth: 120,},
                     {field: 'href', title: __('Controller/Action'), minwidth: 200},

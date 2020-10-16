@@ -1,5 +1,6 @@
-define(["jquery"], function ($) {
+define(["jquery",'croppers'], function ($,croppers) {
     var upload = layui.upload;
+    var croppers = layui.croppers;
     var Upload = {
         init: {
             requests: {
@@ -86,6 +87,7 @@ define(["jquery"], function ($) {
                     }
                 });
             },
+
             uploads: function () {
                 var uploadList = document.querySelectorAll("[lay-upload]");
                 if (uploadList.length > 0) {
@@ -188,11 +190,46 @@ define(["jquery"], function ($) {
 
                 }
 
+
+            },
+            cropper:function (){
+                let cropperlist = document.querySelectorAll("*[lay-cropper]");
+                if (cropperlist.length > 0) {
+                    console.log(cropperlist)
+                    $.each(cropperlist, function () {
+                        //创建一个头像上传组件
+                        let id = $(this).attr('id');
+                        let saveW = $(this).attr('lay-width');
+                        let saveH = $(this).attr('lay-height');
+                        let mark = $(this).attr('lay-mark');
+                        let area = $(this).attr('lay-area');
+                        saveW = saveW || 150;
+                        saveH = saveH || 150;
+                        mark = mark || 1;
+                        area = area || '900px';
+                        croppers.render({
+                            elem: '#'+id
+                            ,saveW:saveW     //保存宽度
+                            ,saveH:saveH
+                            ,mark:mark    //选取比例
+                            ,area:'area'  //弹窗宽度
+                            ,url: Fun.url(Upload.init.requests.upload_url)  //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
+                            ,done: function(res){ //上传完毕回调
+                                console.log(res)
+                                $("#inputimgurl").val(res);
+                            }
+                        });
+
+                    })
+                }
+
             },
 
             bindEvent: function () {
                 Upload.events.mutiUpload();
                 Upload.events.uploads();
+                Upload.events.cropper();
+
 
             }
         }

@@ -2,10 +2,11 @@
 * @Author: sun(slf02@ourstu.com)
 * @Date:   2018-09-14 10:00:00
 */
-
+layui.config({
+    base: '/static/plugins/moment',
+});
 layui.define(['laydate', 'jquery',['moment']], function (exports) {
         "use strict";
-
 
         var MOD_NAME = 'timePicker',
             $ = layui.jquery,
@@ -68,8 +69,8 @@ layui.define(['laydate', 'jquery',['moment']], function (exports) {
                     $(this).find('i').remove();
                 });
                 //自定义时间选择器
-                laydate.render({elem: '#sTime'});
-                laydate.render({elem: '#eTime'});
+                laydate.render({elem: '#sTime',istime:true});
+                laydate.render({elem: '#eTime',istime:true});
 
                 //选择固定日期
                 var $li=$('.time-info').children().find('li');

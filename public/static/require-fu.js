@@ -8,6 +8,7 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
         init: {},
         //事件
         events: {
+
             editor:function (){
                 let layeditorlist = document.querySelectorAll("*[lay-editor]");
                 if (layeditorlist.length > 0) {

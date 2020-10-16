@@ -12,6 +12,9 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
             uploads: function () {
                 Upload.api.uploads();
             },
+            cropper: function () {
+                Upload.api.cropper();
+            },
             chooseFiles: function () {
                 Form.api.chooseFiles()
             },
@@ -320,6 +323,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 events.submit(form, success, error, submit);
                 events.required(form)
                 events.uploads() //上传
+                events.cropper() //上传
                 events.chooseFiles() //选择文件
                 events.hk() //日期
                 events.bindevent(form);
