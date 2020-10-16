@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost:3306
--- 生成日期： 2020-10-10 17:22:14
+-- 生成日期： 2020-10-16 16:14:08
 -- 服务器版本： 5.7.26-log
 -- PHP 版本： 7.4.9
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- 数据库： `FunAdmin`
+-- 数据库： `funadmin`
 --
 
 -- --------------------------------------------------------
@@ -59,6 +59,7 @@ INSERT INTO `fun_addon` (`id`, `title`, `name`, `images`, `group`, `description`
 
 CREATE TABLE `fun_addon_spshop_adv` (
   `id` int(11) UNSIGNED NOT NULL COMMENT '广告id',
+  `merchant_id` int(10) NOT NULL DEFAULT '1' COMMENT '商户id\r\n',
   `pid` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位置ID',
   `media_type` tinyint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告类型',
   `ad_name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告名称',
@@ -83,13 +84,13 @@ CREATE TABLE `fun_addon_spshop_adv` (
 -- 转存表中的数据 `fun_addon_spshop_adv`
 --
 
-INSERT INTO `fun_addon_spshop_adv` (`id`, `pid`, `media_type`, `ad_name`, `ad_link`, `ad_image`, `start_time`, `end_time`, `link_admin`, `link_email`, `link_phone`, `click_count`, `sort`, `status`, `orderby`, `target`, `bgcolor`, `create_time`, `update_time`) VALUES
-(4, 1, 0, 'PC首页轮播', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/e88bcf9364acbfd5ec3d1bdf99d0d394.jpg', 1451577600, 1767283200, '', '994927909@qq.com', '', 0, 0, 1, 0, 0, '#f1e6d2', 0, 1591952531),
-(88, 1, 0, '滚动海报', 'http://shop.zhutiyuedu.com/index/goods/details.html?id=15', '/storage/uploads/20200612/ba7a1c2d4178a9cad2fcf0e0becf1204.jpg', 1573056000, 1577721600, '', '2943694612@qq.com', '', 0, 0, 1, 50, 0, '', 1573114077, 1591953494),
-(89, 2, 0, '滚动海报', 'http://shop.zhutiyuedu.com/h5/goods/details.html?id=15', '/storage/uploads/20200612/b644a5ee6a4786d928b1d8106f5b204d.jpg', 0, 0, '', '123456@qq.com', '', 0, 0, 1, 50, 0, '', 0, 1591951860),
-(92, 1, 0, 'PC 端首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=1', '/storage/uploads/20200612/53b1ca94c135e4cb6d3d998d42df723e.jpg', 1556640000, 1751212800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589167343, 1591951506),
-(93, 1, 0, 'PC端首页广告', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=2', '/storage/uploads/20200612/15a837718a409244fb9291f2881f6586.jpg', 1588262400, 1593446400, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589177342, 1591949142),
-(94, 2, 0, '手机首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/90bfab0170969734a03868600afcfc72.jpg', 1588262400, 1782748800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589330964, 1591951809);
+INSERT INTO `fun_addon_spshop_adv` (`id`, `merchant_id`, `pid`, `media_type`, `ad_name`, `ad_link`, `ad_image`, `start_time`, `end_time`, `link_admin`, `link_email`, `link_phone`, `click_count`, `sort`, `status`, `orderby`, `target`, `bgcolor`, `create_time`, `update_time`) VALUES
+(4, 1, 1, 0, 'PC首页轮播', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/e88bcf9364acbfd5ec3d1bdf99d0d394.jpg', 1451577600, 1767283200, '', '994927909@qq.com', '', 0, 0, 1, 0, 0, '#f1e6d2', 0, 1591952531),
+(88, 1, 1, 0, '滚动海报', 'http://shop.zhutiyuedu.com/index/goods/details.html?id=15', '/storage/uploads/20200612/ba7a1c2d4178a9cad2fcf0e0becf1204.jpg', 1573056000, 1577721600, '', '2943694612@qq.com', '', 0, 0, 1, 50, 0, '', 1573114077, 1591953494),
+(89, 1, 2, 0, '滚动海报', 'http://shop.zhutiyuedu.com/h5/goods/details.html?id=15', '/storage/uploads/20200612/b644a5ee6a4786d928b1d8106f5b204d.jpg', 0, 0, '', '123456@qq.com', '', 0, 0, 1, 50, 0, '', 0, 1591951860),
+(92, 1, 1, 0, 'PC 端首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=1', '/storage/uploads/20200612/53b1ca94c135e4cb6d3d998d42df723e.jpg', 1556640000, 1751212800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589167343, 1591951506),
+(93, 1, 1, 0, 'PC端首页广告', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=2', '/storage/uploads/20200612/15a837718a409244fb9291f2881f6586.jpg', 1588262400, 1593446400, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589177342, 1591949142),
+(94, 1, 2, 0, '手机首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/90bfab0170969734a03868600afcfc72.jpg', 1588262400, 1782748800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589330964, 1591951809);
 
 -- --------------------------------------------------------
 
@@ -242,7 +243,7 @@ CREATE TABLE `fun_admin` (
 --
 
 INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`) VALUES
-(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '13ff5c2a1cc627e57e6895723c9eff2c1c4f711a', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1602303647),
+(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '14e39a43bc3244844f7a571b08413ac814ce76ed', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1602808477),
 (3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1600433383);
 
 -- --------------------------------------------------------
@@ -301,18 +302,8 @@ CREATE TABLE `fun_attach` (
 --
 
 INSERT INTO `fun_attach` (`id`, `admin_id`, `user_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`) VALUES
-(15, 1, 0, 'LOGO-120.png', '045256245ee708a40a2ac1b567bc481a.png', '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 'png', 3, '120', '120', 'd445755e74b786eb1a9d9eb12b57ac47', 'image/png', '0', 'lcoal', 1595510833, 1595565285, 1, 50),
-(16, 1, 0, '1588746338784.png', '779df29efafbb6585286e64e0561e3d6.png', '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', 'png', 475, '853', '481', 'aaf4bc045810549b9adff0414c59b364', 'image/png', '0', '', 1596181525, 1596181525, 1, 50),
-(17, 1, 0, '6991562840779.png', '5852da85f20a23296538e9843d8465ff.png', '\\storage\\upload/20200731\\5852da85f20a23296538e9843d8465ff.png', '\\storage\\upload/20200731\\5852da85f20a23296538e9843d8465ff.png', '\\storage\\upload/20200731\\5852da85f20a23296538e9843d8465ff.png', 'png', 269, '800', '530', '5c94f9f8a18d3e4ae73023d800530da7', 'image/png', '0', '', 1596186555, 1596186555, 1, 50),
-(18, 1, 0, '1588927972538.png', 'f7c2b0cf854e9760b35a5c0e4f534a04.png', '\\storage\\uploads/20200904\\f7c2b0cf854e9760b35a5c0e4f534a04.png', '\\storage\\uploads/20200904\\f7c2b0cf854e9760b35a5c0e4f534a04.png', '\\storage\\uploads/20200904\\f7c2b0cf854e9760b35a5c0e4f534a04.png', 'png', 726, '1150', '655', '5f0b7abd4b49910603457c77ed8670c2', 'image/png', '0', NULL, 1599193559, 1599193559, 1, 50),
-(19, 1, 0, '1111.png', '7c9df4a8d2400ca93a3afe82c849ea48.png', '\\storage\\uploads/20200904\\7c9df4a8d2400ca93a3afe82c849ea48.png', '\\storage\\uploads/20200904\\7c9df4a8d2400ca93a3afe82c849ea48.png', '\\storage\\uploads/20200904\\7c9df4a8d2400ca93a3afe82c849ea48.png', 'png', 656, '1333', '533', '316e1b0da16fa1cc3f1c288bf873218f', 'image/png', '0', NULL, 1599194511, 1599194511, 1, 50),
-(20, 1, 0, '微信图片_20200821165446.png', '8eed21eca36d6dac5e3301516ac0ba65.png', '\\storage\\uploads/20200904\\8eed21eca36d6dac5e3301516ac0ba65.png', '\\storage\\uploads/20200904\\8eed21eca36d6dac5e3301516ac0ba65.png', '\\storage\\uploads/20200904\\8eed21eca36d6dac5e3301516ac0ba65.png', 'png', 417, '1000', '400', 'dc131954c4bb77b761f1c973a0468333', 'image/png', '0', NULL, 1599194551, 1599194551, 1, 50),
-(21, 1, 0, '9349eb947dd3a5d47af26afc6933798.png', '9d6078c8d0808f28bb6197803749f2dc.png', '\\storage\\uploads/20200904\\9d6078c8d0808f28bb6197803749f2dc.png', '\\storage\\uploads/20200904\\9d6078c8d0808f28bb6197803749f2dc.png', '\\storage\\uploads/20200904\\9d6078c8d0808f28bb6197803749f2dc.png', 'png', 2294, '2256', '1264', 'af87843e0e65e30fbcd646f320753889', 'image/png', '0', NULL, 1599194967, 1599194967, 1, 50),
-(22, 1, 0, '168_1535351333114_70495.jpg', '713a26310f67f7055cbd802dfcc40fe0.jpg', '\\storage\\uploads/20200904\\713a26310f67f7055cbd802dfcc40fe0.jpg', '\\storage\\uploads/20200904\\713a26310f67f7055cbd802dfcc40fe0.jpg', '\\storage\\uploads/20200904\\713a26310f67f7055cbd802dfcc40fe0.jpg', 'jpg', 120, '3840', '800', '8094d152873eb7269bbe39f9dfcf8260', 'image/jpeg', '0', NULL, 1599196012, 1599196012, 1, 50),
-(23, 1, 0, '1589873191(1).jpg', '597ca5787d2ede8483be9e775ed8d622.jpg', '\\storage\\uploads/20200904\\597ca5787d2ede8483be9e775ed8d622.jpg', '\\storage\\uploads/20200904\\597ca5787d2ede8483be9e775ed8d622.jpg', '\\storage\\uploads/20200904\\597ca5787d2ede8483be9e775ed8d622.jpg', 'jpg', 253, '486', '279', 'e0d4305f9d2bd628929181fbb181c573', 'image/png', '0', NULL, 1599202797, 1599202797, 1, 50),
-(24, 1, 0, '微信图片_20200821162648.png', '20ddcde8e49bcae4cbc7d65933ab0272.png', '\\storage\\uploads/20200905\\20ddcde8e49bcae4cbc7d65933ab0272.png', '\\storage\\uploads/20200905\\20ddcde8e49bcae4cbc7d65933ab0272.png', '\\storage\\uploads/20200905\\20ddcde8e49bcae4cbc7d65933ab0272.png', 'png', 200, '1000', '400', '14f22fa0da4645aa565a6f664f8def6d', 'image/png', '0', NULL, 1599279003, 1599279003, 1, 50),
-(25, 1, 0, '1600226997(1).jpg', '5d95c9befa94a01b50439d4355ec560d.jpg', '\\storage\\uploads/20200921\\5d95c9befa94a01b50439d4355ec560d.jpg', '\\storage\\uploads/20200921\\5d95c9befa94a01b50439d4355ec560d.jpg', '\\storage\\uploads/20200921\\5d95c9befa94a01b50439d4355ec560d.jpg', 'jpg', 3, '81', '82', '322d7681b36cd24d0a10d4a7cc2e4344', 'image/png', '0', NULL, 1600669301, 1600669301, 1, 50),
-(26, 1, 0, '微信图片_20200925102804.jpg', 'b863bd9c9260346435cdbc2da842dbbf.jpg', '\\storage\\upload/20200928\\b863bd9c9260346435cdbc2da842dbbf.jpg', '\\storage\\upload/20200928\\b863bd9c9260346435cdbc2da842dbbf.jpg', '\\storage\\upload/20200928\\b863bd9c9260346435cdbc2da842dbbf.jpg', 'jpg', 71, '1080', '2160', '0b0bce04b2e972cc03872a386defc837', 'image/jpeg', '0', NULL, 1601275995, 1601275995, 1, 50);
+(28, 1, 0, '1598258370953677.jpg', 'ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', 'jpg', 159, '537', '852', '0e3893e089007c97b741b108324dcb4b', 'image/jpeg', '0', NULL, 1602723224, 1602723224, 1, 50),
+(29, 1, 0, 'admin-ajax.png', '7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', 'png', 4, '115', '103', 'cb959c6185839156a4ebadd507b96f67', 'image/png', '0', NULL, 1602723370, 1602723370, 1, 50);
 
 -- --------------------------------------------------------
 
@@ -404,15 +395,15 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (35, 'backend', '_self', 'sys.configGroup/modify', 'Modify', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 42, 0, 0, 1599888254),
 (36, 'backend', '_self', 'sys.config/set', 'ConfigSet', 0, 1, 1, 0, 'layui-icon layui-icon-set-sm', '', 1, 5, 1581588960, 1599887056),
 (37, 'backend', '_self', 'sys.attach', 'Attach', 1, 1, 1, 1, 'layui-icon layui-icon-picture-fine', '', 1, 50, 1581588790, 1601290492),
-(38, 'backend', '_self', 'sys.attach/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-picture-fine', '', 37, 50, 1581588855, 1599888337),
+(38, 'backend', '_self', 'sys.attach/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-list', '', 37, 50, 1581588855, 1602817404),
 (39, 'backend', '_self', 'sys.attach/Add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 37, 50, 1581588904, 1599888342),
 (40, 'backend', '_self', 'sys.attach/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 37, 50, 1581588934, 1599888349),
 (41, 'backend', '_self', 'sys.config', 'Config', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile-fine', '', 1, 50, 1599887301, 1600398695),
 (42, 'backend', '_self', 'sys.configGroup', 'configGroup', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile-fine', '', 1, 50, 1599888082, 1600396158),
-(43, 'backend', '_self', 'sys.adminlog/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-face-smile-fine', '', 24, 50, 1599888429, 1601290705),
+(43, 'backend', '_self', 'sys.adminlog/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-list', '', 24, 50, 1599888429, 1602809070),
 (44, 'backend', '_self', 'ajax/uploads', 'Uploads', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 1, 0, 0, 1599887263),
 (45, 'backend', '_self', 'member', 'Member', 1, 1, 1, 1, 'layui-icon layui-icon-user', '', 0, 100, 1567327942, 1599892089),
-(46, 'backend', '_self', 'member.member', 'Member', 1, 1, 1, 1, 'layui-icon-face-smile-fine', '', 45, 1, 1599889321, 1599892090),
+(46, 'backend', '_self', 'member.member', 'Member', 1, 1, 1, 1, 'layui-icon layui-icon-username', '', 45, 1, 1599889321, 1602831544),
 (47, 'backend', '_self', 'member.member/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-user', '', 46, 50, 1567327992, 1599889408),
 (48, 'backend', '_self', 'member.member/Add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 46, 0, 0, 1599889767),
 (49, 'backend', '_self', 'member.member/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 46, 0, 0, 1599889777),
@@ -459,7 +450,7 @@ CREATE TABLE `fun_config` (
 --
 
 INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `create_time`, `update_time`) VALUES
-(1, 'site_name', '', '', 'SPEED管理系统', '网站名称', '0', 'text', 'site', 1, 0, 1584799684),
+(1, 'site_name', '', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 0, 1602808542),
 (2, 'site_phone', '', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 0, 1581831391),
 (3, 'site_state', '', '', '1', '状态', '0', 'radio', 'site', 1, 0, 1581825436),
 (4, 'site_logo', '', '', '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', '网站logo图1', '0', 'image', 'site', 1, 0, 1583583460),
@@ -474,7 +465,7 @@ INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `rema
 (19, 'email_id', '', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0),
 (20, 'email_pass', '', '', '11211', '用户名密码', '0', 'text', 'email', 1, 0, 0),
 (21, 'email_secure', '', '', 'smtp', '邮箱发送协议', '0', 'text', 'email', 1, 0, 0),
-(22, 'upload_file_type', '', '', 'doc|bmp|jpg|png|tif|gif|pcx|tga|exif|fpx|svg|psd|cdr|pcd|dxf|ufo|eps|ai|raw|WMF|webp|mp3|mp4|rm|rar|zip|pptx|ppt|xsl|xslx', '图片上传保存方式', '0', 'text', 'upload', 1, 0, 0),
+(22, 'upload_file_type', '', '', 'mp4', '图片上传保存方式', '0', 'text', 'upload', 1, 0, 1602723793),
 (24, 'alioss_accessid', '', '', '', 'accessid', '0', 'text', 'alioss', 1, 0, 0),
 (25, 'alioss_accesssecret', '', '', '', 'oss_accesssecret', '0', 'text', 'alioss', 1, 0, 0),
 (26, 'alioss_bucket', '', '', '', 'oss_bucket', '0', 'text', 'alioss', 1, 0, 0),
@@ -694,7 +685,7 @@ INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, 
 
 CREATE TABLE `fun_member_account` (
   `id` int(10) UNSIGNED NOT NULL,
-  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
   `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
   `level` int(11) DEFAULT '-1' COMMENT '会员等级',
   `user_money` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
@@ -718,7 +709,7 @@ CREATE TABLE `fun_member_account` (
 
 CREATE TABLE `fun_member_address` (
   `id` int(10) NOT NULL COMMENT '主键',
-  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
   `member_id` int(11) UNSIGNED DEFAULT '0' COMMENT '用户id',
   `province_id` int(10) UNSIGNED DEFAULT '0' COMMENT '省id',
   `city_id` int(10) UNSIGNED DEFAULT '0' COMMENT '市id',
@@ -788,7 +779,7 @@ INSERT INTO `fun_member_level` (`id`, `name`, `amount`, `discount`, `status`, `s
 (3, '荣耀黄金', '3000.00', 94, 1, 0, '', 0, 1597652473),
 (4, '尊贵铂金', '10000.00', 95, 1, 0, '', 0, 1595411224),
 (5, '永恒钻石', '50000.00', 93, 1, 0, '', 0, 1597652927),
-(7, '通栏', '11.00', 100, 1, 0, '', 1599307077, 1600400815);
+(7, '默认', '11.00', 100, 1, 0, '', 1599307077, 1602818058);
 
 -- --------------------------------------------------------
 
@@ -798,7 +789,7 @@ INSERT INTO `fun_member_level` (`id`, `name`, `amount`, `discount`, `status`, `s
 
 CREATE TABLE `fun_member_third` (
   `id` int(10) UNSIGNED NOT NULL COMMENT 'ID',
-  `member_id` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '会员ID',
+  `member_id` int(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT '会员ID',
   `platform` varchar(30) NOT NULL DEFAULT '' COMMENT '第三方应用 weixin /qq /sina ',
   `unionid` varchar(80) DEFAULT NULL COMMENT 'unionid',
   `openid` varchar(50) NOT NULL DEFAULT '' COMMENT '第三方唯一ID',
@@ -1159,7 +1150,7 @@ ALTER TABLE `fun_admin_log`
 -- 使用表AUTO_INCREMENT `fun_attach`
 --
 ALTER TABLE `fun_attach`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_group`

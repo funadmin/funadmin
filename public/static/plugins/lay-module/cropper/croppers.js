@@ -1,10 +1,10 @@
 /*!
  * Cropper v3.0.0
  */
-layui.define(['jquery','layer'],function (exports) {
+layui.define(['jquery','layer','cropper'],function (exports) {
     var $ = layui.jquery
         ,layer = layui.layer;
-    var html =
+    var html = "<link rel=\"stylesheet\" href=\"/static/plugins/lay-module/cropper/cropper.css\">\n" +
         "<div class=\"layui-fluid showImgEdit\" style=\"display: none\">\n" +
         "    <div class=\"layui-form-item\">\n" +
         "        <div class=\"layui-input-inline layui-btn-container\" style=\"width: auto;\">\n" +
@@ -71,71 +71,71 @@ layui.define(['jquery','layer'],function (exports) {
                     , content: content
                     , area: area
                     , success: function () {
-                        // image.cropper(options);
+                        image.cropper(options);
                     }
                     , cancel: function (index) {
-                        // layer.close(index);
-                        // image.cropper('destroy');
+                        layer.close(index);
+                        image.cropper('destroy');
                     }
                 });
             });
-        //     $(".layui-btn").on('click',function () {
-        //         var event = $(this).attr("cropper-event");
-        //         //监听确认保存图像
-        //         if(event === 'confirmSave'){
-        //             image.cropper("getCroppedCanvas",{
-        //                 width: saveW,
-        //                 height: saveH
-        //             }).toBlob(function(blob){
-        //                 var formData=new FormData();
-        //                 formData.append('file',blob,'head.jpg');
-        //                 $.ajax({
-        //                     method:"post",
-        //                     url: url, //用于文件上传的服务器端请求地址
-        //                     data: formData,
-        //                     processData: false,
-        //                     contentType: false,
-        //                     success:function(result){
-        //                         if(result.code == 0){
-        //                             layer.msg(result.msg,{icon: 1});
-        //                             layer.closeAll('page');
-        //                             return done(result.data.src);
-        //                         }else if(result.code == -1){
-        //                             layer.alert(result.msg,{icon: 2});
-        //                         }
-        //
-        //                     }
-        //                 });
-        //             });
-        //             //监听旋转
-        //         }else if(event === 'rotate'){
-        //             var option = $(this).attr('data-option');
-        //             image.cropper('rotate', option);
-        //             //重设图片
-        //         }else if(event === 'reset'){
-        //             image.cropper('reset');
-        //         } else if (event === 'large') {
-        //             image.cropper('zoom', 0.1);
-        //         }
-        //         else if (event === 'small') {
-        //             image.cropper('zoom', -0.1);
-        //         }
-        //         else if (event === 'setDragMode') {
-        //             image.cropper('setDragMode', "move");
-        //         }
-        //         else if (event === 'setDragMode1') {
-        //             image.cropper('setDragMode', "crop");
-        //         }
-        //         //文件选择
-        //         file.change(function () {
-        //             var r= new FileReader();
-        //             var f=this.files[0];
-        //             r.readAsDataURL(f);
-        //             r.onload=function (e) {
-        //                 image.cropper('destroy').attr('src', this.result).cropper(options);
-        //             };
-        //         });
-        //     });
+            $(".layui-btn").on('click',function () {
+                var event = $(this).attr("cropper-event");
+                //监听确认保存图像
+                if(event === 'confirmSave'){
+                    image.cropper("getCroppedCanvas",{
+                        width: saveW,
+                        height: saveH
+                    }).toBlob(function(blob){
+                        var formData=new FormData();
+                        formData.append('file',blob,'head.jpg');
+                        $.ajax({
+                            method:"post",
+                            url: url, //用于文件上传的服务器端请求地址
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success:function(result){
+                                if(result.code == 0){
+                                    layer.msg(result.msg,{icon: 1});
+                                    layer.closeAll('page');
+                                    return done(result.data.src);
+                                }else if(result.code == -1){
+                                    layer.alert(result.msg,{icon: 2});
+                                }
+
+                            }
+                        });
+                    });
+                    //监听旋转
+                }else if(event === 'rotate'){
+                    var option = $(this).attr('data-option');
+                    image.cropper('rotate', option);
+                    //重设图片
+                }else if(event === 'reset'){
+                    image.cropper('reset');
+                } else if (event === 'large') {
+                    image.cropper('zoom', 0.1);
+                }
+                else if (event === 'small') {
+                    image.cropper('zoom', -0.1);
+                }
+                else if (event === 'setDragMode') {
+                    image.cropper('setDragMode', "move");
+                }
+                else if (event === 'setDragMode1') {
+                    image.cropper('setDragMode', "crop");
+                }
+                //文件选择
+                file.change(function () {
+                    var r= new FileReader();
+                    var f=this.files[0];
+                    r.readAsDataURL(f);
+                    r.onload=function (e) {
+                        image.cropper('destroy').attr('src', this.result).cropper(options);
+                    };
+                });
+            });
         }
 
     };

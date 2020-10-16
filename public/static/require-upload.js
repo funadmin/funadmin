@@ -195,7 +195,6 @@ define(["jquery",'croppers'], function ($,croppers) {
             cropper:function (){
                 let cropperlist = document.querySelectorAll("*[lay-cropper]");
                 if (cropperlist.length > 0) {
-                    console.log(cropperlist)
                     $.each(cropperlist, function () {
                         //创建一个头像上传组件
                         let id = $(this).attr('id');
@@ -207,6 +206,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                         saveH = saveH || 150;
                         mark = mark || 1;
                         area = area || '900px';
+                        console.log(croppers)
                         croppers.render({
                             elem: '#'+id
                             ,saveW:saveW     //保存宽度
