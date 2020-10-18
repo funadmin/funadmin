@@ -6,7 +6,8 @@ return array (
   array (
     'Testhook' => 
     array (
-      0 => 'database',
+      0 => 'cms',
+      1 => 'wechat',
     ),
     'Testhook1' => 
     array (

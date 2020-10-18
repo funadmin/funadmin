@@ -33,7 +33,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('CreateTime'), width: 180,},
+                    {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
                     {
                         minwidth: 250,
                         align: 'center',

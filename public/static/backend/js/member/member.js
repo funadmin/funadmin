@@ -94,6 +94,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             Table.api.bindEvent(table);
         },
         add:function () {
+
             Controller.api.bindevent()
         },
         edit:function () {

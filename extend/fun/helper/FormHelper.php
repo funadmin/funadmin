@@ -310,26 +310,6 @@ class FormHelper
         return $str;
 
     }
-    //裁剪上传
-    public static function croper($name='avatar', $formdata='', $options=[]){
-
-        $str = '<div class="layui-form-item">
-                <label class="layui-form-label">头像</label>
-                <div class="layui-input-inline">
-                    <input type="text" name="'.$name.'"  '.self::verify() . self::filter().' id="inputimgurl" placeholder="path" value="" class="layui-input">
-                </div>
-                <div class="layui-input-inline">
-                    <div class="layui-upload-list" style="margin:0">
-                        <img src="" id="srcimgurl" class="layui-upload-img">
-                    </div>
-                </div>
-                <div class="layui-input-inline layui-btn-container" style="width: auto;">
-                    <button class="layui-btn layui-btn-primary" id="editimg">'.lang('Edit').'</button >
-                </div>
-                <div class="layui-form-mid layui-word-aux">头像的尺寸限定150x150px,大小在500kb以内</div>
-                </div>';
-    }
-
     /**
      * @param string $name
      * @param string $formdata
@@ -353,8 +333,20 @@ class FormHelper
             $options['path'] = 'upload';
         }
         $li = '';
-        $croper_container = '<button class="layui-btn layui-btn-primary"  lay-cropper id="cropper">'.lang('Cropper').'</button>';
+        $croper_container = '';
         if(isset($options['cropper'])){
+            $width = isset($options['width'])?$options['width']:'300';
+            $height = isset($options['width'])?$options['width']:'300';
+            $mark = isset($options['width'])?$options['width']:'1';
+            $area = isset($options['area'])?$options['area']:'900px';
+            $croper_container = '<button type="button" 
+                lay-width = "'.$width.'"
+                lay-height = "'.$height.'"
+                lay-mark = "'.$mark.'"
+                lay-area = "'.$area.'"
+                class="layui-btn layui-btn-warm"  lay-cropper id="cropper">'
+                .lang('Cropper').
+                '</button>';
             $options['num'] = 1;
             $options['type'] = 'radio';
         }

@@ -4,7 +4,7 @@
  * FunAdmin
  * ============================================================================
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.cn
+ * 网站地址: https://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -37,7 +37,6 @@ class Index extends AddonsBackend
 
 
     public function index(){
-        hook('testhook',['id'=>1]);
         if(Request::isAjax()){
             $list = $this->db->dataList();
             $total = 0;
@@ -100,7 +99,6 @@ class Index extends AddonsBackend
     public function recover() {
         $time = $this->request->param('time');
         $list  = $this->db->getFile('timeverif',$time);
-        var_dump( $this->db->setFile($list)->import(1));
         $this->success('restore success') ;
     }
 

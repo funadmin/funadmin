@@ -166,13 +166,12 @@ class UploadService extends AbstractService
         if (in_array($file->getMime(), ['application/octet-stream', 'text/html','application/x-javascript']) || in_array($file->extension(), ['php', 'html', 'htm','xml','ssh'])) {
             throw new Exception(lang('File format is limited'));
         }
-
         //文件大小限制
         if (($file->getSize() > $this->fileMaxsize)) {
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制
-        if ($this->fileExt !='*' || !in_array($file->extension(),explode(',',$this->fileExt))) {
+        if ($this->fileExt !='*' && !in_array($file->extension(),explode(',',$this->fileExt))) {
             throw new Exception(lang('File type is limited'));
         }
         return true;

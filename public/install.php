@@ -393,7 +393,7 @@ Fun;
             <br>
             <div class="layui-footer footer">
                 <h5>Powered by <font>FunAdmin</font><font class="orange"></font></h5>
-                <h6>版权所有 2018-2020 © <a href="https://www.FunAdmin.cn" target="_blank">FunAdmin</a></h6>
+                <h6>版权所有 2018-2020 © <a href="https://www.FunAdmin.com" target="_blank">FunAdmin</a></h6>
             </div>
         </div>
 

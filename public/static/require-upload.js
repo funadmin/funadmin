@@ -21,6 +21,10 @@ define(["jquery",'croppers'], function ($,croppers) {
             uploads: function () {
                 Upload.api.uploads();
             },
+            //单图或多图文
+            cropper: function () {
+                Upload.api.cropper();
+            },
 
         },
         api: {
@@ -103,8 +107,8 @@ define(["jquery",'croppers'], function ($,croppers) {
                         uploadNum = uploadNum || 1;
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || 'image';
-                        var that = $(this).parents('.layui-upload')
-                        var input = that.find('input[type="text"]');
+                        var _parent = $(this).parents('.layui-upload')
+                        var input = _parent.find('input[type="text"]');
                         var uploadInt = upload.render({
                             elem: this
                             , accept: uploadAccept
@@ -133,9 +137,9 @@ define(["jquery",'croppers'], function ($,croppers) {
                                     var inputVal = input.val();
                                     if (uploadNum == 1) {
                                         input.val(res.url);
-                                        that.find('.layui-upload-list').html(html)
+                                        _parent.find('.layui-upload-list').html(html)
                                     } else if (uploadNum == '*') {
-                                        that.find('.layui-upload-list').append(html)
+                                        _parent.find('.layui-upload-list').append(html)
                                         if (inputVal) {
                                             val_temp = (inputVal + ',' + res.url)
 
@@ -144,7 +148,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                                         }
                                         input.val(val_temp);
                                     } else {
-                                        if (that.find('li').length >= uploadNum) {
+                                        if (_parent.find('li').length >= uploadNum) {
                                             Fun.toastr.error(__('File nun is limited'), function () {
                                                 setTimeout(function () {
                                                     Fun.toastr.close();
@@ -152,7 +156,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                                             })
                                             return false;
                                         } else {
-                                            that.find('.layui-upload-list').append(html)
+                                            _parent.find('.layui-upload-list').append(html)
                                             if (inputVal) {
                                                 val_temp = (inputVal + ',' + res.url)
 
@@ -197,26 +201,35 @@ define(["jquery",'croppers'], function ($,croppers) {
                 if (cropperlist.length > 0) {
                     $.each(cropperlist, function () {
                         //创建一个头像上传组件
+                        var _parent = $(this).parents('.layui-upload')
                         let id = $(this).attr('id');
                         let saveW = $(this).attr('lay-width');
                         let saveH = $(this).attr('lay-height');
                         let mark = $(this).attr('lay-mark');
                         let area = $(this).attr('lay-area');
-                        saveW = saveW || 150;
-                        saveH = saveH || 150;
+                        let uploadPath = $(this).attr('lay-path')
+                        saveW = saveW || 300;
+                        saveH = saveH || 300;
                         mark = mark || 1;
                         area = area || '900px';
-                        console.log(croppers)
                         croppers.render({
                             elem: '#'+id
                             ,saveW:saveW     //保存宽度
-                            ,saveH:saveH
+                            ,saveH:saveH    //保存高度
                             ,mark:mark    //选取比例
-                            ,area:'area'  //弹窗宽度
-                            ,url: Fun.url(Upload.init.requests.upload_url)  //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
-                            ,done: function(res){ //上传完毕回调
-                                console.log(res)
-                                $("#inputimgurl").val(res);
+                            ,area:area  //弹窗宽度
+                            ,url: Fun.url(Upload.init.requests.upload_url)+'?path='+uploadPath  //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
+                            ,done: function(res){
+                                //上传完毕回调
+                                if(res.code > 0){
+                                     Fun.toastr.success(res.msg);
+                                    _parent.find('input[type="text"]').val(res.url)
+                                    let html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                    _parent.find('.layui-upload-list').html(html)
+                                 }else if(result.code <= 0){
+                                    Fun.toastr.error(res.msg);
+                                 }
+
                             }
                         });
 
@@ -228,7 +241,7 @@ define(["jquery",'croppers'], function ($,croppers) {
             bindEvent: function () {
                 Upload.events.mutiUpload();
                 Upload.events.uploads();
-                Upload.events.cropper();
+                // Upload.events.cropper();
 
 
             }

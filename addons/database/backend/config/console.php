@@ -15,6 +15,6 @@
 return [
     // 指令定义
     'commands' => [
-        'demo' => 'addons\database\backend\commands\DemoCommand',
+//        'demo' => 'addons\database\backend\commands\DemoCommand',
     ],
 ];

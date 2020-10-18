@@ -6,16 +6,18 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
         init: {},
         //事件
         events: {
-            hk: function () {
+            fu: function () {
                 Fu.api.bindEvent()
             },
             uploads: function () {
+                console.log(1111)
                 Upload.api.uploads();
             },
             cropper: function () {
                 Upload.api.cropper();
             },
             chooseFiles: function () {
+                console.log(22222)
                 Form.api.chooseFiles()
             },
 
@@ -42,7 +44,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         if (url === undefined || url === '' || url == null) {
                             url = location.href;
                         } else {
-                            url = fun.url(url);
+                            url = Fun.url(url);
                         }
                         form.on('submit(' + filter + ')', function (data) {
                             if($('select[multiple]').length>0){
@@ -100,7 +102,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
 
             upfileDelete: function (othis) {
                 let fileurl = othis.attr('lay-fileurl'), that;
-                let confirm = fun.toastr.confirm(__('Are you sure？'), function () {
+                let confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
                     that = othis.parents('.layui-upload-list').parents('.layui-upload');
                     let input = that.find('input[type="text"]');
                     let inputVal = input.val();
@@ -323,9 +325,10 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 events.submit(form, success, error, submit);
                 events.required(form)
                 events.uploads() //上传
-                events.cropper() //上传
                 events.chooseFiles() //选择文件
-                events.hk() //日期
+                events.cropper() //上传
+
+                events.fu() //qita
                 events.bindevent(form);
                 //初始化数据
                 this.initForm();

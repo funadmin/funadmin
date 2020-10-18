@@ -21,18 +21,7 @@ use fun\Addons;
  */
 class Plugin extends Addons    // 需继承fun\Addon类
 {
-    // 该插件的基础信息
-    public $info = [
-        'name' => 'cms',    // 插件标识唯一
-        'title' => 'cms管理',    // 插件名称
-        'description' => 'funadmin -cms管理插件',    // 插件简介
-        'status' => 1,    // 状态
-        'author' => 'yuege',
-        'require' => '1.0',
-        'version' => '1.0',
-        'website' => 'https://demo.funadmin.com/cms'
 
-    ];
     public $menu = [
         'is_nav'=>0,//1导航栏；0 非导航栏
         'menu'=>
@@ -326,10 +315,10 @@ class Plugin extends Addons    // 需继承fun\Addon类
     public function testhook($param)
     {
         // 调用钩子时候的参数信息
-        dump($param);
-        // 当前插件的配置信息，配置信息存在当前目录的config.php文件中，见下方
-        dump($this->getInfo());
-        dump($this->getConfig(true));
+//        dump($param);
+//         当前插件的配置信息，配置信息存在当前目录的config.php文件中，见下方
+//        dump($this->getInfo());
+//        dump($this->getConfig(true));
         // 可以返回模板，模板文件默认读取的为插件目录中的文件。模板名不能为空！
         return $this->fetch('info');
     }

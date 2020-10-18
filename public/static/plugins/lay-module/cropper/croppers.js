@@ -1,19 +1,18 @@
 /*!
  * Cropper v3.0.0
  */
-layui.define(['jquery','layer','cropper'],function (exports) {
+layui.define(['jquery','cropper'],function (exports) {
     var $ = layui.jquery
-        ,layer = layui.layer;
     var html = "<link rel=\"stylesheet\" href=\"/static/plugins/lay-module/cropper/cropper.css\">\n" +
-        "<div class=\"layui-fluid showImgEdit\" style=\"display: none\">\n" +
+        "<div class=\"layui-fluid showImgEdit\" style=\"display: none;padding-top: 10px;\">\n" +
         "    <div class=\"layui-form-item\">\n" +
         "        <div class=\"layui-input-inline layui-btn-container\" style=\"width: auto;\">\n" +
         "            <label for=\"cropper_avatarImgUpload\" class=\"layui-btn layui-btn-primary\">\n" +
-        "                <i class=\"layui-icon\">&#xe67c;</i>选择图片\n" +
+        "                <i class=\"layui-icon\">&#xe67c;</i>Upload\n" +
         "            </label>\n" +
         "            <input class=\"layui-upload-file\" id=\"cropper_avatarImgUpload\" type=\"file\" value=\"选择图片\" name=\"file\">\n" +
         "        </div>\n" +
-        "        <div class=\"layui-form-mid layui-word-aux\">头像的尺寸限定150x150px,大小在50kb以内</div>\n" +
+        "        <div class=\"layui-form-mid layui-word-aux\">IMAGE SIZE LIMITED 300x300px,MAXSIZE 2M</div>\n" +
         "    </div>\n" +
         "    <div class=\"layui-row layui-col-space15\">\n" +
         "        <div class=\"layui-col-xs9\">\n" +
@@ -34,9 +33,9 @@ layui.define(['jquery','layer','cropper'],function (exports) {
         "                    <button type=\"button\" class=\"layui-btn layui-icon layui-icon-right\" cropper-event=\"rotate\" data-option=\"15\" title=\"Rotate 90 degrees\"> 向右旋转</button>\n" +
         "                </div>\n" +
         "                <div class=\"layui-col-xs5\" style=\"text-align: right;\">\n" +
-        "                    <button type=\"button\" class=\"layui-btn\" cropper-event=\"move\" title=\"移动\"></button>\n" +
-        "                    <button type=\"button\" class=\"layui-btn\" cropper-event=\"large\" title=\"放大图片\"></button>\n" +
-        "                    <button type=\"button\" class=\"layui-btn\" cropper-event=\"small\" title=\"缩小图片\"></button>\n" +
+        "                    <button type=\"button\" class=\"layui-btn layui-icon layui-icon-snowflake\n\" cropper-event=\"move\" title=\"移动\"></button>\n" +
+        "                    <button type=\"button\" class=\"layui-btn layui-icon layui-icon-addition\" cropper-event=\"large\" title=\"放大图片\"></button>\n" +
+        "                    <button type=\"button\" class=\"layui-btn layui-icon layui-icon-subtraction\n\" cropper-event=\"small\" title=\"缩小图片\"></button>\n" +
         "                    <button type=\"button\" class=\"layui-btn layui-icon layui-icon-refresh\" cropper-event=\"reset\" title=\"重置图片\"></button>\n" +
         "                </div>\n" +
         "            </div>\n" +
@@ -58,24 +57,24 @@ layui.define(['jquery','layer','cropper'],function (exports) {
                 area = e.area,
                 url = e.url,
                 done = e.done;
-
             var content = $('.showImgEdit')
                 ,image = $(".showImgEdit .readyimg img")
                 ,preview = '.showImgEdit .img-preview'
                 ,file = $(".showImgEdit input[name='file']")
                 , options = {aspectRatio: mark,preview: preview,viewMode:1};
-
             $(elem).on('click',function () {
                 layer.open({
                     type: 1
                     , content: content
                     , area: area
+                    ,move:true
                     , success: function () {
                         image.cropper(options);
                     }
                     , cancel: function (index) {
-                        layer.close(index);
+                        content.css('display','none')
                         image.cropper('destroy');
+                        layer.close(index);
                     }
                 });
             });
@@ -88,7 +87,7 @@ layui.define(['jquery','layer','cropper'],function (exports) {
                         height: saveH
                     }).toBlob(function(blob){
                         var formData=new FormData();
-                        formData.append('file',blob,'head.jpg');
+                        formData.append('file',blob,'fun-avatar.png');
                         $.ajax({
                             method:"post",
                             url: url, //用于文件上传的服务器端请求地址
@@ -96,14 +95,14 @@ layui.define(['jquery','layer','cropper'],function (exports) {
                             processData: false,
                             contentType: false,
                             success:function(result){
-                                if(result.code == 0){
-                                    layer.msg(result.msg,{icon: 1});
+                               if(result.code > 0){
+                           //      layer.msg(result.msg,{icon: 1});
                                     layer.closeAll('page');
-                                    return done(result.data.src);
-                                }else if(result.code == -1){
-                                    layer.alert(result.msg,{icon: 2});
+                                    $('.showImgEdit').hide()
+                                   // }else if(result.code <= 0){
+                               //      layer.alert(result.msg,{icon: 2});
                                 }
-
+                                return done(result);
                             }
                         });
                     });

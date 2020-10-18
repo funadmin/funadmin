@@ -1,5 +1,4 @@
 define(["jquery",'timePicker'], function ($,timePicker) {
-
     let form = layui.form,
         table = layui.table,
         laydate = layui.laydate;

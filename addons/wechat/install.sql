@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_account`;
-CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wx_account` (
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_account`;
+CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wechat_account` (
    `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '表id',
   `store_id` int(11) NOT NULL DEFAULT '1' COMMENT 'uid',
   `wxname` varchar(60) NOT NULL DEFAULT '' COMMENT '公众号名称',
@@ -34,11 +34,11 @@ CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wx_account` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COMMENT='微信公共帐号';
 
 
-INSERT INTO `__PREFIX__addons_wx_account` (`id`, `store_id`, `wxname`, `aeskey`, `encode`, `app_id`, `app_secret`, `origin_id`, `weixin`, `logo`, `token`, `w_token`, `related`, `create_time`, `update_time`, `tplcontentid`, `share_ticket`, `share_dated`, `authorizer_access_token`, `authorizer_refresh_token`, `authorizer_expires`, `type`, `web_access_token`, `web_refresh_token`, `web_expires`, `qr`, `menu_config`, `status`) VALUES
+INSERT INTO `__PREFIX__addons_wechat_account` (`id`, `store_id`, `wxname`, `aeskey`, `encode`, `app_id`, `app_secret`, `origin_id`, `weixin`, `logo`, `token`, `w_token`, `related`, `create_time`, `update_time`, `tplcontentid`, `share_ticket`, `share_dated`, `authorizer_access_token`, `authorizer_refresh_token`, `authorizer_expires`, `type`, `web_access_token`, `web_refresh_token`, `web_expires`, `qr`, `menu_config`, `status`) VALUES
 (1, 1, 'funadmin', 'adsfda', 0, 'wxecd04cbbfc06a972', 'ec83a45f2a561a90cf5f63e7476bae36', 'gh_8b042cc4ccf9', 'lemomcms', '/storage/uploads/20190905/dfdcecfa905e2858ae45b87542c0c5ab.png', 'weixin', 'weixins', 'https://demo.funadmin.com/wechat/wechatApi/related?store_id=1', 1490691329, 1580223682, '', '', '', '', '', '', 4, '9_ztdL3qhqHHAgFTIANDMStPvneUubYL0sANeFHEYDXu_qzElDwaQeSNwwhi1EfpDXzFwOeP05e0wMRpsJvQVVjnmhiWtZIqOwj4RwIdhXQnB1WPP0yw4pv8x2c_NA2ykcPKD-V6aTa3mFDKO9YJSaAAALWF', '', 1524884051, '/storage/uploads/20190905/2790a6a9cbb9ca1bcdfaca9b25d0316a.jpg', NULL, 1);
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_fans`;
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_fans` (
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_fans`;
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_fans` (
   `fans_id` int(11) NOT NULL AUTO_INCREMENT COMMENT  '粉丝ID',
   `wx_aid` int(11) DEFAULT NULL COMMENT '微信账户id',
   `uid` int(11) NOT NULL DEFAULT '0' COMMENT '会员编号ID',
@@ -76,14 +76,14 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_fans` (
 
 
 
-INSERT INTO `__PREFIX__addons_wx_fans` (`fans_id`, `wx_aid`, `uid`, `source_uid`, `store_id`, `nickname`, `nickname_encode`, `headimgurl`, `sex`, `language`, `country`, `province`, `city`, `district`, `openid`, `unionid`, `groupid`, `subscribe`, `subscribe_scene`, `remark`, `tag`, `tagid_list`, `subscribe_time`, `unsubscribe_time`, `qr_scene`, `qr_scene_str`, `status`, `update_time`, `create_time`) VALUES
+INSERT INTO `__PREFIX__addons_wechat_fans` (`fans_id`, `wx_aid`, `uid`, `source_uid`, `store_id`, `nickname`, `nickname_encode`, `headimgurl`, `sex`, `language`, `country`, `province`, `city`, `district`, `openid`, `unionid`, `groupid`, `subscribe`, `subscribe_scene`, `remark`, `tag`, `tagid_list`, `subscribe_time`, `unsubscribe_time`, `qr_scene`, `qr_scene_str`, `status`, `update_time`, `create_time`) VALUES
 (1, 32, 0, 0, 1, '🐘 心之所向🐘', '\"\\ud83d\\udc18 \\u5fc3\\u4e4b\\u6240\\u5411\\ud83d\\udc18\"', 'http://thirdwx.qlogo.cn/mmopen/Q3auHgzwzM4VFiaYnBD77jqvXaG55kz8cYgynjUAic5oNcrjkicjIGvVVyRYfLsiceojIlI709OKWPAQr95E2y2Ick6jSHSrIJXgtcn1VnDM4qE/132', 1, 'zh_CN', '中国', '湖南', '衡阳', '', 'oBSasxCSibhs0U_O8d1QCLRR6woQ', '', 2, 1, 'ADD_SCENE_QR_CODE', '', '星标组', '[2]', 1568970767, 0, '0', '', 1, 1572230913, 1567909800),
 (2, 32, 0, 0, 1, '少年智力开发报订阅', '\"\\u5c11\\u5e74\\u667a\\u529b\\u5f00\\u53d1\\u62a5\\u8ba2\\u9605\"', 'http://thirdwx.qlogo.cn/mmopen/7jOTIafB9k4w5h73kjDCf0o0IXjb7tNuJHk45lY9ZopsqS4rsQ5UxkAgvOqe49UESQyiaHp0jG7u3p1WhiaHpm7g/132', 1, 'zh_CN', '中国', '河北', '石家庄', '', 'oBSasxDCwYJ4QlFRgSbi-SZktfZs', '', 2, 1, 'ADD_SCENE_QR_CODE', '', '其他', '[2]', 1570784081, 0, '0', '', 1, 1572230913, 1571531137);
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_material`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_material`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_material` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_material` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '微信公众号素材',
   `store_id` int(11) NOT NULL DEFAULT '1',
   `wx_aid` int(11) DEFAULT NULL,
@@ -102,9 +102,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_material` (
 
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_material_info`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_material_info`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_material_info` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_material_info` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'id',
   `store_id` int(11) NOT NULL DEFAULT '1',
   `wx_aid` int(11) DEFAULT NULL,
@@ -127,9 +127,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_material_info` (
 ) ENGINE=InnoDB   AUTO_INCREMENT=1  DEFAULT CHARSET=utf8mb4;
 
 --
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_menu`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_menu`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_menu` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_menu` (
 
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `store_id` int(11) NOT NULL DEFAULT '1' COMMENT '店铺id',
@@ -150,15 +150,15 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_menu` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5  DEFAULT CHARSET=utf8mb4 COMMENT='微信设置->微信菜单';
 
 
-INSERT INTO `__PREFIX__addons_wx_menu` (`id`, `store_id`, `wx_aid`, `menu_name`, `ico`, `pid`, `menu_event_type`, `media_id`, `menu_event_url`, `hits`, `sort`, `create_time`, `update_time`) VALUES
+INSERT INTO `__PREFIX__addons_wechat_menu` (`id`, `store_id`, `wx_aid`, `menu_name`, `ico`, `pid`, `menu_event_type`, `media_id`, `menu_event_url`, `hits`, `sort`, `create_time`, `update_time`) VALUES
 (1, 0, NULL, '官网', '', 0, 2, 3, 'http://www.funadmin.com/', 0, 1, 1512442512, 0),
 (2, 0, NULL, '手册', '', 0, 2, 5, 'http://wx.funadmin.com/', 0, 2, 1512442543, 0),
 (3, 0, NULL, '论坛', '', 0, 1, 4, 'http://demo.funadmin.com/', 0, 3, 1512547727, 0),
 (4, 0, NULL, '百度', '', 3, 1, 0, 'http://bbs.funadmin.com/', 0, 1, 1542783759, 0);
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_msg_history`;
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_msg_history` (
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_msg_history`;
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_msg_history` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `store_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
   `wx_aid` int(11) DEFAULT NULL COMMENT '微信账号id',
@@ -178,9 +178,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_msg_history` (
 
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_qrcode`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_qrcode`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_qrcode` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_qrcode` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `store_id` int(11) NOT NULL,
   `wx_aid` int(11) NOT NULL,
@@ -198,9 +198,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_qrcode` (
 )  ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='微信二维码';
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_reply`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_reply`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_reply` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_reply` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '微信关键词回复表',
   `store_id` int(11) NOT NULL DEFAULT '1' COMMENT '店铺id',
   `wx_aid` int(11) DEFAULT NULL,
@@ -217,9 +217,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_reply` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='微信回复表';
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_tag`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_tag`;
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_tag` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wechat_tag` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `tag_id` int(11) DEFAULT NULL COMMENT 'tag id',
   `name` varchar(100) NOT NULL COMMENT '标签名',
@@ -232,9 +232,9 @@ CREATE TABLE IF NOT EXISTS `__PREFIX__addons_wx_tag` (
 ) ENGINE=InnoDB   AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='微信用户标签表';
 
 
-DROP TABLE IF EXISTS `__PREFIX__addons_wx_type`;
+DROP TABLE IF EXISTS `__PREFIX__addons_wechat_type`;
 
-CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wx_type` (
+CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wechat_type` (
   `type_id` tinyint(5) NOT NULL,
   `name` varchar(50) NOT NULL,
   `create_time` int(11) NOT NULL,
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS  `__PREFIX__addons_wx_type` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='微信类型表';
 
 
-INSERT INTO `__PREFIX__addons_wx_type` (`type_id`, `name`, `create_time`, `update_time`) VALUES
+INSERT INTO `__PREFIX__addons_wechat_type` (`type_id`, `name`, `create_time`, `update_time`) VALUES
 (1, '普通订阅号', 0, 0),
 (2, '认证订阅号', 0, 0),
 (3, '普通服务号', 0, 0),

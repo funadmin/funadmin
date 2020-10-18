@@ -35,7 +35,8 @@ require.config({
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
-        'croppers'    : 'plugins/lay-module/cropper/croppers',
+        'croppers'      : 'plugins/lay-module/cropper/croppers',
+        'moment'        : 'plugins/moment/moment',
 
         //自定义
         'fun'          : 'fun', // api扩展
@@ -63,11 +64,11 @@ require.config({
         'multiSelect': {
             deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
         },
-        'timePicker': {
+        'croppers': {
             deps: [
-                'plugins/moment/moment'
+                'plugins/lay-module/cropper/cropper'
             ],
-            // exports: "moment"
+            exports: "cropper"
         },
     },
 
@@ -89,7 +90,7 @@ require(['jquery'], function ($) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('no action')
+                            console.log('action not find')
                         }
                     });
                 }

@@ -1,7 +1,7 @@
 /**
  * 后台总控制js
  */
-define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
+define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     let layer = layui.layer,
         table = layui.table;
     layer.config({
@@ -381,6 +381,7 @@ define(["jquery","lang",'toastr'], function ($,Lang,Toastr) {
     };
     window.__ = Fun.lang;
     window.Toastr = Toastr;
+    window.Moment = Moment;
     window.Fun = Fun;
     return Fun;
 });

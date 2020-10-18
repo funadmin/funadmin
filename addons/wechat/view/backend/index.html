@@ -1,0 +1,99 @@
+
+<div class="LM-container">
+    <div class="LM-main">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>{:lang('wechat')}{:lang('list')}</legend>
+            <blockquote class="layui-elem-quote">
+                <div class="LM-table">
+
+                    <a href="{:url('add')}" class="layui-btn layui-btn-sm layui-btn-warm">{:lang('add')}{:lang('wechat')}</a>
+                </div>
+                测试号二维码:funadmin 请不要把此测试公众号状态关闭，否则其他微信体验功能可能会受到影响
+                <img width="120" src="http://mmbiz.qpic.cn/mmbiz_jpg/nKp1y5rQibOYE5UibSIrwLn6mFYy8L2SN74G3zPPZ12lxGHWH0eOTXs8trAnic2EctzibGkP42G48kmx7osiaibFKibWA/0" alt="二维码">
+            </blockquote>
+
+        </fieldset>
+
+        <table class="layui-table" id="list" lay-filter="list"></table>
+    </div>
+</div>
+
+<script>
+    layui.use(['form', 'table'], function () {
+        var $ = layui.jquery,
+            form = layui.form,
+            table = layui.table;
+
+        var tableIn = table.render({
+            elem: '#list',
+            url: '{:url("index")}',
+            method: 'post',
+            cols: [[
+                {checkbox: true, fixed: true},
+                {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                {field: 'wxname', title: '公众号名字', width: 120,},
+                {field: 'origin_id', title: '公众号原始ID', width: 120,},
+                {field: 'app_id', title: 'appid', width: 120, },
+                {field: 'app_secret', title: 'appsecret', width: 120, },
+                {field: 'w_token', title: '微信对接token', width: 120,},
+                {field: 'qr', title: '二维码', width: 120,templet:'#qr'},
+                {field: 'logo', title: 'logo', width: 120,templet:'#logo'},
+                {field: 'type_name', title: '类型', width: 120, },
+                // {field: 'store_id', title: '店铺id', width: 120,sort: true},
+                {field: 'status', title: '接入状态', width: 180, templet:'#status'},
+                {field: 'create_time', title: '添加时间', width: 180,templet:'#create_time'},
+                {field: 'update_time', title: '更新时间', width: 180,templet:'#update_time'},
+                {title:'操作',width:150, toolbar: '#action',align:"center"},
+
+            ]],
+
+        });
+
+        table.on('tool(list)', function(obj){
+            var data = obj.data;
+            if(obj.event === 'del'){
+                layer.confirm('{:lang("Are you sure you want to delete it")}', function(index){
+                    loading =layer.load(1, {shade: [0.1,'#fff']});
+                    $.post("{:url('delete')}",{id:data.id},function(res){
+                        layer.close(loading);
+                        layer.close(index);
+                        if(res.code>0){
+                            layer.msg(res.msg,{time:1000,icon:1});
+                            obj.del();
+                        }else{
+                            layer.msg(res.msg,{time:1000,icon:2});
+                        }
+                    });
+                });
+            }
+
+        });
+
+        form.on('switch(status)', function(data){
+                loading =layer.load(1, {shade: [0.1,'#fff']});
+                $.post("{:url('state')}",{id:data.value},function(res){
+                    layer.close(loading);
+                    if(res.code>0){
+                        layer.msg(res.msg,{time:1000,icon:1});
+                        tableIn.reload();
+                    }else{
+                        layer.msg(res.msg,{time:1000,icon:2});
+                    }
+                });
+        });
+
+        $('#search').click(function () {
+            var $keys = $('#keys').val();
+            if(!$keys){
+                return layer.msg('请输入关键词');
+            }
+
+            tableIn.reload({ page: {page: 1},where: {keys: $keys}});
+
+        })
+
+
+    });
+
+
+</script>
