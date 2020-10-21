@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\cms\controller;
+namespace addons\cms\frontend\controller;
 use app\common\controller\Frontend;
 use app\common\model\Addon;
 use think\facade\View;

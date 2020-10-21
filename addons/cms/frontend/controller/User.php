@@ -11,7 +11,7 @@
  * Date: 2019/8/2
  */
 
-namespace app\cms\controller;
+namespace addons\cms\frontend\controller;
 
 use lemo\helper\MailHelper;
 use lemo\helper\SignHelper;

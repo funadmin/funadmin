@@ -16,6 +16,12 @@ return array (
   ),
   'route' => 
   array (
+    [
+        'domain'=>'cms',
+        'rule'=>[
+            '/'=>'cms/frontend/index/index'
+        ]
+    ],
     'database/backend/index' => 'database/backend/index/index/index',
   ),
   'service' => 

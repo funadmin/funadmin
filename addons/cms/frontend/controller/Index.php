@@ -10,12 +10,13 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\cms\controller;
+namespace addons\cms\frontend\controller;
 
 use app\common\model\Addon;
-use app\common\model\CmsCategory;
-use app\common\model\CmsModule;
-use app\common\model\CmsTags;
+use addons\cms\common\model\CmsCategory;
+use addons\cms\common\model\CmsModule;
+use addons\cms\common\model\CmsTags;
+use app\common\model\Config;
 use think\facade\Cache;
 use think\facade\Request;
 use think\facade\View;
@@ -58,7 +59,7 @@ class Index extends CmsBase {
 
     public function index(){
 
-        return view();
+        return View::fetch('index');
     }
 
     public function tags(){
