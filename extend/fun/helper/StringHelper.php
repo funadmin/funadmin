@@ -214,12 +214,13 @@ class StringHelper
 
 
     /**
+     * 生成卡号
      * @param $prifix
      * @param int $num
      * @param int $length
      * @return array 生成卡密
      */
-    public static  function getCardId($num=1,$length=10,$prifix='HX_')
+    public static  function getCardId($num=1,$length=10,$prifix='F_')
     {
 
         //输出数组
@@ -262,7 +263,12 @@ class StringHelper
         return $card;
 
     }
-    //生成密码
+
+    /**
+     * 生成密码
+     * @param int $num
+     * @return array
+     */
     public static function getCardPwd($num=1)
     {
 
@@ -275,7 +281,11 @@ class StringHelper
         return $pwd;
     }
 
-    //获取加密token
+    /**
+     * 获取加密token
+     * @param $data
+     * @return string
+     */
     public static function getToken($data){
         $arr = '';
         if(is_array($data)){

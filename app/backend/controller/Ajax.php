@@ -3,7 +3,7 @@
  * FunAadmin
  * ============================================================================
  * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: https://www.FunAadmin.cn
+ * 网站地址: https://www.FunAadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -22,6 +22,7 @@ use fun\helper\FileHelper;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
+use think\facade\Cookie;
 use think\facade\Lang;
 
 class Ajax extends Backend
@@ -75,12 +76,13 @@ class Ajax extends Backend
     public function lang()
     {
         header('Content-Type: application/javascript');
+        $lang = Cookie::get('think_lang');
         $controllername = $this->request->get("controllername");
         $controllername = strtolower(parse_name($controllername,1));
         $addon = $this->request->param('addons');
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
         $this->loadlang($controllername,$addon);
-        return jsonp(Lang::get())->code(200)->options([
+        return jsonp(Lang::get($lang))->code(200)->options([
                     'var_jsonp_handler'     => 'callback',
                     'default_jsonp_handler' => 'jsonpReturn',
                     'json_encode_param'     => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,

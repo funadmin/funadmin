@@ -3,7 +3,7 @@
  * FunAadmin
  * ============================================================================
  * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: https://www.FunAadmin.cn
+ * 网站地址: https://www.FunAadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -87,6 +87,32 @@ class Backend extends BaseController
 
     }
 
+    public function enlang()
+    {
+        $lang = input('lang');
+        switch ($lang) {
+            case 'zh-cn':
+                Cookie::set('think_lang', 'zh-cn');
+                break;
+            case 'en-us':
+                Cookie::set('think_lang', 'en-us');
+                break;
+            default:
+                Cookie::set('think_lang', 'zh-cn');
+                break;
+        }
+        $this->success(lang('Change Success'));
+    }
+
+    /**
+     * @return \think\Response
+     * 验证码
+     */
+    public function verify()
+    {
+        return Captcha::create();
+    }
+
     //自动加载语言
     protected function loadlang($name,$addon=null)
     {
@@ -103,32 +129,6 @@ class Backend extends BaseController
         }
 
     }
-    public function enlang()
-    {
-        $lang = input('langset');
-        switch ($lang) {
-            case 'zh-cn':
-                cookie('think_lang', 'zh-cn');
-                break;
-            case 'en-us':
-                cookie('think_lang', 'en-us');
-                break;
-            default:
-                cookie('think_lang', 'zh-cn');
-                break;
-        }
-        $this->success('切换成功');
-    }
-
-    /**
-     * @return \think\Response
-     * 验证码
-     */
-    public function verify()
-    {
-        return Captcha::create();
-    }
-
     protected function validate(array $data, $validate, array $message = [], bool $batch = false)
     {
         try {
@@ -151,6 +151,8 @@ class Backend extends BaseController
             $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
         }
     }
+
+
 
     /**
      * 组合参数

@@ -5,6 +5,7 @@ use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\traits\Curd;
+use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Session;
 use think\facade\View;
@@ -21,6 +22,24 @@ class AuthGroup extends Backend
     {
         parent::__construct($app);
         $this->modelClass = new AuthGroupModel();
+    }
+
+    public function index()
+    {
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize,$sort, $where) = $this->buildParames();
+            $count = $this->modelClass
+                ->where($where)
+                ->count();
+            $list = $this->modelClass
+                ->where($where)
+                ->order('id asc')
+                ->page($this->page, $this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            return json($result);
+        }
+        return view();
     }
 
     // 用户组添加
@@ -44,7 +63,8 @@ class AuthGroup extends Backend
             }
 
         } else {
-            $authGroup = $this->modelClass->where('status',1)->select();
+            $authGroup = $this->modelClass->where('status',1)->select()->toArray();
+            $authGroup = TreeHelper::cateTree($authGroup);
             $view = [
                 'formData' => null,
                 'authGroup' => $authGroup,
@@ -73,7 +93,8 @@ class AuthGroup extends Backend
         } else {
             $id = $this->request->param('id');
             $list = $this->modelClass->find(['id' => $id]);
-            $authGroup = $this->modelClass->where('status',1)->select();
+            $authGroup = $this->modelClass->where('status',1)->select()->toArray();
+            $authGroup = TreeHelper::cateTree($authGroup);
             $view = [
                 'formData' => $list,
                 'authGroup' => $authGroup,

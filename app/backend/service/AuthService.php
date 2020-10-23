@@ -4,7 +4,7 @@
  * FunAadmin
  * ============================================================================
  * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: https://www.FunAadmin.cn
+ * 网站地址: https://www.FunAadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -354,7 +354,7 @@ class AuthService
             $html.='</li>';
         }
         $html.='<span class="layui-nav-bar" style="top: 22.5px; height: 0px; opacity: 0;"></span>';
-        return $html;   
+        return $html;
 
     }
 

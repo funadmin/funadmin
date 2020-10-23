@@ -140,6 +140,17 @@ if (!function_exists('form_submitbtn')) {
         return FormHelper::submitbtn($reset, $options);
     }
 }
+if (!function_exists('form_closebtn')) {
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    function form_closebtn($reset = true, $options=[])
+    {
+        return FormHelper::closebtn($reset,$options);
+    }
+}
 if (!function_exists('form_upload')) {
     /**
      * @param $name

@@ -1,8 +1,10 @@
-define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,multiSelect,Upload) {
+define(['jquery','iconPicker','cityPicker','timePicker','multiSelect','upload'],
+function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
     var iconPicker = layui.iconPicker,
         layedit = layui.layedit,
         timePicker = layui.timePicker,
-        colorpicker = layui.colorpicker,
+        colorPicker = layui.colorPicker,
+        cityPicker = layui.cityPicker,
         laydate = layui.laydate;
     let Hk = {
         init: {},
@@ -10,9 +12,9 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
         events: {
 
             editor:function (){
-                let layeditorlist = document.querySelectorAll("*[lay-editor]");
-                if (layeditorlist.length > 0) {
-                    $.each(layeditorlist, function () {
+                let list = document.querySelectorAll("*[lay-editor]");
+                if (list.length > 0) {
+                    $.each(list, function () {
                         console.log($(this).attr('lay-editor'))
                         if($(this).attr('lay-editor')==2){
                             let id = $(this).attr('id');
@@ -30,9 +32,9 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
 
             },
             icon: function () {
-                let iconList = document.querySelectorAll("*[lay-filters='iconPickers']");
-                if (iconList.length > 0) {
-                    $.each(iconList, function () {
+                let list = document.querySelectorAll("*[lay-filters='iconPickers']");
+                if (list.length > 0) {
+                    $.each(list, function () {
                         var _that = $(this);
                         let id = _that.attr('id');
                         iconPicker.render({
@@ -62,12 +64,12 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
 
             },
             color: function () {
-                let colorList = document.querySelectorAll("*[lay-filter='colorPicker']");
-                if (colorList.length > 0) {
-                    $.each(colorList, function () {
+                let list = document.querySelectorAll("*[lay-filter='colorPicker']");
+                if (list.length > 0) {
+                    $.each(list, function () {
                         var _that = $(this);
                         let id = $(this).attr('id');
-                        colorpicker.render({
+                        colorPicker.render({
                             // 选择器，推荐使用input
                             elem: '#' + id,
                             // 数据类型：fontClass/unicode，推荐使用fontClass
@@ -90,10 +92,27 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
                     })
                 }
             },
+            city: function (){
+                let list = document.querySelectorAll("*[lay-filter='cityPicker']");
+                if (list.length > 0) {
+                    $.each(list, function () {
+                        let id = $(this).attr('id');
+                        console.log(cityPicker)
+                        var currentPicker = new cityPicker("#cityPicker", {
+                            provincename:"provinceId",
+                            cityname:"cityId",
+                            districtname: "districtId",
+                            level: 'districtId',// 级别
+                        });
+                        // currentPicker.setValue("");
+
+                    })
+                }
+            },
             time:function (){
-                let timeList = document.querySelectorAll("*[lay-filter='timePicker']");
-                if (timeList.length > 0) {
-                    $.each(timeList, function () {
+                let list = document.querySelectorAll("*[lay-filter='timePicker']");
+                if (list.length > 0) {
+                    $.each(list, function () {
                         let id = $(this).attr('id');
                         timePicker.render({
                             elem: '#' + id, //定义输入框input对象
@@ -107,9 +126,9 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
                 }
             },
             date: function () {
-                let dateList = document.querySelectorAll("[lay-date]");
-                if (dateList.length > 0) {
-                    $.each(dateList, function () {
+                let list = document.querySelectorAll("[lay-date]");
+                if (list.length > 0) {
+                    $.each(list, function () {
                         let format = $(this).attr('lay-format'),
                             type = $(this).attr('lay-type'),
                             range = $(this).attr('lay-range');
@@ -146,10 +165,10 @@ define(['jquery','iconPicker','multiSelect','upload'], function ($,iconPicker,mu
                 let events = Hk.events;
                 events.icon();
                 events.color();
+                events.city();
                 events.date();
                 events.editor();
-                // events.time();
-                // events.multiSelect();
+                events.time();
                 events.bindevent();
 
             }

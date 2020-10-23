@@ -5,7 +5,7 @@ namespace fun\helper;
 class TreeHelper
 {
     /**
-     * 无线分类
+     * 无限分类
      */
     public static function getTree($arr,$pid=0){
 
@@ -18,7 +18,6 @@ class TreeHelper
         }
         return $list;
     }
-
     /**
      * 无限分类-权限
      * @param $cate            栏目

@@ -3,7 +3,7 @@
  * FunAadmin
  * ============================================================================
  * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: https://www.FunAadmin.cn
+ * 网站地址: https://www.FunAadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -36,7 +36,9 @@ class Index extends Backend{
             $menulsit = (new AuthService())->menuhtml($cate,false);
             cache('adminmenushtml' . session('admin.id'), $menulsit, ['expire' => 3600]);
         }
+        $languages = Db::name('languages')->cache(3600)->select();
         View::assign('menulist',$menulsit);
+        View::assign('languages',$languages);
         return view();
     }
 

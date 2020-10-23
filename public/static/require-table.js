@@ -301,15 +301,15 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var requests = Table.init.requests;
                 $.each(ele.operat, function (k, v) {
                     if (v === 'edit' || v === 'delete' || v === 'add') {
+                        let vv;
                         if (v === 'add') {
-                            let vv;
                             vv = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-xs layui-btn-warm',
                                 text: __('Add'),
                                 title: '',
-                                url: ele.init.requests.edit_url,
+                                url: ele.init.requests.add_url,
                                 icon: 'layui-icon layui-icon-add-circle-fine',
                                 extend: "",
                                 width: '600',
@@ -351,8 +351,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.url = vv.url || '';
                         vv.title = vv.title || vv.text || '';
                         vv.extend = vv.extend || '';
-
                         // 组合数据
+                        console.log(url)
                         vv.node = vv.url;
                         vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.id : vv.url + '?id=' + d.id;
                         vv.width = vv.width !== '' ? 'lay-width="' + vv.width + '"' : '';

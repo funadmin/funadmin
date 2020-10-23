@@ -1,5 +1,12 @@
+<script src="/static/plugins/lay-module/cityPicker/city-picker.data.js"></script>
 <div class="fun-main">
     <form class="layui-form" lay-filter="form">
+        <div class="layui-inline">
+            <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
+            <div class="layui-input-inline" style="width:400px">
+                <input type="text" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="cityPicker" name="city-picker" readonly="readonly" data-toggle="city-picker" placeholder="请选择">
+            </div>
+        </div>
         {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
         {:form_input('mobile','text',['verify'=>'phone'])}
         {:form_upload('avatar',$formData,['cropper'=>1])}

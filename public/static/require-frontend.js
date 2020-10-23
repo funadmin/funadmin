@@ -2,7 +2,6 @@ let BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, do
 console.log(Config.site.app_debug)
 require.config({
     urlArgs: 'v=' + (Config.site.app_debug ? (new Date().getTime()): Config.site.site_version),
-    // urlArgs: 'v=' + (new Date().getTime()),
     packages: [
         {
             name: 'moment',
@@ -34,8 +33,8 @@ require.config({
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
-        'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
+        'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         //自定义
         'fun'          : 'fun', // api扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展

@@ -3,12 +3,12 @@
         <form class="layui-form" lay-filter="form">
 
             <div class="layui-form-item">
-                <label class="layui-form-label">{:lang('AuthGroupPid')}</label>
+                <label class="layui-form-label">{:lang('Pid')}</label>
                 <div class="layui-input-block">
                     <select name="pid" lay-verify="required"  {if !empty($formData) && $formData.id ==1}disabled{/if}>
                     <option value="">--{:lang('Pid')}</option>
                     {volist name="authGroup" id="vo"}
-                    <option value="{$vo.id}" {if !empty($formData) && $formData.id==$vo.id} selected {/if} >{$vo.title}</option>
+                    <option value="{$vo.id}" {if empty($formData) && $vo.id==1}selected{/if} {if !empty($formData) && $formData.pid==$vo.id} selected {/if} >{$vo.ltitle}</option>
                     {/volist}
                     </select>
                 </div>

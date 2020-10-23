@@ -1,7 +1,6 @@
 let BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
 require.config({
     urlArgs: 'v=' + (Config.site.app_debug ? (new Date().getTime()): Config.site.site_version),
-    // urlArgs: 'v=' + (new Date().getTime()),
     packages: [
         {
             name: 'moment',

@@ -10,17 +10,62 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 Fu.api.bindEvent()
             },
             uploads: function () {
-                console.log(1111)
                 Upload.api.uploads();
             },
             cropper: function () {
                 Upload.api.cropper();
             },
+            //选择文件
             chooseFiles: function () {
-                console.log(22222)
                 Form.api.chooseFiles()
             },
+            //验证
+            verfiys:function (){
+                form.verify({
+                    user: function(value){ //value：表单的值、item：表单的DOM对象
+                        if(!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)){
+                            return '用户名不能有特殊字符';
+                        }
+                        if(/(^\_)|(\__)|(\_+$)/.test(value)){
+                            return '用户名首尾不能出现下划线\'_\'';
+                        }
+                        if(/^\d+\d+\d$/.test(value)){
+                            return '用户名不能全为数字';
+                        }
+                    }
+                    ,pass: [/^[\S]{6,18}$/, '密码必须6到18位，且不能出现空格']
+                    ,zipcode: [/^\d{6}$/, "请检查邮政编码格式"]
+                    ,chinese: [/^[\u0391-\uFFE5]+$/, "请填写中文字符"] //包含字母
+                    ,money:[/(^[1-9]([0-9]+)?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)/, "请输入正确的金额,且最多两位小数!"]
+                    ,letters: [/^[a-z]+$/i, "请填写字母"]
+                    ,digits: [/^\d+$/, '请填入数字']
+                    ,qq: [/^[1-9]\d{4,}$/, "请填写有效的QQ号"]
 
+                });
+            },
+            //必填项
+            required: function () {
+                let vfList = document.querySelectorAll("[lay-verify]");
+                if (vfList.length > 0) {
+                    $.each(vfList, function () {
+                        let verify = $(this).attr('lay-verify');
+                        // todo 必填项处理
+                        if (verify === 'required') {
+                            let label = $(this).parent().prev();
+                            if (label.is('label') && !label.hasClass('required')) {
+                                label.addClass('required');
+                            }
+                            if (typeof $(this).attr('lay-reqtext') === 'undefined' && typeof $(this).attr('placeholder') !== 'undefined') {
+                                $(this).attr('lay-reqtext', $(this).attr('placeholder'));
+                            }
+                            if (typeof $(this).attr('placeholder') === 'undefined' && typeof $(this).attr('lay-reqtext') !== 'undefined') {
+                                $(this).attr('placeholder', $(this).attr('lay-reqtext'));
+                            }
+                        }
+
+                    });
+                }
+            },
             submit: function (formObj, success, error, submit) {
                 let formList = document.querySelectorAll("[lay-submit]");
                 // 表单提交自动处理
@@ -76,30 +121,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
 
             },
 
-            //必填项
-            required: function () {
-                let vfList = document.querySelectorAll("[lay-verify]");
-                if (vfList.length > 0) {
-                    $.each(vfList, function () {
-                        let verify = $(this).attr('lay-verify');
-                        // todo 必填项处理
-                        if (verify === 'required') {
-                            let label = $(this).parent().prev();
-                            if (label.is('label') && !label.hasClass('required')) {
-                                label.addClass('required');
-                            }
-                            if ($(this).attr('lay-reqtext') === undefined && $(this).attr('placeholder') !== undefined) {
-                                $(this).attr('lay-reqtext', $(this).attr('placeholder'));
-                            }
-                            if ($(this).attr('placeholder') === undefined && $(this).attr('lay-reqtext') !== undefined) {
-                                $(this).attr('placeholder', $(this).attr('lay-reqtext'));
-                            }
-                        }
-
-                    });
-                }
-            },
-
+            //验证
             upfileDelete: function (othis) {
                 let fileurl = othis.attr('lay-fileurl'), that;
                 let confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
@@ -324,6 +346,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 let events = Form.events;
                 events.submit(form, success, error, submit);
                 events.required(form)
+                events.verfiys(form)
                 events.uploads() //上传
                 events.chooseFiles() //选择文件
                 events.cropper() //上传

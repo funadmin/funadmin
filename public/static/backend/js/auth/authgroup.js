@@ -14,7 +14,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     access: {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-warm',
-                        icon: 'layui-icon-add-circle-fine',
+                        icon: 'layui-icon-set-sm',
                         url: 'auth.authgroup/access',
                         text: __('Access Group'),
                         title: __('Access Group'),
@@ -50,8 +50,13 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                             align: 'center',
                             title: __('Operat'),
                             init: Table.init,
-                            templet: Table.templet.operat,
-                            operat: ['access', 'edit', 'delete',]
+                            templet: function (d){
+                                if(d.id==1){
+                                    return '';
+                                }
+                                return Table.templet.operat.call(this,d);
+                            },
+                            operat: ['access', 'edit', 'delete']
                         }
 
                     ]],
@@ -97,6 +102,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     ".layui-tree-entry{padding: 10px 15px;} .layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex!important;}" +
                     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst{display: inline-flex!important;}" +
                     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst.layui-tree-set{width: auto!important;}" +
+                    ".layui-tree-pack .layui-tree-spread .layui-tree-pack.layui-tree-lineExtend{display: inline-flex!important;}" +
                     ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
                     ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
                     "<\/style>"

@@ -71,7 +71,12 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                             align: 'center',
                             title: __('Operat'),
                             init: Table.init,
-                            templet: Table.templet.operat,
+                            templet: function (d){
+                                if(d.id==1){
+                                    return '';
+                                }
+                                return Table.templet.operat.call(this,d)
+                            },
                             operat: ['password','edit_full', 'delete']
                         }
 

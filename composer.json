@@ -14,7 +14,7 @@
     "homepage": "https://www.funadmin.com",
     "authors": [
         {
-            "name": "yue909",
+            "name": "funadmin",
             "email": "fun@gmail.com"
         }
     ],
@@ -34,7 +34,7 @@
         "aliyuncs/oss-sdk-php": "^2.3",
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
-        "funadmin/fun-addons": "v0.36",
+        "funadmin/fun-addons": "v0.38",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",
@@ -43,7 +43,7 @@
         "overtrue/socialite": "^3.0"
     },
     "require-dev": {
-        "symfony/var-dumper": "^4.2"
+        "symfony/var-dumper": "^4.4"
     },
     "autoload": {
         "psr-4": {

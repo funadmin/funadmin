@@ -10,18 +10,13 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace app\frontend\controller;
 
-use think\App;
-class Index extends \app\BaseController{
+namespace app\backend\model;
+class Languages extends BackendModel
+{
 
-    public function __construct(App $app)
+    public function __construct(array $data = [])
     {
-        parent::__construct($app);
+        parent::__construct($data);
     }
-
-    public function index(){
-        return view();
-    }
-
 }

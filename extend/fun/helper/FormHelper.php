@@ -281,6 +281,7 @@ class FormHelper
         return $str;
     }
 
+
     /**
      * @param string $name
      * @param $id
@@ -410,7 +411,21 @@ class FormHelper
             </div>';
         return $str;
     }
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    public static function closebtn($reset = true, $options=[])
+    {
+        $str =   '<div class="layui-form-item center">
+                <button type="button" class="layui-btn layui-btn-sm" onclick="parent.layui.layer.closeAll();">' . lang('Close') .
+            '</button>
+            </div>';
 
+        return $str;
+
+    }
     /**
      * @param bool $reset
      * @param array $options

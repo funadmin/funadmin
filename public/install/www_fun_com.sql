@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost:3306
--- 生成日期： 2020-10-16 16:14:08
+-- 生成日期： 2020-10-23 16:58:56
 -- 服务器版本： 5.7.26-log
 -- PHP 版本： 7.4.9
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- 数据库： `funadmin`
+-- 数据库： `www_fun_com`
 --
 
 -- --------------------------------------------------------
@@ -243,8 +243,8 @@ CREATE TABLE `fun_admin` (
 --
 
 INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`) VALUES
-(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '14e39a43bc3244844f7a571b08413ac814ce76ed', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1602808477),
-(3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1600433383);
+(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '3bf4b7158724d2bd326630ff0651f777cec4a604', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1603423906),
+(3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1603265320);
 
 -- --------------------------------------------------------
 
@@ -254,18 +254,18 @@ INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `rea
 
 CREATE TABLE `fun_admin_log` (
   `id` bigint(16) UNSIGNED NOT NULL COMMENT '表id',
+  `module` varchar(50) DEFAULT NULL,
   `admin_id` int(10) DEFAULT NULL COMMENT '管理员id',
   `username` varchar(100) DEFAULT NULL,
   `method` varchar(50) DEFAULT NULL COMMENT '请求方式',
+  `title` varchar(100) DEFAULT NULL COMMENT '日志描述',
   `url` varchar(100) DEFAULT NULL,
   `content` text,
-  `title` varchar(100) DEFAULT NULL COMMENT '日志描述',
   `agent` varchar(200) DEFAULT NULL,
   `ip` varchar(30) DEFAULT NULL COMMENT 'ip地址',
   `create_time` int(11) DEFAULT NULL COMMENT '日志时间',
   `update_time` int(11) DEFAULT NULL,
-  `status` tinyint(1) DEFAULT '1',
-  `module` varchar(50) DEFAULT NULL
+  `status` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
@@ -327,7 +327,7 @@ CREATE TABLE `fun_auth_group` (
 
 INSERT INTO `fun_auth_group` (`id`, `pid`, `title`, `status`, `rules`, `create_time`, `update_time`) VALUES
 (1, 0, '超级管理员', 1, '1,44,36,24,43,25,41,29,30,26,27,28,42,32,33,34,35,31,37,38,39,40,2,9,10,11,12,13,14,15,16,17,18,19,20,21,23,3,6,7,8,5,22,45,46,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,', 1554298659, 1599903527),
-(3, 1, '其他', 1, '1,44,36,24,43,25,41,29,30,26,27,28,42,32,33,34,35,31,37,38,39,40,2,9,10,11,12,13,14,15,16,17,18,19,20,21,23,3,6,7,8,5,4,22,45,46,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,', 1554298659, 1599904656);
+(3, 1, '其他', 1, '1,44,36,24,25,43,41,30,26,27,28,29,42,32,33,34,35,31,37,38,39,40,66,71,67,68,69,70,2,9,10,11,12,13,14,15,16,17,18,19,20,21,23,3,6,7,8,5,4,22,45,46,51,49,50,52,53,54,55,56,57,58,59,60,61,62,63,', 1554298659, 1603437871);
 
 -- --------------------------------------------------------
 
@@ -422,7 +422,13 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (62, 'backend', '_self', 'member.memberGroup/Add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 58, 50, 1567568305, 1599884252),
 (63, 'backend', '_self', 'member.memberGroup/edit', 'Edit', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', '', 58, 50, 1567568357, 1599884251),
 (64, 'backend', '_self', 'addon.addon', 'Addon', 1, 1, 1, 1, 'layui-icon layui-icon-app', '', 0, 501, 1580880615, 1599892096),
-(65, 'backend', '_self', 'addon/addon/index', 'List', 0, 1, 1, 0, 'layui-icon-face-smile-fine', '', 64, 50, 1599889019, 1599889019);
+(65, 'backend', '_self', 'addon/addon/index', 'List', 0, 1, 1, 0, 'layui-icon-face-smile-fine', '', 64, 50, 1599889019, 1599889019),
+(66, 'backend', '_self', 'sys.languages', 'languages', 1, 1, 1, 1, 'layui-icon layui-icon-rate', '', 1, 50, 1603427312, 1603428082),
+(67, 'backend', '_self', 'sys.languages/index', 'List', 0, 1, 1, 0, 'layui-icon-rate', '', 66, 50, 1603427492, 1603427524),
+(68, 'backend', '_self', 'sys.languages/delete', 'delete', 0, 1, 1, 0, 'layui-icon-rate', '', 66, 50, 1603427492, 1603427524),
+(69, 'backend', '_self', 'sys.languages/modify', 'Modify', 0, 1, 1, 0, 'layui-icon-rate', '', 66, 50, 1603427492, 1603427524),
+(70, 'backend', '_self', 'sys.languages/add', 'Add', 0, 1, 1, 0, 'layui-icon-rate', '', 66, 50, 1603427492, 1603427524),
+(71, 'backend', '_self', 'sys.languages/edit', 'Edit', 0, 1, 1, 0, 'layui-icon-rate', '', 66, 50, 1603427492, 1603427524);
 
 -- --------------------------------------------------------
 
@@ -453,13 +459,13 @@ INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `rema
 (1, 'site_name', '', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 0, 1602808542),
 (2, 'site_phone', '', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 0, 1581831391),
 (3, 'site_state', '', '', '1', '状态', '0', 'radio', 'site', 1, 0, 1581825436),
-(4, 'site_logo', '', '', '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', '网站logo图1', '0', 'image', 'site', 1, 0, 1583583460),
+(4, 'site_logo', '', '', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '网站logo图1', '0', 'image', 'site', 1, 0, 1603438560),
 (5, 'site_mobile_logo', '', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 0, 1583583460),
 (6, 'site_logowx', '', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 0, 1583583460),
 (7, 'site_icp', '', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 0, 1583583461),
 (8, 'site_tel400', '', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 0, 0),
 (9, 'site_email', '', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 0, 0),
-(10, 'site_copyright', '', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 0, 0),
+(10, 'site_copyright', '', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 0, 1603435866),
 (11, 'app_debug', '', '0,1', '0', '测试模式', '', 'radio', 'site', 1, 0, 1602315188),
 (18, 'email_addr', '', '', '994927909@qq.com', '邮箱发件人地址', '0', 'text', 'email', 1, 0, 0),
 (19, 'email_id', '', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0),
@@ -484,13 +490,13 @@ INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `rema
 (45, 'site_domain', '', '', 'https://www.FunAdmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0),
 (46, 'upload_file_max', '', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 0, 0),
 (47, 'site_seo_title', '', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 0, 0),
-(48, 'site_seo_keywords', '', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 0, 0),
+(48, 'site_seo_keywords', '', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 0, 1603266121),
 (49, 'site_seo_desc', '', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 0, 1601288743),
 (50, 'upload_water', '', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 1601287987),
 (51, 'upload_water_position', '', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0),
 (59, 'upload_driver', 'local', '', 'alioss', '上传配置', '0', 'text', 'upload', 1, 1594213311, 1595419144),
 (60, 'site_version', '1.2', '', '1.0', '版本', '0', 'text', 'site', 1, 0, 1600828560),
-(61, 'qiniuoss_accesskey', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0),
+(61, 'qiniuoss_accesskey', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 1603266108),
 (62, 'qiniuoss_accesssecret', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0),
 (63, 'qiniuoss_bucket', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0),
 (64, 'qiniuoss_cdn_domain', '', '', '', '解释,备注', '0', 'text', 'qiniuoss', 1, 0, 0),
@@ -602,10 +608,10 @@ INSERT INTO `fun_field_verfiy` (`verfiy`, `title`) VALUES
 -- --------------------------------------------------------
 
 --
--- 表的结构 `fun_language`
+-- 表的结构 `fun_languages`
 --
 
-CREATE TABLE `fun_language` (
+CREATE TABLE `fun_languages` (
   `id` int(11) UNSIGNED NOT NULL,
   `name` varchar(20) NOT NULL,
   `create_time` int(11) DEFAULT NULL,
@@ -614,12 +620,13 @@ CREATE TABLE `fun_language` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- 转存表中的数据 `fun_language`
+-- 转存表中的数据 `fun_languages`
 --
 
-INSERT INTO `fun_language` (`id`, `name`, `create_time`, `update_time`, `is_default`) VALUES
+INSERT INTO `fun_languages` (`id`, `name`, `create_time`, `update_time`, `is_default`) VALUES
 (1, 'zh-cn', 0, 0, 1),
-(2, 'en-us', 0, 0, 0);
+(2, 'en-us', 0, 0, 0),
+(3, 'zh_tw', 1603434544, 1603434599, 0);
 
 -- --------------------------------------------------------
 
@@ -675,7 +682,7 @@ CREATE TABLE `fun_member` (
 --
 
 INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, `password`, `paypwd`, `sex`, `birthday`, `underling_number`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `mobile_validated`, `avatar`, `province`, `city`, `district`, `email_validated`, `realname`, `nickname`, `level_id`, `discount`, `status`, `is_distribut`, `first_leader`, `second_leader`, `third_leader`, `token`, `message_mask`, `push_id`, `distribut_level`, `is_vip`, `min_qrcode`, `poster`) VALUES
-(4, 1, 1, '994927909@qq.com', '15647244355', '', '', 1, 0, 0, 0, 1596181549, 1599882916, 0, 0, '', '', '18397423845', 0, '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', 0, 0, 0, 0, '', '', 1, '1.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, '', '');
+(4, 1, 1, '994927909@qq.com', '15647244355', '', '', 1, 0, 0, 0, 1596181549, 1603266096, 0, 0, '', '', '18397423845', 0, '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', 0, 0, 0, 0, '', '', 1, '1.00', 1, 0, 0, 0, 0, '', 63, '', 0, 0, '', '');
 
 -- --------------------------------------------------------
 
@@ -1036,9 +1043,9 @@ ALTER TABLE `fun_field_verfiy`
   ADD UNIQUE KEY `verfiy` (`verfiy`);
 
 --
--- 表的索引 `fun_language`
+-- 表的索引 `fun_languages`
 --
-ALTER TABLE `fun_language`
+ALTER TABLE `fun_languages`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -1162,7 +1169,7 @@ ALTER TABLE `fun_auth_group`
 -- 使用表AUTO_INCREMENT `fun_auth_rule`
 --
 ALTER TABLE `fun_auth_rule`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config`
@@ -1183,10 +1190,10 @@ ALTER TABLE `fun_field_type`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
--- 使用表AUTO_INCREMENT `fun_language`
+-- 使用表AUTO_INCREMENT `fun_languages`
 --
-ALTER TABLE `fun_language`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+ALTER TABLE `fun_languages`
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member`

@@ -22,7 +22,7 @@ class HttpHelper
      * @param array  $options 扩展参数
      * @return mixed|string
      */
-    public static function post($url, $params = [], $options = [])
+    public static function post($url, $params = [], $options = [],$cookie=[])
     {
         $req = self::sendRequest($url, $params, 'POST', $options);
         return $req['ret'] ? $req['msg'] : '';
@@ -35,7 +35,7 @@ class HttpHelper
      * @param array  $options 扩展参数
      * @return mixed|string
      */
-    public static function get($url, $params = [], $options = [])
+    public static function get($url, $params = [], $options = [],$cookie=[])
     {
         $req = self::sendRequest($url, $params, 'GET', $options);
         return $req['ret'] ? $req['msg'] : '';
@@ -49,7 +49,7 @@ class HttpHelper
      * @param mixed  $options CURL的参数
      * @return array
      */
-    public static function sendRequest($url, $params = [], $method = 'POST', $options = [])
+    public static function sendRequest($url, $params = [], $method = 'POST', $options = [],$cooki=[])
     {
         $method = strtoupper($method);
         $protocol = substr($url, 0, 5);
@@ -69,7 +69,11 @@ class HttpHelper
             }
             $defaults[CURLOPT_POSTFIELDS] = $query_string;
         }
+        if(!empty($cookies)){
+            curl_setopt($ch, CURLOPT_COOKIE, $cookies);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookies);
 
+        }
         $defaults[CURLOPT_HEADER] = false;
         $defaults[CURLOPT_USERAGENT] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.98 Safari/537.36";
         $defaults[CURLOPT_FOLLOWLOCATION] = true;

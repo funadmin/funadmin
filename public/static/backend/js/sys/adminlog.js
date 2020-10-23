@@ -1,6 +1,6 @@
-define(['jquery','table'], function (undefined,Table) {
+define(['jquery','table','form'], function (undefined,Table,Form) {
 
-    return  {
+    return Controller =   {
         index: function () {
             Table.init = {
                 table_elem: 'list',
@@ -8,6 +8,7 @@ define(['jquery','table'], function (undefined,Table) {
                 requests: {
                     index_url: 'sys.adminlog/index',
                     delete_url: 'sys.adminlog/delete',
+                    edit_url:   'sys.adminlog/edit',
                     delall_url: {
                         type: 'delete',
                         class: 'layui-btn-sm layui-btn-danger',
@@ -43,16 +44,23 @@ define(['jquery','table'], function (undefined,Table) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['delete']
+                        operat: ['edit','delete']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
                 page: true
             });
-
             let table = $('#' + Table.init.table_elem);
             Table.api.bindEvent(table);
         },
+        edit:function (){
+            Controller.api.bindevent();
+        },
+        api:{
+            bindevent: function () {
+                Form.api.bindEvent($('form'))
+            }
+        }
     };
 });

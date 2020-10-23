@@ -41,7 +41,7 @@
                     </a>
                 </li>
                 <li class="layui-nav-item" lay-unselect="">
-                    <a href="http://www.FunAadmin.cn/" target="_blank" title="{:lang('Home')}">
+                    <a href="http://www.FunAadmin.com/" target="_blank" title="{:lang('Home')}">
                         <i class="layui-icon layui-icon-website"></i>
                     </a>
                 </li>
@@ -75,11 +75,13 @@
                 </li>
                 <li class="layui-nav-item">
                     <a href="javascript:;">
-                        lang
+                        {:lang('language')}
                     </a>
                     <dl class="layui-nav-child">
-                        <dd><a lay-event="langset" title="{:lang('zh-cn')}" lay-ajax="{:__u('enlang',['lang'=>'zh-cn'])}">{:lang('zh-cn')}</a></dd>
-                        <dd><a lay-event="langset" title="en-us" lay-ajax="{:__u('enlang',['langset'=>'en-us'])}">en-us</a></dd>
+                        {volist name='languages' id="vo"}
+                        <dd><a lay-event="langset" title="{:lang($vo.name)}" lay-ajax="{:__u('enlang',['lang'=>$vo.name])}">{:lang($vo.name)}</a></dd>
+                        {/volist}
+<!--                        <dd><a lay-event="langset" title="{:lang('en-us')}" lay-ajax="{:__u('enlang',['langset'=>'en-us'])}">en-us</a></dd>-->
                     </dl>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
@@ -96,7 +98,7 @@
             <div class="layui-side-scroll">
                 <!--logo-->
                 <div class="layui-logo">
-                    <a href="https://www.FunAadmin.cn">
+                    <a href="https://www.FunAadmin.com">
                         <img src="{:syscfg('site','site_logo')}" alt="logo">
                         <cite>{:syscfg('site','site_name')}</cite></a>
                 </div>
@@ -107,7 +109,7 @@
                 <ul data-rel="external" class="layui-nav layui-nav-tree header" style="margin: auto" lay-filter="test">
                     <li class="layui-nav-item" style="margin-left: 15px;">相关链接</li>
                     <li class="layui-nav-item">
-                        <a href="https://www.FunAadmin.cn" target="_blank">
+                        <a href="https://www.FunAadmin.com" target="_blank">
                         <i class="layui-icon layui-icon-home"></i>
                         <span>系统官网</span>
                         </a>

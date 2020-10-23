@@ -581,5 +581,5 @@ layui.define(['jquery'], function (exports) {
     //});
 
 
-    exports('citypicker', CityPicker);
-}).link('/static/plugins/lay-module/cityPicker/city-picker.css');
+    exports('cityPicker', CityPicker);
+}).link('/static/plugins/lay-module/cityPicker/city-picker.css')
