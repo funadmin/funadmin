@@ -25,4 +25,9 @@ class Cmsadv extends BaseModel
         parent::__construct($data);
     }
 
+    public function cmsPos()
+    {
+        return $this->belongsTo('CmsAdvPosition', 'pid', 'id');
+    }
+
 }

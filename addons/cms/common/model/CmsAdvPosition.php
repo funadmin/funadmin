@@ -18,7 +18,7 @@ use app\common\model\BaseModel;
 
 class CmsAdvPosition extends BaseModel
 {
-    protected $name = 'addons_cms_position';
+    protected $name = 'addons_cms_adv_position';
 
     public function __construct(array $data = [])
     {

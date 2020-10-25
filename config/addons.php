@@ -4,24 +4,17 @@ return array (
   'autoload' => true,
   'hooks' => 
   array (
-    'Testhook' => 
-    array (
-      0 => 'cms',
-      1 => 'wechat',
-    ),
     'Testhook1' => 
     array (
       0 => 'ueditor',
     ),
+    'Testhook' => 
+    array (
+      0 => 'wechat',
+    ),
   ),
   'route' => 
   array (
-    [
-        'domain'=>'cms',
-        'rule'=>[
-            '/'=>'cms/frontend/index/index'
-        ]
-    ],
     'database/backend/index' => 'database/backend/index/index/index',
   ),
   'service' => 

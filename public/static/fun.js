@@ -25,6 +25,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     };
     let Fun = {
         url: function (url) {
+            console.log(Config)
             url = Fun.common.parseNodeStr(url)
             if (!Config.addonname) {
                 if (url.indexOf(Config.entrance) === -1) {
@@ -32,9 +33,11 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 } else {
                     return url;
                 }
-            } else {
-                return '/' + $.trim(url, '/');
+            } else if(Config.addonname && Config.modulename=='backend' &&　url.indexOf('ajax') !=-1){
+                return Config.entrance + $.trim(url, '/');
 
+            }else{
+                return '/' + $.trim(url, '/');
             }
 
         },
@@ -86,7 +89,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 contentType: "application/x-www-form-urlencoded; charset=UTF-8",
                 dataType: "json",
                 data: option.data,
-                timeout: 6000,
+                timeout: 0,
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
@@ -103,12 +106,13 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     }
                 },
                 error: function (xhr) {
-                    let message = xhr.responseJSON.message ? __(xhr.responseJSON.message) : __('，Try again later!');
+                    console.log(xhr);
+                    let message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
                     Fun.toastr.error('Status:' + xhr.status + '\n' + message, function () {
                         // $("input[name='__token__']").val(xhr.responseJson);
                         ex(this);
                     });
-                    return false;
+                    // return false;
                 },
                 complete: function (xhr) {
                     let token = xhr.getResponseHeader('__token__');
@@ -378,7 +382,9 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
 
         },
 
+
     };
+    window.init = Fun.init;
     window.__ = Fun.lang;
     window.Toastr = Toastr;
     window.Moment = Moment;

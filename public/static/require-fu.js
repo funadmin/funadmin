@@ -6,7 +6,7 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
         colorPicker = layui.colorPicker,
         cityPicker = layui.cityPicker,
         laydate = layui.laydate;
-    let Hk = {
+    let Fu = {
         init: {},
         //事件
         events: {
@@ -162,7 +162,7 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
         api: {
             //绑定事件
             bindEvent: function () {
-                let events = Hk.events;
+                let events = Fu.events;
                 events.icon();
                 events.color();
                 events.city();
@@ -175,6 +175,6 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
         }
     };
 
-    return Hk;
+    return Fu;
 
 })

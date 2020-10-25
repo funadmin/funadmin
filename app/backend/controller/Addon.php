@@ -19,6 +19,7 @@ use app\common\traits\Curd;
 use fun\helper\FileHelper;
 use fun\addons\Service;
 use think\App;
+use think\Exception;
 use think\facade\View;
 use app\common\model\Addon as AddonModel;
 
@@ -74,6 +75,7 @@ class Addon extends Backend
      */
     public function install()
     {
+        set_time_limit(0);
         $name = $this->request->param("name");
 //        插件名是否为空
         if (!$name) {
@@ -106,14 +108,19 @@ class Addon extends Backend
             $menu[] = $menu_config['menu'];
             $addonService->addAddonMenu($menu,$pid);
         }
-        //添加数据库
+
         $info = get_addons_info($name);
         $info['status'] = 1;
         $res =  $this->modelClass->create($info);
         if (!$res) {
             $this->error(lang('addon install fail'));
         }
-        importsql($name);//导入数据库
+        //添加数据库
+        try{
+            importsql($name);
+        } catch (Exception $e){
+            $this->error($e->getMessage());
+        }
         $sourceAssetsDir = Service::getSourceAssetsDir($name);
         $destAssetsDir = Service::getDestAssetsDir($name);
         if (is_dir($sourceAssetsDir)) {
@@ -129,8 +136,8 @@ class Addon extends Backend
                 }
             }
         }
-
         try {
+
             Service::updateAddonsInfo($name);
             Service::updateAdddonsConfig();
             //刷洗addon文件
@@ -149,6 +156,7 @@ class Addon extends Backend
      */
     public function uninstall()
     {
+        set_time_limit(0);
         $name = $this->request->param("name");
         if (!$name) {
             $this->error(lang('parameter Addon name can not be empty'));
@@ -181,9 +189,13 @@ class Addon extends Backend
             $addonService = new AddonService();
             $addonService->delAddonMenu($menu);
         }
+        try {
+            uninstallsql($name);
 
+        }catch (Exception $e){
+            $this->error($e->getMessage());
+        }
         //卸载sql;
-        uninstallsql($name);
 
 
         // 移除插件基础资源目录

@@ -28,11 +28,10 @@ INSERT INTO `__PREFIX__addons_cms_link` VALUES ('26', '新浪', 'https://www.sin
 CREATE TABLE  IF NOT EXISTS `__PREFIX__addons_cms_adv` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '广告id',
   `pid` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '广告位置ID',
-  `type` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT '广告类型 0,图片,1 文字链接,2 视频',
+  `type` tinyint(3) unsigned NOT NULL DEFAULT '0' COMMENT '广告类型 0,图片,1 链接,2 视频',
   `name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告名称',
   `url` varchar(255) DEFAULT '' COMMENT '链接地址',
   `path` mediumtext COMMENT '文件地址',
-  `type` mediumtext COMMENT '类型 0，图片 1 视频',
   `code` mediumtext COMMENT '代码',
   `start_time` int(11) NOT NULL DEFAULT '0' COMMENT '投放时间',
   `end_time` int(11) NOT NULL DEFAULT '0' COMMENT '结束时间',

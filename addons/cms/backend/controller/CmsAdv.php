@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2019/8/2
  */
+
 namespace addons\cms\backend\controller;
 
 use app\common\controller\AddonsBackend;
@@ -20,71 +21,82 @@ use think\facade\Db;
 use think\facade\Request;
 use think\facade\View;
 use  addons\cms\common\model\Cmsadv as AdvModel;
-class Cmsadv extends AddonsBackend {
+
+class Cmsadv extends AddonsBackend
+{
     use Curd;
+
+    protected $modelClass;
 
     public function __construct(App $app)
     {
         parent::__construct($app);
+        $this->modelClass = new AdvModel();
     }
     /*-----------------------广告管理----------------------*/
-    // 广告列表
     public function index()
     {
-        if(Request::isPost()){
-            $keys = $this->request->post('keys','','trim');
-            $page = $this->request->post('page') ? $this->request->post('page') : 1;
-            $list=Db::name('addons_cms_adv')->alias('a')
-                ->join('addons_cms_adv_position ap','a.pid = ap.id','left')
-                ->field('a.*,ap.position_name,ap.position_desc')
-                ->where('a.ad_name','like','%'.$keys.'%')
-                ->order('a.sort desc,a.id desc')
-                ->paginate(['list_rows' => $this->pageSize, 'page' => $page])
-                ->toArray();
-            return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list['data'],'count'=>$list['total']];
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $count = $this->modelClass->with('group')
+                ->where($where)
+                ->count();
+            $list = $this->modelClass
+                ->with('cmsPos')
+                ->where($where)
+                ->order($sort)
+                ->page($this->page, $this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            return $result;
         }
-
         return view();
     }
 
     // 广告添加
     public function add()
     {
-        if (Request::isAjax()) {
+        if ($this->request->isAjax()) {
             $data = $this->request->post();
-            try{
-                $this->validate($data, 'CmsAdv');
-            }catch (\Exception $e){
-                $this->error($e->getMessage());
+            $rule = [
+                'pid|广告位置' => [
+                    'require' => 'require',
+                ],
+                'image|广告图片' => [
+                    'require' => 'require',
+                ],
+                'name|广告名' => [
+                    'require' => 'require',
+                ],
+            ];
+            $this->validate($data, $rule);
+
+
+            if ($data['start_time']) {
+                $data['start_time'] = strtotime($data['start_time']);
             }
-            if($data['time']){
-                $time = explode(' - ',$data['time']);
-                $data['start_time'] = strtotime($time[0]);
-                $data['end_time'] = strtotime($time[1]);
-            }else{
-                $data['start_time'] = '';
-                $data['end_time'] = '';
+            if ($data['end_time']) {
+                $data['end_time'] = strtotime($data['end_time']);
             }
 
-            //添加
-            $result = AdvModel::create($data);
-            if ($result) {
-                $this->success(lang('add success'), url('index'));
+            if ($this->modelClass->save($data)) {
+                $this->success(lang('Add Success'));
             } else {
-                $this->error(lang('add fail'));
+                $this->error(lang('Add Failed'));
             }
+
         } else {
-            $info = '';
+            $formData = '';
             $posGroup = CmsAdvPosition::where('status', 1)->select();
             $view = [
-                'info'  =>$info,
+                'formData' => $formData,
                 'posGroup' => $posGroup,
-                'title' => lang('add'),
             ];
             View::assign($view);
             return view();
         }
     }
+
     /**
      * 广告修改
      */
@@ -92,9 +104,9 @@ class Cmsadv extends AddonsBackend {
     {
         if (Request::isPost()) {
             $data = $this->request->post();
-            try{
+            try {
                 $this->validate($data, 'CmsAdv');
-            }catch (\Exception $e){
+            } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
             AdvModel::update($data);
@@ -105,7 +117,7 @@ class Cmsadv extends AddonsBackend {
             if ($id) {
                 $posGroup = CmsAdvPosition::where('status', 1)->select();
                 $info = AdvModel::find($id);
-                $info['time'] = date('Y-m-d',$info['start_time']).' - '.date('Y-m-d',$info['end_time']);
+                $info['time'] = date('Y-m-d', $info['start_time']) . ' - ' . date('Y-m-d', $info['end_time']);
                 $view = [
                     'info' => $info,
                     'posGroup' => $posGroup,
@@ -129,14 +141,13 @@ class Cmsadv extends AddonsBackend {
     }
 
 
-
     // 广告状态修改
     public function state()
     {
         if (Request::isPost()) {
             $id = $this->request->post('id');
             if (empty($id)) {
-                $this->error('id'.lang('not exist'));
+                $this->error('id' . lang('not exist'));
             }
             $adv = AdvModel::find($id);
             $status = $adv['status'] == 1 ? 0 : 1;
@@ -152,18 +163,18 @@ class Cmsadv extends AddonsBackend {
     // 广告位置管理
     public function pos()
     {
-        if(Request::isPost()){
+        if (Request::isPost()) {
             //条件筛选
             $keys = Request::param('keys');
 
             //查出所有数据
-            $list = CmsAdvPosition::where('position_name','like','%'.$keys.'%')
+            $list = CmsAdvPosition::where('position_name', 'like', '%' . $keys . '%')
                 ->order('id desc')
                 ->paginate(
                     $this->pageSize, false,
                     ['query' => Request::param()]
                 )->toArray();
-            return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list['data'],'count'=>$list['total']];
+            return $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list['data'], 'count' => $list['total']];
 
         }
 
@@ -173,17 +184,18 @@ class Cmsadv extends AddonsBackend {
     }
 
 
-
     // 广告位置添加
     public function posAdd()
     {
         if (Request::isPost()) {
             $data = $this->request->post();
-            try {
-                $this->validate($data, 'CmsAdvPosition');
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
+            $rule = [
+                'name|位置名' => [
+                    'require' => 'require',
+                    'unique' => 'addons_cms_adv_position'
+                ],
+            ];
+
             $result = CmsAdvPosition::create($data);
             if ($result) {
                 $this->success(lang('add  success'), url('pos'));
@@ -207,17 +219,17 @@ class Cmsadv extends AddonsBackend {
         if (Request::isPost()) {
             $data = $this->request->post();
 
-            try{
+            try {
                 $this->validate($data, 'CmsAdvPosition');
-            }catch (\Exception $e){
+            } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
             $where['id'] = $data['id'];
             $res = CmsAdvPosition::update($data, $where);
-            if($res){
+            if ($res) {
 
                 $this->success(lang('edit success'), url('pos'));
-            }else{
+            } else {
                 $this->error(lang('edit fail'));
 
             }
@@ -246,6 +258,7 @@ class Cmsadv extends AddonsBackend {
 
         }
     }
+
     // 广告位置删除
     public function posDel()
     {
@@ -257,4 +270,4 @@ class Cmsadv extends AddonsBackend {
 
     }
 
-   }
+}

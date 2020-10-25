@@ -2,17 +2,9 @@
         <div class="admin-main layui-anim layui-anim-upbit">
             <form class="layui-form" lay-filter="form">
 
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('username')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="username" lay-verify="required" placeholder="{:lang('username')}" class="layui-input {if $formData && $formData.id!==1}layui-disabled{/if}"  {if  $formData && $formData.id!==1}readonly="readonly"{/if}>
-                        <div class="layui-form-mid layui-word-aux">
-                            用户名在4到25个字符之间。
-                        </div>
-                    </div>
-                </div>
+                {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
                 {if !$formData}
-                {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 digits and less than 15 digits'] )}
+                {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
                 {/if}
                 {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formdata)?$formdata['group_id']:''))}
                 {:form_upload('avatar',$formData)}

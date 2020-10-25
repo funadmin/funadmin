@@ -1,0 +1,16 @@
+
+
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
+            {:form_input('name','text',['verify'=>'required','tips'=>'name must be greater than 6 digits and less than 15 digits'] )}
+            {:form_upload('url',$formData,['label'=>'url','type'=>'radio','num'=>'1'])}
+            {:form_select('pid',$posGroup,['verify'=>'required','multiple'=>0,'search'=>1] ,'id,name',(isset($formdata)?$formdata['pid']:''))}
+            {:form_date('start_time')}
+            {:form_date('end_time')}
+            {:form_submitbtn()}
+
+        </form>
+    </div>
+
+</div>

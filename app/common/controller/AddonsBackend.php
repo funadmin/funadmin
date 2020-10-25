@@ -50,7 +50,7 @@ class AddonsBackend extends Controller
      * 模板布局, false取消
      * @var string|bool
      */
-    protected $layout = 'layout/main';
+    protected $layout = '../app/backend/view/layout/main.html';
 
     /**
      * 快速搜索时执行查找的字段

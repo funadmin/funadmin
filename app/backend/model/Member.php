@@ -19,9 +19,9 @@ class Member extends BackendModel {
     {
         parent::__construct($data);
     }
-    public function userGroup(){
+    public function memberGroup(){
 
-        return  $this->belongsTo('UserGroup','group_id','id');
+        return  $this->belongsTo('memberGroup','group_id','id');
     }
     public function memberLevel()
     {

@@ -23,105 +23,107 @@ class Plugin extends Addons    // 需继承fun\Addon类
 {
 
     public $menu = [
-        'is_nav'=>0,//1导航栏；0 非导航栏
+        'is_nav'=>1,//1导航栏；0 非导航栏
         'menu'=>
             [
-            'href' => 'addons/cms',
+            'href' => 'cms',
             'title' => 'cms管理',
             'status' => 1,
             'auth_open' => 1,
             'menu_status' => 1,
-            'icon' => 'fa fa-telegram',
+            'icon' => 'layui-icon layui-icon-component',
             'menulist' => [
                 [
-                    'href' => 'addons/cms.cmsCategory/index',
-                    'title' => '栏目分类',
+                    'href' => 'addons/cms/backend/cmsCategory',
+                    'title' => 'Category',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-comments-o',
+                    'icon' => 'layui-icon layui-icon-template-1',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsCategory/add', 'title' => '添加分类', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/index', 'title' => '栏目', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/edit', 'title' => '编辑分类', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/add', 'title' => '添加分类', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/delete', 'title' => '删除分类', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/edit', 'title' => '编辑分类', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/state', 'title' => '分类状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/delete', 'title' => '删除分类', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/content', 'title' => '栏目内容', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/modify', 'title' => '分类状态', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/addinfo', 'title' => '添加内容', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/content', 'title' => '栏目内容', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/contentDel', 'title' => '内容删除', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/addinfo', 'title' => '添加内容', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/flashCache', 'title' => '清除缓存', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/contentDel', 'title' => '内容删除', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsCategory/flashCache', 'title' => '清除缓存', 'status' => 1,
                             'menu_status' => 0,],
                     ]
                 ],
                 [
-                    'href' => 'admin/cms.cmsCategory/list',
-                    'title' => '栏目列表',
+                    'href' => 'addons/cms/backend/cmsCategory/list',
+                    'title' => 'Categorylist',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-comments-o',
+                    'icon' => 'layui-icon layui-icon-template-1',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsCategory/content', 'title' => '栏目内容', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/content', 'title' => '栏目内容', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/addinfo', 'title' => '添加栏目信息', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/addinfo', 'title' => '添加栏目信息', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/board', 'title' => '栏目面板', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/board', 'title' => '栏目面板', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/contentState', 'title' => '栏目内容状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/contentState', 'title' => '栏目内容状态', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsCategory/flashCache', 'title' => '刷新缓存', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsCategory/flashCache', 'title' => '刷新缓存', 'status' => 1,
                             'menu_status' => 0,],
                     ]
                 ],
                 [
-                    'href' => 'admin/cms.cmsModule/index',
-                    'title' => '模型管理',
+                    'href' => 'addons/cms/backend/cmsModule',
+                    'title' => 'Module',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-bandcamp',
+                    'icon' => 'layui-icon  layui-icon-template-1',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsModule/add', 'title' => '添加模型', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/index', 'title' => 'list', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/edit', 'title' => '编辑模型', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/state', 'title' => '模型状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/delete', 'title' => '删除模型', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/modify', 'title' => 'modify', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/field', 'title' => '字段列表', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/fieldAdd', 'title' => '字段添加', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/field', 'title' => 'field', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/fieldEdit', 'title' => '字段编辑', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/fieldAdd', 'title' => 'fieldadd', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/fieldDel', 'title' => '字段删除', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/fieldEdit', 'title' => 'fieldedit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/fieldState', 'title' => '字段状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/fielddelete', 'title' => 'fielddelete', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsModule/fieldSort', 'title' => '字段排序', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsModule/fieldmodify', 'title' => 'fieldmodify', 'status' => 1,
                             'menu_status' => 0,],
-
-
                     ]
                 ],
                 [
-                    'href' => 'admin/cms.cmsLink/index',
-                    'title' => '友情链接',
+                    'href' => 'addons/cms/backend/cmsLink',
+                    'title' => 'Link',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-instagram',
+                    'icon' => 'layui-icon layui-icon-unlink',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsLink/add', 'title' => '添加友情', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsLink/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsLink/edit', 'title' => '编辑友情', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsLink/add', 'title' => 'Add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsLink/state', 'title' => '友情状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsLink/edit', 'title' => 'Edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsLink/delete', 'title' => '删除友情', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsLink/modify', 'title' => 'modify', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsLink/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
 
@@ -130,19 +132,21 @@ class Plugin extends Addons    // 需继承fun\Addon类
                 ],
                 
                 [
-                    'href' => 'admin/cms.cmsAdv/index',
-                    'title' => '广告管理',
+                    'href' => 'addons/cms/backend/cmsAdv/index',
+                    'title' => 'Adv',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-clock-o',
+                    'icon' => 'layui-icon layui-icon-component',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsAdv/add', 'title' => '添加广告', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdv/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/edit', 'title' => '编辑广告', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdv/add', 'title' => '添加广告', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/state', 'title' => '广告状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdv/edit', 'title' => '编辑广告', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/delete', 'title' => '删除广告', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdv/modify', 'title' => '广告状态', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsAdv/delete', 'title' => '删除广告', 'status' => 1,
                             'menu_status' => 0,],
 
 
@@ -151,19 +155,22 @@ class Plugin extends Addons    // 需继承fun\Addon类
                 ],
                 
                 [
-                    'href' => 'admin/cms.cmsAdv/pos',
-                    'title' => '广告位',
+                    'href' => 'addons/cms/backend/cmsPos',
+                    'title' => 'Advpos',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-newspaper-o',
+                    'icon' => 'layui-icon layui-icon-unlink
+',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsAdv/posAdd', 'title' => '添加广告位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsPos/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/posEdit', 'title' => '编辑广告位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsPos/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/posState', 'title' => '广告位状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsPos/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsAdv/posDel', 'title' => '删除广告位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsPos/modify', 'title' => 'modify', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsPos/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
                     ]
@@ -172,19 +179,21 @@ class Plugin extends Addons    // 需继承fun\Addon类
 
 
                 [
-                    'href' => 'admin/cms.cmsDebris/index',
-                    'title' => '碎片管理',
+                    'href' => 'addons/cms/backend/cmsDebris',
+                    'title' => 'Debris',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-clock-o',
+                    'icon' => 'layui-icon-list',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsDebris/add', 'title' => '添加碎片', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebris/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/edit', 'title' => '编辑碎片', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebris/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/state', 'title' => '碎片状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebris/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/delete', 'title' => '删除碎片', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebris/modify', 'title' => 'modify', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsDebris/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
 
@@ -193,74 +202,74 @@ class Plugin extends Addons    // 需继承fun\Addon类
                 ],
 
                 [
-                    'href' => 'admin/cms.cmsDebris/pos',
-                    'title' => '碎片位',
+                    'href' => 'addons/cms/backend/cmsDebrisPos',
+                    'title' => 'DebrisPosition',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-newspaper-o',
+                    'icon' => 'layui-icon layui-icon-location',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsDebris/posAdd', 'title' => '添加碎片位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebrisPos/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/posEdit', 'title' => '编辑碎片位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebrisPos/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/posState', 'title' => '碎片位状态', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebrisPos/modify', 'title' => 'modify', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsDebris/posDel', 'title' => '删除碎片位', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsDebrisPos/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
                     ]
                 ],
 
                 [
-                    'href' => 'admin/cms.cmsTags/index',
-                    'title' => '标签',
+                    'href' => 'addons/cms/backend/cmsTags/index',
+                    'title' => 'Tags',
                     'status' => 1,
                     'menu_status' => 1,
-                    'icon' => 'fa fa-newspaper-o',
+                    'icon' => 'layui-icon layui-icon-face-smile',
                     'menulist' => [
-                        ['href' => 'admin/cms.cmsTags/index', 'title' => '标签', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsTags/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsTags/add', 'title' => '添加标签', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsTags/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsTags/edit', 'title' => '编辑标签', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsTags/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'admin/cms.cmsTags/delete', 'title' => '删除标签', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsTags/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
                     ]
                 ],
 
-//                [
-//                    'href' => 'admin/cms.cmsDiyform/index',
-//                    'title' => '自定义表单',
-//                    'status' => 1,
-//                    'menu_status' => 1,
-//                    'icon' => 'fa fa-check-square',
-//                    'menulist' => [
-//                        ['href' => 'admin/cms.cmsDiyform/index', 'title' => '表单', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/add', 'title' => '添加表单', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/edit', 'title' => '编辑表单', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/delete', 'title' => '删除表单', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/state', 'title' => '表单状态', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/datalist', 'title' => '数据列表', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/datadel', 'title' => '数据删除', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/field', 'title' => '字段列表', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/fieldadd', 'title' => '字段添加', 'status' => 1,
-//                            'menu_status' => 0,],
-//                        ['href' => 'admin/cms.cmsDiyform/fielddel', 'title' => '字段删除', 'status' => 1,
-//                            'menu_status' => 0,],
-//
-//
-//                    ]
-//                ],
+                [
+                    'href' => 'admin/cms.cmsDiyform/index',
+                    'title' => 'Diyform',
+                    'status' => 1,
+                    'menu_status' => 1,
+                    'icon' => 'layui-icon layui-icon-form',
+                    'menulist' => [
+                        ['href' => 'admin/cms.cmsDiyform/index', 'title' => 'list', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/add', 'title' => 'add', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/edit', 'title' => 'edit', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/delete', 'title' => 'delete', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/modify', 'title' => 'modify', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/datalist', 'title' => 'datalist', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/datadel', 'title' => 'datadel', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/field', 'title' => 'field', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/fieldadd', 'title' => 'fieldadd', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'admin/cms.cmsDiyform/fielddel', 'title' => 'fielddel', 'status' => 1,
+                            'menu_status' => 0,],
+
+
+                    ]
+                ],
 
 
 
@@ -307,20 +316,5 @@ class Plugin extends Addons    // 需继承fun\Addon类
         return true;
     }
 
-
-    /**
-     * 实现的testhook钩子方法
-     * @return mixed
-     */
-    public function testhook($param)
-    {
-        // 调用钩子时候的参数信息
-//        dump($param);
-//         当前插件的配置信息，配置信息存在当前目录的config.php文件中，见下方
-//        dump($this->getInfo());
-//        dump($this->getConfig(true));
-        // 可以返回模板，模板文件默认读取的为插件目录中的文件。模板名不能为空！
-        return $this->fetch('info');
-    }
 
 }

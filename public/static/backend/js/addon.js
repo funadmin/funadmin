@@ -147,10 +147,12 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 if (event === 'install') {
                     // if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
                     Fun.toastr.confirm('Are you sure you want to install it', function () {
+                        let index = layer.load();
                         Fun.ajax({
                             url: url,
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
+                                layer.close(index)
                                 Fun.refreshmenu();
                                 Fun.toastr.close()
                                 layui.table.reload(Table.init.tableId);
