@@ -33,11 +33,12 @@ require.config({
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
-        'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
+        'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
+        'moment'        : 'plugins/moment/moment',
         //自定义
         'fun'          : 'fun', // api扩展
-        'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
+        'md5'           : 'plugins/lay-module/md5/md5.min', // md5
         'form'          : 'require-form',
         'fu'            : 'require-fu',
         'table'         : 'require-table',

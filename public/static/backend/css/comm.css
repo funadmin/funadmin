@@ -64,7 +64,10 @@ body {
     border-color: #95a5a6;
     border: 1px solid transparent;
 }
-
+.layui-icon{
+    margin:0 auto!important;
+    padding: 3px;
+}
 .layui-layer.layui-layer-dialog .layui-layer-btn0 {
     background-color: #1aa094 !important;
 }

@@ -1,16 +1,16 @@
-define(['jquery','iconPicker','cityPicker','timePicker','multiSelect','upload'],
-function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
+define(['jquery','iconPicker','cityPicker','timePicker',,'regionCheckBox','multiSelect','upload'],
+function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) {
     var iconPicker = layui.iconPicker,
-        layedit = layui.layedit,
         timePicker = layui.timePicker,
-        colorPicker = layui.colorPicker,
+        regionCheckBox = layui.regionCheckBox,
         cityPicker = layui.cityPicker,
-        laydate = layui.laydate;
+        laydate = layui.laydate
+        layedit = layui.layedit,
+        colorPicker = layui.colorpicker;
     let Fu = {
         init: {},
         //事件
         events: {
-
             editor:function (){
                 let list = document.querySelectorAll("*[lay-editor]");
                 if (list.length > 0) {
@@ -77,14 +77,12 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
                             // 是否开启搜索：true/false
                             predefine: true,//预定义颜色是否开启
                             colors: ['#F00','#0F0','#00F','rgb(255, 69, 0)','rgba(255, 69, 0, 0.5)'],//预定义颜色，此参数需配合 predefine: true 使用。
-
                             size:'lg',//下拉框大小，可以选择：lg、sm、xs。
                             // 点击回调
                             change: function(color){
 
                             },
                             done: function(color){//颜色选择后的回调
-                                console.log(color)
                                 _that.prev('input[type="hidden"]').val(color)
                             }
                         });
@@ -92,13 +90,46 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
                     })
                 }
             },
+            regionCheck: function (){
+                let list = document.querySelectorAll("*[lay-filter='regionCheck']");
+                if (list.length > 0) {
+
+                    $.each(list, function () {
+                        let _that = $(this);
+                        let id =_that.attr('id');
+                        let name = _that.attr('name');
+                        //执行实例
+                        regionCheckBox.render({
+                            elem: '#'+id,
+                            name: name, //input name
+                            value: ['北京', '内蒙古', '江西-九江'], //赋初始值
+                            width: '550px', //默认550px
+                            border: true, //默认true
+                            ready: function(){ //初始化完成时执行
+                                _that.prev('input[type="hidden"]').val(getAllChecked())
+                            },
+                            change: function(result){ //点击复选框时执行
+                                _that.prev('input[type="hidden"]').val(getAllChecked())
+                            }
+                        });
+                        function getAllChecked(){
+                            var all = '';
+                            $("input:checkbox[name='"+name+"']:checked").each(function(){
+                                all += $(this).val() + ',';
+                            });
+                            return all.substring(0, all.length-1);
+                        }
+                    })
+
+                }
+            },
+
             city: function (){
                 let list = document.querySelectorAll("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         let id = $(this).attr('id');
-                        console.log(cityPicker)
-                        var currentPicker = new cityPicker("#cityPicker", {
+                        var currentPicker = new cityPicker("#"+id, {
                             provincename:"provinceId",
                             cityname:"cityId",
                             districtname: "districtId",
@@ -169,6 +200,7 @@ function ($,iconPicker,cityPicker,timePicker,multiSelect,Upload) {
                 events.date();
                 events.editor();
                 events.time();
+                events.regionCheck();
                 events.bindevent();
 
             }

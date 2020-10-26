@@ -29,18 +29,18 @@
         "topthink/think-captcha": "^3.0",
         "topthink/think-helper": "^3.1",
         "topthink/think-multi-app": "^1.0",
-        "ramsey/uuid": "^3.8",
         "phpmailer/phpmailer": "^6.1",
-        "aliyuncs/oss-sdk-php": "^2.3",
+        "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
-        "funadmin/fun-addons": "v0.38",
+        "funadmin/fun-addons": "v0.43",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",
         "james-heinrich/getid3": "^1.9",
         "overtrue/wechat": "^5.1",
-        "overtrue/socialite": "^3.0"
+        "overtrue/socialite": "^3.0",
+        "ramsey/uuid": "^4.1"
     },
     "require-dev": {
         "symfony/var-dumper": "^4.4"

@@ -25,7 +25,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     };
     let Fun = {
         url: function (url) {
-            console.log(Config)
             url = Fun.common.parseNodeStr(url)
             if (!Config.addonname) {
                 if (url.indexOf(Config.entrance) === -1) {
@@ -33,7 +32,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 } else {
                     return url;
                 }
-            } else if(Config.addonname && Config.modulename=='backend' &&　url.indexOf('ajax') !=-1){
+            } else if(Config.addonname && Config.modulename =='backend' &&　url.indexOf('ajax') !=-1){
                 return Config.entrance + $.trim(url, '/');
 
             }else{
@@ -93,8 +92,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                beforeSend: function (xhr) {
-
+                beforeSend: function (xhr,request) {
+                    request.url = Fun.url(request.url);
                 },
                 success: function (res) {
                     Fun.toastr.close(index);
@@ -109,10 +108,10 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     console.log(xhr);
                     let message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
                     Fun.toastr.error('Status:' + xhr.status + '\n' + message, function () {
-                        // $("input[name='__token__']").val(xhr.responseJson);
+                        $("input[name='__token__']").val(xhr.responseJson);
                         ex(this);
                     });
-                    // return false;
+                    return false;
                 },
                 complete: function (xhr) {
                     let token = xhr.getResponseHeader('__token__');
@@ -248,7 +247,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             open: function (othis) {
                 let options = {
                     title: othis.attr('lay-title'),
-                    url: Fun.url(othis.attr('lay-url')),
+                    url: othis.attr('lay-url'),
                     width: othis.attr('lay-width'),
                     height: othis.attr('lay-height'),
                     isResize: othis.attr('lay-resize'),
@@ -283,6 +282,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     height = options.height,
                     isResize = options.isResize === undefined;
                     isFull = options.full !== undefined;
+                url = Fun.url(url)
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';
                 height = height || '600';
@@ -313,6 +313,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 if (isFull) {
                     layer.full(index);
                 }
+                console.log(isResize)
                 if (isResize) {
                     $(window).on("resize", function () {
                         layer.full(index);
@@ -330,7 +331,10 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             },
 
         },
-        //语言
+        /**
+         *
+         * @returns {void|undefined|string|*}
+         */
         lang: function () {
             let args = arguments,
                 string = args[0],
@@ -377,6 +381,33 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             });
         },
 
+        /**
+         * 初始化
+         */
+        init: function () {
+            // 绑定ESC关闭窗口事件
+            $(window).keyup(function (event) {
+                if (event.keyCode == 27) {
+                    if ($(".layui-layer").length > 0) {
+                        var index = 0;
+                        $(".layui-layer").each(function () {
+                            index = Math.max(index, parseInt($(this).attr("times")));
+                        });
+                        if (index) {
+                           Fun.toastr.close(index)
+                        }
+                    }
+                }
+            });
+
+        },
+        /**
+         *
+         * @param formCallback
+         * @param success
+         * @param error
+         * @param ex
+         */
         bineEvent: function (formCallback, success, error, ex) {
 
 
@@ -384,10 +415,12 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
 
 
     };
-    window.init = Fun.init;
+    //初始化
     window.__ = Fun.lang;
     window.Toastr = Toastr;
     window.Moment = Moment;
     window.Fun = Fun;
+    window.Fun.init();
+
     return Fun;
 });

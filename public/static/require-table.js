@@ -42,6 +42,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             Table.api.switch(options.cols, options.init, options.id);
             // 监听表格搜索开关和toolbar按钮显示等
             Table.api.toolbar(options.layFilter, options.id);
+            // 监听表格双击事件
+            Table.api.rowDouble(options.layFilter, options.id);
             // 监听表格编辑
             Table.api.edit(options.init, options.layFilter, options.id);
             return newTable;
@@ -352,7 +354,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.title = vv.title || vv.text || '';
                         vv.extend = vv.extend || '';
                         // 组合数据
-                        console.log(url)
                         vv.node = vv.url;
                         vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.id : vv.url + '?id=' + d.id;
                         vv.width = vv.width !== '' ? 'lay-width="' + vv.width + '"' : '';
@@ -593,6 +594,24 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         default:
                             return true;
                     }
+                });
+            },
+            /*
+            双击事件
+             */
+            rowDouble:function (layFilter, tableId) {
+                table.on('rowDouble(' + layFilter + ')', function (obj) {
+                    let url = Table.init.requests.edit_url
+                    if(url && Fun.checkAuth(url)){
+                        url = url.indexOf('?')!=-1 ?url+'&id='+ obj.data.id :url+'?id=' +obj.data.id
+                        options = {
+                            url:url,
+                        }
+                        Fun.api.open(options);
+
+                    }
+                    return false;
+
                 });
             },
             edit: function (tableInit, layFilter, tableId) {

@@ -118,6 +118,28 @@ if (!function_exists('form_date')) {
     }
 }
 
+if (!function_exists('form_city')) {
+    /**
+     * @param array $options
+     * @return string
+     */
+
+    function form_city($name='cityPicker',$id='cityPicker',$options = [])
+    {
+        return FormHelper::city($name,$id,$options);
+    }
+}
+if (!function_exists('form_region')) {
+    /**
+     * @param array $options
+     * @return string
+     */
+
+    function form_region($name='regionCheck',$id='regionCheck',$options = [])
+    {
+        return FormHelper::region($name,$id,$options);
+    }
+}
 if (!function_exists('form_color')) {
     /**
      * @param array $options

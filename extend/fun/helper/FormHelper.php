@@ -32,8 +32,8 @@ class FormHelper
         $str = '<div class="layui-form-item"> 
         <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($lable)).'</label>
         <div class="layui-input-block">
-         <input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . ' autocomplete="off"
-         placeholder="' . $tips. '" class="layui-input"'.$value.'>
+         <input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"
+         placeholder="' . $tips. '" class="layui-input"'. $value.'>
          ' . self::tips($options) . '
          </div></div>';
 
@@ -61,9 +61,9 @@ class FormHelper
             foreach ($list as $k=>$v) {
                 if(is_string($v) && strpos($v,':')!==false){
                     $v = explode(":",$v);
-                    $input .= '<input type="radio"'.self::selectedOrchecked($options,$v[0],2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) . ' value="' . $v[0] . '" title="' . lang($v[1]) . '" >';
+                    $input .= '<input type="radio"'.self::selectedOrchecked($options,$v[0],2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) .' value="' . $v[0] . '" title="' . lang($v[1]) . '" >';
                 }else{
-                    $input .= '<input type="radio"'.self::selectedOrchecked($options,$k,2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) . ' value="' . $k . '" title="' . lang($v) . '" >';
+                    $input .= '<input type="radio"'.self::selectedOrchecked($options,$k,2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) . ' value="' . $k . '" title="' . lang($v) . '" >';
 
                 }
             }
@@ -98,7 +98,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
         <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($name)) . '</label>
         <div class="layui-input-block">
-        <input type="checkbox" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) . ' lay-skin="switch"   lay-text="' . lang($value) . '">
+        <input type="checkbox" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options)  .' lay-skin="switch"   lay-text="' . lang($value) . '">
         ' . self::tips($options) . '
         </div>
         </div>';
@@ -132,18 +132,18 @@ class FormHelper
                     if(is_array($value) && in_array($v[0],$value) || $value = $v[0]){
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" '.$check.'  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . ' title="' . lang($v[1]) . '">';
+                    $input .= '<input type="checkbox" '.$check.'  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v[1]) . '">';
 
                 }else{
                     $check = '';
                     if(is_array($value) && in_array($v[0],$value) || $value = $v){
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" '.$check.' name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . ' title="' . lang($v) . '">';
+                    $input .= '<input type="checkbox" '.$check.' name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .' title="' . lang($v) . '">';
                 }
             }
         } else {
-            $input .= '<input type="checkbox" name="' . $name . '[]"  ' . $skin . self::verify($options) . self::filter($options) . '  title="' . lang($value) . '">';
+            $input .= '<input type="checkbox" name="' . $name . '[]"  ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .'  title="' . lang($value) . '">';
         }
         $str = '<div class="layui-form-item">
         <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($name)) . '</label>
@@ -222,7 +222,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang('Icon').'</label>
                     <div class="layui-input-block">
-                        <input type="hidden" name="'.$name .'"  value="'.$value.'"' .self::filter($options) . '>
+                        <input type="hidden" name="'.$name .'"  value="'.$value.'"' .self::filter($options) . self::readonlyOrdisabled($options).'>
                           <div id="'.$id.'" lay-filter="colorPicker"></div>
 
                     </div>
@@ -281,6 +281,43 @@ class FormHelper
         return $str;
     }
 
+    /**
+     * 城市选择
+     * @param string $name
+     * @param string $id
+     * @param $options
+     * @return string
+     */
+    public  static function city($name='cityPicker',$id='cityPicker',$options){
+
+            $str = ' <div class="layui-inline">
+                    <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
+                    <div class="layui-input-block">
+                        <input type="text" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="'.$id.'" name="'.$name.'" readonly="readonly" data-toggle="city-picker" placeholder="请选择">
+                    </div>
+                    </div>';
+            return $str;
+    }
+
+    /**
+     * 城市选择
+     * @param string $name
+     * @param string $id
+     * @param $options
+     * @return string
+     */
+    public  static function region($name='regionCheck',$id='regionCheck',$options=[]){
+
+        $str = ' <div class="layui-form-item">
+                    <label class="layui-form-label ">区域</label>
+                    <div class="layui-input-block">
+                        <input type="hidden" name="'.$name.'" value="">
+                        <div id="'.$id.'" name="'.$name.'" lay-filter="regionCheck">
+                        </div>
+                    </div>
+                </div>';
+        return $str;
+    }
 
     /**
      * @param string $name
@@ -426,6 +463,8 @@ class FormHelper
         return $str;
 
     }
+
+
     /**
      * @param bool $reset
      * @param array $options
@@ -523,8 +562,16 @@ class FormHelper
             return 'required';
         }
         return '';
-
-
     }
 
+    protected static function readonlyOrdisabled($options){
+
+        if(isset($options['readonly'])) {
+            return 'readonly';
+        }
+        if(isset($options['disabled'])) {
+            return 'disabled';
+        }
+        return '';
+    }
 }

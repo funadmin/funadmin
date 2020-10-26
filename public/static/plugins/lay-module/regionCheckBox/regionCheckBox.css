@@ -2,12 +2,12 @@
  @ Name：layui.regionCheckBox 中国省市复选框
  @ Author：wanmianji
  */
- 
-html #layuicss-regionCheckBox{display: none; position: absolute; width: 1989px;} 
+
+html #layuicss-regionCheckBox{display: none; position: absolute; width: 1989px;}
 
 .layui-regionContent {
 	margin: 6px;
-	border: 1px solid #e6e6e6;	
+	border: 1px solid #e6e6e6;
 }
 
 .layui-regionContent ul li {
@@ -27,15 +27,15 @@ html #layuicss-regionCheckBox{display: none; position: absolute; width: 1989px;}
 
 .layui-regionContent ul li .city{
 	position: absolute;
-    background: #fff;
-    width: 330px;
-    left: -1px;
-    top: 100%;
-    z-index: 2;
-    line-height: 26px;
-    border: 1px solid #e4e4e4;
-    padding: 6px 0 6px 15px;
-    display: none;
+	background: #fff;
+	width: 330px;
+	left: -1px;
+	top: 100%;
+	z-index: 2;
+	line-height: 26px;
+	border: 1px solid #e4e4e4;
+	padding: 6px 0 6px 15px;
+	display: none;
 }
 
 .layui-regionContent .area {
