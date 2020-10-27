@@ -1,8 +1,8 @@
 define(["jquery",'timePicker'], function ($,timePicker) {
-    let form = layui.form,
+    var form = layui.form,
         table = layui.table,
         laydate = layui.laydate;
-    let Table = {
+    var Table = {
         init: {
             table_elem: 'list',
             tableId: 'list',
@@ -37,7 +37,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             }
             // 初始化表格左上方工具栏
             options.toolbar = Table.renderToolbar(options.toolbar, options.elem, options.id);
-            let newTable = table.render(options);
+            var newTable = table.render(options);
             // 监听表格开关切换
             Table.api.switch(options.cols, options.init, options.id);
             // 监听表格搜索开关和toolbar按钮显示等
@@ -50,7 +50,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
         },
         renderToolbar: function (d, elem, tableId) {
             d = d || [];
-            let toolbarHtml = '';
+            var toolbarHtml = '';
             $.each(d, function (i, v) {
                 if (v === 'refresh') {
                     toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="refresh" lay-table-id="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n';
@@ -83,8 +83,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
         },
         renderSearch: function (cols, elem, tableId) {
             cols = cols[0] || {};
-            let newCols = [];
-            let formHtml = '';
+            var newCols = [];
+            var formHtml = '';
             $.each(cols, function (i, d) {
                 d.field = d.field || false;
                 d.fieldAlias = Fun.parame(d.fieldAlias, d.field);
@@ -109,9 +109,9 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             break;
                         case  'select':
                             d.searchOp = '=';
-                            let selectHtml = '';
+                            var selectHtml = '';
                             $.each(d.selectList, function (sI, sV) {
-                                let selected = '';
+                                var selected = '';
                                 if (sI === d.searchValue) {
                                     selected = 'selected=""';
                                 }
@@ -211,10 +211,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 form.render();
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
-                        let timeList = document.querySelectorAll("*[lay-filter='timePicker']");
+                        var timeList = document.querySelectorAll("*[lay-filter='timePicker']");
                         if (timeList.length > 0) {
                             $.each(timeList, function () {
-                                let id = $(this).attr('id');
+                                var id = $(this).attr('id');
                                 layui.timePicker.render({
                                     elem: '#' + id, //定义输入框input对象
                                     options:{      //可选参数timeStamp，format
@@ -240,8 +240,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
         templet: {
             //时间
             time: function (d) {
-                let ele = $(this)[0];
-                let time = eval('d.' + ele.field);
+                var ele = $(this)[0];
+                var time = eval('d.' + ele.field);
                 if (time) {
                     return layui.util.toDateString(time * 1000)
                 } else {
@@ -250,19 +250,19 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             },
             //图片
             image: function (d) {
-                let ele = $(this)[0];
+                var ele = $(this)[0];
                 ele.imageWidth = ele.imageWidth || 200;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
-                let src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
+                var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
                     title = d[ele.title];
                 return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" lay-title="' + title + '"  lay-event="photos" alt="">';
             },
             //选择
             select: function (d) {
-                let ele = $(this)[0];
+                var ele = $(this)[0];
                 ele.selectList = ele.selectList || {};
-                let value = d[ele.field];
+                var value = d[ele.field];
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
                     return value;
                 } else {
@@ -270,28 +270,28 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 }
             },
             url: function (d) {
-                let ele = $(this)[0];
-                let src = d[ele.field];
+                var ele = $(this)[0];
+                var src = d[ele.field];
                 return '<a class="layui-table-url" href="' + src + '" target="_blank" class="label bg-green">' + src + '</a>';
             },
             icon: function (d) {
-                let ele = $(this)[0];
-                let icon = d[ele.field];
+                var ele = $(this)[0];
+                var icon = d[ele.field];
                 return '<span class="' + icon + '"></span>';
 
             },
             //开关
             switch: function (d) {
-                let ele = $(this)[0];
+                var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
                 ele.checked = ele.checked || 1;
                 ele.tips = ele.tips || __('open') + '|' + __('close');
-                let checked = d[ele.field] === ele.checked ? 'checked' : '';
+                var checked = d[ele.field] === ele.checked ? 'checked' : '';
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >';
             },
             //解析
             resolution: function (d) {
-                let ele = $(this)[0];
+                var ele = $(this)[0];
                 ele.field = ele.filter || ele.field || null;
                 return eval('d.' + ele.field);
             },
@@ -299,11 +299,11 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             operat: function (d) {
                 var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];
-                let html = '';
+                var html = '';
                 var requests = Table.init.requests;
                 $.each(ele.operat, function (k, v) {
                     if (v === 'edit' || v === 'delete' || v === 'add') {
-                        let vv;
+                        var vv;
                         if (v === 'add') {
                             vv = {
                                 type: 'open',
@@ -365,12 +365,15 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.tableid = 'lay-table-id="' + Table.init.table_elem + '"';
+                        if(!vv.icon){
+                            vv.icon =  vv.icon + vv.text
+                        }
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + '>' + vv.icon + '</button>';
                         }
                     } else if (typeof eval('requests.' + v) == "object") {
                         v = eval('requests.' + v)
-                        let vv = {};
+                        var vv = {};
                         // // 初始化数据
                         vv.class = v.class || '';
                         vv.full = v.full || '';
@@ -394,7 +397,9 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.full = vv.full !== '' ? 'lay-full="' + vv.full + '" ' : '';
                         vv.tableid = 'lay-table-id="' + Table.init.table_elem + '"';
-
+                        if(!vv.icon){
+                            vv.icon =  vv.icon + vv.text
+                        }
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + '>' + vv.icon + '</button>';
                         }
@@ -416,14 +421,14 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 Fun.events.photos(othis);
             },
             refresh: function (othis) {
-                let tableId = othis.attr('lay-table-id');
+                var tableId = othis.attr('lay-table-id');
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId;
                 }
                 table.reload(tableId);
             },
             request: function (othis) {
-                let title = othis.attr('lay-title'),
+                var title = othis.attr('lay-title'),
                     url = othis.attr('lay-url'),
                 tableId = othis.attr('lay-table-id');
                 title = title || __('Are you sure');
@@ -548,7 +553,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                     value: checked,
                                 };
                                 Fun.ajax({
-                                    url: Fun.url(url),
+                                    url: url,
                                     prefix: true,
                                     data: data,
                                 }, function (res) {
@@ -601,7 +606,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
              */
             rowDouble:function (layFilter, tableId) {
                 table.on('rowDouble(' + layFilter + ')', function (obj) {
-                    let url = Table.init.requests.edit_url
+                    var url = Table.init.requests.edit_url
                     if(url && Fun.checkAuth(url)){
                         url = url.indexOf('?')!=-1 ?url+'&id='+ obj.data.id :url+'?id=' +obj.data.id
                         options = {
@@ -629,7 +634,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             value: value,
                         };
                         Fun.ajax({
-                            url: Fun.url(tableInit.requests.modify_url),
+                            url: tableInit.requests.modify_url,
                             prefix: true,
                             data: _data,
                         }, function (res) {

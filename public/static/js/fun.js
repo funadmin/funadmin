@@ -2,7 +2,7 @@
  * 后台总控制js
  */
 define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
-    let layer = layui.layer,
+    var layer = layui.layer,
         table = layui.table;
     layer.config({
             skin: 'fun-layer-class'
@@ -23,7 +23,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
         showMethod: "fadeIn",
         hideMethod: "fadeOut"
     };
-    let Fun = {
+    var Fun = {
         url: function (url) {
             url = Fun.common.parseNodeStr(url)
             if (!Config.addonname) {
@@ -63,13 +63,13 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             option.statusName = option.statusName || 'code';
             option.statusCode = option.statusCode || 1;
             success = success || function (res) {
-                let msg = (res.msg === undefined && res.message === undefined) ? __('Return data is not right') : res.msg ? res.msg : res.message;
+                var msg = (res.msg === undefined && res.message === undefined) ? __('Return data is not right') : res.msg ? res.msg : res.message;
                 Fun.toastr.success(msg);
                 Fun.toastr.close()
                 return false;
             };
             error = error || function (res) {
-                let msg = (res.msg === undefined && res.message === undefined) ? __('Return data is not right') : res.msg ? res.msg : res.message;
+                var msg = (res.msg === undefined && res.message === undefined) ? __('Return data is not right') : res.msg ? res.msg : res.message;
                 Fun.toastr.error(msg);
                 return false;
             };
@@ -80,8 +80,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 Fun.toastr.error(__('Request url can not empty'));
                 return false;
             }
-            // option.url = Fun.url(option.url);
-            let index = Fun.toastr.loading(option.tips)
+            var index = Fun.toastr.loading(option.tips)
+            console.log(option.url)
             $.ajax({
                 url: option.url,
                 type: option.method,
@@ -106,7 +106,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 },
                 error: function (xhr) {
                     console.log(xhr);
-                    let message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
+                    var message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
                     Fun.toastr.error('Status:' + xhr.status + '\n' + message, function () {
                         $("input[name='__token__']").val(xhr.responseJson);
                         ex(this);
@@ -114,7 +114,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     return false;
                 },
                 complete: function (xhr) {
-                    let token = xhr.getResponseHeader('__token__');
+                    var token = xhr.getResponseHeader('__token__');
                     if (token) {
                         $("input[name='__token__']").val(token);
                     }
@@ -127,7 +127,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 if (node.indexOf('/') === -1) {
                     node = Config.controllername + '/' + node;
                 }
-                let arrayNode = node.split('/');
+                var arrayNode = node.split('/');
                 $.each(arrayNode, function (key, val) {
                     if (key === 0) {
                         val = val.split('.');
@@ -183,7 +183,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             },
             // 对话框
             confirm: function (msg, success, error) {
-                let index = layer.confirm(msg, {
+                var index = layer.confirm(msg, {
                     title: __('Are you sure'),
                     btn: [__('Confirm'), __('Cancel')]
                 }, function () {
@@ -223,10 +223,10 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
 
         events: {
             photos: function (othis) {
-                let title = othis.attr('lay-photos'),
+                var title = othis.attr('lay-photos'),
                     src = othis.attr('src'),
                     alt = othis.attr('alt');
-                let photos = {
+                var photos = {
                     "title": title,
                     "id": Math.random(),
                     "data": [
@@ -245,7 +245,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 return false;
             },
             open: function (othis) {
-                let options = {
+                var options = {
                     title: othis.attr('lay-title'),
                     url: othis.attr('lay-url'),
                     width: othis.attr('lay-width'),
@@ -266,18 +266,18 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
              */
             checkScreen: function () {
                 //屏幕类型 大小
-                let ua = navigator.userAgent.toLocaleLowerCase();
-                let pl = navigator.platform.toLocaleLowerCase();
-                let isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
+                var ua = navigator.userAgent.toLocaleLowerCase();
+                var pl = navigator.platform.toLocaleLowerCase();
+                var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
                     || (/ucweb.*linux/i.test(ua));
-                let isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
-                let isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
-                let $win = $(window);
-                let width = $win.width();
+                var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
+                var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
+                var $win = $(window);
+                var width = $win.width();
                 return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
             },
             open: function (options) {
-                let title = options.title,
+                var title = options.title,
                     url = options.url, width = options.width,
                     height = options.height,
                     isResize = options.isResize === undefined;
@@ -306,7 +306,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     scrollbar: true,
 
                 }
-                let index = layer.open(options);
+                var index = layer.open(options);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layer.full(index);
                 }
@@ -336,7 +336,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
          * @returns {void|undefined|string|*}
          */
         lang: function () {
-            let args = arguments,
+            var args = arguments,
                 string = args[0],
                 i = 1;
             string = string.toLowerCase();
@@ -347,8 +347,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 string = Lang[string];
             } else if (string.indexOf('.') !== -1 && false) {
                 var arr = string.split('.');
-                let current = Lang[arr[0]];
-                for (let i = 1; i < arr.length; i++) {
+                var current = Lang[arr[0]];
+                for (var i = 1; i < arr.length; i++) {
                     current = typeof current[arr[i]] != 'undefined' ? current[arr[i]] : '';
                     if (typeof current != 'object')
                         break;
@@ -361,7 +361,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             }
             return string.replace(/%((%)|s|d)/g, function (m) {
 
-                let val;
+                var val;
                 if (m[2]) {
                     val = m[2];
                 } else {

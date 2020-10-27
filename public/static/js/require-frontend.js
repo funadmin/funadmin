@@ -1,7 +1,6 @@
-let BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
-console.log(Config.site.app_debug)
+var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') -2);
 require.config({
-    urlArgs: 'v=' + (Config.site.app_debug ? (new Date().getTime()): Config.site.site_version),
+    urlArgs: 'v=' + (Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
     packages: [
         {
             name: 'moment',
@@ -72,7 +71,7 @@ require.config({
     charset: 'utf-8' // 文件编码
 });
 // 配置语言包的路径
-let paths = {};
+var paths = {};
 paths['lang'] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
 paths['frontend/'] = 'frontend/';
 //初始化控制器对应的JS自动加载

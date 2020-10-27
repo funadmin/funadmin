@@ -1,4 +1,4 @@
-define(['jquery','iconPicker','cityPicker','timePicker',,'regionCheckBox','multiSelect','upload'],
+define(['jquery','iconPicker','cityPicker','timePicker','regionCheckBox','multiSelect','upload'],
 function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) {
     var iconPicker = layui.iconPicker,
         timePicker = layui.timePicker,
@@ -7,18 +7,18 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
         laydate = layui.laydate
         layedit = layui.layedit,
         colorPicker = layui.colorpicker;
-    let Fu = {
+    var Fu = {
         init: {},
         //事件
         events: {
             editor:function (){
-                let list = document.querySelectorAll("*[lay-editor]");
+                var list = document.querySelectorAll("*[lay-editor]");
                 if (list.length > 0) {
                     $.each(list, function () {
                         console.log($(this).attr('lay-editor'))
                         if($(this).attr('lay-editor')==2){
-                            let id = $(this).attr('id');
-                            let editor = layedit.build(id,
+                            var id = $(this).attr('id');
+                            var editor = layedit.build(id,
                                 {height: 350,
                                     uploadImage:{url: Fun.url(Upload.init.requests.upload_url), type: 'post'}
                                 }); //建立编辑器
@@ -32,11 +32,11 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
 
             },
             icon: function () {
-                let list = document.querySelectorAll("*[lay-filters='iconPickers']");
+                var list = document.querySelectorAll("*[lay-filter='iconPickers']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
-                        let id = _that.attr('id');
+                        var id = _that.attr('id');
                         iconPicker.render({
                             // 选择器，推荐使用input
                             elem: '#' + id,
@@ -64,11 +64,11 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
 
             },
             color: function () {
-                let list = document.querySelectorAll("*[lay-filter='colorPicker']");
+                var list = document.querySelectorAll("*[lay-filter='colorPicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
-                        let id = $(this).attr('id');
+                        var id = $(this).attr('id');
                         colorPicker.render({
                             // 选择器，推荐使用input
                             elem: '#' + id,
@@ -91,13 +91,13 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 }
             },
             regionCheck: function (){
-                let list = document.querySelectorAll("*[lay-filter='regionCheck']");
+                var list = document.querySelectorAll("*[lay-filter='regionCheck']");
                 if (list.length > 0) {
 
                     $.each(list, function () {
-                        let _that = $(this);
-                        let id =_that.attr('id');
-                        let name = _that.attr('name');
+                        var _that = $(this);
+                        var id =_that.attr('id');
+                        var name = _that.attr('name');
                         //执行实例
                         regionCheckBox.render({
                             elem: '#'+id,
@@ -125,10 +125,10 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
             },
 
             city: function (){
-                let list = document.querySelectorAll("*[lay-filter='cityPicker']");
+                var list = document.querySelectorAll("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        let id = $(this).attr('id');
+                        var id = $(this).attr('id');
                         var currentPicker = new cityPicker("#"+id, {
                             provincename:"provinceId",
                             cityname:"cityId",
@@ -141,10 +141,10 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 }
             },
             time:function (){
-                let list = document.querySelectorAll("*[lay-filter='timePicker']");
+                var list = document.querySelectorAll("*[lay-filter='timePicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        let id = $(this).attr('id');
+                        var id = $(this).attr('id');
                         timePicker.render({
                             elem: '#' + id, //定义输入框input对象
                             options:{      //可选参数timeStamp，format
@@ -157,16 +157,16 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 }
             },
             date: function () {
-                let list = document.querySelectorAll("[lay-date]");
+                var list = document.querySelectorAll("*[lay-date]");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        let format = $(this).attr('lay-format'),
-                            type = $(this).attr('lay-type'),
+                        var format = $(this).attr('lay-format'),
+                           type = $(this).attr('lay-type'),
                             range = $(this).attr('lay-range');
                         if (type === undefined || type === '' || type == null) {
                             type = 'datetime';
                         }
-                        let options = {
+                        var options = {
                             elem: this,
                             type: type,
                         };
@@ -193,7 +193,7 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
         api: {
             //绑定事件
             bindEvent: function () {
-                let events = Fu.events;
+                var events = Fu.events;
                 events.icon();
                 events.color();
                 events.city();

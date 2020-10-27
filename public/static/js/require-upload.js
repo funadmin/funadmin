@@ -197,17 +197,17 @@ define(["jquery",'croppers'], function ($,croppers) {
 
             },
             cropper:function (){
-                let cropperlist = document.querySelectorAll("*[lay-cropper]");
+                var cropperlist = document.querySelectorAll("*[lay-cropper]");
                 if (cropperlist.length > 0) {
                     $.each(cropperlist, function () {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload')
-                        let id = $(this).attr('id');
-                        let saveW = $(this).attr('lay-width');
-                        let saveH = $(this).attr('lay-height');
-                        let mark = $(this).attr('lay-mark');
-                        let area = $(this).attr('lay-area');
-                        let uploadPath = $(this).attr('lay-path')
+                        var id = $(this).attr('id');
+                        var saveW = $(this).attr('lay-width');
+                        var saveH = $(this).attr('lay-height');
+                        var mark = $(this).attr('lay-mark');
+                        var area = $(this).attr('lay-area');
+                        var uploadPath = $(this).attr('lay-path')
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;
@@ -224,7 +224,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                                 if(res.code > 0){
                                      Fun.toastr.success(res.msg);
                                     _parent.find('input[type="text"]').val(res.url)
-                                    let html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                    var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
                                     _parent.find('.layui-upload-list').html(html)
                                  }else if(res.code <= 0){
                                     Fun.toastr.error(res.msg);

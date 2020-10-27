@@ -1,6 +1,6 @@
-let BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/') + 1);
+// var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
-    urlArgs: 'v=' + (Config.site.app_debug ? (new Date().getTime()): Config.site.site_version),
+    urlArgs: 'v=' + (Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
     packages: [
         {
             name: 'moment',
@@ -8,16 +8,22 @@ require.config({
             main: 'moment'
         }
     ],
-    baseUrl: BASE_URL,
-    include: ['css','jquery','bootstrap','layuiall', 'layui','layer','toastr', 'fun', 'backend', 'table', 'form',],
+    baseUrl: '/static/',
+    include: [
+        'css','bootstrap','treeGrid','tableSelect',
+        'treeTable','tableEdit','tableTree',
+        'iconPicker','iconFonts',
+        'toastr','step-lay','inputTags' ,
+        'timeago','multiSelect','cityPicker',
+        'regionCheckBox','timePicker','croppers',
+        'moment', 'backend','md5','fun','form','fu', 'table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
 
         //layui等组件
-        'layuiall'      : 'plugins/layui/layui.all',
-        'layui'         : 'plugins/layui/layui',
+        'layui'         : 'plugins/layui/layui.all',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -25,7 +31,6 @@ require.config({
         'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
-        'xm-select'     : 'plugins/lay-module/xm-select/xm-select',//下拉多选
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
@@ -38,14 +43,14 @@ require.config({
         'moment'        : 'plugins/moment/moment',
 
         //自定义
-        'fun'          : 'fun', // api扩展
         'backend'       : 'plugins/lay-module/fun/backend', // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
-        'form'          : 'require-form',
-        'fu'            : 'require-fu',
-        'table'         : 'require-table',
-        'upload'        : 'require-upload',
-        'addons'        : 'require-addons',//编辑器以及其他安装的插件
+        'fun'           : 'js/fun', // api扩展
+        'fu'            : 'js/require-fu',
+        'form'          : 'js/require-form',
+        'table'         : 'js/require-table',
+        'upload'        : 'js/require-upload',
+        'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
     },
     map: {
         '*': {
@@ -53,13 +58,16 @@ require.config({
         }
     },
     shim: {
+        'bootstrap': ['jquery'],
         'layui': {
-            deps: ['css!plugins/layui/layui/css/layui.css'],
+            deps: ['css!plugins/layui/css/layui.css'],
             init: function () {
-                return this.layui.config({dir: 'plugins/'});
+                return this.layui.config({dir: 'plugins/'})
             },
         },
-
+        'regionCheckBox':{
+            deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],
+        },
         'multiSelect': {
             deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
         },
@@ -70,22 +78,23 @@ require.config({
             exports: "cropper"
         },
     },
-
     waitSeconds: 30,
     charset: 'utf-8' // 文件编码
-});
-// 配置语言包的路径
-let paths = {};
-paths['lang'] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
-paths['backend/'] = 'backend/';
+})
+
 //初始化控制器对应的JS自动加载
-require.config({paths: paths});
-require(['jquery'], function ($) {
+require(["jquery"], function ($) {
+    // 配置语言包的路径
+    var paths = {};
+    paths["lang"] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
+    paths['backend/'] = 'backend/';
+    require.config({paths: paths});
+
     $(function () {
         require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require([BASE_URL + Config.jspath], function (Controller) {
+                    require(['/static/'+ Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {

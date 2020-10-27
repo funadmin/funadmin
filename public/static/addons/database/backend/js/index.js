@@ -88,20 +88,20 @@ define(['table','form'], function (Table,Form) {
                     tables.push(o.name);
                 });
                 if(tables.length===0){
-                    return Fun.msg.error(__('Please choose data'));
+                    return Fun.toastr.error(__('Please choose data'));
                 }
                 _that.html(title+__(' processing...'));
 
                 _that.addClass('layui-btn-disabled');
-                var url = Fun.url(eval('Table.init.requests.'+event+'_url.url'))
+                var url = (eval('Table.init.requests.'+event+'_url.url'))
                 Fun.ajax({url:url,data:{tables:tables}},function(res){
-                    Fun.msg.success(res.msg);
+                    Fun.toastr.success(res.msg);
                     _that.html(title);
                     _that.removeClass('layui-btn-disabled');
                     Table.api.reload();
 
                 },function (res){
-                    Fun.msg.error(res.msg);
+                    Fun.toastr.error(res.msg);
                 });
             })
         },
@@ -158,7 +158,7 @@ define(['table','form'], function (Table,Form) {
             layui.table.on('tool('+Table.init.table_elem+')', function(obj) {
                 var data = obj.data;
                 var othis = $(this)
-                var url = Fun.url(othis.attr('lay-url'));
+                var url = othis.attr('lay-url');
                 url = url+"&time="+data.time;
                 if (obj.event === 'href') {
                     window.location.href = url+'&time='+data.time
@@ -168,13 +168,13 @@ define(['table','form'], function (Table,Form) {
                 }else if(obj.event === 'request'){
                     title = __('Are you sure you want to delete it')
                 }
-                Fun.msg.confirm(title,function () {
+                Fun.toastr.confirm(title,function () {
                     loading = layer.load(1, {shade: [0.1, '#fff']});
                     Fun.ajax({url:url,method:'get'},function (res){
-                        Fun.msg.success(res.msg);
+                        Fun.toastr.success(res.msg);
                         Table.api.reload()
                     },function (res){
-                        Fun.msg.error(res.msg);
+                        Fun.toastr.error(res.msg);
                         Table.api.reload()
                     });
                 });

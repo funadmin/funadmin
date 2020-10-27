@@ -1,8 +1,8 @@
 define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tableSelect,Upload,Table,Fu) {
 
-    let form = layui.form;
+    var form = layui.form;
     tableSelect = layui.tableSelect;
-    let Form = {
+    var Form = {
         init: {},
         //事件
         events: {
@@ -45,13 +45,13 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
             },
             //必填项
             required: function () {
-                let vfList = document.querySelectorAll("[lay-verify]");
+                var vfList = document.querySelectorAll("[lay-verify]");
                 if (vfList.length > 0) {
                     $.each(vfList, function () {
-                        let verify = $(this).attr('lay-verify');
+                        var verify = $(this).attr('lay-verify');
                         // todo 必填项处理
                         if (verify === 'required') {
-                            let label = $(this).parent().prev();
+                            var label = $(this).parent().prev();
                             if (label.is('label') && !label.hasClass('required')) {
                                 label.addClass('required');
                             }
@@ -67,11 +67,11 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 }
             },
             submit: function (formObj, success, error, submit) {
-                let formList = document.querySelectorAll("[lay-submit]");
+                var formList = document.querySelectorAll("[lay-submit]");
                 // 表单提交自动处理
                 if (formList.length > 0) {
                     $.each(formList, function (i) {
-                        let filter = $(this).attr('lay-filter'),
+                        var filter = $(this).attr('lay-filter'),
                             type = $(this).attr('lay-type'),
                             refresh = $(this).attr('lay-refresh'),
                             url = $(this).attr('lay-request');
@@ -93,10 +93,10 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         }
                         form.on('submit(' + filter + ')', function (data) {
                             if($('select[multiple]').length>0){
-                                let $select = document.querySelectorAll("select[multiple]");
+                                var $select = document.querySelectorAll("select[multiple]");
                                 $.each($select, function () {
-                                    let field = $(this).attr('name');
-                                    let vals = [];
+                                    var field = $(this).attr('name');
+                                    var vals = [];
                                     $('select[multiple] option:selected').each(function() {
                                         vals.push($(this).val());
                                     })
@@ -105,7 +105,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                 })
 
                             }
-                            let dataField = data.field;
+                            var dataField = data.field;
                             if (typeof formObj == 'function') {
                                 formObj(url, dataField);
                             } else if (typeof submit == 'function') {
@@ -123,12 +123,12 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
 
             //验证
             upfileDelete: function (othis) {
-                let fileurl = othis.attr('lay-fileurl'), that;
-                let confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
+                var fileurl = othis.attr('lay-fileurl'), that;
+                var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
                     that = othis.parents('.layui-upload-list').parents('.layui-upload');
-                    let input = that.find('input[type="text"]');
-                    let inputVal = input.val();
-                    let input_temp;
+                    var input = that.find('input[type="text"]');
+                    var inputVal = input.val();
+                    var input_temp;
                     if (othis.parents('li').index() === 0) {
                         input_temp = inputVal.replace(fileurl, '');
                         input.val(input_temp);
@@ -155,8 +155,8 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
              * @param data
              */
             close: function (data) {
-                let index = parent.layer.getFrameIndex(window.name);
-                let callback = parent.$("#layui-layer" + index).data("callback");
+                var index = parent.layer.getFrameIndex(window.name);
+                var callback = parent.$("#layui-layer" + index).data("callback");
                 //再执行关闭
                 parent.layer.close(index);
                 //再调用回传函数
@@ -176,7 +176,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 if (option.refreshTable === true) {
                     option.refreshTable = Table.init.tableId;
                 }
-                let index = parent.layer.getFrameIndex(window.name);
+                var index = parent.layer.getFrameIndex(window.name);
                 parent.layer.close(index);
                 if (option.refreshTable !== false) {
                     if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
@@ -224,7 +224,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                     data: data,
                     // tips:__('loading'),
                     complete: function (xhr) {
-                        let token = xhr.getResponseHeader('__token__');
+                        var token = xhr.getResponseHeader('__token__');
                         if (token) {
                             $("input[name='__token__']").val(token);
                         }
@@ -247,18 +247,18 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
              * 选择文件
              */
             chooseFiles: function () {
-                let fileSelectList = document.querySelectorAll("*[lay-upload-select]");
+                var fileSelectList = document.querySelectorAll("*[lay-upload-select]");
                 if (fileSelectList.length > 0) {
                     $.each(fileSelectList, function () {
-                        let uploadType = $(this).attr('lay-type'),
+                        var uploadType = $(this).attr('lay-type'),
                             uploadNum = $(this).attr('lay-num'),
                             uploadMine = $(this).attr('lay-mime');
                         uploadMine = uploadMine || '';
                         uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
-                        let input = $(this).parents('.layui-upload').find('input[type="text"]');
-                        let uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
-                        let id = $(this).attr('id');
+                        var input = $(this).parents('.layui-upload').find('input[type="text"]');
+                        var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
+                        var id = $(this).attr('id');
                         tableSelect.render({
                             elem: '#' + id,
                             checkedKey: 'id',
@@ -292,8 +292,8 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                 ]]
                             },
                             done: function (elem, data) {
-                                let fileArr = [];
-                                let html = '';
+                                var fileArr = [];
+                                var html = '';
                                 $.each(data.data, function (index, val) {
                                     if (uploadMine === 'image') {
                                         html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
@@ -309,10 +309,10 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                     }
                                     fileArr.push(val.path)
                                 });
-                                let fileurl = fileArr.join(',');
+                                var fileurl = fileArr.join(',');
                                 Fun.toastr.loading();
                                 Fun.toastr.success(__('Choose Success'), function () {
-                                    let inptVal = input.val();
+                                    var inptVal = input.val();
                                     if (uploadNum === 1) {
                                         input.val(fileurl)
                                         uploadList.html(html)
@@ -343,7 +343,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
              */
             bindEvent: function (form, success, error, submit) {
                 form = typeof form == 'object' ? form : $(form);
-                let events = Form.events;
+                var events = Form.events;
                 events.submit(form, success, error, submit);
                 events.required(form)
                 events.verfiys(form)
@@ -356,7 +356,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 //初始化数据
                 this.initForm();
                 $('body').on('click', '[lay-event]', function () {
-                    let _that = $(this), attrEvent = _that.attr('lay-event');
+                    var _that = $(this), attrEvent = _that.attr('lay-event');
                     Form.events[attrEvent] && Form.events[attrEvent].call(this, _that)
 
                 });

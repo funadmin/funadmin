@@ -288,9 +288,5 @@ layui.define('form', function(exports){
 		return thisIns.call(ins);
 	};
 
-	layui.link('/static/plugins/lay-module/regionCheckBox/regionCheckBox.css?v=1', function(){
-
-	}, 'regionCheckBox');
-
 	exports('regionCheckBox', regionCheckBox);
 });    
