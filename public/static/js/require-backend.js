@@ -1,4 +1,4 @@
-// var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
+var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
     urlArgs: 'v=' + (Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
     packages: [
@@ -8,7 +8,7 @@ require.config({
             main: 'moment'
         }
     ],
-    baseUrl: '/static/',
+    baseUrl: BASE_URL,
     include: [
         'css','bootstrap','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
@@ -65,15 +65,31 @@ require.config({
                 return this.layui.config({dir: 'plugins/'})
             },
         },
+        'cityPicker':{
+            deps: [
+                'plugins/lay-module/cityPicker/city-picker-data',
+                'css!plugins/lay-module/cityPicker/city-picker.css'],
+
+        },
+        'inputTags':{
+            deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
+        },
         'regionCheckBox':{
             deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],
         },
         'multiSelect': {
             deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
         },
+        'timePicker':{
+            deps:['css!plugins/lay-module/timePicker/timePicker.css'],
+        },
+        'step': {
+            deps: ['css!plugins/lay-module/step/step.css'],
+        },
         'croppers': {
             deps: [
-                'plugins/lay-module/cropper/cropper'
+                'plugins/lay-module/cropper/cropper',
+                'css!plugins/lay-module/cropper/cropper.css'
             ],
             exports: "cropper"
         },
@@ -94,7 +110,7 @@ require(["jquery"], function ($) {
         require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require(['/static/'+ Config.jspath], function (Controller) {
+                    require([BASE_URL+ Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {

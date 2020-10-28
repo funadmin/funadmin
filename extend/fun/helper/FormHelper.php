@@ -245,7 +245,7 @@ class FormHelper
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang('Icon').'</label>
                     <div class="layui-input-block">
                         <input type="hidden" name="'.$name.'"  id="'.$id.'" value="'.$value.'" 
-                          lay-filters="iconPickers" lay-filter="'.$id.'" class="hide">
+                          lay-filter="iconPickers" lay-filter="'.$id.'" class="hide">
                     </div>
                 </div>';
         return $str;
@@ -290,10 +290,10 @@ class FormHelper
      */
     public  static function city($name='cityPicker',$id='cityPicker',$options){
 
-            $str = ' <div class="layui-inline">
+            $str = ' <div class="layui-form-item">
                     <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
                     <div class="layui-input-block">
-                        <input type="text" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="'.$id.'" name="'.$name.'" readonly="readonly" data-toggle="city-picker" placeholder="请选择">
+                        <input type="hidden" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="'.$id.'" name="'.$name.'" readonly="readonly" data-toggle="city-picker" placeholder="请选择">
                     </div>
                     </div>';
             return $str;

@@ -2,10 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{$config['site']['site_name']}</title>
+    <title>{:syscfg('site','sys_name')}后台管理</title>
     <meta name="renderer" content="webkit">
-    <meta property="og:keywords" content="{$config['site']['site_seo_keywords']}" />
-    <meta property="og:description" content="{$config['site']['site_seo_desc']}" />
+    <meta property="og:keywords" content="{:syscfg('site','site_seo_keywords')}" />
+    <meta property="og:description" content="{:syscfg('site','site_seo_desc')}" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="referrer" content="origin" />
     <meta name="viewport"  content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
@@ -31,6 +31,7 @@
             <span></span>
         </div>
     </div>
+
     <div class="layui-layout layui-layout-admin">
         <div class="layui-header layui-bg-green">
             <!-- 头部区域（可配合layui已有的水平导航） -->
@@ -93,7 +94,7 @@
             </ul>
         </div>
 
-<!--        左侧菜单 logo-->
+        <!--        左侧菜单 logo-->
         <div class="layui-side layui-bg-black layui-side-menu">
             <div class="layui-side-scroll">
                 <!--logo-->
@@ -130,7 +131,7 @@
             </div>
         </div>
 
-            <!--     导航按钮 +主题内容 -->
+        <!--     导航按钮 +主题内容 -->
         <div class="layui-pagetabs" id="layui-app-tabs">
             <div class="layui-icon layui-tabs-control layui-icon-next" lay-event="leftPage"></div>
             <div class="layui-icon layui-tabs-control layui-icon-prev" lay-event="rightPage"></div>
@@ -168,9 +169,8 @@
         <!--手机导航-->
         <div class="layui-site-mobile" lay-event="flexible"><i class="layui-icon layui-icon-right"></i></div>
 
-
+        <!-- 底部固定区域 -->
         <div class="layui-footer">
-            <!-- 底部固定区域 -->
             {$config['site']['site_copyright']} <span class="pull-right">{$config['site']['site_version']}</span>
         </div>
     </div>

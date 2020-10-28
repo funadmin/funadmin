@@ -3,7 +3,8 @@
  */
 layui.define(['jquery','cropper'],function (exports) {
     var $ = layui.jquery
-    var html = "<link rel=\"stylesheet\" href=\"/static/plugins/lay-module/cropper/cropper.css\">\n" +
+    var html =
+        // "<link rel=\"stylesheet\" href=\"/static/plugins/lay-module/cropper/cropper.css\">\n" +
         "<div class=\"layui-fluid showImgEdit\" style=\"display: none;padding-top: 10px;\">\n" +
         "    <div class=\"layui-form-item\">\n" +
         "        <div class=\"layui-input-inline layui-btn-container\" style=\"width: auto;\">\n" +

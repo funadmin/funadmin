@@ -184,4 +184,4 @@ $(window).scroll(function () {
 exports(MOD_NAME, timePicker);
 
     exports(MOD_NAME, timePicker);
-}).link('/static/plugins/lay-module/timePicker/timePicker.css');
+})

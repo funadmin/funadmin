@@ -2,10 +2,10 @@
   min-width: 360px;
 }*/
 .city-picker-input {
-    opacity: 0 !important;
-    top: -9999px;
-    left: -9999px;
-    position: absolute;
+    /*opacity: 0 !important;*/
+    /*top: -9999px;*/
+    /*left: -9999px;*/
+    /*position: absolute;*/
 }
 
 .city-picker-span {
@@ -34,7 +34,7 @@
     width: 10px;
     margin-top: -3px;
     height: 5px;
-    /*background: url(drop-arrow.png) -10px -25px no-repeat;*/
+    background: url(/static/plugins/lay-module/cityPicker/drop-arrow.png) -10px -25px no-repeat;
 }
 
 /*.city-picker-span.focus,
@@ -173,7 +173,7 @@
 }
 
 .icon_ca {
-    background: url(/content/images/icon_ca.png) no-repeat center;
+    /*background: url(/content/images/icon_ca.png) no-repeat center;*/
     width: 15px;
     height: 15px;
     position: absolute;

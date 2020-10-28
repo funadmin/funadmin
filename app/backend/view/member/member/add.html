@@ -1,5 +1,6 @@
 <div class="fun-main">
     <form class="layui-form" lay-filter="form">
+        {:form_city()}
         {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
         {:form_input('mobile','text',['verify'=>'phone'])}
         {:form_upload('avatar',$formData,['cropper'=>1])}

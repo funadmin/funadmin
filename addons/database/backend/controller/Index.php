@@ -19,6 +19,7 @@ use think\App;
 use think\facade\Request;
 use addons\database\common\service\Backup;
 use think\facade\Db;
+
 class Index extends AddonsBackend
 {
     use Curd;
