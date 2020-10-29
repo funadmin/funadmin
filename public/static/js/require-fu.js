@@ -140,13 +140,14 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                     })
                 }
             },
-            time:function (){
+            timepicker:function (){
                 var list = document.querySelectorAll("*[lay-filter='timePicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         var id = $(this).attr('id');
                         timePicker.render({
                             elem: '#' + id, //定义输入框input对象
+                            trigger: 'click', //添加这一行来处理闪退
                             options:{      //可选参数timeStamp，format
                                 timeStamp:false,//true开启时间戳 开启后format就不需要配置，false关闭时间戳 //默认false
                                 format:'YYYY-MM-DD HH:ss:mm',//格式化时间具体可以参考moment.js官网 默认是YYYY-MM-DD HH:ss:mm
@@ -169,7 +170,11 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                         var options = {
                             elem: this,
                             type: type,
-                        };
+                            trigger: 'click',
+                            calendar: true,
+                            theme: '#393D49'
+
+                    };
                         if (format !== undefined && format !== '' && format != null) {
                             options['format'] = format;
                         }
@@ -179,7 +184,6 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                             }
                             options['range'] = range;
                         }
-                        console.log(options)
                         laydate.render(options);
                     });
                 }
@@ -198,8 +202,8 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 events.color();
                 events.city();
                 events.date();
+                events.timepicker();
                 events.editor();
-                events.time();
                 events.regionCheck();
                 events.bindevent();
 
