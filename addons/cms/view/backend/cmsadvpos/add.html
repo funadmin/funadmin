@@ -1,11 +1,6 @@
-{include file="common/header"/}
-<div class="LM-container">
-    <div class="LM-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <fieldset class="layui-elem-field layui-field-title">
-                <legend>{$title}</legend>
-            </fieldset>
-            <form class="layui-form layui-form-pane" lay-filter="form">
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit" >
+            <form class="layui-form" lay-filter="form">
 
 
                 <div class="layui-form-item">
@@ -58,26 +53,4 @@
             </form>
         </div>
 
-    </div>
 </div>
-
-{include file="common/footer"/}
-<script>
-    layui.config({
-        base: "/static/admin/js/",
-        version: true
-    }).extend({
-        Admin: 'Admin'
-    }).use(['element','Admin','table','form','laydate'], function () {
-        var form = layui.form,layer = layui.layer,$= layui.jquery;
-        var info = '';
-
-        info = {:json_encode($info)};
-        form.val("form", info);
-        if(info){
-            $('#addPic').attr('src',info.avatar);
-        }
-        form.render();
-
-    });
-</script>

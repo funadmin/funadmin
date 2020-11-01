@@ -1,5 +1,5 @@
 /**
- * 后台总控制js
+ * 后台总控制API
  */
 define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     var layer = layui.layer,
@@ -25,6 +25,10 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     };
     var Fun = {
         url: function (url) {
+            var domain = window.location.host;
+            if(url.indexOf(domain)!==-1){
+                return url;
+            }
             url = Fun.common.parseNodeStr(url)
             if (!Config.addonname) {
                 if (url.indexOf(Config.entrance) === -1) {
@@ -38,10 +42,9 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             }else{
                 return '/' + $.trim(url, '/');
             }
-
         },
         checkAuth: function (node) {
-            // todo 有问题，先全部返回true
+            // 超管，全部权限
             if (Config.superAdmin === true) {
                 return true;
             }
@@ -81,7 +84,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 return false;
             }
             var index = Fun.toastr.loading(option.tips)
-            console.log(option.url)
             $.ajax({
                 url: option.url,
                 type: option.method,
@@ -124,6 +126,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
         },
         common: {
             parseNodeStr: function (node) {
+
                 if (node.indexOf('/') === -1) {
                     node = Config.controllername + '/' + node;
                 }
@@ -340,7 +343,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 string = args[0],
                 i = 1;
             string = string.toLowerCase();
-            //string = typeof Lang[string] != 'undefined' ? Lang[string] : string;
             if (typeof Lang !== 'undefined' && typeof Lang[string] !== 'undefined') {
                 if (typeof Lang[string] == 'object')
                     return Lang[string];
@@ -360,13 +362,11 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 string = args[0];
             }
             return string.replace(/%((%)|s|d)/g, function (m) {
-
                 var val;
                 if (m[2]) {
                     val = m[2];
                 } else {
                     val = args[i];
-                    // A switch statement so that the formatter can be extended. Default is %s
                     switch (m) {
                         case '%d':
                             val = parseFloat(val);
@@ -412,8 +412,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
 
 
         },
-
-
     };
     //初始化
     window.__ = Fun.lang;

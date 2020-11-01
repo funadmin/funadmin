@@ -99,16 +99,16 @@ class Ajax extends Backend
         $paths = app()->getRootPath() . 'public/storage/' . $path;
         $type = $this->request->param('type', 'image');
         $list = FileHelper::getFileList($paths, $type);
-        $data = ['state' => 'SUCCESS', 'start' => 0, 'total' => count($list), 'list' => []];
+        $post = ['state' => 'SUCCESS', 'start' => 0, 'total' => count($list), 'list' => []];
         $attach = AttachModel::where('mime', 'like', '%' . 'image' . '%')->select()->toArray();
         if ($list) {
             foreach ($list[0] as $k => $v) {
-                $data['list'][$k]['url'] = str_replace(app()->getRootPath() . 'public', '', $v);
-                $data['list'][$k]['mtime'] = mime_content_type($v);
+                $post['list'][$k]['url'] = str_replace(app()->getRootPath() . 'public', '', $v);
+                $post['list'][$k]['mtime'] = mime_content_type($v);
             }
         }
-        $data['list'] = array_merge($data['list'], $attach);
-        return json($data);
+        $post['list'] = array_merge($post['list'], $attach);
+        return json($post);
     }
 
     /**

@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\admin\controller\cms;
+namespace addons\cms\backend\controller;
 
 use app\common\controller\Backend;
 use app\common\traits\Curd;
@@ -46,15 +46,15 @@ class CmsDiyform extends Backend
     public function add()
     {
         if (Request::isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             try{
-                $this->validate($data, 'CmsLink');
+                $this->validate($post, 'CmsLink');
             }catch (\Exception $e){
                 $this->error($e->getMessage());
             }
 
 
-            $res = CmsDiyformModel::create($data);
+            $res = CmsDiyformModel::create($post);
             if ($res) {
                 $this->success(lang('add success'),url('index'));
             } else {
@@ -72,13 +72,13 @@ class CmsDiyform extends Backend
     public function edit()
     {
         if (Request::isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             try {
-                $this->validate($data, 'CmsLink');
+                $this->validate($post, 'CmsLink');
             } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
-            $res = CmsDiyformModel::update($data);
+            $res = CmsDiyformModel::update($post);
             if ($res) {
                 $this->success(lang('edit success'), url('index'));
             } else {

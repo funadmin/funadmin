@@ -63,6 +63,7 @@ class UploadService extends AbstractService
         //获取上传文件表单字段名
         $type = Request::param('type', 'file');
         $path = Request::param('path', 'uploads');
+        $editor = Request::param('editor', '');
         $files = request()->file();
         $uploadService = OssService::instance();
         foreach ($files as $k => $file) {
@@ -135,6 +136,9 @@ class UploadService extends AbstractService
                     $result['code'] = 0;
                     $result['state'] = 'ERROR'; //兼容百度
                     $result['errno'] = 'ERROR'; //兼容wangeditor
+                    if($editor=='layedit'){
+                        $result['code'] = 1;
+                    }
                     return ($result);
                 }
 
@@ -150,6 +154,10 @@ class UploadService extends AbstractService
         $result['errno'] = 0; //兼容wangeditor
         $result['code'] = 1;//默认
         $result['msg'] = lang('upload success');
+        if($editor=='layedit'){
+            $result['code'] = 0;
+            $result['data'] = ['src'=>$result['data'][0],'title'=>''];
+        }
         return ($result);
     }
 

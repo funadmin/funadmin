@@ -86,7 +86,17 @@ body {
     top: 6px;
     right: 5px;
 }
-
+/**表单*/
+.layui-form  .layui-tab-item .required::after {
+    content: "*";
+    color: red;
+    position: absolute;
+    margin-left: 4px;
+    font-weight: bold;
+    line-height: 1.8em;
+    top: 6px;
+    right: 5px;
+}
 .center {
     text-align: center;
 }

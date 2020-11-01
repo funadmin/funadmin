@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
-    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:time()}" media="all">
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" media="all">
     {:token_meta()}
 </head>
 <body style="padding: 10px;background: #fff">

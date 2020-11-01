@@ -26,11 +26,11 @@ class FormHelper
      */
     public static function input($name='',$type='text', $options = [],$value='')
     {
-        $lable = isset($options['lable'])?$options['lable']:$name;
-        $tips = isset($options['tips'])?$options['tips']:$lable;
+        $label = isset($options['label'])?$options['label']:$name;
+        $tips = isset($options['tips'])?$options['tips']:$label;
         $value = !empty($value)? 'value="'.$value.'"' :'';
         $str = '<div class="layui-form-item"> 
-        <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($lable)).'</label>
+        <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($label)).'</label>
         <div class="layui-input-block">
          <input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"
          placeholder="' . $tips. '" class="layui-input"'. $value.'>
@@ -87,9 +87,10 @@ class FormHelper
      * @param $value
      * @param array $options
      * @return string
+     * switch是关键字不能用
      */
 
-    public static function switch($name=null, $value, $options = [])
+    public static function switchs($name=null, $value, $options = [])
     {
 
         if (is_array($value)) {
@@ -173,12 +174,15 @@ class FormHelper
      * @param $value
      * @param $options
      */
-    public static function select($name=null,$select=[],$options=[],$attr=[],$value)
+    public static function select($name,$select,$options,$attr,$value)
     {
         $op = '';
         foreach ($select as $k => $v) {
             $select = '';
-            if(is_array($value) && in_array($v[$attr[0]],$value) || $v[$attr[0]]==$value) $select = 'selected';
+            if(is_array($value) && is_array($attr) && in_array($v[$attr[0]],$value) ||  (is_array($attr) && $v[$attr[0]]==$value))
+            {
+                $select = 'selected';
+            }
             if(!empty($attr)){
                 $op .= '<option '.$select.' value="'.$v[$attr[0]].'">'.$v[$attr[1]].'</option>';
             }else{
@@ -197,15 +201,15 @@ class FormHelper
             $default = lang('Default');
         }
         $str = '<div class="layui-form-item">
-        <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($label)) . '</label>
-        <div class="layui-input-block">
-          <select name="' . $name . '" ' . $multiple . self::filter($options) . self::verify($options) . self::search($options) . ' >
-            <option value="">' . $default . '</option>
-            ' . $op . '
-          </select>
-          ' . self::tips($options) . '
-        </div>
-        </div>';
+                <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($label)) . '</label>
+                <div class="layui-input-block">
+                  <select name="' . $name . '" ' . $multiple . self::filter($options) . self::verify($options) . self::search($options) . ' >
+                    <option value="">' . $default . '</option>
+                    ' . $op . '
+                  </select>
+                  ' . self::tips($options) . '
+                </div>
+                </div>';
         return $str;
     }
 
@@ -272,12 +276,12 @@ class FormHelper
             $op .= 'lay-format="' . $options['format'] . '"';
 
         }
-        $str = '<div class="layui-form-item"><div class="layui-inline">
+        $str = '<div class="layui-form-item">
          <label class="layui-form-label '.self::labelRequire($options).'">' . lang('Select Date') . '</label>
          <div class="layui-input-block">
          <input  type="text" name="' . $name . '" class="layui-input" lay-date ' . $op . ' placeholder="yyyy-MM-dd HH:mm:ss">
          </div>
-        </div></div>';
+        </div>';
         return $str;
     }
 
@@ -327,14 +331,15 @@ class FormHelper
      * @return string
      * 编辑器
      */
-    public static function editor($name='container',$id,$type=1,$options=[])
+    public static function editor($name='container',$id=null,$type=1,$options=[])
     {
 
         if($id==''){
             $id = $name;
         }
-        $str = '<div class="layui-form-item"><div class="layui-inline">
-         <label class="layui-form-label '.self::labelRequire($options).' ">' . lang(Str::title($name)) . '</label>
+        $label = isset($options['label'])? $options['label'] :$name;
+        $str = '<div class="layui-form-item">
+         <label class="layui-form-label '.self::labelRequire($options).' ">' . lang(Str::title($label)) . '</label>
          <div class="layui-input-block">';
         if($type==1){
             //百度。quill wangeditor
@@ -343,7 +348,7 @@ class FormHelper
             //LAYEDIT
             $str.='<textarea id="' . $id . '" name="' . $name . '" lay-editor="'.$type.'" type="text/plain"></textarea>';
         }
-        $str.='</div></div></div>';
+        $str.='</div></div>';
 
         return $str;
 

@@ -65,21 +65,21 @@ class Auth extends Backend
     public function add()
     {
         if ($this->request->isAjax()) {
-            $data = $this->request->post();
-            if (empty($data['title'])) {
+            $post = $this->request->post();
+            if (empty($post['title'])) {
                 $this->error(lang('rule name cannot null'));
             }
-            if (empty($data['sort'])) {
+            if (empty($post['sort'])) {
                 $this->error(lang('sort') . lang(' cannot null'));
             }
-            $data['icon'] = $data['icon'] ? 'layui-icon '.$data['icon'] : 'layui-icon layui-icon-diamond';
-            $data['href'] = trim($data['href'], '/');
+            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
+            $post['href'] = trim($post['href'], '/');
             $rule = [
                 'href'=>'require|unique:auth_rule',
                 'title'=>'require'
             ];
-            $this->validate($data, $rule);
-            if ($this->modelClass->save($data)) {
+            $this->validate($post, $rule);
+            if ($this->modelClass->save($post)) {
                 $this->success(lang('Add Success'));
             } else {
                 $this->error(lang('Add Failed'));
@@ -102,10 +102,10 @@ class Auth extends Backend
     public function edit()
     {
         if (request()->isAjax()) {
-            $data = $this->request->param();
-            $data['icon'] = $data['icon'] ? 'layui-icon '.$data['icon'] : 'layui-icon layui-icon-diamond';
+            $post = $this->request->param();
+            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $model = $this->findModel($this->request->param('id'));
-            $model->save($data);
+            $model->save($post);
             $this->success(lang('edit success'));
         } else {
             $list = $this->modelClass
@@ -127,14 +127,14 @@ class Auth extends Backend
     public function child()
     {
         if (request()->isAjax()) {
-            $data = $this->request->post();
-            $data['icon'] = $data['icon'] ? $data['icon'] : 'layui-iconpicker-icon layui-unselect';
+            $post = $this->request->post();
+            $post['icon'] = $post['icon'] ? $post['icon'] : 'layui-iconpicker-icon layui-unselect';
             $rule = [
                 'href'=>'require|unique:auth_rule',
                 'title'=>'require'
             ];
-            $this->validate($data, $rule);
-            $save = $this->modelClass->save($data);
+            $this->validate($post, $rule);
+            $save = $this->modelClass->save($post);
             Cache::delete('ruleList_' . $this->uid);
             $save ? $this->success(lang('Add Success')) : $this->error(lang('Add Failed'));
         } else {

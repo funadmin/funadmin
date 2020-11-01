@@ -35,8 +35,8 @@ class Config extends Backend {
      */
     public function set(){
         if ($this->request->isPost()) {
-            $data = $this->request->param();
-            foreach ($data as $k=>$v){
+            $post = $this->request->param();
+            foreach ($post as $k=>$v){
                 $res = $this->modelClass->where('code',$k)->update(['value'=>$v]);
             }
             $this->success(lang('Save Success'));
@@ -54,10 +54,10 @@ class Config extends Backend {
     //添加配置
     public function add(){
         if($this->request->isPost()){
-            $data = $this->request->param();
+            $post = $this->request->param();
             $rule = ['code|编码'=>"require|unique:config"];
-            $this->validate($data, $rule);
-            if($this->modelClass->save($data)){
+            $this->validate($post, $rule);
+            if($this->modelClass->save($post)){
                 $this->success(lang('edit success'));
             }else{
                 $this->error(lang('edit fail'));
@@ -142,12 +142,12 @@ class Config extends Backend {
         
     }
 
-    protected function buildValue($list,$data){
+    protected function buildValue($list,$post){
         switch ($list->type){
             case 'checkbox':
                 $value = [];
-                if(isset($data['value'])){
-                    foreach ($data['value'] as $k => $v) {
+                if(isset($post['value'])){
+                    foreach ($post['value'] as $k => $v) {
                         $value[] = $k;
                     }
                     $value = implode("\n", $value);
@@ -155,20 +155,20 @@ class Config extends Backend {
                 }
                 break;
             case 'switch':
-                if(isset($data['value']) && $data['value']== 'on') $value = 1;
-                if(!isset($data['value'])) $value = 0;
+                if(isset($post['value']) && $post['value']== 'on') $value = 1;
+                if(!isset($post['value'])) $value = 0;
                 break;
             case 'array':
-                $value = $data['value'];
+                $value = $post['value'];
                 break;
             case 'datetime':
-                $value = $data['value'];
+                $value = $post['value'];
                 break;
             case 'range':
-                $value = $data['value'];
+                $value = $post['value'];
                 break;
             default:
-                $value = $data['value'];
+                $value = $post['value'];
                 break;
         }
         return $value;

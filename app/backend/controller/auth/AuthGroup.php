@@ -46,7 +46,7 @@ class AuthGroup extends Backend
     public function add()
     {
         if ($this->request->isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             $rule = [
                 'title|用户组名' => [
                     'require' => 'require',
@@ -54,8 +54,8 @@ class AuthGroup extends Backend
                     'unique'  => 'auth_group',
                 ]
             ];
-            $this->validate($data, $rule);
-            $result =  $this->modelClass->save($data);
+            $this->validate($post, $rule);
+            $result =  $this->modelClass->save($post);
             if ($result) {
                 $this->success(lang('Add Success'));
             } else {
@@ -79,11 +79,11 @@ class AuthGroup extends Backend
     {
         $list = $this->modelClass->find($id);
         if ($this->request->isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             if($id==1){
                 $this->error(lang('SupperAdmin cannot edit'));
             }
-            $res = $list->save($data);
+            $res = $list->save($post);
             if($res){
                 $this->success(lang('Edit Success'));
             }else{

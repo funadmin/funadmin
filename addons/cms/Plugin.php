@@ -162,15 +162,15 @@ class Plugin extends Addons    // 需继承fun\Addon类
                     'icon' => 'layui-icon layui-icon-unlink
 ',
                     'menulist' => [
-                        ['href' => 'addons/cms/backend/cmsPos/index', 'title' => 'List', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdvPos/index', 'title' => 'List', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsPos/add', 'title' => 'add', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdvPos/add', 'title' => 'add', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsPos/edit', 'title' => 'edit', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdvPos/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsPos/modify', 'title' => 'modify', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdvPos/modify', 'title' => 'modify', 'status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsPos/delete', 'title' => 'delete', 'status' => 1,
+                        ['href' => 'addons/cms/backend/cmsAdvPos/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
 
                     ]

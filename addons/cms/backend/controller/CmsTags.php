@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\admin\controller\cms;
+namespace addons\cms\backend\controller;
 
 use app\common\controller\Backend;
 use app\common\traits\Curd;
@@ -48,12 +48,12 @@ class CmsTags extends Backend
     public function add()
     {
         if (Request::isPost()) {
-            $data = $this->request->post();
-            if($data){
+            $post = $this->request->post();
+            if($post){
                 $this->error(lang('data can not empty'));
             }
             $model = new \app\common\model\CmsTags();
-            $res = $model->addTags($data,$id='');
+            $res = $model->addTags($post,$id='');
             if ($res) {
                 $this->success(lang('add success'),url('index'));
             } else {
@@ -71,12 +71,12 @@ class CmsTags extends Backend
     public function edit()
     {
         if (Request::isPost()) {
-            $data = $this->request->post();
-            if(!$data){
+            $post = $this->request->post();
+            if(!$post){
                 $this->error(lang('data can not empty'));
             }
             $model = new \app\common\model\CmsTags();
-            $res = $model->addTags($data,$id='');
+            $res = $model->addTags($post,$id='');
             if ($res) {
                 $this->success(lang('edit success'), url('index'));
             } else {

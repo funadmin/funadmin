@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost:3306
--- 生成日期： 2020-10-25 18:06:26
+-- 生成日期： 2020-11-01 20:29:06
 -- 服务器版本： 5.7.26-log
 -- PHP 版本： 7.4.9
 
@@ -91,7 +91,8 @@ INSERT INTO `fun_addons_cms_adv` (`id`, `pid`, `type`, `name`, `url`, `path`, `c
 (4, 2, 0, 'news', 'javascript:void(0);', '/static/addons/cms/frontend/images/190704110314965.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#f1dcf7', 0, 1567574061),
 (5, 4, 0, 'about', 'javascript:void(0);', '/static/addons/cms/frontend/images/190704094410753.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#000000', 0, 0),
 (6, 4, 0, 'product', 'https://www.baidu.com', '/static/addons/cms/frontend/images/190704110314965.jpg', NULL, 0, 0, '', '994927909@qq.com', '', 0, 0, 1, 0, '', 1566107420, 1582681681),
-(7, 5, 0, 'cases', 'https://www.funadmin.com', '/static/addons/cms/frontend/images/190705114610748.jpg', NULL, 0, 0, '', '', '', 0, NULL, 1, 0, NULL, NULL, NULL);
+(7, 5, 0, 'cases', 'https://www.funadmin.com', '/static/addons/cms/frontend/images/190705114610748.jpg', NULL, 0, 0, '', '', '', 0, NULL, 1, 0, NULL, NULL, NULL),
+(8, 1, 2, 'li ming yue', 'https://swapptest.singlewindow.cn/ceb2grab/grab/realTimeDataUpload', NULL, NULL, 0, 0, '', '', '', 0, NULL, 1, 0, NULL, 1604134926, 1604134926);
 
 -- --------------------------------------------------------
 
@@ -108,19 +109,20 @@ CREATE TABLE `fun_addons_cms_adv_position` (
   `style` mediumtext COMMENT '模板样式',
   `status` tinyint(1) DEFAULT '0' COMMENT '0关闭1开启',
   `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL
+  `update_time` int(11) DEFAULT NULL,
+  `delete_time` int(11) NOT NULL DEFAULT '0' COMMENT '删除时间\r\n'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- 转存表中的数据 `fun_addons_cms_adv_position`
 --
 
-INSERT INTO `fun_addons_cms_adv_position` (`id`, `name`, `width`, `height`, `intro`, `style`, `status`, `create_time`, `update_time`) VALUES
-(1, 'Index页面自动增加广告位 1 ', 0, 0, 'Cart页面', '', 1, 0, 0),
-(2, 'about', 0, 0, 'about', '', 1, 0, 0),
-(3, 'news', 0, 0, '', NULL, 1, NULL, 1582519639),
-(4, 'cases', 0, 0, '', NULL, 1, NULL, 1582519640),
-(5, 'product', 0, 0, '', NULL, 1, NULL, 1582519638);
+INSERT INTO `fun_addons_cms_adv_position` (`id`, `name`, `width`, `height`, `intro`, `style`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 'Index页面自动增加广告位 1 ', 0, 0, 'Cart页面', '', 1, 0, 0, 0),
+(2, 'about', 0, 0, 'about', '', 1, 0, 0, 0),
+(3, 'news', 0, 0, '', NULL, 1, NULL, 1582519639, 0),
+(4, 'cases', 0, 0, '', NULL, 1, NULL, 1582519640, 0),
+(5, 'product', 0, 0, '', NULL, 1, NULL, 1582519638, 0);
 
 -- --------------------------------------------------------
 
@@ -170,7 +172,7 @@ INSERT INTO `fun_addons_cms_article` (`id`, `cateid`, `uid`, `username`, `title`
 CREATE TABLE `fun_addons_cms_category` (
   `id` smallint(5) UNSIGNED NOT NULL,
   `catename` varchar(255) NOT NULL DEFAULT '' COMMENT '栏目名字',
-  `catedir` varchar(30) NOT NULL DEFAULT '' COMMENT '栏目唯一标识',
+  `cateflag` varchar(30) NOT NULL DEFAULT '' COMMENT '栏目唯一标识',
   `pid` smallint(5) UNSIGNED NOT NULL DEFAULT '0',
   `arrpid` varchar(100) DEFAULT '0',
   `arrchildid` varchar(100) NOT NULL DEFAULT ''''' ',
@@ -198,7 +200,7 @@ CREATE TABLE `fun_addons_cms_category` (
 -- 转存表中的数据 `fun_addons_cms_category`
 --
 
-INSERT INTO `fun_addons_cms_category` (`id`, `catename`, `catedir`, `pid`, `arrpid`, `arrchildid`, `moduleid`, `module`, `type`, `title`, `keywords`, `description`, `content`, `sort`, `is_menu`, `status`, `hits`, `thumb`, `url`, `template_list`, `template_show`, `page_size`, `create_time`, `update_time`) VALUES
+INSERT INTO `fun_addons_cms_category` (`id`, `catename`, `cateflag`, `pid`, `arrpid`, `arrchildid`, `moduleid`, `module`, `type`, `title`, `keywords`, `description`, `content`, `sort`, `is_menu`, `status`, `hits`, `thumb`, `url`, `template_list`, `template_show`, `page_size`, `create_time`, `update_time`) VALUES
 (5, '新闻动态', 'dongtai', 0, '0', '5,1,6,14', 19, 'cms_article', 0, 'funadmin', 'funadmin,layui', 'funadmin,layui,插件开发', NULL, 50, 1, 1, 100, '', '', 'list_article.html', 'show_article.html', 15, 1579344001, 1582684679),
 (6, '最新资讯', 'news', 5, '0,5', '6', 19, 'cms_article', 0, 'funadmin', 'funadmin,layui', 'funadmin,layui,插件开发', NULL, 50, 1, 1, 100, '', '', 'list_article.html', 'show_article.html', 15, 1579344044, 1582684698),
 (10, '小程序', 'minpro', 13, '0,13', '10', 18, 'cms_product', 0, 'funadmin', 'funadmin,layui', 'funadmin,layui,插件开发', NULL, 50, 1, 1, 0, '', '', 'list_product.html', 'show_page.html', 15, 0, 1582684670),
@@ -364,7 +366,7 @@ CREATE TABLE `fun_addons_cms_link` (
   `id` int(5) NOT NULL,
   `name` varchar(50) NOT NULL COMMENT '链接名称',
   `url` varchar(200) NOT NULL COMMENT '链接URL',
-  `type_id` tinyint(4) DEFAULT NULL COMMENT '所属栏目ID',
+  `category_id` tinyint(4) DEFAULT '0' COMMENT '所属栏目ID',
   `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
   `qq` varchar(20) DEFAULT NULL COMMENT '联系QQ',
   `sort` int(5) NOT NULL DEFAULT '50' COMMENT '排序',
@@ -377,7 +379,7 @@ CREATE TABLE `fun_addons_cms_link` (
 -- 转存表中的数据 `fun_addons_cms_link`
 --
 
-INSERT INTO `fun_addons_cms_link` (`id`, `name`, `url`, `type_id`, `email`, `qq`, `sort`, `status`, `create_time`, `update_time`) VALUES
+INSERT INTO `fun_addons_cms_link` (`id`, `name`, `url`, `category_id`, `email`, `qq`, `sort`, `status`, `create_time`, `update_time`) VALUES
 (23, 'funadmin', 'https://www.funadmin.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566102829, 1577524944),
 (25, '百度', 'https://www.baidu.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566103165, 1573640285),
 (26, '新浪', 'https://www.sina.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566103233, 1573640288);
@@ -414,9 +416,9 @@ INSERT INTO `fun_addons_cms_message` (`id`, `username`, `company`, `mobile`, `we
 
 CREATE TABLE `fun_addons_cms_module` (
   `id` tinyint(3) UNSIGNED NOT NULL,
-  `title` varchar(100) NOT NULL DEFAULT '' COMMENT '模型名称',
-  `name` varchar(50) NOT NULL DEFAULT '' COMMENT '表名',
-  `description` varchar(200) NOT NULL DEFAULT '' COMMENT '描述',
+  `modulename` varchar(100) NOT NULL DEFAULT '' COMMENT '模型名称',
+  `tablename` varchar(50) NOT NULL DEFAULT '' COMMENT '表名',
+  `intro` varchar(200) NOT NULL DEFAULT '' COMMENT '描述',
   `type` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '0 空白，1 文章',
   `ispage` tinyint(1) DEFAULT '0' COMMENT '是否单页',
   `listfields` varchar(255) NOT NULL DEFAULT '' COMMENT '列表页查询字段',
@@ -424,17 +426,18 @@ CREATE TABLE `fun_addons_cms_module` (
   `sort` smallint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '排序',
   `status` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '状态',
   `create_time` int(11) DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0'
+  `update_time` int(11) NOT NULL DEFAULT '0',
+  `delete_time` int(11) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模型表';
 
 --
 -- 转存表中的数据 `fun_addons_cms_module`
 --
 
-INSERT INTO `fun_addons_cms_module` (`id`, `title`, `name`, `description`, `type`, `ispage`, `listfields`, `template`, `sort`, `status`, `create_time`, `update_time`) VALUES
-(18, 'cms_product', 'cms_product', 'cms_product', 0, 0, '*', '', 50, 1, 1582683759, 1582683759),
-(19, 'cms_article', 'cms_article', '文章', 0, 0, '*', '', 50, 1, 1582684043, 1582684043),
-(20, 'cms_picture', 'cms_picture', '图片', 0, 0, '*', '', 50, 1, 1582684060, 1582684060);
+INSERT INTO `fun_addons_cms_module` (`id`, `modulename`, `tablename`, `intro`, `type`, `ispage`, `listfields`, `template`, `sort`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
+(18, 'cms_product', 'cms_product', 'cms_product', 0, 0, '*', '', 50, 1, 1582683759, 1582683759, 0),
+(19, 'cms_article', 'cms_article', '文章', 0, 0, '*', '', 50, 1, 1582684043, 1582684043, 0),
+(20, 'cms_picture', 'cms_picture', '图片', 0, 0, '*', '', 50, 1, 1582684060, 1582684060, 0);
 
 -- --------------------------------------------------------
 
@@ -722,7 +725,7 @@ CREATE TABLE `fun_admin` (
 --
 
 INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`) VALUES
-(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '3bf4b7158724d2bd326630ff0651f777cec4a604', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1603423906),
+(1, 'admin', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '1,3', '994927909@qq.com', '', '18397423845', '127.0.0.1', '8d4073f0f6f6fb71026cb84d38b8500702b1aa46', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1604121463),
 (3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1603265320);
 
 -- --------------------------------------------------------
@@ -838,7 +841,79 @@ INSERT INTO `fun_admin_log` (`id`, `module`, `admin_id`, `username`, `method`, `
 (84, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"path\":\"upload\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36 Edg/86.0.622.48', '127.0.0.1', 1603620092, 1603620092, 1),
 (85, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"path\":\"upload\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36 Edg/86.0.622.48', '127.0.0.1', 1603620251, 1603620251, 1),
 (86, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"path\":\"upload\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36 Edg/86.0.622.48', '127.0.0.1', 1603620269, 1603620269, 1),
-(87, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"path\":\"upload\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36 Edg/86.0.622.48', '127.0.0.1', 1603620282, 1603620282, 1);
+(87, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"path\":\"upload\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.80 Safari/537.36 Edg/86.0.622.48', '127.0.0.1', 1603620282, 1603620282, 1),
+(88, 'backend', 0, 'admin', 'POST', '[登录成功]', '/ZtWXfUSehw.php/login/index.html', '{\"__token__\":\"b3268060c9939620157d5d069e0e4d46\",\"username\":\"admin\",\"password\":\"123456\",\"captcha\":\"36\",\"rememberMe\":\"true\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714034, 1603714034, 1),
+(89, 'backend', 0, 'admin', 'POST', '[登录成功]', '/ZtWXfUSehw.php/login/index.html', '{\"__token__\":\"4ef29a3e189baf531d7a0b7c5764ca5a\",\"username\":\"admin\",\"password\":\"123456\",\"captcha\":\"33\",\"rememberMe\":\"true\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714038, 1603714038, 1),
+(90, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714041, 1603714041, 1),
+(91, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714046, 1603714046, 1),
+(92, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714082, 1603714082, 1),
+(93, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/sys.adminlog/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603714130, 1603714130, 1),
+(94, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715071, 1603715071, 1),
+(95, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715080, 1603715080, 1),
+(96, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715085, 1603715085, 1),
+(97, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715249, 1603715249, 1),
+(98, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715523, 1603715523, 1),
+(99, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715611, 1603715611, 1),
+(100, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715618, 1603715618, 1),
+(101, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715706, 1603715706, 1),
+(102, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715708, 1603715708, 1),
+(103, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715721, 1603715721, 1),
+(104, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603715723, 1603715723, 1),
+(105, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603716944, 1603716944, 1),
+(106, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603716955, 1603716955, 1),
+(107, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.authgroup/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603717714, 1603717714, 1),
+(108, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603717841, 1603717841, 1),
+(109, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603717861, 1603717861, 1),
+(110, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603718140, 1603718140, 1),
+(111, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720107, 1603720107, 1),
+(112, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720115, 1603720115, 1),
+(113, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720914, 1603720914, 1),
+(114, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720933, 1603720933, 1),
+(115, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720977, 1603720977, 1),
+(116, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720987, 1603720987, 1),
+(117, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603720999, 1603720999, 1),
+(118, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721019, 1603721019, 1),
+(119, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721024, 1603721024, 1),
+(120, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721048, 1603721048, 1),
+(121, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721097, 1603721097, 1),
+(122, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721100, 1603721100, 1),
+(123, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721142, 1603721142, 1),
+(124, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721153, 1603721153, 1),
+(125, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721156, 1603721156, 1),
+(126, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721164, 1603721164, 1),
+(127, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/auth.admin/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.51', '127.0.0.1', 1603721166, 1603721166, 1),
+(128, 'backend', 0, 'admin', 'POST', '[登录成功]', '/ZtWXfUSehw.php/login/index.html', '{\"__token__\":\"fe67681432ec17e7ca8d028e9de2ebd6\",\"username\":\"admin\",\"password\":\"123456\",\"captcha\":\"20\",\"rememberMe\":\"true\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604121463, 1604121463, 1),
+(129, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604121466, 1604121466, 1),
+(130, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604130663, 1604130663, 1),
+(131, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604130758, 1604130758, 1),
+(132, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604131274, 1604131274, 1),
+(133, 'backend', 1, 'admin', 'GET', 'Edit', '/ZtWXfUSehw.php/member.member/edit.html', '{\"id\":\"4\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604131278, 1604131278, 1),
+(134, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604131284, 1604131284, 1),
+(135, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/sys.languages/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132896, 1604132896, 1),
+(136, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/sys.config/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132907, 1604132907, 1),
+(137, 'backend', 1, 'admin', 'GET', 'Edit', '/ZtWXfUSehw.php/sys.config/edit.html', '{\"id\":\"32\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132919, 1604132919, 1),
+(138, 'backend', 1, 'admin', 'GET', 'Edit', '/ZtWXfUSehw.php/sys.config/edit.html', '{\"id\":\"11\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132925, 1604132925, 1),
+(139, 'backend', 1, 'admin', 'POST', 'Edit', '/ZtWXfUSehw.php/sys.config/edit.html', '{\"id\":\"11\",\"group\":\"site\",\"type\":\"radio\",\"code\":\"app_debug\",\"verfiy\":\"\",\"value\":\"1\",\"extra\":\"0\\n1\",\"remark\":\"\\u6d4b\\u8bd5\\u6a21\\u5f0f\",\"__token__\":\"82f715721a36ac5f300d8873b18e91ba\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132931, 1604132931, 1),
+(140, 'backend', 1, 'admin', 'GET', 'Edit', '/ZtWXfUSehw.php/sys.config/edit.html', '{\"id\":\"11\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132932, 1604132932, 1),
+(141, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132945, 1604132945, 1),
+(142, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/sys.config/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604132948, 1604132948, 1),
+(143, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133096, 1604133096, 1),
+(144, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133195, 1604133195, 1),
+(145, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133330, 1604133330, 1),
+(146, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133523, 1604133523, 1),
+(147, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133601, 1604133601, 1),
+(148, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604133700, 1604133700, 1),
+(149, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604134024, 1604134024, 1),
+(150, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604134105, 1604134105, 1),
+(151, 'backend', 1, 'admin', 'GET', '数据列表', '/ZtWXfUSehw.php/index/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604134766, 1604134766, 1),
+(152, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '清除缓存|切换语言', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604143681, 1604143681, 1),
+(153, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '清除缓存|切换语言', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604143729, 1604143729, 1),
+(154, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '清除缓存|切换语言', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604143740, 1604143740, 1),
+(155, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '清除缓存|切换语言', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604143765, 1604143765, 1),
+(156, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"editor\":\"layedit\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604144318, 1604144318, 1),
+(157, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"editor\":\"layedit\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604144485, 1604144485, 1),
+(158, 'backend', 1, 'admin', 'POST', 'Uploads', '/ZtWXfUSehw.php/ajax/uploads.html', '{\"editor\":\"layedit\"}', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604144846, 1604144846, 1),
+(159, 'backend', 1, 'admin', 'GET', 'List', '/ztwxfusehw.php/member.member/index.html', '菜单点击|刷新', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36 Edg/86.0.622.56', '127.0.0.1', 1604150048, 1604150048, 1);
 
 -- --------------------------------------------------------
 
@@ -876,7 +951,9 @@ CREATE TABLE `fun_attach` (
 INSERT INTO `fun_attach` (`id`, `admin_id`, `user_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`) VALUES
 (28, 1, 0, '1598258370953677.jpg', 'ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', 'jpg', 159, '537', '852', '0e3893e089007c97b741b108324dcb4b', 'image/jpeg', '0', NULL, 1602723224, 1602723224, 1, 50),
 (29, 1, 0, 'admin-ajax.png', '7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', 'png', 4, '115', '103', 'cb959c6185839156a4ebadd507b96f67', 'image/png', '0', NULL, 1602723370, 1602723370, 1, 50),
-(30, 1, 0, 'logo.png', 'efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', 'png', 12, '800', '800', '4fb3d30dbbfb2ad6d7df97397f91d791', 'image/png', '0', NULL, 1603620282, 1603620282, 1, 50);
+(30, 1, 0, 'logo.png', 'efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', 'png', 12, '800', '800', '4fb3d30dbbfb2ad6d7df97397f91d791', 'image/png', '0', NULL, 1603620282, 1603620282, 1, 50),
+(31, 1, 0, '168_1535351333114_70495.jpg', 'a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', 'jpg', 120, '3840', '800', '8094d152873eb7269bbe39f9dfcf8260', 'image/jpeg', '0', NULL, 1604143741, 1604143741, 1, 50),
+(32, 1, 0, '未标题-1.png', 'e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', 'png', 13, '800', '600', 'eead77ffb36d17b267b598a236673823', 'image/png', '0', NULL, 1604144846, 1604144846, 1, 50);
 
 -- --------------------------------------------------------
 
@@ -1051,12 +1128,12 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (386, 'addon', '_self', 'addons/cms/backend/cmsAdv/edit', '编辑广告', 1, 1, 1, 0, NULL, '', 384, 0, 1603606019, 1603606019),
 (387, 'addon', '_self', 'addons/cms/backend/cmsAdv/modify', '广告状态', 1, 1, 1, 0, NULL, '', 384, 0, 1603606019, 1603606019),
 (388, 'addon', '_self', 'addons/cms/backend/cmsAdv/delete', '删除广告', 1, 1, 1, 0, NULL, '', 384, 0, 1603606019, 1603606019),
-(389, 'addon', '_self', 'addons/cms/backend/cmsPos', 'Advpos', 1, 1, 1, 1, 'layui-icon layui-icon-unlink\r\n', '', 353, 0, 1603606019, 1603606019),
-(390, 'addon', '_self', 'addons/cms/backend/cmsPos/index', 'List', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
-(391, 'addon', '_self', 'addons/cms/backend/cmsPos/add', 'add', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
-(392, 'addon', '_self', 'addons/cms/backend/cmsPos/edit', 'edit', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
-(393, 'addon', '_self', 'addons/cms/backend/cmsPos/modify', 'modify', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
-(394, 'addon', '_self', 'addons/cms/backend/cmsPos/delete', 'delete', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
+(389, 'addon', '_self', 'addons/cms/backend/cmsAdvPos', 'Advpos', 1, 1, 1, 1, 'layui-icon layui-icon-unlink\r\n', '', 353, 0, 1603606019, 1603606019),
+(390, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/index', 'List', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
+(391, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/add', 'add', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
+(392, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/edit', 'edit', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
+(393, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/modify', 'modify', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
+(394, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/delete', 'Delete', 1, 1, 1, 0, NULL, '', 389, 0, 1603606019, 1603606019),
 (395, 'addon', '_self', 'addons/cms/backend/cmsDebris', 'Debris', 1, 1, 1, 1, 'layui-icon-list', '', 353, 0, 1603606020, 1603606020),
 (396, 'addon', '_self', 'addons/cms/backend/cmsDebris/index', 'List', 1, 1, 1, 0, NULL, '', 395, 0, 1603606020, 1603606020),
 (397, 'addon', '_self', 'addons/cms/backend/cmsDebris/add', 'add', 1, 1, 1, 0, NULL, '', 395, 0, 1603606020, 1603606020),
@@ -1119,7 +1196,7 @@ INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `rema
 (8, 'site_tel400', '', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 0, 0),
 (9, 'site_email', '', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 0, 0),
 (10, 'site_copyright', '', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 0, 1603435866),
-(11, 'app_debug', '', '0,1', '0', '测试模式', '', 'radio', 'site', 1, 0, 1602315188),
+(11, 'app_debug', '', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 0, 1604132931),
 (18, 'email_addr', '', '', '994927909@qq.com', '邮箱发件人地址', '0', 'text', 'email', 1, 0, 0),
 (19, 'email_id', '', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0),
 (20, 'email_pass', '', '', '11211', '用户名密码', '0', 'text', 'email', 1, 0, 0),
@@ -1874,7 +1951,7 @@ ALTER TABLE `fun_addon`
 -- 使用表AUTO_INCREMENT `fun_addons_cms_adv`
 --
 ALTER TABLE `fun_addons_cms_adv`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '广告id', AUTO_INCREMENT=8;
+  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '广告id', AUTO_INCREMENT=9;
 
 --
 -- 使用表AUTO_INCREMENT `fun_addons_cms_adv_position`
@@ -1988,13 +2065,13 @@ ALTER TABLE `fun_admin`
 -- 使用表AUTO_INCREMENT `fun_admin_log`
 --
 ALTER TABLE `fun_admin_log`
-  MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=88;
+  MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=160;
 
 --
 -- 使用表AUTO_INCREMENT `fun_attach`
 --
 ALTER TABLE `fun_attach`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_group`

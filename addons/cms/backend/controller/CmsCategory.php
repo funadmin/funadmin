@@ -10,31 +10,35 @@
  * Author: yuege
  * Date: 2019/10/12
  */
-namespace  addons\cms\backend\controller\cms;
+namespace  addons\cms\backend\controller;
 
-use app\common\controller\Backend;
-use app\common\model\CmsField;
-use app\common\model\CmsTags;
+use app\common\controller\AddonsBackend;
+use addons\cms\common\model\CmsField;
+use addons\cms\common\model\CmsTags;
+use addons\cms\common\model\CmsModule;
+use addons\cms\common\model\CmsCategory as CModel;
 use app\common\traits\Curd;
-use lemo\helper\ArrayHelper;
-use lemo\helper\TreeHelper;
+use fun\helper\ArrayHelper;
+use fun\helper\TreeHelper;
+use think\App;
 use think\facade\Db;
 use think\facade\Request;
 use think\facade\View;
-use app\common\model\CmsCategory as CModel;
 
-class CmsCategory extends Backend
+class CmsCategory extends AddonsBackend
 {
     use Curd;
     public $filepath;
     public $_category;
     public $_list;
     public $_show;
-    public function initialize()
+
+    public function __construct(App $app)
     {
-        parent::initialize();
+        parent::__construct($app);
+        $this->modelClass = new CModel();
         //取得当前内容模型模板存放目录
-        $this->filepath = app()->getRootPath().'app/cms/view' . DIRECTORY_SEPARATOR;
+        $this->filepath = $this->addon_path.'view'.DIRECTORY_SEPARATOR.'frontend' . DIRECTORY_SEPARATOR;
         //取得栏目频道模板列表
         $this->_category = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'category*'));
         //取得栏目列表模板列表
@@ -43,23 +47,27 @@ class CmsCategory extends Backend
         $this->_show = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'show*'));
 
     }
+
     /*-----------------------栏目管理----------------------*/
     // 栏目列表
     public function index()
     {
-        if(Request::isPost()){
-            $keys = Request::post('keys','','trim');
-            $page = Request::post('page') ? Request::post('page') : 1;
-            $list = CModel::where('title','like','%'.$keys.'%')
-                ->order('id desc,sort desc')
-                ->paginate(['list_rows' => $this->pageSize, 'page' => $page])
-                ->toArray();
-            foreach($list['data'] as $k=>$v){
-                $list['data'][$k]['lay_is_open']=true;
-            }
-            return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list['data'],'count'=>$list['total']];
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            $count = $this->modelClass
+                ->where($where)
+                ->count();
+            $list = $this->modelClass
+                ->where($where)
+                ->order($sort)
+                ->page($this->page,$this->pageSize)
+                ->select()->toArray();
+            $list = TreeHelper::cateTree($list,'catename');
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            return json($result);
         }
-        CModel::fixCate();
+
+        $this->modelClass->fixCate();
         return view();
 
     }
@@ -67,20 +75,18 @@ class CmsCategory extends Backend
     // 添加栏目
     public function add()
     {
-        if (Request::isPost()) {
-            $data = Request::post();
-            $moduleid = Request::post('moduleid');
-            $module = \app\common\model\CmsModule::find($moduleid);
-            $moduleid = Request::post('moduleid');
-            $module = \app\common\model\CmsModule::find($moduleid);
+        if ($this->request->isPost()) {
+            $post = $this->request->post();
+            $moduleid = $this->request->post('moduleid');
+            $module = CmsModule::find($moduleid);
             if($module){
-                $data['module'] = $module->name;
+                $post['module'] = $module->name;
             }else{
                 $this->error('模型不存在');
             }
 
             //添加
-            $result = CModel::create($data);
+            $result = CModel::create($post);
             CModel::fixCate();
 
             if ($result) {
@@ -89,20 +95,19 @@ class CmsCategory extends Backend
                 $this->error(lang('add fail'));
             }
         } else {
-            $info = '';
-            $colGroup = CModel::select();
-            $colGroup = TreeHelper::categoryTree($colGroup);
-            $moduleGroup = \app\common\model\CmsModule::select()->toArray();
+            $formData = '';
+            $colGroup = $this->modelClass->select()->toArray();
+            $colGroup = TreeHelper::cateTree($colGroup,'catename');
+            $moduleGroup = CmsModule::select()->toArray();
             foreach($moduleGroup as $k=>$v){
                 $moduleGroup[$k]['lay_is_open']=false;
             }
             $params['name'] = 'container';
             $params['content'] = '';
             $view = [
-                'info' => $info,
+                'formData' => $formData,
                 'colGroup' => $colGroup,
                 'moduleGroup' => $moduleGroup,
-                'title' => '添加',
                 '_category'=>$this->_category,
                 '_list'=>$this->_list,
                 '_show'=>$this->_show,
@@ -119,33 +124,33 @@ class CmsCategory extends Backend
      */
     public function edit()
     {
-        if (Request::isPost()) {
-            $data = Request::post();
-            $moduleid = Request::post('moduleid');
-            $module = \app\common\model\CmsModule::find($moduleid);
+        if ($this->request->isPost()) {
+            $post = $this->request->post();
+            $moduleid = $this->request->post('moduleid');
+            $module = CmsModule::find($moduleid);
             if($module){
-                $data['module'] = $module->name;
+                $post['module'] = $module->name;
             }else{
                $this->error(lang('module is not exist'));
             }
-            if(CModel::update($data)){
-                CModel::fixCate();
+            if(CModel::update($post)){
+                $this->modelClass->fixCate();
                 $this->success(lang('edit success'), url('index'));
             }else{
                 $this->error(lang('edit fail'));
             }
 
         }
-        $id = Request::param('id');
+        $id = $this->request->param('id');
         if ($id) {
-            $colGroup = CModel::select();
-            $colGroup = TreeHelper::categoryTree($colGroup);
-            $moduleGroup = \app\common\model\CmsModule::select()->toArray();
-            $info = CModel::find($id);
+            $colGroup = $this->modelClass->select()->toArray();
+            $colGroup = TreeHelper::cateTree($colGroup,'catename');
+            $moduleGroup = CmsModule::select()->toArray();
+            $formData = CModel::find($id);
             $params['name'] = 'container';
-            $params['content'] = $info['content']?$info['content']:'';
+            $params['content'] = $formData['content']?$formData['content']:'';
             $view = [
-                'info' => $info,
+                'formData' => $formData,
                 'colGroup' => $colGroup,
                 'moduleGroup' => $moduleGroup,
                 'title' => '编辑',
@@ -164,7 +169,7 @@ class CmsCategory extends Backend
     // 栏目删除
     public function delete()
     {
-        $id = Request::post('id');
+        $id = $this->request->post('id');
         CModel::destroy($id);
         CModel::fixCate();
         $this->success(lang('delete success'));
@@ -174,15 +179,15 @@ class CmsCategory extends Backend
     // 栏目状态修改
     public function state()
     {
-        if (Request::isPost()) {
-            $id = Request::post('id');
-            $field = Request::post('field');
+        if ($this->request->isPost()) {
+            $id = $this->request->post('id');
+            $field = $this->request->post('field');
             if (empty($id)) {
                 $this->error('id' . lang('not exist'));
             }
-            $info = CModel::find($id);
-            $info->$field = $info->$field?0:1;
-            $info->save();
+            $formData = CModel::find($id);
+            $formData->$field = $formData->$field?0:1;
+            $formData->save();
             $this->success(lang('edit success'));
         }
     }
@@ -190,7 +195,7 @@ class CmsCategory extends Backend
 
 
     /**--------------------------------------------------------栏目内容管理----------------------------------------------------**/
-    public function list(){
+    public function lists(){
         $cate = cache('category_list');
         if(!$cate){
             $cate = CModel::field('id,pid,catename,type')->order('sort asc,id asc')->select()->toArray();
@@ -209,45 +214,45 @@ class CmsCategory extends Backend
         if(!$cateId){
             $view = 'board';
         }
-        $cate = CModel::find($cateId);
+        $cate = $this->modelClass->find($cateId);
         $moduleid = $cate['moduleid'];
-        $module = \app\common\model\CmsModule::find($moduleid);
+        $module = CmsModule::find($moduleid);
         $title =$cate->catename;
-        $info = [];
+        $formData = [];
         if($cate->type==0){//列表
             if($this->request->isPost()){
-                $keys = Request::post('keys','','trim');
-                $page = Request::post('page') ? Request::param('page') : 1;
-                $info = Db::name($module->name)->where('title','like','%'.$keys.'%')
+                $keys = $this->request->post('keys','','trim');
+                $page = $this->request->post('page') ? $this->request->param('page') : 1;
+                $formData = Db::name($module->name)->where('title','like','%'.$keys.'%')
                     ->order('id desc,sort desc')
                     ->where('cateid',$cate->id)
                     ->paginate(['list_rows' => $this->pageSize, 'page' => $page])
                     ->toArray();
-                return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$info['data'],'count'=>$info['total']];
+                return $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$formData['data'],'count'=>$formData['total']];
             }
             $view = 'content';
-            return view($view,['title'=>$title,'info'=>$info,'cate'=>$cate]);
+            return view($view,['title'=>$title,'formData'=>$formData,'cate'=>$cate]);
 
         }else{//单页
             //添加单页内容
             if($this->request->isPost()) {
-                $data = input('post.');
-                $cate = CModel::find($data['cateid']);
-                $module = \app\common\model\CmsModule::find( $cate['moduleid']);
-                $data['create_time'] = time();
-                unset($data['file']);
-                if(!$data['id']){
-                    $id= $data['id'];
-                    unset($data['id']);
-                   $res = Db::name($module->name)->save($data);
+                $post = input('post.');
+                $cate = $this->modelClass->find($post['cateid']);
+                $module = CmsModule::find( $cate['moduleid']);
+                $post['create_time'] = time();
+                unset($post['file']);
+                if(!$post['id']){
+                    $id= $post['id'];
+                    unset($post['id']);
+                   $res = Db::name($module->name)->save($post);
                 }else{
-                    $res = $id =  Db::name($module->name)->insertGetId($data);
+                    $res = $id =  Db::name($module->name)->insertGetId($post);
                 }
                 if($res){
-                    if(isset($data['tags']) and $data['tags']){
-                        if($module->name=='cms_article'){
+                    if(isset($post['tags']) and $post['tags']){
+                        if($module->name=='addons_cms_article'){
                             $tagModel = new CmsTags();
-                            $tagModel->addTags($data['tags'],$id);
+                            $tagModel->addTags($post['tags'],$id);
                         }
 
                     }
@@ -256,39 +261,39 @@ class CmsCategory extends Backend
                     $this->error('添加失败');
                 }
             }
-            $info =  $info = Db::name($module->name)->where('cateid',$cateId)->find();
+            $formData =  $formData = Db::name($module->name)->where('cateid',$cateId)->find();
             $view = 'page';
             $params['name'] = 'container';
-            $params['content'] = $info['content']?$info['content']:'';
-            return view($view,['title'=>$title,'info'=>$info,'cate'=>$cate, 'ueditor'=>build_ueditor($params),]);
+            $params['content'] = $formData['content']?$formData['content']:'';
+            return view($view,['title'=>$title,'formData'=>$formData,'cate'=>$cate, 'ueditor'=>build_ueditor($params),]);
         }
 
     }
 
     //添加信息
-    public function addinfo(){
+    public function addformData(){
         $cateId = input('cateid');
         $id = input('id');
-        $cate = CModel::find($cateId);
+        $cate = $this->modelClass->find($cateId);
         $moduleid = $cate['moduleid'];
-        $module = \app\common\model\CmsModule::find($moduleid);
+        $module = CmsModule::find($moduleid);
         $title =$cate->catename;
         if($this->request->isPost()){
-            $data = input('post.');
-            if(isset($data['file'])) unset($data['file']);
+            $post = input('post.');
+            if(isset($post['file'])) unset($post['file']);
             if($id){
-                unset($data['id']);
-                $data['update_time'] = time();
-                $res =  Db::name($module->name)->where('id', $id)->update($data);
+                unset($post['id']);
+                $post['update_time'] = time();
+                $res =  Db::name($module->name)->where('id', $id)->update($post);
             }else{
-                $data['create_time'] = time();
-                $res = $id =  Db::name($module->name)->insertGetId($data);
+                $post['create_time'] = time();
+                $res = $id =  Db::name($module->name)->insertGetId($post);
             }
            if($res){
-               if(isset($data['tags']) and $data['tags']){
+               if(isset($post['tags']) and $post['tags']){
                    if($module->name=='cms_article'){
                        $tagModel = new CmsTags();
-                       $tagModel->addTags($data['tags'],$id);
+                       $tagModel->addTags($post['tags'],$id);
                    }
                }
                $this->success('操作成功');
@@ -303,47 +308,47 @@ class CmsCategory extends Backend
                 $fieldList[$k]['option'] = ArrayHelper::parseToarr( $fieldList[$k]['option'] );
             }
         }
-        $info = [];
+        $formData = [];
         if($id){
-            $info =  Db::name($module->name)->find($id);
+            $formData =  Db::name($module->name)->find($id);
             $params['name'] = 'container';
-            $params['content'] = isset($info['content'])?$info['content']:'';
+            $params['content'] = isset($formData['content'])?$formData['content']:'';
             foreach ($fieldList as $k=>$v){
-                $fieldList[$k]['value'] = $info[$v['field']];
-//                $fieldList[$k]['create_time'] = date('Y-m-d H:i:s', $info['create_time']);
-//                $fieldList[$k]['update_time'] = date('Y-m-d H:i:s', $info[$v['update_time']]);
+                $fieldList[$k]['value'] = $formData[$v['field']];
+//                $fieldList[$k]['create_time'] = date('Y-m-d H:i:s', $formData['create_time']);
+//                $fieldList[$k]['update_time'] = date('Y-m-d H:i:s', $formData[$v['update_time']]);
             }
         }else{
             $params['name'] = 'container';
-            $params['content'] = isset($info['content'])?$info['content']:'';
+            $params['content'] = isset($formData['content'])?$formData['content']:'';
 
         }
-        return view('',['cate'=>$cate,'fieldList'=>$fieldList,'title'=>$title,'info'=>$info,'ueditor'=>build_ueditor($params)]);
+        return view('',['cate'=>$cate,'fieldList'=>$fieldList,'title'=>$title,'formData'=>$formData,'ueditor'=>build_ueditor($params)]);
     }
 
     //面板
     public function board(){
-        $info['category'] = CModel::count();
-        $info['module'] =\app\common\model\CmsModule::count();
+        $formData['category'] = $this->modelClass->count();
+        $formData['module'] = CmsModule::count();
 
-        return view('board',['info'=>$info]);
+        return view('board',['formData'=>$formData]);
     }
     // 状态修改
     public function contentState()
     {
-        if (Request::isPost()) {
-            $id = Request::post('id');
+        if ($this->request->isPost()) {
+            $id = $this->request->post('id');
             if (empty($id)) {
                 $this->error('id' . lang('not exist'));
             }
-            $field = Request::param('field');
-            $cateId = Request::param('cateid');
-            $cate = CModel::find($cateId);
+            $field = $this->request->param('field');
+            $cateId = $this->request->param('cateid');
+            $cate = $this->modelClass->find($cateId);
             $moduleid = $cate['moduleid'];
-            $module = \app\common\model\CmsModule::find($moduleid);
-            $info =  Db::name($module->name)->find($id);
-            $data[$field] = $info[$field]?0:1;
-            $res =  Db::name($module->name)->where('id', $id)->update($data);
+            $module = CmsModule::find($moduleid);
+            $formData =  Db::name($module->name)->find($id);
+            $post[$field] = $formData[$field]?0:1;
+            $res =  Db::name($module->name)->where('id', $id)->update($post);
             if($res) $this->success(lang('edit success'));
             $this->error("edit fail");
         }
@@ -351,16 +356,16 @@ class CmsCategory extends Backend
 
     public function contentDel()
     {
-        if (Request::isPost()) {
-            $id = Request::param('id');
+        if ($this->request->isPost()) {
+            $id = $this->request->param('id');
             if (empty($id)) {
                 $this->error('id' . lang('not exist'));
             }
-            $field = Request::param('field');
-            $cateId = Request::param('cateid');
-            $cate = CModel::find($cateId);
+            $field = $this->request->param('field');
+            $cateId = $this->request->param('cateid');
+            $cate = $this->modelClass->find($cateId);
             $moduleid = $cate['moduleid'];
-            $module = \app\common\model\CmsModule::find($moduleid);
+            $module = CmsModule::find($moduleid);
             $res =  Db::name($module->name)->delete($id);
             if($res) $this->success(lang('edit success'));
             $this->error("edit fail");
@@ -370,10 +375,8 @@ class CmsCategory extends Backend
     // 刷新缓存
     public function flashCache(){
 
-        CModel::flashCache();
-        $this->success(lang('清理成功'));
+        $this->modelClass->flashCache()? $this->success(lang('Clear Success')) : $this->error(lang('Clear Fail'));
     }
-
 
 
     //树形组件分类

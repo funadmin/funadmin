@@ -10,48 +10,38 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\admin\controller\cms;
+namespace addons\cms\backend\controller;
 
 use app\common\controller\Backend;
 use app\common\traits\Curd;
+use think\App;
 use think\facade\Db;
 use think\facade\Request;
 use think\facade\View;
-use app\common\model\CmsDebris as DebrisModel;
-use app\common\model\CmsDebrisType as DebrisTypeModel;
+use addons\cms\common\model\CmsDebris as DebrisModel;
+use addons\cms\common\model\CmsDebrisType as DebrisTypeModel;
 class CmsDebris extends Backend {
     use Curd;
-    public function initialize(){
-        parent::initialize();
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $this->modelClass = new DebrisModel();
     }
-    /*-----------------------碎片管理----------------------*/
-    // 碎片列表
     public function index()
     {
-        if(Request::isPost()){
-            $keys = Request::post('keys','','trim');
-            $page = Request::post('page') ? Request::post('page') : 1;
-            $list=Db::name('cms_debris')->alias('d')->join('cms_debris_type t','t.id=d.tid')
-                ->field('d.*,t.title as  ttitle')
-                ->where('d.title','like','%'.$keys.'%')
-                ->order('d.sort desc,d.id desc')
-                ->paginate(['list_rows' => $this->pageSize, 'page' => $page])
-                ->toArray();
-            return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list['data'],'count'=>$list['total']];
-        }
 
-        return view();
     }
+
 
     // 碎片添加
     public function add()
     {
         if (Request::isPost()) {
-            $data = Request::post();
+            $post = Request::post();
 
 
             //添加
-            $result = DebrisModel::create($data);
+            $result = DebrisModel::create($post);
             if ($result) {
                 $this->success(lang('add success'), url('index'));
             } else {
@@ -79,8 +69,8 @@ class CmsDebris extends Backend {
     public function edit()
     {
         if (Request::isPost()) {
-            $data = Request::post();
-            DebrisModel::update($data);
+            $post = Request::post();
+            DebrisModel::update($post);
             $this->success(lang('edit success'), url('index'));
 
         } else {
@@ -104,33 +94,6 @@ class CmsDebris extends Backend {
     }
 
 
-    // 碎片删除
-    public function delete()
-    {
-        $ids = Request::post('ids');
-        $model = new DebrisModel();
-        $model->del($ids);
-        $this->success(lang('delete success'));
-
-    }
-
-
-
-    // 碎片状态修改
-    public function state()
-    {
-        if (Request::isPost()) {
-            $id = Request::post('id');
-            if (empty($id)) {
-                $this->error('id'.lang('not exist'));
-            }
-            $debris = DebrisModel::find($id);
-            $status = $debris['status'] == 1 ? 0 : 1;
-            $debris->status = $status;
-            $debris->save();
-            $this->success(lang('edit success'));
-        }
-    }
 
 
     /*-----------------------碎片位置管理----------------------*/
@@ -164,8 +127,8 @@ class CmsDebris extends Backend {
     public function posAdd()
     {
         if (Request::isPost()) {
-            $data = Request::post();
-            $result = DebrisTypeModel::create($data);
+            $post = Request::post();
+            $result = DebrisTypeModel::create($post);
             if ($result) {
                 $this->success(lang('add  success'), url('pos'));
             } else {
@@ -187,9 +150,9 @@ class CmsDebris extends Backend {
     public function posEdit()
     {
         if (Request::isPost()) {
-            $data = Request::post();
-            $where['id'] = $data['id'];
-            $res = DebrisTypeModel::update($data, $where);
+            $post = Request::post();
+            $where['id'] = $post['id'];
+            $res = DebrisTypeModel::update($post, $where);
             if($res){
 
                 $this->success(lang('edit success'), url('pos'));

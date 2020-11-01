@@ -5,19 +5,11 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsadv/index',
-                    edit_url: 'addons/cms/backend/cmsadv/edit',
-                    delete_url: 'addons/cms/backend/cmsadv/delete',
-                    modify_url: 'addons/cms/backend/cmsadv/modify',
-                    add_full: {
-                        type: 'open',
-                        url:'addons/cms/backend/cmsadv/add',
-                        class: 'layui-btn-sm layui-btn-green',
-                        icon: 'layui-icon layui-icon-add-circle-fine',
-                        title: __('Add'),
-                        text: __('Add'),
-                        full: 1,
-                    },
+                    index_url: 'addons/cms/backend/cmslink/index',
+                    add_url: 'addons/cms/backend/cmslink/add',
+                    edit_url: 'addons/cms/backend/cmslink/edit',
+                    delete_url: 'addons/cms/backend/cmslink/delete',
+                    modify_url: 'addons/cms/backend/cmslink/modify',
                 }
             }
             Table.render({
@@ -25,13 +17,13 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add_full'],
+                toolbar: ['refresh','add'],
                 cols: [[
                     {checkbox: true, fixed: true},
-
+                    {checkbox: true, fixed: true},
+                    {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
                     {field: 'name', title: __('Name'), minwidth: 150, fixed: true, sort: true},
-                    {field: 'cmsPos.name', title: __('PositionName'), width: 150,templet: Table.templet.resolution, sort: true},
-                    {field: 'image', title: __('Image'), width: 110, templet: Table.templet.image,sort: true},
+                    {field: 'email', title: __('email'), width: 180},
                     {field: 'type', title: __('Type'), width: 110, sort: true},
                     {field: 'url', title: __('Url'), width: 110, sort: true},
                     {field: 'status', title: __('status'), minwidth: 150, sort: true},
@@ -52,7 +44,6 @@ define(['table','form'], function (Table,Form) {
                 limit: 50,
                 page: true
             });
-
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },

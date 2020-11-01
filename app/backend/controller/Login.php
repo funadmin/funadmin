@@ -34,7 +34,7 @@ class Login extends Backend {
             return view('',$view);
 
         } else {
-            $data  = $this->request->post() ;
+            $post  = $this->request->post() ;
             $username = $this->request->post('username', '', 'fun\helper\StringHelper::filterWords');
             $password = $this->request->post('password', '', 'fun\helper\StringHelper::filterWords');
             $rememberMe = $this->request->post('rememberMe');
@@ -43,7 +43,7 @@ class Login extends Backend {
                 "username|用户名" => 'require',
                 "password|密码" => 'require',
             ];
-            $this->validate($data, $rule);
+            $this->validate($post, $rule);
             // 用户信息验证
             try {
                 $auth = new AuthService();

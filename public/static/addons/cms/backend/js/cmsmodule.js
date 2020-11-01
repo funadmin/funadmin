@@ -5,10 +5,10 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsadv/index',
-                    edit_url: 'addons/cms/backend/cmsadv/edit',
-                    delete_url: 'addons/cms/backend/cmsadv/delete',
-                    modify_url: 'addons/cms/backend/cmsadv/modify',
+                    index_url: 'addons/cms/backend/cmsmodule/index',
+                    edit_url: 'addons/cms/backend/cmsmodule/edit',
+                    delete_url: 'addons/cms/backend/cmsmodule/delete',
+                    modify_url: 'addons/cms/backend/cmsmodule/modify',
                     add_full: {
                         type: 'open',
                         url:'addons/cms/backend/cmsadv/add',
@@ -28,15 +28,11 @@ define(['table','form'], function (Table,Form) {
                 toolbar: ['refresh','add_full'],
                 cols: [[
                     {checkbox: true, fixed: true},
-
-                    {field: 'name', title: __('Name'), minwidth: 150, fixed: true, sort: true},
-                    {field: 'cmsPos.name', title: __('PositionName'), width: 150,templet: Table.templet.resolution, sort: true},
-                    {field: 'image', title: __('Image'), width: 110, templet: Table.templet.image,sort: true},
-                    {field: 'type', title: __('Type'), width: 110, sort: true},
-                    {field: 'url', title: __('Url'), width: 110, sort: true},
-                    {field: 'status', title: __('status'), minwidth: 150, sort: true},
-                    {field: 'start_time', title: __('Starttime'), width: 180,templet: Table.templet.time, sort: true,},
-                    {field: 'end_time', title: __('Endtime'), width: 180,templet: Table.templet.time ,sort: true,},
+                    {field: 'id', title: 'ID', width:90, fixed: true,sort:true},
+                    {field: 'modulename', title:__('ModuleName'), width: 150},
+                    {field: 'tablename', title: __('TableName'), minwidth: 150, fixed: true, sort: true},
+                    {field: 'intro', title: __('intro'), minwidth: 180},
+                    {field: 'status', title: __('status'), minwidth: 150, sort: true,templet: Table.templet.switch},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {
@@ -52,7 +48,6 @@ define(['table','form'], function (Table,Form) {
                 limit: 50,
                 page: true
             });
-
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },

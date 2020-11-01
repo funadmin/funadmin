@@ -15,18 +15,13 @@ namespace addons\cms\backend\controller;
 use app\common\controller\AddonsBackend;
 use app\common\traits\Curd;
 use think\App;
-use think\facade\View;
-use addons\cms\common\model\CmsLink as LinkModel;
-use think\Validate;
-
-class CmsLink extends AddonsBackend
-{
+use addons\cms\common\model\CmsDebris as DebrisModel;
+class CmsDebrisPos extends AddonsBackend {
     use Curd;
-
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new LinkModel();
+        $this->modelClass = new DebrisModel();
     }
 
-}
+   }

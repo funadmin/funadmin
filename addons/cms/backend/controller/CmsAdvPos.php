@@ -17,12 +17,8 @@ use app\common\controller\AddonsBackend;
 use addons\cms\common\model\CmsAdvPosition;
 use app\common\traits\Curd;
 use think\App;
-use think\facade\Db;
-use think\facade\Request;
-use think\facade\View;
-use  addons\cms\common\model\Cmsadv as AdvModel;
 
-class Cmsadv extends AddonsBackend
+class CmsAdvPos extends AddonsBackend
 {
     use Curd;
 
@@ -31,7 +27,7 @@ class Cmsadv extends AddonsBackend
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new AdvModel();
+        $this->modelClass = new CmsAdvPosition();
     }
     /*-----------------------广告管理----------------------*/
     public function index()
@@ -42,7 +38,6 @@ class Cmsadv extends AddonsBackend
                 ->where($where)
                 ->count();
             $list = $this->modelClass
-                ->with('cmsPos')
                 ->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
@@ -53,93 +48,36 @@ class Cmsadv extends AddonsBackend
         return view();
     }
 
-    // 广告添加
+    /**
+     * @return \think\response\View
+     */
     public function add()
     {
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $rule = [
-                'pid|广告位置' => [
-                    'require' => 'require',
-                ],
-                'url|广告图片' => [
-                    'require' => 'require',
-                ],
-                'name|广告名' => [
+                'name|广告位置' => [
                     'require' => 'require',
                 ],
             ];
             try {
                 $this->validate($post, $rule);
-
             }catch (\ValidateException $e){
-                $this->error($e->getMessage());
+                $this->error(lang($e->getMessage()));
             }
-            if ($post['start_time']) {
-                $post['start_time'] = strtotime($post['start_time']);
-            }
-            if ($post['end_time']) {
-                $post['end_time'] = strtotime($post['end_time']);
-            }
-
             try {
                 $save = $this->modelClass->save($post);
             } catch (\Exception $e) {
                 $this->error(lang('Save Failed'));
             }
             $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
-
         }
-
-        $formData = '';
-        $posGroup = CmsAdvPosition::where('status', 1)->select();
         $view = [
-            'formData' => $formData,
-            'posGroup' => $posGroup,
+            'formData' => '',
+            'title' => lang('Add'),
         ];
-        View::assign($view);
-        return view();
+        return view('',$view);
     }
-
-    /**
-     * 广告修改
-     */
-    public function edit()
-    {
-        if ($this->request->isPost()) {
-            $post = $this->request->post();
-            try {
-                $this->validate($post, 'CmsAdv');
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
-            AdvModel::update($post);
-            $this->success(lang('edit success'), url('index'));
-
-        }
-        $id = $this->request->param('id');
-        if ($id) {
-            $posGroup = CmsAdvPosition::where('status', 1)->select();
-            $list = AdvModel::find($id);
-            if ($list['start_time']) {
-                $list['start_time'] = strtotime($list['start_time']);
-            }
-            if ($list['end_time']) {
-                $list['end_time'] = strtotime($list['end_time']);
-            }
-            $view = [
-                'formData' => $list,
-                'posGroup' => $posGroup,
-                'title' => lang('Edit'),
-            ];
-            View::assign($view);
-            return view('add');
-        }
-    }
-
-
-
-
 
 
 }

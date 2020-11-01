@@ -4,7 +4,7 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
         timePicker = layui.timePicker,
         regionCheckBox = layui.regionCheckBox,
         cityPicker = layui.cityPicker,
-        laydate = layui.laydate
+        laydate = layui.laydate,
         layedit = layui.layedit,
         colorPicker = layui.colorpicker;
     var Fu = {
@@ -15,12 +15,11 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 var list = document.querySelectorAll("*[lay-editor]");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        console.log($(this).attr('lay-editor'))
                         if($(this).attr('lay-editor')==2){
                             var id = $(this).attr('id');
                             var editor = layedit.build(id,
                                 {height: 350,
-                                    uploadImage:{url: Fun.url(Upload.init.requests.upload_url), type: 'post'}
+                                    uploadImage:{url: Fun.url(Upload.init.requests.upload_url)+'?editor=layedit', type: 'post'}
                                 }); //建立编辑器
                             layedit.sync(editor)
                         }

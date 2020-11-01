@@ -54,13 +54,13 @@ class Member extends Backend{
 
     public function add(){
         if ($this->request->isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             $rule = [
                 'username|用户名'   => 'require|unique:member',
                 'mobile|手机号'   => 'require|unique:member',
             ];
-            $this->validate($data, $rule);
-            $save =$this->modelClass->save($data);
+            $this->validate($post, $rule);
+            $save =$this->modelClass->save($post);
             if ($save) {
                 $this->success(lang('Add Success'));
             } else {
@@ -84,14 +84,14 @@ class Member extends Backend{
         if ($this->request->isPost()) {
             $list  = $this->modelClass->find($id);
             empty($list) && $this->error(lang('Data is not exist'));
-            $data = $this->request->post();
+            $post = $this->request->post();
             $rule = [
                 'username|用户名'   => 'require',
                 'group_id|用户组别'   => 'require',
                 'level_id|用户级别'   => 'require',
             ];
-            $this->validate($data, $rule);
-            $res = $list->save($data);
+            $this->validate($post, $rule);
+            $res = $list->save($post);
             if ($res) {
                 $this->success(lang('Edit success'), __u('index'));
             } else {

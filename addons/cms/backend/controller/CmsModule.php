@@ -11,28 +11,30 @@
  * Date: 2019/8/2
  */
 
-namespace app\admin\controller\cms;
+namespace addons\cms\backend\controller;
 
-use app\common\controller\Backend;
-use app\common\model\CmsModule as CM;
-use app\common\model\CmsField;
+use app\common\controller\AddonsBackend;
+use addons\cms\common\model\CmsModule as CmsModuleModel;
+use addons\cms\common\model\CmsField;
 use app\common\model\FieldType;
 use app\common\traits\Curd;
+use think\App;
 use think\facade\Config;
 use think\facade\Db;
 use think\facade\Request;
 use think\facade\View;
 
-class CmsModule extends Backend
+class CmsModule extends AddonsBackend
 {
     use Curd;
     public $prefix = '';
-    public function initialize()
+    public function __construct(App $app)
     {
-        parent::initialize();
+        parent::__construct($app);
+        $this->modelClass = new CmsModuleModel();
         $this->prefix = Config::get('database.connections.mysql.prefix');
         //取得当前内容模型模板存放目录
-        $this->filepath = app()->getRootPath().'app/cms/view' . DIRECTORY_SEPARATOR;
+        $this->filepath = $this->addon_path.'view'.DIRECTORY_SEPARATOR.'frontend' . DIRECTORY_SEPARATOR;
         //取得栏目频道模板列表
 //        $this->_column = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'column*'));
         //取得栏目列表模板列表
@@ -41,41 +43,48 @@ class CmsModule extends Backend
         $this->_show = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'show*'));
 
     }
-
-    // 模型列表
-    public function index(){
-        //全局查询条件
-        if(Request::isPost()){
-
-            $keys = Request::post('keys', '', 'trim');
-            $page = Request::post('page') ? Request::post('page') : 1;
-            $list = CM::where('name|title', 'like', '%' . $keys . '%')
-                ->paginate(['list_rows' => $this->pageSize, 'page' => $page])
-                ->toArray();
-            return $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list['data'], 'count' => $list['total']];
-
-        }
-        return view();
-    }
-
     // 模型添加
     public function add()
     {
-        if (Request::isPost()) {
+
+        if ($this->request->isAjax) {
             //获取数据库所有表名
             $tables = Db::getConnection()->getTables();
             $tablename = $this->prefix . Request::param('name');
             if (in_array($tablename, $tables)) {
                 $this->error(lang('table is already exist'));
             }
-            $data = Request::except(['emptytable']);
+            $post = Request::except(['emptytable']);
+            $rule =  $rule = [
+                'title|模型名称' => [
+                    'require' => 'require',
+                    'max'     => '100',
+                    'unique'  => 'cms_module',
+                ],
+                'name|表名' => [
+                    'require' => 'require',
+                    'max'     => '50',
+                    'unique'  => 'cms_module',
+                ],
+                'listfields|列表页字段' => [
+                    'require' => 'require',
+                    'max'     => '255',
+                ],
+                'description|描述' => [
+                    'max' => '200',
+                ],
+                'sort|排序' => [
+                    'require' => 'require',
+                    'number'  => 'number',
+                ]
+            ];
             try {
-                $this->validate($data, 'CmsModule');
-            } catch (\Exception $e) {
+                $this->validate($post, $rule);
+            } catch (\ValidateException $e) {
                 $this->error($e->getMessage());
             }
-            $data['template']=isset($data['template'])? serialize($data['template']): "";
-            $module = CM::create($data);
+            $post['template']=isset($post['template'])? serialize($post['template']): "";
+            $module = $this->modelClass->save($post);
 
             $moduleid = $module->id;
             if (empty($moduleid)) {
@@ -101,14 +110,14 @@ class CmsModule extends Backend
 
     // 模型修改
     public function edit(){
-        if (Request::isPost()) {
-            $data = Request::post();
-            $result = $this->validate($data, 'CmsModule');
+        if ($this->request->isAjax) {
+            $post = Request::post();
+            $result = $this->validate($post, 'CmsModule');
             if (true !== $result) {
                 // 验证失败 输出错误信息
                 $this->error($result);
             } else {
-                if (CM::update($data) !== false) {
+                if (CM::update($post) !== false) {
                     $this->success('修改成功!', url('index'));
                 } else {
                     $this->error('修改失败！');
@@ -131,7 +140,7 @@ class CmsModule extends Backend
 
     // 模型状态
     public function state(){
-        if (Request::isPost()) {
+        if ($this->request->isAjax) {
             $id = Request::param('id');
             $status = CM::where('id='.$id)
                 ->value('status');
@@ -146,7 +155,7 @@ class CmsModule extends Backend
 
     // 模型删除
     public function delete(){
-        if (Request::isPost()) {
+        if ($this->request->isAjax) {
             $ids = Request::param('ids');
             $info = CM::find($ids[0]);
             $tables = $this->prefix.$info->name;
@@ -170,7 +179,7 @@ class CmsModule extends Backend
      */
     public function field(){
 
-        if(Request::isPost()){
+        if($this->request->isAjax){
             //不可控字段
             $sysfield = array('cateid','title','keywords','description','hits','status','create_time','update_time','template');
             $list = CmsField::where("moduleid",'=',Request::param('id'))
@@ -195,18 +204,18 @@ class CmsModule extends Backend
 
     // 添加字段
     public function fieldAdd(){
-        if (Request::isPost()) {
+        if ($this->request->isAjax) {
             //增加字段
-            $data = Request::param();
+            $post = Request::param();
             try{
-                $result = $this->validate($data, 'CmsField');
+                $result = $this->validate($post, 'CmsField');
 
             }catch (\Exception $e){
                 $this->error($e->getMessage());
 
             }
             try {
-                $res = CmsField::addField($data);
+                $res = CmsField::addField($post);
             } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
@@ -228,19 +237,19 @@ class CmsModule extends Backend
 
     // 编辑字段
     public function fieldEdit(){
-        if (Request::isPost()) {
+        if ($this->request->isAjax) {
             //增加字段
-            $data = Request::param();
+            $post = Request::param();
             try{
-                $result = $this->validate($data, 'CmsField');
+                $result = $this->validate($post, 'CmsField');
 
             }catch (\Exception $e){
                 $this->error($e->getMessage());
 
             }
             try {
-                $fieldid  = $data['id'];
-                $res = CmsField::editField($data,$fieldid);
+                $fieldid  = $post['id'];
+                $res = CmsField::editField($post,$fieldid);
             } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
@@ -281,8 +290,8 @@ class CmsModule extends Backend
 
     // 字段排序
     public function fieldSort(){
-        $data = Request::post();
-        if (CmsField::update($data) !== false) {
+        $post = Request::post();
+        if (CmsField::update($post) !== false) {
             $this->success(lang('edit success'));
         } else {
             $this->error(lang('edit fail'));
@@ -291,7 +300,7 @@ class CmsModule extends Backend
 
     // 字段状态
     public function fieldState(){
-        if (Request::isPost()) {
+        if ($this->request->isAjax) {
             $id = Request::param('id');
             $status = CmsField::where('id','=',$id)
                 ->value('status');

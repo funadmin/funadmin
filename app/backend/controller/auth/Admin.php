@@ -66,7 +66,7 @@ class Admin extends Backend
     public function add()
     {
         if ($this->request->isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             $rule = [
                 'username|用户名' => [
                     'require' => 'require',
@@ -80,15 +80,15 @@ class Admin extends Backend
                     'require' => 'require',
                 ],
             ];
-            $this->validate($data, $rule);
-            $data['password'] = StringHelper::filterWords($data['password']);
-            if(!$data['password']){
-                $data['password']='123456';
+            $this->validate($post, $rule);
+            $post['password'] = StringHelper::filterWords($post['password']);
+            if(!$post['password']){
+                $post['password']='123456';
             }
-            $data['password'] = SignHelper::password($data['password']);
+            $post['password'] = SignHelper::password($post['password']);
             //添加
 
-            $result = $this->modelClass->save($data);
+            $result = $this->modelClass->save($post);
             if ($result) {
                 $this->success(lang('Add Success'));
             } else {
@@ -112,12 +112,12 @@ class Admin extends Backend
     {
         $id = $this->request->param('id');
         if ($this->request->isPost()) {
-            $data = $this->request->post();
+            $post = $this->request->post();
             $rule = ['group_id'=>'require'];
-            $this->validate($data, $rule);
+            $this->validate($post, $rule);
             //添加
             $list =  $this->modelClass->find($id);
-            $result = $list->save($data);
+            $result = $list->save($post);
             if ($result) {
                 $this->success(lang('Edit Success'));
             } else {
@@ -192,8 +192,8 @@ class Admin extends Backend
             }
             $password = $this->request->post('password');
             try {
-                $data['password'] = SignHelper::password($password);
-                $one->save($data);
+                $post['password'] = SignHelper::password($password);
+                $one->save($post);
             } catch (\Exception $e) {
                 $this->error($e->getMessage(),'',['token'=>$this->token()]);
             }
@@ -211,20 +211,20 @@ class Admin extends Backend
         if (!Request::isAjax()) {
             return View::fetch('index/password');
         } else {
-            $data = Request::post();
-            $admin = Admin::find($data['id']);
+            $post = Request::post();
+            $admin = Admin::find($post['id']);
             $oldpassword = Request::post('oldpassword', '123456', 'fun\helper\StringHelper::filterWords');
             if (!password_verify($oldpassword, $admin['password'])) {
                 $this->error(lang('Origin password error'));
             }
             $password = Request::post('password', '123456', 'fun\helper\StringHelper::filterWords');
             try {
-                $data['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
+                $post['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
 
                 if (Session::get('admin.id') == 1) {
-                    Admin::update($data);
-                } elseif (Session::get('admin.id') == $data['id']) {
-                    Admin::update($data);
+                    Admin::update($post);
+                } elseif (Session::get('admin.id') == $post['id']) {
+                    Admin::update($post);
                 } else {
                     $this->error(lang('Permission denied'));
                 }

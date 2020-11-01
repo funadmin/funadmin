@@ -1,6 +1,7 @@
 define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tableSelect,Upload,Table,Fu) {
 
     var form = layui.form;
+    var element = layui.element;
     tableSelect = layui.tableSelect;
     var Form = {
         init: {},
@@ -88,8 +89,6 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         }
                         if (url === undefined || url === '' || url == null) {
                             url = location.href;
-                        } else {
-                            url = Fun.url(url);
                         }
                         form.on('submit(' + filter + ')', function (data) {
                             if($('select[multiple]').length>0){

@@ -1,18 +1,18 @@
 <div class="fun-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <form class="layui-form" lay-filter="form">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
 
-                {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
-                {if !$formData}
-                {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
-                {/if}
-                {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formdata)?$formdata['group_id']:''))}
-                {:form_upload('avatar',$formData)}
-                {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
-                {:form_input('mobile','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.'] )}
-                {:form_submitbtn()}
+            {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
+            {if !$formData}
+            {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
+            {/if}
+            {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formdata)?$formdata['group_id']:''))}
+            {:form_upload('avatar',$formData)}
+            {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
+            {:form_input('mobile','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.'] )}
+            {:form_submitbtn()}
 
-            </form>
-        </div>
-
+        </form>
     </div>
+
+</div>

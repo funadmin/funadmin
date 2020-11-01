@@ -72,8 +72,9 @@ trait Curd
      * @param $id
      * @return \think\response\View
      */
-    public function edit($id)
+    public function edit()
     {
+        $id = $this->request->param('id');
         $list = $this->modelClass->find($id);
         if(empty($list)) $this->error(lang('Data is not exist'));
         if ($this->request->isPost()) {
@@ -129,20 +130,21 @@ trait Curd
         try {
             foreach ($list as $k=>$v){
                 $v->status = -1;
+                $v->delete_time = time();
                 $v->save();
             }
         } catch (\Exception $e) {
-            $this->error(lang("Delete Success"));
+            $this->error(lang("Destroy Success"));
         }
 
-        $this->success(lang("Delete Success"));
+        $this->success(lang("Destroy Success"));
 
     }
     public function sort($id)
     {
         $model = $this->findModel($id);
         if(empty($model))$this->error('Data is not exist');
-        $sort = input('sort');
+        $sort = $this->request->param('sort');
         $save = $model->sort = $sort;
         $save ? $this->success(lang('Save Success')) :  $this->error(lang("Save Failed"));
 

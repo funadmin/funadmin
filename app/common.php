@@ -44,7 +44,7 @@ if (!function_exists('form_switch')) {
      */
     function form_switch($name,$value , $option)
     {
-        return FormHelper::switch($name,$value , $option);
+        return FormHelper::switchs($name,$value , $option);
     }
 }
 if (!function_exists('form_checkbox')) {
@@ -76,7 +76,7 @@ if (!function_exists('form_select')) {
      * @param array $options
      * @return string
      */
-    function form_select($name = null,$select=[], $options = [],$attr,$value=null)
+    function form_select($name = null,$select=[], $options = [],$attr='',$value=null)
     {
         if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
         return FormHelper::select($name,$select,$options,$attr,$value);
@@ -190,9 +190,9 @@ if (!function_exists('form_editor')) {
      * @param $name
      * @return string
      */
-    function form_editor($name='container',$id='container',$type=1,$optonis=[])
+    function form_editor($name='container',$id='container',$type=1,$options=[])
     {
-        return FormHelper::editor($name,$id,$type,$optonis=[]);
+        return FormHelper::editor($name,$id,$type,$options);
     }
 }
 

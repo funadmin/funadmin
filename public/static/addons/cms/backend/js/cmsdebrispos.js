@@ -5,19 +5,10 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsadv/index',
-                    edit_url: 'addons/cms/backend/cmsadv/edit',
-                    delete_url: 'addons/cms/backend/cmsadv/delete',
-                    modify_url: 'addons/cms/backend/cmsadv/modify',
-                    add_full: {
-                        type: 'open',
-                        url:'addons/cms/backend/cmsadv/add',
-                        class: 'layui-btn-sm layui-btn-green',
-                        icon: 'layui-icon layui-icon-add-circle-fine',
-                        title: __('Add'),
-                        text: __('Add'),
-                        full: 1,
-                    },
+                    index_url: 'addons/cms/backend/cmsadvpos/index',
+                    add_url: 'addons/cms/backend/cmsadvpos/add',
+                    edit_url: 'addons/cms/backend/cmsadvpos/edit',
+                    delete_url: 'addons/cms/backend/cmsadvpos/delete',
                 }
             }
             Table.render({
@@ -25,7 +16,7 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add_full'],
+                toolbar: ['refresh','add'],
                 cols: [[
                     {checkbox: true, fixed: true},
 
@@ -52,7 +43,6 @@ define(['table','form'], function (Table,Form) {
                 limit: 50,
                 page: true
             });
-
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
