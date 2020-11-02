@@ -11,7 +11,7 @@ define(['table','form'], function (Table,Form) {
                     delete_url: 'addons/cms/backend/cmscategory/delete',
                     modify_url: 'addons/cms/backend/cmscategory/modify',
                     flashCache:{
-                        type: 'open',
+                        type: 'request',
                         url:'addons/cms/backend/cmscategory/flashCache',
                         class: 'layui-btn-sm layui-btn-warm',
                         icon: 'layui-icon layui-icon-fonts-clear',
@@ -51,9 +51,9 @@ define(['table','form'], function (Table,Form) {
                     {field: 'lcatename', title: __('Catename'),},
                     {field: 'module', title: __('Module'), },
                     {field: 'cateflag', title:  __('cateflag'), width: 120,},
-                    {field: 'type', title: __('Type'), width: 110,},
-                    {field: 'status', title: __('Status'), width:100,templet: Table.templet.switch},
-                    {field: 'is_menu', title: __('Ismenu'), width: 100, templet: Table.templet.switch,},
+                    {field: 'type', title: __('Type'), width: 110,templet: Table.templet.select,selectList:['List','Page','OutLink']},
+                    {field: 'status', title: __('Status'),filter: 'status',width:100,templet: Table.templet.switch},
+                    {field: 'is_menu', title: __('Ismenu'), width: 100,filter: 'status', templet: Table.templet.switch,},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {

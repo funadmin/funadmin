@@ -2,23 +2,9 @@
     <div class="admin-main layui-anim layui-anim-upbit">
         <form class="layui-form" lay-filter="form">
 
-
-            <div class="layui-form-item">
-                <label class="layui-form-label">碎片位置名</label>
-                <div class="layui-input-inline">
-                    <input type="text" name="title" lay-verify="required" placeholder="{:lang('pleaseEnter')}碎片类型位置名" class="layui-input">
-                </div>
-                <div class="layui-form-mid layui-word-aux">
-                    在4到25个字符之间。
-                </div>
-            </div>
-            <div class="layui-form-item">
-                <div class="layui-input-inline">
-                    <input type="hidden" name="id"  >
-                    <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
-                    <a href="{:url('pos')}" class="layui-btn layui-btn-primary">{:lang('back')}</a>
-                </div>
-            </div>
+            {:form_input('title','text',['verify'=>'required','tips'=>'Between 4 and 25 characters']
+            )}
+            {:form_submitbtn()}
         </form>
     </div>
 

@@ -10,191 +10,117 @@
  * Author: yuege
  * Date: 2019/8/2
  */
+
 namespace addons\cms\backend\controller;
 
-use app\common\controller\Backend;
+use app\common\controller\AddonsBackend;
 use app\common\traits\Curd;
 use think\App;
-use think\facade\Db;
-use think\facade\Request;
-use think\facade\View;
 use addons\cms\common\model\CmsDebris as DebrisModel;
-use addons\cms\common\model\CmsDebrisType as DebrisTypeModel;
-class CmsDebris extends Backend {
+use addons\cms\common\model\CmsDebrisPos as CmsDebrisPosModel;
+
+class CmsDebris extends AddonsBackend
+{
     use Curd;
+
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->modelClass = new DebrisModel();
     }
+
+    /**
+     * @return \think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function index()
     {
-
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $count = $this->modelClass->with('cmsDebrisPos')
+                ->where($where)
+                ->count();
+            $list = $this->modelClass->with('cmsDebrisPos')
+                ->where($where)
+                ->order($sort)
+                ->page($this->page, $this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            return json($result);
+        }
+        return view();
     }
 
 
-    // 碎片添加
+    /**
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add()
     {
-        if (Request::isPost()) {
-            $post = Request::post();
-
-
-            //添加
-            $result = DebrisModel::create($post);
-            if ($result) {
-                $this->success(lang('add success'), url('index'));
-            } else {
-                $this->error(lang('add fail'));
+        if ($this->request->isPost()) {
+            $post = $this->request->post();
+            $rule = ['pid|类型'=>"require"];
+            try {
+                $this->validate($post, $rule);
+            } catch (\ValidateException $e) {
+                $this->error(lang($e->getMessage()));
             }
-        } else {
-            $info = '';
-            $posGroup = DebrisTypeModel::where('status', 1)->select();
-            $params['name'] = 'container';
-            $params['content'] ='';
-            $view = [
-                'info'  =>$info,
-                'posGroup' => $posGroup,
-                'title' => lang('add'),
-                'ueditor'=>build_ueditor($params),
-
-            ];
-            View::assign($view);
-            return view();
+            try {
+                $save = $this->modelClass->save($post);
+            } catch (\Exception $e) {
+                $this->error(lang('Save Failed'));
+            }
+            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
         }
+        $poseGroup = CmsDebrisPosModel::where('status',1)->select();
+        $view = [
+            'formData' => '',
+            'title' => lang('Add'),
+            'poseGroup' =>$poseGroup,
+        ];
+        return view('', $view);
     }
+
     /**
-     * 碎片修改
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function edit()
     {
-        if (Request::isPost()) {
-            $post = Request::post();
-            DebrisModel::update($post);
-            $this->success(lang('edit success'), url('index'));
-
-        } else {
-            $id = Request::param('id');
-            if ($id) {
-                $posGroup = DebrisTypeModel::where('status', 1)->select();
-                $info = DebrisModel::find($id);
-                $info['time'] = date('Y-m-d',$info['start_time']).' - '.date('Y-m-d',$info['end_time']);
-                $params['name'] = 'container';
-                $params['content'] = $info['content'];
-                $view = [
-                    'info' => $info,
-                    'posGroup' => $posGroup,
-                    'title' => lang('edit'),
-                    'ueditor'=>build_ueditor($params),
-                ];
-                View::assign($view);
-                return view('add');
+        $id = $this->request->param('id');
+        $list = $this->modelClass->find($id);
+        if(empty($list)) $this->error(lang('Data is not exist'));
+        if ($this->request->isPost()) {
+            $post = $this->request->post();
+            $rule = [];
+            try {
+                $this->validate($post, $rule);
+            }catch (\ValidateException $e){
+                $this->error(lang($e->getMessage()));
             }
-        }
-    }
-
-
-
-
-    /*-----------------------碎片位置管理----------------------*/
-
-    // 碎片位置管理
-    public function pos()
-    {
-        if(Request::isPost()){
-            //条件筛选
-            $keys = Request::param('keys');
-
-            //查出所有数据
-            $list = DebrisTypeModel::where('title','like','%'.$keys.'%')
-                ->order('id desc')
-                ->paginate(
-                    $this->pageSize, false,
-                    ['query' => Request::param()]
-                )->toArray();
-            return $result = ['code'=>0,'msg'=>lang('get info success'),'data'=>$list['data'],'count'=>$list['total']];
-
-        }
-
-
-        return view();
-
-    }
-
-
-
-    // 碎片位置添加
-    public function posAdd()
-    {
-        if (Request::isPost()) {
-            $post = Request::post();
-            $result = DebrisTypeModel::create($post);
-            if ($result) {
-                $this->success(lang('add  success'), url('pos'));
-            } else {
-                $this->error(lang('add fail'));
+            try {
+                $save = $list->save($post);
+            } catch (\Exception $e) {
+                $this->error(lang('Save Failed'));
             }
-
-        } else {
-
-            $view = [
-                'info' => null,
-                'title' => lang('add'),
-            ];
-            View::assign($view);
-            return view('pos_add');
+            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
         }
+        $poseGroup = CmsDebrisPosModel::where('status',1)->select();
+        $list =  $this->modelClass->find($this->request->get('id'));
+        $view = [
+            'formData' => $list,
+            'title' => lang('Add'),
+            'poseGroup' =>$poseGroup,
+        ];
+        return view('add', $view);
     }
 
-    // 碎片位置修改
-    public function posEdit()
-    {
-        if (Request::isPost()) {
-            $post = Request::post();
-            $where['id'] = $post['id'];
-            $res = DebrisTypeModel::update($post, $where);
-            if($res){
 
-                $this->success(lang('edit success'), url('pos'));
-            }else{
-                $this->error(lang('edit fail'));
-
-            }
-
-        } else {
-            $id = Request::param('id');
-            $info = DebrisTypeModel::find(['id' => $id]);
-
-            $view = [
-                'info' => $info,
-                'title' => lang('edit'),
-            ];
-            View::assign($view);
-            return view('pos_add');
-        }
-    }
-
-    // 碎片位置状态修改
-    public function posState()
-    {
-        if (Request::isPost()) {
-            $id = Request::param('id');
-            $info = DebrisTypeModel::find($id);
-            $info->status = $info['status'] == 1 ? 0 : 1;
-            $info->save();
-            $this->success(lang('edit success'));
-
-        }
-    }
-    // 碎片位置删除
-    public function posDel()
-    {
-        $ids = Request::post('ids');
-        $model = new DebrisTypeModel();
-        $model->del($ids);
-        $this->success(lang('delete success'));
-
-
-    }
-
-   }
+}

@@ -25,7 +25,7 @@ define(['table', 'form'], function (Table, Form) {
                     {field: 'intro', title: __('Intro'), width: 120, fixed: true,},
                     {field: 'width', title: __('width'), width: 120, fixed: true,},
                     {field: 'Style', title: __('Style'), width: 110, sort: true},
-                    {field: 'status', title: __('status'), minwidth: 150, sort: true},
+                    {field: 'status', title: __('status'),filter: 'status', minwidth: 120, templet: Table.templet.switch,sort: true},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {

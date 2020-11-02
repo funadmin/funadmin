@@ -32,7 +32,7 @@ define(['table','form'], function (Table,Form) {
                     {field: 'modulename', title:__('ModuleName'), width: 150},
                     {field: 'tablename', title: __('TableName'), minwidth: 150, fixed: true, sort: true},
                     {field: 'intro', title: __('intro'), minwidth: 180},
-                    {field: 'status', title: __('status'), minwidth: 150, sort: true,templet: Table.templet.switch},
+                    {field: 'status', title: __('status'), filter: 'status',minwidth: 150, sort: true,templet: Table.templet.switch},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {

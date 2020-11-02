@@ -15,9 +15,9 @@ namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
 
-class CmsDebrisType extends BaseModel
+class CmsDebrisPos extends BaseModel
 {
-    protected $name = 'addons_cms_debris_type';
+    protected $name = 'addons_cms_debris_position';
 
     public function __construct(array $data = [])
     {

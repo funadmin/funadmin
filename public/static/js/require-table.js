@@ -433,7 +433,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 tableId = othis.attr('lay-table-id');
                 title = title || __('Are you sure');
                 tableId = tableId || Table.init.tableId;
-                url = url !== undefined ? Fun.url(url) : window.location.href;
+                url = url !== undefined ? url : window.location.href;
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({
                         url: url,
@@ -596,6 +596,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         case 'open':
                             Table.events.open(othis);
                             break;
+                        case 'request':
+                            Table.events.request(othis);
+                            break;
+
                         default:
                             return true;
                     }

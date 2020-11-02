@@ -15,13 +15,13 @@ namespace addons\cms\backend\controller;
 use app\common\controller\AddonsBackend;
 use app\common\traits\Curd;
 use think\App;
-use addons\cms\common\model\CmsDebris as DebrisModel;
+use addons\cms\common\model\CmsDebrisPos as CmsDebrisPosModel;
 class CmsDebrisPos extends AddonsBackend {
     use Curd;
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new DebrisModel();
+        $this->modelClass = new CmsDebrisPosModel();
     }
 
    }

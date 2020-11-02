@@ -2,33 +2,16 @@
     <div class="admin-main layui-anim layui-anim-upbit">
         <form class="layui-form" lay-filter="form">
             {:form_input('name','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'] )}
-            {if !$formData}
             {:form_select('type',['1'=>'普通链接','2'=>'图片','3'=>'视频','4'=>'音频'],['verify'=>'required','search'=>1]
             ,'',(isset($formdata)?$formdata['type']:''))}
-            {/if}
-            {:form_upload('avatar',$formData)}
-            {:form_input('url','text',['verify'=>'url','tips'=>'Must start with https or http']
+            {:form_upload('thumb',$formData,['mime'=>''])}
+            {:form_input('url','text',['verify'=>'required|url','tips'=>'Must start with https or http']
             )}
             {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.']
             )}
-            {:form_input('qq','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.']
+            {:form_input('qq','text',['verify'=>'number','tips'=>'For password retrieval, please fill in carefully.']
             )}
             {:form_submitbtn()}
-
-            <div class="layui-form-item">
-                <label class="layui-form-label">{:lang('link name')}</label>
-                <div class="layui-input-inline">
-                    <input type="text" name="name" lay-verify="required" placeholder="{:lang('pleaseEnter')}链接名字"
-                           class="layui-input">
-                </div>
-                <div class="layui-form-mid layui-word-aux">
-                    在4到25个字符之间。
-                </div>
-            </div>
-
-
-
         </form>
     </div>
-
 </div>

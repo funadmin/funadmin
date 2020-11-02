@@ -14,7 +14,7 @@
 namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
-
+use addons\cms\common\model\CmsDebrisPos;
 class CmsDebris extends BaseModel
 {
     protected $name = 'addons_cms_debris';
@@ -23,5 +23,12 @@ class CmsDebris extends BaseModel
     {
         parent::__construct($data);
     }
+
+    public function cmsDebrisPos()
+    {
+        return $this->belongsTo('cmsDebrisPos', 'pid', 'id');
+
+    }
+
 
 }
