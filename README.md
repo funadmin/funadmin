@@ -14,7 +14,7 @@ FunAdmin v1.0管理系统：为二次开发而生，让开发变得更简单
  + 自适应前端，桌面和移动端访问界面友好简洁，模块清晰。
  + 强大的表单管理，只需要使用函数即可成就表单 
  + layui采用最新layui2.5.6 框架
- + require.js 模块化开发
+ + require.js 模块化开发 一个命令即可打包js
  + restful api 接口
  + ...更多
 
@@ -44,8 +44,9 @@ Github：https://github.com/FunAdmin/FunAdmin
 
 ~~~
 www  WEB部署目录（或者子目录）
+├─addons           插件目录
 ├─app           目录
-│  ├─admin      应用目录
+│  ├─backend      应用目录
 │  ├───controller      控制器目录
 │  ├───model      model目录
 │  ├───config      config目录
@@ -56,6 +57,10 @@ www  WEB部署目录（或者子目录）
 │  ├───model      model目录
 │  ├─ ...            更多类库目录
 │  │
+│  ├─frontend      应用目录
+│  ├───controller      控制器目录
+│  ├───model      model目录
+│  ├─ ...            更多类库目录
 │  ├─common.php         公共函数文件
 │  └─event.php          事件定义文件
 │
