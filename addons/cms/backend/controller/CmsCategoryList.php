@@ -138,7 +138,7 @@ class CmsCategory extends AddonsBackend
             }
             if($res){
                 if(isset($post['tags']) and $post['tags']){
-                    if($module->name=='cms_article'){
+                    if($module->name=='addons_cms_article'){
                         $tagModel = new CmsTags();
                         $tagModel->addTags($post['tags'],$id);
                     }

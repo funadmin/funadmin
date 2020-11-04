@@ -12,6 +12,19 @@
  */
 
 return [
+    'status' => [
+        'title' => '是否开放:',
+        'type' => 'radio',
+        'rule' => '',
+        'content' => [
+
+        ],
+        'msg'     => '',
+        'tips'     => '',
+        'ok'      => '',
+        'value'   => '1',
+
+    ],
     'logo' => [
         'title' => 'logo图标:',
         'type' => 'image',
@@ -23,6 +36,19 @@ return [
         'tips'     => '',
         'ok'      => '',
         'value'   => 'https://demo.funadmin.com/storage/uploads/20200222/37695ee1af180456740988567849ffa9.png',
+
+    ],
+    'theme' => [
+        'title' => '主题:',
+        'type' => 'text',
+        'rule' => '',
+        'content' => [
+
+        ],
+        'msg'     => '',
+        'tips'     => '',
+        'ok'      => '',
+        'value'   => 'default',
 
     ],
     'seo' => [
@@ -46,4 +72,5 @@ return [
         ],
 
     ],
+
 ];

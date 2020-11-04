@@ -14,5 +14,5 @@ use app\Request;
 
 // 容器Provider定义文件
 return [
-    'think\Paginator' => 'app\cms\paginator\Layui',
+    'think\Paginator' => 'addons\cms\frontend\paginator\Layui',
 ];

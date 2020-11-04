@@ -42,7 +42,7 @@ class CmsModule extends BaseModel
 
         if ($emptytable == 0) {
 //            普通模型
-            $sql = <<<LEMO
+            $sql = <<<EOF
             CREATE TABLE `{$tablename}` (
               `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
               `uid` int(11) unsigned NOT NULL DEFAULT '0' COMMENT '发布人id',
@@ -65,7 +65,7 @@ class CmsModule extends BaseModel
           KEY `cateid` (`id`,`cateid`,`status`),
               KEY `sort` (`id`,`cateid`,`status`,`sort`)
             ) ENGINE=InnoDb  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='{$tablename}模型表';
-LEMO;
+EOF;
             Db::execute($sql);
             Db::execute("INSERT INTO `" . $prefix . "cms_field` (`moduleid`,`field`,`name`,`required`,`maxlength`,`rule`,`msg`,`type`,`option`,`value`,`sort`,`status`,`create_time`,`is_search`) VALUES ( '" . $moduleid . "', 'cateid', '栏目','1', '6', '', '必须选择一个栏目', 'cateid','', '','1', '1', '" . time() . "',0)");
             Db::execute("INSERT INTO `" . $prefix . "cms_field` (`moduleid`,`field`,`name`,`required`,`maxlength`,`rule`,`msg`,`type`,`option`,`value`,`sort`,`status`,`create_time`,`is_search`) VALUES ( '" . $moduleid . "', 'title', '标题', '1', '180', '', '标题必须为1-180个字符','text','', '','4',  '1', '" . time() . "',1)");
@@ -82,7 +82,7 @@ LEMO;
             return true;
         } else {
             //文章模型
-            $sql = <<<LEMO
+            $sql = <<<EOF
             CREATE TABLE `{$tablename}`  (
               `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
               `cateid` smallint(5) unsigned NOT NULL DEFAULT '0' COMMENT '分类ID',
@@ -108,7 +108,7 @@ LEMO;
               KEY `cateid` (`id`,`cateid`,`status`),
               KEY `sort` (`id`,`cateid`,`status`,`sort`)
                 ) ENGINE=InnoDb  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='{$tablename}模型表';
-LEMO;
+EOF;
 
             Db::execute($sql);
             Db::execute("INSERT INTO `" . $prefix . "cms_field` (`moduleid`,`field`,`name`,`required`,`maxlength`,`rule`,`msg`,`type`,`option`,`value`,`sort`,`status`,`create_time`,`is_search`) VALUES ( '" . $moduleid . "', 'cateid', '栏目',  '1',  '6', '', '必须选择一个栏目', 'cateid', '','','1','1', '" . time() . "' ,0)");

@@ -74,7 +74,7 @@
                 <div class="side-list">
                     <h4>推荐精选</h4>
                     <ul>
-                        {query table="cms_article" num="5" order="hits desc"}
+                        {query table="addons_cms_article" num="5" order="hits desc"}
                         {volist name="data" id="vo"}
                         <li><a href="{:url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}">{$vo.title}</a></li>
                         {/volist}

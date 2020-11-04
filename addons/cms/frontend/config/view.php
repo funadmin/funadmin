@@ -21,7 +21,7 @@ return [
     // 默认模板渲染规则 1 解析为小写+下划线 2 全部转换小写 3 保持操作方法
     'auto_rule' => 1,
     // 模板基础路径
-    'view_base' => '',
+    'view_base' => 'default',
     // 模板路径
     'view_path' => '',
     // 模板后缀

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace app\cms\paginator;
+namespace addons\cms\frontend\paginator;
 
 use think\Paginator;
 

@@ -33,7 +33,7 @@
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.0",
         "qiniu/php-sdk": "^7.2",
-        "funadmin/fun-addons": "v1.5",
+        "funadmin/fun-addons": "v1.0",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",

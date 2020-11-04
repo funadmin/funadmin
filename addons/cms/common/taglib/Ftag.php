@@ -23,7 +23,7 @@ class Ftag extends Taglib
         // 标签定义： attr 属性列表 close 是否闭合（0 或者1 默认1） alias 标签别名 level 嵌套层次
         'template'  => ['attr' => 'file', 'close' => 0],
         'debris'    => ['attr' => 'tid,id,cache,order', 'close' => 1, ],//碎片
-        'lmy'       => ['attr' => 'where,page,num,cateid,id,sql,cache,order,page,field', 'close' => 1, ],//碎片
+        'fun'       => ['attr' => 'where,page,num,cateid,id,sql,cache,order,page,field', 'close' => 1, ],//碎片
         'nav'       => ['attr' => 'order,cache,pid','close' => 1, ],//导航
         'tags'      => ['attr' => 'where,num,cache,order','close' => 1, ],//导航
         'links'     => ['attr' => 'cache,order,num', 'close' => 1, ],//碎片
@@ -43,7 +43,7 @@ class Ftag extends Taglib
 
         $parseStr = <<<EOF
 <?php 
-      \$debrisModel = new \\app\\common\\model\\CmsDebris();
+      \$debrisModel = new \\addons\\cms\\common\\model\\CmsDebris();
         if ({$id}) {
             \$data = \$debrisModel->find({$id});
         } elseif ({$tid}) {
@@ -72,7 +72,7 @@ EOF;
         $data = 'tags';
         $parseStr = <<<EOF
 <?php 
-        \$CmsTags = new \\app\\common\\model\\CmsTags();
+        \$CmsTags = new \\addons\\cms\\common\\model\\CmsTags();
         \${$data}  = \$CmsTags->where('{$where}')->order('{$order}')->limit('{$num}')->cache({$cache})->select();
 ?>
 
@@ -96,7 +96,7 @@ EOF;
             $parseStr = <<<EOF
 <?php 
 
- \$data  = \\app\\common\\model\\CmsAdv::where('status',1)->where('pid',{$pid})->order('{$order}')->cache({$cache})->select();
+ \$data  = \\addons\\cms\\common\\model\\CmsAdv::where('status',1)->where('pid',{$pid})->order('{$order}')->cache({$cache})->select();
    
 ?>
 {$content}
@@ -107,7 +107,7 @@ EOF;
             $parseStr = <<<EOF
 <?php 
 
- \$data  = \\app\\common\\model\\CmsAdv::where('status',1)->find({$id});
+ \$data  = \\addons\\cms\\common\\model\\CmsAdv::where('status',1)->find({$id});
    
 ?>
 {$content}
@@ -129,7 +129,7 @@ EOF;
         $parseStr = <<<EOF
 <?php 
 
-\$linkModel = new \\app\\common\\model\\CmsLink();
+\$linkModel = new \\addons\\cms\\common\\model\\CmsLink();
 if('{$num}'){
  \${$data}  = \$linkModel->where('status',1)->order('{$order}')->limit($num)->cache({$cache})->select();
 
@@ -187,7 +187,7 @@ EOF;
 
             $parseStr = <<<EOF
 <?php 
-    \$data = \\think\\facade\\Db::name('cms_category')->where('{$where}')->where('pid',{$cateid})->where('status',1)->order('{$order}')->field('{$field}')->cache({$cache})->select();
+    \$data = \\think\\facade\\Db::name('addons_cms_category')->where('{$where}')->where('pid',{$cateid})->where('status',1)->order('{$order}')->field('{$field}')->cache({$cache})->select();
     foreach(\$data as &\$v){
         if(\$v['type']!=2){
             \$v['url'] = url('index/lists',['cateid'=>\$v['id']]);
@@ -208,7 +208,7 @@ EOF;
     /**
      * LMY标签 获取各种模型列表
      */
-    public function tagLmy($tag, $content){
+    public function tagFun($tag, $content){
             $key    = !empty($tag['key']) ? $tag['key'] : 'i';
             $item  =  empty($tag['item']) ? 'vo' : $tag['item'];//循环变量名
             $cache      =  isset($tag['cache']) && intval($tag['cache']) ? intval($tag['cache']) : 0;

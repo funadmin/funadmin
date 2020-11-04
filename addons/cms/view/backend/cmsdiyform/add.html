@@ -1,12 +1,6 @@
-{include file="common/header"/}
-<div class="LM-container">
-    <div class="LM-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <fieldset class="layui-elem-field layui-field-title">
-                <legend>{$title}</legend>
-            </fieldset>
-            <form class="layui-form layui-form-pane" lay-filter="form">
-
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+            <form class="layui-form" lay-filter="form">
                 <div class="layui-form-item">
                     <label class="layui-form-label">表单名字</label>
                     <div class="layui-input-inline">
@@ -103,30 +97,5 @@
                 </div>
             </form>
         </div>
-
-    </div>
 </div>
 
-{include file="common/footer"/}
-<script>
-    layui.use(['form', 'layer','upload'], function () {
-        var form = layui.form, layer = layui.layer,$= layui.jquery,upload = layui.upload;
-        var info = '';
-        info = {:json_encode($info)};
-        form.val("form", info);
-        form.on('submit(submit)', function (data) {
-            loading =layer.load(1, {shade: [0.1,'#fff']});
-            $.post("", data.field, function (res) {
-                layer.close(loading);
-                if (res.code > 0) {
-                    layer.msg(res.msg, {time: 1800, icon: 1}, function () {
-                        location.href = res.url;
-                    });
-                } else {
-                    layer.msg(res.msg, {time: 1800, icon: 2});
-                }
-            });
-        });
-
-    });
-</script>

@@ -1,44 +1,7 @@
-{include file="common/header"/}
-<div class="LM-container">
-    <div class="LM-main">
-        <fieldset class="layui-elem-field layui-field-title">
-            <legend>表单{:lang('list')}</legend>
-        </fieldset>
-        <blockquote class="layui-elem-quote">
-            <div class="LM-table">
-
-                <div class="layui-inline">
-                    <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
-                </div>
-                <button class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="search" id="search">{:lang('search')}</button>
-                <a data-href="{:url('add')}"  class="layui-btn layui-btn-sm layui-btn-warm add" >{:lang('add')}{:lang('diyform')}</a>
-
-            </div>
-        </blockquote>
-        <table class="layui-table" id="list" lay-filter="list"></table>
-    </div>
+<div class="fun-main">
+    <table class="layui-table" id="list" lay-filter="list"></table>
 </div>
 
-
-<script type="text/html" id="action">
-    <a data-href="{:url('field')}?id={{d.id}}" class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
-    <a data-href="{:url('datalist')}?id={{d.id}}" class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
-    <a href="{:url('edit')}?id={{d.id}}" class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
-    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
-</script>
-
-<script type="text/html" id="status">
-    <input type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="开启|关闭" lay-filter="status" {{ d.status == 1 ? 'checked' : '' }}>
-</script>
-
-<script type="text/html" id="link">
-    <a target="_blank" href="{{d.url}}">{{d.url}}</a>
-</script>
-<script type="text/html" id="time">
-    {{layui.util.toDateString(d.create_time*1000, 'yyyy-MM-dd HH:mm:ss')}}
-</script>
-
-{include file="common/footer"/}
 <script>
     var tableIn;
     layui.config({

@@ -16,7 +16,10 @@ use app\common\controller\AddonsFrontend;
 use app\common\controller\Frontend;
 use app\common\model\Addon;
 use app\common\model\Config as  ConfigModel;
+use think\App;
+use think\facade\Config;
 use think\facade\View;
+use think\validate\ValidateRule;
 
 class CmsBase extends AddonsFrontend {
 
@@ -24,19 +27,27 @@ class CmsBase extends AddonsFrontend {
     protected $site ;
     public $cmsConfig=null;
     //初始化
+    public function __construct(App $app)
+    {
+        parent::__construct($app);
+        $addonsconfig = get_addons_config('cms');
+        $view_config = Config::get('view');
+        $view_config = array_merge($view_config,['view_path' => $this->addon_path .'view'.DS.$this->module.DS.$addonsconfig['theme']['value'].DS]);
+        View::engine('Think')->config($view_config);
+        if($addonsconfig['status']['value']==0){
+            $this->redirect(url('Error/notice'));
+        }
+        $ACTION = $this->request->action();
+        $seo  = $addonsconfig['seo']['value'];
+        $logo  = $addonsconfig['logo']['value'];
+        View::assign('seo',$seo);
+        View::assign('logo',$logo);
+        View::assign('ACTION',$ACTION);
+    }
+
     public function initialize()
     {
-//        parent::initialize();
-//        $config = Addon::where('name','cms')->cache(3600)->find();
-//        if($config->status==0){
-//            $this->redirect(url('Error/notice'));
-//        }
-//        $ACTION = $this->request->action();
-//        $this->cmsConfig = $cmsConfig = unserialize($config->config);
-//        $seo  = $cmsConfig['seo']['value'];
-//        $logo  = $cmsConfig['logo']['value'];
-//        View::assign('seo',$seo);
-//        View::assign('logo',$logo);
-//        View::assign('ACTION',$ACTION);
+
     }
+
 }

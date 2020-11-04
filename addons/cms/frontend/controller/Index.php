@@ -59,7 +59,7 @@ class Index extends CmsBase {
 
     public function index(){
 
-        return View::fetch('index');
+        return view('index_index');
     }
 
     public function tags(){
@@ -73,7 +73,7 @@ class Index extends CmsBase {
         }
         $tag->hits =   $tag->hits+1;
         $tag->save();
-        $list = Db::name('cms_article')->where('tags','like','%'.$tag->name.'%')->paginate(
+        $list = Db::name('addons_cms_article')->where('tags','like','%'.$tag->name.'%')->paginate(
             5, false,
             ['query' => $this->request->param()]
         );
@@ -169,7 +169,7 @@ class Index extends CmsBase {
 
 
         }else{
-            $this->tablename = 'cms_article';
+            $this->tablename = 'addons_cms_article';
             $page = 10;
             $modelList = CmsModule::where('status',1)->column('name','id');
             foreach ($modelList as $key => $vo) {

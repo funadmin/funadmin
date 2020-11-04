@@ -1,9 +1,9 @@
-{include file="frontend\common_header"}
+{include file="common_header"}
 <body class="col-sl">
 
 
 <!--顶部导航栏-->
-{include file="frontend\common_nav"}  <!--通栏banner-->
+{include file=" common_nav"}  <!--通栏banner-->
 
 <div class="cont-tl">
     <div class="row">
@@ -35,7 +35,7 @@
                 <h2>关于我们</h2>
                 <p>懂你，服务总会多一点</p>
             </div>
-            {lmy cateid="16" cache="3600"}
+            {fun cateid="16" cache="3600"}
             <div class="gj-body">
                 <div class="gj-sm-6">
                     <div class="text" style="background-image: url('')">
@@ -54,7 +54,7 @@
                     </div>
                 </div>
             </div>
-            {/lmy}
+            {/fun}
         </div>
     </div>
 </div>
@@ -67,7 +67,7 @@
                 <p>我们致力于让服务改善人们的生活</p>
             </div>
             <div class="gj-body product gclear">
-                {lmy cateid="13"}
+                {fun cateid="13"}
                 <div class="gj-xs-6 gj-sm-4 gj-md-3">
                     <div class="lis">
                         <span>{$vo.title}</span>
@@ -77,7 +77,7 @@
                         </a>
                     </div>
                 </div>
-                {/lmy}
+                {/fun}
             </div>
             <div class="more">
                 <a href="{:url('index/lists',['cateid'=>13])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
@@ -94,7 +94,7 @@
                 <p>分享最新行业资讯，引领未来</p>
             </div>
             <div class="gj-body news">
-                {lmy cateid="5" num='6'}
+                {fun cateid="5" num='6'}
                 <div class="gj-md-6">
                     <div class="lis gclear">
                         <div class="img">
@@ -112,7 +112,7 @@
                         </div>
                     </div>
                 </div>
-                {/lmy}
+                {/fun}
             </div>
             <div class="more">
                 <a href="{:url('index/lists',['cateid'=>5])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
@@ -132,7 +132,7 @@
             <div class="gj-body anli">
                 <div class="swiper-container">
                     <div class="swiper-wrapper">
-                        {lmy cateid="15" num="3"}
+                        {fun cateid="15" num="3"}
                         <div class="swiper-slide">
                             <div class="ul-mt2">
                                 <div class="cul">
@@ -145,7 +145,7 @@
                                 </div>
                             </div>
                         </div>
-                        {/lmy}
+                        {/fun}
 
                     </div>
                     <div class="botm">
@@ -195,7 +195,7 @@
                             <h3>摸索是最大的成本，犹豫是最大的阻碍！</h3>
                         </div>
                         <div class="tr-bottom hidd-sm">
-                            <img src="/static/addons/cms/frontend/picture/wxcard-Yuege.jpg" alt="扫一扫，加我为好友！">
+                            <img src="__ADDONS__/cms/frontend/picture/wxcard-Yuege.jpg" alt="扫一扫，加我为好友！">
                             <ul>
                                 <li><b>联系人：</b>xxx</li>
                                 <li><b>客服电话：</b>xxxxxxxxxxx</li>
@@ -212,7 +212,7 @@
 
 
 
-{include file="frontend\common/footer"}
+{include file="common_footer"}
 <script src="/static/addons/cms/frontend/js/swiper.min.js" type="text/javascript"></script>
 
 <!--GJ-UI组件模块js代码结束-->    <!--轮播图js-->
