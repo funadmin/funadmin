@@ -47,11 +47,12 @@ class AuthService
      * @var array
      * config
      */
-    protected $config;
+    protected $config=[];
     /**
      * @var $hrefId;
      */
     protected $hrefId;
+
     public function __construct()
     {
         if ($auth = Config::get('auth')) {
@@ -279,16 +280,12 @@ class AuthService
                 $this->error(lang('Please Login Again'), __u('login/index'));
             }
             if ($adminId  && $adminId != $cfg['superAdminId']) {
-//                var_dump($this->controller);
-//                var_dump($cfg['noRightController']);
                 if(!in_array($this->controller,$cfg['noRightController']) && !in_array($this->requesturl,$cfg['noRightNode'])){
                     if($this->request->isPost() && $cfg['isDemo'] == 1){
                         $this->error(lang('Demo is not allow to change data'));
                     }
-//                    var_dump($this->requesturl);
                     $this->hrefId = AuthRule::where('href', $this->requesturl)
                         ->where('status',1)->value('id');
-//                    var_dump($this->hrefId);
                     //当前管理员权限
                     $map['a.id'] = session('admin.id');
                     $rules = AuthGroupModel::where('id','in',session('admin.group_id'))

@@ -26,8 +26,7 @@ class Index extends Backend{
      * 首页
      */
     public function index(){
-        $menulsit = [];
-//        $menulsit = Cache::get('adminmenushtml' .session('admin.id'));
+        $menulsit = Cache::get('adminmenushtml' .session('admin.id'));
         if (!$menulsit) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type',1)

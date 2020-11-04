@@ -1,7 +1,7 @@
 <?php
 namespace app\api\controller\v1;
 
-use fun\api\Token as TokenApi;
+use fun\auth\Token as TokenApi;
 use think\facade\Request;
 
 /**

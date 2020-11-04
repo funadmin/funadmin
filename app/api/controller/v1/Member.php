@@ -3,8 +3,8 @@
 namespace app\api\controller\v1;
 
 use think\facade\Request;
-use fun\api\Api;
-use fun\api\validate\ValidataBase;
+use fun\auth\Api;
+use fun\auth\validate\ValidataBase;
 
 class Member extends Api
 {   

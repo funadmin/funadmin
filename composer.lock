@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "914332af03bffd23446765d5cc351075",
+    "content-hash": "1fad1ded58a3442ca9400abb213f536e",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v0.43",
+            "version": "v1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "95a2251634d85351e79ed1f748d691a285f60735"
+                "reference": "ad0ded96abc8d72301d270bdcbeb0f4c23bfd624"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/95a2251634d85351e79ed1f748d691a285f60735",
-                "reference": "95a2251634d85351e79ed1f748d691a285f60735",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/ad0ded96abc8d72301d270bdcbeb0f4c23bfd624",
+                "reference": "ad0ded96abc8d72301d270bdcbeb0f4c23bfd624",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -362,7 +362,8 @@
                     "fun\\": "src/"
                 },
                 "files": [
-                    "src/helper.php"
+                    "src/helper.php",
+                    "src/form.php"
                 ]
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -375,7 +376,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-10-25T07:51:21+00:00"
+            "time": "2020-11-04T04:46:31+00:00"
         },
         {
             "name": "guzzlehttp/command",
@@ -1179,16 +1180,16 @@
         },
         {
             "name": "overtrue/socialite",
-            "version": "3.0.5",
+            "version": "3.0.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/overtrue/socialite.git",
-                "reference": "cb1c93c759375434cb21893f4e6ed9b27c07d985"
+                "reference": "765941f858facdeff611d3f8652c8f8bfba3e0af"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/socialite/zipball/cb1c93c759375434cb21893f4e6ed9b27c07d985",
-                "reference": "cb1c93c759375434cb21893f4e6ed9b27c07d985",
+                "url": "https://api.github.com/repos/overtrue/socialite/zipball/765941f858facdeff611d3f8652c8f8bfba3e0af",
+                "reference": "765941f858facdeff611d3f8652c8f8bfba3e0af",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1245,7 +1246,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-10-28T06:12:37+00:00"
+            "time": "2020-11-02T02:51:54+00:00"
         },
         {
             "name": "overtrue/wechat",

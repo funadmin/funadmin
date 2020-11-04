@@ -10,12 +10,11 @@
  * Author: yuege
  * Date: 2019/9/6
  */
-namespace fun\service;
-use app\common\service\AbstractService;
+namespace app\common\service;
 use think\App;
 use think\facade\Log;
 
-class Predis extends AbstractService
+class PredisService extends AbstractService
 {
     public $redisObj = null;//redis实例化时静态变量
 
@@ -25,6 +24,7 @@ class Predis extends AbstractService
     protected $port = 6379;
     protected $auth = "";
     protected $host = "127.0.0.1";
+
     public function __construct(App $app)
     {
         $this->app = $app;
