@@ -19,6 +19,7 @@ use app\common\model\Attach as AttachModel;
 use app\common\service\UploadService;
 use app\common\traits\Curd;
 use fun\helper\FileHelper;
+use GuzzleHttp\Psr7\Request;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
@@ -76,13 +77,11 @@ class Ajax extends Backend
     public function lang()
     {
         header('Content-Type: application/javascript');
-        $lang = Cookie::get('think_lang');
-        $controllername = $this->request->get("controllername");
-        $controllername = strtolower(parse_name($controllername,1));
-        $addon = $this->request->param('addons');
+        $name = $this->request->get("controllername");
+        $name = strtolower(parse_name($name,1));
+        $addon = $this->request->get("addons");
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
-        $this->loadlang($controllername,$addon);
-        return jsonp(Lang::get($lang))->code(200)->options([
+        return jsonp($this->loadlang($name,$addon))->code(200)->options([
                     'var_jsonp_handler'     => 'callback',
                     'default_jsonp_handler' => 'jsonpReturn',
                     'json_encode_param'     => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,

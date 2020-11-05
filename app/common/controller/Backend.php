@@ -78,18 +78,20 @@ class Backend extends BaseController
         parent::__construct($app);
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
-        $controller = parse_name($this->request->controller(),1);
-        $controller = strtolower($controller);
+//        $controller = parse_name($this->request->controller(),1);
+//        $controller = strtolower($controller);
+////        if($controller!=='ajax'){
+////            $this->loadlang($controller,'');
+////        }
         //过滤参数
         $this->pageSize = input('limit', 15);
         //加载语言包
-        $this->loadlang($controller);
 
     }
 
     public function enlang()
     {
-        $lang = input('lang');
+        $lang = $this->request->get('lang');
         switch ($lang) {
             case 'zh-cn':
                 Cookie::set('think_lang', 'zh-cn');
@@ -114,19 +116,20 @@ class Backend extends BaseController
     }
 
     //自动加载语言
-    protected function loadlang($name,$addon=null)
+    protected function loadlang($name,$addon)
     {
-
         $lang = Cookie::get('think_lang');
         if($addon){
-            Lang::load([
-                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php'
+            $res = Lang::load([
+                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
+                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang .'.php'
             ]);
         }else{
-            Lang::load([
+            $res = Lang::load([
                 $this->app->getAppPath() . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php'
             ]);
         }
+        return $res;
 
     }
     protected function validate(array $data, $validate, array $message = [], bool $batch = false)

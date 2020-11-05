@@ -2,6 +2,7 @@
  * 后台总控制API
  */
 define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
+    console.log(Lang)
     var layer = layui.layer,
         table = layui.table;
     layer.config({
@@ -342,6 +343,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             var args = arguments,
                 string = args[0],
                 i = 1;
+
             string = string.toLowerCase();
             if (typeof Lang !== 'undefined' && typeof Lang[string] !== 'undefined') {
                 if (typeof Lang[string] == 'object')
@@ -361,13 +363,13 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             } else {
                 string = args[0];
             }
-            return string.replace(/%((%)|s|d)/g, function (m) {
+            return string.replace(/%((%)|s|d)/g, function (match) {
                 var val;
-                if (m[2]) {
-                    val = m[2];
+                if (match[2]) {
+                    val = match[2];
                 } else {
                     val = args[i];
-                    switch (m) {
+                    switch (match) {
                         case '%d':
                             val = parseFloat(val);
                             if (isNaN(val)) {

@@ -11,7 +11,7 @@ define(['table','form'], function (Table,Form) {
                     modify_url: 'addons/cms/backend/cmsmodule/modify',
                     add_full: {
                         type: 'open',
-                        url:'addons/cms/backend/cmsadv/add',
+                        url:'addons/cms/backend/cmsmodule/add',
                         class: 'layui-btn-sm layui-btn-green',
                         icon: 'layui-icon layui-icon-add-circle-fine',
                         title: __('Add'),

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7a1f4dd46bed6bf7331a98f1586d7e44",
+    "content-hash": "e52a2974fc29511436843f99e88e3190",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.0",
+            "version": "v1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "01267b608f19abc9bae923c2c018a969afa3266e"
+                "reference": "1ac09ca80d2c9c6d0658f3ec9ed741b97ad66060"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/01267b608f19abc9bae923c2c018a969afa3266e",
-                "reference": "01267b608f19abc9bae923c2c018a969afa3266e",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/1ac09ca80d2c9c6d0658f3ec9ed741b97ad66060",
+                "reference": "1ac09ca80d2c9c6d0658f3ec9ed741b97ad66060",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -342,7 +342,7 @@
             },
             "require": {
                 "php": ">=7.1.0",
-                "topthink/framework": "6.0.*-dev",
+                "topthink/framework": "6.0.*",
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
@@ -376,7 +376,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-11-04T08:34:18+00:00"
+            "time": "2020-11-05T07:41:46+00:00"
         },
         {
             "name": "guzzlehttp/command",
@@ -3876,16 +3876,16 @@
         },
         {
             "name": "topthink/framework",
-            "version": "6.0.x-dev",
+            "version": "v6.0.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "cc6665d703904ac4d315007550ba36f9be4a4f71"
+                "reference": "85625d984f5c96699dc27d384869f206c3aec1cc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/cc6665d703904ac4d315007550ba36f9be4a4f71",
-                "reference": "cc6665d703904ac4d315007550ba36f9be4a4f71",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/85625d984f5c96699dc27d384869f206c3aec1cc",
+                "reference": "85625d984f5c96699dc27d384869f206c3aec1cc",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3939,7 +3939,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "time": "2020-10-30T13:29:22+00:00"
+            "time": "2020-10-26T07:18:00+00:00"
         },
         {
             "name": "topthink/think-annotation",
@@ -4247,16 +4247,16 @@
         },
         {
             "name": "topthink/think-orm",
-            "version": "2.0.x-dev",
+            "version": "v2.0.34",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-orm.git",
-                "reference": "66af64126cf289a811fe914623a666b7b668fef8"
+                "reference": "57f9b98895b0ff4ae7b7b75e51456fd8cb8fb629"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-orm/zipball/66af64126cf289a811fe914623a666b7b668fef8",
-                "reference": "66af64126cf289a811fe914623a666b7b668fef8",
+                "url": "https://api.github.com/repos/top-think/think-orm/zipball/57f9b98895b0ff4ae7b7b75e51456fd8cb8fb629",
+                "reference": "57f9b98895b0ff4ae7b7b75e51456fd8cb8fb629",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -4294,7 +4294,7 @@
                 "database",
                 "orm"
             ],
-            "time": "2020-10-12T14:28:51+00:00"
+            "time": "2020-09-28T08:24:57+00:00"
         },
         {
             "name": "topthink/think-queue",
@@ -4647,10 +4647,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "topthink/framework": 20,
-        "topthink/think-orm": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

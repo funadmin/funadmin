@@ -1,7 +1,7 @@
-::-webkit-input-placeholder{color:#ccc;font-size:12px}
-::-webkit-scrollbar{width:10px!important;height:6px!important;background:#fff!important;cursor:pointer!important;overflow-y:auto}
+@import url("../../common/css/iconfont.css");::-webkit-input-placeholder{color:#ccc;font-size:12px}
+::-webkit-scrollbar{width:10px !important;height:6px !important;background:#ffffff !important;cursor:pointer !important;overflow-y:auto}
 ::-webkit-scrollbar-thumb{background-color:#9c9da0;-webkit-border-radius:2em;-moz-border-radius:2em;border-radius:2em}
-::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 5px rgba(240,240,240,.5)!important;border-radius:0!important;background:rgba(240,240,240,.5)!important;cursor:pointer!important}
+::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 5px rgba(240,240,240,.5) !important;border-radius:0 !important;background:rgba(240,240,240,0.5) !important;cursor:pointer !important}
 html{-ms-overflow-style:none;overflow:-moz-scrollbars-none}
 body{background:#f1f4f6;padding:10px}
 .fun-container{background:#fff}
@@ -11,12 +11,12 @@ body{background:#f1f4f6;padding:10px}
 .clearfix{clear:both}
 .layui-table-tool{z-index:80}
 .layui-table-tool-temp{padding-right:60px}
-.layui-layer-content,.layui-layer.layui-layer-dialog .layui-layer-btn{text-align:center}
-.layui-layer.layui-layer-dialog .layui-layer-btn a{background-color:#95a5a6;color:#fff!important;height:31px;margin-top:0;border-color:#95a5a6;border:1px solid transparent}
-.layui-layer.layui-layer-dialog .layui-layer-btn0{background-color:#1aa094!important}
+.layui-layer.layui-layer-dialog .layui-layer-btn,.layui-layer-content{text-align:center}
+.layui-layer.layui-layer-dialog .layui-layer-btn a{background-color:#95a5a6;color:#fff !important;height:31px;margin-top:0;border-color:#95a5a6;border:1px solid transparent}
+.layui-icon{}
+.layui-layer.layui-layer-dialog .layui-layer-btn0{background-color:#1aa094 !important}
 .layui-table-tool-temp{padding-right:120px}
-.layui-form>.layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:700;line-height:1.8em;top:6px;right:5px}
-.layui-form .layui-tab-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:700;line-height:1.8em;top:6px;right:5px}
+.layui-form > .layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;right:5px}
 .center{text-align:center}
 .layui-upload-list li{display:inline-block}
 .layui-upload-list li i{background:#f2f2f2;cursor:pointer}
@@ -25,15 +25,15 @@ body{background:#f1f4f6;padding:10px}
 #searchFieldList_list .layui-form-label{padding:0 8px;height:32px;line-height:30px}
 #searchFieldList_list .layui-input-inline input,#searchFieldList_list .layui-input-inline select{width:100%;height:32px;padding:2px 8px;line-height:1em}
 #searchFieldList_list .layui-between .layui-input-inline{margin-right:3%;width:30%}
-#searchFieldList_list .layui-between .layui-input-inline+.layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
+#searchFieldList_list .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
 #searchFieldList_list .layui-form-select dl{top:31px;padding:0}
-.layui-form-select dl dd.layui-this{background:#607d8b!important}
-.fun-layer-class .layui-layer-setwin>a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:400;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}
-.fun-layer-class .layui-layer-setwin{background:0 0!important}
-.fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:0 0!important;opacity:.7}
-.fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:0 0!important;opacity:.7}
-.fun-layer-class .layui-layer-setwin>a:focus{text-decoration:none!important}
-.fun-layer-class .layui-layer-title{background:#2c3e50!important;color:#fff;border:none}
+.layui-form-select dl dd.layui-this{background:#607d8b !important}
+.fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}
+.fun-layer-class .layui-layer-setwin{background:none !important}
+.fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:none!important;opacity:.7}
+.fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:none!important;opacity:.7}
+.fun-layer-class .layui-layer-setwin > a:focus{text-decoration:none !important}
+.fun-layer-class .layui-layer-title{background:#2c3e50 !important;color:#fff;border:none}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
 .fun-layer-class .layui-layer-setwin .layui-layer-close1:after{content:"\e626"}
 .fun-layer-class .layui-layer-btn a{background:#333}
