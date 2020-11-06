@@ -895,6 +895,10 @@ layui.define(["jquery", 'layer'], function (exports) {
                     }
 
                 });
+                // //header
+                // $document.on('click', '.header li a', function () {
+                //     window.open($(this).attr('href'),$(this).attr('target'))
+                // });
                 //点击事件
                 $document.on('click', '*[lay-event]', function () {
                     var _that = $(this)
