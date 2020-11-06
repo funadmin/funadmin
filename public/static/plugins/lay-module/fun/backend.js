@@ -377,6 +377,8 @@ layui.define(["jquery", 'layer'], function (exports) {
             app.toggleClass(SIDE_SHRINK)
             app.toggleClass('fun-app')
             $('fun-tool').toggleClass(ICON_SPREAD)
+            $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass('  layui-nav-itemed')
+            $('.layui-side-shrink .layui-side-menu .layui-nav-item').find('dl').hide();
         },
 
         listenTabs: function (options) {
@@ -869,8 +871,12 @@ layui.define(["jquery", 'layer'], function (exports) {
                         var parent = _that.parent();
                         var child = _that.next('.layui-nav-child');
                         var height = child.height();
-                        // 是否是展开状态
-                        child.css({"display": "block"});
+                        // 检测屏幕是否是展开状态
+                        console.log(Fun.api.checkScreen())
+                        if(!Fun.api.checkScreen() && $('.layui-side-shrink').length>0){
+                            return false;
+                        }
+                        child.css({display: "block"});
                         if (parent.hasClass("layui-nav-itemed")) {
                             child.height(0);
                             child.animate({height: height + "px"}, function () {
@@ -895,10 +901,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                     }
 
                 });
-                // //header
-                // $document.on('click', '.header li a', function () {
-                //     window.open($(this).attr('href'),$(this).attr('target'))
-                // });
                 //点击事件
                 $document.on('click', '*[lay-event]', function () {
                     var _that = $(this)
@@ -906,15 +908,53 @@ layui.define(["jquery", 'layer'], function (exports) {
                     Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
                 });
 
-                //鼠标提示
-                $document.on("mouseenter", "*[lay-tips]", function () {
+                //鼠标放上
+                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this)
-                   Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 1);
+                    if(!Fun.api.checkScreen()){
+                        var top = _that.offset().top;
+                        _that.addClass('layui-nav-hover')
+                        _that.children('dl').addClass('layui-nav-child-drop');
+                        _that.children('dl').css('top',top+'px');
+                    }
 
-                }).on("mouseleave", "*[lay-tips]", function () {
+                }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this)
-                   Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
+                    _that.removeClass('layui-nav-hover')
+                    _that.find('dl').removeClass('layui-nav-child-drop');
+                    _that.find('dl').removeAttr('style');
+
                 });
+                //鼠标放上
+                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop dd", function () {
+                    var _that = $(this) ;
+                    if(!Fun.api.checkScreen()){
+                        if(_that.find('dl')){
+                            var top = _that.offset().top;
+                            var left = _that.offset().left + _that.width();
+                            console.log(left)
+                            console.log(_that.width())
+                            _that.children('dl').addClass('layui-nav-child-drop');
+                            _that.children('dl').css('top', top + 'px');
+                            _that.children('dl').css('left', left + 'px');
+                        }
+                    }
+
+                }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop", function () {
+                    var _that = $(this)
+                    _that.find('dl').removeClass('layui-nav-child-drop');
+                    _that.find('dl').removeAttr('style');
+                });
+
+                // //鼠标提示
+                // $document.on("mouseenter", "*[lay-tips]", function () {
+                //     var _that = $(this)
+                //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 1);
+                //
+                // }).on("mouseleave", "*[lay-tips]", function () {
+                //     var _that = $(this)
+                //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
+                // });
                 /*** 鼠标事件*/
                 $document.unbind("mousedown", ".layui-tab .layui-tab-title li").bind("contextmenu", function (e) {
                     e.preventDefault();
@@ -943,6 +983,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 $document.on('click', '.layui-body,.layui-header,.layui-side-menu,.layui-tab,.layui-right-shade', function () {
                     $('#layui-sp-righmenu').remove();
                 });
+                $(window).on("resize", function () {
+                    $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover')
+                    $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop')
+                    $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style')
+                })
 
             },
 

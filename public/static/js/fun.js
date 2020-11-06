@@ -317,7 +317,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 if (isFull) {
                     layer.full(index);
                 }
-                console.log(isResize)
                 if (isResize) {
                     $(window).on("resize", function () {
                         layer.full(index);
