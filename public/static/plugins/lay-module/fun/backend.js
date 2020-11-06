@@ -895,11 +895,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                     }
 
                 });
-                //header
-                $document.on('click', '.header li a', function () {
-                    window.open($(this).attr('href'),$(this).attr('target'))
-                });
-
                 //点击事件
                 $document.on('click', '*[lay-event]', function () {
                     var _that = $(this)
@@ -917,7 +912,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
                 });
                 /*** 鼠标事件*/
-                $document.unbind("mousedown", ".layui-tab ul li").bind("contextmenu", function (e) {
+                $document.unbind("mousedown", ".layui-tab .layui-tab-title li").bind("contextmenu", function (e) {
                     e.preventDefault();
                     return false;
                 });
@@ -943,7 +938,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //关闭右键菜单
                 $document.on('click', '.layui-body,.layui-header,.layui-side-menu,.layui-tab,.layui-right-shade', function () {
                     $('#layui-sp-righmenu').remove();
-                    return false;
                 });
 
             },
