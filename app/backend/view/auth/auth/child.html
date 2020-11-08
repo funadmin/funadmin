@@ -20,9 +20,9 @@
                 {:form_input('title','text',['verify'=>'required','lable'=>"Name"])}
                 {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
                 {:form_icon('icon')}
-                {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','select'=>0,'lable'=>'Menu Status'])}
+                {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','lable'=>'Menu Status'],0)}
                 {:form_radio('target',['_self'=>'_self','_blank'=>'_blank','_top'=>'_top','_parent'=>'_parent'],
-                ['filter'=>'target','select'=>'_self'])}
+                ['filter'=>'target'],'_self')}
                 {:form_input('sort','text',['verify'=>'number'])}
                 {:form_submitbtn()}
             </form>

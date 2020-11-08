@@ -6,7 +6,7 @@
         {:form_input('email','text',['verify'=>'email'])}
         {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
         {:form_select('group_id',$memberGroup,['verify'=>'required'] ,'id,name')}
-        {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex','select'=>1])}
+        {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex'],1)}
         {:form_submitbtn()}
     </form>
 </div>

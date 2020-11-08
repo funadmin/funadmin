@@ -19,6 +19,7 @@ use addons\cms\common\model\CmsField;
 use app\common\model\FieldType;
 use app\common\traits\Curd;
 use think\App;
+use think\exception\ValidateException;
 use think\facade\Config;
 use think\facade\Db;
 use think\facade\Request;
@@ -28,6 +29,9 @@ class CmsModule extends AddonsBackend
 {
     use Curd;
     public $prefix = '';
+    public $filepath = '';
+    public $_list = '';
+    public $_show = '';
     public function __construct(App $app)
     {
         parent::__construct($app);
@@ -56,15 +60,15 @@ class CmsModule extends AddonsBackend
             }
             $post = Request::except(['emptytable']);
             $rule =  $rule = [
-                'title|模型名称' => [
+                'modulename|模型名称' => [
                     'require' => 'require',
                     'max'     => '100',
-                    'unique'  => 'cms_module',
+                    'unique'  => 'addons_cms_module',
                 ],
-                'name|表名' => [
+                'tablename|表名' => [
                     'require' => 'require',
                     'max'     => '50',
-                    'unique'  => 'cms_module',
+                    'unique'  => 'addons_cms_module',
                 ],
                 'listfields|列表页字段' => [
                     'require' => 'require',
@@ -91,7 +95,7 @@ class CmsModule extends AddonsBackend
                 $this->error('添加模型失败！');
             }
             $emptytable = Request::post('emptytable');
-            CM::addTable($tablename,$this->prefix,$moduleid,$emptytable);
+            $this->modelClass->addTable($tablename,$this->prefix,$moduleid,$emptytable);
             $this->success(lang('add success'), url('index'));
         }
         $view =[
@@ -110,26 +114,28 @@ class CmsModule extends AddonsBackend
 
     // 模型修改
     public function edit(){
+        $id    = $this->request->param('id');
+        $list   = $this->modelClass->find($id);
         if ($this->request->isAjax) {
             $post = Request::post();
-            $result = $this->validate($post, 'CmsModule');
-            if (true !== $result) {
-                // 验证失败 输出错误信息
-                $this->error($result);
+            $rule = [];
+            try {
+               $this->validate($post, $rule);
+
+            }catch (ValidateException $e){
+                $this->error($e->getMessage());
+            }
+
+            if ($list->save($post) !== false) {
+                $this->success(lang('Edit Success'));
             } else {
-                if (CM::update($post) !== false) {
-                    $this->success('修改成功!', url('index'));
-                } else {
-                    $this->error('修改失败！');
-                }
+                $this->success(lang('Edit Fail'));
             }
         }
 
-        $id     = Request::param('id');
-        $info   = CM::find($id);
         $view = [
             'title'=>lang('edit'),
-            'info' => $info,
+            'formData' => $list,
 //            '_column'=>$this->_column,
             '_list'=>$this->_list,
             '_show'=>$this->_show,

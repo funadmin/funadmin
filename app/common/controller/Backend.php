@@ -65,7 +65,7 @@ class Backend extends BaseController
         'status',
         'sort',
         'title',
-        'auth_verfiy',
+        'auth_verify',
     ];
     /**
      * 是否是关联查询
@@ -154,9 +154,6 @@ class Backend extends BaseController
             $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
         }
     }
-
-
-
     /**
      * 组合参数
      * @param null $searchfields
@@ -168,11 +165,10 @@ class Backend extends BaseController
         $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
         $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
         $search = $this->request->get("search", '');
-        $param = $this->request->param();
-        $page = isset($param['page']) && !empty($param['page']) ? $param['page'] : 1;
-        $limit = isset($param['limit']) && !empty($param['limit']) ? $param['limit'] : 15;
-        $filters = isset($param['filter']) && !empty($param['filter']) ? $param['filter'] : '{}';
-        $ops = isset($param['op']) && !empty($param['op']) ? $param['op'] : '{}';
+        $page = $this->request->param('page',1);
+        $limit = $this->request->param('limit',15) ;
+        $filters = $this->request->get('filter','{}') ;
+        $ops = $this->request->param('op','{}') ;
         $sort = $this->request->get("sort", !empty($this->modelClass) && $this->modelClass->getPk() ? $this->modelClass->getPk() : 'id');
         $order = $this->request->get("order", "DESC");
         $filters = htmlspecialchars_decode(iconv('GBK','utf-8',$filters));

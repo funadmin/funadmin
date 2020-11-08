@@ -2,38 +2,13 @@
     <div class="admin-main layui-anim layui-anim-upbit">
         <form class="layui-form" lay-filter="form">
             {:form_input('modulename','text',['lable'=>'ModelName','tips'=>'between_4_and_25_characters','verify'=>'required'])}
-            {:form_input('name','text',['lable'=>'tableName','ptips'=>'between_4_and_25_characters','tips'=>'(Please add the plugin prefix addons_cms_ such as table<span class="layui-bg-orange"> addons_cms_article or cms_article .)</span>','verify'=>'required'])}
-            {:form_textarea('description','',['lable'=>'tableDescription',])}
+            {:form_input('tablename','text',['lable'=>'tableName','ptips'=>'between_4_and_25_characters','tips'=>'(Please add the plugin prefix addons_cms_ such as table<span class="layui-bg-orange"> addons_cms_article or cms_article .)</span>','verify'=>'required'])}
+            {:form_textarea('intro',['lable'=>'tableIntro',])}
             {:form_input('listfields','text',['lable'=>'listPageQueryField','tips'=>'Multi-field use | Split'],'*')}
-            {:form_radio('emptytable',[0=>'NormalTable','1'=>'ArticleTable'],['label'=>"NewTable",'select'=>1])}
-            {:form_radio('sort',[0=>'Close','1'=>'Open'],['label'=>"Status",'select'=>1])}
+            {:form_radio('emptytable',[0=>'NormalTable','1'=>'ArticleTable'],['label'=>"NewTable"],1)}
+            {:form_radio('sort',[0=>'Close','1'=>'Open'],['label'=>"Status"],1)}
             {:form_input('sort','text',[],50)}
             {:form_submitbtn()}
         </form>
     </div>
 </div>
-<script>
-        layui.use(['form'], function () {
-            var form = layui.form,$= layui.jquery;
-            var info = '';
-            info = {:json_encode($info)};
-            form.val("form", info);
-
-            form.on('submit(submit)', function (data) {
-                loading =layer.load(1, {shade: [0.1,'#fff']});
-                // 提交到方法 默认为本身
-                $.post("", data.field, function (res) {
-                    layer.close(loading);
-                    if (res.code > 0) {
-                        layer.msg(res.msg, {time: 1000, icon: 1}, function () {
-                            layer.closeAll("iframe");
-                            //刷新父页面
-                           location.reload();
-                        });
-                    } else {
-                        layer.msg(res.msg, {time: 1000, icon: 2});
-                    }
-                });
-            })
-        });
-</script>

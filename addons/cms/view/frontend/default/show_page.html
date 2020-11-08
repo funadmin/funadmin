@@ -15,7 +15,7 @@
 <div class="nav-btn">
     <div class="cont">
         <i class="fa fa-home" aria-hidden="true"></i>
-        <a href="{:url('index/index')}">首页</a> &gt;{:cateStep($cateid)}
+        <a href="{:addons_url('index/index')}">首页</a> &gt;{:cateStep($cateid)}
     </div>
 </div>
 <!--服务项目-内容-->
@@ -43,7 +43,7 @@
                     {query table="cms_product" num='2'}
                     {volist name="data" id="vo"}
                     <div class="pt-list">
-                        <a href="{:url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}"><img src="{$vo.thumb}" alt="{$vo.title}"></a>
+                        <a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}"><img src="{$vo.thumb}" alt="{$vo.title}"></a>
                         <div class="shx">
                             <a href="4.html">
                                 <h4>{$vo.title}</h4>

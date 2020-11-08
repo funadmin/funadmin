@@ -28,7 +28,7 @@ class Plugin extends Addons    // 需继承fun\Addons类
             'href' => 'database',
             'title' => '数据库',
             'status' => 1,
-            'auth_verfiy' => 1,
+            'auth_verify' => 1,
             'menu_status' => 1,
             'icon' => 'fa fa-database',
             'menulist' => [

@@ -13,11 +13,10 @@
 <!--                <a href="javascript:;" target="_blank"><i class="fa fa-qq" aria-hidden="true"></i></a>-->
                 {if session('uid')}
                 <a href="javascript:;" target="_blank">{:session('user.username')}</a>
-                <a href="{:url('cms/user/logout')}" target="_blank">退出</a>
-
+                <a href="{:addons_url('user/logout')}" target="_blank">退出</a>
                 {else/}
-                <a href="{:url('cms/user/login')}" target="_blank">登录</a>
-                <a href="{:url('cms/user/register')}" target="_blank">注册</a>
+                <a href="{:addons_url('user/login')}" target="_blank">登录</a>
+                <a href="{:addons_url('user/register')}" target="_blank">注册</a>
                 {/if}
 
             </div>
@@ -43,7 +42,7 @@
     <div class="gj-menu">
         <div class="menu">
             <ul>
-                <li class="{if $cateid==''}gxz{/if}"><a href="{:url('index/index')}">网站首页</a></li>
+                <li class="{if $cateid==''}gxz{/if}"><a href="{:addons_url('index')}">网站首页</a></li>
                 {nav cache="0"}
                 {volist name="data" id="vo"}
                 <li class="{if $cateid && in_array($cateid,explode(',',$vo['arrchildid']))} gxz {/if} jnav">
@@ -63,7 +62,7 @@
 
             </ul>
             <div class="gj-ss1 hidd-sm">
-                <form action="{:url('index/search')}">
+                <form action="{:addons_url('index/search')}">
                     <input type="hidden" name="cateid" value="{$cateid}" id="cateid">
                     <input type="hidden" name="moduleid" value="{$moduleid}" id="moduleid">
                     <input type="text" name="keys" placeholder="请输入搜索关键词···">

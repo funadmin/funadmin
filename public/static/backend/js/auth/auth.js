@@ -52,9 +52,9 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {field: 'href', title: __('Controller/Action'), minwidth: 200},
                     {
 
-                        field: 'auth_verfiy',
+                        field: 'auth_verify',
                         align: 'center',
-                        title: __('Auth Verfiy'),
+                        title: __('Auth Verify'),
                         width: 150,
                         tips:__('YES')+'|'+__('NO'),
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
@@ -100,7 +100,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,page:false
             });
             var url = Fun.url(Table.init.requests.modify_url);
-            form.on('switch(auth_verfiy)', function(obj){
+            form.on('switch(auth_verify)', function(obj){
                 var field = obj.elem.name;
                 value = obj.elem.checked?1:0;
                 data = {id:obj.value,value:value,field:field};

@@ -164,7 +164,7 @@ EOF;
         }
         foreach(\$data as &\$v){
             if(\$v['type']!=2){
-                \$v['url'] = url('index/lists',['cateid'=>\$v['id']]);
+                \$v['url'] = addons_url('index/lists',['cateid'=>\$v['id']]);
             }
         }
 ?>
@@ -190,7 +190,7 @@ EOF;
     \$data = \\think\\facade\\Db::name('addons_cms_category')->where('{$where}')->where('pid',{$cateid})->where('status',1)->order('{$order}')->field('{$field}')->cache({$cache})->select();
     foreach(\$data as &\$v){
         if(\$v['type']!=2){
-            \$v['url'] = url('index/lists',['cateid'=>\$v['id']]);
+            \$v['url'] = addons_url('index/lists',['cateid'=>\$v['id']]);
         }
     }
 ?>
@@ -275,15 +275,15 @@ EOF;
         //每页显示总数
         $num = isset($tag['num']) && intval($tag['num']) > 0 ? intval($tag['num']) : 10;
         //排序
-        $order = isset($tag['order']) && trim($tag['order']) ? trim($tag['order']) : 'id desc';
+        $tag['order'] = isset($tag['order']) && trim($tag['order']) ? trim($tag['order']) : '';
+        $order = $tag['order']? $tag['order'] : 'id desc';
         $field = isset($tag['field']) && trim($tag['field']) ? trim($tag['field']) : '*';
         $where = isset($tag['where']) && trim($tag['where']) ? trim($tag['where']) : '';
-
         //当前分页参数
         $page = $tag['page'] = (isset($tag['page'])) ? ((substr($tag['page'], 0, 1) == '$') ? $tag['page'] : (int) $tag['page']) : 1;
 
         if (isset($tag['sql'])) {
-            $sql = str_replace(array("think_", "lm_"), config('database.connections.mysql.prefix'), strtolower($tag['sql']));
+            $sql = str_replace(array("think_", "fun_","__PREFIX__"), config('database.connections.mysql.prefix'), strtolower($tag['sql']));
         }
 
 
@@ -311,7 +311,6 @@ EOF;
         \$data =  \$tabEXOdel->whereRaw('status=1')->order('{$order}')->field('{$field}')->cache({$cache})->paginate(['list_rows' => {$num} ,'page' =>{$page}]);
 
     }
- 
     \$pages = \$data->render();
    
    
@@ -325,8 +324,8 @@ EOF;
             $tagString =implode('',$tag);
             $parseStr =<<<EOF
 <?php
-    
-    \$cacheID = \\EXO\\helper\\StringHelper::uuid('md5','{$tagString}');
+    ;
+    \$cacheID = \\fun\\helper\\StringHelper::uuid('md5','{$tagString}');
     if(!empty('{$cache}') and !\\think\\facade\\Cache::get(\$cacheID)){
       \$order = !empty('{$tag["order"]}') ? ' ORDER BY {$order}' :'';
         if(!empty('{$page}')){
@@ -334,7 +333,7 @@ EOF;
            
             \$sql = '{$sql}' . \$order . ' limit ?,?';
             \$data = \\think\\facade\Db::query(\$sql,[({$page}-1)*{$num},{$num}]);
-            \$pages = \\app\\cms\\paginator\\Layui::make(\$data,{$num},{$page},\$count,false,['path'=>\\app\\cms\\paginator\\Layui::getCurrentPath(),'query'=>request()->param()]);
+            \$pages = \\addons\\cms\\frontend\\paginator\\Layui::make(\$data,{$num},{$page},\$count,false,['path'=>\\addons\\cms\\frontend\\paginator\\Layui::getCurrentPath(),'query'=>request()->param()]);
             \$pages = \$pages->render();
         }else{
             \$sql ='{$sql}'  .  \$order . ' limit {$num}  ';
@@ -354,7 +353,7 @@ EOF;
            
             \$sql = '{$sql}' . \$order . ' limit ?,?';
             \$data = \\think\\facade\Db::query(\$sql,[({$page}-1)*{$num},{$num}]);
-            \$pages = \\app\\cms\\paginator\\Layui::make(\$data,{$num},{$page},\$count,false,['path'=>\\app\\cms\\paginator\\Layui::getCurrentPath(),'query'=>request()->param()]);
+            \$pages =  \\addons\\cms\\frontend\\paginator\\Layui::make(\$data,{$num},{$page},\$count,false,['path'=>\\addons\\cms\\frontend\\paginator\\Layui::getCurrentPath(),'query'=>request()->param()]);
             \$pages = \$pages->render();
         }else{
             \$sql ='{$sql}'  .  \$order . ' limit {$num}  ';

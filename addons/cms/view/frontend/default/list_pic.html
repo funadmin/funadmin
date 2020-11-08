@@ -17,7 +17,7 @@
 <div class="nav-btn">
     <div class="cont">
         <i class="fa fa-home" aria-hidden="true"></i>
-        <a href="{:url('index/index')}">首页</a> &gt; {:cateStep($cateid)}
+        <a href="{:addons_url('index/index')}">首页</a> &gt; {:cateStep($cateid)}
     </div>
 </div>
 <!--成功案例-->
@@ -31,7 +31,7 @@
                     <div class="shx">
                         <h4>{$vo.title}</h4>
                         <p>2019-07-09</p>
-                        <a href="{:url('index/page',['cateid'=>$vo.cateid,'id'=>$vo.id])}">查看详情</a>
+                        <a href="{:addons_url('index/page',['cateid'=>$vo.cateid,'id'=>$vo.id])}">查看详情</a>
                     </div>
                 </div>
             </div>

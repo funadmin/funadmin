@@ -3,7 +3,7 @@ return [
     'icon' =>'图标',
     'Auth Name' =>'权限名',
     'AuthName' =>'权限名',
-    'Auth Verfiy' =>'权限验证',
+    'Auth Verify' =>'权限验证',
     'Menu Status' =>'菜单状态',
     'Controller/Action' =>'控制器/方法',
     'Add Child' =>'添加下级',

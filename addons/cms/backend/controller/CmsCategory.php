@@ -17,11 +17,8 @@ use app\common\controller\AddonsBackend;
 use addons\cms\common\model\CmsModule;
 use addons\cms\common\model\CmsCategory as CategoryModel;
 use app\common\traits\Curd;
-use fun\helper\ArrayHelper;
 use fun\helper\TreeHelper;
 use think\App;
-use think\facade\Db;
-use think\facade\Request;
 use think\facade\View;
 
 class CmsCategory extends AddonsBackend
@@ -81,7 +78,7 @@ class CmsCategory extends AddonsBackend
                 $moduleid = $this->request->post('moduleid');
                 $module = CmsModule::find($moduleid);
                 if ($module) {
-                    $post['module'] = $module->name;
+                    $post['module'] = $module->tablename;
                 } else {
                     $this->error('模型不存在');
                 }
@@ -140,7 +137,7 @@ class CmsCategory extends AddonsBackend
             $moduleid = $this->request->post('moduleid');
             $module = CmsModule::find($moduleid);
             if ($module) {
-                $post['module'] = $module->name;
+                $post['module'] = $module->tablename;
             } else {
                 $this->error(lang('module is not exist'));
             }

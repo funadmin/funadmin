@@ -1,69 +1,60 @@
 {if $formData}
 {switch name="$formData.type"}
-
 {case value="hidden"}
 {if $formData.value}
 <input type="hidden" class="layui-input" name="{$formData.value}"  value="{$formData.value}">
 {/if}
 {/case}
 {case value="text"}
-{:form_input('value','text',['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_input('value','text',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
-
 {case value="tags"}
-{:form_input('value','text',['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_input('value','text',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="number"}
-{:form_input('value','number',['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_input('value','number',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="switch"}
-{:form_switch('value',$formData.extra,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_switch('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="array"}
-{:form_textarea('value',$formData.value,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_textarea('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value,)}
 {/case}
 {case value="checkbox"}
-{:form_checkbox('value',$formData.value,$formData.extra,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_checkbox('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value,)}
 {/case}
 {case value="radio"}
-{:form_radio('value',$formData.extra,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
-
+{:form_radio('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="select"}
-{:form_select('value',$formData.extra,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark,'search'=>1] ,[],(isset($formdata)?$formdata['default_value']:''))}
-
+{:form_select('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark,'search'=>1] ,[],(isset($formdata)?$formdata['default_value']:''))}
 {/case}
 {case value="color"}
-{:form_color('value','value',$formData.value,['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
-
+{:form_color('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],'value')}
 {/case}
 {case value="datetime"}
-{:form_date('value',['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_date('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
-
 {case value="range"}
-{:form_date('value',['label'=>'value','verfiy'=>$formData.verfiy,'tips'=>$formData.remark,'type'=>'range'])}
+{:form_date('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark,'type'=>'range'])}
 {/case}
-
 {case value="textarea"}
-{:form_textarea('value',$formData.value,['label'=>$formData.value,'verfiy'=>$formData.verfiy,'tips'=>$formData.remark])}
+{:form_textarea('value',['label'=>$formData.value,'verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value)}
 {/case}
-
 {case value="image"}
-{:form_upload('value',$formData,['label'=>'value','type'=>'radio','mine'=>'image','num'=>'1'])}
+{:form_upload('value',$formData,['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mine'=>'image','num'=>'1'])}
 {/case}
-
 {case value="images"}
-{:form_upload('value',$formData,['label'=>'value','type'=>'checkbox','mine'=>'image','num'=>'10'])}
+{:form_upload('value',$formData,['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mine'=>'image'])}
 {/case}
 {case value="file"}
-{:form_upload('value',$formData.value,['label'=>'value','type'=>'radio','mine'=>'file','num'=>'1'])}
+{:form_upload('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mine'=>'file','num'=>'1'])}
 {/case}
 {case value="files"}
-{:form_upload('value',$formData.value,['label'=>'value','type'=>'checkbox','mine'=>'file','num'=>'10'])}
+{:form_upload('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mine'=>'file','num'=>'*'])}
 {/case}
 {case value="editor"}
-    {:form_editor('value',$formData.value)}
+{:form_editor('value',$formData.value,2,['verify'=>$formData.verify])}
 {/case}
 {/switch}
 {/if}

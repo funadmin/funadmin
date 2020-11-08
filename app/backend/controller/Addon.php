@@ -39,6 +39,7 @@ class Addon extends Backend
         parent::__construct($app);
         $this->modelClass = new AddonModel();
     }
+
     /**
      * 插件列表
      */

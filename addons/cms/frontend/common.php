@@ -1,20 +1,7 @@
 <?php
-// +----------------------------------------------------------------------
-// | 应用公共文件
-// +----------------------------------------------------------------------
-// | Copyright (c) 2006-2016 http://thinkphp.cn All rights reserved.
-// +----------------------------------------------------------------------
-// | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
-// +----------------------------------------------------------------------
-// | Author: 
-// +----------------------------------------------------------------------
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-use \think\facade\Db; 
-use addons\cms\common\model\CmsCategory;
 error_reporting(0);
-
+use \think\facade\Db;
+use addons\cms\common\model\CmsCategory;
 
 /**
  * 获取http类型
@@ -31,7 +18,6 @@ if(!function_exists('getAttach')) {
     }
 }
 
-
 /**
  * 获取栏目类型
  */
@@ -41,7 +27,6 @@ if(!function_exists('getCategory')) {
         return CmsCategory::getCategory($catid, $field, $newCache);
     }
 }
-
 
 /**
  * 返回栏目成绩

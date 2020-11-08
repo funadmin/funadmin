@@ -7,7 +7,7 @@ use app\common\model\BaseModel;
 use app\common\model\Module as M;
 use think\facade\Config;
 
-class FieldVerfiy extends BaseModel {
+class FieldVerify extends BaseModel {
 
     public function __construct(array $data = [])
     {

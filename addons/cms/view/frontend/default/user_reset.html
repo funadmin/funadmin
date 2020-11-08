@@ -11,8 +11,8 @@
 <body>
 <div class="w1">
     <div class="w880 head">
-        <div class="right"><a href="{:url('index/index')}">回到首页</a></div>
-        <a href="{:url('user/register')}" class="current">注册</a> 欢迎登录
+        <div class="right"><a href="{:addons_url('index/index')}">回到首页</a></div>
+        <a href="{:addons_url('user/register')}" class="current">注册</a> 欢迎登录
     </div>
 </div>
 <!--主要内容-->
@@ -28,8 +28,8 @@
                 <ul>
                     <li>注册邮箱：<input type="text" placeholder="电子邮箱" required name="email" class="input" value="{:cookie('email')}"/></li>
 
-                    {if !cookie('code')}<li>验证码：<input type="text" placeholder="验证码" required name="vercode" class="input"/><img style="vertical-align: middle;width: 100px;height: 36px;" id="captchaPic" src="{:url('verify')}?{:time()}" alt="captcha" onclick="this.src='' +
-                         '{:url("verify")}?'+'id='+Math.random()"/></li>{/if}
+                    {if !cookie('code')}<li>验证码：<input type="text" placeholder="验证码" required name="vercode" class="input"/><img style="vertical-align: middle;width: 100px;height: 36px;" id="captchaPic" src="{:addons_url('verify')}?{:time()}" alt="captcha" onclick="this.src='' +
+                         '{:addons_url("verify")}?'+'id='+Math.random()"/></li>{/if}
 
 					<li {if cookie('code')}{else/}style="display:none"{/if} id="password"> 密码：<input type="text" placeholder="密码" required name="password" class="input"/></li>
 					<li {if cookie('code')}{else/}style="display:none"{/if} id="password"> 邮箱验证码：<input type="text" placeholder="邮箱验证码" required name="vercode" class="input"/></li>
@@ -44,7 +44,7 @@
         <p>已经有了账号？</p>
         <p>请直接登录</p>
         <br>
-        <p><a href="{:url('user/login')}" class="button">登录</a></p>
+        <p><a href="{:addons_url('user/login')}" class="button">登录</a></p>
     </div>
 </div>
 
@@ -59,7 +59,7 @@
 		var vercode = $('input[name="vercode"]').val();
 		var email = $('input[name="email"]').val();
 		var password = $('input[name="password"]').val();
-		$.post('{:url("user/reset")}', {'email':email, vercode: vercode,password:password}, function (res) {
+		$.post('{:addons_url("user/reset")}', {'email':email, vercode: vercode,password:password}, function (res) {
 			if (res.code > 0) {
 				alert(res.msg);
 				window.location.href =res.url;

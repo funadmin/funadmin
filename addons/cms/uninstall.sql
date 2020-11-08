@@ -18,7 +18,7 @@ drop table if exists `__PREFIX__addons_cms_field`;
 
 drop table if exists `__PREFIX__addons_cms_debris`;
 
-drop table if exists `__PREFIX__addons_cms_debris_type`;
+drop table if exists `__PREFIX__addons_cms_debris_position`;
 
 drop table if exists `__PREFIX__addons_cms_article`;
 

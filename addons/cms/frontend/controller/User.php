@@ -36,7 +36,7 @@ class User extends CmsBase
         }
         if ($this->request->isPost()) {
             $data = input('post.');
-            $user = \app\common\model\User::where('username|email', $data['username'])->find();
+            $user = \app\common\model\Member::where('username|email|mobile', $data['username'])->find();
             if (!captcha_check($data['vercode'])) {
                 $this->error('验证码错误');
             }
@@ -52,7 +52,7 @@ class User extends CmsBase
 
         } else {
 
-            return view('login');
+            return view('user_login');
         }
 
     }
@@ -60,7 +60,7 @@ class User extends CmsBase
     public function register()
     {
         if ($this->uid) {
-            $this->redirect(url('index/index'));
+            $this->redirect(url('index_index'));
         }
         if ($this->request->isPost()) {
             $data = input('post.');
@@ -74,10 +74,10 @@ class User extends CmsBase
                 $this->error('验证码错误');
             }
             $data['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
-            \app\common\model\User::create($data);
+            \app\common\model\Member::create($data);
             $this->success('注册成功');
         }
-        return view('register');
+        return view('user_register');
 
     }
 
@@ -98,10 +98,10 @@ class User extends CmsBase
                 $this->error('验证码错误');
             }
             $data['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
-            \app\common\model\User::create($data);
+            \app\common\model\Member::create($data);
             $this->success('注册成功');
         }
-        return view('forget');
+        return view('user_forget');
 
     }
 

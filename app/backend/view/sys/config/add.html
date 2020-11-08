@@ -1,15 +1,15 @@
-    <div class="fun-main">
-        <div class="admin-main layui-anim layui-anim-upbit">
-            <form class="layui-form" lay-filter="form">
-                {:form_select('group',$configGroup,['verfiy'=>'required'],['name','title'],$formData?$formData.type:'')}
-                {:form_select('type',$fieldType,['verfiy'=>'required'],['name','title'],$formData?$formData.type:'')}
-                {:form_input('code','text',['verify'=>'required','lable'=>"Code",'tips'=>"English characters. Canot duplicate the current existing"])}
-                {:form_select('verfiy',$fieldVerfiy,['verfiy'=>'required'],['verfiy','title'],$formData?$formData.verfiy:'')}
-                {:form_textarea('value')}
-                {:form_textarea('extra')}
-                {:form_textarea('remark','',['tips'=>'Remarks'])}
-                {:form_submitbtn()}
-            </form>
-        </div>
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form">
+            {:form_select('group',$configGroup,['verify'=>'required'],['name','title'],$formData?$formData.type:'')}
+            {:form_select('type',$fieldType,['verify'=>'required'],['name','title'],$formData?$formData.type:'')}
+            {:form_input('code','text',['verify'=>'required','lable'=>"Code",'tips'=>"English characters. Canot duplicate the current existing"])}
+            {:form_select('verify',$fieldVerify,['verify'=>'required'],['verify','title'],$formData?$formData.verify:'')}
+            {:form_textarea('value')}
+            {:form_textarea('extra')}
+            {:form_textarea('remark',['tips'=>'Remarks'])}
+            {:form_submitbtn()}
+        </form>
     </div>
+</div>
 

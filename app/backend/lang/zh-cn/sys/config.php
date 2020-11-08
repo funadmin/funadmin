@@ -21,7 +21,7 @@ return [
     'Remark' =>"备注",
     'Default_value' =>"默认值",
     'Extra' =>"附加",
-    'Verfiy' =>"验证",
+    'Verify' =>"验证",
     'value' =>"值",
 
     'Identifier' => '识别码',

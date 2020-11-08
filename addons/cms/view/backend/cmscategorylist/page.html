@@ -1,0 +1,21 @@
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <form class="layui-form" lay-filter="form" method="post">
+            {:form_input('cateid','hidden',[],$formData.cateid)}
+            {:form_input('id','hidden',[],$formData.id)}
+            {:form_input('title','text',['label'=>'标题','verify'=> 'required','tips'=>'请输入SEO Title'])}
+            {:form_input('keywords','text',['label'=>'关键词','verify'=> 'required','tips'=>'多关键词之间用空格或者“,”隔开'])}
+            {:form_textarea('intro',['label'=>'SEO摘要','verify'=> 'required','tips'=>'SEO摘要'])}
+            {:form_upload('thumb',$formData,['label'=>'thumb','verify'=> 'required',])}
+            {:form_editor('content','content',2,['verify'=> 'required'])}
+            {:form_input('hits','number',['label'=>'hits','verify'=> 'required',])}
+            {:form_input('tags','text',['label'=>'tags','verify'=> 'required','tips'=>'标签（逗号,分割）'])}
+            {:form_input('sort','number',['label'=>'sort','verify'=> 'required',],50)}
+            {:form_radio('status',['Close','Open'],['label'=>'Status','verify'=> 'required',],1)}
+            {:form_submitbtn()}
+    </form>
+    </div>
+</div>
+<script>
+    var cate = {:json_encode($cate)}
+</script>

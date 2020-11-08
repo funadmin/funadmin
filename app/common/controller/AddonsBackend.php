@@ -62,7 +62,7 @@ class AddonsBackend extends Controller
     protected $allowModifyFields = [
         'status',
         'title',
-        'auth_verfiy'
+        'auth_verify'
     ];
 
     /**
@@ -144,19 +144,18 @@ class AddonsBackend extends Controller
         $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
         $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
         $search = $this->request->get("search", '');
-        $get = $this->request->get();
-        $page = isset($get['page']) && !empty($get['page']) ? $get['page'] : 1;
-        $limit = isset($get['limit']) && !empty($get['limit']) ? $get['limit'] : 15;
-        $filters = isset($get['filter']) && !empty($get['filter']) ? $get['filter'] : '{}';
-        $ops = isset($get['op']) && !empty($get['op']) ? $get['op'] : '{}';
+        $page = $this->request->param('page',1);
+        $limit = $this->request->param('limit',15) ;
+        $filters = $this->request->get('filter','{}') ;
+        $ops = $this->request->param('op','{}') ;
         $sort = $this->request->get("sort", !empty($this->modelClass) && $this->modelClass->getPk() ? $this->modelClass->getPk() : 'id');
         $order = $this->request->get("order", "DESC");
-        $filters = json_decode($filters, true);
+        $filters = htmlspecialchars_decode(iconv('GBK','utf-8',$filters));
+        $filters = json_decode($filters,true);
         $ops = json_decode($ops, true);
         $tableName = '';
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
-//                $name = parse_name(basename(str_replace('\\', '/', get_class($this->modelClass))));
                 $name = $this->modelClass->getTable();
                 $tableName = $name . '.';
             }
@@ -180,6 +179,7 @@ class AddonsBackend extends Controller
         }
         foreach ($filters as $key => $val) {
             $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
+            $key =stripos($key, ".") === false ? $tableName . $key :$key;
             switch (strtolower($op)) {
                 case '=':
                     $where[] = [$key, '=', $val];
@@ -209,7 +209,7 @@ class AddonsBackend extends Controller
                     }
                     $where[] = [$key, $op, $arr];
                     break;
-                case 'range':
+                case 'RANGE':
                     [$beginTime, $endTime] = explode(' - ', $val);
                     $where[] = [$key, '>=', strtotime($beginTime)];
                     $where[] = [$key, '<=', strtotime($endTime)];

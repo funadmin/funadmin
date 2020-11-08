@@ -35,7 +35,7 @@
                         {$list.hits}
                         </span>
                         {tags cache="3600"}
-                        <span class="tags"><a href="{:url('index/tags',['id'=>$vo.id])}">{$vo.name}</a></span>
+                        <span class="tags"><a href="{:addons_url('index/tags',['id'=>$vo.id])}">{$vo.name}</a></span>
                         {/tags}
                     </p>
                 </div>
@@ -44,13 +44,13 @@
                 </div>
                 <div class="gcont-page">
                     <div class="gj-sm-6">上一篇：
-                        {if $front}<a href="{:url('index/page',['cateid'=>$cateid,'id'=>$front.id])}">{$front.title}</a>
+                        {if $front}<a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$front.id])}">{$front.title}</a>
                         {else /}
                         已经是第一篇
                         {/if}
                     </div>
                     <div class="gj-sm-6">下一篇：
-                        {if $after}<a href="{:url('index/page',['cateid'=>$cateid,'id'=>$after.id])}">{$after.title}</a>
+                        {if $after}<a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$after.id])}">{$after.title}</a>
                         {else /}
                         已经是最后一篇
                         {/if}
@@ -66,7 +66,7 @@
                     <ul>
                         {category cateid="$top_cateid" cache="3600"}
                         {volist name='data' id="vo"}
-                        <li><a href="{:url('index/lists',['cateid'=>$vo.id])}">{$vo.catename}</a></li>
+                        <li><a href="{:addons_url('index/lists',['cateid'=>$vo.id])}">{$vo.catename}</a></li>
                         {/volist}
                         {/category}
                     </ul>
@@ -76,7 +76,7 @@
                     <ul>
                         {query table="addons_cms_article" num="5" order="hits desc"}
                         {volist name="data" id="vo"}
-                        <li><a href="{:url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}">{$vo.title}</a></li>
+                        <li><a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}">{$vo.title}</a></li>
                         {/volist}
                         {/query}
                     </ul>

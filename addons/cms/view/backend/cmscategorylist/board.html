@@ -1,0 +1,42 @@
+<style>.panel{
+    padding: 10px;
+    border-radius:5px; ;
+}</style>
+<div class="layui-card">
+    <div class="layui-card-header"><i class="fa fa-warning icon"></i>数据统计</div>
+    <div class="layui-card-body">
+        <div class="welcome-module">
+            <div class="layui-row layui-col-space10">
+                <div class="layui-col-xs6 layui-col-md3 ">
+                    <div class="panel layui-bg-number layui-bg-blue">
+                        <div class="panel-body">
+                            <div class="panel-title">
+                                <span class="label pull-right layui-bg-blue">实时</span>
+                                <h5>栏目</h5>
+                            </div>
+                            <div class="panel-content">
+                                <h1 class="no-margins">{$formData.category}</h1>
+                                <small>当前栏目总记录数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-xs6 layui-col-md3 ">
+                    <div class="panel layui-bg-number layui-bg-cyan">
+                        <div class="panel-body">
+                            <div class="panel-title">
+                                <span class="label pull-right layui-bg-cyan">实时</span>
+                                <h5>模型</h5>
+                            </div>
+                            <div class="panel-content">
+                                <h1 class="no-margins">{$formData.module}</h1>
+                                <small>当前模型总记录数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

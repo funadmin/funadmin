@@ -19,15 +19,15 @@
                 <div class="layui-tab-item">
                     {:form_input('title','text',['verify'=>'required','label'=>'SEO Title','tips'=>'SEO Title'])}
                     {:form_input('keywords','text',['verify'=>'required','label'=>'SEO keywords','tips'=>'SEO keywords Multiple keywords are separated by spaces'])}
-                    {:form_textarea('Intro','',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO description'])}
+                    {:form_textarea('Intro',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO description'],'')}
                 </div>
                 <div class="layui-tab-item">
-                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链'],['verify'=>'required','label'=>'PageType','select'=>1])}
+                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链'],['verify'=>'required','label'=>'PageType'],1)}
                     {:form_input('sort','text',['verify'=>'required','label'=>'Sort'],50)}
                     {:form_input('click','text',['verify'=>'number','label'=>'click'],100)}
                     {:form_input('page_size','text',['verify'=>'number','label'=>'分页大小'],15)}
-                    {:form_radio('is_menu',[0=>'否',1=>'是'],['verify'=>'required','label'=>'IsMenu','select'=>1])}
-                    {:form_radio('status',[0=>'禁用',1=>'启用'],['verify'=>'required','label'=>'Status','select'=>1])}
+                    {:form_radio('is_menu',[0=>'否',1=>'是'],['verify'=>'required','label'=>'IsMenu'],1)}
+                    {:form_radio('status',[0=>'禁用',1=>'启用'],['verify'=>'required','label'=>'Status'],1)}
 
                 </div>
                 <div class="layui-tab-item">

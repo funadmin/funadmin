@@ -21,7 +21,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 Form.api.chooseFiles()
             },
             //验证
-            verfiys:function (){
+            verifys:function (){
                 form.verify({
                     user: function(value){ //value：表单的值、item：表单的DOM对象
                         if(!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)){
@@ -345,7 +345,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 var events = Form.events;
                 events.submit(form, success, error, submit);
                 events.required(form)
-                events.verfiys(form)
+                events.verifys(form)
                 events.uploads() //上传
                 events.chooseFiles() //选择文件
                 events.cropper() //上传

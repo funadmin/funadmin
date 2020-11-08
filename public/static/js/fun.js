@@ -2,7 +2,6 @@
  * 后台总控制API
  */
 define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
-    console.log(Lang)
     var layer = layui.layer,
         table = layui.table;
     layer.config({

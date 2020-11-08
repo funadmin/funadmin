@@ -1,9 +1,9 @@
-{include file="common_header"}
+{include file="common_header" /}
 <body class="col-sl">
 
 
 <!--顶部导航栏-->
-{include file=" common_nav"}  <!--通栏banner-->
+{include file="common_nav" /}  <!--通栏banner-->
 
 <div class="cont-tl">
     <div class="row">
@@ -41,9 +41,9 @@
                     <div class="text" style="background-image: url('')">
                         <h3>{$vo['title']}</h3>
                         <p>
-                            {$vo['description']|raw}
+                            {$vo['intro']|raw}
                         </p>
-                        <a href="{:url('index/page',['cateid'=>16,'id'=>$vo['id']])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 了解更多</a>
+                        <a href="{:addons_url('index/page',['cateid'=>16,'id'=>$vo['id']])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 了解更多</a>
                     </div>
                 </div>
                 <div class="gj-sm-6">
@@ -71,7 +71,7 @@
                 <div class="gj-xs-6 gj-sm-4 gj-md-3">
                     <div class="lis">
                         <span>{$vo.title}</span>
-                        <a href="{:url('index/page',['cateid'=>13,'id'=>$vo.id])}"><img src="{$vo.thumb}" alt="{$vo.title}"></a>
+                        <a href="{:addons_url('index/page',['cateid'=>13,'id'=>$vo.id])}"><img src="{$vo.thumb}" alt="{$vo.title}"></a>
                         <a href="">
                             <h4>{$vo.title}</h4>
                         </a>
@@ -80,7 +80,7 @@
                 {/fun}
             </div>
             <div class="more">
-                <a href="{:url('index/lists',['cateid'=>13])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
+                <a href="{:addons_url('index/lists',['cateid'=>13])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
             </div>
         </div>
     </div>
@@ -98,15 +98,15 @@
                 <div class="gj-md-6">
                     <div class="lis gclear">
                         <div class="img">
-                            <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                            <a href="{:addons_url('index/page',['cateid'=>5,'id'=>$vo.id])}">
                                 <img src="{$vo.thumb}"
                                                    alt="{$vo.title}"></a>
                         </div>
                         <div class="text">
-                            <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                            <a href="{:addons_url('index/page',['cateid'=>5,'id'=>$vo.id])}">
                                 <h3>{$vo.title}</h3>
                             </a>
-                            <p class="hidd-xs">{$vo.descriptioin}</p>
+                            <p class="hidd-xs">{$vo.intro}</p>
                             <span class="hidd-md"><i class="fa fa-eye" aria-hidden="true"></i> {$vo.hits}</span>
                             <span class="hidd-md">{$vo.create_time|date="Y-m-d"}</span>
                         </div>
@@ -115,7 +115,7 @@
                 {/fun}
             </div>
             <div class="more">
-                <a href="{:url('index/lists',['cateid'=>5])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
+                <a href="{:addons_url('index/lists',['cateid'=>5])}"><i class="fa fa-angle-double-left" aria-hidden="true"></i> 查看更多</a>
             </div>
         </div>
     </div>
@@ -136,12 +136,12 @@
                         <div class="swiper-slide">
                             <div class="ul-mt2">
                                 <div class="cul">
-                                    <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}"><img src="{$vo.thumb}"
+                                    <a href="{:addons_url('index/page',['cateid'=>5,'id'=>$vo.id])}"><img src="{$vo.thumb}"
                                                            alt="{$vo.title}"></a>
-                                    <a href="{:url('index/page',['cateid'=>5,'id'=>$vo.id])}">
+                                    <a href="{:addons_url('index/page',['cateid'=>5,'id'=>$vo.id])}">
                                         <h4>{$vo.title}</h4>
                                     </a>
-                                    <p>{$vo.description}</p>
+                                    <p>{$vo.intro}</p>
                                 </div>
                             </div>
                         </div>
@@ -150,7 +150,7 @@
                     </div>
                     <div class="botm">
 <!--                        <div class="swiper-button-prev btn"><i class="fa fa-angle-left" aria-hidden="true"></i></div>-->
-                        <div class="more"><a href="{:url('index/lists',['cateid'=>15])}"><i class="fa fa-angle-double-left"
+                        <div class="more"><a href="{:addons_url('index/lists',['cateid'=>15])}"><i class="fa fa-angle-double-left"
                                                                                      aria-hidden="true"></i> 查看更多</a>
                         </div>
 <!--                        <div class="swiper-button-next btn"><i class="fa fa-angle-right" aria-hidden="true"></i></div>-->
@@ -171,7 +171,7 @@
             <div class="gj-body join">
                 <div class="hidd-xs hidd-sm gj-md-6">
                     <div class="form">
-                        <form class="gclear" action="{:url('index/diyform')}"
+                        <form class="gclear" action="{:addons_url('index/diyform')}"
                               enctype="multipart/form-data" method="post" onsubmit="return checkall()">
                             <table>
                                 <div class="bd"><input type="text" name="username" id="username" value="" placeholder="称呼"></div>

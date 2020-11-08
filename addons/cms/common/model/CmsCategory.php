@@ -120,7 +120,7 @@ class CmsCategory extends BaseModel
             return false;
         }
         //读取数据
-        $data = Db::name('cms_category')->cache($cache)->find($cateid);
+        $data = Db::name('addons_cms_category')->cache($cache)->find($cateid);
         if ($returnfield) {
             return $data[$returnfield];
         } else {

@@ -320,7 +320,7 @@ Fun;
                         <div class="layui-form-item">
                             <label class="layui-form-label">数据表前缀</label>
                             <div class="layui-input-block">
-                                <input type="text" name="prefix" value="sp_" class="layui-input"
+                                <input type="text" name="prefix" value="fun_" class="layui-input"
                                        lay-verify="required" placeholder="请设置数据表前缀">
                             </div>
                         </div>

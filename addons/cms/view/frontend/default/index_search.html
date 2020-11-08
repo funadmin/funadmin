@@ -10,7 +10,7 @@
     <div class="cont">
         <h3>funadmin</h3>
         <p>搜索一下，你就知道！</p>
-        <form action="{:url('index/search',['moduleid'=>$moduleid])}">
+        <form action="{:addons_url('index/search',['moduleid'=>$moduleid])}">
             <input type="hidden" name="moduleid" value="{$moduleid}" id="{$moduleid}">
             <input class="sousuo" type="text" name="keys" value="{$keys}" placeholder="请输入搜索关键词...">
             <button class="sousuo" id="searchbtn" type="submit"><i data-brackets-id="6601" class="fa fa-search"
@@ -22,7 +22,7 @@
 <div class="nav-btn">
     <div class="cont">
         <i class="fa fa-home" aria-hidden="true"></i>
-        <a href="{:url('index/index')}">首页</a> &gt; <a href="" title=""></a>搜索结果
+        <a href="{:addons_url('index/index')}">首页</a> &gt; <a href="" title=""></a>搜索结果
     </div>
 </div>
 <div class="cont">
@@ -36,15 +36,15 @@
             <div class="news-lists">
                 {volist name="list" id="vo"}
                 <div class="news-list gclear">
-                    <a href="{:url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}"><img
+                    <a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}"><img
                             src="{$vo.thumb}"
                             alt="{$vo.title}"></a>
                     <div class="text">
-                        <a href="{:url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}">
+                        <a href="{:addons_url('index/page',['cateid'=>$cateid,'id'=>$vo.id])}">
                             <h3>{:str_replace($keys,'<span style="color:red">'.$keys.'</span>',$vo.title)}</h3>
                         </a>
                         <p class="hidd-xs">
-                            {:str_replace($keys,'<span style="color:red">'.$keys.'</span>',$vo.description)}
+                            {:str_replace($keys,'<span style="color:red">'.$keys.'</span>',$vo.intro)}
                         </p>
                         <span>{$vo.create_time|date="Y-m-d"}</span><span><i class="fa fa-eye" aria-hidden="true"></i> {$vo.hits}</span>
                     </div>
@@ -63,7 +63,7 @@
                     <ul>
                         {query table="addons_cms_article" num="5" order="hits desc"}
                         {volist name="data" id="vo"}
-                        <li><a href="{:url('index/page',['cateid'=>$vo.id,'id'=>$vo.id])}">{$vo.title}</a></li>
+                        <li><a href="{:addons_url('index/page',['cateid'=>$vo.id,'id'=>$vo.id])}">{$vo.title}</a></li>
                         {/volist}
                         {/query}
                     </ul>
@@ -74,7 +74,7 @@
                     <ul>
                         {category cateid="$top_cateid" cache="0"}
                         {volist name='data' id="vo"}
-                        <li><a href="{:url('index/lists',['cateid'=>$cateid])}">{$vo.catename}</a></li>
+                        <li><a href="{:addons_url('index/lists',['cateid'=>$cateid])}">{$vo.catename}</a></li>
                         {/volist}
                         {/category}
                     </ul>

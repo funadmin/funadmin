@@ -15,7 +15,7 @@ use app\common\controller\Backend;
 use app\common\model\Config as ConfigModel;
 use app\common\model\ConfigGroup as ConfigGroupModel;
 use app\common\model\FieldType;
-use app\common\model\FieldVerfiy;
+use app\common\model\FieldVerify;
 use app\common\traits\Curd;
 use think\App;
 use think\facade\Db;
@@ -67,8 +67,8 @@ class Config extends Backend {
         $list = '';
         $configGroup = Db::name('config_group')->select();
         $fieldType = FieldType::select()->toArray();
-        $fieldVerfiy = FieldVerfiy::select()->toArray();
-        $view = ['title'=>lang('Edit'),'fieldVerfiy'=>$fieldVerfiy,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
+        $fieldVerify = FieldVerify::select()->toArray();
+        $view = ['title'=>lang('Edit'),'fieldVerify'=>$fieldVerify,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
         View::assign($view);
         return view();
     }
@@ -100,8 +100,8 @@ class Config extends Backend {
         $list = $this->modelClass->find($this->request->param('id'));
         $configGroup = ConfigGroupModel::select();
         $fieldType = FieldType::select()->toArray();
-        $fieldVerfiy = FieldVerfiy::select()->toArray();
-        $view = ['title'=>lang('Add'),'fieldVerfiy'=>$fieldVerfiy,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
+        $fieldVerify = FieldVerify::select()->toArray();
+        $view = ['title'=>lang('Add'),'fieldVerify'=>$fieldVerify,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
         View::assign($view);
         return view('edit');
     }
@@ -135,8 +135,8 @@ class Config extends Backend {
         $list = $this->modelClass->find($this->request->param('id'));
         $configGroup = ConfigGroupModel::select();
         $fieldType = FieldType::select()->toArray();
-        $fieldVerfiy = FieldVerfiy::select()->toArray();
-        $view = ['title'=>lang('Add'),'fieldVerfiy'=>$fieldVerfiy,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
+        $fieldVerify = FieldVerify::select()->toArray();
+        $view = ['title'=>lang('Add'),'fieldVerify'=>$fieldVerify,'formData'=>$list,'configGroup'=>$configGroup,'fieldType'=>$fieldType,];
         View::assign($view);
         return view();
         

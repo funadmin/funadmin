@@ -72,7 +72,7 @@ class AuthService
     public function authMenuNode($menu, $pid = 0, $rules = [])
     {
         $authrules = explode(',', session('admin.rules'));
-        $authopen = AuthRule::where('auth_verfiy', 0)
+        $authopen = AuthRule::where('auth_verify', 0)
             ->where('type',1)->where('status',1)->column('id');
         if ($authopen) {
             $authrules = array_unique(array_merge($authrules, $authopen));
@@ -293,7 +293,7 @@ class AuthService
                     //用户权限规则id
                     $adminRules = explode(',', $rules);
                     // 不需要权限的规则id;
-                    $noruls = AuthRule::where('auth_verfiy', 0)->where('status',1)->column('id');
+                    $noruls = AuthRule::where('auth_verify', 0)->where('status',1)->column('id');
                     $this->adminRules = array_merge($adminRules, $noruls);
                     if ($this->hrefId) {
                         if (!in_array($this->hrefId, $this->adminRules)) {

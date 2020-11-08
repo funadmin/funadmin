@@ -12,14 +12,14 @@
  */
 namespace addons\cms\backend\controller;
 
-use app\common\controller\Backend;
+use app\common\controller\AddonsBackend;
 use app\common\traits\Curd;
 use think\facade\Request;
 use think\facade\View;
 use app\common\model\CmsDiyform as CmsDiyformModel;
 use think\Validate;
 
-class CmsDiyform extends Backend
+class CmsDiyform extends AddonsBackend
 {
     use Curd;
     public function initialize()

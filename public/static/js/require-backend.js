@@ -105,7 +105,6 @@ require(["jquery"], function ($) {
     paths["lang"] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
     paths['backend/'] = 'backend/';
     require.config({paths: paths});
-
     $(function () {
         require(['fun','addons'], function (Fun) {
             $(function () {
