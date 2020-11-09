@@ -1,4 +1,5 @@
 <?php
+
 /**
  * FunAadmin
  * ============================================================================
@@ -10,13 +11,16 @@
  * Author: yuege
  * Date: 2017/8/2
  */
+namespace app\common\model;
 
-namespace app\backend\model;
-class Languages extends BackendModel
-{
+use app\common\model\BaseModel;
+
+class Blacklist extends BaseModel {
 
     public function __construct(array $data = [])
     {
         parent::__construct($data);
     }
+
+
 }

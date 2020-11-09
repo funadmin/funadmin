@@ -261,6 +261,7 @@ class Backend extends BaseController
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
+        $where[]=['status','<>',-1];
         return [$page, $limit,$sort,$where];
     }
 

@@ -11,20 +11,18 @@
  * Date: 2017/8/2
  */
 namespace app\backend\controller\sys;
-
 use app\common\controller\Backend;
 use app\common\traits\Curd;
-use app\common\model\Languages as LanguagesModel;
 use think\App;
-
-class Languages extends Backend {
-
+use think\facade\Db;
+use think\facade\View;
+class Blacklist extends Backend {
     use Curd;
+
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new LanguagesModel();
-
+        $this->modelClass = new \app\common\model\Blacklist();
     }
 
 }

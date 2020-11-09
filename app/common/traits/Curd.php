@@ -123,8 +123,9 @@ trait Curd
      * @param $id
      * @return mixed
      */
-    public function destroy($ids)
+    public function destroy()
     {
+        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
         $list = $this->modelClass->whereIn('id', $ids)->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
@@ -134,7 +135,7 @@ trait Curd
                 $v->save();
             }
         } catch (\Exception $e) {
-            $this->error(lang("Destroy Success"));
+            $this->error(lang("Destroy Fail"));
         }
 
         $this->success(lang("Destroy Success"));

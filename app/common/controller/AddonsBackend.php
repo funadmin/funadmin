@@ -239,7 +239,9 @@ class AddonsBackend extends Controller
                 default:
                     $where[] = [$key, $op, "%{$val}%"];
             }
+
         }
+        $where[]=['status','<>',-1];
         return [$page, $limit,$sort,$where];
     }
 

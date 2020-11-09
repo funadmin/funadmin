@@ -6,18 +6,11 @@ define(['table','form'], function (Table,Form) {
                 tableId: 'list',
                 requests:{
                     index_url: 'addons/cms/backend/cmsmodule/index',
+                    add_url: 'addons/cms/backend/cmsmodule/add',
                     edit_url: 'addons/cms/backend/cmsmodule/edit',
                     delete_url: 'addons/cms/backend/cmsmodule/delete',
+                    destroy_url: 'addons/cms/backend/cmsmodule/destroy',
                     modify_url: 'addons/cms/backend/cmsmodule/modify',
-                    add_full: {
-                        type: 'open',
-                        url:'addons/cms/backend/cmsmodule/add',
-                        class: 'layui-btn-sm layui-btn-green',
-                        icon: 'layui-icon layui-icon-add-circle-fine',
-                        title: __('Add'),
-                        text: __('Add'),
-                        full: 1,
-                    },
                 }
             }
             Table.render({
@@ -25,7 +18,7 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add_full'],
+                toolbar: ['refresh','add'],
                 cols: [[
                     {checkbox: true, fixed: true},
                     {field: 'id', title: 'ID', width:90, fixed: true,sort:true},
@@ -37,7 +30,7 @@ define(['table','form'], function (Table,Form) {
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
-                        templet : Table.templet.operat, operat: ['edit','delete']
+                        templet : Table.templet.operat, operat: ['edit','destroy','delete']
                     }
                 ]],
                 done: function(res){

@@ -64,6 +64,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     if (Fun.checkAuth('delete')) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" lay-table-id="' + tableId + '"  lay-url="' + Table.init.requests.delete_url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
                     }
+                }   else if (v === 'destory') {
+                    if (Fun.checkAuth('destory')) {
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" lay-table-id="' + tableId + '"  lay-url="' + Table.init.requests.destroy_url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
+                    }
                 } else if (typeof eval('Table.init.requests.' + v) === 'object') {
                     v = eval('Table.init.requests.' + v);
                     if (Fun.checkAuth(v.url)) {
@@ -302,7 +306,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var html = '';
                 var requests = Table.init.requests;
                 $.each(ele.operat, function (k, v) {
-                    if (v === 'edit' || v === 'delete' || v === 'add') {
+                    if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || typeof v==="string") {
                         var vv;
                         if (v === 'add') {
                             vv = {
@@ -330,7 +334,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 width: '600',
                                 height: '600',
                             };
-                        } else {
+                        } else if(v === 'delete')  {
                             vv = {
                                 type: 'delete',
                                 event: 'request',
@@ -343,7 +347,32 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 width: '600',
                                 height: '600',
                             };
-                        }
+                        } else if(v=='destroy') {
+                            vv = {
+                                type: 'delete',
+                                event: 'request',
+                                class: 'layui-btn layui-btn-warm layui-btn-xs',
+                                text: __('Destroy'),
+                                title: __('Are you sure to Destroy'),
+                                url: ele.init.requests.destroy_url,
+                                icon: 'layui-icon layui-icon-delete',
+                                extend: "",
+                                width: '600',
+                                height: '600',
+                            };
+                        }else{
+                            vv = {
+                                type: 'open',
+                                event: 'open',
+                                class: 'layui-btn layui-btn-warm layui-btn-xs',
+                                text: __('Open'),
+                                title: '',
+                                url: eval('ele.init.requests.'+v +'_url'),
+                                icon: 'layui-icon layui-icon-rate',
+                                extend: "",
+                                width: '600',
+                                height: '600',
+                            };                        }
                         // 初始化数据
                         vv.type = vv.type || '';
                         vv.class = vv.class || '';
@@ -403,6 +432,9 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + '>' + vv.icon + '</button>';
                         }
+                    }else{
+
+
                     }
 
                 });
@@ -483,7 +515,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     });
                     length = ids.length;
                 }
-                Fun.toastr.confirm(__('Are you sure you want to delete the %s selected item?', length),
+                Fun.toastr.confirm(__('Are you sure you want to delete or destory the %s selected item?', length),
                     function () {
                     Fun.ajax({
                         url: url,
@@ -500,6 +532,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 });
                 return false;
             },
+
             //返回页面
             closeOpen: function (othis) {
                 Fun.api.closeCurrentOpen();
@@ -592,6 +625,9 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             break;
                         case 'delete':
                             Table.events.delete(othis);
+                            break;
+                        case 'destroy':
+                            Table.events.destroy(othis);
                             break;
                         case 'open':
                             Table.events.open(othis);
