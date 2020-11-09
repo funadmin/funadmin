@@ -1,26 +1,7 @@
-{include file="common/header"/}
-<div class="LM-container">
-    <div class="LM-main">
-        <fieldset class="layui-elem-field layui-field-title">
-            <legend>{:lang('field')}:{:lang('list')}</legend>
-            <blockquote class="layui-elem-quote">
-                <div class="LM-table">
-
-                    <div class="layui-inline">
-                        <input type="text" id='keys' name="keys" lay-verify="required" placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
-
-                    </div>
-                    <button class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="add" id="search">{:lang('search')}</button>
-                    <a href="{:url('fieldAdd')}?moduleid={$moduleid}"  class="layui-btn layui-btn-sm layui-btn-warm">{:lang('add')}:{:lang('field')}</a>
-
-                </div>
-            </blockquote>
-        </fieldset>
-        <table class="layui-table" id="list" lay-filter="list"></table>
-    </div>
+<div class="fun-main">
+    <table class="layui-table" id="list" lay-filter="list"></table>
 </div>
 
-{include file="common/footer"/}
 <script type="text/html" id="action">
     <a data-href='{:url("fieldEdit")}?id={{d.id}}' class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
     {{# if(d.del==1){ }}

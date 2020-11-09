@@ -5,13 +5,12 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsmodule/index',
-                    add_url: 'addons/cms/backend/cmsmodule/add',
-                    edit_url: 'addons/cms/backend/cmsmodule/edit',
-                    delete_url: 'addons/cms/backend/cmsmodule/delete',
-                    destroy_url: 'addons/cms/backend/cmsmodule/destroy',
-                    modify_url: 'addons/cms/backend/cmsmodule/modify',
-                    field_url: 'addons/cms/backend/cmsfield/index',
+                    index_url: 'addons/cms/backend/cmsfield/index',
+                    add_url: 'addons/cms/backend/cmsfield/add',
+                    edit_url: 'addons/cms/backend/cmsfield/edit',
+                    delete_url: 'addons/cms/backend/cmsfield/delete',
+                    destroy_url: 'addons/cms/backend/cmsfield/destroy',
+                    modify_url: 'addons/cms/backend/cmsfield/modify',
                 }
             }
             Table.render({
@@ -22,16 +21,22 @@ define(['table','form'], function (Table,Form) {
                 toolbar: ['refresh','add'],
                 cols: [[
                     {checkbox: true, fixed: true},
-                    {field: 'id', title: 'ID', width:90, fixed: true,sort:true},
-                    {field: 'modulename', title:__('ModuleName'), width: 150},
-                    {field: 'tablename', title: __('TableName'), minwidth: 150, sort: true},
-                    {field: 'intro', title: __('intro'), minwidth: 180},
-                    {field: 'status', title: __('status'), filter: 'status',minwidth: 150, sort: true,templet: Table.templet.switch},
+                    {field: 'name', title: __("fieldname"), width: 120,sort:true},
+                    {field: 'field', title: __("field"), width: 120,sort:true},
+                    {field: 'maxlength', title: __("maxlength"), width: 50,sort:true},
+                    {field: 'minlength', title: __("maxlength"), width: 50,sort:true},
+                    {field: 'radix', title: __("maxlength"), width: 50,sort:true},
+                    {field: 'msg', title: __("msg"), width: 180,sort:true},
+                    {field: 'rule', title: __("rule"), width: 180},
+                    {field: 'type', title: __("type"), width: 180,sort:true},
+                    {field: 'value', title: __("value"), width: 180,sort:true},
+                    {field: 'required', title: __("required"), width: 100,sort:true,},
+                    {field: 'sort', title: __('Sort'), width: 80,edit:true,sort:true},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
-                        templet : Table.templet.operat, operat: ['edit','field','destroy','delete']
+                        templet : Table.templet.operat, operat: ['edit','destroy','delete']
                     }
                 ]],
                 done: function(res){

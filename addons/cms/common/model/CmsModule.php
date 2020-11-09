@@ -14,6 +14,7 @@
 namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
+use think\facade\Cache;
 use think\facade\Db;
 
 class CmsModule extends BaseModel
@@ -43,8 +44,15 @@ class CmsModule extends BaseModel
      * 获取表字段
      */
     public static function getTableColumn($tablename,$field='*'){
-        $sql = "select $field from information_schema.columns  where table_name='".self::get_table_prefix().$tablename."' and table_schema='".config('database.connections.'.config('database.default').'.database')."'";
-        return Db::query($sql);
+        $keys = $tablename.'fields';
+        $tablefield =  Cache::get($keys);
+        if(!$tablefield){
+            $sql = "select $field from information_schema.columns  where table_name='".self::get_table_prefix().$tablename."' and table_schema='".config('database.connections.'.config('database.default').'.database')."'";
+            $tablefield = Db::query($sql);
+            Cache::tag($tablename)->set($keys,$tablefield);
+        }
+        return $tablefield;
+
     }
 
     /**
@@ -54,7 +62,6 @@ class CmsModule extends BaseModel
     public static function getTables(){
         $tableslist =Db::query('SHOW TABLES');
         $tables = [];
-//        var_dump($ta);
         foreach ($tableslist as $key=>$value){
             $tables[$key] = $value['Tables_in_www_fun_com'];
         }
@@ -63,7 +70,6 @@ class CmsModule extends BaseModel
     //加表
     public static function addTable($tablename, $prefix, $moduleid)
     {
-//            普通模型
         $sql = <<<EOF
         CREATE TABLE `{$tablename}` (
           `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',

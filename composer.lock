@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dfc03f75cea7ac7cd56de2b746847840",
+    "content-hash": "21634fc84dbb17efcd8825a628b7a9a7",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.4",
+            "version": "v1.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "97fa22f4d75e3eb8efa22ed00e161d0aa12671ea"
+                "reference": "e278777fc41f1b04cb91779a1e722962f15de0ea"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/97fa22f4d75e3eb8efa22ed00e161d0aa12671ea",
-                "reference": "97fa22f4d75e3eb8efa22ed00e161d0aa12671ea",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/e278777fc41f1b04cb91779a1e722962f15de0ea",
+                "reference": "e278777fc41f1b04cb91779a1e722962f15de0ea",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -376,7 +376,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-11-08T04:55:24+00:00"
+            "time": "2020-11-09T09:34:15+00:00"
         },
         {
             "name": "guzzlehttp/command",
@@ -1250,16 +1250,16 @@
         },
         {
             "name": "overtrue/wechat",
-            "version": "5.1.3",
+            "version": "5.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/overtrue/wechat.git",
-                "reference": "4bc94ec68b73371f1dd67b6e1e2d50a4b0c51cba"
+                "reference": "a9091fe5dfa343a53b9b867697fce52bb191d180"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/wechat/zipball/4bc94ec68b73371f1dd67b6e1e2d50a4b0c51cba",
-                "reference": "4bc94ec68b73371f1dd67b6e1e2d50a4b0c51cba",
+                "url": "https://api.github.com/repos/overtrue/wechat/zipball/a9091fe5dfa343a53b9b867697fce52bb191d180",
+                "reference": "a9091fe5dfa343a53b9b867697fce52bb191d180",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1344,7 +1344,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-10-28T04:23:40+00:00"
+            "time": "2020-11-09T03:16:41+00:00"
         },
         {
             "name": "php-di/phpdoc-reader",
