@@ -38,3 +38,11 @@ body{background:#f1f4f6;padding:10px}
 .fun-layer-class .layui-layer-setwin .layui-layer-close1:after{content:"\e626"}
 .fun-layer-class .layui-layer-btn a{background:#333}
 .fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#999}
+/* 偶数行背景色 */
+.layui-table[lay-even] tr:nth-child(even) {
+    background-color: #eee;
+}
+/* 鼠标指向表格时,奇数行背景颜色 */
+.layui-table tbody tr:hover,.layui-table-hover {
+    background-color: #eee;
+}

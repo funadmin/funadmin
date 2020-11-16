@@ -80,15 +80,15 @@ class Plugin extends Addons    // 需继承fun\Addon类
                     'menu_status' => 1,
                     'icon' => 'layui-icon  layui-icon-template-1',
                     'menulist' => [
-                        ['href' => 'addons/cms/backend/cmsModule/index', 'title' => 'list', 'status' => 1,
-                            'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsModule/add', 'title' => 'add', 'status' => 1,
-                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsModule/index', 'title' => 'list', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsModule/add', 'title' => 'add', 'status' => 1, 'menu_status' => 0,],
                         ['href' => 'addons/cms/backend/cmsModule/edit', 'title' => 'edit', 'status' => 1,
                             'menu_status' => 0,],
                         ['href' => 'addons/cms/backend/cmsModule/modify', 'title' => 'modify', 'status' => 1,
                             'menu_status' => 0,],
                         ['href' => 'addons/cms/backend/cmsModule/delete', 'title' => 'delete', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsModule/destroy', 'title' => 'destroy', 'status' => 1,
                             'menu_status' => 0,],
                         ['href' => 'addons/cms/backend/cmsModule/field', 'title' => 'field', 'status' => 1,
                             'menu_status' => 0,],
@@ -119,7 +119,8 @@ class Plugin extends Addons    // 需继承fun\Addon类
                             'menu_status' => 0,],
                         ['href' => 'addons/cms/backend/cmsLink/delete', 'title' => 'delete', 'status' => 1,
                             'menu_status' => 0,],
-
+                        ['href' => 'addons/cms/backend/cmsLink/destroy', 'title' => 'destroy', 'status' => 1,
+                            'menu_status' => 0,],
 
 
                     ]
@@ -149,7 +150,7 @@ class Plugin extends Addons    // 需继承fun\Addon类
                 ],
                 
                 [
-                    'href' => 'addons/cms/backend/cmsPos',
+                    'href' => 'addons/cms/backend/cmsAdvPos',
                     'title' => 'Advpos',
                     'status' => 1,
                     'menu_status' => 1,

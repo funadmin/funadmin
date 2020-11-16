@@ -401,7 +401,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 
 .layui-pagetabs .layui-tab-title li:hover,
 .layui-pagetabs .layui-tab-title li.layui-this {
-    background-color: #F6F6F6;
+    background-color: rgba(0, 0, 0, 0.02);
     color: #18bc9c !important
 }
 

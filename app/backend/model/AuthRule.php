@@ -43,15 +43,15 @@ class AuthRule extends BackendModel
      * @param int $lvl         层级
      * @return array
      */
-    public static function cateTree($cate , $lefthtml = '|---- ' , $pid = 0 , $level = 0 ){
+    public static function cateTree($cate ,$name='title', $lefthtml = '|---- ' , $pid = 0 , $level = 0 ){
         $arr = array();
         foreach ($cate as $v){
             if ($v['pid'] == $pid) {
                 $v['level']      = $level + 1;
                 $v['lefthtml'] = str_repeat($lefthtml,$level);
-                $v['ltitle']   = $v['lefthtml'].$v['title'];
+                $v['l'.$name]   = $v['lefthtml'].$v[$name];
                 $arr[] = $v;
-                $arr = array_merge($arr, self::cateTree($cate, $lefthtml, $v['id'], $level+1));
+                $arr = array_merge($arr, self::cateTree($cate,$name, $lefthtml, $v['id'], $level+1));
             }
         }
         return $arr;

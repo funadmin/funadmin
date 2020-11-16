@@ -11,7 +11,7 @@
  * Author: yuege
  * Date: 2019/8/2
  */
-namespace app\admin\validate;
+namespace addons\cms\backend\validate;
 
 use think\validate;
 

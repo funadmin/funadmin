@@ -11,7 +11,6 @@ define(['table','form'], function (Table,Form) {
                     delete_url: 'addons/cms/backend/cmsmodule/delete',
                     destroy_url: 'addons/cms/backend/cmsmodule/destroy',
                     modify_url: 'addons/cms/backend/cmsmodule/modify',
-                    field_url: 'addons/cms/backend/cmsfield/index',
                 }
             }
             Table.render({
@@ -31,7 +30,20 @@ define(['table','form'], function (Table,Form) {
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
-                        templet : Table.templet.operat, operat: ['edit','field','destroy','delete']
+                        templet : Table.templet.operat,
+                        operat: [
+                            'edit',
+                            {
+                                type: 'open',
+                                url:'addons/cms/backend/cmsfield/index/moduleid/{ids}',
+                                class: 'layui-btn-xs layui-btn-green',
+                                icon: 'layui-icon layui-icon-slider',
+                                title: __('FieldList'),
+                                text: __('FieldList'),
+                                full: 1,
+                            },'destroy','delete'],
+
+
                     }
                 ]],
                 done: function(res){

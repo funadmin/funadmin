@@ -78,14 +78,15 @@ class Backend extends BaseController
         parent::__construct($app);
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
-//        $controller = parse_name($this->request->controller(),1);
-//        $controller = strtolower($controller);
-////        if($controller!=='ajax'){
-////            $this->loadlang($controller,'');
-////        }
+        $controller = parse_name($this->request->controller(),1);
+        $controller = strtolower($controller);
+        if($controller!=='ajax'){
+            $this->loadlang($controller,'');
+        }
         //过滤参数
         $this->pageSize = input('limit', 15);
         //加载语言包
+        $this->loadlang($controller,'');
 
     }
 

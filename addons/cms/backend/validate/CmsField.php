@@ -1,5 +1,5 @@
 <?php
-namespace app\admin\validate;
+namespace addons\cms\backend\validate;
 use think\Validate;
 
 class CmsField extends Validate

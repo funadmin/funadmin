@@ -1,5 +1,3 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
         <form class="layui-form" lay-filter="form">
             {:form_select('group',$configGroup,['verify'=>'required'],['name','title'],$formData?$formData.type:'')}
             {:form_select('type',$fieldType,['verify'=>'required'],['name','title'],$formData?$formData.type:'')}
@@ -10,6 +8,4 @@
             {:form_textarea('remark',['tips'=>'Remarks'])}
             {:form_submitbtn()}
         </form>
-    </div>
-</div>
 

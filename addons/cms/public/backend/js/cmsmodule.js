@@ -11,6 +11,7 @@ define(['table','form'], function (Table,Form) {
                     delete_url: 'addons/cms/backend/cmsmodule/delete',
                     destroy_url: 'addons/cms/backend/cmsmodule/destroy',
                     modify_url: 'addons/cms/backend/cmsmodule/modify',
+                    field_url: 'addons/cms/backend/cmsmodule/field',
                 }
             }
             Table.render({
@@ -18,7 +19,7 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add'],
+                toolbar: ['refresh','add','field'],
                 cols: [[
                     {checkbox: true, fixed: true},
                     {field: 'id', title: 'ID', width:90, fixed: true,sort:true},

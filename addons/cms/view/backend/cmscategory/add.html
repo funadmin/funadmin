@@ -10,7 +10,7 @@
             </ul>
             <div class="layui-tab-content">
                 <div class="layui-tab-item  layui-show">
-                    {:form_select('pid',$colGroup,['verify'=>'required','search'=>'','label'=>'父级'] ,'id,lcatename'),''}
+                    {:form_select('pid',$colGroup,['verify'=>'','search'=>'','label'=>'父级'] ,'id,lcatename'),''}
                     {:form_select('moduleid',$moduleGroup,['verify'=>'required','label'=>'模型'],'id,modulename'),''}
                     {:form_input('catename','text',['verify'=>'required','label'=>'栏目名','tips'=>'填写要显示的名字'])}
                     {:form_input('cateflag','text',['verify'=>'required','label'=>'栏目标识','tips'=>'填写栏目标识,一般为英文且不能重复'])}
@@ -22,7 +22,9 @@
                     {:form_textarea('Intro',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO description'],'')}
                 </div>
                 <div class="layui-tab-item">
-                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链'],['verify'=>'required','label'=>'PageType'],1)}
+                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链'],['filter'=>'type','verify'=>'required','label'=>'PageType'],1)}
+                    <div id="url">
+                    </div>
                     {:form_input('sort','text',['verify'=>'required','label'=>'Sort'],50)}
                     {:form_input('click','text',['verify'=>'number','label'=>'click'],100)}
                     {:form_input('page_size','text',['verify'=>'number','label'=>'分页大小'],15)}
@@ -64,10 +66,6 @@
 </div>
 
 
-<script>
-
-    //     UE.getEditor('container').addListener("selectionchange", function () {
-    //         changeElement('content');
-    //     });
-    //     var ue = UE.getEditor('container', {scaleEnabled: false});
+<script id="url_tpl">
+    {:form_input('url','text',['verify'=>'url','label'=>'Url'])}
 </script>

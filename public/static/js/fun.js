@@ -43,6 +43,18 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 return '/' + $.trim(url, '/');
             }
         },
+        //替换ids
+        replaceurl: function (url, d) {
+            d.id = typeof d.id !== 'undefined' ? d.id : 0;
+            //替换ids
+            if(url){
+                url = url.indexOf('{ids}')!==-1 ? url.replace('{ids}',d.id): url;
+
+            }
+
+
+            return url;
+        },
         checkAuth: function (node) {
             // 超管，全部权限
             if (Config.superAdmin === true) {

@@ -1,18 +1,14 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
-        <fieldset class="layui-elem-field layui-field-title">
-            <legend>权限分配</legend>
-            <blockquote class="layui-elem-quote">
-                <button type="button" class="layui-btn layui-btn-sm" lay-event="setChecked">全选</button>
-                <button type="button" class="layui-btn layui-btn-sm layui-btn-warm"  lay-event="reload">取消</button>
-            </blockquote>
-        </fieldset>
-        <div class="layui-form-item">
-            <div id="tree" class="layui-tree-more"></div>
-        </div>
-        <form class="layui-form" lay-filter="form">
-            {:form_submitbtn()}
-        </form>
-
+    <fieldset class="layui-elem-field layui-field-title">
+        <legend>权限分配</legend>
+        <blockquote class="layui-elem-quote">
+            <button type="button" class="layui-btn layui-btn-sm" lay-event="setChecked">全选</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-warm"  lay-event="reload">取消</button>
+        </blockquote>
+    </fieldset>
+    <div class="layui-form-item">
+        <div id="tree" class="layui-tree-more"></div>
     </div>
-</div>
+    <form class="layui-form" lay-filter="form">
+        {:form_submitbtn()}
+    </form>
+

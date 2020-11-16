@@ -53,8 +53,9 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                             templet: function (d){
                                 if(d.id==1){
                                     return '';
+                                }else{
+                                    return Table.templet.operat.call(this,d);
                                 }
-                                return Table.templet.operat.call(this,d);
                             },
                             operat: ['access', 'edit', 'delete']
                         }

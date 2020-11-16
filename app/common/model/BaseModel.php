@@ -25,8 +25,12 @@ class BaseModel extends Model
     //表前缀
     public static function get_table_prefix(){
 
-        return Config::get('database.connections.mysql.prefix');
+        return Config::get('database.connections'.'.'.config('database.default').'.prefix');
 
+    }
+    //当前数据库
+    public static function get_databasename(){
+        return Config::get('database.connections'.'.'.Config::get('database.default').'.database');
 
     }
 

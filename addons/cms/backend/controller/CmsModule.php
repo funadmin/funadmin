@@ -19,6 +19,7 @@ use addons\cms\common\model\CmsField;
 use app\common\model\FieldType;
 use app\common\traits\Curd;
 use think\App;
+use think\Exception;
 use think\exception\ValidateException;
 use think\facade\Config;
 use think\facade\Db;
@@ -63,48 +64,17 @@ class CmsModule extends AddonsBackend
             $tablename = $this->request->param('tablename/s');
             $tablename = str_replace('addons_','',$tablename);
             $tablename = str_replace($this->addon.'_','',$tablename);
-            $tablename = $this->prefix .'addons_'.$this->addon.'_'. $this->request->param('tablename');
+            $tablename = $this->prefix .'addons_'.$this->addon.'_'. $tablename;
             if(strpos($tablename,'addons_'.$this->addon.'_muster')){$this->error(lang('Table is exist'));}
             $tables = $this->modelClass->getTables();
             if (in_array($tablename, $tables)) {
                 $this->error(lang('table is already exist'));
             }
-            $post = $this->request->post();
-            $rule = [
-                'modulename|模型名称' => [
-                    'require' => 'require',
-                    'max'     => '100',
-                    'unique'  => 'addons_cms_module',
-                ],
-                'tablename|表名' => [
-                    'require' => 'require',
-                    'max'     => '50',
-                    'unique'  => 'addons_cms_module',
-                ],
-                'listfields|列表页字段' => [
-                    'require' => 'require',
-                    'max'     => '255',
-                ],
-                'intro|描述' => [
-                    'max' => '200',
-                ],
-                'sort|排序' => [
-                    'require' => 'require',
-                    'number'  => 'number',
-                ]
-            ];
             try {
-                $this->validate($post, $rule);
-            } catch (\ValidateException $e) {
+                $this->modelClass->addModule($tablename,$this->prefix);
+            }catch (Exception $e){
                 $this->error($e->getMessage());
             }
-            $post['template']=isset($post['template'])? jsno_encode($post['template'],true): "";
-            $module = $this->modelClass->save($post);
-            if (!$module) {
-                $this->error(lang('Add Fail'));
-            }
-            $moduleid =  $this->modelClass->getLastInsID();
-            $this->modelClass->addTable($tablename,$this->prefix,$moduleid);
             $this->success(lang('Add Success'));
         }
         $view =[
@@ -119,8 +89,6 @@ class CmsModule extends AddonsBackend
         View::assign($view);
         return view();
     }
-
-
     // 模型修改
     public function edit(){
         $id    = $this->request->param('id');
@@ -168,150 +136,4 @@ class CmsModule extends AddonsBackend
 
         }
     }
-
-
-    /****************************模型字段管理******************************/
-
-    /*
-     * 字段列表
-     */
-    public function field(){
-
-        if($this->request->isAjax()){
-            //不可控字段
-            $sysfield = array('cateid','title','keywords','description','hits','status','create_time','update_time','template');
-            $list = CmsField::where("moduleid",'=',$this->request->param('id/d'))
-                ->order('sort asc,id asc')
-                ->select()->toArray();
-            foreach ($list as $k=>$v){
-                if(in_array($v['field'],$sysfield)){
-                    $list[$k]['del']=0;
-                }else{
-                    $list[$k]['del']=1;
-                }
-            }
-            return $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list, 'count' => count($list)];
-        }
-        $view = [
-            'moduleid' => Request::param('id')
-        ];
-        View::assign($view);
-        return view();
-    }
-
-
-    // 添加字段
-    public function fieldAdd(){
-        if ($this->request->isAjax()) {
-            //增加字段
-            $post = Request::param();
-            try{
-                $result = $this->validate($post, 'CmsField');
-
-            }catch (\Exception $e){
-                $this->error($e->getMessage());
-
-            }
-            try {
-                $res = CmsField::addField($post);
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
-            $this->success(lang('add success'));
-
-        }
-
-        $view = [
-            'moduleid'  => Request::param('moduleid'),
-            'info'      => null,
-            'title'=>lang('add'),
-            'fieldType'=>FieldType::select(),
-        ];
-        View::assign($view);
-        return view('field_add');
-    }
-
-
-
-    // 编辑字段
-    public function fieldEdit(){
-        if ($this->request->isAjax()) {
-            //增加字段
-            $post = Request::param();
-            try{
-                $result = $this->validate($post, 'CmsField');
-
-            }catch (\Exception $e){
-                $this->error($e->getMessage());
-
-            }
-            try {
-                $fieldid  = $post['id'];
-                $res = CmsField::editField($post,$fieldid);
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
-            $this->success(lang('add success'));
-
-        }
-
-        $id = Request::param('id');
-        $fieldInfo = CmsField::where('id','=',$id)
-            ->find();
-
-        $view = [
-            'moduleid'  => $fieldInfo['moduleid'],
-            'fieldType'=>FieldType::select(),
-            'info'      => $fieldInfo,
-            'title'=>lang('edit'),
-        ];
-        View::assign($view);
-        return view('field_add');
-    }
-
-    // 删除字段
-    public function fieldDel() {
-        $ids = Request::param('ids');
-        $f  = Db::name('field')->find($ids[0]);
-        //删除字段表中的记录
-        CmsField::destroy($ids[0]);
-        $moduleid = $f['moduleid'];
-        $field    = $f['field'];
-        $name   = $this->modelClass->where('id',$moduleid)->value('tablename');
-        $tablename = $this->prefix.$name;
-        //实际查询表中是否有该字段
-        if(CmsField::isset_field($tablename,$field)){
-            Db::name($tablename)->execute("ALTER TABLE `$tablename` DROP `$field`");
-        }
-        $this->success(lang('删除成功'));
-    }
-
-    // 字段排序
-    public function fieldSort(){
-        $post = Request::post();
-        if (CmsField::update($post) !== false) {
-            $this->success(lang('edit success'));
-        } else {
-            $this->error(lang('edit fail'));
-        }
-    }
-
-    // 字段状态
-    public function fieldState(){
-        if ($this->request->isAjax()) {
-            $id = $this->request->param('ids|id');
-            $status = CmsField::where('id','=',$id)
-                ->value('status');
-            $status = $status == 1 ? 0 : 1;
-            if (CmsField::where('id','=',$id)->update(['status'=>$status]) !== false) {
-                $this->success(lang('edit success'));
-            } else {
-                $this->error(lang('edit fail'));
-            }
-        }
-    }
-
-
-
-
 }

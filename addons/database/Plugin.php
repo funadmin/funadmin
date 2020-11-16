@@ -33,18 +33,22 @@ class Plugin extends Addons    // 需继承fun\Addons类
             'icon' => 'fa fa-database',
             'menulist' => [
                 [
-                    'href' => 'addons/database/backend/index/index',
+                    'href' => 'addons/database/backend/index',
                     'title' => '数据列表',
+                    'type' => '1',
                     'target'=>'_self',
                     'status' => 1,
                     'menu_status' => 1,
                     'icon' => 'fa fa-comments-o',
                     'menulist' => [
-                        ['href' => 'addons/database/backend/index//optimize', 'title' => '数据优化', 'status' => 1,
+
+                        ['href' => 'addons/database/backend/index/index', 'title' => 'List','status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/database/backend/index/repair', 'title' => '数据修复', 'status' => 1,
+                        ['href' => 'addons/database/backend/index/optimize', 'title' => 'optimize','status' => 1,
                             'menu_status' => 0,],
-                        ['href' => 'addons/database/backend/index/backup', 'title' => '数据备份', 'status' => 1,
+                        ['href' => 'addons/database/backend/index/repair', 'title' => 'repair', 'status' => 1,
+                            'menu_status' => 0,],
+                        ['href' => 'addons/database/backend/index/backup', 'title' => 'backup', 'status' => 1,
                             'menu_status' => 0,],
 
                     ]
@@ -53,6 +57,7 @@ class Plugin extends Addons    // 需继承fun\Addons类
                     'href' => 'addons/database/backend/index/restore',
                     'title' => '备份列表',
                     'status' => 1,
+                    'type' => 1,
                     'menu_status' => 1,
                     'icon' => 'fa fa-comments-o',
                     'menulist' => [

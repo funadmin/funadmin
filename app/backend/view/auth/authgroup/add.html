@@ -1,21 +1,16 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
-        <form class="layui-form" lay-filter="form">
+<form class="layui-form" lay-filter="form">
 
-            <div class="layui-form-item">
-                <label class="layui-form-label">{:lang('Pid')}</label>
-                <div class="layui-input-block">
-                    <select name="pid" lay-verify="required"  {if !empty($formData) && $formData.id ==1}disabled{/if}>
-                    {volist name="authGroup" id="vo"}
-                    <option value="{$vo.id}" {if empty($formData) && $vo.id==1}selected{/if} {if !empty($formData) && $formData.pid==$vo.id} selected {/if} >{$vo.ltitle}</option>
-                    {/volist}
-                    </select>
-                </div>
-            </div>
-            {:form_input('title','text',['lable'=>'Groupname','verify'=>'required'])}
-            {:form_submitbtn()}
-
-        </form>
+    <div class="layui-form-item">
+        <label class="layui-form-label">{:lang('Pid')}</label>
+        <div class="layui-input-block">
+            <select name="pid" lay-verify="required"  {if !empty($formData) && $formData.id ==1}disabled{/if}>
+            {volist name="authGroup" id="vo"}
+            <option value="{$vo.id}" {if empty($formData) && $vo.id==1}selected{/if} {if !empty($formData) && $formData.pid==$vo.id} selected {/if} >{$vo.ltitle}</option>
+            {/volist}
+            </select>
+        </div>
     </div>
+    {:form_input('title','text',['lable'=>'Groupname','verify'=>'required'])}
+    {:form_submitbtn()}
 
-</div>
+</form>

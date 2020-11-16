@@ -14,12 +14,14 @@
 namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
+use think\Exception;
 use think\facade\Cache;
 use think\facade\Db;
 
 class CmsModule extends BaseModel
 {
     protected $name = 'addons_cms_module';
+
 
     public $title = '/**
   * funadmin
@@ -37,6 +39,7 @@ class CmsModule extends BaseModel
         parent::__construct($data);
     }
 
+
     /**
      * @param $tablename
      * @param string $field
@@ -47,9 +50,9 @@ class CmsModule extends BaseModel
         $keys = $tablename.'fields';
         $tablefield =  Cache::get($keys);
         if(!$tablefield){
-            $sql = "select $field from information_schema.columns  where table_name='".self::get_table_prefix().$tablename."' and table_schema='".config('database.connections.'.config('database.default').'.database')."'";
+            $sql = "select $field from information_schema.columns  where table_name='".self::get_table_prefix().$tablename."' and table_schema='".self::get_databasename()."'";
             $tablefield = Db::query($sql);
-            Cache::tag($tablename)->set($keys,$tablefield);
+            Cache::tag($tablename)->set($keys,$tablefield,7200);
         }
         return $tablefield;
 
@@ -63,22 +66,73 @@ class CmsModule extends BaseModel
         $tableslist =Db::query('SHOW TABLES');
         $tables = [];
         foreach ($tableslist as $key=>$value){
-            $tables[$key] = $value['Tables_in_www_fun_com'];
+            $tables[$key] = $value['Tables_in_'.self::get_databasename()];
         }
         return $tables;
     }
+
+    public static function addModule($tablename,$tableprefix){
+
+        $post = request()->post();
+        $rule = [
+            'modulename|模型名称' => [
+                'require' => 'require',
+                'max'     => '100',
+                'unique'  => 'addons_cms_module',
+            ],
+            'tablename|表名' => [
+                'require' => 'require',
+                'max'     => '50',
+                'unique'  => 'addons_cms_module',
+            ],
+            'listfields|列表页字段' => [
+                'require' => 'require',
+                'max'     => '255',
+            ],
+            'intro|描述' => [
+                'max' => '200',
+            ],
+            'sort|排序' => [
+                'require' => 'require',
+                'number'  => 'number',
+            ]
+        ];
+        try {
+            validate($rule)->check($post);
+        } catch (\ValidateException $e) {
+            throw  new \ValidateException($e->getError());
+        }
+        // 启动事务
+        Db::startTrans();
+        try {
+            $post['template']=isset($post['template'])? json_encode($post['template'],true): "";
+            $post['tablename']= substr($tablename,strlen(self::get_table_prefix()));
+            $module = self::create($post);
+            if (!$module) {
+                throw  new Exception(lang('Add Fail'));
+            }
+            // 提交事务
+            Db::commit();
+        } catch (\Exception $e) {
+            // 回滚事务
+            Db::rollback();
+            throw new Exception($e->getMessage());
+        }
+
+
+    }
     //加表
-    public static function addTable($tablename, $prefix, $moduleid)
+    public static function onAfterInsert($model)
     {
         $sql = <<<EOF
-        CREATE TABLE `{$tablename}` (
+        CREATE TABLE `{$model->tablename}` (
           `id` int(11) unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
           `content` longtext NOT NULL  COMMENT '内容',
           PRIMARY KEY (`id`)
-        ) ENGINE=InnoDb  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='{$tablename}模型表';
+        ) ENGINE=InnoDb  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='{$model->modulename}模型表';
 EOF;
         Db::execute($sql);
-        Db::execute("INSERT INTO `" . $prefix . "addons_cms_field` (`diyformid`,`moduleid`,`field`,`name`,`required`,`radix`,`maxlength`,`rule`,`msg`,`type`,`options`,`value`,`sort`,`status`,`create_time`,`is_filter`) VALUES (0, '" . $moduleid . "', 'content', '内容',  '0','0',  '0',  '', '', 'editor','0:ueditor\n1:quill\n2:wangedit\n3:layedit','wangedit','7', '1', '" . time() . "' ,1)");
+//        Db::execute("INSERT INTO `" . self::get_table_prefix() . "addons_cms_field` (`diyformid`,`moduleid`,`field`,`name`,`required`,`radix`,`maxlength`,`rule`,`msg`,`type`,`options`,`value`,`sort`,`status`,`create_time`,`is_filter`) VALUES (0, '" . $model->id . "', 'content', '内容',  '0','0',  '0',  '', '', 'editor','0:ueditor\n1:quill\n2:wangedit\n3:layedit','wangedit','7', '1', '" . time() . "' ,1)");
         return true;
 
     }

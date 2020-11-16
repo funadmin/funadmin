@@ -15,6 +15,7 @@ namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
 
+use think\Exception;
 use think\facade\Db;
 
 /**
@@ -42,18 +43,19 @@ class CmsField extends BaseModel
             throw new \Exception(lang('table is not exist'));
         }
         $tablename = self::get_table_prefix() . $tablename;
+
+        if(in_array($data['field'],['content','id'])){
+            throw new \Exception("field'" . $data['field'] . "`is already exist");
+        }
         //判断字段名唯一性
         if (self::where('field', $data['field'])->where('moduleid', $moduleid)->value('id')) {
             throw new \Exception("field'" . $data['field'] . "`is already exist");
         }
-        if ($data['required']) {
-            throw new \Exception(lang('field is required'));
-        }
-        //先将字段存在设置的主表或附表里面 再将数据存入ModelField
-        $sql = <<<LEMO
+        //先将字段存在设置的主表或附表里面删除 再将数据存入ModelField
+        $sql = <<<EOF
             ALTER TABLE `{$tablename}`
             ADD COLUMN `{$data['field']}` {$data['field_define']} COMMENT '{$data['name']}';
-LEMO;
+EOF;
         Db::execute($sql);
         $fieldid = self::create($data);
         if ($fieldid) {
@@ -76,18 +78,14 @@ LEMO;
     public static function editField($data, $fieldid = 0)
     {
         $data['field'] = strtolower($data['field']);
-        if (!isset($data['fieldid'])) {
-            throw new \Exception(lang('fieldid is not exist'));
-        } else {
-            $fieldid = $fieldid ? $fieldid : (int)$data['fieldid'];
-        }
+        $fieldid = $fieldid ? (int)$fieldid : (int)$data['fieldid'];
         //原字段信息
-        $info = self::where("id", $fieldid)->find();
-        if (empty($info)) {
+        $one = self::where("id", $fieldid)->find();
+        if (empty($one)) {
             throw new \Exception("field'" . $fieldid . "`is already exist");
         }
         //模型id
-        $data['moduleid'] = $moduleid = $info['moduleid'];
+        $data['moduleid'] = $moduleid = $one['moduleid'];
 
         $tablename = self::get_tablename($moduleid);
         if (!self::table_exists($tablename)) {
@@ -95,20 +93,32 @@ LEMO;
         }
         $tablename = self::get_table_prefix() . $tablename;
         //判断字段名唯一性
+        if(in_array($data['field'],['content','id'])){
+            throw new \Exception("field'" . $data['field'] . "`is already exist");
+        }
         if (self::where('field', $data['field'])->where('moduleid', $moduleid)->where('id', '<>', $fieldid)->find()) {
             throw new \Exception(lang("field'" . $data['field'] . "`is already exist"));
         }
-        $sql = <<<LEMO
-            ALTER TABLE `{$tablename}`
-            CHANGE COLUMN `{$info['field']}` `{$data['field']}` {$data['field_define']} COMMENT '{$data['name']}';
-LEMO;
+        Db::startTrans();
         try {
-            Db::execute($sql);
+            $sql = <<<EOF
+            ALTER TABLE `{$tablename}`
+            CHANGE COLUMN `{$one['field']}` `{$data['field']}` {$data['field_define']} COMMENT '{$data['name']}';
+EOF;
+            try {
+                Db::execute($sql);
+            } catch (\Exception $e) {
+                self::addField($data);
+            }
+            self::update($data, ['id' => $fieldid]);
+            // 提交事务
+            Db::commit();
         } catch (\Exception $e) {
-
-            self::addField($data);
+            // 回滚事务
+            Db::rollback();
+            throw new Exception($e->getMessage());
         }
-        self::update($data, ['id' => $fieldid]);
+
         return true;
     }
 
@@ -152,9 +162,9 @@ LEMO;
      */
     public static function get_tablename($moduleid)
     {
-        $table = Db::name('cms_module')->find($moduleid);
+        $table = Db::name('addons_cms_module')->find($moduleid);
         if ($table) {
-            return $table['name'];
+            return $table['tablename'];
         } else {
             return false;
         }

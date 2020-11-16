@@ -74,14 +74,27 @@ define(['table','form'], function (Table,Form) {
         },
         add: function () {
             Controller.api.bindevent()
+
         },
         edit: function () {
             Controller.api.bindevent()
         },
         api: {
             bindevent: function () {
+                layui.form.on('radio(type)', function (data) {
+                    row = {};
+                    layui.laytpl($('#url_tpl').html()).render(row,function (){
+                        if (data.value == 3) {
+                            $('#url').html($('#url_tpl').html()) ;
+                        } else {
+                            $('#url').html('') ;
+                        }
+                    })
+
+                });
                 Form.api.bindEvent($('form'))
-            }
+            },
+
         }
 
     };
