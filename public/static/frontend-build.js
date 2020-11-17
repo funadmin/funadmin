@@ -1,7 +1,7 @@
 ({
     baseUrl : './', //基于appDir，项目目录
     name    : 'js/require-frontend.js', //基于baseUrl，项目文件
-    out     : 'js/require-frontendgit .min.js', //基于baseUrl，输出文件
+    out     : 'js/require-frontend.min.js', //基于baseUrl，输出文件
     // locale  : 'en-us', //国际化配置
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',

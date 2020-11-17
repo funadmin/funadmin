@@ -22,7 +22,6 @@ define(['table','form'], function (Table,Form) {
                 ,data: data
                 ,isJump: false  //link 为参数匹配
                 ,click: function(obj){
-                    console.log(obj.data)
                     var data = obj.data;  //获取当前点击的节点数据
                     // if(!data.children){
                     $('#categorys_list').attr('src',data.href);

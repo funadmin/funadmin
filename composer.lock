@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "21634fc84dbb17efcd8825a628b7a9a7",
+    "content-hash": "0f247e87cf4ed5ab63b1c9f965ebf17d",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.6",
+            "version": "v1.62",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "e278777fc41f1b04cb91779a1e722962f15de0ea"
+                "reference": "14c764387bceb74e4cf681c1494c936d5d6043ab"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/e278777fc41f1b04cb91779a1e722962f15de0ea",
-                "reference": "e278777fc41f1b04cb91779a1e722962f15de0ea",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/14c764387bceb74e4cf681c1494c936d5d6043ab",
+                "reference": "14c764387bceb74e4cf681c1494c936d5d6043ab",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -376,7 +376,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-11-09T09:34:15+00:00"
+            "time": "2020-11-14T02:55:35+00:00"
         },
         {
             "name": "guzzlehttp/command",
@@ -1250,16 +1250,16 @@
         },
         {
             "name": "overtrue/wechat",
-            "version": "5.1.4",
+            "version": "5.1.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/overtrue/wechat.git",
-                "reference": "a9091fe5dfa343a53b9b867697fce52bb191d180"
+                "reference": "e4933e33de42156f1774ce534b6ca3becaf903ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/wechat/zipball/a9091fe5dfa343a53b9b867697fce52bb191d180",
-                "reference": "a9091fe5dfa343a53b9b867697fce52bb191d180",
+                "url": "https://api.github.com/repos/overtrue/wechat/zipball/e4933e33de42156f1774ce534b6ca3becaf903ce",
+                "reference": "e4933e33de42156f1774ce534b6ca3becaf903ce",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1344,7 +1344,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-09T03:16:41+00:00"
+            "time": "2020-11-12T10:30:28+00:00"
         },
         {
             "name": "php-di/phpdoc-reader",
@@ -3876,16 +3876,16 @@
         },
         {
             "name": "topthink/framework",
-            "version": "v6.0.5",
+            "version": "6.0.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "85625d984f5c96699dc27d384869f206c3aec1cc"
+                "reference": "4eee759098c69bc7e31f67bde4035f2eef269ba8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/85625d984f5c96699dc27d384869f206c3aec1cc",
-                "reference": "85625d984f5c96699dc27d384869f206c3aec1cc",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/4eee759098c69bc7e31f67bde4035f2eef269ba8",
+                "reference": "4eee759098c69bc7e31f67bde4035f2eef269ba8",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3939,7 +3939,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "time": "2020-10-26T07:18:00+00:00"
+            "time": "2020-11-16T13:59:31+00:00"
         },
         {
             "name": "topthink/think-annotation",
@@ -4647,7 +4647,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "topthink/framework": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
