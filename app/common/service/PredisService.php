@@ -10,7 +10,9 @@
  * Author: yuege
  * Date: 2019/9/6
  */
+
 namespace app\common\service;
+
 use think\App;
 use think\facade\Log;
 
@@ -19,7 +21,7 @@ class PredisService extends AbstractService
     public $redisObj = null;//redis实例化时静态变量
 
     static protected $instance;
-    protected $sn;
+    protected $sign;
     protected $index = 0;
     protected $port = 6379;
     protected $auth = "";
@@ -30,6 +32,7 @@ class PredisService extends AbstractService
         $this->app = $app;
         $this->initialize();
     }
+
     public function initialize($options = [])
     {
         $host = trim(isset($options["host"]) ? $options["host"] : $this->host);
@@ -39,47 +42,35 @@ class PredisService extends AbstractService
         if (!is_integer($index) && $index > 16) {
             $index = 0;
         }
-        $sn = md5("{$host}{$port}{$auth}{$index}");
-        $this->sn = $sn;
-        if (!isset($this->redisObj[$this->sn])) {
+        $sign = md5("{$host}{$port}{$auth}{$index}");
+        $this->sign = $sign;
+        if (!isset($this->redisObj[$this->sign])) {
             try {
-                $this->redisObj[$this->sn] = new \Redis();
-                $this->redisObj[$this->sn]->connect($host, $port);
-                $this->redisObj[$this->sn]->auth($auth);
-                $this->redisObj[$this->sn]->select($index);
+                $this->redisObj[$this->sign] = new \Redis();
+                $this->redisObj[$this->sign]->connect($host, $port);
+                $this->redisObj[$this->sign]->auth($auth);
+                $this->redisObj[$this->sign]->select($index);
             } catch (\Exception $e) {
                 Log::notice($e->getMessage());
                 try {
-                    $this->redisObj[$this->sn] = new \Redis();
-                    $this->redisObj[$this->sn]->connect($host, $port);
-                    $this->redisObj[$this->sn]->auth($auth);
-                    $this->redisObj[$this->sn]->select($index);
+                    $this->redisObj[$this->sign] = new \Redis();
+                    $this->redisObj[$this->sign]->connect($host, $port);
+                    $this->redisObj[$this->sign]->auth($auth);
+                    $this->redisObj[$this->sign]->select($index);
                 } catch (\Exception $e) {
                     Log::error($e->getMessage());
                 }
             }
         }
-        $this->redisObj[$this->sn]->sn = $sn;
+        $this->redisObj[$this->sign]->sign = $sign;
         $this->index = $index;
         return;
     }
 
-    /**
-     * Power: yue909
-     * Email：994927909@qq.com
-     * @param array $options
-     * @return Redis
-     */
-    public static function instance($options = [])
-    {
-        return new Redis($options);
-    }
-
     public function getKeys($key = '*')
     {
-        return $this->redisObj[$this->sn]->getKeys($key);
+        return $this->redisObj[$this->sign]->keys($key);
     }
-
 
     public function setExpire($key, $time = 0)
     {
@@ -89,13 +80,14 @@ class PredisService extends AbstractService
         }
         switch (true) {
             case ($time == 0):
-                return $this->redisObj[$this->sn]->expire($key, 0);
+                return $this->redisObj[$this->sign]->expire($key, 0);
                 break;
             case ($time > time()):
-                $this->redisObj[$this->sn]->expireAt($key, $time);
+                return $this->redisObj[$this->sign]->expireAt($key, $time);
                 break;
             default:
-                return $this->redisObj[$this->sn]->expire($key, $time);
+                return $this->redisObj[$this->sign]->expire($key, $time);
+                break;
         }
     }
 
@@ -110,8 +102,8 @@ class PredisService extends AbstractService
      */
     public function set($key, $value, $timeOut = 0)
     {
-        $setRes = $this->redisObj[$this->sn]->set($key, $value);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+        $setRes = $this->redisObj[$this->sign]->set($key, $value);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         return $setRes;
     }
 
@@ -122,7 +114,7 @@ class PredisService extends AbstractService
      */
     public function get($key)
     {
-        $setRes = $this->redisObj[$this->sn]->get($key);//不存在返回false
+        $setRes = $this->redisObj[$this->sign]->get($key);//不存在返回false
         if ($setRes === 'false') {
             return false;
         }
@@ -140,9 +132,11 @@ class PredisService extends AbstractService
      */
     public function lPush($key, $value, $timeOut = 0)
     {
-//          echo "$key - $value \n";
-        $re = $this->redisObj[$this->sn]->LPUSH($key, $value);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+        if (is_array($value)) {
+            $value = json_encode($value, true);
+        }
+        $re = $this->redisObj[$this->sign]->LPUSH($key, $value);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         return $re;
     }
 
@@ -154,39 +148,63 @@ class PredisService extends AbstractService
      */
     public function rPush($key, $value, $timeOut = 0)
     {
-//          echo "$key - $value \n";
-        $re = $this->redisObj[$this->sn]->RPUSH($key, $value);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+        if (is_array($value)) {
+            $value = json_encode($value, true);
+        }
+        $re = $this->redisObj[$this->sign]->RPUSH($key, $value);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         return $re;
     }
 
     /**
      * 查，获取所有列表数据（从头到尾取）
      * @param string $key KEY名称
-     * @param int $head 开始
-     * @param int $tail 结束
+     * @param int $start 开始
+     * @param int $end 结束
      */
-    public function lRanges($key, $head, $tail)
+    public function lRanges($key, $start = 0, $end = -1)
     {
-        return $this->redisObj[$this->sn]->lrange($key, $head, $tail);
+        return $this->redisObj[$this->sign]->lrange($key, $start, $end);
     }
 
-    /**
-     * Power by yue909
-     * QQ:994927909
+    /**移除并返回列表 key 的尾元素。
      * @param $key
      * @return mixed
      */
 
     public function rPop($key)
     {
-        return $this->redisObj[$this->sn]->rPop($key);
+        return $this->redisObj[$this->sign]->rPop($key);
     }
 
     public function lPop($key)
     {
-        return $this->redisObj[$this->sn]->lpop($key);
+        return $this->redisObj[$this->sign]->lpop($key);
     }
+
+    /**对一个列表进行修剪(trim)，就是说，让列表只保留指定区间内的元素
+     * @param $key
+     * @param int $start
+     * @param int $end
+     * @param int $count
+     * @return mixed
+     */
+    public function lTrim($key, $start = 1, $end = -1, $count = 3)
+    {
+
+        return $this->redisObj[$this->sign]->lTrim($key, $start, $end);
+
+    }
+
+    /**返回列表 key 的长度。
+     * @param $list_name
+     * @return int
+     */
+    public function lLen($key)
+    {
+        return $this->redisObj[$this->sign]->lLen($key);
+    }
+
 
     /*------------------------------------2.end list结构----------------------------------------------------*/
 
@@ -202,8 +220,8 @@ class PredisService extends AbstractService
      */
     public function sAdd($key, $value, $timeOut = 0)
     {
-        $re = $this->redisObj[$this->sn]->sadd($key, $value);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+        $re = $this->redisObj[$this->sign]->sadd($key, $value);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         return $re;
     }
 
@@ -213,9 +231,9 @@ class PredisService extends AbstractService
      */
     public function sMembers($key)
     {
-        $re = $this->redisObj[$this->sn]->exists($key);//存在返回1，不存在返回0
+        $re = $this->redisObj[$this->sign]->exists($key);//存在返回1，不存在返回0
         if (!$re) return false;
-        return $this->redisObj[$this->sn]->smembers($key);
+        return $this->redisObj[$this->sign]->smembers($key);
     }
 
     /*------------------------------------3.end  set结构----------------------------------------------------*/
@@ -233,9 +251,9 @@ class PredisService extends AbstractService
         if (!is_array($score_value)) return false;
         $a = 0;//存放插入的数量
         foreach ($score_value as $score => $value) {
-            $re = $this->redisObj[$this->sn]->zadd($key, $score, $value);//当修改时，可以修改，但不返回更新数量
+            $re = $this->redisObj[$this->sign]->zadd($key, $score, $value);//当修改时，可以修改，但不返回更新数量
             $re && $a += 1;
-            if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+            if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         }
         return $a;
     }
@@ -250,12 +268,12 @@ class PredisService extends AbstractService
      */
     public function zRange($key, $min = 0, $num = 1, $order = 'desc')
     {
-        $re = $this->redisObj[$this->sn]->exists($key);//存在返回1，不存在返回0
+        $re = $this->redisObj[$this->sign]->exists($key);//存在返回1，不存在返回0
         if (!$re) return false;//不存在键值
         if ('desc' == strtolower($order)) {
-            $re = $this->redisObj[$this->sn]->zrevrange($key, $min, $min + $num - 1);
+            $re = $this->redisObj[$this->sign]->zrevrange($key, $min, $min + $num - 1);
         } else {
-            $re = $this->redisObj[$this->sn]->zrange($key, $min, $min + $num - 1);
+            $re = $this->redisObj[$this->sign]->zrange($key, $min, $min + $num - 1);
         }
         if (!$re) return false;//查询的范围值为空
         return $re;
@@ -272,9 +290,9 @@ class PredisService extends AbstractService
     {
         $type = strtolower(trim($type));
         if ($type == 'desc') {
-            $re = $this->redisObj[$this->sn]->zrevrank($key, $member);//其中有序集成员按score值递减(从大到小)顺序排列，返回其排位
+            $re = $this->redisObj[$this->sign]->zrevrank($key, $member);//其中有序集成员按score值递减(从大到小)顺序排列，返回其排位
         } else {
-            $re = $this->redisObj[$this->sn]->zrank($key, $member);//其中有序集成员按score值递增(从小到大)顺序排列，返回其排位
+            $re = $this->redisObj[$this->sign]->zrank($key, $member);//其中有序集成员按score值递增(从小到大)顺序排列，返回其排位
         }
         if (!is_numeric($re)) return false;//不存在键值
         return $re;
@@ -290,7 +308,7 @@ class PredisService extends AbstractService
      */
     public function zrangbyscore($key, $star, $end)
     {
-        return $this->redisObj[$this->sn]->ZRANGEBYSCORE($key, $star, $end);
+        return $this->redisObj[$this->sign]->ZRANGEBYSCORE($key, $star, $end);
     }
 
     /**
@@ -301,7 +319,7 @@ class PredisService extends AbstractService
      */
     function zScore($key, $member)
     {
-        return $this->redisObj[$this->sn]->ZSCORE($key, $member);
+        return $this->redisObj[$this->sign]->ZSCORE($key, $member);
     }
     /*------------------------------------4.end sort set结构----------------------------------------------------*/
 
@@ -311,14 +329,14 @@ class PredisService extends AbstractService
     public function hSetJson($redis_key, $field, $data, $timeOut = 0)
     {
         $redis_info = json_encode($data);                           //field的数据value，以json的形式存储
-        $re = $this->redisObj[$this->sn]->hSet($redis_key, $field, $redis_info);//存入缓存
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($redis_key, $timeOut);//设置过期时间
+        $re = $this->redisObj[$this->sign]->hSet($redis_key, $field, $redis_info);//存入缓存
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($redis_key, $timeOut);//设置过期时间
         return $re;
     }
 
     public function hGetJson($redis_key, $field)
     {
-        $info = $this->redisObj[$this->sn]->hget($redis_key, $field);
+        $info = $this->redisObj[$this->sign]->hget($redis_key, $field);
         if ($info) {
             $info = json_decode($info, true);
         } else {
@@ -329,15 +347,15 @@ class PredisService extends AbstractService
 
     public function hSet($redis_key, $name, $data, $timeOut = 0)
     {
-        $re = $this->redisObj[$this->sn]->hset($redis_key, $name, $data);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($redis_key, $timeOut);
+        $re = $this->redisObj[$this->sign]->hset($redis_key, $name, $data);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($redis_key, $timeOut);
         return $re;
     }
 
     public function hSetNx($redis_key, $name, $data, $timeOut = 0)
     {
-        $re = $this->redisObj[$this->sn]->hsetNx($redis_key, $name, $data);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($redis_key, $timeOut);
+        $re = $this->redisObj[$this->sign]->hsetNx($redis_key, $name, $data);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($redis_key, $timeOut);
         return $re;
     }
 
@@ -351,8 +369,8 @@ class PredisService extends AbstractService
      */
     public function hMset($key, $data, $timeOut = 0)
     {
-        $re = $this->redisObj[$this->sn]->hmset($key, $data);
-        if ($timeOut > 0) $this->redisObj[$this->sn]->expire($key, $timeOut);
+        $re = $this->redisObj[$this->sign]->hmset($key, $data);
+        if ($timeOut > 0) $this->redisObj[$this->sign]->expire($key, $timeOut);
         return $re;
     }
 
@@ -363,10 +381,10 @@ class PredisService extends AbstractService
      */
     public function hVals($key)
     {
-        $re = $this->redisObj[$this->sn]->exists($key);//存在返回1，不存在返回0
+        $re = $this->redisObj[$this->sign]->exists($key);//存在返回1，不存在返回0
         if (!$re) return false;
-        $vals = $this->redisObj[$this->sn]->hvals($key);
-        $keys = $this->redisObj[$this->sn]->hkeys($key);
+        $vals = $this->redisObj[$this->sign]->hvals($key);
+        $keys = $this->redisObj[$this->sign]->hkeys($key);
         $re = array_combine($keys, $vals);
         foreach ($re as $k => $v) {
             if (!is_null(json_decode($v))) {
@@ -385,11 +403,11 @@ class PredisService extends AbstractService
     public function hGet($key, $filed = [])
     {
         if (empty($filed)) {
-            $re = $this->redisObj[$this->sn]->hgetAll($key);
+            $re = $this->redisObj[$this->sign]->hgetAll($key);
         } elseif (is_string($filed)) {
-            $re = $this->redisObj[$this->sn]->hget($key, $filed);
+            $re = $this->redisObj[$this->sign]->hget($key, $filed);
         } elseif (is_array($filed)) {
-            $re = $this->redisObj[$this->sn]->hMget($key, $filed);
+            $re = $this->redisObj[$this->sign]->hMget($key, $filed);
         }
         if (!$re) {
             return false;
@@ -399,19 +417,19 @@ class PredisService extends AbstractService
 
     public function hDel($redis_key, $name)
     {
-        $re = $this->redisObj[$this->sn]->hdel($redis_key, $name);
+        $re = $this->redisObj[$this->sign]->hdel($redis_key, $name);
         return $re;
     }
 
     public function hLan($redis_key)
     {
-        $re = $this->redisObj[$this->sn]->hLen($redis_key);
+        $re = $this->redisObj[$this->sign]->hLen($redis_key);
         return $re;
     }
 
     public function hIncre($redis_key, $filed, $value = 1)
     {
-        return $this->redisObj[$this->sn]->hIncrBy($redis_key, $filed, $value);
+        return $this->redisObj[$this->sign]->hIncrBy($redis_key, $filed, $value);
     }
 
     /**
@@ -423,7 +441,7 @@ class PredisService extends AbstractService
      */
     public function hExists($keys, $field = '')
     {
-        $re = $this->redisObj[$this->sn]->hexists($keys, $field);//有返回1，无返回0
+        $re = $this->redisObj[$this->sign]->hexists($keys, $field);//有返回1，无返回0
         return $re;
     }
 
@@ -446,16 +464,16 @@ class PredisService extends AbstractService
         $num = intval($num);
         switch (strtolower(trim($type))) {
             case "zset":
-                $re = $this->redisObj[$this->sn]->zIncrBy($key, $num, $member);//增长权值
+                $re = $this->redisObj[$this->sign]->zIncrBy($key, $num, $member);//增长权值
                 break;
             case "hash":
-                $re = $this->redisObj[$this->sn]->hincrby($key, $member, $num);//增长hashmap里的值
+                $re = $this->redisObj[$this->sign]->hincrby($key, $member, $num);//增长hashmap里的值
                 break;
             default:
                 if ($num > 0) {
-                    $re = $this->redisObj[$this->sn]->incrby($key, $num);//默认增长
+                    $re = $this->redisObj[$this->sign]->incrby($key, $num);//默认增长
                 } else {
-                    $re = $this->redisObj[$this->sn]->decrBy($key, -$num);//默认增长
+                    $re = $this->redisObj[$this->sign]->decrBy($key, -$num);//默认增长
                 }
                 break;
         }
@@ -465,15 +483,15 @@ class PredisService extends AbstractService
 
 
     /**
-     * 清除缓存
+     * 清除缓存数据库
      * @param int $type 默认为0，清除当前数据库；1表示清除所有缓存
      */
-    function flush($type = 0)
+    public function flush($type = 0)
     {
         if ($type) {
-            $this->redisObj[$this->sn]->flushAll();//清除所有数据库
+            $this->redisObj[$this->sign]->flushAll();//清除所有数据库
         } else {
-            $this->redisObj[$this->sn]->flushdb();//清除当前数据库
+            $this->redisObj[$this->sign]->flushdb();//清除当前数据库
         }
     }
 
@@ -488,10 +506,10 @@ class PredisService extends AbstractService
     {
         switch (strtolower(trim($type))) {
             case 'hash':
-                $re = $this->redisObj[$this->sn]->hexists($keys, $field);//有返回1，无返回0
+                $re = $this->redisObj[$this->sign]->hexists($keys, $field);//有返回1，无返回0
                 break;
             default:
-                $re = $this->redisObj[$this->sn]->exists($keys);
+                $re = $this->redisObj[$this->sign]->exists($keys);
                 break;
         }
         return $re;
@@ -508,54 +526,54 @@ class PredisService extends AbstractService
     {
         switch (strtolower(trim($type))) {
             case 'hash':
-                $re = $this->redisObj[$this->sn]->hDel($key, $field);//返回删除个数
+                $re = $this->redisObj[$this->sign]->hDel($key, $field);//返回删除个数
                 break;
             case 'set':
-                $re = $this->redisObj[$this->sn]->sRem($key, $field);//返回删除个数
+                $re = $this->redisObj[$this->sign]->sRem($key, $field);//返回删除个数
                 break;
             case 'zset':
-                $re = $this->redisObj[$this->sn]->zDelete($key, $field);//返回删除个数
+                $re = $this->redisObj[$this->sign]->zDelete($key, $field);//返回删除个数
                 break;
             default:
-                $re = $this->redisObj[$this->sn]->del($key);//返回删除个数
+                $re = $this->redisObj[$this->sign]->del($key);//返回删除个数
                 break;
         }
         return $re;
     }
 
     //日志记录
-    public function logger($log_content, $position = 'user')
+    public function writelog($content, $position = 'member')
     {
-        $max_size = 1000000;   //声明日志的最大尺寸1000K
+        $max_size = 10000000;   //声明日志的最大尺寸10000K
 
         $log_dir = './log';//日志存放根目录
 
         if (!file_exists($log_dir)) mkdir($log_dir, 0777);//如果不存在该文件夹，创建
 
-        if ($position == 'user') {
-            $log_filename = "{$log_dir}/User_redis_log.txt";  //日志名称
+        if ($position == 'member') {
+            $filename = "{$log_dir}/Member_redis_log.txt";  //日志名称
         } else {
-            $log_filename = "{$log_dir}/Wap_redis_log.txt";  //日志名称
+            $filename = "{$log_dir}/Wap_redis_log.txt";  //日志名称
         }
 
         //如果文件存在并且大于了规定的最大尺寸就删除了
-        if (file_exists($log_filename) && (abs(filesize($log_filename)) > $max_size)) {
-            unlink($log_filename);
+        if (file_exists($filename) && (abs(filesize($filename)) > $max_size)) {
+            unlink($filename);
         }
 
         //写入日志，内容前加上时间， 后面加上换行， 以追加的方式写入
-        file_put_contents($log_filename, date('Y-m-d_H:i:s') . " " . $log_content . "\n", FILE_APPEND);
+        file_put_contents($filename, date('Y-m-d_H:i:s') . " " . $content . "\n", FILE_APPEND);
     }
 
 
-    function flushDB()
+    public function flushDB()
     {
-        $this->redisObj[$this->sn]->flushDB();
+        $this->redisObj[$this->sign]->flushDB();
     }
 
-    function __destruct()
+    public function __destruct()
     {
-        $this->redisObj[$this->sn]->close();
+        $this->redisObj[$this->sign]->close();
     }
 
     /**
@@ -567,7 +585,7 @@ class PredisService extends AbstractService
      */
     public function __call($method, $args)
     {
-        call_user_func_array([$this->redisObj[$this->sn], $method], $args);
+        call_user_func_array([$this->redisObj[$this->sign], $method], $args);
     }
 
 

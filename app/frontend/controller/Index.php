@@ -12,6 +12,7 @@
  */
 namespace app\frontend\controller;
 
+use app\common\service\PredisService;
 use think\App;
 class Index extends \app\BaseController{
 
@@ -21,6 +22,13 @@ class Index extends \app\BaseController{
     }
 
     public function index(){
+        $options = [
+            'host'=>'127.0.0.1',
+            'port'=>'6379',
+            'index'=>0,
+        ];
+//        $predis = PredisService::instance($options);
+//        var_dump($predis->set('name',5,30));
         return view();
     }
 
