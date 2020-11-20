@@ -15,6 +15,8 @@
 return [
     'diyform'=>'自定义表单',
     'tablename'=>'表名',
+    'Modelname'=>'模型名',
+    'Tableintro'=>'表介绍',
     'needlogin'=>'是否要登录',
     'successtips'=>'成功提示',
     'redirecturl'=>'跳转地址',
@@ -32,4 +34,14 @@ return [
     'Module'=>'模型',
     'Cateflag'=>'分类标识',
     'type'=>'类型',
+    'ShowPage'=>'展示页',
+    'CatePage'=>'分类页',
+    'ListPage'=>'列表页',
+    'status'=>'状态',
+    'Ispage'=>'是否单页',
+    'sort'=>'排序',
+    'close'=>'开启',
+    'open'=>'关闭',
+    'yes'=>'是',
+    'no'=>'否',
 ];

@@ -33,7 +33,7 @@ class CmsField extends AddonsBackend
     {
         parent::__construct($app);
         $this->modelClass = new CmsFieldModel();
-        $this->sysfield = (new \addons\cms\common\model\CmsModule())->getTableColumn('addons_cms_muster','COLUMN_NAME,COLUMN_COMMENT');
+        $this->sysfield = (new \addons\cms\common\model\CmsModule())->getTableColumn('addons_cms_filing','COLUMN_NAME,COLUMN_COMMENT');
         $this->moduleid = $this->request->param('moduleid/d');
     }
     /*
@@ -45,7 +45,7 @@ class CmsField extends AddonsBackend
             $list = $this->modelClass->where("moduleid", $this->moduleid)
                 ->order('sort asc,id asc')
                 ->select()->toArray();
-            $arr = Cache::get('muster_field');
+            $arr = Cache::get('filing_field');
             if(!$arr){
                 foreach ($this->sysfield as $k=>$v){
                     $arr[$k]['field'] = $v['COLUMN_NAME'];
@@ -53,7 +53,7 @@ class CmsField extends AddonsBackend
                 }
                 $sysfield_content = [['field'=>"content",'name'=>'内容']];
                 $arr = array_merge($list,$arr,$arr,$sysfield_content);
-                Cache::tag('muster_field')->set('muster_field',$arr,7200);
+                Cache::tag('filing_field')->set('filing_field',$arr,7200);
             }
             $list = array_merge($list,$arr,$arr);
             foreach ($list as $k=>$v){

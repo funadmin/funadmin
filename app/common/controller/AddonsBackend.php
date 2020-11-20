@@ -128,8 +128,9 @@ class AddonsBackend extends Controller
     protected function loadlang($name)
     {
         $lang = Cookie::get('think_lang');
-        Lang::load([
-            $this->addon_path.$this->addon.DS.$this->module.DS . 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php'
+        return Lang::load([
+            $this->addon_path.$this->module.DS . 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php',
+            $this->addon_path.$this->module.DS . 'lang' . DS . $lang . '.php',
         ]);
     }
 

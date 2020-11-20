@@ -65,7 +65,7 @@ class CmsModule extends AddonsBackend
             $tablename = str_replace('addons_','',$tablename);
             $tablename = str_replace($this->addon.'_','',$tablename);
             $tablename = $this->prefix .'addons_'.$this->addon.'_'. $tablename;
-            if(strpos($tablename,'addons_'.$this->addon.'_muster')){$this->error(lang('Table is exist'));}
+            if(strpos($tablename,'addons_'.$this->addon.'_filing')){$this->error(lang('Table is exist'));}
             $tables = $this->modelClass->getTables();
             if (in_array($tablename, $tables)) {
                 $this->error(lang('table is already exist'));

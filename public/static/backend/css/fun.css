@@ -670,7 +670,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 
 .fun-loading .loading>span,
 .signal-loader>span {
-    background-color: #00a65a;
+    /*background-color: #00a65a;*/
     display: inline-block
 }
 

@@ -3,10 +3,10 @@
     {:form_input('modulename','text',['label'=>'ModelName','tips'=>'between_4_and_25_characters','verify'=>'required'])}
     {:form_input('tablename','text',['label'=>'tableName','ptips'=>'between_4_and_25_characters',"$readonly"=>'','tips'=>'(Please add the plugin prefix addons_cms_ such as table<span class="layui-bg-orange"> addons_cms_article or cms_article .)</span>','verify'=>'required'])}
     {:form_textarea('intro',['label'=>'tableIntro',])}
-    {:form_input('listfields','text',['label'=>'QueryField','tips'=>'Multi-field use | Split'],'*')}
-    {:form_select('template[]',$_column,['label'=>'Cate','verify'=>'required','search'=>1],'',$formData?$formData['template'][0]:'')}
-    {:form_select('template[]',$_list,['label'=>'List','lable'=>'Cate','verify'=>'required','search'=>1],'',$formData?$formData['template'][1]:'')}
-    {:form_select('template[]',$_show,['label'=>'Show','verify'=>'required','search'=>1],'',$formData?$formData['template'][2]:'')}
+<!--    {:form_input('listfields','text',['label'=>'listfields','tips'=>'Multi-field use | Split'],'*')}-->
+    {:form_select('template[]',$_column,['label'=>'CatePage','verify'=>'required','search'=>1],'',$formData?$formData['template'][0]:'')}
+    {:form_select('template[]',$_list,['label'=>'ListPage','lable'=>'Cate','verify'=>'required','search'=>1],'',$formData?$formData['template'][1]:'')}
+    {:form_select('template[]',$_show,['label'=>'ShowPage','verify'=>'required','search'=>1],'',$formData?$formData['template'][2]:'')}
     {:form_radio('status',[0=>'Close','1'=>'Open'],['label'=>"Status"],1)}
     {:form_radio('ispage',[0=>'NO','1'=>'YES'],['label'=>"ispage"],0)}
     {:form_input('sort','text',[],50)}
