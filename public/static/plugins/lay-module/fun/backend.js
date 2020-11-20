@@ -1,8 +1,5 @@
 layui.define(["jquery", 'layer'], function (exports) {
-    var $ = layui.$,
-        element = layui.element,
-        layer = layui.layer;
-    element.render()
+    var $ = layui.$, element = layui.element, layer = layui.layer;element.render()
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
@@ -10,8 +7,7 @@ layui.define(["jquery", 'layer'], function (exports) {
     var $document = $(document), $container = $('#fun-app');
     var THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink';
     //主题配置
-    var THEME = [
-        {
+    var THEME = [{
             headerBg: '#fff',
             headerfontColor: '#595959',
             headerBgThis: '#772c6a',
@@ -20,10 +16,10 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#23262e',
             menuLeftBgThis: '#772c6a',
             menuLeftBgHover: '#772c6a',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
-        },
-        {
+        }, {
             headerBg: '#fff',
             headerfontColor: '#595959',
             headerBgThis: '#197971',
@@ -32,11 +28,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#23262e',
             menuLeftBgThis: '#20b598',
             menuLeftBgHover: '#20b598',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#fff',
             headerfontColor: '#595959',
             headerBgThis: '#722ed1',
@@ -45,11 +41,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#23262e',
             menuLeftBgThis: '#722ed1',
             menuLeftBgHover: '#722ed1',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#20b598',
             headerfontColor: '#fff',
             headerBgThis: '#197971',
@@ -58,12 +54,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#23262e',
             menuLeftBgThis: '#20b598',
             menuLeftBgHover: '#20b598',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#20b598',
             headerfontColor: '#fff',
             headerBgThis: '#197971',
@@ -72,12 +68,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#20b598',
             menuLeftBgHover: '#3b3f4b',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#722ed1',
             headerfontColor: '#fff',
             headerBgThis: '#197971',
@@ -86,12 +82,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#722ed1',
             menuLeftBgHover: '#722ed1',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#00a65a',
             headerBgThis: '#197971',
             headerBgLogo: '#00a65a',
@@ -99,12 +95,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#222d32',
             menuLeftBgThis: '#00a65a',
             menuLeftBgHover: '#00a65a',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#23262e',
             headerfontColor: '#fff',
             headerBgThis: '#0c0c0c',
@@ -113,12 +109,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#23262e',
             menuLeftBgThis: '#20b598',
             menuLeftBgHover: '#3b3f4b',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#ffa4d1',
             headerfontColor: '#fff',
             headerBgThis: '#bf7b9d',
@@ -127,10 +123,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#ffa4d1',
             menuLeftBgHover: '#ffa4d1',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#1e9fff',
             headerfontColor: '#fff',
             headerBgThis: '#0069b7',
@@ -139,12 +136,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#1e9fff',
             menuLeftBgHover: '#1e9fff',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-
-        {
+        }, {
             headerBg: '#ffb800',
             headerfontColor: '#fff',
             headerBgThis: '#d09600',
@@ -153,12 +149,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#ffb800',
             menuLeftBgHover: '#ffb800',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#e82121',
             headerfontColor: '#fff',
             headerBgThis: '#ae1919',
@@ -167,11 +163,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#e82121',
             menuLeftBgHover: '#e82121',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#963885',
             headerfontColor: '#fff',
             headerBgThis: '#772c6a',
@@ -180,13 +176,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#963885',
             menuLeftBgHover: '#963885',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-
-        {
+        }, {
             headerBg: '#1e9fff',
             headerfontColor: '#fff',
             headerBgThis: '#0069b7',
@@ -195,10 +190,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#1e9fff',
             menuLeftBgHover: '#1e9fff',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#ffb800',
             headerfontColor: '#fff',
             headerBgThis: '#d09600',
@@ -207,12 +203,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#ffb800',
             menuLeftBgHover: '#ffb800',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#e82121',
             headerfontColor: '#fff',
             headerBgThis: '#ae1919',
@@ -221,12 +217,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#e82121',
             menuLeftBgHover: '#e82121',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
 
-        },
-        {
+        }, {
             headerBg: '#e82121',
             headerfontColor: '#fff',
             headerBgThis: '#ae1919',
@@ -235,11 +231,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#1f1f1f',
             menuLeftBgThis: '#e82121',
             menuLeftBgHover: '#e82121',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        },
-        {
+        }, {
             headerBg: '#963885',
             headerfontColor: '#fff',
             headerBgThis: '#772c6a',
@@ -248,16 +244,53 @@ layui.define(["jquery", 'layer'], function (exports) {
             menuLeftBg: '#2f4056',
             menuLeftBgThis: '#963885',
             menuLeftBgHover: '#963885',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
             menuLeftfontColor: 'rgba(255,255,255,.7)',
             menuLeftfontColorHover: '#fff',
 
-        }
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#772c6a',
+            headerBgLogo: '#1c2175',
+            headerLogofontColor: '#1c2175',
+            menuLeftBg: '#1c2175',
+            menuLeftBgThis: '#772c6a',
+            menuLeftBgHover: '#772c6a',
+            menuLeftDlBg: '#272c91',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#772c6a',
+            headerBgLogo: '#23287c',
+            headerLogofontColor: '#23287c',
+            menuLeftBg: '#23287c',
+            menuLeftBgThis: '#772c6a',
+            menuLeftBgHover: '#772c6a',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#772c6a',
+            headerBgLogo: '#772c6a',
+            headerLogofontColor: '#772c6a',
+            menuLeftBg: '#23287c',
+            menuLeftBgThis: '#772c6a',
+            menuLeftBgHover: '#23287c',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        },
     ];
     var Backend = {
         /**
          * 版本
          */
-        v: '1.2',
+        v: '1.2.0',
         /**
          * @param options
          */
@@ -284,14 +317,17 @@ layui.define(["jquery", 'layer'], function (exports) {
         //加载层,锁屏
         hideLoading: function (time) {
             time = time || 300;
+            var colorId = sessionStorage.getItem('funColorId')
+            if (colorId == null) {
+                colorId = 0;
+            }
+            var bg = THEME[colorId]['headerBg'];
+            if(colorId){
+                $(document).find('.fun-loading').find('span').css('background-color',THEME[colorId]['menuLeftBgHover']);
+            }
             setTimeout(function () {
-                $(document).find('.fun-loading').fadeOut();
                 //判断是否锁定了界面
-                var colorId = sessionStorage.getItem('funColorId')
-                if (colorId == null) {
-                    colorId = 0;
-                }
-                var bg = THEME[colorId]['headerBg'];
+                $(document).find('.fun-loading').fadeOut();
                 if (layui.data('BackendLock').lock) {
                     layer.prompt({
                         btn: [__('Unlock Now')],
@@ -535,6 +571,8 @@ layui.define(["jquery", 'layer'], function (exports) {
                 '.layui-layout-admin .layui-logo{color:' + themeData.headerfontColor + '!important;}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item a{color:' + themeData.menuLeftfontColor + '}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{color:' + themeData.menuLeftfontColorHover + '!important;}\n' +
+                '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
+                '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>.layui-nav-child{background-color:' + themeData.menuLeftDlBg + '!important;}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree>.layui-nav-item>a:before{background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
                 '.layui-side.layui-bg-black,.layui-side.layui-bg-black>.layui-side-scroll>ul {background-color:' + themeData.menuLeftBg + '!important;}\n' +
                 '.layui-side-scroll .layui-nav .layui-nav-child a:hover:not(.layui-this){background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
