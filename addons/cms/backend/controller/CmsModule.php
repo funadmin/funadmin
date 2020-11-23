@@ -54,7 +54,6 @@ class CmsModule extends AddonsBackend
         //取得内容页模板列表
         $this->_show = str_replace($this->filepath . DIRECTORY_SEPARATOR.$theme, '', glob($this->filepath . DIRECTORY_SEPARATOR .$theme. 'show*'));
         $this->_show = array_combine(array_values($this->_show),$this->_show);
-
     }
     // 模型添加
     public function add()
@@ -62,8 +61,7 @@ class CmsModule extends AddonsBackend
         if ($this->request->isAjax()) {
             //获取数据库所有表名
             $tablename = $this->request->param('tablename/s');
-            $tablename = str_replace('addons_','',$tablename);
-            $tablename = str_replace($this->addon.'_','',$tablename);
+            $tablename = str_replace($this->addon.'_','',str_replace('addons_','',$tablename));
             $tablename = $this->prefix .'addons_'.$this->addon.'_'. $tablename;
             if(strpos($tablename,'addons_'.$this->addon.'_filing')){$this->error(lang('Table is exist'));}
             $tables = $this->modelClass->getTables();
@@ -83,9 +81,7 @@ class CmsModule extends AddonsBackend
             '_column'=>$this->_column,
             '_list'=>$this->_list,
             '_show'=>$this->_show,
-            ''
         ];
-
         View::assign($view);
         return view();
     }
