@@ -20,7 +20,7 @@ drop table if exists `__PREFIX__addons_cms_debris`;
 
 drop table if exists `__PREFIX__addons_cms_debris_position`;
 
-drop table if exists `__PREFIX__addons_cms_article`;
+drop table if exists `__PREFIX__addons_cms_filing`;
 
 drop table if exists `__PREFIX__addons_cms_picture`;
 

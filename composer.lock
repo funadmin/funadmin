@@ -1250,16 +1250,16 @@
         },
         {
             "name": "overtrue/wechat",
-            "version": "5.1.7",
+            "version": "5.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/overtrue/wechat.git",
-                "reference": "e4933e33de42156f1774ce534b6ca3becaf903ce"
+                "reference": "4a970531e93466f16d68544a7f8c1a1e48d813df"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/wechat/zipball/e4933e33de42156f1774ce534b6ca3becaf903ce",
-                "reference": "e4933e33de42156f1774ce534b6ca3becaf903ce",
+                "url": "https://api.github.com/repos/overtrue/wechat/zipball/4a970531e93466f16d68544a7f8c1a1e48d813df",
+                "reference": "4a970531e93466f16d68544a7f8c1a1e48d813df",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1344,7 +1344,7 @@
                     "type": "patreon"
                 }
             ],
-            "time": "2020-11-12T10:30:28+00:00"
+            "time": "2020-11-23T07:24:34+00:00"
         },
         {
             "name": "php-di/phpdoc-reader",
@@ -1631,16 +1631,16 @@
         },
         {
             "name": "pimple/pimple",
-            "version": "v3.3.0",
+            "version": "v3.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/silexphp/Pimple.git",
-                "reference": "e55d12f9d6a0e7f9c85992b73df1267f46279930"
+                "reference": "21e45061c3429b1e06233475cc0e1f6fc774d5b0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/silexphp/Pimple/zipball/e55d12f9d6a0e7f9c85992b73df1267f46279930",
-                "reference": "e55d12f9d6a0e7f9c85992b73df1267f46279930",
+                "url": "https://api.github.com/repos/silexphp/Pimple/zipball/21e45061c3429b1e06233475cc0e1f6fc774d5b0",
+                "reference": "21e45061c3429b1e06233475cc0e1f6fc774d5b0",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1650,11 +1650,11 @@
                 ]
             },
             "require": {
-                "php": "^7.2.5",
+                "php": ">=7.2.5",
                 "psr/container": "^1.0"
             },
             "require-dev": {
-                "symfony/phpunit-bridge": "^3.4|^4.4|^5.0"
+                "symfony/phpunit-bridge": "^5.0"
             },
             "type": "library",
             "extra": {
@@ -1683,7 +1683,7 @@
                 "container",
                 "dependency injection"
             ],
-            "time": "2020-03-03T09:12:48+00:00"
+            "time": "2020-11-24T20:35:42+00:00"
         },
         {
             "name": "psr/cache",
@@ -3880,12 +3880,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "4eee759098c69bc7e31f67bde4035f2eef269ba8"
+                "reference": "c878ece31cd9bd8f2b1e5f01292bfc40625db945"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/4eee759098c69bc7e31f67bde4035f2eef269ba8",
-                "reference": "4eee759098c69bc7e31f67bde4035f2eef269ba8",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/c878ece31cd9bd8f2b1e5f01292bfc40625db945",
+                "reference": "c878ece31cd9bd8f2b1e5f01292bfc40625db945",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3939,7 +3939,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "time": "2020-11-16T13:59:31+00:00"
+            "time": "2020-11-24T15:31:32+00:00"
         },
         {
             "name": "topthink/think-annotation",
