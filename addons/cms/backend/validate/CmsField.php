@@ -17,7 +17,7 @@ class CmsField extends Validate
             'require' => 'require',
             'max'     => '20',
         ],
-        'name|别名' => [
+        'aliasname|别名' => [
             'require' => 'require',
             'max'     => '50',
         ],
