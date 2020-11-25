@@ -29,6 +29,7 @@ return [
     'rewrite'=>[
         'title'=>'路由',
         'type'=>'array',
+        'rule'=>'',
         'content' => [
 
         ],

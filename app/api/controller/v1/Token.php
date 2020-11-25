@@ -10,6 +10,7 @@ use think\facade\Request;
 class Token extends TokenApi
 {
 
+    public static $authapp = false;
     public function __construct(Request $request)
     {
         parent::__construct($request);
