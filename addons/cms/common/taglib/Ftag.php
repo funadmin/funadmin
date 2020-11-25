@@ -13,6 +13,8 @@
 
 namespace addons\cms\common\taglib;
 
+use addons\cms\common\model\CmsFiling;
+use think\facade\Db;
 use think\template\TagLib;
 
 class Ftag extends Taglib
@@ -30,7 +32,6 @@ class Ftag extends Taglib
         'adv'       => ['attr' => 'cache,order,pid,id', 'close' => 1, ],//碎片
         'category'  => ['attr' => 'where,field,order,cache,cateid', 'close' => 1,],//分类表
         'query'     => ['attr' => 'table,sql,where,field,num,page,order,cache', 'close' => 1, ],//万能标签
-
     ];
     //碎片
     public function tagDebris($tag, $content){
@@ -162,9 +163,11 @@ EOF;
         if(!\$data){
             return false;
         }
-        foreach(\$data as &\$v){
-            if(\$v['type']!=2){
-                \$v['url'] = addons_url('index/lists',['cateid'=>\$v['id']]);
+        foreach(\$data as &\$v){    
+         if(\$v['type']==2 || \$v['type']==3){
+                \$v['url'] = addons_url('index/lists',[':cateid'=>\$v['id']]);
+            }elseif(\$v['type']==1){
+               \$v['url'] = addons_url('index/lists',[':cateid'=>\$v['id'],':flag'=>\$v['cateflag']]);
             }
         }
 ?>
@@ -189,9 +192,12 @@ EOF;
 <?php 
     \$data = \\think\\facade\\Db::name('addons_cms_category')->where('{$where}')->where('pid',{$cateid})->where('status',1)->order('{$order}')->field('{$field}')->cache({$cache})->select();
     foreach(\$data as &\$v){
-        if(\$v['type']!=2){
-            \$v['url'] = addons_url('index/lists',['cateid'=>\$v['id']]);
-        }
+         if(\$v['type']==2 || \$v['type']==3){
+                \$v['url'] = addons_url('index/lists',[':cateid'=>\$v['id']]);
+         }elseif(\$v['type']==1){
+               \$v['url'] = addons_url('index/lists',[':cateid'=>\$v['id'],':flag'=>\$v['cateflag']]);
+
+         }
     }
 ?>
 {$content}
@@ -200,13 +206,12 @@ EOF;
             return false;
         }
 
-
         return $parseStr;
 
     }
 
     /**
-     * LMY标签 获取各种模型列表
+     * FUN标签 获取各种模型列表
      */
     public function tagFun($tag, $content){
             $key    = !empty($tag['key']) ? $tag['key'] : 'i';
@@ -220,8 +225,6 @@ EOF;
             $page       =  isset($tag['page']) ? ((substr($tag['page'], 0, 1) == '$') ? $tag['page'] : (int) $tag['page']) : 1;
             $num        =  isset($tag['num'])  && intval($tag['num']) ?  intval($tag['num']):10;
             $data = 'modulelist';
-
-
             if($sql){
                 if(strpos($sql,'insert')!==false || strpos($sql,'update')!==false || strpos($sql,'delete')!==false ){
                   return false;
@@ -234,18 +237,27 @@ EOF;
 EOF;
                 }
 
-
             } elseif($cateid){
 
                 $categoryModule =  new  \addons\cms\common\model\CmsCategory();
                 $category = $categoryModule->where('status',1)->find($cateid);
-                $tablename  = $category->module;
+                $tablename  = $category->tablename;
                 $childid= $category->arrchildid;
                 $cateid = $childid.','.$cateid;
+                $data = CmsFiling::where('cateid','in',$cateid)->cache($cache)->select()->toArray();
+                foreach ($data as $k=>&$v){
+                    $modulecontent = Db::name($tablename)->find($v['id']);
+                    if($modulecontent){
+                           $v = array_merge($v,$modulecontent);
+                    }
+                }
+                unset($v);
                 $parseStr = <<<EOF
 <?php 
-    \$table = \\think\\facade\\Db::name('{$tablename}');
-     \${$data}  = \$table->where('{$where}')->where('status',1)->whereIn('cateid','{$cateid}')->order('{$order}')->field('{$field}')->cache({$cache})->paginate(['list_rows' => {$num} ,'page' =>{$page}]);
+    
+//    \$table = \\think\\facade\\Db::name('{$tablename}');
+//    
+//     \${$data}  = \$table->where('{$where}')->where('status',1)->whereIn('cateid','{$cateid}')->order('{$order}')->field('{$field}')->cache({$cache})->paginate(['list_rows' => {$num} ,'page' =>{$page}]);
 ?>
 
 <?php foreach(\${$data} as \${$key}=>\${$item}):?>
@@ -253,18 +265,9 @@ EOF;
 <?php endforeach;?>
 EOF;
             }
-
-
-
-
-
-
         return $parseStr;
 
     }
-
-
-
         /**
      * Queyry 万能标签
      */
@@ -285,8 +288,6 @@ EOF;
         if (isset($tag['sql'])) {
             $sql = str_replace(array("think_", "fun_","__PREFIX__"), config('database.connections.mysql.prefix'), strtolower($tag['sql']));
         }
-
-
         if (isset($tag['table'])) {
             $table = str_replace(config('database.connections.mysql.prefix'), '', $tag['table']);
         }
@@ -297,7 +298,7 @@ EOF;
         if (isset($sql) && (stripos($sql, "delete") !== false || stripos($sql, "insert")!== false || stripos($sql, "update")!== false)) {
             return false;
         }
-        $sql = str_replace(array("think_", "lm_"), config("database.connections.mysql.prefix"), $sql );
+        $sql = str_replace(array("think_", "fun_"), config("database.connections.mysql.prefix"), $sql );
         //如果使用table参数方式，使用类似tp的查询语言效果
         if (isset($table) && $table) {
             $table = strtolower($table);
@@ -312,7 +313,6 @@ EOF;
 
     }
     \$pages = \$data->render();
-   
    
 ?>
 
@@ -371,11 +371,6 @@ EOF;
     return $parseStr;
 
     }
-
-
-
-
-
 
 
 

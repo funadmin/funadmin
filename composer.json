@@ -1,6 +1,6 @@
 {
     "name": "funadmin/funadmin",
-    "description": "FunAdmin是一个基于thinkphp6和layui.requirejs的快速开发应用框架",
+    "description": "FunAdmin是一个基于thinkphp6和layui.requirejs的敏捷开发应用框架",
     "type": "project",
     "license": "Apache-2.0",
     "keywords": [

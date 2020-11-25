@@ -27,6 +27,7 @@ class Index extends \app\BaseController{
             'port'=>'6379',
             'index'=>0,
         ];
+//        var_dump(password_hash('13753501386',''));
 //        $predis = PredisService::instance($options);
 //        var_dump($predis->set('name',5,30));
         return view();
