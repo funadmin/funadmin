@@ -1,0 +1,237 @@
+ 
+ 
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>BBS-LEMOCMS，基于 lemocms, layui  的极简社区插件</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="LEMO-BBS,layui,前端社区">
+  <meta name="description" content="LEMO-BBS,lemocms社区是模块化前端UI框架LEMO-BBS的官网社区，,致力于为web开发提供强劲动力">
+  {include file="common/link" /}
+
+</head>
+<body>
+
+{include file="common/header" /}
+
+<div class="layui-hide-xs">
+  {include file="common/column"}
+</div>
+
+<div class="layui-container">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md8 content detail">
+      <div class="fly-panel detail-box">
+        <h1>{$list.title}</h1>
+        <div class="fly-detail-info">
+          {if !$list.status}
+           <span class="layui-badge">审核中</span>
+          {else /}
+          <span class="layui-badge layui-bg-green fly-detail-column">动态</span>
+          {/if}
+          {if $list.is_solved==1}
+           <span class="layui-badge" style="background-color: #5FB878;">已结</span>
+
+          {else /}
+          <span class="layui-badge" style="background-color: #999;">未结</span>
+
+          {/if}
+          {if $list.is_top==1}
+          <span class="layui-badge layui-bg-black">置顶</span>
+          {/if}
+          {if $list.is_fine==1}
+          <span class="layui-badge layui-bg-red">精帖</span>
+          {/if}
+          {if $user.id==$list.user_id}
+          <div class="fly-admin-box" data-id="{$list.id}">
+            {if $user && $list.user_id==$user.id }
+            <span class="layui-btn layui-btn-xs jie-admin" type="del">删除</span>
+            {/if}
+            {if $list.is_top==1}
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_top" rank="0" style="background-color:#ccc;">取消置顶</span>
+            {elseif $list.is_top==-1}
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_top" rank="1">置顶申请中</span>
+            {else /}
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_top" rank="1">置顶</span>
+            {/if}
+
+            {if $list.is_fine==1}
+
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_fine" rank="0" style="background-color:#ccc;">取消加精</span>
+            {elseif $list.is_fine==-1}
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_fine" rank="0" style="background-color:#ccc;">加精申请中</span>
+
+            {else /}
+            <span class="layui-btn layui-btn-xs jie-admin" type="set" field="is_fine" rank="1">加精</span>
+
+            {/if}
+          </div>
+          {/if}
+
+          <span class="fly-list-nums"> 
+            <a href="#comment"><i class="iconfont" title="回答">&#xe60c;</i> {$list.comment_count}</a>
+            <i class="iconfont" title="人气">&#xe60b;</i> {$list.click}
+          </span>
+        </div>
+        <div class="detail-about">
+          <a class="fly-avatar" href="{:url('user/home',['id'=>$list.user_id])}">
+            <img src="{:getUserById($list.user_id)['avatar']}" alt="{:getUserById($list.user_id)['username']}">
+          </a>
+          <div class="fly-detail-user">
+            <a href="{:url('user/home',['id'=>$list.user_id])}" class="fly-link">
+              <cite>{$list.author}</cite>
+              <i class="iconfont icon-renzheng" title="认证信息：{{ {$user.username} }}"></i>
+              <i class="layui-badge fly-badge-vip">VIP{:getUserById($list.user_id)['level_id']}</i>
+            </a>
+            <span>{$list.create_time}</span>
+          </div>
+          <div class="detail-hits" id="LAY_jieAdmin" data-id="{$list.id}">
+            <span style="padding-right: 10px; color: #FF7200">悬赏：{$list.score}L币</span>
+            {if $user.id ==$list.user_id}
+            <span class="layui-btn layui-btn-xs jie-admin" type="edit"><a href="{:url('add',['id'=>$list.id])}">编辑此贴</a></span>
+            {/if}
+          </div>
+        </div>
+        <div class="detail-body photos">
+          {$list.content|raw}
+        </div>
+      </div>
+
+      <div class="fly-panel detail-box" id="flyReply">
+        <fieldset class="layui-elem-field layui-field-title" style="text-align: center;">
+          <legend>回帖</legend>
+        </fieldset>
+
+        <ul class="jieda" id="jieda">
+          {volist name="comments" id="vo"}
+          <li data-id="{$vo.id}" class="jieda-daan">
+            <a name="item-1111111111"></a>
+            <div class="detail-about detail-about-reply">
+              <a class="fly-avatar" href="{:url('user/home',['id'=>$vo.user.id])}">
+                <img src="{$vo.user.avatar}" alt=" ">
+              </a>
+              <div class="fly-detail-user">
+                <a href="{:url('user/home',['id'=>$vo.user.id])}" class="fly-link">
+                  <cite>{$vo.user.username}</cite>
+                  <i class="iconfont icon-renzheng" title="认证信息：XXX"></i>
+                  <i class="layui-badge fly-badge-vip">VIP{$vo.user.level_id}</i>
+                </a>
+                {if session('user.id') == $list.user_id && $vo.user.id !=1 }
+                <span>(楼主)</span>
+                {/if}
+                {if $vo.user.id==1}
+                <span>(管理员)</span>
+                {/if}
+
+                <!--   <span style="color:#FF9E3F">（社区之光）</span>
+                <span style="color:#999">（该号已被封）</span>
+                -->
+              </div>
+
+              <div class="detail-hits">
+                <span>{$vo.create_time}</span>
+              </div>
+              {if $vo.is_adopt}
+              <i class="iconfont icon-caina" title="最佳答案"></i>
+              {/if}
+            </div>
+            <div class="detail-body jieda-body photos">
+              {$vo.content}
+            </div>
+            <div class="jieda-reply">
+              <span class="jieda-zan {if $user && $vo['like_num']}zanok{/if}" type="zan">
+                <i class="iconfont icon-zan"></i>
+                <em>{$vo->comm_likes_count}</em>
+              </span>
+              <span type="reply">
+                <i class="iconfont icon-svgmoban53"></i>
+                回复
+              </span>
+              <div class="jieda-admin">
+                {if session('user.id') == $vo.user.id}
+                  <span type="edit">编辑</span>
+                  <span type="del">删除</span>
+                {else /}
+                  {if $vo.is_adopt == 0 && session('user.id') == $list.user_id }
+                  <span class="jieda-accept" type="accept">采纳</span>
+                  {/if}
+                {/if}
+              </div>
+            </div>
+          </li>
+          {/volist}
+          <!-- 无数据时 -->
+          <!-- <li class="fly-none">消灭零回复</li> -->
+        </ul>
+        <div style="text-align: center">
+
+            {$comments|raw}
+
+        </div>
+        {if $list.is_reply}
+
+        <div class="layui-form layui-form-pane">
+          <form action="{$BASE_URL}/bbs/reply/" method="post">
+            <div class="layui-form-item layui-form-text">
+              <a name="comment"></a>
+              <div class="layui-input-block">
+                <textarea id="L_content" name="content" required lay-verify="required" placeholder="请输入内容"  class="layui-textarea fly-editor" style="height: 150px;"></textarea>
+              </div>
+            </div>
+            {:token_field('__token__', 'sha1')}
+            <div class="layui-form-item">
+              <input type="hidden" name="bbs_id" value="{$list.id}">
+              <button class="layui-btn" lay-filter="*" lay-submit>提交回复</button>
+            </div>
+          </form>
+        </div>
+        {else /}
+        <blockquote class="layui-elem-quote layui-quote-nm layui-disabled" style="margin: 100px 0 20px; padding: 50px 20px; text-align: center; color: #999!important;">本帖已设置禁止回复</blockquote>
+        {/if}
+      </div>
+    </div>
+    <div class="layui-col-md4">
+      <dl class="fly-panel fly-list-one">
+        <dt class="fly-panel-title">本周热议</dt>
+        {volist name="hots" id="vo"}
+        <dd>
+          <a href="{:url('detail',['id'=>$vo.id])}">{$vo.title}</a>
+          <span><i class="iconfont icon-pinglun1"></i> {$vo.comment_count}</span>
+        </dd>
+       {/volist}
+
+        <!-- 无数据时 -->
+        <!--
+        <div class="fly-none">没有相关数据</div>
+        -->
+      </dl>
+
+      <div class="fly-panel">
+        <div class="fly-panel-title">
+          加入我们
+        </div>
+        <div class="fly-panel-main">
+          <a href="http://www.lemocms.com/?from=bbs" target="_blank" class="fly-zanzhu" time-limit="2020.09.25-2099.01.01" style="background-color: #5FB878;">lemocms</a>
+        </div>
+        <div class="fly-panel-main">
+          <a href="javascript:;" target="_blank" class="fly-zanzhu" time-limit="2019.09.25-2099.01.01" style="background-color: #5FB878;">lemobbs社区系统 - lemocms旗舰之作</a>
+        </div>
+      </div>
+
+<!--      <div class="fly-panel" style="padding: 20px 0; text-align: center;">-->
+<!--        <img src="../../res/images/weixin.jpg" style="max-width: 100%;" alt="layui">-->
+<!--        <p style="position: relative; color: #666;">微信扫码关注 layui 公众号</p>-->
+<!--      </div>-->
+
+    </div>
+  </div>
+</div>
+
+{include file="common/footer" /}
+<script>layui.cache.page = 'jie';
+
+</script>
+
+</body>
+</html>

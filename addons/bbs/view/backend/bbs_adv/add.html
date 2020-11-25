@@ -1,0 +1,102 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">所属位置</label>
+                    <div class="layui-input-inline">
+                        <select name="pid" lay-verify="required">
+                            <option value="">请选择广告位置</option>
+                            {volist name="posGroup" id="vo"}
+                            <option value="{$vo.id}" {if !empty($info) && $info.pid==$vo.id} selected {/if} >{$vo.position_name}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">广告名</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="ad_name" lay-verify="required" placeholder="{:lang('pleaseEnter')}广告名" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        在4到25个字符之间。
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">链接</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="ad_link" placeholder="{:lang('pleaseEnter')}链接" lay-verify="url" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                        必须是https 或者http
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">图片</label>
+                    <input type="hidden" name="ad_image" id="avatar">
+                    <div class="layui-input-inline">
+                        <div class="layui-upload">
+                            <button type="button" class="layui-btn layui-btn-primary" id="addBtn"><i class="icon icon-upload3"></i>点击上传</button>
+                            <div class="layui-upload-list">
+                                <img class="layui-upload-img" id="addPic">
+                                <p id="notice"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('email')}</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="link_email" lay-verify="email" placeholder="{:lang('pleaseEnter')}邮箱" class="layui-input">
+                    </div>
+
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">日期范围</label>
+                    <div class="layui-input-inline">
+                        <input type="text"  name="time" class="layui-input" id="date" placeholder=" - ">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a data-href="{:url('index')}" class="layui-btn layui-btn-primary back">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin:'Admin',
+    }).use(['table','Admin','form', 'layer','laydate'], function () {
+        var form = layui.form, laydate=layui.laydate,layer = layui.layer,$= layui.jquery;
+        var info = '';
+        //日期范围
+        laydate.render({
+            elem: '#date'
+            ,range: true
+        });
+
+        info = {:json_encode($info)};
+        form.val("form", info);
+        if(info){
+            $('#addPic').attr('src',info.avatar);
+        }
+        form.render();
+    });
+</script>

@@ -1,0 +1,25 @@
+<div class="fly-footer">
+  <p>
+    <a href="javascript:;" target="_blank">Powered by LEMOCMS</a>  <a href="javascript:;" target="_blank">2018-2028 &copy;</a></p>
+  <p>
+    <a href="javascript:;" >版权所有:LEMOCMS版权所有</a>
+    <a href="http://www.lemocms.com/" title="LEMOCMS官网">LEMOCMS官网</a>
+    <a href="https://jq.qq.com/?_wv=1027&k=5wj2Wdy" title="获取源码">社区插件授权获取源码</a>
+    <a href="https://www.lemocms.com/" title="开源后台管理系统">开源后台管理系统</a>
+    <a href="https://demo.lemocms.com/admin.php" title="php cms 后台管理系统">php后台管理系统</a>
+    <a href="http://www.beian.miit.gov.cn">粤ICP备19106066号-2</a>
+  </p>
+</div>
+
+<script src="/static/plugins/layui/layui.js"></script>
+<script>
+var BASE_URL = '{$BASE_URL}';
+layui.cache.page = '';
+layui.cache.user = {:json_encode($user)};
+layui.config({
+  version: '{:time()}'
+  ,base: '/static/addons/bbs/mods/'  //这里实际使用时，建议改成绝对路径
+}).extend({
+  fly: 'index'
+}).use('fly');
+</script>

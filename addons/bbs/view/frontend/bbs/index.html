@@ -1,0 +1,120 @@
+ 
+ 
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>基于 layui 的极简社区页面模版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="keywords" content="fly,layui,前端社区">
+  <meta name="description" content="Fly社区是模块化前端UI框架Layui的官网社区，致力于为web开发提供强劲动力">
+  {include file="common/link" /}
+
+</head>
+<body>
+
+{include file="common/header" /}
+{include file="common/column" /}
+
+
+<div class="layui-container">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md8">
+      <div class="fly-panel" style="margin-bottom: 0;">
+        
+        <div class="fly-panel-title fly-filter">
+          <a href="{:url('bbs/index')}" class="{if input('type')==null}layui-this{/if}">综合</a>
+          <span class="fly-mid"></span>
+          <a href="{:url('bbs/index',['pid'=>input('pid'),'type'=>0])}" class="{if input('type')=='0'}layui-this{/if}">未结</a>
+          <span class="fly-mid"></span>
+          <a href="{:url('bbs/index',['pid'=>input('pid'),'type'=>1])}" class="{if input('type')==1}layui-this{/if}">已结</a>
+          <span class="fly-mid"></span>
+          <a href="{:url('bbs/index',['pid'=>input('pid'),'type'=>2])}" class="{if input('type')==2}layui-this{/if}">精华</a>
+<!--          <span class="fly-filter-right layui-hide-xs">-->
+<!--            <a href="{:url('bbs/index')}?pid={:input('pid')}&&is_solved={:input('is_solved')}&&is_fine={:input('is_fine')}" class="layui-this">按最新</a>-->
+<!--            <span class="fly-mid"></span>-->
+<!--            <a href="{:url('bbs/index')}?pid={:input('pid')}&&is_solved={:input('is_solved')}&&is_fine={:input('is_fine')}">按热议</a>-->
+<!--          </span>-->
+        </div>
+        {if $all}
+        <ul class="fly-list">
+          {volist name='all' id='vo'}
+          <li>
+            <a href="{:url('user/home/',['id'=>$vo.user_id])}" class="fly-avatar">
+              <img src="{$vo.user.avatar}" alt="{$vo['user']['username']}">
+            </a>
+            <h2>
+              <a class="layui-badge">{$vo.cate.title}</a>
+              <a href="{:url('bbs/detail',['id'=>$vo.id])}">{$vo.title}</a>
+            </h2>
+            <div class="fly-list-info">
+              <a href="{:url('user/home/',['id'=>$vo.user_id])}" link>
+                <cite>{$vo.user.username}</cite>
+                                <i class="iconfont icon-renzheng" title="认证信息："></i>
+                <i class="layui-badge fly-badge-vip">VIP{$vo.user.level_id}</i>
+              </a>
+              <span>{:timeAgo($vo.create_time)}</span>
+              {if $vo.score >0 }
+              <span class="fly-list-kiss layui-hide-xs" title="悬赏飞吻"><i class="iconfont icon-kiss"></i> {$vo.score}</span>
+              {/if}
+              {if $vo.is_solved ==1}
+              <span class="layui-badge fly-badge-accept layui-hide-xs">已结</span>
+              {/if}
+              <span class="fly-list-nums">
+                <i class="iconfont icon-pinglun1" title="回答"></i> {$vo.comment_count}
+              </span>
+            </div>
+            <div class="fly-list-badge">
+              {if $vo.is_top ==1}
+              <span class="layui-badge layui-bg-black">置顶</span>
+
+              {/if}
+              {if $vo.is_fine ==1}
+              <span class="layui-badge layui-bg-red">精帖</span>
+              {/if}
+            </div>
+          </li>
+          {/volist}
+        </ul>
+        {else /}
+         <div class="fly-none">没有相关数据</div>
+        {/if}
+        <div style="text-align: center">
+            {$all|raw}
+
+        </div>
+
+      </div>
+    </div>
+    <div class="layui-col-md4">
+      <dl class="fly-panel fly-list-one">
+        <dt class="fly-panel-title">本周热议</dt>
+        {if $hots}
+        {volist name="$hots" id="vo"}
+        <dd>
+          <a href="{:url('detail',['id'=>$vo.id])}">{$vo.title}</a>
+          <span><i class="iconfont icon-pinglun1"></i> {$vo.comment_count}</span>
+        </dd>
+        {/volist}
+        {else /}
+        <!-- 无数据时 -->
+        <div class="fly-none">没有相关数据</div>
+        {/if}
+
+
+      </dl>
+
+      {include file='common/adv' /}
+
+      {include file='common/friend' /}
+
+
+    </div>
+  </div>
+</div>
+
+{include file="common/footer" /}
+<script>layui.cache.page = 'jie';</script>
+
+</body>
+</html>

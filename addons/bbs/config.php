@@ -1,9 +1,9 @@
 <?php
 /**
- * FunAdmin
+ * lemocms
  * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
+ * 版权所有 2018-2027 lemocms，并保留所有权利。
+ * 网站地址: https://www.lemocms.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -13,31 +13,32 @@
 
 return [
     'display' => [
-        'title' => '是否启用:',
+        'title' => '是否启动:',
         'type' => 'radio',
         'rule' => 'required',
         'content' => [
-            '1' => '启用',
-            '0' => '不启用'
+            '1' => '显示',
+            '0' => '不显示'
         ],
-        'value'   => 1,
         'msg'     => '',
         'tips'     => '',
         'ok'      => '',
+        'value'   => '1',
 
     ],
-    'rewrite'=>[
-        'title'=>'路由',
-        'type'=>'array',
-        'rule'=>'',
-        'content' => [
 
+    'rewrite'=>[
+        'title'   => '伪静态',
+        'type'    => 'array',
+        'content' =>[]
+           ,
+        'value'   =>  [
+            'index'=>'index',
         ],
-        'value'=>[
-            'database/backend/index'=>'database/backend/index/index/index',
-            'database/backend/index'=>'database/backend/index/index/index',
-        ],
+        'rule'    => 'required',
+        'msg'     => '',
         'tips'     => '',
         'ok'      => '',
-    ]
+        'extend'  => '',
+    ],
 ];

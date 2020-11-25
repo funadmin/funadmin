@@ -1,0 +1,53 @@
+{include file="common/header"/}
+<div class="LM-container">
+    <div class="LM-main">
+        <div class="admin-main layui-anim layui-anim-upbit">
+            <fieldset class="layui-elem-field layui-field-title">
+                <legend>{$title}</legend>
+            </fieldset>
+            <form class="layui-form layui-form-pane" lay-filter="form">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">天数</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="days" lay-verify="required" placeholder="{:lang('pleaseEnter')}天数" class="layui-input">
+
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">积分</label>
+                    <div class="layui-input-inline">
+                        <input type="text" name="score" lay-verify="required|number" placeholder="{:lang('pleaseEnter')}积分" class="layui-input">
+                    </div>
+                    <div class="layui-form-mid layui-word-aux">
+                       积分整数
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-inline">
+                        <input type="hidden" name="id"  >
+                        <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
+                        <a data-href="{:url('rule')}" class="layui-btn layui-btn-primary back">{:lang('back')}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+{include file="common/footer"/}
+<script>
+    layui.config({
+        base: "/static/admin/js/",
+        version: true
+    }).extend({
+        Admin:'Admin',
+    }).use(['Admin','form'], function () {
+        var form = layui.form, layer = layui.layer,$= layui.jquery;
+        var info = '';
+        info = {:json_encode($info)};
+        form.val("form", info);
+        form.render();
+    });
+</script>

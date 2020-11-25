@@ -1,26 +1,29 @@
 <table class="layui-table layui-hide" id="list" lay-filter="list"></table>
 
 <!--登陆页面-->
-<div style="display: none;padding: 20px" id="login">
-    <blockquote class="layui-elem-quote layui-text">
-        登录提示：账号为 <a  target="_blank" href="https://www.FunAadmin.com">FunAadmin</a> 官方账号
-    </blockquote>
-    <br>
-    <br>
-    <form class="layui-form layui-form-pane" action="">
-        <div class="layui-form-item">
-            <label class="layui-form-label">账号<i class="fa fa-user"></i></label>
-            <div class="layui-input-block">
-                <input type="text" class="layui-input" id="inputUsername" value=""
-                       placeholder="{:lang('username or email')}">
+<script type="text/html" id="login">
+    <div>
+        <blockquote class="layui-elem-quote layui-text">
+            登录提示：账号为 <a target="_blank" href="https://www.FunAadmin.com">FunAadmin</a> 官方账号
+        </blockquote>
+        <br>
+        <br>
+        <form class="layui-form layui-form-pane" action="">
+            <div class="layui-form-item">
+                <label class="layui-form-label">账号<i class="fa fa-user"></i></label>
+                <div class="layui-input-block">
+                    <input type="text" class="layui-input" id="inputUsername" value=""
+                           placeholder="{:lang('username or email')}">
+                </div>
             </div>
-        </div>
-        <div class="layui-form-item">
-            <label class="layui-form-label">密码<i class="fa fa-lock"></i></label>
-            <div class="layui-input-block">
-                <input type="password" class="layui-input" id="inputPassword" value=""
-                       placeholder="{:lang('Your password')}">
+            <div class="layui-form-item">
+                <label class="layui-form-label">密码<i class="fa fa-lock"></i></label>
+                <div class="layui-input-block">
+                    <input type="password" class="layui-input" id="inputPassword" value=""
+                           placeholder="{:lang('Your password')}">
+                </div>
             </div>
-        </div>
-    </form>
-</div>
+        </form>
+    </div>
+
+</script>

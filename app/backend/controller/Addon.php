@@ -258,11 +258,13 @@ class Addon extends Backend
      */
     public function config()
     {
+        $name = $this->request->get("name");
+        $id = $this->request->get("id");
+        $one =  $this->modelClass->find($id);
+        $config = get_addons_config($name);
         if ($this->request->isAjax()) {
-            $params = $this->request->param('config/a',[],'trim');
-            $info =  $this->modelClass->find($this->request->param('id'));
+            $params = $this->request->param('params/a',[],'trim');
             if ($params) {
-                $config = @unserialize($info->config);
                 foreach ($config as $k => &$v) {
                     if (isset($params[$k])) {
                         if ($v['type'] == 'array') {
@@ -281,7 +283,7 @@ class Addon extends Backend
                     }
                 }
                 $config = serialize($config);
-                if($info->save(['config'=>$config])){
+                if($one->save(['config'=>$config])){
                     Service::updateAdddonsConfig();
                     $this->success(lang('edit success'));
                 }else{
@@ -290,27 +292,20 @@ class Addon extends Backend
             }
             $this->error(lang('parameter can not be empty'));
         }
-        $name = $this->request->get("name");
-        $id = $this->request->get("id");
         if (!$name) {
             $this->error(lang('addon name can not be empty'));
         }
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not correct'));
         }
-        $info =  $this->modelClass->find($id);
-        if (!$info) {
+        if (!$one) {
             $this->error(lang('addon config is not found'));
         }
-        $info->config = $info->config ? unserialize($info->config):get_addons_instance($name)->getConfig(true);
-//        //模板引擎初始化
-//        View::engine('Think')->config([
-//            'view_path' => 'view' .DS.'admin'. DS
-//        ]);
-        View::assign("info", $info);
+        //模板引擎初始化
+        $view = ['formData'=>$config,'title'=>$one->name];
         $configFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'config.html';
         $viewFile = is_file($configFile) ? $configFile : '';
-        return view($viewFile);
+        return view($viewFile,$view);
     }
 
     //  是否安装

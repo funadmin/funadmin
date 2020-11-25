@@ -145,7 +145,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
-                    // if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
+                    if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
                     Fun.toastr.confirm('Are you sure you want to install it', function () {
                         let index = layer.load();
                         Fun.ajax({
@@ -160,52 +160,52 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                             });
                         })
                     });
-                    // } else {
-                    //     var index = layer.open({
-                    //         type: 1,
-                    //         content: $("#login"),
-                    //         zIndex: 9999,
-                    //         area: ['450px', '350px'],
-                    //         title: [__('Login') + 'FunAdmin', 'text-align:center'],
-                    //         resize: false,
-                    //         btn: [__('Login'), __('Register')],
-                    //         yes: function (index, layero) {
-                    //             var url = Table.init.requests.api_url + Table.init.requests.login_url;
-                    //             var nonce = getNonce();
-                    //             var timestamp = getTimestamp();
-                    //             var data = {
-                    //                 appid: Table.init.requests.appid,
-                    //                 appsecret: Table.init.requests.appsecret,
-                    //                 username: $("#inputUsername", layero).val(),
-                    //                 password: $("#inputPassword", layero).val(),
-                    //                 nonce: nonce,
-                    //                 key: Table.init.requests.appsecret,
-                    //                 timestamp: timestamp,
-                    //             };
-                    //             var sign = getSign(data);
-                    //             data.sign = sign;
-                    //             $.post(url, data, function (res) {
-                    //                 res = JSON.parse(res)
-                    //                 if (res.code == 200) {
-                    //                     setUserinfo(res.data);
-                    //                     Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
-                    //                 } else {
-                    //                     Fun.toastr.alert(res.message)
-                    //                 }
-                    //             })
-                    //         },
-                    //         btn2: function () {
-                    //             Fun.api.closeCurrentOpen();
-                    //             return false;
-                    //         },
-                    //         success: function (layero, index) {
-                    //             $(".layui-layer-btn1", layero).prop("href", "https://www.FunAdmin.com/bbs/login/reg.html").prop("target", "_blank");
-                    //         },
-                    //         end: function () {
-                    //             $("#login").hide();
-                    //         },
-                    //     });
-                    // }
+                    } else {
+                        var index = layer.open({
+                            type: 1,
+                            content: $("#login").html(),
+                            zIndex: 9999,
+                            area: ['450px', '350px'],
+                            title: [__('Login') + 'FunAdmin', 'text-align:center'],
+                            resize: false,
+                            btn: [__('Login'), __('Register')],
+                            yes: function (index, layero) {
+                                var url = Table.init.requests.api_url + Table.init.requests.login_url;
+                                var nonce = getNonce();
+                                var timestamp = getTimestamp();
+                                var data = {
+                                    appid: Table.init.requests.appid,
+                                    appsecret: Table.init.requests.appsecret,
+                                    username: $("#inputUsername", layero).val(),
+                                    password: $("#inputPassword", layero).val(),
+                                    nonce: nonce,
+                                    key: Table.init.requests.appsecret,
+                                    timestamp: timestamp,
+                                };
+                                var sign = getSign(data);
+                                data.sign = sign;
+                                $.post(url, data, function (res) {
+                                    res = JSON.parse(res)
+                                    if (res.code == 200) {
+                                        setUserinfo(res.data);
+                                        Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
+                                    } else {
+                                        Fun.toastr.alert(res.message)
+                                    }
+                                })
+                            },
+                            btn2: function () {
+                                Fun.api.closeCurrentOpen();
+                                return false;
+                            },
+                            success: function (layero, index) {
+                                $(".layui-layer-btn1", layero).prop("href", "https://www.FunAdmin.com/bbs/login/reg.html").prop("target", "_blank");
+                            },
+                            end: function () {
+                                $("#login").hide();
+                            },
+                        });
+                    }
                 }
                 if (event === 'uninstall') {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
@@ -255,7 +255,6 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
             Controller.api.bindevent()
         },
         api:{
-
             bindevent: function () {
                 Form.api.bindEvent($('form'))
             }
