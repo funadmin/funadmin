@@ -576,12 +576,9 @@ layui.define(["jquery", 'layer'], function (exports) {
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree>.layui-nav-item>a:before{background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
                 '.layui-side.layui-bg-black,.layui-side.layui-bg-black>.layui-side-scroll>ul {background-color:' + themeData.menuLeftBg + '!important;}\n' +
                 '.layui-side-scroll .layui-nav .layui-nav-child a:hover:not(.layui-this){background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
-                '.layui-layout-admin .layui-nav-tree .layui-this,' +
-                '.layui-layout-admin .layui-nav-tree .layui-this>a,' +
-                '.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,' +
-                '.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {background-color: ' + themeData.menuLeftBgThis + ' !important;}\n' +
-                '.layui-pagetabs .layui-tab-title li:hover, ' +
-                '.layui-pagetabs .layui-tab-title li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
+                '.layui-layout-admin .layui-nav-tree .layui-this,.layui-layout-admin .layui-nav-tree .layui-this>a,' +
+                '.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {background-color: ' + themeData.menuLeftBgThis + ' !important;}\n' +
+                '.layui-pagetabs .layui-tab-title li:hover,.layui-pagetabs .layui-tab-title li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
                 '.layui-layout-admin .layui-nav-tree .layui-nav-bar{background:' + themeData.menuLeftBgThis + '!important;}\n';
             $('#fun-bg-color').html(styleHtml);
         },
@@ -603,9 +600,9 @@ layui.define(["jquery", 'layer'], function (exports) {
             });
         },
         /**
-         //  * 监听tab删除
-         //  * @param options
-         //  */
+         * 监听tab删除
+         * @param options
+         */
         listenDeltab: function (options) {
             options.filter = options.filter || null;
             element.on('tabDelete(' + options.filter + ')', function () {
@@ -614,7 +611,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             });
         },
         /**
-         * 监听滚动
+         * 监听左右滚动
          */
         listenScroll: function (type) {
             var tabNav = $('.layui-tab  .layui-tab-title');

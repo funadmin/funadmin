@@ -20,7 +20,6 @@ use fun\helper\FileHelper;
 use fun\addons\Service;
 use think\App;
 use think\Exception;
-use think\facade\View;
 use app\common\model\Addon as AddonModel;
 
 /**

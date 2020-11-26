@@ -1,28 +1,6 @@
-{include file="common/header"/}
-<div class="LM-container">
-    <div class="LM-main">
-            <fieldset class="layui-elem-field layui-field-title">
-                <legend>{:lang('sign rule')}{:lang('list')}</legend>
-                <blockquote class="layui-elem-quote">
-                    <div class="LM-table">
-                        <div class="layui-inline">
-                            <input type="text" id='keys' name="keys" lay-verify="required"
-                                   placeholder="{:lang('pleaseEnter')}" autocomplete="off" class="layui-input">
-                        </div>
-                        <a  href="javascript:;" class="layui-btn data-add-btn layui-btn-sm" lay-submit="" lay-filter="search" id="search">
-                            {:lang('search')}
-                        </a>
-                        <a data-href="{:url('ruleAdd')}" class="layui-btn layui-btn-sm layui-btn-warm add">{:lang('add')}{:lang('user rule')}</a>
 
-                    </div>
 
-                </blockquote>
-
-            </fieldset>
-
-            <table class="layui-table" id="list" lay-filter="list"></table>
-    </div>
-</div>
+<table class="layui-table" id="list" lay-filter="list"></table>
 
 
 <script type="text/html" id="action">

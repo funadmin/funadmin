@@ -10,10 +10,10 @@
  * Author: yuege
  * Date: 2019/9/2
  */
-namespace app\common\model;
-use app\common\model\Common;
+namespace addons\bbs\common\model;
+use app\common\model\BaseModel;
 
-class BbsUserSign extends Common{
+class BbsUserSign extends BaseModel{
 
     public function __construct(array $data = [])
     {
@@ -29,7 +29,7 @@ class BbsUserSign extends Common{
     public function _todayScores($sign_count)
     {
         $score = 0;
-        $scores = BbsUserSignRule::where("days <= $sign_count")->order('days desc')->limit(1)->value('score');
+        $scores = BbsSignRule::where("days <= $sign_count")->order('days desc')->limit(1)->value('score');
         if ($scores) {
             $score = $scores;
         }

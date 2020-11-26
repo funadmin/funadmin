@@ -40,7 +40,7 @@ INSERT INTO `__PREFIX__bbs` (`id`, `pid`, `user_id`, `is_top`, `is_reply`, `comm
 (4, 6, 1, 1, 1, 0, 0, 0, 1, 0, 'lemobbs 春节版发布', NULL, '[pre]\n\nlemobbs  基于最新的lemocms .layui fly  模板开发的社区管理框架，\n\n[/pre]\n集成了权限管理，插件管理，微信管理，内容管理，,restful api 接口等各方面的内容本项目长期更新，\n期待更多的功能 QQ群455019756， 455018252\n\nlemobbs  v1.2管理系统：为二次开发而生，让开发变得更简单\n\n这是一款快速、高效、便捷、灵活的应用开发框架。\n系统采用最新版TinkPHP6框架开发，底层安全可靠，数据查询更快，运行效率更高，网站速度更快, 后续随官网升级而升级\n密码动态加密\n用户信息安全牢固,\n告别简单md5加密\n自适应前端，桌面和移动端访问界面友好简洁，模块清晰。\nlayui采用最新layui2.5.5 框架\neasywechat 采用最新的4.*版本\n后台权限\n站点管理\n日志管理\n内容管理\n模型管理\n会员管理\n微信管理\n插件管理\nrestful api 接口\n...更多', '', '', '', 1, 1, '', 0, '', 88, NULL, 0, '', '', 1580711627, 1580718331),
 (5, 3, 13, 0, 1, 0, 0, 0, 0, 0, '论坛贴无法显示？', NULL, '论坛贴无法显示？', '', '', '', 1, 1, '', 0, '', 8, NULL, 0, '', '', 1580816983, 1580816983);
 
-CREATE TABLE IF NOT EXISTS `__PREFIX__bbs_cate` (
+CREATE TABLE IF NOT EXISTS `__PREFIX__addons_bbs_cate` (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` varchar(20) DEFAULT NULL COMMENT '类别名称',
   `title_alias` varchar(20) DEFAULT NULL COMMENT '别名',

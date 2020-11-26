@@ -1,7 +1,7 @@
 <?php
 
 
-namespace app\common\model;
+namespace addons\bbs\common\model;
 
 use app\common\model\BaseModel;
 

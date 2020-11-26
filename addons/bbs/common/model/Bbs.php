@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2019/8/26
  */
-namespace app\common\model;
+namespace addons\bbs\common\model;
 
 use app\common\model\Common;
 

@@ -167,9 +167,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     transition: all .3s ease
 }
 
-.layui-nav-itemed>a,
-.layui-nav-tree .layui-nav-title a,
-.layui-nav-tree .layui-nav-title a:hover {
+.layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover {
     color: #fff!important
 }
 
@@ -238,10 +236,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     padding: 5px 0
 }
 
-.layui-side-menu .layui-nav-tree .layui-this,
-.layui-side-menu .layui-nav-tree .layui-this>a,
-.layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this,
-.layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
+.layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this>a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
     background-color: #009688 !important
 }
 
@@ -494,10 +489,18 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     width: 60px !important;
     left: 0
 }
-
+/*去掉省略号*/
+layui-nav-tree.header li>a{
+     text-overflow: unset;
+     overflow: hidden;
+     white-space: normal;
+}
 .layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
     line-height: 40px;
-    height: 40px
+    height: 40px;
+    text-overflow: unset;
+    overflow: hidden;
+    white-space: normal;
 }
 
 .layui-side-shrink .layui-layout-admin .layui-logo {

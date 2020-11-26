@@ -1,22 +1,21 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
- * Date: 2019/8/2
+ * Date: 2019/8/26
  */
-namespace app\admin\controller\bbs;
-
-use app\common\controller\Backend;
+namespace addons\bbs\backend\controller;
+use app\common\controller\AddonsBackend;
 use think\facade\Request;
-use app\common\model\BbsComment as CommentModel;
+use addons\bbs\common\model\BbsComment as CommentModel;
 
-class BbsComment extends Backend
+class Comment extends AddonsBackend
 {
 
     public function initialize()
@@ -26,7 +25,7 @@ class BbsComment extends Backend
 
     public function index()
     {
-        if (Request::isPost()) {
+        if ($this->request->isPost()) {
             $keys = $this->request->post('keys', '', 'trim');
             $page = $this->request->post('page') ? $this->request->post('page') : 1;
             $list = CommentModel::where('content', 'like', '%' . $keys . '%')
@@ -57,10 +56,10 @@ class BbsComment extends Backend
     public function state()
     {
         $id = $this->request->post('id');
-        $data = $this->request->post();
-        if ($id and isset($data['field'])) {
+        $post = $this->request->post();
+        if ($id and isset($post['field'])) {
             $model = new CommentModel();
-            $res = $model->state($data);
+            $res = $model->state($post);
             $this->success(lang('edit success'));
 
         } else {

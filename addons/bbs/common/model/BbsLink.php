@@ -1,10 +1,11 @@
 <?php
 
 
-namespace app\common\model;
+namespace addons\bbs\common\model;
 
+use app\common\model\BaseModel;
 
-class BbsLink extends Common {
+class BbsLink extends BaseModel {
 
     public function __construct(array $data = [])
     {

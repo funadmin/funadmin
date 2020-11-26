@@ -23,7 +23,7 @@ class Plugin extends Addons    // 需继承fun\Addon类
 {
 
     public $menu = [
-        'is_nav'=>0,//1导航栏；0 非导航栏
+        'is_nav'=>1,//1导航菜单；0 非导航栏
         'menu'=> [
             'href' => 'admin/wechat',
             'title' => '微信管理',

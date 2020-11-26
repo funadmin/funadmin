@@ -21,18 +21,6 @@ use fun\Addons;
  */
 class Plugin extends Addons    // 需继承fun\Addons类
 {
-    // 该插件的基础信息
-    public $info = [
-        'name' => 'bbs',    // 插件标识唯一
-        'title' => '知识付费社区插件',    // 插件名称
-        'description' => '知识付费社区插件-funadmin',    // 插件简介
-        'status' => 1,    // 状态
-        'author' => 'yuege',
-        'require' => '1.0',
-        'version' => '1.0',
-        'website' => 'https://demo.funadmin.com/bbs'
-
-    ];
     public $menu = [
         'is_nav'=>1,//1导航栏；0 非导航栏
         'menu'=>[ //菜单;
