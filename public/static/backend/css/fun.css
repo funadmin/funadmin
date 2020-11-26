@@ -490,7 +490,8 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     left: 0
 }
 /*去掉省略号*/
-layui-nav-tree.header li>a{
+
+.layui-nav-tree.header li>a{
      text-overflow: unset;
      overflow: hidden;
      white-space: normal;
@@ -513,7 +514,7 @@ layui-nav-tree.header li>a{
 .layui-side-shrink .layui-layout-admin .layui-layout-left,
 .layui-side-shrink .layui-layout-admin .layui-body,
 .layui-side-shrink .layui-layout-admin .layui-footer {
-    left: 0px
+    left: 0;
 }
 
 .layui-side-shrink .layui-pagetabs {
