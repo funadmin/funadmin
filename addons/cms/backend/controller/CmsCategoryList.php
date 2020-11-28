@@ -22,19 +22,17 @@ use fun\helper\ArrayHelper;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Db;
+use think\facade\Config;
 
 class CmsCategoryList extends AddonsBackend
 {
     use Curd;
-    public $filepath;
-    public $_category;
-    public $_list;
-    public $_show;
 
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->modelClass = new CategoryModel();
+
 
     }
     /**--------------------------------------------------------栏目内容管理----------------------------------------------------**/

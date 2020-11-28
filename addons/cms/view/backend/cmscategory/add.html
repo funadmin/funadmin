@@ -19,10 +19,10 @@
                 <div class="layui-tab-item">
                     {:form_input('title','text',['verify'=>'required','label'=>'SEO Title','tips'=>'SEO Title'])}
                     {:form_input('keywords','text',['verify'=>'required','label'=>'SEO keywords','tips'=>'SEO keywords Multiple keywords are separated by spaces'])}
-                    {:form_textarea('Intro',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO description'],'')}
+                    {:form_textarea('intro',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO Intro'],'')}
                 </div>
                 <div class="layui-tab-item">
-                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链'],['filter'=>'type','verify'=>'required','label'=>'PageType'],1)}
+                    {:form_radio('type',[1=>'列表',2=>'单页',3=>'外链','4'=>'栏目封面'],['filter'=>'type','verify'=>'required','label'=>'PageType'],1)}
                     <div id="url">
                     </div>
                     {:form_input('sort','text',['verify'=>'required','label'=>'Sort'],50)}
@@ -34,27 +34,40 @@
                 </div>
                 <div class="layui-tab-item">
                     <div class="layui-form-item">
-                        <label class="layui-form-label">列表模板</label>
+                        <label class="layui-form-label">栏目模板</label>
                         <div class="layui-input-block">
-                            <select name="template_list" lay-verify="required">
-                                <option value="list.html" selected>默认栏目列表页:list.html</option>
-                                {volist name="_list" id="vo"}
+                            <select name="template_column" lay-verify="required">
+                                <option value="column.html" selected>默认栏目列表页:column.html</option>
+                                {volist name="_column" id="vo"}
                                 <option value="{$vo}">{$vo}</option>
                                 {/volist}
                             </select>
                         </div>
                     </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">内容模板</label>
-                        <div class="layui-input-block">
-                            <select name="template_show" lay-verify="required">
-                                <option value="show.html" selected>默认内容页:show.html</option>
-                                {volist name="_show" id="vo"}
-                                <option value="{$vo}">{$vo}</option>
-                                {/volist}
-                            </select>
-                        </div>
-                    </div>
+                   <div class="column">
+                       <div class="layui-form-item">
+                           <label class="layui-form-label">列表模板</label>
+                           <div class="layui-input-block">
+                               <select name="template_list" lay-verify="required">
+                                   <option value="list.html" selected>默认栏目列表页:list.html</option>
+                                   {volist name="_list" id="vo"}
+                                   <option value="{$vo}">{$vo}</option>
+                                   {/volist}
+                               </select>
+                           </div>
+                       </div>
+                       <div class="layui-form-item">
+                           <label class="layui-form-label">内容模板</label>
+                           <div class="layui-input-block">
+                               <select name="template_show" lay-verify="required">
+                                   <option value="show.html" selected>默认内容页:show.html</option>
+                                   {volist name="_show" id="vo"}
+                                   <option value="{$vo}">{$vo}</option>
+                                   {/volist}
+                               </select>
+                           </div>
+                       </div>
+                   </div>
                 </div>
                 <div class="layui-tab-item">
                     {:form_editor('content','container',2,['label'=>'栏目详情'])}

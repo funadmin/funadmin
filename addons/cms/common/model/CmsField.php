@@ -63,7 +63,7 @@ EOF;
         } else {
             //删除字段
             Db::execute("ALTER TABLE  `{$tablename}` DROP  `{$data['field']}`");
-            throw new \Exception('add fail');
+            throw new \Exception(lang('add fail'));
 
         }
         return true;
@@ -121,6 +121,7 @@ EOF;
 
         return true;
     }
+
 
     /**
      * 删除字段
@@ -192,6 +193,5 @@ LEMO;
         return array_search($field, $fields);
 
     }
-
 
 }

@@ -8,7 +8,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 requests: {
                     index_url: 'sys.adminlog/index',
                     delete_url: 'sys.adminlog/delete',
-                    edit_url: 'sys.adminlog/edit',
+                    // edit_url: 'sys.adminlog/edit',
                     edit_close:  {
                         type: 'open',
                         'class': 'layui-btn-xs layui-btn-normal',

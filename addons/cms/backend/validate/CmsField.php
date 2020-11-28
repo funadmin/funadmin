@@ -13,11 +13,11 @@ class CmsField extends Validate
             'require' => 'require',
             'max'     => '20',
         ],
-        'name|字段名' => [
+        'field|字段名' => [
             'require' => 'require',
             'max'     => '20',
         ],
-        'aliasname|别名' => [
+        'name|别名' => [
             'require' => 'require',
             'max'     => '50',
         ],

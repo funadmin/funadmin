@@ -20,13 +20,14 @@ use app\common\traits\Curd;
 use fun\helper\TreeHelper;
 use think\App;
 use think\facade\View;
+use think\facade\Config;
 
 class CmsCategory extends AddonsBackend
 {
     use Curd;
 
     public $filepath;
-    public $_category;
+    public $_column;
     public $_list;
     public $_show;
 
@@ -34,15 +35,21 @@ class CmsCategory extends AddonsBackend
     {
         parent::__construct($app);
         $this->modelClass = new CategoryModel();
+        $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
+        $this->prefix = Config::get('database.connections.mysql.prefix');
+        $theme = $view_config['view_base'];
+        $theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
         //取得当前内容模型模板存放目录
-        $this->filepath = $this->addon_path . 'view' . DIRECTORY_SEPARATOR . 'frontend' . DIRECTORY_SEPARATOR;
+        $this->filepath = $this->addon_path.'view'.DIRECTORY_SEPARATOR.'frontend' . DIRECTORY_SEPARATOR;
         //取得栏目频道模板列表
-        $this->_category = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'category*'));
+        $this->_column = str_replace($this->filepath . DIRECTORY_SEPARATOR.$theme, '', glob($this->filepath .DIRECTORY_SEPARATOR.$theme  . 'column*'));
+        $this->_column = array_combine(array_values($this->_column),$this->_column);
         //取得栏目列表模板列表
-        $this->_list = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'list*'));
+        $this->_list = str_replace($this->filepath . DIRECTORY_SEPARATOR.$theme, '', glob($this->filepath . DIRECTORY_SEPARATOR .$theme. 'list*'));
+        $this->_list = array_combine(array_values($this->_list),$this->_list);
         //取得内容页模板列表
-        $this->_show = str_replace($this->filepath . DIRECTORY_SEPARATOR, '', glob($this->filepath . DIRECTORY_SEPARATOR . 'show*'));
-
+        $this->_show = str_replace($this->filepath . DIRECTORY_SEPARATOR.$theme, '', glob($this->filepath . DIRECTORY_SEPARATOR .$theme. 'show*'));
+        $this->_show = array_combine(array_values($this->_show),$this->_show);
     }
 
     /*-----------------------栏目管理----------------------*/
@@ -78,7 +85,7 @@ class CmsCategory extends AddonsBackend
                 $moduleid = $this->request->post('moduleid');
                 $module = CmsModule::find($moduleid);
                 if ($module) {
-                    $post['module'] = $module->tablename;
+                    $post['tablename'] = $module->tablename;
                 } else {
                     $this->error('模型不存在');
                 }
@@ -112,7 +119,7 @@ class CmsCategory extends AddonsBackend
                 'formData' => $formData,
                 'colGroup' => $colGroup,
                 'moduleGroup' => $moduleGroup,
-                '_category' => $this->_category,
+                '_column' => $this->_column,
                 '_list' => $this->_list,
                 '_show' => $this->_show,
             ];
@@ -137,7 +144,7 @@ class CmsCategory extends AddonsBackend
             $moduleid = $this->request->post('moduleid');
             $module = CmsModule::find($moduleid);
             if ($module) {
-                $post['module'] = $module->tablename;
+                $post['tablename'] = $module->tablename;
             } else {
                 $this->error(lang('module is not exist'));
             }
@@ -159,8 +166,7 @@ class CmsCategory extends AddonsBackend
                 'formData' => $formData,
                 'colGroup' => $colGroup,
                 'moduleGroup' => $moduleGroup,
-                'title' => '编辑',
-                '_category' => $this->_category,
+                '_column' => $this->_column,
                 '_list' => $this->_list,
                 '_show' => $this->_show,
             ];

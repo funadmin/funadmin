@@ -304,7 +304,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             icon: function (d) {
                 var ele = $(this)[0];
                 var icon = d[ele.field];
-                return '<span class="' + icon + '"></span>';
+                return '<i class="' + icon + '"></i>';
 
             },
             //开关
@@ -331,7 +331,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 $.each(ele.operat, function (k, v) {
                     //曾删改查
                     if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || (typeof v !=="object" && typeof eval('requests.' + v +'_url')==='string')) {
-                        console.log(v)
                         var vv;
                         if (v === 'add') {
                             vv = {
@@ -430,7 +429,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     } else if (typeof v==='string' && typeof eval('requests.' + v) === "object") {
                         var vv = {};
                         v =  eval('requests.' + v);
-                        console.log(v.btn)
                         // // 初始化数据
                         vv.class = v.class || '';
                         vv.full = v.full || '';
@@ -462,7 +460,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         if(!vv.icon){
                             vv.icon =  vv.icon + vv.text
                         }
-                        console.log(vv);
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align+ '>' + vv.icon + '</button>';
                         }
