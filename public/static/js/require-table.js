@@ -330,19 +330,19 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var requests = Table.init.requests;
                 $.each(ele.operat, function (k, v) {
                     //曾删改查
+                    var vv;
                     if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || (typeof v !=="object" && typeof eval('requests.' + v +'_url')==='string')) {
-                        var vv;
                         if (v === 'add') {
                             vv = {
                                 type: 'open',
                                 event: 'open',
-                                class: 'layui-btn layui-btn-xs layui-btn-warm',
+                                class: 'layui-btn layui-btn-warm',
                                 text: __('Add'),
                                 title: '',
                                 url: requests.add_url,
                                 icon: 'layui-icon layui-icon-add-circle-fine',
                                 extend: "",
-                                width: '600',
+                                width: '800',
                                 height: '600',
                             };
                         } else if (v === 'edit') {
@@ -355,52 +355,53 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 url: requests.edit_url,
                                 icon: 'layui-icon layui-icon-edit',
                                 extend: "",
-                                width: '600',
+                                width: '800',
                                 height: '600',
                             };
                         } else if(v === 'delete')  {
                             vv = {
                                 type: 'delete',
                                 event: 'request',
-                                class: 'layui-btn layui-btn-danger layui-btn-xs',
+                                class: 'layui-btn layui-btn-danger',
                                 text: __('Delete'),
                                 title: __('Are you sure to delete'),
                                 url: requests.delete_url,
                                 icon: 'layui-icon layui-icon-delete',
                                 extend: "",
-                                width: '600',
+                                width: '800',
                                 height: '600',
                             };
-                        } else if(v=='destroy') {
+                        } else if(v==='destroy') {
                             vv = {
                                 type: 'delete',
                                 event: 'request',
-                                class: 'layui-btn layui-btn-warm layui-btn-xs',
+                                class: 'layui-btn layui-btn-warm',
                                 text: __('Destroy'),
                                 title: __('Are you sure to Destroy'),
                                 url: requests.destroy_url,
                                 icon: 'layui-icon layui-icon-delete',
                                 extend: "",
-                                width: '600',
+                                width: '800',
                                 height: '600',
                             };
                         }else{
                             vv = {
                                 type: 'open',
                                 event: 'open',
-                                class: 'layui-btn layui-btn-warm layui-btn-xs',
+                                class: 'layui-btn layui-btn-warm',
                                 text: __('Open'),
                                 title: __('Open'),
                                 url: eval('requests.'+v +'_url'),
                                 icon: 'layui-icon layui-icon-rate',
                                 extend: "",
-                                width: '600',
+                                width: '800',
                                 height: '600',
                             };
                         }
                         // 初始化数据
                         vv.type = vv.type || '';
                         vv.class = vv.class || '';
+                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
                         vv.event = vv.event || vv.event || '';
                         vv.icon = vv.icon || '';
                         vv.url = vv.url || '';
@@ -427,10 +428,11 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + '>' + vv.icon + '</button>';
                         }
                     } else if (typeof v==='string' && typeof eval('requests.' + v) === "object") {
-                        var vv = {};
+                        vv = {};
                         v =  eval('requests.' + v);
                         // // 初始化数据
                         vv.class = v.class || '';
+                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
                         vv.full = v.full || '';
                         vv.btn = v.btn || '';
                         vv.align = v.align || '';
@@ -467,6 +469,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         var vv = {};
                         // // 初始化数据
                         vv.class = v.class || '';
+                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
                         vv.full = v.full || '';
                         vv.btn = v.btn || '';
                         vv.align = v.align || '';

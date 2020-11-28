@@ -2,16 +2,16 @@ define(['table','form'], function (Table,Form) {
     let Controller = {
         index: function () {
             var $ = layui.jquery,tree = layui.tree;
-            var P_frame_height = parent.layui.$("#homePage").height()-80;
+            var parent_frame_height = parent.layui.$("#homePage").height()-80;
             $(window).on('resize', function () {
                 setTimeout(function () {
-                    P_frame_height = parent.layui.$("#homePage").height();
+                    parent_frame_height = parent.layui.$("#homePage").height();
                     frameheight();
                 }, 100);
             });
 
             function frameheight() {
-                $("#categorys_list").height(P_frame_height);
+                $("#categorys_list").height(parent_frame_height);
             }
             (function () {
                 frameheight();
@@ -21,10 +21,15 @@ define(['table','form'], function (Table,Form) {
                 elem: '#tree'
                 ,data: data
                 ,isJump: false  //link 为参数匹配
+                ,showLine: false  //是否开启连接线
+                ,onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
+                ,showCheckbox: true
                 ,click: function(obj){
                     var data = obj.data;  //获取当前点击的节点数据
                     // if(!data.children){
-                    $('#categorys_list').attr('src',data.href);
+                    if(data.href){
+                        $('#categorys_list').attr('src',data.href);
+                    }
                     // }
                 }
             });
@@ -40,6 +45,7 @@ define(['table','form'], function (Table,Form) {
                     }
                 });
             });
+            Controller.api.bindevent()
 
         },
         list:function (){
@@ -104,6 +110,8 @@ define(['table','form'], function (Table,Form) {
             });
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
+        },
+        page:function (){
             Controller.api.bindevent()
         },
         add: function () {

@@ -2,8 +2,8 @@
 <legend>插件配置-{$title}</legend>
 </fieldset>
 <form class="layui-form" lay-filter="form">
-{foreach name="config" item="vo" key="k"}
-{switch name="vo.type"}
+{foreach name="formData" item="vo" key="k"}
+{switch name="$vo.type"}
 {case value="text"}
 <div class="layui-form-item">
     <label class="layui-form-label">{$vo.title}</label>
@@ -94,11 +94,44 @@
             <i class="layui-icon layui-icon-add-1"></i>
             <i class="layui-icon layui-icon-close"></i>
         </div>
-
-        <br>
-
     </div>
+    <hr>
     {/foreach}
+    <label class="layui-form-label"></label>
+    <div class="layui-inline">
+        <div class="layui-inline">
+            <label class="layui-form-label">Key</label>
+            <div class="layui-input-inline">
+                <input type="text" name="params[rewrite][0][key]" lay-verify="" placeholder="请输入键" autocomplete="off" class="layui-input" value="database/backend/index">                        </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">值</label>
+            <div class="layui-input-inline">
+                <input type="text" name="params[rewrite][0][value]" lay-verify="" placeholder="请输入值" autocomplete="off" class="layui-input" value="database/backend/index/index/index">                        </div>
+        </div>
+        <div class="layui-inline">
+            <i class="layui-icon layui-icon-add-1"></i>
+            <i class="layui-icon layui-icon-close"></i>
+        </div>
+    </div>
+    <hr>
+    <label class="layui-form-label"></label>
+    <div class="layui-inline">
+        <div class="layui-inline">
+            <label class="layui-form-label">Key</label>
+            <div class="layui-input-inline">
+                <input type="text" name="params[rewrite][0][key]" lay-verify="" placeholder="请输入键" autocomplete="off" class="layui-input" value="database/backend/index">                        </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">值</label>
+            <div class="layui-input-inline">
+                <input type="text" name="params[rewrite][0][value]" lay-verify="" placeholder="请输入值" autocomplete="off" class="layui-input" value="database/backend/index/index/index">                        </div>
+        </div>
+        <div class="layui-inline">
+            <i class="layui-icon layui-icon-add-1"></i>
+            <i class="layui-icon layui-icon-close"></i>
+        </div>
+    </div>
     <div class="layui-form-mid layui-word-aux">{if $vo.tips}{$vo.tips|raw}{/if}</div>
 </div>
 {/case}
@@ -107,5 +140,5 @@
 
 <input type="hidden" name="id" value="{:input('id')}" >
 <input type="hidden" name="name" value="{:input('name')}" >
-{:form_submitbtn()}
+{:form_submitbtn(true,['show'=>1])}
 </form>

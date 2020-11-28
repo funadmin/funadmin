@@ -55,7 +55,7 @@ class CmsCategory extends BaseModel
                 $category[$v['id']] = $v;
             }
             self::$category = $category;
-            cache('Category', $category);
+            cache('cms_category', $category);
         }
     }
 
@@ -108,7 +108,7 @@ class CmsCategory extends BaseModel
                 'parentid' => $r['parentid'],
             );
         }
-        cache("Category", $ids);
+        cache("cms_category", $ids);
         return $ids;
     }
 

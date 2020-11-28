@@ -12,6 +12,8 @@
  */
 namespace  addons\cms\backend\controller;
 
+use addons\cms\common\model\CmsAlbum;
+use addons\cms\common\model\CmsFiling;
 use app\common\controller\AddonsBackend;
 use addons\cms\common\model\CmsField;
 use addons\cms\common\model\CmsTags;
@@ -22,7 +24,6 @@ use fun\helper\ArrayHelper;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Db;
-use think\facade\Config;
 
 class CmsCategoryList extends AddonsBackend
 {
@@ -39,7 +40,9 @@ class CmsCategoryList extends AddonsBackend
     public function index(){
         $cate = cache('category_list');
         if(!$cate){
-            $cate = $this->modelClass->field('id,pid,catename,type')->order('sort asc,id asc')->select()->toArray();
+            $cate = $this->modelClass->field('id,pid,catename,type')
+                ->order('sort asc,id asc')
+                ->select()->toArray();
             $cate = $this->_cateTree($cate);
             cache('category_list',$cate);
         }
@@ -58,9 +61,10 @@ class CmsCategoryList extends AddonsBackend
         $cate = $this->modelClass->find($cateId);
         $moduleid = $cate['moduleid'];
         $module = CmsModule::find($moduleid);
-        $title =$cate->catename;
+        $albumlist = CmsAlbum::where('status',1)->column('title','id');
         $formData = [];
-        if($cate->type==0){//列表
+        $cmsfilingModel =new CmsFiling();
+        if($cate->type==1){//列表
             if($this->request->isAjax()){
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 $list = Db::name($module->modulename)->where($where)
@@ -71,41 +75,73 @@ class CmsCategoryList extends AddonsBackend
                 return $result = ['code'=>0,'msg'=>lang('Get Data success'),'data'=>$list['data'],'count'=>$list['total']];
             }
             $view = 'list';
-            return view($view,['title'=>$title,'formData'=>$formData,'cate'=>$cate]);
-
-        }else{
+        }elseif($cate->type==2){//单页
             //添加单页内容
             if($this->request->isPost()) {
                 $post = input('post.');
-                $cate = $this->modelClass->find($cateId);
-                $module = CmsModule::find( $cate['moduleid']);
                 $post['create_time'] = time();
-                unset($post['file']);
-                if($post['id']){
-                    $id= $post['id'];
-                    unset($post['__token__']);
-                    if(isset($post['file'])) unset($post['file']);
-                    $res = Db::name($module->tablename)->save($post);
-                }else{
-                    unset($post['__token__']);
-                    $res = $id =  Db::name($module->tablename)->insertGetId($post);
-                }
+                $res =  $cmsfilingModel->save($post);
                 if($res){
                     if(isset($post['tags']) and $post['tags']){
                         if($module->tablename=='addons_cms_article'){
                             $tagModel = new CmsTags();
-                            $tagModel->addTags($post['tags'],$id);
+                            $tagModel->addTags($post['tags'],$res->id);
                         }
                     }
-                    $this->success(lang('Edit Success'));
+                    $this->success(lang('Modify Success'));
                 }else{
-                    $this->error(lang('Edit Failed'));
+                    $this->error(lang('Modify Failed'));
                 }
             }
-            $formData =  Db::name($module->tablename)->where('cateid',$cateId)->find();
+            $formData =  $cmsfilingModel->where('cateid',$cateId)->find();
+            if($formData){
+                $addonscontent = Db::name($module->tablename)->find($formData->id);
+                $addonscontent?$formData->setData($addonscontent):'';
+            }
             $view = 'page';
-            return view($view,['title'=>$title,'formData'=>$formData,'cate'=>$cate,]);
+        }elseif($cate->type==3){//外链
+            //添加单页内容
+            if($this->request->isPost()) {
+                $post = input('post.');
+                $post['create_time'] = time();
+                $res =  $cmsfilingModel->save($post);
+                if($res){
+                    if(isset($post['tags']) and $post['tags']){
+                        if($module->tablename=='addons_cms_article'){
+                            $tagModel = new CmsTags();
+                            $tagModel->addTags($post['tags'],$res->id);
+                        }
+                    }
+                    $this->success(lang('Modify Success'));
+                }else{
+                    $this->error(lang('Modify Failed'));
+                }
+            }
+            $formData =  $cmsfilingModel->where('cateid',$cateId)->find();
+            $view = 'page';
+
+        }elseif($cate->type==4){//封面
+
+            if($this->request->isPost()) {
+                $post = input('post.');
+                $post['create_time'] = time();
+                $res =  $cmsfilingModel->save($post);
+                if($res){
+                    if(isset($post['tags']) and $post['tags']){
+                        if($module->tablename=='addons_cms_article'){
+                            $tagModel = new CmsTags();
+                            $tagModel->addTags($post['tags'],$res->id);
+                        }
+                    }
+                    $this->success(lang('Modify Success'));
+                }else{
+                    $this->error(lang('Modify Failed'));
+                }
+            }
+            $formData =  $cmsfilingModel->where('cateid',$cateId)->find();
+            $view = 'page';
         }
+        return view($view,['formData'=>$formData,'cate'=>$cate,'albumlist'=>$albumlist]);
 
     }
     //面板
@@ -226,7 +262,9 @@ class CmsCategoryList extends AddonsBackend
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
                 $v['title'] = $v['catename'];
-                $v['href'] = (string)addons_url('list', ['cateid' => $v['id']]);
+                if($v['type']==1 ||$v['type']==2){ //1 列表2 单页，3 外联，4 封面
+                    $v['href'] = addons_url('list', ['cateid' => $v['id']]);
+                }
                 if ($this->_cateTree($cate, $v['id'])) {
                     $v['children'] = $this->_cateTree($cate, $v['id']);
                 }
@@ -234,6 +272,8 @@ class CmsCategoryList extends AddonsBackend
             }
         }
         return $list;
+
+
 
     }
 

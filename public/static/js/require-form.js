@@ -239,8 +239,9 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 if (Config.formData) {
                     form.val("form", Config.formData);
                     form.render();
-                    layui.multiSelect.render();
                 }
+                layui.multiSelect.render();
+
             },
             /**
              * 选择文件

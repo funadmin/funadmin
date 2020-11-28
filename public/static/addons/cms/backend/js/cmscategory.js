@@ -13,7 +13,7 @@ define(['table','form'], function (Table,Form) {
                     flashCache:{
                         type: 'request',
                         url:'addons/cms/backend/cmscategory/flashCache',
-                        class: 'layui-btn-sm layui-btn-warm',
+                        class: 'layui-btn-warm',
                         icon: 'layui-icon layui-icon-fonts-clear',
                         title: __('flashCache'),
                         text: __('flashCache'),
@@ -22,7 +22,7 @@ define(['table','form'], function (Table,Form) {
                     add_full: {
                         type: 'open',
                         url:'addons/cms/backend/cmscategory/add',
-                        class: 'layui-btn-sm layui-btn-green',
+                        class: ' layui-btn-green',
                         icon: 'layui-icon layui-icon-add-circle-fine',
                         title: __('Add'),
                         text: __('Add'),
@@ -31,7 +31,7 @@ define(['table','form'], function (Table,Form) {
                     child: {
                         type: 'open',
                         url:'addons/cms/backend/cmscategory/add',
-                        class: 'layui-btn-sm layui-btn-green',
+                        class: 'layui-btn-green',
                         icon: 'layui-icon layui-icon-add-circle-fine',
                         title: __('child'),
                         text: __('child'),

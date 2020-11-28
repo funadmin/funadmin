@@ -15,25 +15,14 @@ namespace addons\cms\common\model;
 
 use app\common\model\BaseModel;
 
-class CmsFiling extends BaseModel
+class CmsAlbum extends BaseModel
 {
 
-    protected $name = 'addons_cms_filing';
+    protected $name = 'addons_cms_album';
 
     public function __construct(array $data = [])
     {
         parent::__construct($data);
     }
-
-    public function setData($data){
-
-        if (is_object($data)) {
-            $data = get_object_vars($data);
-        }
-        $this->data = array_merge($this->data, $data);
-        return $this;
-
-    }
-
 
 }

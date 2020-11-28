@@ -46,7 +46,6 @@ class Addon extends Backend
     {
         if ($this->request->isAjax()) {
             $list = get_addons_list();
-//            var_dump($list);
             $addons =  $this->modelClass->column('*', 'name');
             foreach ($list as $key => $value) {
                 //是否已经安装过

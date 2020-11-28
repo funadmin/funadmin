@@ -1,21 +1,29 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
-        <form class="layui-form" lay-filter="form" method="post">
-            {:form_input('cateid','hidden',[],$formData.cateid)}
-            {:form_input('id','hidden',[],$formData.id)}
-            {:form_input('title','text',['label'=>'标题','verify'=> 'required','tips'=>'请输入SEO Title'])}
-            {:form_input('keywords','text',['label'=>'关键词','verify'=> 'required','tips'=>'多关键词之间用空格或者“,”隔开'])}
-            {:form_textarea('intro',['label'=>'SEO摘要','verify'=> 'required','tips'=>'SEO摘要'])}
-            {:form_upload('thumb',$formData,['label'=>'thumb','verify'=> 'required',])}
-            {:form_editor('content','content',2,['verify'=> 'required'])}
-            {:form_input('hits','number',['label'=>'hits','verify'=> 'required',])}
-            {:form_input('tags','text',['label'=>'tags','verify'=> 'required','tips'=>'标签（逗号,分割）'])}
-            {:form_input('sort','number',['label'=>'sort','verify'=> 'required',],50)}
-            {:form_radio('status',['Close','Open'],['label'=>'Status','verify'=> 'required',],1)}
-            {:form_submitbtn()}
-    </form>
-    </div>
-</div>
+<form class="layui-form" lay-filter="form" method="post">
+    {:form_input('cateid','hidden',[],$formData?$formData.cateid:"")}
+    {:form_input('id','hidden',[],$formData?$formData.id:'')}
+    {:form_input('title','text',['label'=>'title','verify'=> 'required','tips'=>'Title'])}
+    {:form_input('seotitle','text',['label'=>'seotitle','tips'=>'SEO Title'])}
+    {:form_input('keywords','text',['label'=>'keywords','verify'=> 'required','tips'=>'Separate with spaces or ","'])}
+    {:form_textarea('intro',['label'=>'SEO Intro','verify'=> 'required','tips'=>'SEO Intro'])}
+    {:form_select('albumid',$albumlist,['label'=>'album'])}
+    {:form_input('author','text',['label'=>'author','tips'=>'author'])}
+    {:form_upload('thumb',$formData,['label'=>'thumb',])}
+    {:form_editor('content','content',2)}
+    {:form_input('diyname','text',['label'=>'diyname',])}
+    {:form_input('hits','number',['label'=>'hits','verify'=> 'required',])}
+    {:form_input('tags','text',['label'=>'tags','verify'=> 'required','tips'=>'Comma separated'])}
+    {:form_select('flags',['hot'=>'hot','new'=>'new','recommend'=>"recommend",'top'=>'top'],['label'=>'flags','multiple'=>1])}
+    {:form_radio('is_comment',['1'=>'Yes', '0'=>'No'],['label'=>'iscomment'],1)}
+    {:form_radio('is_read',['1'=>'Yes', '0'=>'No'],['label'=>'is_read'],1)}
+    {:form_input('comments','number',['label'=>'comments'],500)}
+    {:form_input('like','number',['label'=>'like',],50)}
+    {:form_input('dislike','number',['label'=>'dislike',],50)}
+    {:form_input('price','text',['label'=>'price',],0)}
+    {:form_input('sort','number',['label'=>'sort',],50)}
+    {:form_date('publish_time',['label'=>'PublishTime'])}
+    {:form_radio('status',[1=>'Open',0=>'Close'],['label'=>'Status',],1)}
+    {:form_submitbtn(true,['show'=>1])}
+</form>
 <script>
     var cate = {:json_encode($cate)}
 </script>
