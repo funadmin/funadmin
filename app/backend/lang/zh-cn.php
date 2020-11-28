@@ -185,6 +185,7 @@ return [
     'Addon'  =>  '插件',
     'AddonName'  =>  '插件名',
     'Languages'  =>  '语言',
+    'sysset'  =>  '系统设置',
 
 
 ];

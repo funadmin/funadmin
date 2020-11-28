@@ -8,10 +8,19 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 requests: {
                     index_url: 'sys.adminlog/index',
                     delete_url: 'sys.adminlog/delete',
-                    edit_url:   'sys.adminlog/edit',
+                    edit_url: 'sys.adminlog/edit',
+                    edit_close:  {
+                        type: 'open',
+                        'class': 'layui-btn-xs layui-btn-normal',
+                        icon: 'layui-icon layui-icon-edit',
+                        url: 'sys.adminlog/edit',
+                        text: __('List'),
+                        title: __('List'),
+                        btn:['close'],
+                    } ,
                     delall_url: {
                         type: 'delete',
-                        class: 'layui-btn-sm layui-btn-danger',
+                        'class': 'layui-btn-sm layui-btn-danger',
                         icon: 'layui-icon layui-icon-delete',
                         url: 'sys.adminlog/delete?id=all',
                         text: __('DeleteAll'),
@@ -44,7 +53,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit','delete']
+                        operat: ['edit_close','delete','de']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],

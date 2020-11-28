@@ -17,7 +17,7 @@ body{background:#f1f4f6;padding:10px}
 .layui-layer.layui-layer-dialog .layui-layer-btn0{background-color:#1aa094 !important}
 .layui-table-tool-temp{padding-right:120px}
 .layui-form > .layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;right:5px}
-.center{text-align:center}
+.layui-btn-center{text-align:center}
 .layui-upload-list li{display:inline-block}
 .layui-upload-list li i{background:#f2f2f2;cursor:pointer}
 #searchFieldList_list form{padding:10px}
@@ -33,11 +33,13 @@ body{background:#f1f4f6;padding:10px}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:none!important;opacity:.7}
 .fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:none!important;opacity:.7}
 .fun-layer-class .layui-layer-setwin > a:focus{text-decoration:none !important}
+.layui-form-item.layui-btn-center button:first-child{background:#2c3e50;color:#fff;border:none}
+.layui-form-item.layui-btn-center button:last-child{background:#ccc}
 .fun-layer-class .layui-layer-title{background:#2c3e50 !important;color:#fff;border:none}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
 .fun-layer-class .layui-layer-setwin .layui-layer-close1:after{content:"\e626"}
-.fun-layer-class .layui-layer-btn a{background:#333}
-.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#999}
+.fun-layer-class .layui-layer-btn a{background:#2c3e50;border-radius: 3px;}
+.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccc}
 /* 偶数行背景色 */
 .layui-table[lay-even] tr:nth-child(even) {
     background-color: #eee;

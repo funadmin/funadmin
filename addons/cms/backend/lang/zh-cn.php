@@ -40,8 +40,8 @@ return [
     'status'=>'状态',
     'Ispage'=>'是否单页',
     'sort'=>'排序',
-    'close'=>'开启',
-    'open'=>'关闭',
+    'close'=>'关闭',
+    'open'=>'开启',
     'yes'=>'是',
     'no'=>'否',
 ];

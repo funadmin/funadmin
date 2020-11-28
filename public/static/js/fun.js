@@ -267,6 +267,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     height: othis.attr('lay-height'),
                     isResize: othis.attr('lay-resize'),
                     full: othis.attr('lay-full'),
+                    btn: othis.attr('lay-btn'),
+                    btnAlign: othis.attr('lay-align'),
 
                 };
                 Fun.api.open(options)
@@ -291,6 +293,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 var width = $win.width();
                 return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
             },
+            //打开新窗口
             open: function (options) {
                 var title = options.title,
                     url = options.url, width = options.width,
@@ -303,15 +306,29 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 height = height || '600';
                 width = width+'px';
                 height = height+'px';
-                if(isFull){
-                    width = '100%';
-                    height = '100%';
+                if(isFull){width = '100%';height = '100%';}
+                var btns = [];
+                if( options.btn === undefined ){
+                    btns = ['submit', 'close'];
+                    options.btn_lang = [__('submit'), __('close')];
+                }else{
+                    btnsdata = options.btn
+                    btnsdata = (btnsdata.split(','))
+                    options.btn_lang = [];
+                    $.each(btnsdata,function(k,v){
+                        options.btn_lang[k]  = __(v);
+                        btns.push(v);
+                    })
+
+                }
+                if( options.btnAlign === undefined ){
+                    options.btnAlign = 'c';
                 }
                 options = {
                     title: title,
                     type: 2,
                     area: [width,height],
-                    content: url,
+                    content: [url],
                     shadeClose: true,
                     anim: 0,
                     isOutAnim: true,
@@ -319,8 +336,35 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     moveOut: true,
                     resize: isResize,
                     scrollbar: true,
+                    btnAlign:options.btnAlign,
+                    btn:options.btn_lang,
+                    success: function(layero, index){
+                        try{
+                            var frameId= layero[0].getElementsByTagName("iframe")[0].id;
+                            layero.addClass('layui-form');
+                            // 将保存按钮改变成提交按钮
+                            layero.find('.layui-layer-btn.layui-layer-btn-c').css('background','#f3f6f6');
+                        } catch(err) {
+                            //在此处理错误
+                        }
+                    },
+                    yes: function(index, layero){
+                        try{
+                            var frameId= layero[0].getElementsByTagName("iframe")[0].id;
+                            console.log(btns)
+                            $("#"+frameId).contents().find('button[type="'+btns[0]+'"]').trigger('click');
+                            $("#"+frameId).contents().find('.layui-hide').hide();
+                        } catch(err) {
+                            parent.layer.close(index);
+                        }
+                        return false;
+                    },
+                    btn2: function(index){
+                        parent.layer.closeAll(index);
+                    },
 
                 }
+                console.log(options)
                 var index = layer.open(options);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layer.full(index);
