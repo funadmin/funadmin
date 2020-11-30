@@ -189,7 +189,7 @@ class PredisService extends AbstractService
      * @param int $count
      * @return mixed
      */
-    public function lTrim($key, $start = 1, $end = -1, $count = 3)
+    public function lTrim($key, $start = 1, $end = -1)
     {
 
         return $this->redisObj[$this->sign]->lTrim($key, $start, $end);
@@ -205,7 +205,16 @@ class PredisService extends AbstractService
         return $this->redisObj[$this->sign]->lLen($key);
     }
 
-
+    /**移除list 指定value
+     * @param $key
+     * @param $value
+     * @param int $count 0 表示移除全部
+     * @return string
+     */
+    public function lRem($key,$value,$count=0)
+    {
+        return $this->redisObj[$this->sn]->lRem($key,$value, $count);
+    }
     /*------------------------------------2.end list结构----------------------------------------------------*/
 
 
