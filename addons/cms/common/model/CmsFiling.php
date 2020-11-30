@@ -25,15 +25,6 @@ class CmsFiling extends BaseModel
         parent::__construct($data);
     }
 
-    public function setData($data){
-
-        if (is_object($data)) {
-            $data = get_object_vars($data);
-        }
-        $this->data = array_merge($this->data, $data);
-        return $this;
-
-    }
 
 
 }
