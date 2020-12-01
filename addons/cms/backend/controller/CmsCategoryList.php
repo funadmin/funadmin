@@ -75,7 +75,7 @@ class CmsCategoryList extends AddonsBackend
                 return $result = ['code'=>0,'msg'=>lang('Get Data success'),'data'=>$list['data'],'count'=>$list['total']];
             }
             $view = 'list';
-        }elseif($cate->type==2){//单页
+        }elseif($cate->type==2 || $cate->type==4){//单页
             //添加单页内容
             if($this->request->isPost()) {
                 $post = input('post.');
@@ -99,56 +99,13 @@ class CmsCategoryList extends AddonsBackend
                 $addonscontent?$formData->setData($addonscontent):'';
             }
             $view = 'page';
-        }elseif($cate->type==3){//外链
-            //添加单页内容
-            if($this->request->isPost()) {
-                $post = input('post.');
-                $post['create_time'] = time();
-                $res =  $cmsfilingModel->save($post);
-                if($res){
-                    if(isset($post['tags']) and $post['tags']){
-                        if($module->tablename=='addons_cms_article'){
-                            $tagModel = new CmsTags();
-                            $tagModel->addTags($post['tags'],$res->id);
-                        }
-                    }
-                    $this->success(lang('Modify Success'));
-                }else{
-                    $this->error(lang('Modify Failed'));
-                }
-            }
-            $formData =  $cmsfilingModel->where('cateid',$cateId)->find();
-            $view = 'page';
-
-        }elseif($cate->type==4){//封面
-
-            if($this->request->isPost()) {
-                $post = input('post.');
-                $post['create_time'] = time();
-                $res =  $cmsfilingModel->save($post);
-                if($res){
-                    if(isset($post['tags']) and $post['tags']){
-                        if($module->tablename=='addons_cms_article'){
-                            $tagModel = new CmsTags();
-                            $tagModel->addTags($post['tags'],$res->id);
-                        }
-                    }
-                    $this->success(lang('Modify Success'));
-                }else{
-                    $this->error(lang('Modify Failed'));
-                }
-            }
-            $formData =  $cmsfilingModel->where('cateid',$cateId)->find();
-            $view = 'page';
         }
         return view($view,['formData'=>$formData,'cate'=>$cate,'albumlist'=>$albumlist]);
-
     }
     //面板
     public function board(){
         $formData['category'] = $this->modelClass->count();
         $formData['module'] = CmsModule::count();
-
         return view('board',['formData'=>$formData]);
     }
     //添加信息

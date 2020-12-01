@@ -9,9 +9,9 @@ h1,h2,h3{font-size: 14px;}
 
 /* 头部 */
 .header{height: 59px; border-bottom: 1px solid #fff;
-  background: -moz-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgb(17, 69, 131) 100%);
-  background: -webkit-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgba(30, 33, 133, 0.95) 100%);
-  background: linear-gradient(to right, rgba(60, 64, 143, 0.95) 0%, rgba(23, 28, 117, 0.95) 100%);
+  background: -moz-linear-gradient(left, rgb(24, 32, 47) 0%, rgb(15, 49, 90) 100%);
+  background: -webkit-linear-gradient(left, rgb(24, 32, 47) 0%, rgba(20, 22, 105, 0.95) 100%);
+  background: linear-gradient(to right, rgb(24, 32, 47) 0%, rgba(19, 23, 95, 0.95) 100%);
 }
 .logo{position: absolute; left: 0; top: 16px;color: #Fff}
 .logo img{width: 82px; height: 31px;}
@@ -41,8 +41,7 @@ h1,h2,h3{font-size: 14px;}
 
 
 .component{position: absolute; width: 160px; left: 120px; top: 16px; }
-.component .layui-input{height: 30px; padding-left: 12px;
-  background-color: #424652; background-color: rgba(255,255,255,.05); border: none 0; color: #fff; color: rgba(255,255,255,.5); font-size: 12px;}
+.component .layui-input{height: 30px; padding-left: 12px;background-color: #424652; background-color: rgba(255,255,255,.05); border: none 0; color: #fff; color: rgba(255,255,255,.5); font-size: 12px;}
 .component .layui-form-select .layui-edge{display: none; border-top-color: #999;}
 .component .layui-form-select dl{top: 36px; background-color: rgba(255,255,255,.9)}
 .header-demo .component{left: 185px;}
@@ -55,9 +54,9 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
 
 /* 首页banner部分 */
 .site-banner{position: relative; height: 600px; text-align: center; overflow: hidden; background-color: #393D49;
-  background: -moz-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgb(17, 69, 131) 100%);
-  background: -webkit-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgba(30, 33, 133, 0.95) 100%);
-  background: linear-gradient(to right, rgba(60, 64, 143, 0.95) 0%, rgba(23, 28, 117, 0.95) 100%);
+  background: -moz-linear-gradient(left, rgb(24, 32, 47) 0%, rgb(15, 49, 90) 100%);
+  background: -webkit-linear-gradient(left, rgb(24, 32, 47) 0%, rgba(20, 22, 105, 0.95) 100%);
+  background: linear-gradient(to right, rgb(24, 32, 47) 0%, rgba(19, 23, 95, 0.95) 100%);
 }
 .overlay {
     position: absolute;
@@ -67,9 +66,9 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
     bottom: 0;
 }
 .overlay {
-  background: -moz-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgb(17, 69, 131) 100%);
-  background: -webkit-linear-gradient(left, rgba(60, 64, 143, 0.95) 0%, rgba(30, 33, 133, 0.95) 100%);
-  background: linear-gradient(to right, rgba(60, 64, 143, 0.95) 0%, rgba(23, 28, 117, 0.95) 100%);
+  background: -moz-linear-gradient(left, rgb(24, 32, 47) 0%, rgb(15, 49, 90) 100%);
+  background: -webkit-linear-gradient(left, rgb(24, 32, 47) 0%, rgba(20, 22, 105, 0.95) 100%);
+  background: linear-gradient(to right, rgb(24, 32, 47) 0%, rgba(19, 23, 95, 0.95) 100%);
 }
 .site-banner-bg
 ,.site-banner-main{position: absolute; left: 0; top: 0; width: 100%; height: 100%;}
@@ -149,7 +148,7 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
 }
 .container legend{margin-bottom: 50px;padding:0 30px;text-align: center;align-items: center}
 .layui-container .layui-icon{
-  background-color: rgba(23, 28, 117, 0.95);
+  background-color: rgb(25, 50, 90);
   color: #fff;
   padding: 15px;
   border-radius: 50%;
