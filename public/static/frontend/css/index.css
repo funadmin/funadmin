@@ -31,14 +31,11 @@ h1,h2,h3{font-size: 14px;}
 .header-index[summer]{border: none; background-color: #fff}
 .header-index[autumn]{border: none; background-color: #fff}
 .header-index[winter]{border: none; background-color: #fff/*#06041C*/}
-
 .header-demo{height: 60px; border-bottom: none;}
 .header-demo .logo{left: 40px;}
 .header-demo .layui-nav{top: 0;}
 .header-demo .layui-nav .layui-nav-item{margin: 0 10px;}
-
 .header-demo .layui-nav .layui-this a{padding: 0 30px;}
-
 
 .component{position: absolute; width: 160px; left: 120px; top: 16px; }
 .component .layui-input{height: 30px; padding-left: 12px;background-color: #424652; background-color: rgba(255,255,255,.05); border: none 0; color: #fff; color: rgba(255,255,255,.5); font-size: 12px;}
@@ -46,11 +43,9 @@ h1,h2,h3{font-size: 14px;}
 .component .layui-form-select dl{top: 36px; background-color: rgba(255,255,255,.9)}
 .header-demo .component{left: 185px;}
 
-
 /* 底部 */
 .footer{padding: 30px 0; line-height: 30px; text-align: center; color: #666; font-weight: 300;}
 body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 5px 0;}
-
 
 /* 首页banner部分 */
 .site-banner{position: relative; height: 600px; text-align: center; overflow: hidden; background-color: #393D49;
