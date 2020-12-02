@@ -42,7 +42,7 @@ class Attach extends Backend
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
                 ->select();
-            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
         return view();

@@ -1,8 +1,16 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
-        <form class="layui-form" lay-filter="form" method="post">
-            {include file="backend/cmscategorylist/field" /}
-            {:form_submitbtn()}
-        </form>
+<form class="layui-form" lay-filter="form" method="post">
+    {:form_input('title','text',['label'=>'title','verify'=>'required'])}
+    {:form_input('seotitle','text',['label'=>'seotitle'])}
+    {:form_tags('keywords','keywords',['label'=>'keywords'])}
+    {:form_color('titlestyle','titlestyle[]',['label'=>'Title Color','search'=>1],'#eee')}
+    <div class="layui-form-item">
+        <label class="layui-form-label">{:lang('Bold')}</label>
+        <div class="layui-input-block">
+            <input type="checkbox" name="titlestyle[]" value="bold" title="{:lang('Bold')}">
+        </div>
     </div>
-</div>
+    {:form_input('seotitle','text',['label'=>'title','verify'=>'required'])}
+
+    {include file="backend/cmscategorylist/field" /}
+    {:form_submitbtn()}
+</form>

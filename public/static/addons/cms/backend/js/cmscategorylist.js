@@ -23,7 +23,7 @@ define(['table','form'], function (Table,Form) {
                 ,isJump: false  //link 为参数匹配
                 ,showLine: false  //是否开启连接线
                 ,onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
-                ,showCheckbox: true
+                // ,showCheckbox: true
                 ,click: function(obj){
                     var data = obj.data;  //获取当前点击的节点数据
                     // if(!data.children){
@@ -89,12 +89,11 @@ define(['table','form'], function (Table,Form) {
                     {checkbox: true, fixed: true},
                     {field: 'id', title: 'ID', width: 80, fixed: true,},
                     {field: 'title', title: __('Title'), width: 150,},
-                    {field: 'sort', title:  __('sort'), width: 80,edit:true},
                     {field: 'hits', title:  __('Hits'), width: 80},
+                    {field: 'is_read', title:  __('Read'), width: 80},
                     {field: 'status', title: __('Status'),filter: 'status',width:100,templet: Table.templet.switch},
-                    {field: 'is_menu', title: __('Ismenu'), width: 100,filter: 'status', templet: Table.templet.switch,},
+                    {field: 'sort', title:  __('sort'), width: 80,edit:true},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
-                    {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {
                         align: 'center', title: __('Operat'), init: Table.init,
                         templet : Table.templet.operat, operat: ['edit','delete']

@@ -46,11 +46,11 @@
                         <i class="layui-icon layui-icon-website"></i>
                     </a>
                 </li>
-                <li class="layui-nav-item" lay-unselect>
+                <li class="layui-nav-item layui-hide-xs" lay-unselect>
                     <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" lay-ajax="{:__u('ajax/clearcache')}"><i
                             class="layui-icon layui-icon-refresh-1"></i></a>
                 </li>
-                <li class="layui-nav-item layui-hide-xs" lay-unselect>
+                <li class="layui-nav-item " lay-unselect>
                     <a href="javascript:;" lay-event="clear" title="{:lang('Clear')}" lay-ajax="{:__u('ajax/clearcache')}"><i
                             class="layui-icon layui-icon-fonts-clear"></i></a>
                 </li>
@@ -73,8 +73,9 @@
                         <dd><a lay-id="fun-safe" lay-href="{:__u('auth.admin/password')}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
                         <dd><a lay-event="logout" lay-ajax="{:__u('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
                     </dl>
+                    注销
                 </li>
-                <li class="layui-nav-item">
+                <li class="layui-nav-item layui-hide-xs">
                     <a href="javascript:;">
                         {:lang('language')}
                     </a>

@@ -8,7 +8,7 @@ return [
     // 缓存的键值，默认使用来源ip
     'key' => true,
     // 设置访问频率，例如 '10/m' 指的是允许每分钟请求10次。默认值 null 表示不限制 eg: 10/m  20/h  300/d
-    'visit_rate' => '50/m',
+    'visit_rate' => '100/m',
     // 访问受限时返回的http状态码
     'visit_fail_code' => 429,
     // 访问受限时访问的文本信息

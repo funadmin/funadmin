@@ -247,7 +247,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
              * 选择文件
              */
             chooseFiles: function () {
-                var fileSelectList = document.querySelectorAll("*[lay-upload-select]");
+                var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-select\"]");
                 if (fileSelectList.length > 0) {
                     $.each(fileSelectList, function () {
                         var uploadType = $(this).attr('lay-type'),

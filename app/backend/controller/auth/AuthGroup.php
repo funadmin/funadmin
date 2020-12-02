@@ -36,7 +36,7 @@ class AuthGroup extends Backend
                 ->order('id asc')
                 ->page($this->page, $this->pageSize)
                 ->select();
-            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
         return view();
@@ -57,9 +57,9 @@ class AuthGroup extends Backend
             $this->validate($post, $rule);
             $result =  $this->modelClass->save($post);
             if ($result) {
-                $this->success(lang('Add Success'));
+                $this->success(lang('operation success'));
             } else {
-                $this->error(lang('Add Failed'));
+                $this->error(lang('operation failed'));
             }
 
         } else {
@@ -85,9 +85,9 @@ class AuthGroup extends Backend
             }
             $res = $list->save($post);
             if($res){
-                $this->success(lang('Edit Success'));
+                $this->success(lang('operation success'));
             }else{
-                $this->error(lang('Edit Failed'));
+                $this->error(lang('operation failed'));
             }
 
         } else {

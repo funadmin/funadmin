@@ -93,7 +93,7 @@ define(["jquery",'croppers'], function ($,croppers) {
             },
 
             uploads: function () {
-                var uploadList = document.querySelectorAll("[lay-upload]");
+                var uploadList = document.querySelectorAll("[lay-filter=\"upload\"]");
                 if (uploadList.length > 0) {
                     $.each(uploadList, function (i, v) {
                         //普通图片上传
@@ -197,7 +197,7 @@ define(["jquery",'croppers'], function ($,croppers) {
 
             },
             cropper:function (){
-                var cropperlist = document.querySelectorAll("*[lay-cropper]");
+                var cropperlist = document.querySelectorAll("*[lay-filter='cropper']");
                 if (cropperlist.length > 0) {
                     $.each(cropperlist, function () {
                         //创建一个头像上传组件

@@ -80,9 +80,9 @@ class Auth extends Backend
             ];
             $this->validate($post, $rule);
             if ($this->modelClass->save($post)) {
-                $this->success(lang('Add Success'));
+                $this->success(lang('operation success'));
             } else {
-                $this->error(lang('Add Failed'));
+                $this->error(lang('operation failed'));
             }
         } else {
             $list = $this->modelClass
@@ -106,7 +106,7 @@ class Auth extends Backend
             $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $model = $this->findModel($this->request->param('id'));
             $model->save($post);
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
         } else {
             $list = $this->modelClass
                 ->order('sort asc')
@@ -136,7 +136,7 @@ class Auth extends Backend
             $this->validate($post, $rule);
             $save = $this->modelClass->save($post);
             Cache::delete('ruleList_' . $this->uid);
-            $save ? $this->success(lang('Add Success')) : $this->error(lang('Add Failed'));
+            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         } else {
             $ruleList =$this->modelClass
                 ->order('sort asc')

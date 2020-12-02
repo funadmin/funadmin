@@ -1,9 +1,10 @@
-define(['jquery','iconPicker','cityPicker','timePicker','regionCheckBox','multiSelect','upload'],
-function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) {
+define(['jquery','iconPicker','cityPicker','inputTags','timePicker','regionCheckBox','multiSelect','upload'],
+function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelect,Upload) {
     var iconPicker = layui.iconPicker,
         timePicker = layui.timePicker,
         regionCheckBox = layui.regionCheckBox,
         cityPicker = layui.cityPicker,
+        inputTags = layui.inputTags,
         laydate = layui.laydate,
         layedit = layui.layedit,
         colorPicker = layui.colorpicker;
@@ -12,7 +13,7 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
         //事件
         events: {
             editor:function (){
-                var list = document.querySelectorAll("*[lay-editor]");
+                var list = document.querySelectorAll("*[lay-filter='editor']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         if($(this).attr('lay-editor')==2){
@@ -29,6 +30,24 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
 
                 }
 
+            },
+            tags:function (){
+                var list = document.querySelectorAll("*[lay-filter='tags']");
+                if (list.length > 0) {
+                    $.each(list, function () {
+                        var _that = $(this);
+                        var id = _that.attr('id');
+                        inputTags.render({
+                            elem:'#'+id,//定义输入框input对象
+                            content: [],//默认标签
+                            done: function(value){ //回车后的回调
+
+                            }
+                        })
+
+
+                    })
+                }
             },
             icon: function () {
                 var list = document.querySelectorAll("*[lay-filter='iconPickers']");
@@ -157,7 +176,7 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 }
             },
             date: function () {
-                var list = document.querySelectorAll("*[lay-date]");
+                var list = document.querySelectorAll("*[lay-filter='date']");
                 if (list.length > 0) {
                     $.each(list, function () {
                         var format = $(this).attr('lay-format'),
@@ -199,6 +218,7 @@ function ($,iconPicker,cityPicker,timePicker,regionCheckBox,multiSelect,Upload) 
                 var events = Fu.events;
                 events.icon();
                 events.color();
+                events.tags();
                 events.city();
                 events.date();
                 events.timepicker();

@@ -1,8 +1,9 @@
 /*
 * @Author: layui-2
 * @Date:   2018-08-31 11:40:42
-* @Last Modified by:   layui-2
-* @Last Modified time: 2018-09-04 14:44:38
+* @Last Modified by:   yuege
+* 根据inputTags修改
+* @Last Modified time: 2020-09-04 14:07:38
 */
 layui.define(['jquery','layer'],function(exports){
   "use strict";
@@ -19,7 +20,6 @@ layui.define(['jquery','layer'],function(exports){
       that.config = $.extend({}, that.config, options);
       return that;
     }
-
     // 事件监听
     ,on: function(events, callback){
       return layui.onevent.call(this, MOD_NAME, events, callback)
@@ -61,12 +61,12 @@ layui.define(['jquery','layer'],function(exports){
     var that = this
     ,spans = ''
     ,options = that.config
-    ,span = document.createElement("span"),
-    spantext = $(span).text("获取全部数据").addClass('albtn');
-    if(options.aldaBtn){
-      $('body').append(spantext)
-    }
-    
+    ,span = document.createElement("span");
+    // spantext = $(span).text("获取全部数据").addClass('albtn');
+    // if(options.aldaBtn){
+    //   $('body').append(spantext)
+    // }
+
     $.each(options.content,function(index,item){
       spans +='<span><em>'+item+'</em><button type="button" class="close">×</button></span>';
       // $('<div class="layui-flow-more"><a href="javascript:;">'+ ELEM_TEXT +'</a></div>');
@@ -81,8 +81,7 @@ layui.define(['jquery','layer'],function(exports){
     options.elem = $(options.elem);
     that.enter()
   };
-
-  // 回车生成标签
+  //  空格生成标签
   Class.prototype.enter = function(){
     var that = this
     ,spans = ''
@@ -90,7 +89,7 @@ layui.define(['jquery','layer'],function(exports){
     options.elem.focus();
     options.elem.keypress(function(event){  
       var keynum = (event.keyCode ? event.keyCode : event.which);  
-      if(keynum == '13'){  
+      if(keynum == '32'){
         var $val = options.elem.val().trim();
         if(!$val) return false;
         if(options.content.indexOf($val) == -1){
@@ -98,27 +97,32 @@ layui.define(['jquery','layer'],function(exports){
           that.render()
           spans ='<span><em>'+$val+'</em><button type="button" class="close">×</button></span>';
           options.elem.before(spans)
+          var content = '';
+          $.each(options.content, function (index, val) {content += val+',';})
+          options.elem.siblings('input[type="hidden"]').val($.trim(content,','));
         }
         options.done && typeof options.done === 'function' && options.done($val);
         options.elem.val('');
-      }   
+      }
     })
   };
-  
   //事件处理
   Class.prototype.events = function(){
      var that = this
     ,options = that.config;
-    $('.albtn').on('click',function(){
-      console.log(options.content)
-    })
-    $('#tags').on('click','.close',function(){
-      var Thisremov = $(this).parent('span').remove(),
-      ThisText = $(Thisremov).find('em').text();
+    // $('.albtn').on('click',function(){
+    //   console.log(options.content)
+    // })
+    $('.tags').on('click','.close',function(){
+      var ThisText = $(this).parent('span').find('em').text();
       options.content.splice($.inArray(ThisText,options.content),1)
+      var content = '';
+      $.each(options.content, function (index, val) {content += val+',';})
+      $(this).parents('span').siblings('input[type="hidden"]').val($.trim(content,','))
+      $(this).parent('span').remove();
+
     })
   };
-
   //核心入口
   inputTags.render = function(options){
     var inst = new Class(options);

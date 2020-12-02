@@ -90,9 +90,9 @@ class Admin extends Backend
 
             $result = $this->modelClass->save($post);
             if ($result) {
-                $this->success(lang('Add Success'));
+                $this->success(lang('operation success'));
             } else {
-                $this->error(lang('Add Failed'));
+                $this->error(lang('operation failed'));
             }
         }
         $list = '';
@@ -119,9 +119,9 @@ class Admin extends Backend
             $list =  $this->modelClass->find($id);
             $result = $list->save($post);
             if ($result) {
-                $this->success(lang('Edit Success'));
+                $this->success(lang('operation success'));
             } else {
-                $this->error(lang('Edit Failed'));
+                $this->error(lang('operation failed'));
             }
         }
         $list =  $this->modelClass->find($id);
@@ -197,7 +197,7 @@ class Admin extends Backend
             } catch (\Exception $e) {
                 $this->error($e->getMessage(),'',['token'=>$this->token()]);
             }
-            $this->success(lang('Edit success'));
+            $this->success(lang('operation success'));
 
         }
         return view();
@@ -232,7 +232,7 @@ class Admin extends Backend
             } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
-            $this->success(lang('Edit success'));
+            $this->success(lang('operation success'));
 
         }
     }

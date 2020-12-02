@@ -1,6 +1,7 @@
 {if $formData}
 <input type="hidden" name="id" value="{$formData.id}">
 {/if}
+
 {volist name="fieldList" id="vo" }
 {php}$verify = $vo['required']?'required':'';{/php}
 {switch name="vo.type"}
@@ -37,7 +38,7 @@
 {:form_select($vo.field,$vo.option,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'search'=>1],[],$vo.value)}
 {/case}
 {case value="color"}
-{:form_color($vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'search'=>1],$formData.value)}
+{:form_color($vo.field,$vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'search'=>1],$formData.value)}
 {/case}
 {case value="datetime"}
 {if $vo.field !="create_time" && $vo.field !="update_time"}

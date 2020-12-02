@@ -62,7 +62,7 @@ class Member extends Backend{
             $this->validate($post, $rule);
             $save =$this->modelClass->save($post);
             if ($save) {
-                $this->success(lang('Add Success'));
+                $this->success(lang('operation success'));
             } else {
                 $this->error(lang('add fail'));
             }
@@ -93,7 +93,7 @@ class Member extends Backend{
             $this->validate($post, $rule);
             $res = $list->save($post);
             if ($res) {
-                $this->success(lang('Edit success'), __u('index'));
+                $this->success(lang('operation success'), __u('index'));
             } else {
                 $this->error(lang('Edit fail'));
             }

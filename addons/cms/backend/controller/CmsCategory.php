@@ -67,7 +67,7 @@ class CmsCategory extends AddonsBackend
                 ->page($this->page, $this->pageSize)
                 ->select()->toArray();
             $list = TreeHelper::cateTree($list, 'catename');
-            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
 

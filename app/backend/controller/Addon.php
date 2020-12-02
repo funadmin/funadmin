@@ -246,7 +246,7 @@ class Addon extends Backend
             $this->error(lang($e->getMessage()));
 
         }
-        $this->success(lang('edit success'));
+        $this->success(lang('operation success'));
 
 
     }
@@ -283,7 +283,7 @@ class Addon extends Backend
                 $config = serialize($config);
                 if($one->save(['config'=>$config])){
                     Service::updateAdddonsConfig();
-                    $this->success(lang('edit success'));
+                    $this->success(lang('operation success'));
                 }else{
                     $this->error(lang('edit fail'));
                 }

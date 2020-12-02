@@ -58,7 +58,7 @@ class Config extends Backend {
             $rule = ['code|编码'=>"require|unique:config"];
             $this->validate($post, $rule);
             if($this->modelClass->save($post)){
-                $this->success(lang('edit success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('edit fail'));
             }
