@@ -21,9 +21,9 @@ define(['table','form'], function (Table,Form) {
                 elem: '#tree'
                 ,data: data
                 ,isJump: false  //link 为参数匹配
-                ,showLine: false  //是否开启连接线
+                ,showLine: true  //是否开启连接线
                 ,onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
-                // ,showCheckbox: true
+                ,showCheckbox: true
                 ,click: function(obj){
                     var data = obj.data;  //获取当前点击的节点数据
                     // if(!data.children){

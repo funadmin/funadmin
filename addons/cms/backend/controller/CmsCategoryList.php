@@ -128,6 +128,7 @@ class CmsCategoryList extends AddonsBackend
         $moduleid = $cate['moduleid'];
         $module = CmsModule::find($moduleid);
         $title =$cate->catename;
+        $albumlist = CmsAlbum::where('status',1)->column('title','id');
         if($this->request->isPost()){
             $post = input('post.');
             if(isset($post['file'])) unset($post['file']);
@@ -175,7 +176,7 @@ class CmsCategoryList extends AddonsBackend
                 $fieldList[$k]['value'] = $formData[$v['field']];
             }
         }
-        return view('',['cate'=>$cate,'fieldList'=>$fieldList,'title'=>$title,'formData'=>$formData,]);
+        return view('',['cate'=>$cate,'fieldList'=>$fieldList,'title'=>$title,'formData'=>$formData,'albumlist'=>$albumlist]);
     }
 
     /**编辑
