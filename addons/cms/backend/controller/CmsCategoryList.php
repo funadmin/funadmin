@@ -40,6 +40,17 @@ class CmsCategoryList extends AddonsBackend
     /**--------------------------------------------------------栏目内容管理----------------------------------------------------**/
     public function index(){
         $cate =  json_decode(Cache::get('category_list'));
+//        if($this->request->isAjax()){
+//            if($this->request->isAjax()){
+//                list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+//                $list =CmsFiling::where($where)
+////                    ->where(['cateid'=>$cate->id])
+//                    ->order($sort)
+//                    ->paginate(['list_rows' => $this->pageSize, 'page' => $this->page])
+//                    ->toArray();
+//                return $result = ['code'=>0,'msg'=>lang('operation success'),'data'=>$list['data'],'count'=>$list['total']];
+//            }
+//        }
         if(!$cate){
             $cate = $this->modelClass->field('id,pid,catename,type')
                 ->order('sort asc,id asc')
@@ -56,9 +67,7 @@ class CmsCategoryList extends AddonsBackend
     //内容页面
     public function list(){
         $cateId = input('cateid');
-        if(!$cateId){
-            $view = 'board';
-        }
+        if(!$cateId){$view = 'board';}
         $cate = $this->modelClass->find($cateId);
         $moduleid = $cate['moduleid'];
         $module = CmsModule::find($moduleid);
