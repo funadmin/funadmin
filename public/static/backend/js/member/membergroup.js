@@ -20,7 +20,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh','add','delete'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
                     {field: 'name', title: __('GroupName'), minwidth: 120,},
                     {field: 'rules', title: __('Rules'), minwidth: 120,},

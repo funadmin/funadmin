@@ -48,8 +48,8 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     init: Table.init,
                     toolbar: ['refresh', 'add_full', 'delete'],
                     cols: [[
-                        {checkbox: true, fixed: true},
-                        {field:'id', title: 'ID', width:60,fixed: true}
+                        {checkbox: true, },
+                        {field:'id', title: 'ID', width:60,}
                         ,{field:'username', title: __('username'), width:180}
                         ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution}
                         ,{field:'email', title: __("email"), width:200}

@@ -278,7 +278,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
         //接口
         api: {
             /**
-             * 检测屏幕
+             * 检测屏幕是否手机
              * @returns {boolean}
              */
             checkScreen: function () {

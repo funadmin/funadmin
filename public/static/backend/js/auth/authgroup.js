@@ -30,8 +30,8 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     init: Table.init,
                     toolbar: ['refresh', 'add', 'delete'],
                     cols: [[
-                        {checkbox: true, fixed: true},
-                        {field: 'id', title: __('ID'), width: 80, fixed: true, sort: true},
+                        {checkbox: true, },
+                        {field: 'id', title: __('ID'), width: 80, , sort: true},
                         {field: 'pid', title: __('Pid'), width: 150,},
                         {field: 'title', title: __('GroupName'), minwidth: 120,},
                         {

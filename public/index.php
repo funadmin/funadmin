@@ -20,7 +20,6 @@ if (!is_file($_SERVER['DOCUMENT_ROOT'].'/install.lock'))
     header("location:/install.php");
     exit;
 }
-
 require __DIR__ . '/../vendor/autoload.php';
 
 // 执行HTTP应用并响应

@@ -21,7 +21,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh', 'add', 'delete'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80, sort: true},
                     {field: 'title', title: __('Group Title'), minwidth: 250, sort: true},
                     {field: 'name', title: __('Group Name'), minwidth: 120, sort: true},

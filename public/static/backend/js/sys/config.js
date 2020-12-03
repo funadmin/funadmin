@@ -28,7 +28,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh','add','delete'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
                     {field: 'code', title: __('Config Code'), width: 120,sort: true},
                     {field: 'value', title: __('Config Value'), width: 250,sort: true},

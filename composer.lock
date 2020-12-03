@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c65819d3d0576f1da48c3d97704ee7c4",
+    "content-hash": "f71d364c8cff51e89b2b75f1d02b04b8",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.2",
+            "version": "v1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "1e588c936318775e39af87646afbbaa3875adc7c"
+                "reference": "b4bc2825b020b98ee59c8fe08be4c575095bbf3d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/1e588c936318775e39af87646afbbaa3875adc7c",
-                "reference": "1e588c936318775e39af87646afbbaa3875adc7c",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/b4bc2825b020b98ee59c8fe08be4c575095bbf3d",
+                "reference": "b4bc2825b020b98ee59c8fe08be4c575095bbf3d",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -376,7 +376,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-11-28T11:02:33+00:00"
+            "time": "2020-12-02T07:55:14+00:00"
         },
         {
             "name": "guzzlehttp/command",

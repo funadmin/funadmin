@@ -4,7 +4,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
     }
-    var $document = $(document), $container = $('#fun-app');
+    var $document = $(document), $container = $('#fun-app'),FUN_APP='fun-app';
     var THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink';
     //主题配置
     var THEME = [{
@@ -287,9 +287,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         },
     ];
     var Backend = {
-        /**
-         * 版本
-         */
+        /*** 版本*/
         v: '1.2.0',
         /**
          * @param options
@@ -316,7 +314,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         },
         //加载层,锁屏
         hideLoading: function (time) {
-            time = time || 300;
+            time = time || 350;
             var colorId = sessionStorage.getItem('funColorId')
             if (colorId == null) {
                 colorId = 0;
@@ -401,20 +399,18 @@ layui.define(["jquery", 'layer'], function (exports) {
          * 初始化设备端
          */
         initDevice: function () {
-            if (!Fun.api.checkScreen()) {
-                $('#fun-app').removeClass('layui-side-shrink').addClass('fun-app')
-            }
+            // if (!Fun.api.checkScreen()) {
+            //    $container.removeClass('layui-side-shrink').addClass(FUN_APP)
+            // }
         },
 
         //侧边
         sideFlexible: function () {
             //侧边伸缩
-            var app = $container
-            app.toggleClass(SIDE_SHRINK)
-            app.toggleClass('fun-app')
+            $container.toggleClass(SIDE_SHRINK)
+            $container.toggleClass(FUN_APP)
             $('fun-tool').toggleClass(ICON_SPREAD)
-            $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass('  layui-nav-itemed')
-            $('.layui-side-shrink .layui-side-menu .layui-nav-item').find('dl').hide();
+            $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass("layui-nav-hover");
         },
 
         listenTabs: function (options) {
@@ -461,7 +457,6 @@ layui.define(["jquery", 'layer'], function (exports) {
             layId = $('.layui-tab .layui-tab-title').find('.layui-this').attr('lay-id')
             Backend.changeSessioinTabId(layId)
             $('#layui-nav-righmenu').remove();
-
         },
         /**
          * 增加tab
@@ -488,25 +483,21 @@ layui.define(["jquery", 'layer'], function (exports) {
             if (!checkLayId) {
                 loadindex = layer.load();
                 ele.tabAdd('layui-layout-tabs', {
-                    title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //用于演示
+                    title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                     ,
                     content: '<iframe width="100%" height="100%" frameborder="no"   src="' + options.href + '"></iframe>'
                     ,
-                    id: options.layId
+                    id: options.layId,
                 });
             } else {
                 loadindex = layer.load();
                 $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
-
             }
             $('#layui-nav-righmenu').remove();
-
             layer.close(loadindex);
-
             ele.tabChange('layui-layout-tabs', options.layId);
 
         },
-
         //切换id
         changeSessioinTabId: function (layId) {
             if (layId) {
@@ -907,7 +898,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                         var child = _that.next('.layui-nav-child');
                         var height = child.height();
                         // 检测屏幕是否是展开状态
-                        if(!Fun.api.checkScreen() && $('.layui-side-shrink').length>0){
+                        if(!Fun.api.checkScreen() && $('.'+SIDE_SHRINK).length>0){
                             return false;
                         }
                         child.css({display: "block"});
@@ -931,7 +922,9 @@ layui.define(["jquery", 'layer'], function (exports) {
                         }
                         let options = {layId: layId, text: text, href: href, icon: icon,iframe:iframe}
                         Backend.addTab(options);
-                        $('#fun-app').removeClass(SIDE_SHRINK).addClass('fun-app')
+                        if(Fun && Fun && Fun.api.checkScreen()){
+                            $container.removeClass(SIDE_SHRINK).addClass('fun-app')
+                        }
                     }
 
                 });
@@ -988,11 +981,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
                 // });
                 /*** 鼠标事件*/
-                $document.unbind("mousedown", ".layui-tab .layui-tab-title li").bind("contextmenu", function (e) {
+                $("#layui-tab-header.layui-tab-title>li").bind("contextmenu",function(e){
                     e.preventDefault();
-                    return false;
+                    return false;//
                 });
-                $document.on("mousedown", ".layui-tab ul li", function (event) {
+                $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
                     event = event || window.event;  //兼容写法
                     if (event.which === 3) {
                         var _that = $(this);

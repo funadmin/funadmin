@@ -21,8 +21,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 init: Table.init,
                 toolbar: ['refresh', 'add', 'delete'],
                 cols: [[
-                    {checkbox: true, fixed: true},
-                    {field: 'id', title: 'ID', width: 80, fixed: true, sort: true},
+                    {checkbox: true, },
+                    {field: 'id', title: 'ID', width: 80 , sort: true},
                     {field: 'name', title: __('Name'), minWidth: 120, sort: true},
                     {field: 'original_name', title: __('OriginalName'), minWidth: 180, sort: true},
                     {

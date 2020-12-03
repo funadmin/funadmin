@@ -41,7 +41,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh','add_full','delete'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
                     {field: 'username', title: __('membername'), width: 120,},
                     {field: 'email', title: __('Email'), width: 120,},

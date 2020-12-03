@@ -51,7 +51,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     height: 31px;
     margin-top: 0;
     border-color: #95a5a6;
-    border: 1px solid transparent
+    border: 1px solid transparent;
 }
 
 .layui-layer.layui-layer-dialog .layui-layer-btn0 {

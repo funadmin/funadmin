@@ -85,7 +85,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true, },
                     {
                         field: 'title',
                         title: __('Title'),
