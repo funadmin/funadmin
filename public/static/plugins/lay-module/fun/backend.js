@@ -1,13 +1,13 @@
 layui.define(["jquery", 'layer'], function (exports) {
-    var $ = layui.$, element = layui.element, layer = layui.layer;element.render()
+    var $ = layui.$, element = layui.element, layer = layui.layer;element.render();
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
     }
-    var $document = $(document), $container = $('#fun-app'),FUN_APP='fun-app';
-    var THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink';
+    var $document = $(document), $container = $('#fun-app'),FUN_APP='fun-app',
+        THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
     //主题配置
-    var THEME = [{
+    THEME = [{
             headerBg: '#fff',
             headerfontColor: '#595959',
             headerBgThis: '#772c6a',
@@ -371,8 +371,6 @@ layui.define(["jquery", 'layer'], function (exports) {
             Backend.listenTabs(options);
             Backend.listenDeltab(options);
         },
-
-
         //全屏
         fullScreen: function () {
             var ele = document.documentElement
@@ -402,6 +400,19 @@ layui.define(["jquery", 'layer'], function (exports) {
             // if (!Fun.api.checkScreen()) {
             //    $container.removeClass('layui-side-shrink').addClass(FUN_APP)
             // }
+        },
+
+        checkScreen: function () {
+            //屏幕类型 大小
+            var ua = navigator.userAgent.toLocaleLowerCase();
+            var pl = navigator.platform.toLocaleLowerCase();
+            var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
+                || (/ucweb.*linux/i.test(ua));
+            var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
+            var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
+            var $win = $(window);
+            var width = $win.width();
+            return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
         },
 
         //侧边
@@ -747,7 +758,7 @@ layui.define(["jquery", 'layer'], function (exports) {
 
             },
             //伸缩
-            flexible: function (othis) {
+            flexible: function () {
                 Backend.sideFlexible();
             },
             rightPage: function () {
@@ -922,7 +933,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                         }
                         let options = {layId: layId, text: text, href: href, icon: icon,iframe:iframe}
                         Backend.addTab(options);
-                        if(Fun && Fun && Fun.api.checkScreen()){
+                        if(Backend.checkScreen()){
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
                     }
@@ -970,7 +981,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                 });
-
                 // //鼠标提示
                 // $document.on("mouseenter", "*[lay-tips]", function () {
                 //     var _that = $(this)
@@ -1001,7 +1011,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                         } else {
                             $('.rightMenu').css('left', leftwith + 'px')
                         }
-
                     }
                 })
                 //关闭右键菜单
