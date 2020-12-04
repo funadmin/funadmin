@@ -9,15 +9,14 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['css','jquery','bootstrap','layuiall', 'layui','layer','toastr', 'fun', 'backend', 'table', 'form',],
+    include: ['css','jquery','bootstrap','layui','layer','toastr', 'fun', 'table', 'form','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
 
         //layui等组件
-        'layuiall'      : 'plugins/layui/layui.all',
-        'layui'         : 'plugins/layui/layui',
+        'layui'         : 'plugins/layui/layui.all',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',

@@ -10,13 +10,13 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','bootstrap','treeGrid','tableSelect',
+        'css','bootstrap','layui','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker',
-        'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','form','fu', 'table','upload'],
+        'regionCheckBox','timePicker','croppers', 'moment',
+        'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -53,22 +53,16 @@ require.config({
         'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
     },
     map: {
-        '*': {
-            'css': 'plugins/require-css/css.min'
-        }
+        '*': {'css': 'plugins/require-css/css.min'}
     },
     shim: {
         'bootstrap': ['jquery'],
         'layui': {
             deps: ['css!plugins/layui/css/layui.css'],
-            init: function () {
-                return this.layui.config({dir: 'plugins/'})
-            },
+            init: function () {return this.layui.config({dir: 'plugins/'})},
         },
         'cityPicker':{
-            deps: [
-                'plugins/lay-module/cityPicker/city-picker-data',
-                'css!plugins/lay-module/cityPicker/city-picker.css'],
+            deps: ['plugins/lay-module/cityPicker/city-picker-data', 'css!plugins/lay-module/cityPicker/city-picker.css'],
         },
         'inputTags':{
             deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
@@ -86,24 +80,19 @@ require.config({
             deps: ['css!plugins/lay-module/step/step.css'],
         },
         'croppers': {
-            deps: [
-                'plugins/lay-module/cropper/cropper',
-                'css!plugins/lay-module/cropper/cropper.css'
-            ],
-            exports: "cropper"
+            deps: ['plugins/lay-module/cropper/cropper', 'css!plugins/lay-module/cropper/cropper.css'], exports: "cropper"
         },
     },
     waitSeconds: 30,
     charset: 'utf-8' // 文件编码
 })
-
 //初始化控制器对应的JS自动加载
 require(["jquery"], function ($) {
     // 配置语言包的路径
     var paths = {};
     paths["lang"] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
     paths['backend/'] = 'backend/';
-    require.config({paths: paths});
+    require.config({paths:paths});
     $(function () {
         require(['fun','addons'], function (Fun) {
             $(function () {
@@ -112,7 +101,7 @@ require(["jquery"], function ($) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('action not find')
+                            console.log('action is not find')
                         }
                     });
                 }

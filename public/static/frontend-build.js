@@ -6,7 +6,8 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','bootstrap','treeGrid','tableSelect',
+        'css','jquery','bootstrap',
+        'layui','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,

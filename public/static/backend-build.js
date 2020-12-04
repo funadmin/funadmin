@@ -7,13 +7,14 @@
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
-        'css','bootstrap','treeGrid','tableSelect',
+        'css','jquery','bootstrap',
+        'layui','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker',
         'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','form','fu', 'table','upload'],
+        'moment', 'backend','md5','fun','fu','form', 'table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
