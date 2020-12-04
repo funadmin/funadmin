@@ -40,7 +40,7 @@
         'moment'        : 'plugins/moment/moment',
 
         //自定义
-        'backend'       : 'plugins/lay-module/fun/backend', // fun后台扩展
+        'backend'       : 'plugins/lay-module/fun/backend.min', // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',

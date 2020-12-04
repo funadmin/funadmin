@@ -315,7 +315,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         //加载层,锁屏
         hideLoading: function (time) {
             time = time || 350;
-            var colorId = sessionStorage.getItem('funColorId')
+            var colorId = sessionStorage.getItem('funColorId');
             if (colorId == null) {
                 colorId = 0;
             }
@@ -346,7 +346,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                                 });
                                 Fun.toastr.success(__('Unlock Success'))
                             } else {
-                                Fun.toastr.error(__('Password Error'))
+                                Fun.toastr.error(__('Password Error'));
                                 return false;
                             }
                         }
@@ -418,9 +418,9 @@ layui.define(["jquery", 'layer'], function (exports) {
         //侧边
         sideFlexible: function () {
             //侧边伸缩
-            $container.toggleClass(SIDE_SHRINK)
-            $container.toggleClass(FUN_APP)
-            $('fun-tool').toggleClass(ICON_SPREAD)
+            $container.toggleClass(SIDE_SHRINK);
+            $container.toggleClass(FUN_APP);
+            $('fun-tool').toggleClass(ICON_SPREAD);
             $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass("layui-nav-hover");
         },
 
@@ -432,9 +432,8 @@ layui.define(["jquery", 'layer'], function (exports) {
             if (funTabInfo) {
                 $("#layui-side-left-menu a[lay-href]").each(function () {
                     if ($(this).attr("lay-id") === layId) {
-                        var text = $(this).attr('lay-tips') || $(this).attr('title')
-                        var href = $(this).attr('lay-href')
-                        var icon = $(this).find('i').attr('class')
+                        var text = $(this).attr('lay-tips') || $(this).attr('title'),
+                        href = $(this).attr('lay-href'), icon = $(this).find('i').attr('class');
                         Backend.addTab({
                             layId: layId,
                             href: href,
@@ -465,8 +464,8 @@ layui.define(["jquery", 'layer'], function (exports) {
             } else {
                 element.tabDelete('layui-layout-tabs', layId);
             }
-            layId = $('.layui-tab .layui-tab-title').find('.layui-this').attr('lay-id')
-            Backend.changeSessioinTabId(layId)
+            layId = $('.layui-tab .layui-tab-title').find('.layui-this').attr('lay-id');
+            Backend.changeSessioinTabId(layId);
             $('#layui-nav-righmenu').remove();
         },
         /**
@@ -482,15 +481,13 @@ layui.define(["jquery", 'layer'], function (exports) {
                 Fun.toastr.error('window is create by maxnum');
                 return false;
             }
-            Backend.changeSessioinTabId(options.layId)
-            layui.sessionData('funTabInfo',
-                {
+            Backend.changeSessioinTabId(options.layId);
+            layui.sessionData('funTabInfo', {
                     key: options.layId,
                     value: options.layId,
                 });
             var ele = element;if(options.iframe) ele = parent.layui.element;
-            var checkLayId = Backend.checkLayId(options.layId);
-            var loadindex;
+            var checkLayId = Backend.checkLayId(options.layId),loadindex;
             if (!checkLayId) {
                 loadindex = layer.load();
                 ele.tabAdd('layui-layout-tabs', {
@@ -502,7 +499,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 });
             } else {
                 loadindex = layer.load();
-                $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+                $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
             }
             $('#layui-nav-righmenu').remove();
             layer.close(loadindex);
@@ -596,7 +593,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 if (typeof options.listenSwichCallback === 'function') {
                     options.listenSwichCallback();
                 }
-                Backend.changeSessioinTabId(layId)
+                Backend.changeSessioinTabId(layId);
                 Backend.listenSwitchIframe(layId);
                 Backend.scrollPostion();
             });
@@ -810,11 +807,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 var url = othis.attr('lay-ajax') ? othis.attr('lay-ajax') : Backend.refreshUrl;
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg);
-                    $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+                    $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
 
                 }, function (res) {
                     Fun.toastr.error(res.msg);
-                    $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+                    $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
 
                 })
 
@@ -822,7 +819,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
                 Fun.toastr.loading('', setTimeout(function () {
-                        $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload()
+                        $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
                         Fun.toastr.close();
                     }, 1200)
                 );
@@ -857,7 +854,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              * @param othis
              */
             logout: function (othis) {
-                var url = othis.attr('lay-ajax')
+                var url = othis.attr('lay-ajax');
                 Fun.toastr.confirm(__('Are you sure todo this'), function () {
                     $.post(url, function (res) {
                         if (res.code > 0) {
@@ -877,7 +874,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              * @param othis
              */
             langset: function (othis) {
-                var url = othis.attr('lay-ajax')
+                var url = othis.attr('lay-ajax');
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         window.location.reload();
@@ -931,7 +928,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                             window.open(href, "_blank");
                             return false;
                         }
-                        let options = {layId: layId, text: text, href: href, icon: icon,iframe:iframe}
+                        let options = {layId: layId, text: text, href: href, icon: icon,iframe:iframe};
                         Backend.addTab(options);
                         if(Backend.checkScreen()){
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
@@ -948,24 +945,24 @@ layui.define(["jquery", 'layer'], function (exports) {
 
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
-                    var _that = $(this)
+                    var _that = $(this);
                     if(!Fun.api.checkScreen()){
                         var top = _that.offset().top;
-                        _that.addClass('layui-nav-hover')
+                        _that.addClass('layui-nav-hover');
                         _that.children('dl').addClass('layui-nav-child-drop');
                         _that.children('dl').css('top',top+'px');
                     }
 
                 }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
-                    var _that = $(this)
-                    _that.removeClass('layui-nav-hover')
+                    var _that = $(this);
+                    _that.removeClass('layui-nav-hover');
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
 
                 });
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop dd", function () {
-                    var _that = $(this) ;
+                    var _that = $(this);
                     if(!Fun.api.checkScreen()){
                         if(_that.find('dl')){
                             var top = _that.offset().top;
@@ -977,7 +974,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                     }
 
                 }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop", function () {
-                    var _that = $(this)
+                    var _that = $(this);
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                 });
@@ -998,8 +995,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
                     event = event || window.event;  //兼容写法
                     if (event.which === 3) {
-                        var _that = $(this);
-                        var leftwith = _that.offset().left + (_that.outerWidth()) / 2;
+                        var _that = $(this),leftwith = _that.offset().left + (_that.outerWidth()) / 2;
                         if ($('body').find('#layui-nav-righmenu').length === 0) {
                             var menuContent = '<div id="layui-nav-righmenu"><div class="rightMenu" style="left: ' + leftwith + 'px">\n' +
                                 '<div lay-event="refresh"><a href="javascript:;"><i class="layui-icon layui-icon-refresh"></i>刷新当前页</a></div>\n' +
@@ -1009,22 +1005,20 @@ layui.define(["jquery", 'layer'], function (exports) {
                                 '</div><div class="layui-rightmenu-shade"></div></div>';
                             _that.parents('.layui-tab-title').after(menuContent);
                         } else {
-                            $('.rightMenu').css('left', leftwith + 'px')
+                            $('.rightMenu').css('left',leftwith+'px');
                         }
                     }
-                })
+                });
                 //关闭右键菜单
                 $document.on('click', '.layui-body,.layui-header,.layui-side-menu,.layui-tab,.layui-right-shade', function () {
                     $('#layui-nav-righmenu').remove();
                 });
                 $(window).on("resize", function () {
-                    $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover')
-                    $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop')
-                    $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style')
-                })
-
+                    $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
+                    $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop');
+                    $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style');
+                });
             },
-
         }
     };
     exports("Backend", Backend);

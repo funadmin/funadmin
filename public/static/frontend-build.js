@@ -12,7 +12,7 @@
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker',
         'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','form','fu', 'table','upload'],
+        'moment','md5','fun','form','fu', 'table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -39,8 +39,7 @@
         'moment'        : 'plugins/moment/moment',
 
         //自定义
-        'backend'       : 'plugins/lay-module/fun/backend', // fun后台扩展
-        'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
+        'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',
         'form'          : 'js/require-form',
