@@ -69,7 +69,6 @@ require.config({
             deps: [
                 'plugins/lay-module/cityPicker/city-picker-data',
                 'css!plugins/lay-module/cityPicker/city-picker.css'],
-
         },
         'inputTags':{
             deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
