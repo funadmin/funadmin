@@ -942,23 +942,22 @@ layui.define(["jquery", 'layer'], function (exports) {
                         , attrEvent = _that.attr('lay-event');
                     Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
                 });
-
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this);
                     if(!Fun.api.checkScreen()){
                         var top = _that.offset().top;
+                        console.log(1323)
+                        _that.removeClass('layui-nav-itemed');
                         _that.addClass('layui-nav-hover');
                         _that.children('dl').addClass('layui-nav-child-drop');
                         _that.children('dl').css('top',top+'px');
                     }
-
                 }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this);
                     _that.removeClass('layui-nav-hover');
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
-
                 });
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop dd", function () {

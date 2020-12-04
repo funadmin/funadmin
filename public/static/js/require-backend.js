@@ -10,7 +10,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','bootstrap','layui','treeGrid','tableSelect',
+        'css','bootstrap','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
