@@ -1,16 +1,12 @@
-<div class="fun-main">
-    <div class="admin-main layui-anim layui-anim-upbit">
 
-    <form class="layui-form " lay-filter="form">
-        {:form_select('type',$poseGroup,['verify'=>'required','search'=>1]
-        ,'id,title',$formData?$formData['pid']:'')}
-        {:form_input('title','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'] )}
-        {:form_input('url','text',['verify'=>'required|url','label'=>'Url'])}
-        {:form_upload('image',$formData)}
-        {:form_input('sort','text',['verify'=>'required','label'=>'Sort'] ,50)}
-        {:form_editor('content','container',2,['verify'=>'required','label'=>'栏目详情'])}
-        {:form_submitbtn()}
-    </form>
-    </div>
+<form class="layui-form " lay-filter="form">
+    {:form_select('type',$poseGroup,['verify'=>'required','search'=>1]
+    ,'id,title',$formData?$formData['pid']:'')}
+    {:form_input('title','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'] )}
+    {:form_input('url','text',['verify'=>'required|url','label'=>'Url'])}
+    {:form_upload('image',$formData)}
+    {:form_input('sort','text',['verify'=>'required','label'=>'Sort'] ,50)}
+    {:form_editor('content','container',2,['verify'=>'required','label'=>'栏目详情'])}
+    {:form_submitbtn()}
+</form>
 
-</div>

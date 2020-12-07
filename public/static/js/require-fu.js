@@ -18,18 +18,15 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                     $.each(list, function () {
                         if($(this).attr('lay-editor')==2){
                             var id = $(this).attr('id');
-                            var editor = layedit.build(id,
+                            window['editor'+id] = layedit.build(id,
                                 {height: 350,
                                     uploadImage:{url: Fun.url(Upload.init.requests.upload_url)+'?editor=layedit', type: 'post'}
                                 }); //建立编辑器
-                            layedit.sync(editor)
+                                
+                                layedit.sync(window['editor'+id])
                         }
-
-
                     })
-
                 }
-
             },
             tags:function (){
                 var list = document.querySelectorAll("*[lay-filter='tags']");

@@ -100,9 +100,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                         vals.push($(this).val());
                                     })
                                     data.field[field] = vals.join(',');
-
                                 })
-
                             }
                             var dataField = data.field;
                             if (typeof formObj == 'function') {
@@ -119,7 +117,6 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 }
 
             },
-
             //验证
             upfileDelete: function (othis) {
                 var fileurl = othis.attr('lay-fileurl'), that;

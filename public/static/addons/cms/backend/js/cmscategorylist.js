@@ -9,59 +9,24 @@ define(['table','form'], function (Table,Form) {
                     frameheight();
                 }, 100);
             });
-
             function frameheight() {
                 $("#categorys_list").height(parent_frame_height);
             }
             (function () {
                 frameheight();
             })();
-            //点击节点新窗口跳转
-            tree.render({
-                elem: '#tree'
-                ,data: data
-                ,isJump: false  //link 为参数匹配
-                ,showLine: true  //是否开启连接线
-                ,onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
-                ,showCheckbox: true
-                ,click: function(obj){
-                    var data = obj.data;  //获取当前点击的节点数据
-                    // if(!data.children){
-                    if(data.href){
-                        $('#categorys_list').attr('src',data.href);
-                    }
-                    // }
-                }
-            });
-
-            $('#clear').click(function (){
-                loading =layer.load(1, {shade: [0.1,'#fff']});
-                $.post("{:url('flashCache')}",{},function(res){
-                    layer.close(loading);
-                    if(res.code>0){
-                        layer.msg(res.msg,{time:1000,icon:1});
-                    }else{
-                        layer.msg(res.msg,{time:1000,icon:2});
-                    }
-                });
-            });
-            Controller.api.bindevent()
-
-        },
-        list:function (){
-            cateid = cate?cate.id:'';
             Table.init = {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmscategorylist/list?cateid='+ cateid,
-                    add_url: 'addons/cms/backend/cmscategorylist/add?cateid='+   cateid,
-                    edit_url: 'addons/cms/backend/cmscategorylist/add?cateid='+   cateid,
-                    delete_url: 'addons/cms/backend/cmscategorylist/delete?cateid='+  cateid,
-                    modify_url: 'addons/cms/backend/cmscategorylist/modify?cateid='+  cateid,
+                    index_url: 'addons/cms/backend/cmscategorylist/index',
+                    add_url: 'addons/cms/backend/cmscategorylist/add',
+                    edit_url: 'addons/cms/backend/cmscategorylist/add',
+                    delete_url: 'addons/cms/backend/cmscategorylist/delete',
+                    modify_url: 'addons/cms/backend/cmscategorylist/modify',
                     flashCache:{
                         type: 'request',
-                        url:'addons/cms/backend/cmscategorylist/flashCache?cateid='+   cateid,
+                        url:'addons/cms/backend/cmscategorylist/flashCache',
                         class: 'layui-btn-sm layui-btn-warm',
                         icon: 'layui-icon layui-icon-fonts-clear',
                         title: __('flashCache'),
@@ -70,7 +35,7 @@ define(['table','form'], function (Table,Form) {
                     },
                     add_full: {
                         type: 'open',
-                        url:'addons/cms/backend/cmscategorylist/add?cateid='+   cateid,
+                        url:'addons/cms/backend/cmscategorylist/add',
                         class: 'layui-btn-sm layui-btn-green',
                         icon: 'layui-icon layui-icon-add-circle-fine',
                         title: __('Add'),
@@ -79,7 +44,7 @@ define(['table','form'], function (Table,Form) {
                     },
                 }
             }
-            Table.render({
+            var tableObj = Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
@@ -100,15 +65,39 @@ define(['table','form'], function (Table,Form) {
                     }
                 ]],
                 done: function(res){
-
                 },
                 //
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 50,
                 page: true
             });
+            tree.render({
+                elem: '#tree'
+                ,data: data
+                ,isJump: false  //link 为参数匹配
+                ,showLine: true  //是否开启连接线
+                ,onlyIconControl: true  //是否仅允许节点左侧图标控制展开收缩
+                // ,showChe ckbox: true
+                ,click: function(obj){
+                    var data = obj.data;  //获取当前点击的节点数据
+                    console.log(data);
+                    if(data.type===1 ||  data.type===3 || data.type===4){
+                        $('.table').show();
+                        //1 列表2 单页，3 外连接，4 封面
+                        $('.layui-col-md10 .layui-card-body').addClass('layui-hide');
+                        tableObj.reload({ page: {page: 1},where: {'cateid': data.id}});
+                    }else if(data.type===2 ){
+                        $('.table').hide();
+                        //1 列表2 单页，3 外连接，4 封面
+                        $('#categorys_list').attr('src',data.href).show();
+                        $('.layui-col-md10 .layui-card-body').removeClass('layui-hide');
+
+                    }
+                }
+            });
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
+
         },
         page:function (){
             Controller.api.bindevent()
