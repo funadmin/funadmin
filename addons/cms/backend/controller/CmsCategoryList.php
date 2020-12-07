@@ -34,8 +34,6 @@ class CmsCategoryList extends AddonsBackend
     {
         parent::__construct($app);
         $this->modelClass = new CategoryModel();
-
-
     }
     /**--------------------------------------------------------栏目内容管理----------------------------------------------------**/
     public function index(){

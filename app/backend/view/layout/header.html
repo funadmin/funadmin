@@ -5,12 +5,18 @@
     <title>{:syscfg('site','sys_name')}后台管理</title>
     <meta property="og:keywords" content="{:syscfg('site','site_seo_keywords')}" />
     <meta property="og:description" content="{:syscfg('site','site_seo_desc')}" />
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
+    <meta name="viewport"
+    content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name=App-Config content="fullscreen=yes,useHistoryState=yes,transition=yes">
+<meta content=yes name=apple-mobile-web-app-capable>
+<meta content=yes name=apple-touch-fullscreen>
+<meta content="telephone=no,email=no" name=format-detection>
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta http-equiv="Access-Control-Allow-Origin" content="*">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="renderer" content="webkit">
+<meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" media="all">
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
     {:token_meta()}
