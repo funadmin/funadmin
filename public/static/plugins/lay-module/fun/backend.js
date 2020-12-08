@@ -319,7 +319,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             if (colorId == null) {
                 colorId = 0;
             }
-            var bg = THEME[colorId]['headerBg'];
+            var bg = THEME[colorId]['menuLeftBgThis'];
             if(colorId){
                 $(document).find('.fun-loading').find('span').css('background-color',THEME[colorId]['menuLeftBgHover']);
             }
@@ -329,9 +329,12 @@ layui.define(["jquery", 'layer'], function (exports) {
                 if (layui.data('BackendLock').lock) {
                     layer.prompt({
                         btn: [__('Unlock Now')],
-                        title: [__('Input Password'), 'background:' + bg + ';color:#fff'],
+                        title: [__('Input Password'), 'background:' + bg + ';color:'+THEME[colorId]['menuLeftfontColor']],
                         closeBtn: 0,
-                        formType: 1
+                        formType: 1,
+                        success: function(layero, index){
+                            layero.find('.layui-layer-btn0').css('background',bg)
+                        }
                     }, function (value, index) {
                         if (value.length < 1) {
                             Fun.toastr.error(__('Input Password'));
@@ -713,8 +716,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 }
                 layer.prompt({
                     btn: [__('Lock Now')],
-                    title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['headerBg'] + ';color:' + THEME[colorId]['headerfontColor']],
-                    formType: 1
+                    title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
+                    formType: 1,
+                    success: function(layero, index){
+                        layero.find('.layui-layer-btn0').css('background',THEME[colorId]['menuLeftBgThis'])
+                    }
                 }, function (value, index) {
                     if (value.length < 1) {
                         Fun.toastr.error(__('Input Password'));
@@ -727,9 +733,12 @@ layui.define(["jquery", 'layer'], function (exports) {
                         layer.close(index);
                         layer.prompt({
                             btn: [__('Unlock')],
-                            title: [__('Input Password'), 'background:' + THEME[colorId]['headerBg'] + ';color:' + THEME[colorId]['headerfontColor']],
+                            title: [__('Input Password'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
                             closeBtn: 0,
-                            formType: 1
+                            formType: 1,
+                            success: function(layero, index){
+                                layero.find('.layui-layer-btn0').css('background',THEME[colorId]['menuLeftBgThis'])
+                            }
                         }, function (value, index) {
                             if (value.length < 1) {
                                 Fun.toastr.error(__('Input Password'));
