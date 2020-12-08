@@ -163,7 +163,7 @@ class Auth extends Backend
             $this->error(lang('delete child first'));
         } elseif (empty($child->toArray())) {
             $list->delete();
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
         } else {
             $this->error('id' . lang('not exist'));
         }

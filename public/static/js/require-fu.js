@@ -31,10 +31,13 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
+                        content = [];
+                        var tag = _that.parents('.tags').find('input[type="hidden"]').val();
+                        if(tag) content = tag.split($.trim(tag,','),',');
                         var id = _that.attr('id');
                         inputTags.render({
                             elem:'#'+id,//定义输入框input对象
-                            content: [],//默认标签
+                            content: content,//默认标签
                             done: function(value){ //空格后的回调
                             }
                         })
@@ -74,12 +77,13 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
-                        var id = $(this).attr('id');
+                        var id = _that.attr('id');
+                        var color = _that.prev('input').val();
                         colorPicker.render({
                             // 选择器，推荐使用input
                             elem: '#' + id,
                             // 数据类型：fontClass/unicode，推荐使用fontClass
-                            color: 'rgb',//默认颜色，不管你是使用 hex、rgb 还是 rgba 的格式输入，最终会以指定的格式显示。
+                            color: color,//默认颜色，不管你是使用 hex、rgb 还是 rgba 的格式输入，最终会以指定的格式显示。
                             // 是否开启搜索：true/false
                             predefine: true,//预定义颜色是否开启
                             colors: ['#F00','#0F0','#00F','rgb(255, 69, 0)','rgba(255, 69, 0, 0.5)'],//预定义颜色，此参数需配合 predefine: true 使用。

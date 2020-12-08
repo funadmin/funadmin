@@ -170,7 +170,7 @@ class Admin extends Backend
             }
             $list = $this->modelClass->where('id','in', $ids)->select();
             $save = $list->delete();
-            $save ?  $this->success(lang('Delete success')):$this->error(lang('SupperAdmin can not delete'));
+            $save ?  $this->success(lang('operation success')):$this->error(lang('SupperAdmin can not delete'));
         } else {
             $this->error(lang('Ids can not empty'));
 

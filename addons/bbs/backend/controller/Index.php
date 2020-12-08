@@ -84,7 +84,7 @@ class Index extends  Backend {
             $model = new \addons\bbs\common\model\Bbs();
             $res = $model->edit($post);
             if($res){
-                $this->success(lang('edit success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('edit fail'));
 
@@ -117,7 +117,7 @@ class Index extends  Backend {
         if ($id and isset($post['field'])) {
             $model = new \addons\bbs\common\model\Bbs();
             $res = $model->state($post);
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
 
         }
         $this->error('data not exist');
@@ -130,7 +130,7 @@ class Index extends  Backend {
 
             $id = $this->request->post('id');
             \addons\bbs\common\model\Bbs::destroy($id);
-            $this->success('delete success');
+            $this->success('operation success');
         }
 
     }

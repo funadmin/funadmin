@@ -81,12 +81,8 @@ return [
     'operation success'  =>  '操作成功',
     'operation failed'  =>  '操作失败',
     'Update Success'  =>  '更新成功',
-    'Delete Success'  =>  '删除成功',
-    'Delete all Success'  =>  '全部删除成功',
-    'Asny Success'  =>  '同步成功',
     'Empty Success'  =>  '清除成功',
     'Update Failed'  =>  '更新失败',
-    'Delete Failed'  =>  '删除失败',
     'Delete all Failed'  =>  '全部删除失败',
     'Asny Failed'  =>  '同步失败',
     'Empty Failed'  =>  '清除失败',
@@ -101,7 +97,6 @@ return [
     'Cannot Null'  =>  '不能为空',
     'Invalid Data'  =>  '数据不正确',
     'Invalid Options'  =>  '非法操作',
-
 
     'Logout Success'  =>  '退出成功',
     'QrcodeName'  =>  "二维码名字",

@@ -57,9 +57,9 @@ trait Curd
             try {
                 $save = $this->modelClass->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('Save Failed'));
+                $this->error(lang('operation failed'));
             }
-            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
+            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
         $view = [
             'formData' => '',
@@ -88,9 +88,9 @@ trait Curd
             try {
                 $save = $list->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('Save Failed'));
+                $this->error(lang('operation filed'));
             }
-            $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
+            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
         $view = ['formData'=>$list,'title' => lang('Add'),];
         return view('add',$view);
@@ -112,10 +112,10 @@ trait Curd
         try {
             $save = $list->delete();
         } catch (\Exception $e) {
-            $this->error(lang("Delete Success"));
+            $this->error(lang("operation success"));
         }
 
-        $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
+        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
     }
 
     /**
@@ -147,7 +147,7 @@ trait Curd
         if(empty($model))$this->error('Data is not exist');
         $sort = $this->request->param('sort');
         $save = $model->sort = $sort;
-        $save ? $this->success(lang('Save Success')) :  $this->error(lang("Save Failed"));
+        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
 
 
     }

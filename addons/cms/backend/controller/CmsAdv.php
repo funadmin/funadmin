@@ -114,7 +114,7 @@ class Cmsadv extends AddonsBackend
                 $this->error($e->getMessage());
             }
             AdvModel::update($post);
-            $this->success(lang('edit success'), url('index'));
+            $this->success(lang('operation success'), url('index'));
 
         }
         $id = $this->request->param('id');

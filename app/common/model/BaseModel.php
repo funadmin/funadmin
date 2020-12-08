@@ -34,18 +34,6 @@ class BaseModel extends Model
 
     }
 
-    /**设置数据
-     * @param $data
-     * @return $this
-     */
-    public function setData($data){
-
-        if (is_object($data)) {
-            $data = get_object_vars($data);
-        }
-        $this->data = array_merge($this->data, $data);
-        return $this;
-
-    }
+   
 
 }

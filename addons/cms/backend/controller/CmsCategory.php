@@ -63,7 +63,7 @@ class CmsCategory extends AddonsBackend
                 ->count();
             $list = $this->modelClass
                 ->where($where)
-                ->order($sort)
+//                ->order($sort)
                 ->page($this->page, $this->pageSize)
                 ->select()->toArray();
             $list = TreeHelper::cateTree($list, 'catename');
@@ -188,10 +188,10 @@ class CmsCategory extends AddonsBackend
             $save = $list->delete();
             CategoryModel::fixCate();
         } catch (\Exception $e) {
-            $this->error(lang("Delete Success"));
+            $this->error(lang("operation success"));
         }
 
-        $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
+        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
     }
 
 

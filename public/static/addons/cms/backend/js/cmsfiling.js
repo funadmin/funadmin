@@ -19,14 +19,14 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmscategorylist/index',
-                    add_url: 'addons/cms/backend/cmscategorylist/add',
-                    edit_url: 'addons/cms/backend/cmscategorylist/add',
-                    delete_url: 'addons/cms/backend/cmscategorylist/delete',
-                    modify_url: 'addons/cms/backend/cmscategorylist/modify',
+                    index_url: 'addons/cms/backend/cmsfiling/index',
+                    add_url: 'addons/cms/backend/cmsfiling/add',
+                    edit_url: 'addons/cms/backend/cmsfiling/edit',
+                    delete_url: 'addons/cms/backend/cmsfiling/delete',
+                    modify_url: 'addons/cms/backend/cmsfiling/modify',
                     flashCache:{
                         type: 'request',
-                        url:'addons/cms/backend/cmscategorylist/flashCache',
+                        url:'addons/cms/backend/cmsfiling/flashCache',
                         class: 'layui-btn-sm layui-btn-warm',
                         icon: 'layui-icon layui-icon-fonts-clear',
                         title: __('flashCache'),
@@ -35,7 +35,7 @@ define(['table','form'], function (Table,Form) {
                     },
                     add_full: {
                         type: 'open',
-                        url:'addons/cms/backend/cmscategorylist/add',
+                        url:'addons/cms/backend/cmsfiling/add',
                         class: 'layui-btn-sm layui-btn-green',
                         icon: 'layui-icon layui-icon-add-circle-fine',
                         title: __('Add'),
@@ -52,8 +52,10 @@ define(['table','form'], function (Table,Form) {
                 toolbar: ['refresh','flashCache','add_full'],
                 cols: [[
                     {checkbox: true, fixed: true},
-                    {field: 'id', title: 'ID', width: 80, fixed: true,},
+                    {field: 'id', title: 'ID', width: 80, },
+                    {field: 'category.title', title: 'Cate', width: 80,templet:Table.templet.resolution},
                     {field: 'title', title: __('Title'), width: 150,},
+                    {field: 'thumb', title: __('thumb'), width: 150,templet:Table.templet.image},
                     {field: 'hits', title:  __('Hits'), width: 80},
                     {field: 'is_read', title:  __('Read'), width: 80},
                     {field: 'status', title: __('Status'),filter: 'status',width:100,templet: Table.templet.switch},
@@ -103,6 +105,12 @@ define(['table','form'], function (Table,Form) {
             Controller.api.bindevent()
         },
         add: function () {
+            layui.form.on('select(category)',function(data){
+                var id = data.value;
+                $.get('getfield?id='+id,function(res){
+                    $('.field').html(res);
+                });
+            })
             Controller.api.bindevent()
         },
 

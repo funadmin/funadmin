@@ -80,7 +80,7 @@ class CmsDiyform extends AddonsBackend
             }
             $res = CmsDiyformModel::update($post);
             if ($res) {
-                $this->success(lang('edit success'), url('index'));
+                $this->success(lang('operation success'), url('index'));
             } else {
                 $this->error(lang('edit fail'));
             }
@@ -100,7 +100,7 @@ class CmsDiyform extends AddonsBackend
         if ($ids) {
             $model = new CmsDiyformModel();
             $model->del($ids);
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
         } else {
             $this->error(lang('delete fail'));
 
@@ -117,7 +117,7 @@ class CmsDiyform extends AddonsBackend
             $where['status'] = $link['status'] ? 0 : 1;
             CmsDiyformModel::update($where);
 
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
 
         } else {
             $this->error(lang('edit fail'));

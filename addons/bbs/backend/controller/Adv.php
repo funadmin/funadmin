@@ -101,7 +101,7 @@ class Adv extends AddonsBackend
                 $this->error($e->getMessage());
             }
             $this->AdvModel->edit($post);
-            $this->success(lang('edit success'), url('index'));
+            $this->success(lang('operation success'), url('index'));
 
         } else {
             $id = Request::param('id');

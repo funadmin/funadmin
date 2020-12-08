@@ -33,19 +33,17 @@ class  CmsTags extends BaseModel
         if (strpos($data, ',') === false) {
             $data = [$data];
         } else {
-
             $data = array_filter(explode(',', $data));
         }
         foreach ($data as $k => $v) {
             $tag = $this->where('name', $v)->find();
             if ($tag) {
                 $tag->inc('nums')->update();
-                if (strpos($tag->article_ids, $id) === false) {
-                    $tag->article_ids = $tag->article_ids . ',' . $id;
-                    $tag->save();
-                }
+                $tag->filing_ids = $tag->filing_ids . ',' . $id;
+                $tag->filing_ids = implode(',', array_unique(explode(',',$tag->filing_ids)));
+                $tag->save();
             } else {
-                $this->create(['name' => $v, 'article_id' => $id]);
+                $this->create(['name' => $v, 'filing_ids' => $id]);
             }
         }
         return true;

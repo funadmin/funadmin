@@ -116,7 +116,7 @@ class Sign extends AddonsBackend
         if ($ids) {
             $model = new BbsUserSignRule();
             $model->del($ids);
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
         } else {
             $this->error(lang('delete fail'));
 
@@ -130,7 +130,7 @@ class Sign extends AddonsBackend
         if ($id and $post['field']) {
             $model = new BbsUserSignRule();
             $model->state($post);
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
 
         } else {
             $this->error(lang('edit fail'));

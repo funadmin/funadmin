@@ -136,9 +136,9 @@ class AuthGroup extends Backend
             try {
                 $save = $list->delete();
             } catch (\Exception $e) {
-                $this->error(lang("Delete Success"));
+                $this->error(lang("operation success"));
             }
-            $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
+            $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
 
         }
     }

@@ -1,7 +1,3 @@
-{if $formData}
-<input type="hidden" name="id" value="{$formData.id}">
-{/if}
-
 {volist name="fieldList" id="vo" }
 {php}$verify = $vo['required']?'required':'';{/php}
 {switch name="vo.type"}

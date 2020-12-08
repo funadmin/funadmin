@@ -54,10 +54,10 @@ class MemberGroup extends Backend{
         try{
             $save = $list->delete();
         } catch (\Exception $e) {
-            $this->error(lang("Delete Failed"));
+            $this->error(lang("operation failed"));
         }
 
-        $save ? $this->success(lang('Delete Success')) :  $this->error(lang("Delete Failed"));
+        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
     }
 
 

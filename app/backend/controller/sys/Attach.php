@@ -60,10 +60,10 @@ class Attach extends Backend
             }
             $save = $list->delete();
         } catch (\Exception $e) {
-            $this->error(lang("Delete success"));
+            $this->error(lang("operation success"));
         }
 
-        $save ? $this->success(lang('Delete success')) : $this->error(lang("Delete fail"));
+        $save ? $this->success(lang('operation success')) : $this->error(lang("Delete fail"));
     }
 
 }

@@ -49,17 +49,17 @@ class Plugin extends Addons    // 需继承fun\Addon类
                     ]
                 ],
                 [
-                    'href' => 'addons/cms/backend/cmsCategorylist',
+                    'href' => 'addons/cms/backend/cmsfiling',
                     'title' => 'Categorylist',
                     'status' => 1,
                     'menu_status' => 1,
                     'icon' => 'layui-icon layui-icon-template-1',
                     'menulist' => [
-                        ['href' => 'addons/cms/backend/cmsCategorylist/index', 'title' => 'list', 'status' => 1, 'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsCategorylist/add', 'title' => 'add', 'status' => 1, 'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsCategorylist/delete', 'title' => 'delete', 'status' => 1, 'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsCategorylist/board', 'title' => 'board', 'status' => 1, 'menu_status' => 0,],
-                        ['href' => 'addons/cms/backend/cmsCategorylist/modify', 'title' => 'modify', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsfiling/index', 'title' => 'list', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsfiling/add', 'title' => 'add', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsfiling/delete', 'title' => 'delete', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsfiling/board', 'title' => 'board', 'status' => 1, 'menu_status' => 0,],
+                        ['href' => 'addons/cms/backend/cmsfiling/modify', 'title' => 'modify', 'status' => 1, 'menu_status' => 0,],
                     ]
                 ],
                 [

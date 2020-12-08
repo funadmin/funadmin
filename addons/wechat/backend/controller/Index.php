@@ -138,7 +138,7 @@ class Index extends AddonsBackend {
             }
             $res = AddonsWechatAccount::update($data);
             if ($res) {
-                $this->success(lang('edit success'), url('index'));
+                $this->success(lang('operation success'), url('index'));
             } else {
                 $this->error(lang('edit fail'));
             }
@@ -168,7 +168,7 @@ class Index extends AddonsBackend {
                 }
             }
             $info->save();
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
         }else{
             $this->error('非法数据');
         }
@@ -177,7 +177,7 @@ class Index extends AddonsBackend {
         $id = $this->request->post('id');
         if($id){
             AddonsWechatAccount::destroy($id);
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
 
         }else{
             $this->error('非法数据');
@@ -271,7 +271,7 @@ class Index extends AddonsBackend {
 
         $res = $this->wechatApp->menu->delete(); // 全部
         if($res['errcode']==0){
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
         }else{
             $this->error(lang('delete fai'));
         }
@@ -429,7 +429,7 @@ class Index extends AddonsBackend {
             $status = $adv['status'] == 1 ? 0 : 1;
             $adv->status = $status;
             $adv->save();
-            $this->success(lang('edit success'));
+            $this->success(lang('operation success'));
         }
 
     }
@@ -507,7 +507,7 @@ class Index extends AddonsBackend {
                 $res = $this->wechatApp->user_tag->update($tag['tag_id'],$data['name']);
                 if($res['errcode']==0){
                     AddonsWechatTag::update($data);
-                    $this->success(lang('edit success'));
+                    $this->success(lang('operation success'));
                 }else{
                     $this->error(lang('edit fail'));
                 }
@@ -541,7 +541,7 @@ class Index extends AddonsBackend {
         }else{
             $this->error(lang('delete fai'));
         }
-        $this->success(lang('delete success'));
+        $this->success(lang('operation success'));
 
     }
 
@@ -573,7 +573,7 @@ class Index extends AddonsBackend {
         if(Request::isPost()){
             $id = $this->request->post('id');
             WxMsgHistory::destroy($id);
-            $this->success(lang('delete success'));
+            $this->success(lang('operation success'));
         }
 
     }
@@ -869,7 +869,7 @@ class Index extends AddonsBackend {
         if($material['type']=='news'){
             $info = AddonsWechatMaterialInfo::where($this->where)->where('material_id',$id)->delete();
             if($info && $material->delete()){
-                $this->success(lang('delete success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('delete fail'));
 
@@ -877,7 +877,7 @@ class Index extends AddonsBackend {
         }else{
             if($material->delete()){
 
-                $this->success(lang('delete success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('delete fail'));
 
@@ -1060,7 +1060,7 @@ class Index extends AddonsBackend {
 
             $res = Db::name('addons_wechat_qrcode')->where('id',$qr['id'])->update(['status'=>$status]);
             if($res){
-                $this->success(lang('edit success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('edit fail'));
             }
@@ -1076,7 +1076,7 @@ class Index extends AddonsBackend {
             $id = Request::param('id');
             $res = Db::name('addons_wechat_qrcode')->delete($id);
             if($res){
-                $this->success(lang('delete success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('delete fail'));
             }
@@ -1177,7 +1177,7 @@ class Index extends AddonsBackend {
             $data['addons_wechat_aid'] = $this->wechatAccount->id;
             $res = AddonsWechatReply::update($data);
             if ($res) {
-                $this->success(lang('edit success'),url('index'));
+                $this->success(lang('operation success'),url('index'));
             } else {
                 $this->error(lang('edit fail'));
             }
@@ -1196,7 +1196,7 @@ class Index extends AddonsBackend {
 
         $id = $this->request->post('id');
         AddonsWechatReply::destroy($id);
-        $this->success(lang('delete success'));
+        $this->success(lang('operation success'));
 
     }
 

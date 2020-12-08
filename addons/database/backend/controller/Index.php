@@ -112,7 +112,7 @@ class Index extends AddonsBackend
     public function delete() {
         $time = $this->request->param('time');
         if($this->db->delFile($time)){
-            $this->success(lang('delete success')) ;
+            $this->success(lang('operation success')) ;
         }else{
             $this->error(lang('delete fail')) ;
 

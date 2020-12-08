@@ -99,7 +99,7 @@ class CmsModule extends AddonsBackend
             }
             $post['template'] = json_encode($post['template'],true);
             if ($list->save($post) !== false) {
-                $this->success(lang('Edit Success'));
+                $this->success(lang('operation success'));
             } else {
                 $this->success(lang('Edit Fail'));
             }
@@ -125,7 +125,7 @@ class CmsModule extends AddonsBackend
             if($res){
                 Db::execute("DROP TABLE IF EXISTS `".$tables."`");
                 CmsField::where('moduleid',$list->id)->delete();
-                $this->success(lang('delete success'));
+                $this->success(lang('operation success'));
             }else{
                 $this->error(lang('delete fail'));
             }
