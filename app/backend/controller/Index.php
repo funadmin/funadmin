@@ -26,7 +26,7 @@ class Index extends Backend{
      * 首页
      */
     public function index(){
-        $menulsit = Cache::get('adminmenushtml' .session('admin.id'));
+        $menulsit = cache('adminmenushtml' .session('admin.id'));
         if (!$menulsit) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type',1)
@@ -45,6 +45,7 @@ class Index extends Backend{
      * @return \think\response\View
      */
     public function console(){
+        echo 1;die;
         $version = Db::query('SELECT VERSION() AS ver');
         $config = Cache::get('main_config');
         if(!$config){

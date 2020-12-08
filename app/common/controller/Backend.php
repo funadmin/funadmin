@@ -74,7 +74,6 @@ class Backend extends BaseController
 
     public function __construct(App $app)
     {
-
         parent::__construct($app);
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);

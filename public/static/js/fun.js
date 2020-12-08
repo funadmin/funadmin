@@ -177,7 +177,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             success: function (msg, callback) {
                 if (callback === undefined) {
                     callback = function () {
-
                     }
                 }
                 return Toastr.success(msg, callback);
@@ -187,7 +186,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             error: function (msg, callback) {
                 if (callback === undefined) {
                     callback = function () {
-
                     }
                 }
                 return Toastr.error(msg, callback);

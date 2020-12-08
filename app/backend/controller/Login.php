@@ -22,7 +22,6 @@ class Login extends Backend {
 
     protected $layout='';
     public function index(){
-        StringHelper::randomNum();
         if (!$this->request->isPost()) {
             $admin= session('admin');
             $admin_sign= session('admin.token') == SignHelper::authSign($admin) ? $admin['id'] : 0;
