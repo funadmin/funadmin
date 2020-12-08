@@ -1250,16 +1250,16 @@
         },
         {
             "name": "overtrue/wechat",
-            "version": "5.2.0",
+            "version": "5.2.3",
             "source": {
                 "type": "git",
-                "url": "https://github.com/overtrue/wechat.git",
-                "reference": "4a970531e93466f16d68544a7f8c1a1e48d813df"
+                "url": "https://github.com/w7corp/easywechat.git",
+                "reference": "ea75d4637ed416e2d78e925f983f92f4896e07a3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/overtrue/wechat/zipball/4a970531e93466f16d68544a7f8c1a1e48d813df",
-                "reference": "4a970531e93466f16d68544a7f8c1a1e48d813df",
+                "url": "https://api.github.com/repos/w7corp/easywechat/zipball/ea75d4637ed416e2d78e925f983f92f4896e07a3",
+                "reference": "ea75d4637ed416e2d78e925f983f92f4896e07a3",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -1271,6 +1271,7 @@
             "require": {
                 "easywechat-composer/easywechat-composer": "^1.1",
                 "ext-fileinfo": "*",
+                "ext-libxml": "*",
                 "ext-openssl": "*",
                 "ext-simplexml": "*",
                 "guzzlehttp/guzzle": "^6.2 || ^7.0",
@@ -1296,7 +1297,10 @@
             "type": "library",
             "extra": {
                 "hooks": {
-                    "pre-commit": "composer check-style",
+                    "pre-commit": [
+                        "composer test",
+                        "composer fix-style"
+                    ],
                     "pre-push": [
                         "composer test",
                         "composer fix-style"
@@ -1330,21 +1334,7 @@
                 "weixin",
                 "weixin-sdk"
             ],
-            "funding": [
-                {
-                    "url": "https://www.easywechat.com/img/pay/wechat.jpg",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/overtrue",
-                    "type": "github"
-                },
-                {
-                    "url": "https://www.patreon.com/overtrue",
-                    "type": "patreon"
-                }
-            ],
-            "time": "2020-11-23T07:24:34+00:00"
+            "time": "2020-12-03T14:54:09+00:00"
         },
         {
             "name": "php-di/phpdoc-reader",

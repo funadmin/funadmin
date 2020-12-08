@@ -34,6 +34,18 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                             return '用户名不能全为数字';
                         }
                     }
+                    //layedit 编辑器同步
+                    ,layedit: function(value) { 
+                        var list = document.querySelectorAll("*[lay-filter='editor']");
+                        if (list.length > 0) {
+                            $.each(list, function () {
+                                if($(this).attr('lay-editor')==2){
+                                    var id = $(this).attr('id');
+                                    return  layui.layedit.sync(window['editor'+id])
+                                }
+                            })
+                        }
+                    }
                     ,pass: [/^[\S]{6,18}$/, '密码必须6到18位，且不能出现空格']
                     ,zipcode: [/^\d{6}$/, "请检查邮政编码格式"]
                     ,chinese: [/^[\u0391-\uFFE5]+$/, "请填写中文字符"] //包含字母

@@ -22,8 +22,6 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                                 {height: 350,
                                     uploadImage:{url: Fun.url(Upload.init.requests.upload_url)+'?editor=layedit', type: 'post'}
                                 }); //建立编辑器
-                                
-                                layedit.sync(window['editor'+id])
                         }
                     })
                 }
@@ -37,12 +35,9 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                         inputTags.render({
                             elem:'#'+id,//定义输入框input对象
                             content: [],//默认标签
-                            done: function(value){ //回车后的回调
-
+                            done: function(value){ //空格后的回调
                             }
                         })
-
-
                     })
                 }
             },
@@ -69,14 +64,10 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                             },
                             // 渲染成功后的回调
                             success: function (d) {
-
                             }
                         });
-
                     })
-
                 }
-
             },
             color: function () {
                 var list = document.querySelectorAll("*[lay-filter='colorPicker']");
