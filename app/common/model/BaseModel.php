@@ -34,6 +34,12 @@ class BaseModel extends Model
 
     }
 
-   
+    public static function get_addonstablename($tablename,$addon)
+    {
+        $tablename = str_replace($addon.'_','',str_replace('addons_','',$tablename));
+        return $tablename = self::get_table_prefix() .'addons_'.$addon.'_'. $tablename;
+
+    }
+
 
 }

@@ -936,7 +936,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
         display: block !important;
         position: fixed;
         z-index: 99999;
-        bottom: 15px;
+        bottom: 30px;
         left: 15px;
         width: 40px;
         height: 40px;

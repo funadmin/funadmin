@@ -60,9 +60,7 @@ class CmsModule extends AddonsBackend
     {
         if ($this->request->isAjax()) {
             //获取数据库所有表名
-            $tablename = $this->request->param('tablename/s');
-            $tablename = str_replace($this->addon.'_','',str_replace('addons_','',$tablename));
-            $tablename = $this->prefix .'addons_'.$this->addon.'_'. $tablename;
+            $tablename = $this->modelClass->get_addonstablename($this->request->param('tablename/s'),$this->addon);
             if(strpos($tablename,'addons_'.$this->addon.'_filing')){$this->error(lang('Table is exist'));}
             $tables = $this->modelClass->getTables();
             if (in_array($tablename, $tables)) {

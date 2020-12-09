@@ -23,21 +23,15 @@ define(['table','form'], function (Table,Form) {
                     {field: 'id', title: 'ID', width: 80,  sort: true},
                     {field: 'tablename', title: __('tablename'), width: 180, },
                     {field: 'name', title: __('Name'), minwidth: 150, },
-                    {field: 'title', title: __('Title'), width: 180,},
                     {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch,},
                     {field: 'create_time', title: __('Createtime'), width: 180},
-                    // {field: 'id', title:'ID', width:90, sort:true,},
-                    // {field: 'name', title: __('Name'), minwidth: 150,  sort: true},
-                    // {field: 'field', title: __("field"), width: 120,sort:true},
-                    // // {field: 'maxlength', title: __("maxlength")}', width: 50,sort:true},
-                    // {field: 'msg', title: __("msg"), width: 180,sort:true},
-                    // // {field: 'rule', title: __("rule"), width: 180},
-                    // {field: 'type', title: __("type"), width: 180,sort:true},
-                    // {field: 'value', title: __("value"), width: 180,sort:true},
-                    // {field: 'required', title: __("required"), width: 100,templet:Table.templet.switch},
-                    // {field: 'sort', title: __("sort"), width: 80,},
-                    {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch,},
-
+                    {field: 'fieldlist', title: __("Field"), width: 200,sort:true,
+                        templet: function (d){
+                            return  '<a class="layui-btn layui-btn-xs layui-bg-green" href="/addons/cms/backend/cmsdiyform/field"><i class="layui-icon layui-icon-list"></i>'+__('Filelist')+'</a>'+
+                           '<a class="layui-btn layui-btn-xs layui-bg-blue" href="/addons/cms/backend/cmsdiyform/data"><i class="layui-icon  layui-icon-template-1"></i>'+__('datalist')+'</a>'
+                        }
+                    },
+                    {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch},
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
                         templet : Table.templet.operat, operat: ['edit','delete']
@@ -51,7 +45,6 @@ define(['table','form'], function (Table,Form) {
                 limit: 50,
                 page: true
             });
-
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },

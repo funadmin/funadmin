@@ -14,8 +14,7 @@ namespace addons\cms\backend\controller;
 
 use app\common\controller\AddonsBackend;
 use app\common\traits\Curd;
-use think\facade\Request;
-use think\facade\View;
+use think\facade\Db;
 use think\App;
 use addons\cms\common\model\CmsDiyform as CmsDiyformModel;
 use think\Validate;
@@ -29,107 +28,33 @@ class CmsDiyform extends AddonsBackend
         $this->modelClass = new CmsDiyformModel();
     }
 
-    public function index()
-    {
-        if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
-            $count = $this->modelClass
-                ->where($where)
-                ->count();
-            $list = $this->modelClass
-                ->where($where)
-                ->order($sort)
-                ->page($this->page, $this->pageSize)
-                ->select();
-            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
-            return json($result);
-        }
-        return view();
-
-    }
-
     public function add()
     {
-        if (Request::isPost()) {
+        if ($this->request->isPost()) {
             $post = $this->request->post();
-            try{
-                $this->validate($post, 'CmsLink');
-            }catch (\Exception $e){
-                $this->error($e->getMessage());
-            }
-
-
-            $res = CmsDiyformModel::create($post);
-            if ($res) {
-                $this->success(lang('add success'),url('index'));
-            } else {
-                $this->error(lang('add fail'));
-            }
-        }
-        $view = [
-            'info' => '',
-            'title' => lang('add'),
-        ];
-        View::assign($view);
-        return view();
-    }
-
-    public function edit()
-    {
-        if (Request::isPost()) {
-            $post = $this->request->post();
+            $rule = [
+                "tablename|数据表名" => 'require|unique:addons_cms_diyform',
+                "name|表单名" => 'require',
+                "template|模板" => 'require',
+            ];
             try {
-                $this->validate($post, 'CmsLink');
+                $this->validate($post, $rule);
+            }catch (\ValidateException $e){
+                $this->error(lang($e->getMessage()));
+            }
+            $tablename = $this->modelClass->get_addonstablename($this->request->param('tablename/s'),$this->addon);
+            if(Db::query("SHOW TABLES LIKE '{$tablename}'")) $this->error(lang('table is already exist'));
+            try {
+                $save = $this->modelClass->save($post);
             } catch (\Exception $e) {
-                $this->error($e->getMessage());
+                $this->error(lang('operation failed'));
             }
-            $res = CmsDiyformModel::update($post);
-            if ($res) {
-                $this->success(lang('operation success'), url('index'));
-            } else {
-                $this->error(lang('edit fail'));
-            }
+            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
-        $info = CmsDiyformModel::find(Request::get('id'));
         $view = [
-            'info' => $info,
-            'title' => lang('edit'),
+            'formData' => '',
         ];
-        View::assign($view);
-        return view('add');
-
-    }
-    public function delete()
-    {
-        $ids = $this->request->post('ids');
-        if ($ids) {
-            $model = new CmsDiyformModel();
-            $model->del($ids);
-            $this->success(lang('operation success'));
-        } else {
-            $this->error(lang('delete fail'));
-
-        }
-    }
-
-    public function state()
-    {
-        $id = $this->request->post('id');
-        if ($id) {
-            $where['id'] = $id;
-
-            $link = CmsDiyformModel::find($id);
-            $where['status'] = $link['status'] ? 0 : 1;
-            CmsDiyformModel::update($where);
-
-            $this->success(lang('operation success'));
-
-        } else {
-            $this->error(lang('edit fail'));
-
-        }
-
-
+        return view('',$view);
     }
 
     public function field(){
@@ -137,7 +62,7 @@ class CmsDiyform extends AddonsBackend
         return view();
     }
 
-    public function datalist(){
+    public function data(){
 
 
         return view();
