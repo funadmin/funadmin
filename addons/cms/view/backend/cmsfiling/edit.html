@@ -7,14 +7,16 @@
         <div class="layui-input-block">
             <select name="cateid" lay-filter="category" lay-verify="required">
                 {volist name="catelist" id="vo"}
-                <option value="{$vo.id}" {if $vo.type!=1}disabled=''{/if}>{$vo.ltitle}</option>
+                <option value="{$vo.id}"
+                        {if ($cateid && $cateid!=$vo['id']) } disabled=""{/if}
+                        {if $vo.type!=1}disabled=''{/if} >{$vo.ltitle}</option>
                 {/volist}
             </select>
         </div>
     </div>
     {:form_select('adminid',$adminlist,['search'=>1])}
     {:form_input('title','text',['label'=>'title','verify'=>'required'])}
-    {:form_color('title_color','title_color',['label'=>'Title Color','search'=>1],$formData.title_color)}
+    {:form_color('title_color','title_color',['label'=>'TitleColor','search'=>1],$formData.title_color)}
     <div class="layui-form-item">
         <label class="layui-form-label">{:lang('Bold')}</label>
         <div class="layui-input-block">
@@ -47,5 +49,9 @@
     {:form_input('price','text',['label'=>'price'],0)}
     {:form_radio('status',[0=>'Close',1=>'Open'],['verify'=>'required','label'=>'Status'],1)}
     {:form_date('publish_time',['label'=>'publishtime'])}
+    {if $cateid}
+    {:form_submitbtn(true,['show'=>1])}
+    {else/}
     {:form_submitbtn()}
+    {/if}
 </form>

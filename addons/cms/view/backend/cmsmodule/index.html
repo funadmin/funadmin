@@ -1,10 +1,2 @@
-<div class="fun-main">
-    <table class="layui-table" id="list" lay-filter="list"></table>
-</div>
+<table class="layui-table" id="list" lay-filter="list"></table>
 
-<script type="text/html" id="action">
-    <a data-href="{:url('field')}?id={{d.id}}" class="layui-btn layui-btn-normal layui-btn-xs" lay-event="edit">模型字段</a>
-    <a data-href="{:url('edit')}?id={{d.id}}" class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>
-<!--    <a class="layui-btn layui-btn-xs" lay-event="edit">{:lang('edit')}</a>-->
-    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">{:lang('del')}</a>
-</script>

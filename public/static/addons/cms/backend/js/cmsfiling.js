@@ -22,6 +22,7 @@ define(['table','form'], function (Table,Form) {
                     index_url: 'addons/cms/backend/cmsfiling/index',
                     add_url: 'addons/cms/backend/cmsfiling/add',
                     edit_url: 'addons/cms/backend/cmsfiling/edit',
+                    destroy_url: 'addons/cms/backend/cmsfiling/destroy',
                     delete_url: 'addons/cms/backend/cmsfiling/delete',
                     modify_url: 'addons/cms/backend/cmsfiling/modify',
                     flashCache:{
@@ -51,19 +52,19 @@ define(['table','form'], function (Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh','flashCache','add_full'],
                 cols: [[
-                    {checkbox: true, fixed: true},
+                    {checkbox: true},
                     {field: 'id', title: 'ID', width: 80, },
-                    {field: 'category.title', title: 'Cate', width: 80,templet:Table.templet.resolution},
+                    {field: 'category.title', title: __('Cate'), width: 80,templet:Table.templet.resolution},
                     {field: 'title', title: __('Title'), width: 150,},
                     {field: 'thumb', title: __('thumb'), width: 150,templet:Table.templet.image},
-                    {field: 'hits', title:  __('Hits'), width: 80},
+                    {field: 'clicks', title:  __('clicks'), width: 80},
                     {field: 'is_read', title:  __('Read'), width: 80},
                     {field: 'status', title: __('Status'),filter: 'status',width:100,templet: Table.templet.switch},
                     {field: 'sort', title:  __('sort'), width: 80,edit:true},
-                    {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
+                    {field: 'create_time', title: __('Createtime'), width: 180, sort: true,},
                     {
                         align: 'center', title: __('Operat'), init: Table.init,
-                        templet : Table.templet.operat, operat: ['edit','delete']
+                        templet : Table.templet.operat, operat: ['edit','destroy','delete']
                     }
                 ]],
                 done: function(res){

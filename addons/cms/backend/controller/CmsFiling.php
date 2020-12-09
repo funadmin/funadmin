@@ -65,39 +65,6 @@ class CmsFiling extends AddonsBackend
         return view('',['list'=>$cate]);
 
     }
-    //单页页面
-    public function page(){
-        $cateId = $this->request->get('cateid');
-        if(!$cateId){$view = 'board';}
-        $cate = CategoryModel::find($cateId);
-        $moduleid = $cate['moduleid'];
-        $module = CmsModule::find($moduleid);
-        $albumlist = CmsAlbum::where('status',1)->column('title','id');
-        $adminlist = Admin::where('status',1)->column('username','id');
-        //添加单页内容
-        if($this->request->isPost()) {
-            $post = $this->request->post();
-            $post['create_time'] = time();
-            $post['cateid'] =$cateId;
-            $post['publish_time'] =strtotime($post['publish_time']);
-            if($post['id']){
-                $model = $this->modelClass->find($post['id']);
-                $save = $model->save($post);
-            }else{
-                $save= $this->modelClass->save($post);
-            }
-            $save? $this->success(lang('operation success')): $this->error(lang('operation failed'));
-        }
-        $formData = [];
-        $formData =  $this->modelClass->where('cateid',$cateId)->find();
-        if($formData){
-            $addonscontent = Db::name($module->tablename)->find($formData->id);
-            $addonscontent?$formData->appendData($addonscontent):'';
-        }
-        $view = 'page';
-        return view($view,['formData'=>$formData,'cate'=>$cate,'adminlist'=>$adminlist,'albumlist'=>$albumlist]);
-    }
-
     /**
      * 面板
      * @return \think\response\View
@@ -144,10 +111,15 @@ class CmsFiling extends AddonsBackend
      * @throws \think\db\exception\ModelNotFoundException
      */
     public function edit(){
+        $cateid = $this->request->get('cateid');
         if($this->request->isPost()){
             $post = $this->request->post();
-            $id = $this->request->param('id');
-            $list = $this->modelClass->find($id);
+            if($cateid){
+                $list = $this->modelClass->where('cateid',$cateid)->find();
+            }else{
+                $id = $this->request->param('id');
+                $list = $this->modelClass->find($id);
+            }
             if(empty($list)) $this->error(lang('Data is not exist'));
             $post['publish_time'] =  $post['publish_time']?strtotime($post['publish_time']):time();
             $post['title_color'] =  isset($post['title_color'])?$post['title_color']:'';
@@ -156,19 +128,26 @@ class CmsFiling extends AddonsBackend
             $save = $list->save($post);
             $save ? $this->success(lang('operation failed')):$this->error(lang('operation failed'));
         }
-        $id = input('id');
-        $formData =  $this->modelClass->find($id);
-        $category = CategoryModel::find($formData->cateid);
-        $moduleid = $category->moduleid ;
-        $module = CmsModule::find($category->moduleid);
-        $fieldList = CmsField::where('moduleid',$moduleid)->cache(3600)->select()->toArray();
-        foreach ($fieldList as $k=>$v){
-            if($fieldList[$k]['options']){
-                $fieldList[$k]['options'] = ArrayHelper::parseToarr( $fieldList[$k]['options'] );
+        if($cateid){
+            $formData =  $this->modelClass->where('cateid',$cateid)->find();
+            $category = CategoryModel::find($cateid);
+            $module = CmsModule::find($category->moduleid);
+            $fieldList = [];
+        }else{
+            $id = input('id');
+            $formData =  $this->modelClass->find($id);
+            $category = CategoryModel::find($formData->cateid);
+            $moduleid = $category->moduleid ;
+            $module = CmsModule::find($category->moduleid);
+            $fieldList = CmsField::where('moduleid',$moduleid)->cache(3600)->select()->toArray();
+            foreach ($fieldList as $k=>$v){
+                if($fieldList[$k]['options']){
+                    $fieldList[$k]['options'] = ArrayHelper::parseToarr( $fieldList[$k]['options'] );
+                }
             }
         }
         if($formData){
-            $data  = Db::name($module->tablename)->find($id);
+            $data  = Db::name($module->tablename)->find($formData->id);
             $style = $formData->titlestyle?explode('|',$formData->titlestyle):['',''];
             $data['title_color'] =$style[0];
             $data['title_bold'] = $style[1];
@@ -181,7 +160,7 @@ class CmsFiling extends AddonsBackend
         $catelist = TreeHelper::cateTree($catelist);
         $albumlist = CmsAlbum::where('status',1)->column('title','id');
         $adminlist = Admin::where('status',1)->column('username','id');
-        return view('edit',['adminlist'=>$adminlist,'catelist'=>$catelist,'fieldList'=>$fieldList,'formData'=>$formData,'albumlist'=>$albumlist]);
+        return view('edit',['cateid'=>$cateid,'adminlist'=>$adminlist,'catelist'=>$catelist,'fieldList'=>$fieldList,'formData'=>$formData,'albumlist'=>$albumlist]);
     }
 
     /**
@@ -234,21 +213,19 @@ class CmsFiling extends AddonsBackend
     //刷新缓存
     public function flashCache()
     {
-
         CategoryModel::flashCache() ? $this->success(lang('operation Success')) : $this->error(lang('operation failed'));
     }
 
     //树形组件分类
     protected function _cateTree($cate, $pid = 0)
     {
-
         $list = [];
         foreach ($cate as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
                 $v['title'] = $v['catename'];
                 if($v['type']==1 || $v['type']==2){ //1 列表2 单页，3 外联，4 封面
-                    $v['href'] = (string)addons_url('page', ['cateid' => $v['id']]);
+                    $v['href'] = (string)addons_url('edit', ['cateid' => $v['id']]);
                 }
                 if ($this->_cateTree($cate, $v['id'])) {
                     $v['children'] = $this->_cateTree($cate, $v['id']);
@@ -257,9 +234,6 @@ class CmsFiling extends AddonsBackend
             }
         }
         return $list;
-
-
-
     }
 
 

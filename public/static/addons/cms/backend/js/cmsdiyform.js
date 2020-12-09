@@ -5,10 +5,11 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsadvpos/index',
-                    add_url: 'addons/cms/backend/cmsadvpos/add',
-                    edit_url: 'addons/cms/backend/cmsadvpos/edit',
-                    delete_url: 'addons/cms/backend/cmsadvpos/delete',
+                    index_url: 'addons/cms/backend/cmsdiyform/index',
+                    add_url: 'addons/cms/backend/cmsdiyform/add',
+                    edit_url: 'addons/cms/backend/cmsdiyform/edit',
+                    delete_url: 'addons/cms/backend/cmsdiyform/delete',
+                    modify_url: 'addons/cms/backend/cmsdiyform/modify',
                 }
             }
             Table.render({
@@ -18,17 +19,25 @@ define(['table','form'], function (Table,Form) {
                 init: Table.init,
                 toolbar: ['refresh','add'],
                 cols: [[
-                    {checkbox: true, fixed: true},
-                    {field: 'name', title: __('Name'), minwidth: 150, fixed: true, sort: true},
-                    {field: 'cmsPos.name', title: __('PositionName'), width: 150,templet: Table.templet.resolution, sort: true},
-                    {field: 'image', title: __('Image'), width: 110, templet: Table.templet.image,sort: true},
-                    {field: 'type', title: __('Type'), width: 110, sort: true},
-                    {field: 'url', title: __('Url'), width: 110, sort: true},
-                    {field: 'status', title: __('status'),filter: 'status', minwidth: 150, sort: true,templet: Table.templet.switch},
-                    {field: 'start_time', title: __('Starttime'), width: 180,templet: Table.templet.time, sort: true,},
-                    {field: 'end_time', title: __('Endtime'), width: 180,templet: Table.templet.time ,sort: true,},
-                    {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
-                    {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
+                    {checkbox: true, },
+                    {field: 'id', title: 'ID', width: 80,  sort: true},
+                    {field: 'tablename', title: __('tablename'), width: 180, },
+                    {field: 'name', title: __('Name'), minwidth: 150, },
+                    {field: 'title', title: __('Title'), width: 180,},
+                    {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch,},
+                    {field: 'create_time', title: __('Createtime'), width: 180},
+                    // {field: 'id', title:'ID', width:90, sort:true,},
+                    // {field: 'name', title: __('Name'), minwidth: 150,  sort: true},
+                    // {field: 'field', title: __("field"), width: 120,sort:true},
+                    // // {field: 'maxlength', title: __("maxlength")}', width: 50,sort:true},
+                    // {field: 'msg', title: __("msg"), width: 180,sort:true},
+                    // // {field: 'rule', title: __("rule"), width: 180},
+                    // {field: 'type', title: __("type"), width: 180,sort:true},
+                    // {field: 'value', title: __("value"), width: 180,sort:true},
+                    // {field: 'required', title: __("required"), width: 100,templet:Table.templet.switch},
+                    // {field: 'sort', title: __("sort"), width: 80,},
+                    {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch,},
+
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
                         templet : Table.templet.operat, operat: ['edit','delete']

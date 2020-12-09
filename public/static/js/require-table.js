@@ -379,7 +379,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 text: __('Destroy'),
                                 title: __('Are you sure to Destroy'),
                                 url: requests.destroy_url,
-                                icon: 'layui-icon layui-icon-delete',
+                                icon: 'layui-icon layui-icon-fonts-clear',
                                 extend: "",
                                 width: '800',
                                 height: '600',

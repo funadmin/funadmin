@@ -74,7 +74,6 @@ class CmsAdvPos extends AddonsBackend
         }
         $view = [
             'formData' => '',
-            'title' => lang('Add'),
         ];
         return view('',$view);
     }

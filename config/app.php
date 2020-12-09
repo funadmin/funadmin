@@ -50,7 +50,7 @@ return [
     'dispatch_error_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/dispatch_jump.tpl',
 
     // 错误显示信息,非调试模式有效
-    'error_message'    => '您访问的内容不存在',
+    'error_message'    => '您访问的内容飞走了',
     // 显示错误信息
     'show_error_msg'   => true,
 

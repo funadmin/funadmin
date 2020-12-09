@@ -45,7 +45,6 @@ class Index extends Backend{
      * @return \think\response\View
      */
     public function console(){
-        echo 1;die;
         $version = Db::query('SELECT VERSION() AS ver');
         $config = Cache::get('main_config');
         if(!$config){

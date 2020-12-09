@@ -106,6 +106,8 @@ return [
     'Verify'  =>  '验证码',
     'Please check data'  =>  '请选择数据',
     'Are you sure you want to delete it'  =>  '确定删除此项?',
+    'Are you sure to delete'  =>  '确定删除此项?',
+    'Are you sure to Destroy'  =>  '确定伪删除此项?',
     'Are you sure you want to delete the %s selected item?'  =>  '确定删除选中的 %s 项?',
     'Are you sure you want to delete or empty?'  =>  '确定删除或清空?',
     'Are you sure you want to empty?'  =>  '确定清空?',

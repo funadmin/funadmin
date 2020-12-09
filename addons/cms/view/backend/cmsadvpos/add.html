@@ -1,51 +1,8 @@
-
-    <form class="layui-form" lay-filter="form">
-        <div class="layui-form-item">
-            <label class="layui-form-label">广告位置名</label>
-            <div class="layui-input-inline">
-                <input type="text" name="position_name" lay-verify="required" placeholder="{:lang('pleaseEnter')}广告位置名" class="layui-input">
-            </div>
-            <div class="layui-form-mid layui-word-aux">
-                在4到25个字符之间。
-            </div>
-        </div>
-
-        <div class="layui-form-item">
-            <label class="layui-form-label">广告位置描述</label>
-            <div class="layui-input-inline">
-                <input type="text" name="position_desc" lay-verify="required" placeholder="{:lang('pleaseEnter')}广告位置描述" class="layui-input">
-            </div>
-            <div class="layui-form-mid layui-word-aux">
-                在4到25个字符之间。
-            </div>
-        </div>
-
-        <div class="layui-form-item">
-            <label class="layui-form-label">宽度</label>
-            <div class="layui-input-inline">
-                <input type="text" name="ad_width" value="1080" placeholder="{:lang('pleaseEnter')}宽度"  class="layui-input">
-            </div>
-            <div class="layui-form-mid layui-word-aux">
-                输入整数 ：单位px
-            </div>
-        </div>
-
-        <div class="layui-form-item">
-            <label class="layui-form-label">高度</label>
-            <div class="layui-input-inline">
-                <input type="text" name="ad_height" value="300" placeholder="{:lang('pleaseEnter')}高度"  class="layui-input">
-            </div>
-            <div class="layui-form-mid layui-word-aux">
-                输入整数 ：单位px
-            </div>
-        </div>
-
-        <div class="layui-form-item">
-            <div class="layui-input-inline">
-                <input type="hidden" name="id"  >
-                <button type="button" class="layui-btn" lay-submit="" lay-filter="submit">{:lang('submit')}</button>
-                <a href="{:url('pos')}" class="layui-btn layui-btn-primary">{:lang('back')}</a>
-            </div>
-        </div>
-    </form>
+ <form class="layui-form" lay-filter="form">
+     {:form_input('name','text',['verify'=>'required','label'=>'posname'])}
+     {:form_input('intro','text',['label'=>'intro'])}
+     {:form_input('width','number',['label'=>'宽',])}
+     {:form_input('height','number',['label'=>'高',])}
+     {:form_submitbtn()}
+</form>
 

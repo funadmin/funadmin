@@ -996,7 +996,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
                 // });
                 /*** 鼠标事件*/
-                $("#layui-tab-header.layui-tab-title>li").bind("contextmenu",function(e){
+                $("#layui-tab-header>li").bind("contextmenu",function(e){
                     e.preventDefault();
                     return false;//
                 });

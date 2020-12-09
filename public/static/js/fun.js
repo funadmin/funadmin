@@ -338,9 +338,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     btn:options.btn_lang,
                     success: function(layero, index){
                         try{
-                            var frameId= layero[0].getElementsByTagName("iframe")[0].id;
-                            layero.addClass('layui-form');
                             // 将保存按钮改变成提交按钮
+                            layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background','#f3f6f6');
                         } catch(err) {
                             //在此处理错误
