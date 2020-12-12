@@ -7,7 +7,8 @@ layui.define(["jquery", 'layer'], function (exports) {
     var $document = $(document), $container = $('#fun-app'),FUN_APP='fun-app',
         THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
     //主题配置
-    THEME = [{
+    THEME = [
+        {
             headerBg: '#fff',
             headerfontColor: '#595959',
             headerBgThis: '#772c6a',
@@ -355,20 +356,13 @@ layui.define(["jquery", 'layer'], function (exports) {
                         }
                     });
                 }
-
-
             }, time)
         },
-
-        /**
-         * tab
-         */
-
+        /** tab*/
         initTabs: function (options) {
             options.filter = options.filter || null;
             options.maxTabs = options.maxTabs || 15;
-            options.listenSwichCallback = options.listenSwichCallback || function () {
-            };
+            options.listenSwichCallback = options.listenSwichCallback || function () {};
             Backend.listenScroll();
             Backend.listenSwitch(options);
             Backend.listenTabs(options);
@@ -395,7 +389,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                 document.msExitFullscreen();
             }
         },
-
         /**
          * 初始化设备端
          */
@@ -404,7 +397,6 @@ layui.define(["jquery", 'layer'], function (exports) {
             //    $container.removeClass('layui-side-shrink').addClass(FUN_APP)
             // }
         },
-
         checkScreen: function () {
             //屏幕类型 大小
             var ua = navigator.userAgent.toLocaleLowerCase();
@@ -417,7 +409,6 @@ layui.define(["jquery", 'layer'], function (exports) {
             var width = $win.width();
             return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
         },
-
         //侧边
         sideFlexible: function () {
             //侧边伸缩
@@ -444,7 +435,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                             icon: icon,
                             maxTabs: options.maxTabs,
                         });
-
                         element.tabChange('layui-layout-tabs', layId);
                     }
                 });
@@ -525,12 +515,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             var checkId = false;
             $(".layui-tab .layui-tab-title li").each(function () {
                 var checklayId = $(this).attr('lay-id');
-                if (checklayId != null && checklayId === layId) {
-                    checkId = true;
-                }
-            });
-            return checkId !== false;
-
+                if (checklayId != null && checklayId === layId) {checkId = true;}});return checkId !== false;
         },
 
         /**

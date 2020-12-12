@@ -7,5 +7,12 @@
     {:form_upload('avatar',$formData)}
     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
     {:form_input('mobile','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.'] )}
+    {if(input('type'))}
+    {:form_submitbtn(true,['show'=>1])}
+
+    {else/}
     {:form_submitbtn()}
+
+    {/if}
+
 </form>

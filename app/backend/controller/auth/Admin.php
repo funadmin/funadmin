@@ -131,6 +131,7 @@ class Admin extends Backend
             'formData'  =>$list,
             'authGroup' => $auth_group,
             'title' => lang('Add'),
+            'type' => $this->request->get('type'),
         ];
         View::assign($view);
         return view('add');

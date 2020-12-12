@@ -6,18 +6,19 @@ body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-
 .layui-login-body{max-width:360px;margin:0 auto;margin-top:12%}
 .layui-container{width:100%;height:100%;overflow:hidden}
 .layui-icon-header{text-align:center;padding-top:10px}
-.layui-icon-header i{font-size:60px;color:#009688;text-align:center}
-.layui-card-header{color:#009688;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:24px;border-bottom:none}
-.layui-card-body{border:1px solid #d2d2d2;border-radius:8px;padding:14px 20px;box-shadow:0 0 8px #eee}
-.layui-card-body .layui-form-item label{color:#009688!important}
+.layui-icon-header i{font-size:60px;color: #0cafa0;text-align:center}
+.layui-card-header{color:#0cafa0;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:24px;border-bottom:none}
+.layui-card-body{border:1px solid #0cafa0;border-radius:8px;padding:14px 20px;box-shadow:0 0 8px #eee}
+.layui-card-body .layui-form-item label{color:#0cafa0!important}
 .layui-card-body .layui-form-item{position:relative}
 .layui-card-body .layui-form-item label{position:absolute;left:1px;top:1px;width:38px;line-height:36px;text-align:center;color:#d2d2d2}
 .layui-card-body .layui-form-item input{padding-left:40px;border-radius:2px}
 .layui-form-item .captcha{width:65%;display:inline-block}
 .layui-form-item .captcha-img{display:inline-block;width:34%;float:right}
 .layui-form-item .captcha-img img{border:1px solid #e6e6e6;height:36px;width:100%}
-.layui-form-item.copyright{font-size:12px;color:#b2b2b2;text-align:center}
-.layui-form-item.copyright a{color:#009688}
+.layui-form-item.copyright{font-size:12px;color:#0cafa0;text-align:center}
+.layui-form-item.copyright a{color:#0cafa0}
+.layui-btn{background-color:#0cafa0!important}
 input::-webkit-input-placeholder{color:#bdcada}
 input:-moz-placeholder{color:#bdcada}
 input::-moz-placeholder{color:#bdcada}
