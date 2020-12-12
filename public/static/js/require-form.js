@@ -35,7 +35,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         }
                     }
                     //layedit 编辑器同步
-                    ,layedit: function(value) { 
+                    ,layedit:function(value){
                         var list = document.querySelectorAll("*[lay-filter='editor']");
                         if (list.length > 0) {
                             $.each(list, function () {
@@ -45,7 +45,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                 }
                             })
                         }
-                    }
+                    }
                     ,pass: [/^[\S]{6,18}$/, '密码必须6到18位，且不能出现空格']
                     ,zipcode: [/^\d{6}$/, "请检查邮政编码格式"]
                     ,chinese: [/^[\u0391-\uFFE5]+$/, "请填写中文字符"] //包含字母
