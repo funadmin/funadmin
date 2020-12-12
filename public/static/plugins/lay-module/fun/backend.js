@@ -925,9 +925,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                                 child.css({height: "auto"});
                             });
                             parent.siblings('li').children('.layui-nav-child').removeAttr("style");
-
                         } else {
-
                             child.animate({height: 0}, function () {
                                 child.removeAttr("style");
                             });
@@ -996,7 +994,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
                 // });
                 /*** 鼠标事件*/
-                $("#layui-tab-header>li").bind("contextmenu",function(e){
+                $("#layui-tab-header > li").bind("contextmenu",function(e){
                     e.preventDefault();
                     return false;//
                 });

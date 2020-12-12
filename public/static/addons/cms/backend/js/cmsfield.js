@@ -1,16 +1,17 @@
 define(['table','form'], function (Table,Form) {
     let Controller = {
         index: function () {
+            $suffix = '/diyformid/' +diyformid+'/moduleid/'+moduleid;
             Table.init = {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    index_url: 'addons/cms/backend/cmsfield/index/moduleid/'+moduleid,
-                    add_url: 'addons/cms/backend/cmsfield/add/moduleid/'+moduleid,
-                    edit_url: 'addons/cms/backend/cmsfield/edit/moduleid/'+moduleid,
-                    delete_url: 'addons/cms/backend/cmsfield/delete/moduleid/'+moduleid,
-                    destroy_url: 'addons/cms/backend/cmsfield/destroy/moduleid/'+moduleid,
-                    modify_url: 'addons/cms/backend/cmsfield/modify/moduleid/'+moduleid,
+                    index_url: 'addons/cms/backend/cmsfield/index'+$suffix,
+                    add_url: 'addons/cms/backend/cmsfield/add'+$suffix,
+                    edit_url: 'addons/cms/backend/cmsfield/edit'+$suffix,
+                    delete_url: 'addons/cms/backend/cmsfield/delete'+$suffix,
+                    destroy_url: 'addons/cms/backend/cmsfield/destroy'+$suffix,
+                    modify_url: 'addons/cms/backend/cmsfield/modify'+$suffix,
                 }
             }
             Table.render({

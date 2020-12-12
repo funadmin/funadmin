@@ -9,6 +9,10 @@ class CmsField extends Validate
             'require' => 'require',
             'max'     => '5',
         ],
+        'diyformid|自定义模型名' => [
+            'require' => 'require',
+            'max'     => '5',
+        ],
         'type|字段类型' => [
             'require' => 'require',
             'max'     => '20',
@@ -26,5 +30,9 @@ class CmsField extends Validate
             'number'  => 'number',
             'max'     => '10',
         ]
+    ];
+    protected $scene = [
+        'module'  =>  ['moduleid','type','field','name','sort'],
+        'diyform'  =>  ['diyformid','type','field','name','sort'],
     ];
 }

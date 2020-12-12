@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e76309d681f053ab5b63248ea19f388c",
+    "content-hash": "aa4f90cd615fe1313bfbcad3e02c3aa2",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -322,16 +322,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.33",
+            "version": "v1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "3aa1ae5583723499c4cf0746002065c160b96040"
+                "reference": "018d9e4e7c9333d0b4389f468973b33018f6fd36"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/3aa1ae5583723499c4cf0746002065c160b96040",
-                "reference": "3aa1ae5583723499c4cf0746002065c160b96040",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/018d9e4e7c9333d0b4389f468973b33018f6fd36",
+                "reference": "018d9e4e7c9333d0b4389f468973b33018f6fd36",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -362,8 +362,7 @@
                     "fun\\": "src/"
                 },
                 "files": [
-                    "src/helper.php",
-                    "src/form.php"
+                    "src/helper.php"
                 ]
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -376,7 +375,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2020-12-08T08:23:12+00:00"
+            "time": "2020-12-12T08:53:47+00:00"
         },
         {
             "name": "guzzlehttp/command",
@@ -3878,12 +3877,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "d443c08cbb31b94db82a1e9fc852163d0d43b2d1"
+                "reference": "01f1f0855f4430ea5e87a74418cad5562a09653b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/d443c08cbb31b94db82a1e9fc852163d0d43b2d1",
-                "reference": "d443c08cbb31b94db82a1e9fc852163d0d43b2d1",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/01f1f0855f4430ea5e87a74418cad5562a09653b",
+                "reference": "01f1f0855f4430ea5e87a74418cad5562a09653b",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3937,7 +3936,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "time": "2020-11-26T14:10:34+00:00"
+            "time": "2020-12-10T07:52:54+00:00"
         },
         {
             "name": "topthink/think-annotation",

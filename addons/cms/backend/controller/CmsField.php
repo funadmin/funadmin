@@ -35,6 +35,7 @@ class CmsField extends AddonsBackend
         $this->modelClass = new CmsFieldModel();
         $this->sysfield = (new \addons\cms\common\model\CmsModule())->getTableColumn('addons_cms_filing','COLUMN_NAME,COLUMN_COMMENT');
         $this->moduleid = $this->request->param('moduleid/d');
+        $this->diyformid = $this->request->param('diyformid/d');
     }
     /*
      * 字段列表
@@ -42,20 +43,27 @@ class CmsField extends AddonsBackend
     public function index(){
         if($this->request->isAjax()){
             //不可控字段
-            $list = $this->modelClass->where("moduleid", $this->moduleid)
-                ->order('sort asc,id asc')
-                ->select()->toArray();
-            $arr = Cache::get('filing_field');
-            if(!$arr){
-                foreach ($this->sysfield as $k=>$v){
-                    $arr[$k]['field'] = $v['COLUMN_NAME'];
-                    $arr[$k]['name'] = $v['COLUMN_COMMENT'];
+            if($this->moduleid){
+                $list = $this->modelClass->where("moduleid", $this->moduleid)
+                    ->order('sort asc,id asc')
+                    ->select()->toArray();
+                $arr = Cache::get('filing_field');
+                if(!$arr){
+                    foreach ($this->sysfield as $k=>$v){
+                        $arr[$k]['field'] = $v['COLUMN_NAME'];
+                        $arr[$k]['name'] = $v['COLUMN_COMMENT'];
+                    }
+                    $sysfield_content = [['field'=>"content",'name'=>'内容']];
+                    $arr = array_merge($list,$arr,$arr,$sysfield_content);
+                    Cache::tag('filing_field')->set('filing_field',$arr,7200);
                 }
-                $sysfield_content = [['field'=>"content",'name'=>'内容']];
-                $arr = array_merge($list,$arr,$arr,$sysfield_content);
-                Cache::tag('filing_field')->set('filing_field',$arr,7200);
+                $list = array_merge($list,$arr,$arr);
+            }else{
+                $list = $this->modelClass->where("diyformid", $this->diyformid)
+                    ->order('sort asc,id asc')
+                    ->select()->toArray();
             }
-            $list = array_merge($list,$arr,$arr);
+
             foreach ($list as $k=>$v){
                 if(in_array($v['field'],$this->sysfield)){
                     $list[$k]['del']=0;
@@ -67,6 +75,7 @@ class CmsField extends AddonsBackend
         }
         $view = [
             'moduleid' => $this->moduleid,
+            'diyformid' => $this->diyformid,
         ];
         View::assign($view);
         return view();
@@ -79,7 +88,16 @@ class CmsField extends AddonsBackend
             //增加字段
             $post = $this->request->param();
             try{
-               $this->validate($post, \addons\cms\backend\validate\CmsField::class);
+                if($this->moduleid){
+                    validate(\addons\cms\backend\validate\CmsField::class)
+                        ->scene('module')
+                        ->check($post);
+                }else{
+                    validate(\addons\cms\backend\validate\CmsField::class)
+                        ->scene('diyform')
+                        ->check($post);
+                }
+//               $this->validate($post, \addons\cms\backend\validate\CmsField::class);
 
             }catch (ValidateException $e){
                 $this->error($e->getMessage());
@@ -135,19 +153,13 @@ class CmsField extends AddonsBackend
 
     // 删除字段
     public function delete() {
-        $ids = $this->request->post('id')?$this->request->post('id'):$this->request->post('ids');
-        $f  = Db::name('field')->find($ids[0]);
-        //删除字段表中的记录
-        $this->modelClass->destroy($ids[0]);
-        $moduleid = $f['moduleid'];
-        $field    = $f['field'];
-        $name   = $this->modelClass->where('id',$moduleid)->value('tablename');
-        $tablename = $this->prefix.$name;
-        //实际查询表中是否有该字段
-        if($this->modelClass->isset_field($tablename,$field)){
-            Db::name($tablename)->execute("ALTER TABLE `$tablename` DROP `$field`");
+        $fieldid  = $this->request->param('id');
+        try {
+            $this->modelClass->deleteField($fieldid);
+        }catch(Exception $e){
+            $this->error(lang($e->getMessage()));
         }
-        $this->success(lang('Dlete Success'));
+        $this->success(lang('operation success'));
     }
 
 }

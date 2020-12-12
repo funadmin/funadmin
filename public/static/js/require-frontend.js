@@ -16,7 +16,7 @@ require.config({
         'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
 
         //layui等组件
-        'layui'         : 'plugins/layui/layui.all',
+        // 'layui'         : 'plugins/layui/layui.all',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -24,7 +24,6 @@ require.config({
         'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
-        'xm-select'     : 'plugins/lay-module/xm-select/xm-select',//下拉多选
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
@@ -49,12 +48,12 @@ require.config({
         }
     },
     shim: {
-        'layui': {
-            deps: ['css!plugins/layui/layui/css/layui.css'],
-            init: function () {
-                return this.layui.config({dir: 'plugins/layui/'});
-            },
-        },
+        // 'layui': {
+        //     deps: ['css!plugins/layui/layui/css/layui.css'],
+        //     init: function () {
+        //         return this.layui.config({dir: 'plugins/layui/'});
+        //     },
+        // },
         'multiSelect': {
             deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
         },

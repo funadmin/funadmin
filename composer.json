@@ -1,6 +1,6 @@
 {
     "name": "funadmin/funadmin",
-    "description": "FunAdmin是一个基于thinkphp6和layui.requirejs的敏捷开发应用框架",
+    "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的敏捷开发应用框架",
     "type": "project",
     "license": "Apache-2.0",
     "keywords": [
@@ -34,7 +34,7 @@
         "aliyuncs/oss-sdk-php": "^2.4",
         "qcloud/cos-sdk-v5": "^2.1",
         "qiniu/php-sdk": "^7.3",
-        "funadmin/fun-addons": "v1.33",
+        "funadmin/fun-addons": "v1.5",
         "topthink/think-ide-helper": "^1.0",
         "topthink/think-annotation": "^1.1",
         "topthink/think-throttle": "^1.1",
@@ -53,7 +53,10 @@
 
         "psr-0": {
             "": "extend/"
-        }
+        },
+        "files": [
+            "extend/fun/form.php"
+        ]
     },
     "config": {
         "preferred-install": "dist"

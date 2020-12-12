@@ -18,12 +18,12 @@ require.config({
         'regionCheckBox','timePicker','croppers', 'moment',
         'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {
+        // 'layui'         : 'plugins/layui/layui.all',
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
 
         //layui等组件
-        'layui'         : 'plugins/layui/layui.all',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -57,10 +57,10 @@ require.config({
     },
     shim: {
         'bootstrap': ['jquery'],
-        'layui': {
-            deps: ['css!plugins/layui/css/layui.css'],
-            init: function () {return this.layui.config({dir: 'plugins/'})},
-        },
+        // 'layui': {
+        //     deps: ['css!plugins/layui/css/layui.css'],
+        //     init: function () {return this.layui.config({dir: 'plugins/'})},
+        // },
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data', 'css!plugins/lay-module/cityPicker/city-picker.css'],
         },

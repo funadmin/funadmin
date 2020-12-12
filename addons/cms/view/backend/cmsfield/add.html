@@ -1,4 +1,6 @@
 <form class="layui-form" lay-filter="form">
+    {:form_input('moduleid','hidden')}
+    {:form_input('diyformid','hidden')}
     {:form_input('field','text',['label'=>"Field name",'verify'=>'required','tips'=>"Field name"])}
     {:form_input('name','text',['label'=>"Chinese name",'verify'=>'required','tips'=>"Chinese name"])}
     <div class="layui-form-item">

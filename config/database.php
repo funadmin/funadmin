@@ -24,14 +24,14 @@ return [
             // 服务器地址
             'hostname'          => Env::get('database.hostname', '127.0.0.1'),
             // 数据库名
-//            'database'          => Env::get('database.database', 'funadmin'),
-            'database'          => Env::get('database.database', 'www_fun_com'),
+            'database'          => Env::get('database.database', 'funadmin'),
+//            'database'          => Env::get('database.database', 'www_fun_com'),
             // 用户名
-//            'username'          => Env::get('database.username', 'funadmin'),
-            'username'          => Env::get('database.username', 'www_fun_com'),
+            'username'          => Env::get('database.username', 'funadmin'),
+//            'username'          => Env::get('database.username', 'www_fun_com'),
             // 密码
-//            'password'          => Env::get('database.password', 'A6aP37j5aYEhjFXi'),
-            'password'          => Env::get('database.password', 'NpGe7ZxKYwAY8Jai'),
+            'password'          => Env::get('database.password', 'A6aP37j5aYEhjFXi'),
+//            'password'          => Env::get('database.password', 'NpGe7ZxKYwAY8Jai'),
             // 端口
             'hostport'          => Env::get('database.hostport', '3306'),
             // 数据库连接参数
@@ -40,7 +40,6 @@ return [
             'charset'           => Env::get('database.charset', 'utf8mb4'),
             // 数据库表前缀
             'prefix'            => Env::get('database.prefix', 'fun_'),
-
             // 数据库部署方式:0 集中式(单一服务器),1 分布式(主从服务器)
             'deploy'            => 0,
             // 数据库读写是否分离 主从式有效

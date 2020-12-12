@@ -150,6 +150,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 });
                 return false;
             },
+            //图片
             photos: function (otihs) {
                 Fun.events.photos(otihs)
             },

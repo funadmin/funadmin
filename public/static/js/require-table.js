@@ -270,7 +270,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var ele = $(this)[0];
                 var time = eval('d.' + ele.field);
                 if (time) {
-                    return layui.util.toDateString(time * 1000)
+                    return layui.util.toDateString(time * 1000,'yyyy-MM-dd')
                 } else {
                     return '';
                 }
@@ -278,12 +278,28 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             //图片
             image: function (d) {
                 var ele = $(this)[0];
-                ele.imageWidth = ele.imageWidth || 200;
+                ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
                 var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
                     title = d[ele.title];
                 return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" lay-title="' + title + '"  lay-event="photos" alt="">';
+            },
+            //多个图片
+            images: function (value, row, index) {
+                var ele = $(this)[0];
+                ele.imageWidth = ele.imageWidth || 40;
+                ele.imageHeight = ele.imageHeight || 40;
+                ele.title = ele.title || ele.field;
+                var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
+                    title = d[ele.title];
+                src = src.split(',');
+                var html = [];
+                $.each(src, function (i, v) {
+                    v = v ? v : '/static/common/images/image.gif';
+                    html.push('<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + v + '" lay-title="' + title + '"  lay-event="photos" alt="">');
+                });
+                return html.join(' ');
             },
             //选择
             select: function (d) {

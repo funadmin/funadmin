@@ -260,7 +260,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             open: function (othis) {
                 var options = {
                     title: othis.attr('lay-title'),
-                    url: othis.attr('lay-url'),
+                    url: othis.attr('lay-url')?othis.attr('lay-url'):othis.attr('lay-href'),
                     width: othis.attr('lay-width'),
                     height: othis.attr('lay-height'),
                     isResize: othis.attr('lay-resize'),
@@ -309,6 +309,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 if( options.btn === undefined ){
                     btns = ['submit', 'close'];
                     options.btn_lang = [__('submit'), __('close')];
+                }else if(options.btn==='false' || options.btn===''){
+                    options.btn_lang = [];
                 }else{
                     btnsdata = options.btn
                     btnsdata = (btnsdata.split(','))
@@ -317,11 +319,11 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                         options.btn_lang[k]  = __(v);
                         btns.push(v);
                     })
-
                 }
                 if( options.btnAlign === undefined ){
                     options.btnAlign = 'c';
                 }
+                console.log(options.url)
                 options = {
                     title: title,
                     type: 2,
@@ -361,7 +363,6 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     },
 
                 }
-                console.log(options)
                 var index = layer.open(options);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layer.full(index);
