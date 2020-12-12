@@ -31,13 +31,13 @@ class FormHelper
         $placeholder = isset($options['ptips'])?$options['ptips']:$tips;
         $value = !is_null($value)? 'value="'.$value.'"'  :'';
         if($type=='hidden'){
-            return  '<input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"         placeholder="' . $placeholder. '" class="layui-input" '. $value.'>';
+            return  '<input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"         placeholder="' . $placeholder. '" class="layui-input" '. $value.'/>';
         }
         $str = '<div class="layui-form-item"> 
         <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($label)).'</label>
         <div class="layui-input-block">
          <input type="' . $type . '" name="' . $name. '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"
-         placeholder="' . $placeholder. '" class="layui-input"'. $value.'>
+         placeholder="' . $placeholder. '" class="layui-input"'. $value.'/>
          ' . self::tips($options) . '
          </div></div>';
         return $str;
@@ -64,14 +64,14 @@ class FormHelper
             foreach ($radiolist as $k=>$v) {
                 if(is_string($v) && strpos($v,':')!==false){
                     $v = explode(":",$v);
-                    $input .= '<input type="radio"'.self::selectedOrchecked($value,$v[0],2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) .' value="' . $v[0] . '" title="' . lang($v[1]) . '" >';
+                    $input .= '<input type="radio"'.self::selectedOrchecked($value,$v[0],2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) .' value="' . $v[0] . '" title="' . lang($v[1]) . '" />';
                 }else{
-                    $input .= '<input type="radio"'.self::selectedOrchecked($value,$k,2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) . ' value="' . $k . '" title="' . lang($v) . '" >';
+                    $input .= '<input type="radio"'.self::selectedOrchecked($value,$k,2).' name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options) . ' value="' . $k . '" title="' . lang($v) . '" />';
 
                 }
             }
         } else {
-            $input .= '<input type="radio" name="' . $name . '" ' . self::verify($options) . self::filter($options) . ' value="' . $radiolist . '" title="' . lang($radiolist) . '" >';
+            $input .= '<input type="radio" name="' . $name . '" ' . self::verify($options) . self::filter($options) . ' value="' . $radiolist . '" title="' . lang($radiolist) . '" />';
         }
 
         $str = ' <div class="layui-form-item">
@@ -100,7 +100,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
         <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($name)) . '</label>
         <div class="layui-input-block">
-        <input type="checkbox" value="'.$value.'" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options)  .' lay-skin="switch"   lay-text="' . lang($value) . '">
+        <input type="checkbox" value="'.$value.'" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options)  .' lay-skin="switch"   lay-text="' . lang($value) . '"/>
         ' . self::tips($options) . '
         </div>
         </div>';
@@ -141,18 +141,18 @@ class FormHelper
                     if(is_array($value) && in_array($v[0],$value) || $value = $v[0]){
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" '.$check.'  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v[1]) . '">';
+                    $input .= '<input type="checkbox" '.$check.'  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v[1]) . '"/>';
 
                 }else{
                     $check = '';
                     if(is_array($value) && in_array($v[0],$value) || $value = $v){
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" '.$check.' name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .' title="' . lang($v) . '">';
+                    $input .= '<input type="checkbox" '.$check.' name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .' title="' . lang($v) . '"/>';
                 }
             }
         } else {
-            $input .= '<input type="checkbox" name="' . $name . '[]"  ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .'  title="' . lang($value) . '">';
+            $input .= '<input type="checkbox" name="' . $name . '[]"  ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) .'  title="' . lang($value) . '"/>';
         }
         $str = '<div class="layui-form-item">
         <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($name)) . '</label>
@@ -236,8 +236,8 @@ class FormHelper
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang($label).'</label>
                     <div class="layui-input-block">
                     <div class="tags" >
-                        <input type="hidden" name="'.$name .'" value="'.$value.'">
-                        <input  id="'.$id.'" lay-filter="tags" type="text" placeholder="'.lang("Space To Generate Tags").'" ' .self::filter($options) . self::readonlyOrdisabled($options).'>
+                        <input type="hidden" name="'.$name .'" value="'.$value.'" />
+                        <input  id="'.$id.'" lay-filter="tags" type="text" placeholder="'.lang("Space To Generate Tags").'" ' .self::filter($options) . self::readonlyOrdisabled($options).'/>
                     </div>
                     </div>
                 </div>';
@@ -258,9 +258,8 @@ class FormHelper
         $str = '<div class="layui-form-item">
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang($label).'</label>
                     <div class="layui-input-block">
-                        <input type="hidden" name="'.$name .'"  value="'.$value.'"' .self::filter($options) . self::readonlyOrdisabled($options).'>
+                        <input type="hidden" name="'.$name .'"  value="'.$value.'"' .self::filter($options) . self::readonlyOrdisabled($options).'/>
                           <div id="'.$id.'" lay-filter="colorPicker"></div>
-
                     </div>
                 </div>';
         return $str;
@@ -281,7 +280,7 @@ class FormHelper
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang('Icon').'</label>
                     <div class="layui-input-block">
                         <input type="hidden" name="'.$name.'"  id="'.$id.'" value="'.$value.'" 
-                          lay-filter="iconPickers" lay-filter="'.$id.'" class="hide">
+                          lay-filter="iconPickers" lay-filter="'.$id.'" class="hide" />
                     </div>
                 </div>';
         return $str;
@@ -312,7 +311,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
          <label class="layui-form-label '.self::labelRequire($options).'">' . lang($label) . '</label>
          <div class="layui-input-block">
-         <input  type="text" name="' . $name . '" value="'.$value.'" class="layui-input" lay-filter="date" ' . $op . ' placeholder="yyyy-MM-dd HH:mm:ss">
+         <input  type="text" name="' . $name . '" value="'.$value.'" class="layui-input" lay-filter="date" ' . $op . ' placeholder="yyyy-MM-dd HH:mm:ss"/>
          </div>
         </div>';
         return $str;
@@ -330,7 +329,7 @@ class FormHelper
             $str = ' <div class="layui-form-item">
                     <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
                     <div class="layui-input-block">
-                        <input type="hidden" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="'.$id.'" name="'.$name.'" readonly="readonly" data-toggle="city-picker" placeholder="请选择">
+                        <input type="hidden" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="'.$id.'" name="'.$name.'" readonly="readonly" data-toggle="city-picker" placeholder="请选择"/>
                     </div>
                     </div>';
             return $str;
@@ -348,7 +347,7 @@ class FormHelper
         $str = ' <div class="layui-form-item">
                     <label class="layui-form-label ">区域</label>
                     <div class="layui-input-block">
-                        <input type="hidden" name="'.$name.'" value="">
+                        <input type="hidden" name="'.$name.'" value="" />
                         <div id="'.$id.'" name="'.$name.'" lay-filter="regionCheck">
                         </div>
                     </div>
@@ -479,7 +478,7 @@ class FormHelper
                 <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($name)).'</label>
                 <div class="layui-input-block">
                     <div class="layui-upload">
-                        <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '>
+                        <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '/>
                        '.$croper_container.'
                         <button type="button" class="layui-btn layui-btn-normal"  '.$op.' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>'.lang('Uploads').'</button>
                         <button id="select-upload" type="button" class="layui-btn layui-btn-danger"  '.$op.'  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>'.lang('Choose').'</button>
@@ -523,7 +522,7 @@ class FormHelper
         if(!isset($options['show'])){
             $show = 'layui-hide';
         }
-        $str =   '<input type="hidden" name="__token__" value="'.self::token().'"><div class="layui-form-item layui-btn-center '.$show.'">
+        $str =   '<input type="hidden" name="__token__" value="'.self::token().'"><div class="layui-form-item layui-btn-center '.$show.'" />
             <button type="submit" class="layui-btn layui-btn-sm" lay-fitler="submit" lay-submit>' . lang('Submit') .
             '</button>';
         if ($reset) {

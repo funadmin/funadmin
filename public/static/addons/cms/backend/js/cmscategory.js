@@ -53,7 +53,7 @@ define(['table','form'], function (Table,Form) {
                     {field: 'cateflag', title:  __('cateflag'), width: 120,},
                     {field: 'type', title: __('Type'), width: 110,templet: Table.templet.select,selectList:['List','Page','OutLink']},
                     {field: 'status', title: __('Status'),filter: 'status',width:100,templet: Table.templet.switch},
-                    {field: 'is_menu', title: __('Ismenu'), width: 100,filter: 'status', templet: Table.templet.switch,},
+                    {field: 'is_menu', title: __('Ismenu'), width: 100,filter: 'is_menu', templet: Table.templet.switch,},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'update_time', title: __('Updatetime'), width: 180, sort: true},
                     {

@@ -30,7 +30,7 @@ define(['table','form'], function (Table,Form) {
                            '<a class="layui-btn layui-btn-xs layui-bg-blue" lay-btn="false" lay-event="open"  lay-url="addons/cms/backend/cmsdiyform/data?id='+ d.id +'"><i class="layui-icon layui-icon-template-1"></i>'+__('datalist')+'</a>'
                         }
                     },
-                    {field: 'status',title: __("status"), width: 120,sort:true,templet:Table.templet.switch},
+                    {field: 'status',title: __("status"), width: 120,filter: 'status',sort:true,templet:Table.templet.switch},
                     {
                         width: 250, align: 'center', title: __('Operat'), init: Table.init,
                         templet : Table.templet.operat, operat: ['edit','delete']
@@ -82,7 +82,7 @@ define(['table','form'], function (Table,Form) {
                 }
                 cols.push(data);
             })
-            cols.push({field: 'status', sort: true, title: __('Status'), sort:true, templet: Table.templet.switch});
+            cols.push({field: 'status', sort: true, filter: 'status',title: __('Status'), sort:true, templet: Table.templet.switch});
             cols.push({field: 'create_time', sort: true, title: __('Createtime'),sort:true,templet:Table.templet.time});
             cols.push({field: 'updatetime', sort: true, title: __('Updatetime'),sort:true});
             cols.push( {

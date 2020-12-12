@@ -187,11 +187,13 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 }
                 var index = parent.layer.getFrameIndex(window.name);
                 parent.layer.close(index);
+                console.log(parent.$('#' + option.refreshTable).length);
                 if (option.refreshTable !== false) {
                     if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
                         parent.layui.table.reload(option.refreshTable)
                     } else {
                         location.reload();
+                        return false;
                     }
                 }
                 if (!option.refreshFrame) {
@@ -360,7 +362,6 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 events.uploads() //上传
                 events.chooseFiles() //选择文件
                 events.cropper() //上传
-
                 events.fu() //qita
                 events.bindevent(form);
                 //初始化数据
@@ -368,7 +369,6 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 $('body').on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     Form.events[attrEvent] && Form.events[attrEvent].call(this, _that)
-
                 });
             }
         }
