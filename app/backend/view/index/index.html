@@ -31,7 +31,6 @@
             <span></span>
         </div>
     </div>
-
     <div class="layui-layout layui-layout-admin">
         <div class="layui-header layui-bg-green">
             <!-- 头部区域（可配合layui已有的水平导航） -->
@@ -126,7 +125,6 @@
 
             </div>
         </div>
-
         <!--     导航按钮 +主题内容 -->
         <div class="layui-pagetabs" id="layui-app-tabs">
             <div class="layui-icon layui-tabs-control layui-icon-next" lay-event="leftPage"></div>
@@ -143,8 +141,7 @@
                 </li>
             </ul>
             </div>
-
-            <div class="layui-tab"  lay-allowclose="true" lay-filter="layui-layout-tabs">
+            <div class="layui-tab layui-tab-card"  overflow lay-allowclose="true" lay-filter="layui-layout-tabs">
                 <ul class="layui-tab-title" id="layui-tab-header">
                     <li lay-id="console" lay-attr="console" class="layui-this">
                         <i class="layui-icon layui-icon-home"></i>
@@ -159,19 +156,16 @@
             </div>
 
         </div>
-
         <!-- 遮罩 -->
         <div class="layui-body-shade" lay-event="shade"></div>
         <!--手机导航-->
         <div class="layui-site-mobile" lay-event="flexible"><i class="layui-icon layui-icon-right"></i></div>
-
         <!-- 底部固定区域 -->
         <div class="layui-footer">
             {$config['site']['site_copyright']} <span class="pull-right">{$config['site']['site_version']}</span>
         </div>
     </div>
 </div>
-
 </body>
 </html>
 {include file="layout/footer" /}

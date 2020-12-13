@@ -46,7 +46,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                     {field: 'title', title: __('Log Title'), width: 150, sort: true,},
                     {field: 'agent', title: __('Log Agent'), width: 120, sort: true,},
                     {field: 'ip', title: 'Ip', width: 80},
-                    {field: 'create_time', title: __('CreateTime'), width: 180, search: 'time'},
+                    {field: 'create_time', title: __('CreateTime'), width: 180, search: 'range'},
                     {
                         width: 250,
                         align: 'center',

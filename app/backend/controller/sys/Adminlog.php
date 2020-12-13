@@ -47,7 +47,7 @@ class Adminlog extends Backend {
                     ->page($this->page,$this->pageSize)
                     ->select();
 
-                $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $list, 'count' => $count];
+                $result = ['code' => 0, 'msg' => lang('operation Success'), 'data' => $list, 'count' => $count];
                 return json($result);
 
         }

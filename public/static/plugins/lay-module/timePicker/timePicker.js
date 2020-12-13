@@ -153,12 +153,12 @@ timePicker.prototype.render = function (opt) {
             var timeDate='';
             if(inputVal){
                 if(timeStamp){
-                    timeDate =parseInt(sTime/1000) + ' ' + parseInt(eTime/1000);
+                    timeDate =parseInt(sTime/1000) + ' - ' + parseInt(eTime/1000);
                 }else{
-                    timeDate = sTime.format(format) + ' ' + eTime.format(format);
+                    timeDate = sTime.format(format) + ' - ' + eTime.format(format);
                 }
             }else{
-                timeDate=sTime + ' ' + eTime;
+                timeDate=sTime + ' - ' + eTime;
             }
             elem.val(timeDate);
             $('.timePicker').remove();

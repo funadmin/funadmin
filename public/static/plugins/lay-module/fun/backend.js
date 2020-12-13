@@ -428,7 +428,8 @@ layui.define(["jquery", 'layer'], function (exports) {
             if (funTabInfo) {
                 $("#layui-side-left-menu [data-url]").each(function () {
                     var layId_this = $(this).attr('lay-id');
-                    if (funTabInfo[layId_this]){
+                    // if (funTabInfo[layId_this]){
+                    if (layId_this === layId){
                         var text = $(this).data('tips') || $(this).attr('title'),
                         url = $(this).data('url'), icon = $(this).find('i').attr('class');
                         Backend.addTab({

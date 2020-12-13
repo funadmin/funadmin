@@ -162,10 +162,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 '<div class="layui-form-item layui-inline layui-between">\n' +
                                     '<label class="layui-form-label layui-col-xs4 ">' + d.title + '</label>\n' +
                                     '<div class="layui-input-inline layui-col-xs4">\n' +
-                                    '<input id="filed_' + d.fieldAlias + '" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                    '<input id="filed_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                     '</div>\n' +
                                     '<div class="layui-input-inline layui-col-xs4">\n' +
-                                    '<input id="filed_' + d.fieldAlias + '" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                    '<input id="filed_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                     '</div>\n' +
                                 '</div>' +
                                 '</div>';
@@ -176,10 +176,10 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 '<div class="layui-form-item layui-inline layui-between">\n' +
                                 '<label class="layui-form-label layui-col-xs4">' + d.title + '</label>\n' +
                                 '<div class="layui-input-inline layui-col-xs4">\n' +
-                                '<input id="filed_' + d.fieldAlias + '" name="' + eval(d.fieldAlias+'[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                '<input id="filed_' + d.fieldAlias + '_min" name="' + eval(d.fieldAlias+'[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                 '</div>\n' +
                                 '<div class="layui-input-inline layui-col-xs4">\n' +
-                                '<input id="filed_' + d.fieldAlias + '" name="' + eval(d.fieldAlias+'[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                '<input id="filed_' + d.fieldAlias + '_max" name="' + eval(d.fieldAlias+'[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                 '</div>\n' +
                                 '</div>' +
                                 '</div>';
@@ -187,9 +187,9 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         case 'range':
                             d.searchOp = 'range';
                             formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' +
-                                '<div class="layui-form-item layui-inline">\n' +
-                                '<label class="layui-form-label">' + d.title + '</label>\n' +
-                                '<div class="layui-input-inline">\n' +
+                                '<div class="layui-form-item layui-inline ">\n' +
+                                '<label class="layui-form-label layui-col-xs4">' + d.title + '</label>\n' +
+                                '<div class="layui-input-inline layui-col-xs8">\n' +
                                 '<input id="filed_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="timePicker" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                 '</div>\n' +
                                 '</div>' +
@@ -199,8 +199,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             d.searchOp = 'time';
                             formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' +
                                 '<div class="layui-form-item layui-inline">\n' +
-                                '<label class="layui-form-label">' + d.title + '</label>\n' +
-                                '<div class="layui-input-inline">\n' +
+                                '<label class="layui-form-label layui-col-xs4">' + d.title + '</label>\n' +
+                                '<div class="layui-input-inline layui-col-xs8">\n' +
                                 '<input id="filed_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
                                 '</div>\n' +
                                 '</div>' +
@@ -226,10 +226,11 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     '<legend>' + __('Search') + '</legend>\n' +
                     '<form class="layui-form"><div class="layui-row">\n' +
                     formHtml +
-                    '</div><div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' +
-                    '<button type="submit" class="layui-btn layui-btn-green" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' +
-                    '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' +
-                    ' </div>' +
+                    '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' +
+                        '<button type="submit" class="layui-btn layui-btn-green" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' +
+                        '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' +
+                    '</div>' +
+                    '</div>' +
                     '</form>' +
                     '</fieldset>');
 
@@ -643,14 +644,26 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             tableSearch: function (tableId) {
                 form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
+                    console.log(dataField)
                     var formatFilter = {},
                         formatOp = {};
                     $.each(dataField, function (key, val) {
                         if (val !== '') {
                             formatFilter[key] = val;
-                            var op = $('#filed_' + key).data('searchop');
-                            op = op || '%*%';
+                            var op = $('#filed_' + key).attr('data-searchop');
+                            var min,max;
+                            if($('#filed_' + key+'_min').length>0){
+                                min = $('#filed_' + key+'_min').val();
+                                max = $('#filed_' + key+'_max').val();
+                            }
+                            if(max || min ){
+                                formatFilter[key] = min+','+max
+                                op = $('#filed_' + key+'_min').attr('data-searchop');
+                            }
+
                             formatOp[key] = op;
+                            console.log(op);
+
                         }
                     });
                     table.reload(tableId, {

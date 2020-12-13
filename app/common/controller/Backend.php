@@ -173,7 +173,8 @@ class Backend extends BaseController
         $order = $this->request->get("order", "DESC");
         $filters = htmlspecialchars_decode(iconv('GBK','utf-8',$filters));
         $filters = json_decode($filters,true);
-        $ops = json_decode($ops, true);
+        $ops = htmlspecialchars_decode(iconv('GBK','utf-8',$ops));
+        $ops = json_decode($ops,true);
         $tableName = '';
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
@@ -201,7 +202,7 @@ class Backend extends BaseController
         foreach ($filters as $key => $val) {
             $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
             $key =stripos($key, ".") === false ? $tableName . $key :$key;
-            switch (strtolower($op)) {
+            switch (strtoupper($op)) {
                 case '=':
                     $where[] = [$key, '=', $val];
                     break;
@@ -215,25 +216,45 @@ class Backend extends BaseController
                     $where[] = [$key, 'LIKE', "%{$val}"];
                     break;
                 case 'BETWEEN':
+                    $arr = array_slice(explode(',', $val), 0, 2);
+                    if (stripos($val, ',') === false || !array_filter($arr)) {
+                        continue 2;
+                    }
+                    [$begin, $end] = [$arr[0],$arr[1]];
+                    if($begin){
+                        $where[] = [$key, '>=', ($begin)];
+                    }
+                    if($end){
+                        $where[] = [$key, '<=', ($end)];
+                    }
+                    break;
                 case 'NOT BETWEEN':
                     $arr = array_slice(explode(',', $val), 0, 2);
                     if (stripos($val, ',') === false || !array_filter($arr)) {
                         continue 2;
                     }
-                    //当出现一边为空时改变操作符
-                    if ($arr[0] === '') {
-                        $op = $op == 'BETWEEN' ? '<=' : '>';
-                        $arr = $arr[1];
-                    } elseif ($arr[1] === '') {
-                        $op = $op == 'BETWEEN' ? '>=' : '<';
-                        $arr = $arr[0];
+                    [$begin, $end] = [$arr[0],$arr[1]];
+                    if($begin){
+                        $where[] = [$key, '<=', ($begin)];
                     }
-                    $where[] = [$key, $op, $arr];
+                    if($end){
+                        $where[] = [$key, '>=', ($end)];
+                    }
                     break;
                 case 'RANGE':
-                    [$beginTime, $endTime] = explode(' - ', $val);
-                    $where[] = [$key, '>=', strtotime($beginTime)];
-                    $where[] = [$key, '<=', strtotime($endTime)];
+                    $val = str_replace(' - ', ',', $val);
+                    $arr = array_slice(explode(',', $val), 0, 2);
+                    if (stripos($val, ',') === false || !array_filter($arr)) {
+                        continue 2;
+                    }
+                    [$begin, $end] = [$arr[0],$arr[1]];
+                    if($begin){
+                        $where[] = [$key, '>=', strtotime($begin)];
+                    }
+                    if($end){
+                        $where[] = [$key, '<=', strtotime($end)];
+                    }
+
                     break;
                 case 'NOT RANGE':
                     $val = str_replace(' - ', ',', $val);
@@ -241,15 +262,13 @@ class Backend extends BaseController
                     if (stripos($val, ',') === false || !array_filter($arr)) {
                         continue 2;
                     }
+                    [$begin, $end] = [$arr[0],$arr[1]];
                     //当出现一边为空时改变操作符
-                    if ($arr[0] === '') {
-                        $op = $op == 'RANGE' ? '<=' : '>';
-                        $arr = $arr[1];
-                    } elseif ($arr[1] === '') {
-                        $op = $op == 'RANGE' ? '>=' : '<';
-                        $arr = $arr[0];
+                    if ($begin !== '') {
+                        $where[] = [$key, '<=', strtotime($begin)];
+                    } elseif ($end === '') {
+                        $where[] = [$key, '>=', strtotime($begin)];
                     }
-                    $where[] = [$key, str_replace('RANGE', 'BETWEEN', $op) . ' time', $arr];
                     break;
                 case 'NULL':
                 case 'IS NULL':
