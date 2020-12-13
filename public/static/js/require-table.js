@@ -823,7 +823,6 @@ define(["jquery"], function ($) {
                     var text = $(this).val();
                     $('#searchFieldList_'+Table.init.tableId).find('input[name="'+$(this).prop('name')+'"]').prop('value',text);
                     $('[lay-filter="'+Table.init.tableId+'_filter'+'"]').trigger("click");
-                    $(this).placeholder(text);
                     return false;
                 }).unbind('keyup drop blur','#layui-input-search', function (event) {
                     $(this).prop('value',$(this).val());
