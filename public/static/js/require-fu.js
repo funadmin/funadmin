@@ -16,8 +16,8 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 var list = document.querySelectorAll("*[lay-filter='editor']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        if($(this).attr('lay-editor')===2){
-                            var id = $(this).attr('id');
+                        if($(this).data('editor')===2){
+                            var id = $(this).prop('id');
                             window['editor'+id] = layedit.build(id,
                                 {height: 350,
                                     uploadImage:{url: Fun.url(Upload.init.requests.upload_url)+'?editor=layedit', type: 'post'}
@@ -34,7 +34,7 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                         content = [];
                         var tag = _that.parents('.tags').find('input[type="hidden"]').val();
                         if(tag) content = tag.split($.trim(tag,','),',');
-                        var id = _that.attr('id');
+                        var id = _that.prop('id');
                         inputTags.render({
                             elem:'#'+id,//定义输入框input对象
                             content: content,//默认标签
@@ -49,7 +49,7 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
-                        var id = _that.attr('id');
+                        var id = _that.prop('id');
                         iconPicker.render({
                             // 选择器，推荐使用input
                             elem: '#' + id,
@@ -77,7 +77,7 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 if (list.length > 0) {
                     $.each(list, function () {
                         var _that = $(this);
-                        var id = _that.attr('id');
+                        var id = _that.prop('id');
                         var color = _that.prev('input').val();
                         colorPicker.render({
                             // 选择器，推荐使用input
@@ -106,8 +106,8 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
 
                     $.each(list, function () {
                         var _that = $(this);
-                        var id =_that.attr('id');
-                        var name = _that.attr('name');
+                        var id =_that.prop('id');
+                        var name = _that.prop('name');
                         //执行实例
                         regionCheckBox.render({
                             elem: '#'+id,
@@ -138,7 +138,7 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 var list = document.querySelectorAll("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        var id = $(this).attr('id');
+                        var id = $(this).prop('id');
                         new cityPicker("#"+id, {
                             provincename:"provinceId",
                             cityname:"cityId",
@@ -154,7 +154,7 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                 var list = document.querySelectorAll("*[lay-filter='timePicker']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        var id = $(this).attr('id');
+                        var id = $(this).prop('id');
                         timePicker.render({
                             elem: '#' + id, //定义输入框input对象
                             trigger: 'click', //添加这一行来处理闪退
@@ -167,79 +167,13 @@ function ($,iconPicker,cityPicker,inputTags,timePicker,regionCheckBox,multiSelec
                     })
                 }
             },
-            // xmselect:function(){
-            //     var list = document.querySelectorAll("*[lay-filter='xmSelect']");
-            //     if (list.length > 0) {
-            //         $.each(list, function () {
-            //             var id = $(this).attr('id')
-            //             ,data = $(this).attr('lay-data')
-            //             ,tips = $(this).attr('lay-tips')
-            //             ,emptys = $(this).attr('lay-empty')
-            //             ,direction = $(this).attr('lay-direction')
-            //             ,radio = $(this).attr('lay-radio')
-            //             ,color = $(this).attr('lay-color');
-            //             direction=direction===undefined?'auto':direction;
-            //             radio=radio !== undefined;
-            //             color=color !== undefined;
-            //             emptys=emptys !==undefined;
-            //             xmSelect.render({
-            //                 el: '#'+id,
-            //                 toolbar: {show: true},
-            //                 radio: radio,
-            //                 tips: tips,
-            //                 theme: {
-            //                     color: color,
-            //                 },
-            //                 paging: true,
-            //                 empty: emptys,
-            //                 direction: direction,
-            //                 autoRow: true,
-            //                 data: data,
-            //                 disabled: false,
-            //                 create: function(val, arr){
-            //                     //返回一个创建成功的对象, val是搜索的数据, arr是搜索后的当前页面数据
-            //                     return {
-            //                         name: '创建-' + val,
-            //                         value: val
-            //                     }
-            //                 },
-            //                 on: function(data){
-            //                     //可以return一个数组, 代表想选中的数据
-            //
-            //                     //arr:  当前多选已选中的数据
-            //                     var arr = data.arr;
-            //                     //change, 此次选择变化的数据,数组
-            //                     var change = data.change;
-            //                     //isAdd, 此次操作是新增还是删除
-            //                     var isAdd = data.isAdd;
-            //
-            //                     if(isAdd){
-            //                         var allItem = change.find(function(item){
-            //                             return item.value === 0;
-            //                         })
-            //                         if(allItem){
-            //                             return [allItem];
-            //                         }
-            //                         allItem = arr.find(function(item){
-            //                             return item.value === 0;
-            //                         })
-            //                         if(allItem){
-            //                             return change;
-            //                         }
-            //                     }
-            //
-            //                 },
-            //             });
-            //         })
-            //     }
-            // },
             date: function () {
                 var list = document.querySelectorAll("*[lay-filter='date']");
                 if (list.length > 0) {
                     $.each(list, function () {
-                        var format = $(this).attr('lay-format'),
-                           type = $(this).attr('lay-type'),
-                            range = $(this).attr('lay-range');
+                        var format = $(this).data('format'),
+                           type = $(this).data('type'),
+                            range = $(this).data('range');
                         if (type === undefined || type === '' || type == null) {
                             type = 'datetime';
                         }

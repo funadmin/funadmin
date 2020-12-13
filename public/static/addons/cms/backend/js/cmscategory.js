@@ -61,10 +61,7 @@ define(['table','form'], function (Table,Form) {
                         templet : Table.templet.operat, operat: ['child','edit','delete']
                     }
                 ]],
-                done: function(res){
-
-                },
-                //
+                done: function(res){},
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 50,
                 page: true
@@ -82,9 +79,9 @@ define(['table','form'], function (Table,Form) {
         api: {
             bindevent: function () {
                 layui.form.on('radio(type)', function (data) {
-                    row = {};
+                    let row = {};
                     layui.laytpl($('#url_tpl').html()).render(row,function (){
-                        if (data.value == 3) {
+                        if (data.value === 3) {
                             $('#url').html($('#url_tpl').html()) ;
                         } else {
                             $('#url').html('') ;

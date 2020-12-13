@@ -141,7 +141,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 page: true
             });
             layui.table.on('tool('+Table.init.table_elem+')', function(obj) {
-                var url = $(this).attr('lay-url');
+                var url = $(this).data('url');
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
@@ -248,8 +248,8 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 return false;
             })
 
-            // let table = $('#' + Table.init.table_elem);
-            // Table.api.bindEvent(table);
+            let table = $('#' + Table.init.table_elem);
+            Table.api.bindEvent(table);
         },
         config: function () {
             Controller.api.bindevent()

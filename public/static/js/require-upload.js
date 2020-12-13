@@ -97,14 +97,18 @@ define(["jquery",'croppers'], function ($,croppers) {
                 if (uploadList.length > 0) {
                     $.each(uploadList, function (i, v) {
                         //普通图片上传
-                        var uploadExts = $(this).attr('lay-exts'),
-                            uploadNum = $(this).attr('lay-num'),
-                            uploadPath = $(this).attr('lay-path');
-                        uploadAccept = $(this).attr('lay-accept');
-                        uploadSize = $(this).attr('lay-size') || Upload.init.upload_size;
-                        uploadmultiple = $(this).attr('lay-multiple');
-                        uploadExts = uploadExts || Upload.init.upload_exts;
+                        var data = $(this).data();
+                        var uploadType = data.value.type,
+                            uploadNum = data.value.num,
+                            uploadMine = data.value.mine;
+                        uploadAccept = data.value.accept,
+                        uploadPath = data.value.path,
+                        uploadSize = data.value.size,
+                        uploadmultiple = data.value.multiple,
+                        uploadExts = data.value.exts;
                         uploadNum = uploadNum || 1;
+                        uploadSize = uploadSize || Upload.init.upload_size;
+                        uploadExts = uploadExts || Upload.init.upload_exts;
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || 'image';
                         var _parent = $(this).parents('.layui-upload')
@@ -122,16 +126,16 @@ define(["jquery",'croppers'], function ($,croppers) {
                             done: function (res) {
                                 if (res.code > 0) {
                                     if (uploadAccept == 'image') {
-                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
 
                                     } else if (uploadAccept == 'video') {
-                                        html = '<li><video controls class="layui-upload-img fl" width="150" src="' + res.url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><video controls class="layui-upload-img fl" width="150" src="' + res.url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
 
                                     } else if (uploadAccept == 'audio') {
-                                        html = '<li><audio controls class="layui-upload-img fl"  src="' + res.url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><audio controls class="layui-upload-img fl"  src="' + res.url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
 
                                     } else {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
 
                                     }
                                     var inputVal = input.val();
@@ -201,13 +205,10 @@ define(["jquery",'croppers'], function ($,croppers) {
                 if (cropperlist.length > 0) {
                     $.each(cropperlist, function () {
                         //创建一个头像上传组件
-                        var _parent = $(this).parents('.layui-upload')
-                        var id = $(this).attr('id');
-                        var saveW = $(this).attr('lay-width');
-                        var saveH = $(this).attr('lay-height');
-                        var mark = $(this).attr('lay-mark');
-                        var area = $(this).attr('lay-area');
-                        var uploadPath = $(this).attr('lay-path')
+                        var _parent = $(this).parents('.layui-upload'),
+                            id=$(this).prop('id'),data = $(this).data(),
+                            saveW = data.value.width, saveH = data.value.height,
+                            mark = data.value.mark, area = data.value.area, uploadPath = data.value.path;
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;

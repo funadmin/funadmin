@@ -109,7 +109,7 @@ layui.define(['jquery','cropper'],function (exports) {
                     });
                     //监听旋转
                 }else if(event === 'rotate'){
-                    var option = $(this).attr('data-option');
+                    var option = $(this).data('option');
                     image.cropper('rotate', option);
                     //重设图片
                 }else if(event === 'reset'){

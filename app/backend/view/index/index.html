@@ -47,11 +47,11 @@
                     </a>
                 </li>
                 <li class="layui-nav-item layui-hide-xs" lay-unselect>
-                    <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" lay-ajax="{:__u('ajax/clearcache')}"><i
+                    <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" data-ajax="{:__u('ajax/clearcache')}"><i
                             class="layui-icon layui-icon-refresh-1"></i></a>
                 </li>
                 <li class="layui-nav-item " lay-unselect>
-                    <a href="javascript:;" lay-event="clear" title="{:lang('Clear')}" lay-ajax="{:__u('ajax/clearcache')}"><i
+                    <a href="javascript:;" lay-event="clear" title="{:lang('Clear')}" data-ajax="{:__u('ajax/clearcache')}"><i
                             class="layui-icon layui-icon-fonts-clear"></i></a>
                 </li>
             </ul>
@@ -67,9 +67,9 @@
                         {:session('admin.username')}
                     </a>
                     <dl class="layui-nav-child">
-                        <dd><a lay-id="fun-info" lay-href="{:__u('auth.admin/edit')}?id={:session('admin.id')}&type=menu" title="{:lang('Info')}">{:lang('Info')}</a></dd>
-                        <dd><a lay-id="fun-safe" lay-href="{:__u('auth.admin/password')}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
-                        <dd><a lay-event="logout" lay-ajax="{:__u('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
+                        <dd><a lay-id="fun-info" data-href="{:__u('auth.admin/edit')}?id={:session('admin.id')}&type=menu" title="{:lang('Info')}">{:lang('Info')}</a></dd>
+                        <dd><a lay-id="fun-safe" data-href="{:__u('auth.admin/password')}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
+                        <dd><a lay-event="logout" data-ajax="{:__u('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
                     </dl>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
@@ -78,7 +78,7 @@
                     </a>
                     <dl class="layui-nav-child">
                         {volist name='languages' id="vo"}
-                        <dd><a lay-event="langset" title="{:lang($vo.name)}" lay-ajax="{:__u('enlang',['lang'=>$vo.name])}">{:lang($vo.name)}</a></dd>
+                        <dd><a lay-event="langset" title="{:lang($vo.name)}" data-ajax="{:__u('enlang',['lang'=>$vo.name])}">{:lang($vo.name)}</a></dd>
                         {/volist}
 <!--                        <dd><a lay-event="langset" title="{:lang('en-us')}" lay-ajax="{:__u('enlang',['langset'=>'en-us'])}">en-us</a></dd>-->
                     </dl>
@@ -146,7 +146,7 @@
 
             <div class="layui-tab"  lay-allowclose="true" lay-filter="layui-layout-tabs">
                 <ul class="layui-tab-title" id="layui-tab-header">
-                    <li lay-id="" lay-attr="console" class="layui-this">
+                    <li lay-id="console" lay-attr="console" class="layui-this">
                         <i class="layui-icon layui-icon-home"></i>
                     </li>
                 </ul>

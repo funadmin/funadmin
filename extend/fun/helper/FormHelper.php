@@ -100,7 +100,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
         <label class="layui-form-label '.self::labelRequire($options).'">' . lang(Str::title($name)) . '</label>
         <div class="layui-input-block">
-        <input type="checkbox" value="'.$value.'" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options)  .' lay-skin="switch"   lay-text="' . lang($value) . '"/>
+        <input type="checkbox" value="'.$value.'" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) .  self::readonlyOrdisabled($options)  .' lay-skin="switch"   data-text="' . lang($value) . '"/>
         ' . self::tips($options) . '
         </div>
         </div>';
@@ -280,7 +280,7 @@ class FormHelper
                     <label class="layui-form-label '.self::labelRequire($options).'">'.lang('Icon').'</label>
                     <div class="layui-input-block">
                         <input type="hidden" name="'.$name.'"  id="'.$id.'" value="'.$value.'" 
-                          lay-filter="iconPickers" lay-filter="'.$id.'" class="hide" />
+                          lay-filter="iconPickers"  class="hide" />
                     </div>
                 </div>';
         return $str;
@@ -297,14 +297,14 @@ class FormHelper
     {
         $op = '';
         if (isset($options['type'])) {
-            $op .= 'lay-type="' . $options['range'] . '"';
+            $op .= 'data-type="' . $options['range'] . '"';
         }
         if (isset($options['type'])) {
-            $op .= 'lay-type="' . $options['type'] . '"';
+            $op .= 'data-type="' . $options['type'] . '"';
 
         }
         if (isset($options['format'])) {
-            $op .= 'lay-format="' . $options['format'] . '"';
+            $op .= 'data-format="' . $options['format'] . '"';
 
         }
         $label = isset($options['label'])?$options['label']:$name;
@@ -375,10 +375,10 @@ class FormHelper
          <div class="layui-input-block">';
         if($type==1){
             //百度。quill wangeditor
-         $str.='<div id="' . $id . '" name="' . $name . '" lay-editor="'.$type.'" lay-filter="editor" type="text/plain"></div>';
+         $str.='<div id="' . $id . '" name="' . $name . '" data-editor="'.$type.'" lay-filter="editor" type="text/plain"></div>';
         }else{
             //LAYEDIT
-            $str.='<textarea id="' . $id . '" name="' . $name . '" lay-editor="'.$type.'" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
+            $str.='<textarea id="' . $id . '" name="' . $name . '" data-editor="'.$type.'" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
         }
         $str.='</div></div>';
 
@@ -414,11 +414,10 @@ class FormHelper
             $height = isset($options['width'])?$options['width']:'300';
             $mark = isset($options['width'])?$options['width']:'1';
             $area = isset($options['area'])?$options['area']:'900px';
+            $cops = ['width'=>$width, 'height'=>$height, 'mark'=>$mark,'area'=>$area];
+            $crpperops = 'data-value="'.json_encode($cops,true).'"' ;
             $croper_container = '<button type="button" 
-                lay-width = "'.$width.'"
-                lay-height = "'.$height.'"
-                lay-mark = "'.$mark.'"
-                lay-area = "'.$area.'"
+               '.$crpperops.'
                 class="layui-btn layui-btn-warm"  lay-filter="cropper" id="cropper">'
                 .lang('Cropper').
                 '</button>';
@@ -437,43 +436,54 @@ class FormHelper
                     case 'video':
                         $li .= '<li><video lay-event="" class="layui-upload-img fl"  width="150" src="' . $v . '"></video>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                     case 'audio':
                         $li .= '<li><audio lay-event="" class="layui-upload-img fl"  width="150" src="' . $v . '"></audio>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                     case 'image':
                         $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="' . $v . '"></img>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                     case 'zip':
                         $li .= '<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/zip.jpg"></img>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                     case 'office':
                         $li .= '<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/office.jpg"></img>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                     default:
                         $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/file.jpg">
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
-                                   lay-fileurl="' . $v . '"></i></li>';
+                                   data-fileurl="' . $v . '"></i></li>';
                         break;
                 }
 
             }
         }
         $value = isset($formdata[$name])?$formdata[$name]:'';
-        $op = '';
-        $op .= 'lay-path="' . $options['path'] . '"';
-        $op .= 'lay-mime="' . $options['mime'] . '"';
-        $op .= 'lay-num="' . $options['num'] . '"';
-        $op .= 'lay-type="' . $options['type'] . '"';
+
+        $op = [
+            'path'=>isset($options['path'])?$options['path']:'',
+            'mine'=>isset($options['mine'])?$options['mine']:'',
+            'num'=>isset($options['num'])?$options['num']:'',
+            'type'=>isset($options['type'])?$options['type']:'',
+            'size'=>isset($options['size'])?$options['size']:'',
+            'exts'=>isset($options['exts'])?$options['exts']:'',
+            'accept'=>isset($options['accept'])?$options['accept']:'',
+            'multiple'=>isset($options['multiple'])?$options['multiple']:'',
+        ];
+        $op = "data-value='" .json_encode($op,true) . "'" ;
+//        $op .= 'data-path="' . $options['path'] . '"';
+//        $op .= 'data-mime="' . $options['mime'] . '"';
+//        $op .= 'data-num="' . $options['num'] . '"';
+//        $op .= 'data-type="' . $options['type'] . '"';
         $str = ' <div class="layui-form-item">
                 <label class="layui-form-label '.self::labelRequire($options).'">'.lang(Str::title($name)).'</label>
                 <div class="layui-input-block">

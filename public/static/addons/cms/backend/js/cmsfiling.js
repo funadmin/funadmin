@@ -92,7 +92,7 @@ define(['table','form'], function (Table,Form) {
                     }else if(data.type===2 ){
                         $('.table').hide();
                         //1 列表2 单页，3 外连接，4 封面
-                        $('#categorys_list').attr('src',data.href).show();
+                        $('#categorys_list').prop('src',data.href).show();
                         $('.layui-col-md10 .layui-card-body').removeClass('layui-hide');
 
                     }

@@ -424,13 +424,13 @@ layui.define(["jquery", 'layer'], function (exports) {
             var layId = tabLayId.id;
             if (layId === null || layId === undefined) return false;
             if (funTabInfo) {
-                $("#layui-side-left-menu a[lay-href]").each(function () {
-                    if ($(this).attr("lay-id") === layId) {
-                        var text = $(this).attr('lay-tips') || $(this).attr('title'),
-                        href = $(this).attr('lay-href'), icon = $(this).find('i').attr('class');
+                $("#layui-side-left-menu [data-url]").each(function () {
+                    if ($(this).data("id") === layId) {
+                        var text = $(this).data('tips') || $(this).attr('title'),
+                        url = $(this).data('url'), icon = $(this).find('i').attr('class');
                         Backend.addTab({
                             layId: layId,
-                            href: href,
+                            url: url,
                             text: text,
                             icon: icon,
                             maxTabs: options.maxTabs,
@@ -457,7 +457,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             } else {
                 element.tabDelete('layui-layout-tabs', layId);
             }
-            layId = $('.layui-tab .layui-tab-title').find('.layui-this').attr('lay-id');
+            layId = $('.layui-tab .layui-tab-title').find('.layui-this').data('id');
             Backend.changeSessioinTabId(layId);
             $('#layui-nav-righmenu').remove();
         },
@@ -466,7 +466,7 @@ layui.define(["jquery", 'layer'], function (exports) {
          */
         addTab: function (options) {
             options.layId = options.layId || null;
-            options.href = options.href || null;
+            options.url = options.url || null;
             options.text = options.text || null;
             options.icon = options.icon || null;
             options.iframe = options.iframe || null;
@@ -486,7 +486,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 ele.tabAdd('layui-layout-tabs', {
                     title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                     ,
-                    content: '<iframe width="100%" height="100%" frameborder="no"   src="' + options.href + '"></iframe>'
+                    content: '<iframe width="100%" height="100%" frameborder="no"   src="' + options.url + '"></iframe>'
                     ,
                     id: options.layId,
                 });
@@ -514,7 +514,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             // 判断选项卡上是否有
             var checkId = false;
             $(".layui-tab .layui-tab-title li").each(function () {
-                var checklayId = $(this).attr('lay-id');
+                var checklayId = $(this).data('id');
                 if (checklayId != null && checklayId === layId) {checkId = true;}});return checkId !== false;
         },
 
@@ -593,7 +593,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         listenDeltab: function (options) {
             options.filter = options.filter || null;
             element.on('tabDelete(' + options.filter + ')', function () {
-                var layId = $(this).parent().attr('lay-id');
+                var layId = $(this).parent().data('id');
                 Backend.delTab(layId);
             });
         },
@@ -623,7 +623,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              */
             $("#layui-side-left-menu").find("li,dd").removeClass("layui-this").removeClass("layui-nav-itemed");//关闭所有展开的菜单
             $("#layui-side-left-menu > li dl.layui-nav-child").removeAttr('style');
-            $("#layui-side-left-menu a[lay-href]").each(function () {
+            $("#layui-side-left-menu a[data-url]").each(function () {
                 if ($(this).attr('lay-id') === layId) {
                     $(this).parents("dd").addClass("layui-nav-itemed");
                     $(this).parents("li").addClass("layui-nav-itemed");
@@ -685,7 +685,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              * 设置颜色配置
              */
             setTheme: function (othis) {
-                var colorId = othis.attr('data-color');
+                var colorId = othis.data('color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', 'layui-this');
                 sessionStorage.setItem('funColorId', colorId);
@@ -762,7 +762,7 @@ layui.define(["jquery", 'layer'], function (exports) {
 
                 if ($container.hasClass(SIDE_SHRINK)) {
                     if (type === 1) {
-                        let tip = othis.attr('lay-tips');
+                        let tip = othis.data('tips');
                         layer.tips(tip,othis);
                     } else {
                         layer.close();
@@ -798,7 +798,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                         key: 'fun-info',
                         value: '',
                     });
-                var url = othis.attr('lay-ajax') ? othis.attr('lay-ajax') : Backend.refreshUrl;
+                var url = othis.data('ajax') ? othis.data('ajax') : Backend.refreshUrl;
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg);
                     $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
@@ -820,7 +820,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             }
             //关闭当前标签页
             , closeThisTabs: function () {
-                var layId = $(".layui-tab .layui-tab-title li.layui-this").attr('lay-id');
+                var layId = $(".layui-tab .layui-tab-title li.layui-this").data('id');
                 if (layId) {
                     Backend.delTab(layId)
                 }
@@ -828,7 +828,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             //关闭其它标签页
             , closeOtherTabs: function (type) {
                 $(".layui-tab .layui-tab-title li").each(function (key, val) {
-                    var layId = $(val).attr('lay-id');
+                    var layId = $(val).data('id');
                     if (type === 'all' && layId) {
                         Backend.delTab(layId);
                     } else {
@@ -848,7 +848,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              * @param othis
              */
             logout: function (othis) {
-                var url = othis.attr('lay-ajax');
+                var url = othis.data('ajax');
                 Fun.toastr.confirm(__('Are you sure todo this'), function () {
                     $.post(url, function (res) {
                         if (res.code > 0) {
@@ -868,7 +868,7 @@ layui.define(["jquery", 'layer'], function (exports) {
              * @param othis
              */
             langset: function (othis) {
-                var url = othis.attr('lay-ajax');
+                var url = othis.data('ajax');
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         window.location.reload();
@@ -888,14 +888,14 @@ layui.define(["jquery", 'layer'], function (exports) {
                 /*菜单点击*/
                 $document.on('click', '*[lay-id]', function () {
                     var _that = $(this)
-                        , href = _that.attr('lay-href')?_that.attr('lay-href'):_that.attr('lay-iframe')
-                        , layId = _that.attr('lay-id')
-                        , text = _that.attr('lay-tips') || $(this).attr('title')
+                        , url = _that.data('url')?_that.data('url'):_that.data('iframe')
+                        , layId = _that.data('id')
+                        , text = _that.data('tips') || $(this).attr('title')
                         , icon = _that.find('i').attr('class')
-                        , iframe= _that.has('layi-iframe')?true: false,
-                        target = _that.attr('target');
-                    layId = layId ? layId : href;
-                    if (!$(this).attr("lay-href")) {
+                        , iframe= _that.has('data-iframe')?true: false,
+                        target = _that.prop('target');
+                    layId = layId ? layId : url;
+                    if (!$(this).data("url")) {
                         var parent = _that.parent();
                         var child = _that.next('.layui-nav-child');
                         var height = child.height();
@@ -917,10 +917,10 @@ layui.define(["jquery", 'layer'], function (exports) {
                         }
                     } else {
                         if (target === '_blank') {
-                            window.open(href, "_blank");
+                            window.open(url, "_blank");
                             return false;
                         }
-                        let options = {layId: layId, text: text, href: href, icon: icon,iframe:iframe};
+                        let options = {layId: layId, text: text, url: url, icon: icon,iframe:iframe};
                         Backend.addTab(options);
                         if(Backend.checkScreen()){
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')

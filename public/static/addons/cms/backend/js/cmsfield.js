@@ -1,7 +1,7 @@
 define(['table','form'], function (Table,Form) {
     let Controller = {
         index: function () {
-            $suffix = '/diyformid/' +diyformid+'/moduleid/'+moduleid;
+            var $suffix = '/diyformid/' +diyformid+'/moduleid/'+moduleid;
             Table.init = {
                 table_elem: 'list',
                 tableId: 'list',
@@ -68,14 +68,14 @@ define(['table','form'], function (Table,Form) {
         api: {
             bindevent: function () {
                 layui.form.on('select(type)', function (data) {
-                    $('#define').val($(data.elem).find("option:selected").attr("data-define"));
-                    var ifoption = $(data.elem).find("option:selected").attr("data-ifoption");
-                    if (ifoption == '1') {
+                    $('#define').val($(data.elem).find("option:selected").data("define"));
+                    var ifoption = $(data.elem).find("option:selected").data("ifoption");
+                    if (ifoption === '1' || ifoption === 1) {
                         $('#options').show();
                     } else {
                         $('#options').hide();
                     }
-                    if(data.value=='images' || data.value=='files'){
+                    if(data.value==='images' || data.value==='files'){
                         $('#maxnum').show()
                     }else{
                         $('#maxnum').hide()
@@ -83,10 +83,10 @@ define(['table','form'], function (Table,Form) {
                     }
                 });
                 layui.form.on('select(fasttype)', function (data) {
-                    $('#define').val($(data.elem).find("option:selected").attr("data-define"));
+                    $('#define').val($(data.elem).find("option:selected").data("define"));
                 });
                 layui.form.on('select(rule)', function (data) {
-                    $('#rule').val($(data.elem).find("option:selected").attr("data-define"));
+                    $('#rule').val($(data.elem).find("option:selected").data("define"));
                 });
                 Form.api.bindEvent($('form'))
             },

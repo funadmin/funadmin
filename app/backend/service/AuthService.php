@@ -340,12 +340,17 @@ class AuthService
         $html= '';
         foreach ($list as $key=>$val){
             $html   .='<li class="layui-nav-item">';
+            $badge = '';
+            if(strtolower($val['title'])==='addon'){
+                $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
+            }
             if($val['child'] and count($val['child'])>0){
-                $html .= '<a href="javascript:;" lay-id="'.$val['id'].'" title="'.lang($val['title']).'" lay-tips="'.lang($val['title']).'"><i class="'.$val['icon'].'"></i><cite> '.lang($val['title']).'</cite><span class="layui-nav-more"></span></a>';
+
+                $html .= '<a href="javascript:;" lay-id="'.$val['id'].'" data-id="'.$val['id'].'" title="'.lang($val['title']).'" data-tips="'.lang($val['title']).'"><i class="'.$val['icon'].'"></i><cite> '.lang($val['title']).'</cite>'.$badge.'<span class="layui-nav-more"></span></a>';
                 $html = $this->childmenuhtml($html, $val['child']);
             }else{
                 $target = $val['target']?$val['target']:'_self';
-                $html .= '<a href="javascript:;" lay-id="'. $val['id'] .'" title="'. lang($val['title']) .'" lay-tips="'. lang($val['title']) .'" lay-href="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'].  '"></i><cite> ' . lang($val['title']) . '</cite></a>';
+                $html .= '<a href="javascript:;" lay-id="'. $val['id'] .'"  data-id="'.$val['id'].'" title="'. lang($val['title']) .'" data-tips="'. lang($val['title']) .'" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'].  '"></i><cite> ' . lang($val['title']) . '</cite>'.$badge.'</a>';
 
             }
             $html.='</li>';
@@ -366,11 +371,11 @@ class AuthService
         foreach($child as $k=>$v) {
             $html .= '<dd>';
             if($v['child'] and count($v['child'])>0){
-                $html .= '<a href="javascript:;" lay-id="'. $v['id'] .'" title="'. lang($v['title']) .'"  lay-tips="'.lang($v['title']).'"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                $html .= '<a href="javascript:;" lay-id="'. $v['id'] .'"  data-id="'.$v['id'].'" title="'. lang($v['title']) .'"  data-tips="'.lang($v['title']).'"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
                 $html = self::childmenuhtml($html, $v['child']);
             } else {
                 $v['target'] = $v['target']?$v['target']:'_self';
-                $html .= '<a href="javascript:;" lay-id="'.  $v['id'] .'" title="'. lang($v['title']) .'" lay-tips="'. lang($v['title']) .'" lay-href="' . $v['href'].  '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                $html .= '<a href="javascript:;" lay-id="'.  $v['id'] .'"   data-id="'.$v['id'].'" title="'. lang($v['title']) .'" data-tips="'. lang($v['title']) .'" data-url="' . $v['href'].  '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
             }
             $html .= '</dd>';
         };

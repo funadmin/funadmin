@@ -158,7 +158,7 @@ define(['table','form'], function (Table,Form) {
             layui.table.on('tool('+Table.init.table_elem+')', function(obj) {
                 var data = obj.data;
                 var othis = $(this)
-                var url = othis.attr('lay-url');
+                var url = othis.data('url');
                 url = url+"&time="+data.time;
                 if (obj.event === 'href') {
                     window.location.href = url+'&time='+data.time

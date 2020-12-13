@@ -104,7 +104,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 data: option.data,
                 timeout: 0,
                 headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')
                 },
                 beforeSend: function (xhr,request) {
                     request.url = Fun.url(request.url);
@@ -236,9 +236,9 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
 
         events: {
             photos: function (othis) {
-                var title = othis.attr('lay-photos'),
-                    src = othis.attr('src'),
-                    alt = othis.attr('alt');
+                var title = othis.prop('title'),
+                    src = othis.prop('src'),
+                    alt = othis.prop('alt');
                 var photos = {
                     "title": title,
                     "id": Math.random(),
@@ -258,15 +258,16 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 return false;
             },
             open: function (othis) {
+                var data = othis.data();
                 var options = {
-                    title: othis.attr('lay-title'),
-                    url: othis.attr('lay-url')?othis.attr('lay-url'):othis.attr('lay-href'),
-                    width: othis.attr('lay-width'),
-                    height: othis.attr('lay-height'),
-                    isResize: othis.attr('lay-resize'),
-                    full: othis.attr('lay-full'),
-                    btn: othis.attr('lay-btn'),
-                    btnAlign: othis.attr('lay-align'),
+                    title: othis.prop('title')?othis.prop('title'):data.title,
+                    url: data.url?data.url:data.href,
+                    width: data.width,
+                    height: data.height,
+                    isResize: data.title,
+                    full: data.full,
+                    btn: data.btn,
+                    btnAlign: data.btnAlign,
 
                 };
                 Fun.api.open(options)

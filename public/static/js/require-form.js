@@ -39,8 +39,8 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         var list = document.querySelectorAll("*[lay-filter='editor']");
                         if (list.length > 0) {
                             $.each(list, function () {
-                                if($(this).attr('lay-editor')==2){
-                                    var id = $(this).attr('id');
+                                if($(this).data('editor')==2){
+                                    var id = $(this).prop('id');
                                     return  layui.layedit.sync(window['editor'+id])
                                 }
                             })
@@ -65,17 +65,14 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         // todo 必填项处理
                         if (verify === 'required') {
                             var label = $(this).parent().prev();
-                            if (label.is('label') && !label.hasClass('required')) {
-                                label.addClass('required');
-                            }
+                            if (label.is('label') && !label.hasClass('required')) {label.addClass('required');}
                             if (typeof $(this).attr('lay-reqtext') === 'undefined' && typeof $(this).attr('placeholder') !== 'undefined') {
                                 $(this).attr('lay-reqtext', $(this).attr('placeholder'));
                             }
                             if (typeof $(this).attr('placeholder') === 'undefined' && typeof $(this).attr('lay-reqtext') !== 'undefined') {
-                                $(this).attr('placeholder', $(this).attr('lay-reqtext'));
+                                $(this).attr('placeholder', $(this).attr('layreqtext'));
                             }
                         }
-
                     });
                 }
             },
@@ -85,9 +82,9 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 if (formList.length > 0) {
                     $.each(formList, function (i) {
                         var filter = $(this).attr('lay-filter'),
-                            type = $(this).attr('lay-type'),
-                            refresh = $(this).attr('lay-refresh'),
-                            url = $(this).attr('lay-request');
+                            type = $(this).data('type'),
+                            refresh = $(this).data('refresh'),
+                            url = $(this).data('data-request');
                         // 表格搜索不做自动提交
                         if (type === 'tableSearch') {
                             return false;
@@ -131,7 +128,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
             },
             //验证
             upfileDelete: function (othis) {
-                var fileurl = othis.attr('lay-fileurl'), that;
+                var fileurl = othis.data('fileurl'), that;
                 var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
                     that = othis.parents('.layui-upload-list').parents('.layui-upload');
                     var input = that.find('input[type="text"]');
@@ -262,9 +259,10 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-select\"]");
                 if (fileSelectList.length > 0) {
                     $.each(fileSelectList, function () {
-                        var uploadType = $(this).attr('lay-type'),
-                            uploadNum = $(this).attr('lay-num'),
-                            uploadMine = $(this).attr('lay-mime');
+                        var data = $(this).data();
+                        var uploadType = data.value.type,
+                            uploadNum = data.value.num,
+                            uploadMine = data.value.mine;
                         uploadMine = uploadMine || '';
                         uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
@@ -307,16 +305,17 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                                 var fileArr = [];
                                 var html = '';
                                 $.each(data.data, function (index, val) {
+                                    console.log(uploadMine)
                                     if (uploadMine === 'image') {
-                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
 
                                     } else if (uploadMine === 'video') {
-                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
 
                                     } else if (uploadMine === 'audio') {
-                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else {
-                                        html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
 
                                     }
                                     fileArr.push(val.path)

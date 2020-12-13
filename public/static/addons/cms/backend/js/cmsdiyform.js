@@ -66,25 +66,28 @@ define(['table','form'], function (Table,Form) {
                     modify_url: 'addons/cms/backend/cmsdiyform/datamodify',
                 }
             }
-            var cols = [
+            let cols = [
                 {checkbox: true,},
                 {field: 'id', title: 'ID', width: 80, sort: true},
 
             ];
             $.each(fieldlist, function(k,v){
-                var data = {field: v.field, title: v.title, operate: 'like'};
+                let data = {field: v.field, title: __(v.title),sort: true};
                 if (v.type === 'image') {
                     data.templet =  Table.api.templet.image;
                 } else if (v.type === 'images') {
-                    data.templet  = Table.api.formatter.images;
+                    data.templet  = Table.api.templet.images;
                 } else if (v.type === 'radio' || v.type === 'switch') {
-                    data.templet  = Table.api.formatter.switch;
+                    data.templet  = Table.api.templet.switch;
+                }else if(v.type ==='editor'){
+                    data.templet  = Table.api.templet.content;
+
                 }
                 cols.push(data);
             })
-            cols.push({field: 'status', sort: true, filter: 'status',title: __('Status'), sort:true, templet: Table.templet.switch});
-            cols.push({field: 'create_time', sort: true, title: __('Createtime'),sort:true,templet:Table.templet.time});
-            cols.push({field: 'updatetime', sort: true, title: __('Updatetime'),sort:true});
+            cols.push({field: 'status', filter: 'status',title: __('Status'), sort:true, templet: Table.templet.switch});
+            cols.push({field: 'create_time',  title: __('Createtime'),sort:true,templet:Table.templet.time});
+            cols.push({field: 'updatetime', title: __('Updatetime'),sort:true});
             cols.push( {
                 width: 250, align: 'center', title: __('Operat'), init: Table.init,
                 templet : Table.templet.operat, operat: ['edit','delete']
