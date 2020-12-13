@@ -421,15 +421,18 @@ layui.define(["jquery", 'layer'], function (exports) {
         listenTabs: function (options) {
             var funTabInfo = layui.sessionData("funTabInfo");
             var tabLayId = layui.sessionData('tabLayId');
+            console.log(funTabInfo)
+            console.log(tabLayId)
             var layId = tabLayId.id;
             if (layId === null || layId === undefined) return false;
             if (funTabInfo) {
                 $("#layui-side-left-menu [data-url]").each(function () {
-                    if ($(this).data("id") === layId) {
+                    var layId_this = $(this).attr('lay-id');
+                    if (funTabInfo[layId_this]){
                         var text = $(this).data('tips') || $(this).attr('title'),
                         url = $(this).data('url'), icon = $(this).find('i').attr('class');
                         Backend.addTab({
-                            layId: layId,
+                            layId: layId_this,
                             url: url,
                             text: text,
                             icon: icon,
@@ -457,7 +460,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             } else {
                 element.tabDelete('layui-layout-tabs', layId);
             }
-            layId = $('.layui-tab .layui-tab-title').find('.layui-this').data('id');
+            layId = $('.layui-tab .layui-tab-title').find('.layui-this').attr('lay-id');
             Backend.changeSessioinTabId(layId);
             $('#layui-nav-righmenu').remove();
         },
@@ -471,7 +474,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             options.icon = options.icon || null;
             options.iframe = options.iframe || null;
             if ($(".layui-tab .layui-tab-title li").length >= options.maxTabs) {
-                Fun.toastr.error('window is create by maxnum');
+                Fun.toastr.error(__('window is create by maxnum'));
                 return false;
             }
             Backend.changeSessioinTabId(options.layId);
@@ -514,7 +517,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             // 判断选项卡上是否有
             var checkId = false;
             $(".layui-tab .layui-tab-title li").each(function () {
-                var checklayId = $(this).data('id');
+                var checklayId = $(this).attr('lay-id');
                 if (checklayId != null && checklayId === layId) {checkId = true;}});return checkId !== false;
         },
 
@@ -593,7 +596,7 @@ layui.define(["jquery", 'layer'], function (exports) {
         listenDeltab: function (options) {
             options.filter = options.filter || null;
             element.on('tabDelete(' + options.filter + ')', function () {
-                var layId = $(this).parent().data('id');
+                var layId = $(this).parent().attr('lay-id');
                 Backend.delTab(layId);
             });
         },
@@ -820,7 +823,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             }
             //关闭当前标签页
             , closeThisTabs: function () {
-                var layId = $(".layui-tab .layui-tab-title li.layui-this").data('id');
+                var layId = $(".layui-tab .layui-tab-title li.layui-this").attr('lay-id');
                 if (layId) {
                     Backend.delTab(layId)
                 }
@@ -828,7 +831,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             //关闭其它标签页
             , closeOtherTabs: function (type) {
                 $(".layui-tab .layui-tab-title li").each(function (key, val) {
-                    var layId = $(val).data('id');
+                    var layId = $(val).attr('lay-id');
                     if (type === 'all' && layId) {
                         Backend.delTab(layId);
                     } else {
@@ -889,7 +892,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 $document.on('click', '*[lay-id]', function () {
                     var _that = $(this)
                         , url = _that.data('url')?_that.data('url'):_that.data('iframe')
-                        , layId = _that.data('id')
+                        , layId = _that.attr('data-id')
                         , text = _that.data('tips') || $(this).attr('title')
                         , icon = _that.find('i').attr('class')
                         , iframe= _that.has('data-iframe')?true: false,

@@ -56,10 +56,6 @@ define(['table','form'], function (Table,Form) {
                     {field: 'collation', title: __('Coding'), minwidth: 150, sort: true},
                     {field: 'create_time', title: __('Createtime'), width: 180, sort: true},
                     {field: 'comment', title: __('Description'), minwidth: 180},
-                    // {
-                    //     width: 250, align: 'center', title: __('Operat'), init: Table.init,
-                    //     templet : Table.templet.operat, operat: ['optimize_url','repair_url']
-                    // }
                 ]],
                 done: function(res){
                     $('.count').html(res.tableNum);

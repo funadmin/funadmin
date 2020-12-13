@@ -55,7 +55,6 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             $.each(d, function (i, v) {
                 if (v === 'refresh') {
                     url = Fun.replaceurl(Table.init.requests.export_url,d);
-
                     toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n';
                 } else if (v === 'export') {
                     url = Fun.replaceurl(Table.init.requests.export_url,d);
@@ -284,7 +283,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 ele.title = ele.title || ele.field;
                 var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
                     title = d[ele.title];
-                return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" data-title="' + title + '"  lay-event="photos" alt="">';
+                return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" title="' + title + '"  lay-event="photos" alt="">';
             },
             //多个图片
             images: function (d) {
@@ -298,7 +297,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var html = [];
                 $.each(src, function (i, v) {
                     v = v ? v : '/static/common/images/image.gif';
-                    html.push('<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + v + '" data-title="' + title + '"  lay-event="photos" alt="">');
+                    html.push('<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + v + '" title="' + title + '"  lay-event="photos" alt="">');
                 });
                 return html.join(' ');
             },
@@ -438,7 +437,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="' + vv.icon + '"></i>' : '';
                         vv.class = vv.class !== '' ? 'class="' + vv.class + '" ' : '';
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" data-title="' + vv.title + '"' : '';
+                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
@@ -473,7 +472,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
                         vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" data-title="' + vv.title + '"' : '';
+                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
@@ -511,7 +510,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
                         vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" data-title="' + vv.title + '"' : '';
+                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
@@ -555,8 +554,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 return false;
             },
             request: function (othis) {
-                var data = othis.data('value');
-                var title = data.title,
+                var data = othis.data();
+                var title = othis.prop('title')?othis.prop('title'):data.title,
                     url = data.url?data.url:data.href,
                 tableId = data.tableId;
                 title = title || __('Are you sure');

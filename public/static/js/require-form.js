@@ -126,7 +126,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                 }
 
             },
-            //验证
+            //删除
             upfileDelete: function (othis) {
                 var fileurl = othis.data('fileurl'), that;
                 var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
@@ -263,7 +263,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                         var uploadType = data.value.type,
                             uploadNum = data.value.num,
                             uploadMine = data.value.mine;
-                        uploadMine = uploadMine || '';
+                        uploadMine = uploadMine || '*';
                         uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
                         var input = $(this).parents('.layui-upload').find('input[type="text"]');
