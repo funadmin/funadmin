@@ -85,7 +85,7 @@ require.config({
     },
     waitSeconds: 30,
     charset: 'utf-8' // 文件编码
-})
+});
 //初始化控制器对应的JS自动加载
 require(["jquery"], function ($) {
     // 配置语言包的路径
@@ -97,7 +97,8 @@ require(["jquery"], function ($) {
         require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require([BASE_URL+ Config.jspath], function (Controller) {
+                    console.log(BASE_URL+Config.jspath);
+                    require([BASE_URL+Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
@@ -108,4 +109,4 @@ require(["jquery"], function ($) {
             })
         })
     })
-})
+});
