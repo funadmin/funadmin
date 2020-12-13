@@ -104,7 +104,7 @@ return [
     'CreateTime'  =>  '创建时间',
     'UpdateTime'  =>  '更新时间',
     'Verify'  =>  '验证码',
-    'Please check data'  =>  '请选择数据',
+    'Please check data'  =>  '请检查数据',
     'Are you sure you want to delete it'  =>  '确定删除此项?',
     'Are you sure to delete'  =>  '确定删除此项?',
     'Are you sure to Destroy'  =>  '确定伪删除此项?',

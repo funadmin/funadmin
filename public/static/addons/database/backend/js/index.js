@@ -46,6 +46,7 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
+                defaultToolbar:[],
                 toolbar: ['refresh','repair_url','backup_url','optimize_url','query_url'],
                 cols: [[
                     {checkbox: true, fixed: true},
@@ -67,11 +68,11 @@ define(['table','form'], function (Table,Form) {
                 page: true
             });
             layui.table.on('toolbar(list)', function(obj) {
-                var _that = $(this);
-                var title = _that.html()
+                var othis = $(this);
+                var title = othis.html()
                 var event = obj.event;
                 if(event==='open'){
-                    Table.events.open(_that);
+                    Table.events.open(othis);
                     return false;
                 }
                 if(event==='refresh'){
@@ -86,16 +87,14 @@ define(['table','form'], function (Table,Form) {
                 if(tables.length===0){
                     return Fun.toastr.error(__('Please choose data'));
                 }
-                _that.html(title+__(' processing...'));
-
-                _that.addClass('layui-btn-disabled');
+                othis.html(title+__(' processing...'));
+                othis.addClass('layui-btn-disabled');
                 var url = (eval('Table.init.requests.'+event+'_url.url'))
                 Fun.ajax({url:url,data:{tables:tables}},function(res){
                     Fun.toastr.success(res.msg);
-                    _that.html(title);
-                    _that.removeClass('layui-btn-disabled');
+                    othis.html(title);
+                    othis.removeClass('layui-btn-disabled');
                     Table.api.reload();
-
                 },function (res){
                     Fun.toastr.error(res.msg);
                 });

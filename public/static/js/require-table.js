@@ -7,6 +7,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
         init: {
             table_elem: 'list',
             tableId: 'list',
+            searchinput: true,
             requests:{
                 export_url :'ajax/export'
             },
@@ -20,6 +21,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             options.toolbar = options.toolbar || '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
+            options.searchinput = Fun.parame(options.searchinput, true);
+            options.searchname = Fun.parame(options.searchname, 'id');
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', {
@@ -31,25 +34,26 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             // 初始化表格lay-filter
             $(options.elem).attr('lay-filter', options.layFilter);
             // 初始化表格搜索
-            options.toolbar = options.toolbar || ['refresh', 'add', 'delete'];
+            options.toolbar = options.toolbar || ['refresh','export','add', 'delete'];
 
             if (options.search === true) {
-                Table.renderSearch(options.cols, options.elem, options.id);
+                Table.renderSearch(options.cols, options.id);
             }
             // 初始化表格左上方工具栏
-            options.toolbar = Table.renderToolbar(options.toolbar, options.elem, options.id);
+            options.toolbar = Table.renderToolbar(options);
             var newTable = table.render(options);
             // 监听表格开关切换
             Table.api.switch(options.cols, options.init, options.id);
             // 监听表格搜索开关和toolbar按钮显示等
-            Table.api.toolbar(options.layFilter, options.id);
+            Table.api.toolbar(options.layFilter, options.id,options);
             // 监听表格双击事件
             Table.api.rowDouble(options.layFilter, options.id);
             // 监听表格编辑
             Table.api.edit(options.init, options.layFilter, options.id);
             return newTable;
         },
-        renderToolbar: function (d, elem, tableId) {
+        renderToolbar: function (options) {
+            var d= options.toolbar,tableId = options.id, searchinput = options.searchinput;
             d = d || [];
             var toolbarHtml = '';
             $.each(d, function (i, v) {
@@ -106,9 +110,14 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 }
 
             });
+            if(searchinput){
+                toolbarHtml += '<input id="layui-input-search"  name="'+options.searchname+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
+                    '    margin:2px 25px 0 0;height:30px;padding:10px;">\n' ;
+            }
+
             return '<div>' + toolbarHtml + '</div>';
         },
-        renderSearch: function (cols, elem, tableId) {
+        renderSearch: function (cols,tableId) {
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
@@ -222,7 +231,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 }
             });
             if (formHtml !== '') {
-                $(elem).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset layui-hide">\n' +
+                $('#'+tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset layui-hide">\n' +
                     '<legend>' + __('Search') + '</legend>\n' +
                     '<form class="layui-form"><div class="layui-row">\n' +
                     formHtml +
@@ -541,7 +550,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 Fun.events.photos(othis);
             },
             refresh: function (othis) {
-                var tableId = othis.data().value.tableId;
+                console.log(othis.data())
+                var tableId = othis.data('tableId');
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId;
                 }
@@ -638,13 +648,14 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             reload: function (tableId,$where = {}) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $map = {where: $where}
-                table.reload(tableId, {$map});
+                console.log($map);
+                table.reload(tableId, $map);
+
             },
             //表格收索
             tableSearch: function (tableId) {
                 form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
-                    console.log(dataField)
                     var formatFilter = {},
                         formatOp = {};
                     $.each(dataField, function (key, val) {
@@ -660,17 +671,15 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 formatFilter[key] = min+','+max
                                 op = $('#filed_' + key+'_min').attr('data-searchop');
                             }
-
                             formatOp[key] = op;
-                            console.log(op);
-
                         }
                     });
                     table.reload(tableId, {
-                        page: {
-                            curr: 1
-                        }
-                        , where: {
+                        // page: {
+                        //     curr: 1
+                        // }
+                        // ,
+                        where: {
                             filter: JSON.stringify(formatFilter),
                             op: JSON.stringify(formatOp)
                         }
@@ -807,6 +816,17 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     }
+                });
+                //输入框搜索
+                $(document).on('keyup drop blur','#layui-input-search',function(event){
+                    var text = $(this).val();
+                    $('#searchFieldList_'+Table.init.tableId).find('input[name="'+$(this).attr('name')+'"]').prop('value',text);
+                    $('[lay-filter="'+Table.init.tableId+'_filter'+'"]').trigger("click");
+                    $(this).placeholder(text)
+                    return false;
+                }).unbind('keyup drop blur','#layui-input-search', function (event) {
+                    $(this).prop('value',$(this).val())
+                    return false;
                 });
             },
         },

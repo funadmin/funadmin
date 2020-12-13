@@ -369,6 +369,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     Form.events[attrEvent] && Form.events[attrEvent].call(this, _that)
                 });
+
             }
         }
     };
