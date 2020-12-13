@@ -111,7 +111,7 @@ define(["jquery"], function ($) {
             });
             if(searchinput){
                 toolbarHtml += '<input id="layui-input-search"  name="'+options.searchname+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
-                    'margin:2px 25px 0 0;height:30px;padding:10px;">\n' ;
+                    'margin:2px 25px 0 0;height:30px;">\n' ;
             }
             return '<div>' + toolbarHtml + '</div>';
         },
