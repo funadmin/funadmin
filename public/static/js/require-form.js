@@ -1,10 +1,12 @@
-define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tableSelect,Upload,Table,Fu) {
-
+define(['jquery','tableSelect', 'upload', 'table','fu'],
+    function ($,tableSelect,Upload,Table,Fu) {
     var form = layui.form;
     var element = layui.element;
     tableSelect = layui.tableSelect;
     var Form = {
-        init: {},
+        init: {
+
+        },
         //事件
         events: {
             fu: function () {
@@ -369,11 +371,9 @@ define(['jquery','tableSelect', 'upload', 'table','fu'], function (undefined,tab
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     Form.events[attrEvent] && Form.events[attrEvent].call(this, _that)
                 });
-
-            }
-        }
+            },
+        },
     };
-
     return Form;
 
-})
+});

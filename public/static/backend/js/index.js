@@ -3,7 +3,12 @@ define(['backend'], function (Backend) {
     return  {
         index: function () {
             var  Backend = layui.Backend;
-            Backend.render()
+            Backend.render(options =  {
+                refreshUrl: '',
+                themeid: '',
+                maxTabs: '',
+                loadingTime: '',
+            })
             //刷新菜单事件
             $(document).on('refresh', '#layui-side-left-menu', function () {
                 var _that = $(this);

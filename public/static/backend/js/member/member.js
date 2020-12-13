@@ -81,7 +81,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_full', 'delete']
+                        operat: ['edit_full', 'delete',]
                     }
 
                 ]],

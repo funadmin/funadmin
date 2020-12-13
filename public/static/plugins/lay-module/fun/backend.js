@@ -289,16 +289,11 @@ layui.define(["jquery", 'layer'], function (exports) {
     ];
     var Backend = {
         /*** 版本*/
-        v: '1.2.0',
+        v: '1.5.0',
         /**
          * @param options
          */
-        render: function (options = {
-            refreshUrl: '',
-            themeid: '',
-            maxTabs: '',
-            loadingTime: '',
-        }) {
+        render: function (options) {
             options.refreshUrl = options.refreshUrl || Fun.url('ajax/clearcache');
             options.themeid = options.themeid || 0;
             options.maxTabs = options.maxTabs || 15;

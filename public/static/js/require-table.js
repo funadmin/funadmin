@@ -1,8 +1,7 @@
-define(["jquery",'timePicker'], function ($,timePicker) {
+define(["jquery"], function ($) {
     var form = layui.form,
         table = layui.table,
-        laydate = layui.laydate,
-    element = layui.element;
+        laydate = layui.laydate;
     var Table = {
         init: {
             table_elem: 'list',
@@ -47,7 +46,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             // 监听表格搜索开关和toolbar按钮显示等
             Table.api.toolbar(options.layFilter, options.id,options);
             // 监听表格双击事件
-            Table.api.rowDouble(options.layFilter, options.id);
+            Table.api.rowDouble(options.layFilter, options.init.requests.edit_url);
             // 监听表格编辑
             Table.api.edit(options.init, options.layFilter, options.id);
             return newTable;
@@ -112,9 +111,8 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             });
             if(searchinput){
                 toolbarHtml += '<input id="layui-input-search"  name="'+options.searchname+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
-                    '    margin:2px 25px 0 0;height:30px;padding:10px;">\n' ;
+                    'margin:2px 25px 0 0;height:30px;padding:10px;">\n' ;
             }
-
             return '<div>' + toolbarHtml + '</div>';
         },
         renderSearch: function (cols,tableId) {
@@ -360,10 +358,11 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 var requests = Table.init.requests;
                 $.each(ele.operat, function (k, v) {
                     //曾删改查
-                    var vv;
+                    var vv={};
+                    var va={};
                     if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || (typeof v !=="object" && typeof eval('requests.' + v +'_url')==='string')) {
                         if (v === 'add') {
-                            vv = {
+                            va = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-warm',
@@ -376,7 +375,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 height: '600',
                             };
                         } else if (v === 'edit') {
-                            vv = {
+                            va = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-xs',
@@ -389,7 +388,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 height: '600',
                             };
                         } else if(v === 'delete')  {
-                            vv = {
+                            va = {
                                 type: 'delete',
                                 event: 'request',
                                 class: 'layui-btn layui-btn-danger',
@@ -402,7 +401,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 height: '600',
                             };
                         } else if(v==='destroy') {
-                            vv = {
+                            va = {
                                 type: 'delete',
                                 event: 'request',
                                 class: 'layui-btn layui-btn-warm',
@@ -415,7 +414,7 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                                 height: '600',
                             };
                         }else{
-                            vv = {
+                            va = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-warm',
@@ -429,21 +428,21 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                             };
                         }
                         // 初始化数据
-                        vv.type = vv.type || '';
-                        vv.class = vv.class || '';
-                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
-                        vv.event = vv.event || vv.event || '';
-                        vv.icon = vv.icon || '';
-                        vv.url = vv.url || '';
-                        vv.text = vv.text || '';
-                        vv.title = vv.title || vv.text || '';
-                        vv.extend = vv.extend || '';
+                        vv.type = va.type || '';
+                        vv.class = va.class || '';
+                        vv.event = va.event || va.event || '';
+                        vv.icon = va.icon || '';
+                        vv.url = va.url || '';
+                        vv.text = va.text || '';
+                        vv.title = va.title || va.text || '';
+                        vv.extend = va.extend || '';
                         // 组合数据
-                        vv.node = vv.url;
+                        vv.node = va.url;
+                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
                         vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.id : vv.url + '?id=' + d.id;
                         vv.url = Fun.replaceurl(vv.url,d);
-                        vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
-                        vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
+                        vv.width = va.width !== '' ? 'data-width="' + va.width + '"' : '';
+                        vv.height = va.height !== '' ? 'data-height="' + va.height + '"' : '';
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="' + vv.icon + '"></i>' : '';
                         vv.class = vv.class !== '' ? 'class="' + vv.class + '" ' : '';
@@ -457,31 +456,36 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + '>' + vv.icon + '</button>';
                         }
-                    } else if (typeof v==='string' && typeof eval('requests.' + v) === "object") {
+                    } else if (typeof v==='string' && typeof eval('requests.' + v) === "object" || typeof v=== 'object') {
+                        if(typeof v === 'string'){
+                            va =  eval('requests.' + v);
+                        }else{
+                            va = v;
+                        }
                         vv = {};
-                        v =  eval('requests.' + v);
                         // // 初始化数据
-                        vv.class = v.class || '';
-                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
-                        vv.full = v.full || '';
-                        vv.btn = v.btn || '';
-                        vv.align = v.align || '';
-                        vv.width = v.width || '';
-                        vv.height = v.height || '';
-                        vv.type = v.type || '';
-                        vv.event = v.event || v.type || '';
-                        vv.icon = v.icon || '';
-                        vv.text = v.text || '';
-                        vv.title = v.title || vv.text || '';
-                        vv.extend = v.extend || '';
-                        vv.node = v.url;
-                        vv.url = v.url.indexOf("?") !== -1 ? v.url + '&id=' + d.id : v.url + '?id=' + d.id;
+                        vv.type = va.type || '';
+                        vv.class = va.class || '';
+                        vv.class = vv.class ?vv.class+' layui-btn layui-btn-xs':vv.class;
+                        vv.full = va.full || '';
+                        vv.btn = va.btn || '';
+                        vv.align = va.align || '';
+                        vv.width = va.width || '';
+                        vv.height = va.height || '';
+                        vv.event = va.event || vv.type || '';
+                        vv.icon = va.icon || '';
+                        vv.url = va.url || '';
+                        vv.text = va.text || '';
+                        vv.title = va.title || vv.text || '';
+                        vv.extend = va.extend || '';
+                        vv.node = va.url;
+                        vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.id : va.url + '?id=' + d.id;
                         vv.url = Fun.replaceurl(vv.url,d);
                         vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
                         vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                        vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
+                        vv.class = vv.class ? 'class="'+vv.class+ '"':vv.class;
                         vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
@@ -495,45 +499,46 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                         if (Fun.checkAuth(vv.node)) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align+ '>' + vv.icon + '</button>';
                         }
-                    }else if(typeof v==='object'){
-                        var vv = {};
-                        // // 初始化数据
-                        vv.class = v.class || '';
-                        vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
-                        vv.full = v.full || '';
-                        vv.btn = v.btn || '';
-                        vv.align = v.align || '';
-                        vv.btn = v.btn || '';
-                        vv.width = v.width || '';
-                        vv.height = v.height || '';
-                        vv.type = v.type || '';
-                        vv.event = v.event || v.type || '';
-                        vv.icon = v.icon || '';
-                        vv.text = v.text || '';
-                        vv.title = v.title || vv.text || '';
-                        vv.extend = v.extend || '';
-                        vv.node = v.url;
-                        vv.url = v.url.indexOf("?") !== -1 ? v.url + '&id=' + d.id : v.url + '?id=' + d.id;
-                        vv.url = Fun.replaceurl(vv.url,d);
-                        vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
-                        vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
-                        vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
-                        vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                        vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                        vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
-                        vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
-                        vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
-                        vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
-                        vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
-                        vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                        if(!vv.icon){
-                            vv.icon =  vv.icon + vv.text
-                        }
-                        if (Fun.checkAuth(vv.node)) {
-                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full +vv.btn + vv.align+ '>' + vv.icon + '</button>';
-                        }
                     }
+                    // else if(typeof v==='object'){
+                    //     var vv = {};
+                    //     // // 初始化数据
+                    //     vv.class = v.class || '';
+                    //     vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
+                    //     vv.full = v.full || '';
+                    //     vv.btn = v.btn || '';
+                    //     vv.align = v.align || '';
+                    //     vv.btn = v.btn || '';
+                    //     vv.width = v.width || '';
+                    //     vv.height = v.height || '';
+                    //     vv.type = v.type || '';
+                    //     vv.event = v.event || v.type || '';
+                    //     vv.icon = v.icon || '';
+                    //     vv.text = v.text || '';
+                    //     vv.title = v.title || vv.text || '';
+                    //     vv.extend = v.extend || '';
+                    //     vv.node = v.url;
+                    //     vv.url = v.url.indexOf("?") !== -1 ? v.url + '&id=' + d.id : v.url + '?id=' + d.id;
+                    //     vv.url = Fun.replaceurl(vv.url,d);
+                    //     vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
+                    //     vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
+                    //     vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
+                    //     vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
+                    //     vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
+                    //     vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
+                    //     vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
+                    //     vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
+                    //     vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
+                    //     vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
+                    //     vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
+                    //     vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
+                    //     if(!vv.icon){
+                    //         vv.icon =  vv.icon + vv.text
+                    //     }
+                    //     if (Fun.checkAuth(vv.node)) {
+                    //         html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full +vv.btn + vv.align+ '>' + vv.icon + '</button>';
+                    //     }
+                    // }
                 });
                 return html;
             },
@@ -645,12 +650,11 @@ define(["jquery",'timePicker'], function ($,timePicker) {
             },
         },
         api: {
-            reload: function (tableId,$where = {}) {
-                tableId = tableId ? tableId : Table.init.tableId;
+            reload:function (tableId,$where) {
+                tableId = tableId?tableId : Table.init.tableId;
+                $where= $where || {};
                 $map = {where: $where}
-                console.log($map);
                 table.reload(tableId, $map);
-
             },
             //表格收索
             tableSearch: function (tableId) {
@@ -759,17 +763,14 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                     }
                 });
             },
-            /*
-            双击事件
-             */
-            rowDouble:function (layFilter, tableId) {
+            // /*
+            // 双击事件
+            //  */
+            rowDouble:function (layFilter,url) {
                 table.on('rowDouble(' + layFilter + ')', function (obj) {
-                    var url = Table.init.requests.edit_url
                     if(url && Fun.checkAuth(url)){
                         url = url.indexOf('?')!=-1 ?url+'&id='+ obj.data.id :url+'?id=' +obj.data.id
-                        options = {
-                            url:url,
-                        }
+                        options = {url:url,}
                         Fun.api.open(options);
 
                     }
@@ -814,18 +815,18 @@ define(["jquery",'timePicker'], function ($,timePicker) {
                 $('body').on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
                     }
                 });
                 //输入框搜索
                 $(document).on('keyup drop blur','#layui-input-search',function(event){
                     var text = $(this).val();
-                    $('#searchFieldList_'+Table.init.tableId).find('input[name="'+$(this).attr('name')+'"]').prop('value',text);
+                    $('#searchFieldList_'+Table.init.tableId).find('input[name="'+$(this).prop('name')+'"]').prop('value',text);
                     $('[lay-filter="'+Table.init.tableId+'_filter'+'"]').trigger("click");
-                    $(this).placeholder(text)
+                    $(this).placeholder(text);
                     return false;
                 }).unbind('keyup drop blur','#layui-input-search', function (event) {
-                    $(this).prop('value',$(this).val())
+                    $(this).prop('value',$(this).val());
                     return false;
                 });
             },

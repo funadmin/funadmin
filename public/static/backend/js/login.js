@@ -1,8 +1,8 @@
 define(['jquery', "form", 'toastr'], function ($,Form, Toastr) {
 
-    Toastr.options = {
-        positionClass: "toast-top-center",//弹出的位置,
-    };
+    // Toastr.options = {
+    //     positionClass: "toast-top-center",//弹出的位置,
+    // };
     var Controller = {
 
         index: function () {
@@ -22,7 +22,8 @@ define(['jquery', "form", 'toastr'], function ($,Form, Toastr) {
                     $("#captchaPic").trigger("click");
                     $('input[name="__token__"]').val(res.data.token);
                     Fun.toastr.error(res.msg);
-                })
+                }
+                );
             },
         },
 
