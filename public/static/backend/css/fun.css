@@ -239,7 +239,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 .layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this>a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
     background-color: #009688 !important
 }
-
+.layui-header .layui-nav .layui-this::after{
+    background-color:transparent !important;
+}
 .layui-header .layui-nav-bar {
     background-color: #191a23;
     height: 2px;

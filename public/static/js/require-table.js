@@ -82,8 +82,10 @@ define(["jquery"], function ($) {
                         url = Fun.replaceurl(eval(('Table.init.requests.'+v+'_url')),d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __(v) + '</a>\n';
                     }
-                }else if (typeof v==='string' && typeof eval('Table.init.requests.' + v) === 'object') {
-                    v = eval('Table.init.requests.' + v);
+                }else if (typeof v==='string' && typeof eval('Table.init.requests.' + v) === 'object'  || typeof v === 'object') {
+                    if(typeof v ==='string'){
+                        v = eval('Table.init.requests.' + v);
+                    }
                     url = Fun.replaceurl(v.url,d);
                     if (Fun.checkAuth(v.url)) {
                         v.full = v.full || 0;
@@ -95,19 +97,7 @@ define(["jquery"], function ($) {
                                 url + '" title="' + v.title + '" ><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         }
                     }
-                }else if (typeof v === 'object') {
-                    if (Fun.checkAuth(v.url)) {
-                        v.full = v.full || 0;
-                        v.resize = v.resize || 0;
-                        if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + v.url + '" title="' + v.title + '" ><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
-                        } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
-                                v.url + '" title="' + v.title + '" ><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
-                        }
-                    }
                 }
-
             });
             if(searchinput){
                 toolbarHtml += '<input id="layui-input-search"  name="'+options.searchname+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
@@ -270,7 +260,6 @@ define(["jquery"], function ($) {
                 });
 
             }
-            // console.log(layui.moment.moment().format('YYYY-MM-DD HH:mm:ss'))
         },
         templet: {
             //时间
@@ -500,45 +489,6 @@ define(["jquery"], function ($) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align+ '>' + vv.icon + '</button>';
                         }
                     }
-                    // else if(typeof v==='object'){
-                    //     var vv = {};
-                    //     // // 初始化数据
-                    //     vv.class = v.class || '';
-                    //     vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
-                    //     vv.full = v.full || '';
-                    //     vv.btn = v.btn || '';
-                    //     vv.align = v.align || '';
-                    //     vv.btn = v.btn || '';
-                    //     vv.width = v.width || '';
-                    //     vv.height = v.height || '';
-                    //     vv.type = v.type || '';
-                    //     vv.event = v.event || v.type || '';
-                    //     vv.icon = v.icon || '';
-                    //     vv.text = v.text || '';
-                    //     vv.title = v.title || vv.text || '';
-                    //     vv.extend = v.extend || '';
-                    //     vv.node = v.url;
-                    //     vv.url = v.url.indexOf("?") !== -1 ? v.url + '&id=' + d.id : v.url + '?id=' + d.id;
-                    //     vv.url = Fun.replaceurl(vv.url,d);
-                    //     vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
-                    //     vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
-                    //     vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
-                    //     vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                    //     vv.class = vv.class !== '' ? 'class="layui-btn ' + vv.class + '"' : '';
-                    //     vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                    //     vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
-                    //     vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
-                    //     vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
-                    //     vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
-                    //     vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
-                    //     vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                    //     if(!vv.icon){
-                    //         vv.icon =  vv.icon + vv.text
-                    //     }
-                    //     if (Fun.checkAuth(vv.node)) {
-                    //         html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full +vv.btn + vv.align+ '>' + vv.icon + '</button>';
-                    //     }
-                    // }
                 });
                 return html;
             },
@@ -564,9 +514,10 @@ define(["jquery"], function ($) {
             },
             //切换选项卡
             tabswitch:function(othis){
-                var field = othis.closest("[lay-field]").data("field");
-                var value = othis.data("value");
-                Table.api.reload();
+                var field = othis.closest("[data-field]").data("field"),value = othis.data("value");
+                $where = {};
+                $where[field] = value;
+                Table.api.reload(Table.init.tableId,$where);
                 return false;
             },
             request: function (othis) {
@@ -763,9 +714,7 @@ define(["jquery"], function ($) {
                     }
                 });
             },
-            // /*
-            // 双击事件
-            //  */
+            //双击事件
             rowDouble:function (layFilter,url) {
                 table.on('rowDouble(' + layFilter + ')', function (obj) {
                     if(url && Fun.checkAuth(url)){
@@ -778,6 +727,7 @@ define(["jquery"], function ($) {
 
                 });
             },
+            //编辑
             edit: function (tableInit, layFilter, tableId) {
                 tableInit.requests.modify_url = tableInit.requests.modify_url || false;
                 tableId = tableId || Table.init.tableId;

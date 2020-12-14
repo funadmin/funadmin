@@ -1,19 +1,14 @@
 define(['jquery', 'table','form'], function ($, Table,Form) {
-
-    /*
-     时间戳
-   */
+    /*时间戳*/
     function getTimestamp() {
         return Date.parse(new Date()) / 1000
     };
-
     /*
     随机数
      */
     function getNonce(len) {
         var len = len || 8;
         var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz123456789';
-        /****默认去掉了容易混淆的字符oOLl,9gq,Vv,Uu,I1****/
         var maxPos = $chars.length;
         var nonce = '';
         for (i = 0; i < len; i++) {
@@ -21,7 +16,6 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
         }
         return nonce;
     };
-
     //获取签名
     function getSign(obj) {
         //先用Object内置类的keys方法获取要排序对象的属性名，再利用Array原型上的sort方法对获取的属性名进行排序，newkey是一个数组
@@ -42,12 +36,10 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
         str = str.substring(0, str.length - 1);
         return md5(decodeURI(str)).toLowerCase();
     };
-
     //获取用户信息
     function getUserinfo() {
         var userinfo = localStorage.getItem("FunAdmin_userinfo");
         return userinfo ? JSON.parse(userinfo) : null;
-
     };
 
     //设置用户信息
@@ -163,7 +155,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                     } else {
                         var index = layer.open({
                             type: 1,
-                            content: $("#login").html(),
+                            content: $("#login_tpl").html(),
                             zIndex: 9999,
                             area: ['450px', '350px'],
                             title: [__('Login') + 'FunAdmin', 'text-align:center'],

@@ -1,5 +1,5 @@
 <div class="layui-tab layui-tab-card" lay-filter="tab">
-    <ul class="layui-tab-title" lay-field="name" >
+    <ul class="layui-tab-title" data-field="type">
         <li class="layui-this"  lay-event="tabswitch">网站设置</li>
         <li data-value="333" lay-event="tabswitch">用户管理</li>
         <li  data-value="333" lay-event="tabswitch">权限分配</li>
@@ -10,7 +10,7 @@
 <table class="layui-table layui-hide" id="list" lay-filter="list"></table>
 
 <!--登陆页面-->
-<script type="text/html" id="login">
+<script type="text/html" id="login_tpl">
     <div>
         <blockquote class="layui-elem-quote layui-text">
             登录提示：账号为 <a target="_blank" href="https://www.FunAadmin.com">FunAadmin</a> 官方账号
