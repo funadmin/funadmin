@@ -36,7 +36,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 } else {
                     return url;
                 }
-            } else if(Config.addonname && Config.modulename =='backend' &&　url.indexOf('ajax') !=-1){
+            } else if(Config.addonname && Config.modulename ==='backend' &&　url.indexOf('ajax') !==-1){
                 return Config.entrance + $.trim(url, '/');
 
             }else{
@@ -49,10 +49,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             //替换ids
             if(url){
                 url = url.indexOf('{ids}')!==-1 ? url.replace('{ids}',d.id): url;
-
             }
-
-
             return url;
         },
         checkAuth: function (node) {
