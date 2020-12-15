@@ -97,7 +97,6 @@ require(["jquery"], function ($) {
         require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    console.log(BASE_URL+Config.jspath);
                     require([BASE_URL+Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();

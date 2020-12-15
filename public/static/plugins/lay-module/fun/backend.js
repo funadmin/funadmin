@@ -384,13 +384,12 @@ layui.define(["jquery", 'layer'], function (exports) {
                 document.msExitFullscreen();
             }
         },
-        /**
-         * 初始化设备端
-         */
+        /* 初始化设备端*/
         initDevice: function () {
-            // if (!Fun.api.checkScreen()) {
-            //    $container.removeClass('layui-side-shrink').addClass(FUN_APP)
-            // }
+            console.log(layui.device('mobile'))
+            if(layui.device().mobile){
+               $container.addClass(SIDE_SHRINK).removeClass(FUN_APP)
+            }
         },
         checkScreen: function () {
             //屏幕类型 大小
@@ -416,8 +415,6 @@ layui.define(["jquery", 'layer'], function (exports) {
         listenTabs: function (options) {
             var funTabInfo = layui.sessionData("funTabInfo");
             var tabLayId = layui.sessionData('tabLayId');
-            console.log(funTabInfo)
-            console.log(tabLayId)
             var layId = tabLayId.id;
             if (layId === null || layId === undefined) return false;
             if (funTabInfo) {
@@ -938,7 +935,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                     var _that = $(this);
                     if(!Fun.api.checkScreen()){
                         var top = _that.offset().top;
-                        console.log(1323)
                         _that.removeClass('layui-nav-itemed');
                         _that.addClass('layui-nav-hover');
                         _that.children('dl').addClass('layui-nav-child-drop');
