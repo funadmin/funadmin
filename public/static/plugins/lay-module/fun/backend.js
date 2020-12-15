@@ -300,9 +300,6 @@ layui.define(["jquery", 'layer'], function (exports) {
             Backend.initTabs({
                 filter: 'layui-layout-tabs',
                 maxTabs: options.maxTabs,
-                listenSwichCallback: function () {
-                    Backend.initDevice();
-                }
             });
             Backend.initBgColor();
             Backend.hideLoading(options.loadingTime);
@@ -357,7 +354,6 @@ layui.define(["jquery", 'layer'], function (exports) {
         initTabs: function (options) {
             options.filter = options.filter || null;
             options.maxTabs = options.maxTabs || 15;
-            options.listenSwichCallback = options.listenSwichCallback || function () {};
             Backend.listenScroll();
             Backend.listenSwitch(options);
             Backend.listenTabs(options);
@@ -382,13 +378,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                 document.webkitCancelFullScreen();
             } else if (document.msExitFullscreen) {
                 document.msExitFullscreen();
-            }
-        },
-        /* 初始化设备端*/
-        initDevice: function () {
-            console.log(layui.device('mobile'))
-            if(layui.device().mobile){
-               $container.addClass(SIDE_SHRINK).removeClass(FUN_APP)
             }
         },
         checkScreen: function () {
@@ -574,9 +563,6 @@ layui.define(["jquery", 'layer'], function (exports) {
 
             element.on('tab(' + options.filter + ')', function () {
                 var layId = $(this).attr('lay-id');
-                if (typeof options.listenSwichCallback === 'function') {
-                    options.listenSwichCallback();
-                }
                 Backend.changeSessioinTabId(layId);
                 Backend.listenSwitchIframe(layId);
                 Backend.scrollPostion();
@@ -891,6 +877,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                         , iframe= _that.has('data-iframe')?true: false,
                         target = _that.prop('target');
                     layId = layId ? layId : url;
+                    console.log(layId)
                     if (!$(this).data("url")) {
                         var parent = _that.parent();
                         var child = _that.next('.layui-nav-child');
