@@ -1,8 +1,8 @@
 define(['jquery', "form", 'toastr'], function ($,Form, Toastr) {
 
-    // Toastr.options = {
-    //     positionClass: "toast-top-center",//弹出的位置,
-    // };
+    Toastr.options = {
+        positionClass: "toast-top-center",//弹出的位置,
+    };
     var Controller = {
 
         index: function () {
