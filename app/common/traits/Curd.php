@@ -176,8 +176,6 @@ trait Curd
             $this->error(lang('Invalid data'));
         }
     }
-
-
     /**
      * 返回模型
      * @param $id

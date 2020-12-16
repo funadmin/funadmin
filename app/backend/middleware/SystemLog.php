@@ -6,7 +6,7 @@
 namespace app\backend\middleware;
 
 
-use app\common\service\LogService;
+use app\common\service\AdminLogService;
 
 class SystemLog
 {
@@ -14,7 +14,7 @@ class SystemLog
     {
 
         //进行操作日志的记录
-        LogService::instance()->save();
+        AdminLogService::instance()->save();
         //中间件handle方法的返回值必须是一个Response对象。
         return $next($request);
     }
