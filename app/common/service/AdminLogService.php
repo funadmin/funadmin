@@ -21,7 +21,6 @@ use think\facade\Session;
 
 class AdminLogService extends AbstractService
 {
-
     /**
      * @var string
      * title
@@ -100,7 +99,7 @@ class AdminLogService extends AbstractService
         }
         //插入数据
         if (!empty(self::$title) and $content) {
-            AdminLog::save([
+            AdminLog::create([
                 'title'       => self::$title ? self::$title : '',
                 'get_data'     => self::$get_data,
                 'post_data'     => self::$post_data,
@@ -122,7 +121,7 @@ class AdminLogService extends AbstractService
      */
     public function saveaddonslog($data)
     {
-        AdminLog:save($data);
+        AdminLog::create($data);
     }
 
 }
