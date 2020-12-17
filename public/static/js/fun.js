@@ -92,7 +92,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 Fun.toastr.error(__('Request url can not empty'));
                 return false;
             }
-            var index = Fun.toastr.loading(option.tips)
+
+            // var index = Fun.toastr.loading(option.tips)
             $.ajax({
                 url: option.url,
                 type: option.method,
@@ -107,7 +108,9 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     request.url = Fun.url(request.url);
                 },
                 success: function (res) {
-                    Fun.toastr.close(index);
+                    // if(index){
+                    //     Fun.toastr.close(index);
+                    // }
                     if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
                     } else {

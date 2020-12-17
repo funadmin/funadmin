@@ -15,9 +15,11 @@ define(['jquery', "form", 'toastr'], function ($,Form, Toastr) {
         api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'), function (res) {
+                    console.log(111)
                     Fun.toastr.success(res.msg, setTimeout(function () {
+                        debugger;
                         window.location = res.url;
-                    }, 2000));
+                    }, 0));
                 }, function (res) {
                     $("#captchaPic").trigger("click");
                     $('input[name="__token__"]').val(res.data.token);

@@ -185,8 +185,9 @@ define(['jquery','tableSelect', 'upload', 'table','fu'],
                     option.refreshTable = Table.init.tableId;
                 }
                 var index = parent.layer.getFrameIndex(window.name);
-                parent.layer.close(index);
-                console.log(parent.$('#' + option.refreshTable).length);
+                if(index){
+                    parent.layer.close(index);
+                }
                 if (option.refreshTable !== false) {
                     if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
                         parent.layui.table.reload(option.refreshTable)
@@ -212,6 +213,7 @@ define(['jquery','tableSelect', 'upload', 'table','fu'],
              */
             formSubmit: function (url, data, success, error, refresh) {
                 success = success || function (res) {
+                    console.log(success);
                     res.msg = res.msg || 'success';
                     Fun.toastr.success(res.msg, function (){
                         // 返回页面
@@ -252,7 +254,6 @@ define(['jquery','tableSelect', 'upload', 'table','fu'],
                     form.render();
                 }
                 layui.multiSelect.render();
-
             },
             /**
              * 选择文件

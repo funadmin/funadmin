@@ -832,11 +832,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             logout: function (othis) {
                 var url = othis.data('ajax');
                 Fun.toastr.confirm(__('Are you sure todo this'), function () {
-                    $.post(url, function (res) {
+                    Fun.ajax({url:url,method:'post'}, function (res) {
                         if (res.code > 0) {
                             Fun.toastr.success(res.msg, setTimeout(function () {
                                 window.location = res.url;
-                            }, 2500))
+                            }, 2000))
 
                         } else {
                             Fun.toastr.error(res.msg)
@@ -877,7 +877,6 @@ layui.define(["jquery", 'layer'], function (exports) {
                         , iframe= _that.has('data-iframe')?true: false,
                         target = _that.prop('target');
                     layId = layId ? layId : url;
-                    console.log(layId)
                     if (!$(this).data("url")) {
                         var parent = _that.parent();
                         var child = _that.next('.layui-nav-child');

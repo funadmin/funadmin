@@ -66,8 +66,8 @@
                         {:session('admin.username')}
                     </a>
                     <dl class="layui-nav-child">
-                        <dd><a lay-id="fun-info" data-href="{:__u('auth.admin/edit')}?id={:session('admin.id')}&type=menu" title="{:lang('Info')}">{:lang('Info')}</a></dd>
-                        <dd><a lay-id="fun-safe" data-href="{:__u('auth.admin/password')}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
+                        <dd><a lay-id="fun-info" data-url="{:__u('auth.admin/edit')}?id={:session('admin.id')}&type=menu" title="{:lang('Info')}">{:lang('Info')}</a></dd>
+                        <dd><a lay-id="fun-safe" data-url="{:__u('auth.admin/password')}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
                         <dd><a lay-event="logout" data-ajax="{:__u('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
                     </dl>
                 </li>
