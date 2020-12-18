@@ -49,6 +49,19 @@ if (!function_exists('form_checkbox')) {
     }
 }
 
+if (!function_exists('form_arrays')) {
+    /**
+     * @param $id
+     * @param $name
+     * @return string
+     */
+    function form_arrays($name, $option, $list=[])
+    {
+        return FormHelper::arrays($name, $option, $list);
+    }
+}
+
+
 if (!function_exists('form_textarea')) {
     /**
      * @param $id

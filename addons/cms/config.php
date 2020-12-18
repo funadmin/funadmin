@@ -17,38 +17,35 @@ return [
         'type' => 'radio',
         'rule' => '',
         'content' => [
-
+            'close',
+            'open'
         ],
+        'value'   => '1',
         'msg'     => '',
         'tips'     => '',
         'ok'      => '',
-        'value'   => '1',
 
     ],
     'logo' => [
         'title' => 'logo图标:',
         'type' => 'image',
         'rule' => '',
-        'content' => [
-
-        ],
+        'content' =>[],
+        'value'   => 'https://demo.funadmin.com/storage/uploads/20200222/37695ee1af180456740988567849ffa9.png',
         'msg'     => '',
         'tips'     => '',
         'ok'      => '',
-        'value'   => 'https://demo.funadmin.com/storage/uploads/20200222/37695ee1af180456740988567849ffa9.png',
 
     ],
     'theme' => [
         'title' => '主题:',
         'type' => 'text',
         'rule' => '',
-        'content' => [
-
-        ],
+        'content' => [],
+        'value'   => 'default',
         'msg'     => '',
         'tips'     => '',
         'ok'      => '',
-        'value'   => 'default',
 
     ],
     'seo' => [
@@ -62,7 +59,7 @@ return [
 
         ],
         'msg'     => '',
-        'tips'     => '',
+        'tips'     => 'WEEEE',
         'ok'      => '',
         'value'   => [
             'title'=>'funadmin cms插件',

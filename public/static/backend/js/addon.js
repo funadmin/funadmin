@@ -1,11 +1,10 @@
-define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
-    /*时间戳*/
+define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
+    //时间戳
     function getTimestamp() {
         return Date.parse(new Date()) / 1000
     };
-    /*
-    随机数
-     */
+
+    //随机数
     function getNonce(len) {
         var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz123456789';
         var maxPos = $chars.length;
@@ -16,11 +15,11 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
         }
         return nonce;
     };
+
     //获取签名
     function getSign(obj) {
         //先用Object内置类的keys方法获取要排序对象的属性名，再利用Array原型上的sort方法对获取的属性名进行排序，newkey是一个数组
         var newkey = Object.keys(obj).sort();
-        //console.log('newkey='+newkey);
         var newObj = {}; //创建一个新的对象，用于存放排好序的键值对
         //排序
         for (var i = 0; i < newkey.length; i++) {
@@ -36,6 +35,7 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
         str = str.substring(0, str.length - 1);
         return Md5(decodeURI(str)).toLowerCase();
     };
+
     //获取用户信息
     function getUserinfo() {
         var userinfo = localStorage.getItem("FunAdmin_userinfo");
@@ -49,7 +49,6 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
         } else {
             localStorage.removeItem("FunAdmin_userinfo");
         }
-
     };
     let Controller = {
         index: function () {
@@ -69,15 +68,14 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
                 appid: 'FunAdmin',   // appid
                 appsecret: 'L9EwqM1jQQFOvniYnpe6K0SavguQOgoS',   // appserct
             }
-
-            let tableIn = Table.render({
+            Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh'],
                 cols: [[
-                    {checkbox: true, },
+                    {checkbox: true,},
                     {
                         field: 'title',
                         title: __('Title'),
@@ -106,7 +104,8 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
                     {field: 'require', title: __('Addon require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120, sort: true},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false},
-                    {width: 250, align: 'center', init: Table.init, templet: function (d) {
+                    {
+                        width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install === 1) {
                                 html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
@@ -132,7 +131,7 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
                 limit: 15,
                 page: true
             });
-            layui.table.on('tool('+Table.init.table_elem+')', function(obj) {
+            layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url');
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
@@ -160,25 +159,24 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
                             area: ['450px', '350px'],
                             title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
                             resize: false,
-                            btnAlign:'c',
+                            btnAlign: 'c',
                             btn: [__('Login'), __('Register')],
                             yes: function (index, layero) {
                                 var url = Table.init.requests.api_url + Table.init.requests.login_url;
-
                                 var data = {
                                     username: $("#inputUsername", layero).val(),
                                     password: $("#inputPassword", layero).val(),
                                 };
-                                if(!data.username || !data.password){
+                                if (!data.username || !data.password) {
                                     Fun.toastr.error(__('Account Or Password Cannot Empty'));
                                     return false;
                                 }
                                 data.sign = getSign(data);
-                                data.timestamp =  getTimestamp();
-                                data.nonce =  getNonce();
-                                data.appid =  Table.init.appid;
-                                data.appsecret =  Table.init.appsecret;
-                                post = {url:url,data:data,method:'post'}
+                                data.timestamp = getTimestamp();
+                                data.nonce = getNonce();
+                                data.appid = Table.init.appid;
+                                data.appsecret = Table.init.appsecret;
+                                post = {url: url, data: data, method: 'post'}
                                 Fun.ajax(post);
                                 // $.post(url, data, function (res) {
                                 //     console.log(res);
@@ -208,7 +206,7 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
                         Fun.ajax({
                             url: url,
-                            method:'post'
+                            method: 'post'
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
@@ -250,8 +248,33 @@ define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
         },
         config: function () {
             Controller.api.bindevent()
+            //动态添加input输入框
+            $("body").on('click', ".addInput", function () {
+                name = $(this).data('name');
+                verify = $(this).data('verify');
+                var str = '<div class="layui-form-item">' +
+                    '<label class="layui-form-label"></label>'+
+                    '<div class="layui-input-inline">' +
+                    '<input type="text" name="'+name+'[][\'key\']" placeholder="key" class="layui-input input-double-width">' +
+                    '</div>' +
+                    '<div class="layui-input-inline">\n' +
+                    '<input type="text" id="" name="'+name+'[][\'key\']" lay-verify="required" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' +
+                    '</div>'+
+                    '<div class="layui-input-inline" style="margin-left: 180px">' +
+                    '<button data-name="'+name+'" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' +
+                    '</div>' +
+                    '</div>';
+                $("#"+name).append(str);
+            });
+            //删除动态添加的input输入框
+            $("body").on('click', ".removeInupt", function () {
+                //元素移除前校验是否被引用
+                var parentEle = $(this).parent().parent();
+                //移除父元素
+                parentEle.remove();
+            });
         },
-        api:{
+        api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'))
             }

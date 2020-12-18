@@ -34,8 +34,6 @@ return [
 
         ],
         'value'=>[
-            'database/backend/index'=>'database/backend/index/index/index',
-            'database/backend/index'=>'database/backend/index/index/index',
         ],
         'tips'     => '',
         'ok'      => '',

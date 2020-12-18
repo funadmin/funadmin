@@ -20,25 +20,21 @@ return [
             '1' => '显示',
             '0' => '不显示'
         ],
-        'msg'     => '',
-        'tips'     => '',
-        'ok'      => '',
-        'value'   => '1',
-
+        'value' => '1',
+        'msg' => '',
+        'tips' => '',
+        'ok' => '',
     ],
-
-    'rewrite'=>[
-        'title'   => '伪静态',
-        'type'    => 'array',
-        'content' =>[]
-           ,
-        'value'   =>  [
-            'index'=>'index',
+    'rewrite' => [
+        'title' => '伪静态',
+        'type' => 'array',
+        'content' => [],
+        'value' => [
         ],
-        'rule'    => 'required',
-        'msg'     => '',
-        'tips'     => '',
-        'ok'      => '',
-        'extend'  => '',
+        'rule' => 'required',
+        'msg' => '',
+        'tips' => '',
+        'ok' => '',
+        'extend' => '',
     ],
 ];
