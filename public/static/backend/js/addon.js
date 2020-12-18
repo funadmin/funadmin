@@ -1,4 +1,4 @@
-define(['jquery', 'table','form'], function ($, Table,Form) {
+define(['jquery', 'table','form','md5'], function ($, Table,Form,Md5) {
     /*时间戳*/
     function getTimestamp() {
         return Date.parse(new Date()) / 1000
@@ -7,10 +7,10 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
     随机数
      */
     function getNonce(len) {
-        var len = len || 8;
         var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz123456789';
         var maxPos = $chars.length;
         var nonce = '';
+        len = len || 8;
         for (i = 0; i < len; i++) {
             nonce += $chars.charAt(Math.floor(Math.random() * maxPos));
         }
@@ -34,7 +34,7 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
             str += key + '=' + newObj[key] + '&';
         }
         str = str.substring(0, str.length - 1);
-        return md5(decodeURI(str)).toLowerCase();
+        return Md5(decodeURI(str)).toLowerCase();
     };
     //获取用户信息
     function getUserinfo() {
@@ -108,19 +108,19 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false},
                     {width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
-                            if (d.install == 1) {
-                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  lay-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
-                                if (d.status == 1) {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  lay-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
+                            if (d.install === 1) {
+                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
+                                if (d.status === 1) {
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   lay-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall"  lay-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
                             } else {
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="install" lay-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
-                            if (d.install == 1) {
-                                if (d.website != '') {
+                            if (d.install === 1) {
+                                if (d.website !== '') {
                                     html += '<a  href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
                             }
@@ -138,53 +138,58 @@ define(['jquery', 'table','form'], function ($, Table,Form) {
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
                     if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
-                    Fun.toastr.confirm('Are you sure you want to install it', function () {
-                        let index = layer.load();
-                        Fun.ajax({
-                            url: url,
-                        }, function (res) {
-                            Fun.toastr.success(res.msg, function () {
-                                layer.close(index)
-                                Fun.refreshmenu();
-                                Fun.toastr.close()
-                                layui.table.reload(Table.init.tableId);
-
-                            });
-                        })
-                    });
+                        Fun.toastr.confirm('Are you sure you want to install it', function () {
+                            let index = layer.load();
+                            Fun.ajax({
+                                url: url,
+                            }, function (res) {
+                                Fun.toastr.success(res.msg, function () {
+                                    layer.close(index);
+                                    Fun.refreshmenu();
+                                    Fun.toastr.close();
+                                    layui.table.reload(Table.init.tableId);
+                                });
+                            })
+                        });
                     } else {
-                        var index = layer.open({
+                        layer.open({
                             type: 1,
+                            shadeClose: true,
                             content: $("#login_tpl").html(),
                             zIndex: 9999,
                             area: ['450px', '350px'],
-                            title: [__('Login') + 'FunAdmin', 'text-align:center'],
+                            title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
                             resize: false,
+                            btnAlign:'c',
                             btn: [__('Login'), __('Register')],
                             yes: function (index, layero) {
                                 var url = Table.init.requests.api_url + Table.init.requests.login_url;
-                                var nonce = getNonce();
-                                var timestamp = getTimestamp();
+
                                 var data = {
-                                    appid: Table.init.requests.appid,
-                                    appsecret: Table.init.requests.appsecret,
                                     username: $("#inputUsername", layero).val(),
                                     password: $("#inputPassword", layero).val(),
-                                    nonce: nonce,
-                                    key: Table.init.requests.appsecret,
-                                    timestamp: timestamp,
                                 };
-                                var sign = getSign(data);
-                                data.sign = sign;
-                                $.post(url, data, function (res) {
-                                    res = JSON.parse(res)
-                                    if (res.code == 200) {
-                                        setUserinfo(res.data);
-                                        Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
-                                    } else {
-                                        Fun.toastr.alert(res.message)
-                                    }
-                                })
+                                if(!data.username || !data.password){
+                                    Fun.toastr.error(__('Account Or Password Cannot Empty'));
+                                    return false;
+                                }
+                                data.sign = getSign(data);
+                                data.timestamp =  getTimestamp();
+                                data.nonce =  getNonce();
+                                data.appid =  Table.init.appid;
+                                data.appsecret =  Table.init.appsecret;
+                                post = {url:url,data:data,method:'post'}
+                                Fun.ajax(post);
+                                // $.post(url, data, function (res) {
+                                //     console.log(res);
+                                //     res = JSON.parse(res)
+                                //     if (res.code === 200) {
+                                //         setUserinfo(res.data);
+                                //         Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
+                                //     } else {
+                                //         Fun.toastr.alert(res.message)
+                                //     }
+                                // })
                             },
                             btn2: function () {
                                 Fun.api.closeCurrentOpen();

@@ -2,37 +2,49 @@
     <ul class="layui-tab-title" data-field="type">
         <li class="layui-this" data-value="" lay-event="tabswitch">全部</li>
         <li data-value="333" lay-event="tabswitch">用户管理</li>
-        <li  data-value="333" lay-event="tabswitch">权限分配</li>
-        <li  data-value="333"lay-event="tabswitch">商品管理</li>
-        <li  data-value="333" lay-event="tabswitch">订单管理</li>
+        <li data-value="333" lay-event="tabswitch">权限分配</li>
+        <li data-value="333" lay-event="tabswitch">商品管理</li>
+        <li data-value="333" lay-event="tabswitch">订单管理</li>
     </ul>
 </div>
 <table class="layui-table layui-hide" id="list" lay-filter="list"></table>
 
 <!--登陆页面-->
 <script type="text/html" id="login_tpl">
+    <style>
+
+        .layui-form-label {
+            padding: 9px 0px;
+        }
+        .layui-form-item .required::after{
+            position:unset;
+        }
+    </style>
     <div>
-        <blockquote class="layui-elem-quote layui-text">
-            登录提示：账号为 <a target="_blank" href="https://www.FunAadmin.com">FunAadmin</a> 官方账号
-        </blockquote>
-        <br>
-        <br>
-        <form class="layui-form layui-form-pane" action="">
-            <div class="layui-form-item">
-                <label class="layui-form-label">账号<i class="fa fa-user"></i></label>
-                <div class="layui-input-block">
-                    <input type="text" class="layui-input" id="inputUsername" value=""
-                           placeholder="{:lang('username or email')}">
-                </div>
+        <div class="layui-card">
+            <div class="layui-card-header">
+                登录提示：账号为 <a class="layui-bg-blue" target="_blank" href="https://www.FunAadmin.com">FunAadmin</a> 官方账号
             </div>
-            <div class="layui-form-item">
-                <label class="layui-form-label">密码<i class="fa fa-lock"></i></label>
-                <div class="layui-input-block">
-                    <input type="password" class="layui-input" id="inputPassword" value=""
-                           placeholder="{:lang('Your password')}">
-                </div>
+            <br>
+            <div class="layui-card-body">
+                <form class="layui-form" action="">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label required">账号<i class="fa fa-user"></i></label>
+                        <div class="layui-input-block">
+                            <input type="text" class="layui-input"  lay-verify="required" id="inputUsername" value=""
+                                   placeholder="{:lang('username or email')}">
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label required">密码<i class="fa fa-lock"></i></label>
+                        <div class="layui-input-block">
+                            <input type="password" class="layui-input"  lay-verify="required" id="inputPassword" value=""
+                                   placeholder="{:lang('Your password')}">
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 
 </script>

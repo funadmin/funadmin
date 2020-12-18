@@ -1,23 +1,23 @@
 /**
  * 后台总控制API
  */
-define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
+define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
     var layer = layui.layer,
         table = layui.table;
     layer.config({
-            skin: 'fun-layer-class'
-        });
-    Toastr= parent.Toastr || Toastr;
+        skin: 'fun-layer-class'
+    });
+    Toastr = parent.Toastr || Toastr;
     Toastr.options = {
-        closeButton:true,//显示关闭按钮
-        debug:false,//启用debug
-        positionClass:"toast-top-right",//弹出的位置,
-        showDuration:"300",//显示的时间
-        hideDuration:"1000",//消失的时间
-        timeOut:"3000",//停留的时间
-        extendedTimeOut:"1000",//控制时间
-        showEasing:"swing",//显示时的动画缓冲方式
-        hideEasing:"linear",//消失时的动画缓冲方式
+        closeButton: true,//显示关闭按钮
+        debug: false,//启用debug
+        positionClass: "toast-top-right",//弹出的位置,
+        showDuration: "300",//显示的时间
+        hideDuration: "1000",//消失的时间
+        timeOut: "3000",//停留的时间
+        extendedTimeOut: "1000",//控制时间
+        showEasing: "swing",//显示时的动画缓冲方式
+        hideEasing: "linear",//消失时的动画缓冲方式
         iconClass: 'toast-info', // 自定义图标，有内置，如不需要则传空 支持layui内置图标/自定义iconfont类名
         onclick: null, // 点击关闭回调
         showMethod: "fadeIn",
@@ -26,7 +26,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
-            if(url.indexOf(domain)!==-1){
+            if (url.indexOf(domain) !== -1) {
                 return url;
             }
             url = Fun.common.parseNodeStr(url)
@@ -36,10 +36,10 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 } else {
                     return url;
                 }
-            } else if(Config.addonname && Config.modulename ==='backend' &&　url.indexOf('ajax') !==-1){
+            } else if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
                 return Config.entrance + $.trim(url, '/');
 
-            }else{
+            } else {
                 return '/' + $.trim(url, '/');
             }
         },
@@ -47,8 +47,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
         replaceurl: function (url, d) {
             d.id = typeof d.id !== 'undefined' ? d.id : 0;
             //替换ids
-            if(url){
-                url = url.indexOf('{ids}')!==-1 ? url.replace('{ids}',d.id): url;
+            if (url) {
+                url = url.indexOf('{ids}') !== -1 ? url.replace('{ids}', d.id) : url;
             }
             return url;
         },
@@ -104,7 +104,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')
                 },
-                beforeSend: function (xhr,request) {
+                beforeSend: function (xhr, request) {
                     request.url = Fun.url(request.url);
                 },
                 success: function (res) {
@@ -168,7 +168,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                 return name.replace(/([A-Z])/g, "_$1").toLowerCase();
             },
             //大写变小写
-            lower:function (name){
+            lower: function (name) {
                 return name.toLowerCase();
             },
         },
@@ -260,8 +260,8 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
             open: function (othis) {
                 var data = othis.data();
                 var options = {
-                    title: othis.prop('title')?othis.prop('title'):data.title,
-                    url: data.url?data.url:data.href,
+                    title: othis.prop('title') ? othis.prop('title') : data.title,
+                    url: data.url ? data.url : data.href,
                     width: data.width,
                     height: data.height,
                     isResize: data.title,
@@ -298,37 +298,40 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     url = options.url, width = options.width,
                     height = options.height,
                     isResize = options.isResize === undefined;
-                    isFull = options.full !== undefined;
+                isFull = options.full !== undefined;
                 url = Fun.url(url)
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';
                 height = height || '600';
-                width = width+'px';
-                height = height+'px';
-                if(isFull){width = '100%';height = '100%';}
+                width = width + 'px';
+                height = height + 'px';
+                if (isFull) {
+                    width = '100%';
+                    height = '100%';
+                }
                 var btns = [];
-                if( options.btn === undefined ){
+                if (options.btn === undefined) {
                     btns = ['submit', 'close'];
                     options.btn_lang = [__('submit'), __('close')];
-                }else if(options.btn==='false' || options.btn===''){
+                } else if (options.btn === 'false' || options.btn === '') {
                     options.btn_lang = [];
-                }else{
+                } else {
                     btnsdata = options.btn
                     btnsdata = (btnsdata.split(','))
                     options.btn_lang = [];
-                    $.each(btnsdata,function(k,v){
-                        options.btn_lang[k]  = __(v);
+                    $.each(btnsdata, function (k, v) {
+                        options.btn_lang[k] = __(v);
                         btns.push(v);
                     })
                 }
-                if( options.btnAlign === undefined ){
+                if (options.btnAlign === undefined) {
                     options.btnAlign = 'c';
                 }
                 console.log(options.url)
                 options = {
                     title: title,
                     type: 2,
-                    area: [width,height],
+                    area: [width, height],
                     content: [url],
                     shadeClose: true,
                     anim: 0,
@@ -337,29 +340,29 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                     moveOut: true,
                     resize: isResize,
                     scrollbar: true,
-                    btnAlign:options.btnAlign,
-                    btn:options.btn_lang,
-                    success: function(layero, index){
-                        try{
+                    btnAlign: options.btnAlign,
+                    btn: options.btn_lang,
+                    success: function (layero, index) {
+                        try {
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
-                            layero.find('.layui-layer-btn.layui-layer-btn-c').css('background','#f3f6f6');
-                        } catch(err) {
+                            layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
+                        } catch (err) {
                             //在此处理错误
                         }
                     },
-                    yes: function(index, layero){
-                        try{
-                            var frameId= layero[0].getElementsByTagName("iframe")[0].id;
+                    yes: function (index, layero) {
+                        try {
+                            var frameId = layero[0].getElementsByTagName("iframe")[0].id;
                             console.log(btns)
-                            $("#"+frameId).contents().find('button[type="'+btns[0]+'"]').trigger('click');
-                            $("#"+frameId).contents().find('.layui-hide').hide();
-                        } catch(err) {
+                            $("#" + frameId).contents().find('button[type="' + btns[0] + '"]').trigger('click');
+                            $("#" + frameId).contents().find('.layui-hide').hide();
+                        } catch (err) {
                             parent.layer.close(index);
                         }
                         return false;
                     },
-                    btn2: function(index){
+                    btn2: function (index) {
                         parent.layer.closeAll(index);
                     },
 
@@ -449,7 +452,7 @@ define(["jquery","lang",'toastr','moment'], function ($,Lang,Toastr,Moment) {
                             index = Math.max(index, parseInt($(this).attr("times")));
                         });
                         if (index) {
-                           Fun.toastr.close(index)
+                            Fun.toastr.close(index)
                         }
                     }
                 }
