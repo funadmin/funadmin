@@ -7,6 +7,8 @@ use app\common\model\BaseModel;
 
 class BbsMessage extends BaseModel {
 
+    protected $name = 'addons_bbs_message';
+
     public function __construct(array $data = [])
     {
         parent::__construct($data);

@@ -1,24 +1,25 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/12/5
  */
-namespace app\bbs\controller;
+namespace addons\bbs\frontend\controller;
 
 use app\common\model\Attach as AttachModel;
-use app\common\model\Bbs as BbsModel;
-use app\common\model\BbsCollect;
-use app\common\model\BbsUserSign;
-use lemo\helper\DataHelper;
+use app\common\controller\AddonsFrontend;
+use addons\bbs\common\model\Bbs as BbsModel;
+use addons\bbs\common\model\BbsCollect;
+use addons\bbs\common\model\BbsUserSign;
+use fun\helper\DataHelper;
 use think\facade\Request;
-class Api extends Comm {
+class Api extends Common {
 
     //上传验证规则
     protected $uploadValidate = [

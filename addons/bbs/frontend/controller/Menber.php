@@ -1,29 +1,29 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/11/27
  */
-namespace app\bbs\controller;
+namespace addons\bbs\frontend\controller;
 
-use app\common\model\Bbs;
-use app\common\model\BbsCollect;
-use app\common\model\BbsComment;
-use app\common\model\BbsMessage;
-use lemo\helper\MailHelper;
-use lemo\helper\SignHelper;
-use lemo\helper\StringHelper;
-use app\common\model\User as UserModel;
+use addons\bbs\common\model\Bbs;
+use addons\bbs\common\model\BbsCollect;
+use addons\bbs\common\model\BbsComment;
+use addons\bbs\common\model\BbsMessage;
+use FUN\helper\MailHelper;
+use FUN\helper\SignHelper;
+use FUN\helper\StringHelper;
+use addons\bbs\common\model\User as MemberModel;
 use think\facade\Db;
 use think\facade\Session;
 use think\facade\View;
-class User extends Comm {
+class Member extends Comm {
 
     public function initialize()
     {
@@ -49,9 +49,9 @@ class User extends Comm {
         $id = input('id');
         $name = input('name');
         if($id){
-            $ouser = UserModel::find($id);
+            $ouser = MemberModel::find($id);
         }elseif($name){
-            $ouser = UserModel::where('username',$name)->find();
+            $ouser = MemberModel::where('username',$name)->find();
             if(!$ouser)$this->error('error/err');
             $id = $ouser->id;
         }else{
@@ -178,10 +178,10 @@ class User extends Comm {
             $check_token = cookie('activeToken');
             if($check_token){
                 if($check_token['time']>time()-3600*2 && $check_token==$token){
-                    $user = UserModel::find($check_token['user_id']);
+                    $user = MemberModel::find($check_token['user_id']);
                     $user->email_validated=1;
                     if($user->save()) {
-                        $info = ['code'=>1,'msg'=>'邮箱激活成功，去登录lemo社区,带来的快乐吧'];
+                        $info = ['code'=>1,'msg'=>'邮箱激活成功，去登录FUN社区,带来的快乐吧'];
                     }else{
                         $info = ['code'=>0,'msg'=>'激活失败，请重新发送链接激活'];
                     }
@@ -213,7 +213,7 @@ class User extends Comm {
         }
         $link = $this->BASE_URL . '/user/emailactive?token=' . $token;
         $content = $this->_geteamilContent($validity/3600, $link);
-        $mail = MailHelper::sendEmail($user->email, 'lemobbs 邮箱激活邮件', $content);
+        $mail = MailHelper::sendEmail($user->email, 'FUNbbs 邮箱激活邮件', $content);
         if($mail['code']==1){
             cookie('activeToken', $tokenData);
         }

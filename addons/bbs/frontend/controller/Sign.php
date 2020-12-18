@@ -1,16 +1,16 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/11/27
  */
-namespace app\bbs\controller;
+namespace addons\bbs\frontend\controller;
 
 use app\common\model\User;
 use app\common\model\BbsUserSign;

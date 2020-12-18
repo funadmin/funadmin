@@ -1,16 +1,16 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/11/27
  */
-namespace app\bbs\controller;
+namespace addons\bbs\frontend\controller;
 
 use app\common\controller\Frontend;
 
@@ -92,7 +92,7 @@ class Login extends Frontend {
             $code = mt_rand('100000','999999');
             $time = 10*60;
             $content = '亲爱的lemo社区用户:'.$data['username'].'<br>您正在激活邮箱，您的验证码为:'.$code .'，请在'.$time/60 .'分钟内进行验证';
-            $mail = MailHelper::sendEmail($data['email'], 'lemocms 社区邮箱激活邮件', $content);
+            $mail = MailHelper::sendEmail($data['email'], 'funadmin 社区邮箱激活邮件', $content);
             if($mail['code']>0){
                 cookie('code',$code,$time);
                 cookie('email',$data['email'],$time);

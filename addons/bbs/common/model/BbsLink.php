@@ -6,6 +6,7 @@ namespace addons\bbs\common\model;
 use app\common\model\BaseModel;
 
 class BbsLink extends BaseModel {
+    protected $name = 'addons_bbs_link';
 
     public function __construct(array $data = [])
     {

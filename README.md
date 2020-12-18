@@ -5,7 +5,7 @@
 	    <img src="https://img.shields.io/hexpm/l/plug.svg" />
 	</a>
 	<a href="https://www.layui.com/">
-        <img src="https://img.shields.io/badge/layui-2.5.6-blue.svg" alt="layui">
+        <img src="https://img.shields.io/badge/layui-2.5.7-blue.svg" alt="layui">
     </a>
 	<a href='https://gitee.com/funadmin/funadmin/stargazers'>
 	    <img src='https://gitee.com/funadmin/funadmin/badge/star.svg?theme=white' alt='star'></img>

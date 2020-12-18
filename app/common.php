@@ -190,12 +190,12 @@ if (!function_exists('isHttps')) {
 /**
  * 获取http类型
  */
-if (!function_exists('getHttpType')) {
+if (!function_exists('httpType')) {
     /**
      * http 类型
      * @return string
      */
-    function getHttpType()
+    function httpType()
     {
         return $http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
 

@@ -1,27 +1,17 @@
 <?php
-/**
- * lemocms
- * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
- * ============================================================================
- * Author: yuege
- * Date: 2019/8/2
- */
 
-namespace app\bbs\controller;
+namespace addons\bbs\frontend\controller;
 
-use app\common\model\Bbs as BbsModel;
-use app\common\model\BbsMessage;
-use app\common\model\User;
-use app\common\model\BbsCollect;
-use app\common\model\BbsComment;
-use app\common\model\BbsCommentLike;
+use addons\bbs\common\model\Bbs as BbsModel;
+use addons\bbs\common\model\BbsMessage;
+use app\common\controller\AddonsFrontend;
+use app\common\model\Member;
+use addons\bbs\common\model\BbsCollect;
+use addons\bbs\common\model\BbsComment;
+use addons\bbs\common\model\BbsCommentLike;
 use think\facade\View;
 
-class Bbs extends Comm
+class Bbs extends AddonsFrontend
 {
 
     public function initialize()
@@ -59,7 +49,7 @@ class Bbs extends Comm
                 'cate' => function($query){
                     $query->where('status',1)->field('id,title');
                 },
-                'user' => function($query){
+                'member' => function($query){
                     $query->field('id,username,avatar,level_id');
                 }
             ])->order('id desc')
@@ -78,14 +68,14 @@ class Bbs extends Comm
         $id = $this->request->get('id');
         if($id){
             $list = BbsModel::withCount('comment')->with([
-                'user' => function($query){
+                'member' => function($query){
                 $query->field('username,avatar');
             },
             ])->find($id);
             if($list){
                 $comments = BbsComment::where('bbs_id',$id)->order('id desc')
                     ->withCount(['commLikes'])
-                    ->with('user')
+                    ->with('member')
                     ->paginate($this->pageSize, false, ['query' => $this->request->param()]);
 
                 $this->getHots();
@@ -107,7 +97,7 @@ class Bbs extends Comm
         if($this->request->isPost()){
             $data = input('post.','','trim');
             $this->LoginErr();
-            $data['user_id'] = session('user.id');
+            $data['member_id'] = session('member.id');
             $captcha = $data['vercode'];
             if(!captcha_check($captcha)){
                 $this->error('验证码错误');
@@ -139,10 +129,10 @@ class Bbs extends Comm
     //评论回复
     public function reply(){
 
-        if(session('user')){
-            $uid = session('user.id');
+        if(session('member')){
+            $uid = session('member.id');
             $data = input('post.');
-            $data['user_id'] = $uid;
+            $data['member_id'] = $uid;
             $data['is_read'] = 0;
             $data['is_adopt'] = 0;
             $content = $data['content'];
@@ -154,13 +144,13 @@ class Bbs extends Comm
             if($res){
                 $mess = new BbsMessage();
                 $patt = '/(@)(.+?)(\s)/';
-                $users = [];
+                $member = [];
                 if(preg_match_all($patt, $content, $mc)){
                     if ($mc[2]) {
                        foreach ($mc[2] as $k=>$v){
-                           $users[$k] = User::where('username',$v)->find();
+                           $member[$k] = User::where('username',$v)->find();
                        }
-                       $users = array_filter(array_unique($users));
+                       $member = array_filter(array_unique($member));
                     }
                 }
                 $data['type'] = 1;
@@ -168,8 +158,8 @@ class Bbs extends Comm
                 $data['receive_id'] = $article->user_id;
                 $data['send_id'] = $uid;
                 $mess->add($data);//发送消息
-                if($users){
-                    foreach ($users as $k=>$v){
+                if($member){
+                    foreach ($member as $k=>$v){
                         $data['type'] = 2;
                         $data['content'] = '@了您';
                         $data['receive_id'] = $v->id;
@@ -247,8 +237,6 @@ class Bbs extends Comm
 
 
     }
-
-
     //是否收藏
     public function is_collect(){
         $data['is_collect'] = 0;

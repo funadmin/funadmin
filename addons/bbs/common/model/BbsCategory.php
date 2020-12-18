@@ -1,9 +1,9 @@
 <?php
 /**
- * lemocms
+ * funadmin
  * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
+ * 版权所有 2018-2027 funadmin，并保留所有权利。
+ * 网站地址: https://www.funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -16,6 +16,8 @@ namespace addons\bbs\common\model;
 use app\common\model\BaseModel;
 
 class BbsCategory extends BaseModel {
+
+    protected $name = 'addons_bbs_category';
 
     public function __construct(array $data = [])
     {

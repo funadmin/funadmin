@@ -1,40 +1,38 @@
 <?php
-/**
- * lemocms
- * ============================================================================
- * 版权所有 2018-2027 lemocms，并保留所有权利。
- * 网站地址: https://www.lemocms.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
- * ============================================================================
- * Author: yuege
- * Date: 2019/8/26
- */
+
 namespace addons\bbs\common\model;
 
-use app\common\model\Common;
+use app\common\model\BaseModel;
+use app\common\model\Member;
 
-class Bbs extends Common {
+class Bbs extends BaseModel
+{
+
+    protected $name = 'addons_bbs';
 
     public function __construct(array $data = [])
     {
         parent::__construct($data);
     }
+
     //用户表
-    public function user(){
+    public function member()
+    {
 
-        return  $this->belongsTo('User','user_id','id');
+        return $this->belongsTo(Member::class, 'user_id', 'id');
     }
+
     //文章关联栏目表
-    public function cate(){
+    public function category()
+    {
 
-        return  $this->belongsTo('BbsCate','pid','id');
+        return $this->belongsTo(BbsCategory::class, 'pid', 'id');
     }
-    
+
     //文章关联评论
     public function comment()
     {
-        return $this->hasMany('BbsComment','bbs_id','id');
+        return $this->hasMany(BbsComment::class, 'bbs_id', 'id');
     }
 
 
