@@ -31,6 +31,7 @@ return [
         'type' => 'image',
         'rule' => '',
         'content' =>[],
+        'num' =>1,
         'value'   => 'https://demo.funadmin.com/storage/uploads/20200222/37695ee1af180456740988567849ffa9.png',
         'msg'     => '',
         'tips'     => '',

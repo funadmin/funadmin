@@ -523,8 +523,7 @@ define(["jquery"], function ($) {
             request: function (othis) {
                 var data = othis.data();
                 var title = othis.prop('title')?othis.prop('title'):data.title,
-                    url = data.url?data.url:data.href,
-                tableId = data.tableId;
+                    url = data.url?data.url:data.href,tableId = data.tableId;
                 title = title || __('Are you sure');
                 tableId = tableId || Table.init.tableId;
                 url = url !== undefined ? url : window.location.href;

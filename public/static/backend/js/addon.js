@@ -108,15 +108,15 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install === 1) {
-                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="config"  data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
+                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
                                 if (d.status === 1) {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('modify')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('modify')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="request"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
                             } else {
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="request" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
                             if (d.install === 1) {
                                 if (d.website !== '') {
@@ -160,7 +160,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
                             resize: false,
                             btnAlign: 'c',
-                            btn: [__('Login'), __('Register')],
+                            btn: ['login','register'],
                             yes: function (index, layero) {
                                 var url = Table.init.requests.api_url + Table.init.requests.login_url;
                                 var data = {
@@ -202,44 +202,58 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         });
                     }
                 }
-                if (event === 'uninstall') {
-                    Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
-                        Fun.ajax({
-                            url: url,
-                            method: 'post'
-                        }, function (res) {
-                            Fun.toastr.success(res.msg, function () {
-                                Fun.refreshmenu();
-                                layui.table.reload(Table.init.tableId);
-                                Fun.toastr.close()
-                            });
-                        })
-                    });
-                }
-                if (event === 'status') {
-                    Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
-                        Fun.ajax({
-                            url: url,
-                        }, function (res) {
-                            Fun.toastr.success(res.msg, function () {
-                                layui.table.reload(Table.init.tableId);
-                                Fun.toastr.close()
+                // if (event === 'uninstall') {
+                //     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
+                //         Fun.ajax({
+                //             url: url,
+                //             method: 'post'
+                //         }, function (res) {
+                //             Fun.toastr.success(res.msg, function () {
+                //                 Fun.refreshmenu();
+                //                 layui.table.reload(Table.init.tableId);
+                //                 Fun.toastr.close()
+                //             });
+                //         })
+                //     });
+                // }
+                // if (event === 'status') {
+                //     Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
+                //         Fun.ajax({
+                //             url: url,
+                //         }, function (res) {
+                //             Fun.toastr.success(res.msg, function () {
+                //                 layui.table.reload(Table.init.tableId);
+                //                 Fun.toastr.close()
+                //
+                //             });
+                //         })
+                //     });
+                // }
 
-                            });
-                        })
-                    });
-                }
-
-                if (event === 'config') {
-                    var index = layer.open({
-                        type: 2,
-                        content: url,
-                        area: ['600px', '800px'],
-                        maxmin: true
-                    });
-                    layer.full(index)
-
-                }
+                // if (event === 'open') {
+                //     Fun.api.open({
+                //         type: 1,
+                //         shadeClose: true,
+                //         url:url ,
+                //         zIndex: 9999,
+                //         with:'100%',
+                //         height:'100%',
+                //         title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
+                //         resize: false,
+                //         btnAlign: 'c',
+                //         btn: 'Login,Register',
+                //
+                //     })
+                //
+                //     // var index = layer.open({
+                //     //     type: 2,
+                //     //     content: url,
+                //     //     area: ['600px', '800px'],
+                //     //     maxmin: true
+                //     // });
+                //     // layer.full(index)
+                //
+                // }
                 return false;
             })
 

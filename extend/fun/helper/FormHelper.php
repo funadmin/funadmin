@@ -162,7 +162,13 @@ class FormHelper
         return $str;
     }
 
-
+    /**
+     * 数组表单
+     * @param null $name
+     * @param array $options
+     * @param array $list
+     * @return string
+     */
     public static function arrays($name=null, $options = [], $list = [])
     {
         $label = isset($options['label']) ? $options['label'] : $name;
@@ -170,7 +176,7 @@ class FormHelper
         $i=0;
         foreach ($list as $key=>$value){
             if($i==0){
-                $arr .= '<label class="layui-form-label ' . self::labelRequire($options) . '">'.$label.'</label><div class="layui-input-inline">
+                $arr .= '<div class="layui-form-item" ><label class="layui-form-label ' . self::labelRequire($options) . '">'.$label.'</label><div class="layui-input-inline">
                 <input type="text"  name="'.$name.'[][\'key\']"  placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
                 <input class="layui-input" type="hidden"  name="">
             </div>
@@ -181,7 +187,7 @@ class FormHelper
                 <button  data-name="'.$name.'" type="button" class="layui-btn layui-btn-warm layui-btn-sm addInput" lay-event="addInput">
                     <i class="layui-icon">&#xe654;</i>
                 </button>
-            </div>';
+            </div></div>';
                 ;
             }else{
                 $arr.='<div class="layui-form-item"><label class="layui-form-label"></label><div class="layui-input-inline">
@@ -197,7 +203,7 @@ class FormHelper
             }
             $i++;
         }
-        $str ='<div class="layui-form-item" id="'.$name.'">'.$arr.'</div>';
+        $str ='<div id="'.$name.'">'.$arr.'</div>';
         return $str;
     }
 
@@ -458,6 +464,7 @@ class FormHelper
         if (!isset($options['path'])) {
             $options['path'] = 'upload';
         }
+        $label = isset($options['label']) ? $options['label'] : $name;
         $li = '';
         $croper_container = '';
         if (isset($options['cropper'])) {
@@ -536,7 +543,7 @@ class FormHelper
 //        $op .= 'data-num="' . $options['num'] . '"';
 //        $op .= 'data-type="' . $options['type'] . '"';
         $str = ' <div class="layui-form-item">
-                <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($name)) . '</label>
+                <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
                     <div class="layui-upload">
                         <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '/>

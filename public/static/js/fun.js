@@ -297,7 +297,12 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 var title = options.title,
                     url = options.url, width = options.width,
                     height = options.height,
-                    isResize = options.isResize === undefined;
+                    success= options.success,
+                    yes= options.yes,
+                    btn2= options.btn2,
+                    type = options.options,
+                    type = type===undefined?2:1;
+                isResize = options.isResize === undefined;
                 isFull = options.full !== undefined;
                 url = Fun.url(url)
                 isResize = isResize === false ? true : isResize;
@@ -327,10 +332,9 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 if (options.btnAlign === undefined) {
                     options.btnAlign = 'c';
                 }
-                console.log(options.url)
                 options = {
                     title: title,
-                    type: 2,
+                    type: type,
                     area: [width, height],
                     content: [url],
                     shadeClose: true,
@@ -342,7 +346,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     scrollbar: true,
                     btnAlign: options.btnAlign,
                     btn: options.btn_lang,
-                    success: function (layero, index) {
+                    success: success===undefined? function (layero, index) {
                         try {
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
@@ -350,8 +354,8 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         } catch (err) {
                             //在此处理错误
                         }
-                    },
-                    yes: function (index, layero) {
+                    }:success,
+                    yes: yes===undefined?function (index, layero) {
                         try {
                             var frameId = layero[0].getElementsByTagName("iframe")[0].id;
                             console.log(btns)
@@ -361,10 +365,10 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                             parent.layer.close(index);
                         }
                         return false;
-                    },
-                    btn2: function (index) {
+                    }:yes,
+                    btn2: btn2===undefined?function (index) {
                         parent.layer.closeAll(index);
-                    },
+                    }:btn2,
 
                 }
                 var index = layer.open(options);
