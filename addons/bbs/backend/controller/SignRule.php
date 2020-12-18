@@ -17,17 +17,16 @@ namespace addons\bbs\backend\controller;
 use app\common\controller\AddonsBackend;
 use addons\bbs\common\model\BbsSignRule;
 use think\App;
-use think\facade\Request;
 use think\facade\View;
 use addons\bbs\common\model\BbsMemberSign;
 
-class Sign extends AddonsBackend
+class SignRule extends AddonsBackend
 {
 
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new BbsMemberSign();
+        $this->modelClass = new BbsSignRule();
     }
     public function index()
     {
