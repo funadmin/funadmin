@@ -1,10 +1,7 @@
-/**
- * 后台总控制API
- */
-define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
-    var layer = layui.layer,
-        table = layui.table;
-    layer.config({
+/*** 后台总控制API*/
+define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Moment) {
+    var layer = layui.layer, table = layui.table;upload = layui.upload,element = layui.element,form = layui.form;
+    layui.layer.config({
         skin: 'fun-layer-class'
     });
     Toastr = parent.Toastr || Toastr;
@@ -138,7 +135,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         },
         common: {
             parseNodeStr: function (node) {
-
                 if (node.indexOf('/') === -1) {
                     node = Config.controllername + '/' + node;
                 }
@@ -147,7 +143,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     if (key === 0) {
                         val = val.split('.');
                         $.each(val, function (i, v) {
-                            v = Fun.common.lower(Fun.common.camel(v));
+                            v = Fun.common.lower(Fun.common.snake(v));
                             val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
                         });
                         val = val.join(".");
@@ -201,7 +197,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     btn: [__('Confirm'), __('Cancel')]
                 }, function () {
                     typeof success === 'function' && success.call(this);
-                    Fun.toastr.close();
+                    Fun.toastr.close(index);
                 }, function () {
                     typeof error === 'function' && error.call(this);
                     self.close(index);
@@ -297,11 +293,11 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 var title = options.title,
                     url = options.url, width = options.width,
                     height = options.height,
-                    success= options.success,
-                    yes= options.yes,
-                    btn2= options.btn2,
+                    success = options.success,
+                    yes = options.yes,
+                    btn2 = options.btn2,
                     type = options.options,
-                    type = type===undefined?2:1;
+                    type = type === undefined ? 2 : 1;
                 isResize = options.isResize === undefined;
                 isFull = options.full !== undefined;
                 url = Fun.url(url)
@@ -346,7 +342,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     scrollbar: true,
                     btnAlign: options.btnAlign,
                     btn: options.btn_lang,
-                    success: success===undefined? function (layero, index) {
+                    success: success === undefined ? function (layero, index) {
                         try {
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
@@ -354,21 +350,20 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         } catch (err) {
                             //在此处理错误
                         }
-                    }:success,
-                    yes: yes===undefined?function (index, layero) {
+                    } : success,
+                    yes: yes === undefined ? function (index, layero) {
                         try {
                             var frameId = layero[0].getElementsByTagName("iframe")[0].id;
-                            console.log(btns)
                             $("#" + frameId).contents().find('button[type="' + btns[0] + '"]').trigger('click');
                             $("#" + frameId).contents().find('.layui-hide').hide();
                         } catch (err) {
                             parent.layer.close(index);
                         }
                         return false;
-                    }:yes,
-                    btn2: btn2===undefined?function (index) {
+                    } : yes,
+                    btn2: btn2 === undefined ? function (index) {
                         parent.layer.closeAll(index);
-                    }:btn2,
+                    } : btn2,
 
                 }
                 var index = layer.open(options);
@@ -391,7 +386,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             },
             refreshTable: function (tableName) {
                 tableName = tableName | 'list';
-                table.reload(tableName);
+                layui.table.reload(tableName);
             },
 
         },
@@ -442,14 +437,13 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 return val;
             });
         },
-
         /**
          * 初始化
          */
         init: function () {
             // 绑定ESC关闭窗口事件
             $(window).keyup(function (event) {
-                if (event.keyCode == 27) {
+                if (event.keyCode === 27) {
                     if ($(".layui-layer").length > 0) {
                         var index = 0;
                         $(".layui-layer").each(function () {
@@ -471,8 +465,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
          * @param ex
          */
         bineEvent: function (formCallback, success, error, ex) {
-
-
         },
     };
     //初始化
@@ -481,6 +473,5 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
     window.Moment = Moment;
     window.Fun = Fun;
     window.Fun.init();
-
     return Fun;
 });

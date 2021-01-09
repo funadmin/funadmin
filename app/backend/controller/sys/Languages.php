@@ -19,7 +19,7 @@ use think\App;
 
 class Languages extends Backend {
 
-    use Curd;
+
     public function __construct(App $app)
     {
         parent::__construct($app);

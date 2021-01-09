@@ -1,5 +1,4 @@
 <form class="layui-form" lay-filter="form">
-    {:form_select('group',$configGroup,['verify'=>'required'],['name','title'],$formData?$formData.type:'')}
     {:form_input('code','text',['verify'=>'required','label'=>'Config Code','tips'=>'English characters. Canot duplicate the current existing'])}
     {include file="sys/config/fieldtype"}
     {:form_submitbtn()}

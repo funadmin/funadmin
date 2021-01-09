@@ -174,16 +174,26 @@ class FormHelper
         $label = isset($options['label']) ? $options['label'] : $name;
         $arr = '';
         $i=0;
+        if(empty($list)){
+            $arr .= '<div class="layui-form-item" ><label class="layui-form-label ' . self::labelRequire($options) . '">'.$label.'</label><div class="layui-input-inline">
+                <input type="text"  name="'.$name.'[key][]"  value="" placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
+            </div>
+            <div class="layui-input-inline">
+                <input type="text"  name="'.$name.'[value][]"  value="" placeholder="'.lang('value').'" autocomplete="off" class="layui-input input-double-width">
+            </div><div class="layui-input-inline" >
+                <button  data-name="'.$name.'" type="button" class="layui-btn layui-btn-warm layui-btn-sm addInput" lay-event="addInput">
+                    <i class="layui-icon">&#xe654;</i>
+                </button>
+            </div></div>';
+        }
         foreach ($list as $key=>$value){
             if($i==0){
                 $arr .= '<div class="layui-form-item" ><label class="layui-form-label ' . self::labelRequire($options) . '">'.$label.'</label><div class="layui-input-inline">
-                <input type="text"  name="'.$name.'[][\'key\']"  placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
-                <input class="layui-input" type="hidden"  name="">
+                <input type="text"  name="'.$name.'[key][]"  value="'.$key.'" placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
             </div>
             <div class="layui-input-inline">
-                <input type="text"  name="'.$name.'[][\'value\']"  placeholder="'.lang('value').'" autocomplete="off" class="layui-input input-double-width">
-                <input class="layui-input" type="hidden" name=""  >
-            </div><div class="layui-input-inline" style="margin-left: 180px">
+                <input type="text"  name="'.$name.'[value][]"  value="'.$value.'" placeholder="'.lang('value').'" autocomplete="off" class="layui-input input-double-width">
+            </div><div class="layui-input-inline" >
                 <button  data-name="'.$name.'" type="button" class="layui-btn layui-btn-warm layui-btn-sm addInput" lay-event="addInput">
                     <i class="layui-icon">&#xe654;</i>
                 </button>
@@ -191,11 +201,10 @@ class FormHelper
                 ;
             }else{
                 $arr.='<div class="layui-form-item"><label class="layui-form-label"></label><div class="layui-input-inline">
-                <input type="text"  name="'.$name.'[][\'key\']"  placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
-                <input class="layui-input" type="hidden"  name=""></div><div class="layui-input-inline">
-                <input type="text"  name="'.$name.'[][\'value\']"  placeholder="'.lang('value').'" autocomplete="off" class="layui-input input-double-width">
-                <input class="layui-input" type="hidden" name=""  >
-            </div><div class="layui-input-inline" style="margin-left: 180px">
+                <input type="text"  name="'.$name.'[key][]" value="'.$key.'"  placeholder="'.lang('key').'" autocomplete="off" class="layui-input input-double-width">
+                </div><div class="layui-input-inline">
+                <input type="text"  name="'.$name.'[value][]" value="'.$value.'" placeholder="'.lang('value').'" autocomplete="off" class="layui-input input-double-width">
+            </div><div class="layui-input-inline">
                 <button  data-name="'.$name.'" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt" lay-event="removeInupt">
                     <i class="layui-icon">&#xe67e;</i>
                 </button>
@@ -239,7 +248,7 @@ class FormHelper
         $op = '';
         foreach ($select as $k => $v) {
             $select = '';
-            if (is_array($value) && is_array($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && $v[$attr[0]] == $value)) {
+            if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
                 $select = 'selected';
             }
             if ($value == $k && !$attr)
@@ -529,7 +538,7 @@ class FormHelper
 
         $op = [
             'path' => isset($options['path']) ? $options['path'] : '',
-            'mine' => isset($options['mine']) ? $options['mine'] : '',
+            'mime' => isset($options['mime']) ? $options['mime'] : '',
             'num' => isset($options['num']) ? $options['num'] : '',
             'type' => isset($options['type']) ? $options['type'] : '',
             'size' => isset($options['size']) ? $options['size'] : '',

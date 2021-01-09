@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2017/8/2
  */
+
 namespace app\backend\controller\member;
 
 use app\common\controller\Backend;
@@ -21,74 +22,79 @@ use app\backend\model\MemberGroup;
 use app\backend\model\Member as MemberModel;
 use think\App;
 
-class Member extends Backend{
+class Member extends Backend
+{
 
-    use Curd;
+
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass =  new MemberModel();
+        $this->modelClass = new MemberModel();
     }
 
 
-    public function index(){
+    public function index()
+    {
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
             $count = $this->modelClass->with('group')
                 ->where($where)
                 ->count();
-            $list =$this->modelClass
+            $list = $this->modelClass
                 ->with('memberGroup')
                 ->with('memberLevel')
                 ->where($where)
                 ->order($sort)
-                ->page( $this->page,$this->pageSize)
+                ->page($this->page, $this->pageSize)
                 ->select();
-             $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $list, 'count' => $count];
-             return json($result);
+            $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $list, 'count' => $count];
+            return json($result);
         }
         return view();
 
     }
 
 
-    public function add(){
+    public function add()
+    {
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $rule = [
-                'username|用户名'   => 'require|unique:member',
-                'mobile|手机号'   => 'require|unique:member',
+                'username|用户名' => 'require|unique:member',
+                'mobile|手机号' => 'require|unique:member',
             ];
             $this->validate($post, $rule);
-            $save =$this->modelClass->save($post);
+            $save = $this->modelClass->save($post);
             if ($save) {
                 $this->success(lang('operation success'));
             } else {
                 $this->error(lang('add fail'));
             }
         }
-        $memberLevel = MemberLevel::where('status',1)->select();
-        $memberGroup = MemberGroup::where('status',1)->select();
+        $memberLevel = MemberLevel::where('status', 1)->select();
+        $memberGroup = MemberGroup::where('status', 1)->select();
 
         $view = [
             'formData' => '',
             'title' => lang('Add'),
-            'memberLevel'=>$memberLevel,
-            'memberGroup'=>$memberGroup,
+            'memberLevel' => $memberLevel,
+            'memberGroup' => $memberGroup,
         ];
         View::assign($view);
         return view();
     }
 
-    public function edit($id){
+    public function edit()
+    {
+        $id = $this->request->get('id');
         if ($this->request->isPost()) {
-            $list  = $this->modelClass->find($id);
+            $list = $this->modelClass->find($id);
             empty($list) && $this->error(lang('Data is not exist'));
             $post = $this->request->post();
             $rule = [
-                'username|用户名'   => 'require',
-                'group_id|用户组别'   => 'require',
-                'level_id|用户级别'   => 'require',
+                'username|用户名' => 'require',
+                'group_id|用户组别' => 'require',
+                'level_id|用户级别' => 'require',
             ];
             $this->validate($post, $rule);
             $res = $list->save($post);
@@ -99,20 +105,19 @@ class Member extends Backend{
             }
         }
         $list = MemberModel::find(Request::get('id'));
-        $memberLevel = MemberLevel::where('status',1)->select();
-        $memberGroup = MemberGroup::where('status',1)->select();
+        $memberLevel = MemberLevel::where('status', 1)->select();
+        $memberGroup = MemberGroup::where('status', 1)->select();
         $view = [
             'formData' => $list,
             'title' => lang('Edit'),
-            'memberLevel'=>$memberLevel,
-            'memberGroup'=>$memberGroup,
+            'memberLevel' => $memberLevel,
+            'memberGroup' => $memberGroup,
 
         ];
         View::assign($view);
         return view('add');
 
     }
-
 
 
 }

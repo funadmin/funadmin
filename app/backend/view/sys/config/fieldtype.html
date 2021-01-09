@@ -27,7 +27,9 @@
 {:form_radio('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="select"}
-{:form_select('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark,'search'=>1] ,[],(isset($formdata)?$formdata['default_value']:''))}
+{php} $select = explode("\n",$formData['extra']);$select =array_combine(array_values($select),$select);
+{/php}
+{:form_select('value',$select,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark,'search'=>1] ,[],(isset($formData)?$formData['value']:''))}
 {/case}
 {case value="color"}
 {:form_color('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],'value')}
@@ -58,4 +60,3 @@
 {/case}
 {/switch}
 {/if}
-

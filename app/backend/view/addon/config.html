@@ -3,7 +3,7 @@
 </fieldset>
 <form class="layui-form" lay-filter="form">
     {foreach name="formData" item="vo" key="k"}
-    {php}$name = "param['{$k}']";{/php}
+    {php}$name = "params[".$k."]";{/php}
     {switch name="$vo.type"}
     {case value="text"}
     {:form_input($name,'text',['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
@@ -21,22 +21,22 @@
     {:form_select($name,$vo.content,['label'=>$vo.title,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
     {/case}
     {case value="image"}
-    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>'1','mine'=>'image'])}
+    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>'1','mime'=>'image'])}
     {/case}
     {case value="images"}
-    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mine'=>'image'])}
+    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'image'])}
     {/case}
     {case value="file"}
-    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>$vo.num,'mine'=>'*'])}
+    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>$vo.num,'mime'=>'*'])}
     {/case}
     {case value="files"}
-    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mine'=>'*'])}
+    {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'*'])}
     {/case}
     {case value="editor"}
     {:form_editor($name,$name,2,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {case value="array"}
-    {:form_arrays($k,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule],$vo.value?$vo.value:$vo.content)}
+    {:form_arrays($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule],$vo.value?$vo.value:$vo.content)}
     {/case}
     {/switch}
     {/foreach}

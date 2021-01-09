@@ -11,10 +11,10 @@
  * Date: 2017/8/2
  */
 namespace app\backend\controller;
-
 use app\BaseController;
 
 class Error extends BaseController {
+
 
     public function __call($method, $args)
     {

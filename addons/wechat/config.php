@@ -12,18 +12,17 @@
  */
 
 return [
-    'display' => [
-        'title' => '是否显示:',
+    'status' => [
+        'title' => '启用前台:',
         'type' => 'radio',
         'rule' => 'required',
         'content' => [
-            '1' => '显示',
-            '0' => '不显示'
+            '1' => 'open',
+            '0' => 'close'
         ],
+        'value' => 1,
         'msg' => '',
         'tips' => '',
         'ok' => '',
-        'value' => 1,
-
     ],
 ];

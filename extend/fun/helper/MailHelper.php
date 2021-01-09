@@ -33,7 +33,7 @@ class MailHelper {
             return array('code'=>0 , 'msg'=>'请先开启openssl扩展');
         }
         $mail = new PHPMailer;
-        $config = Db::name('config')->where('type','email')->cache(3600)->column('value','code');
+        $config = Db::name('config')->where('group','email')->cache(3600)->column('value','code');
         $mail->CharSet  = 'UTF-8'; //设定邮件编码，默认ISO-8859-1，如果发中文此项必须设置，否则乱码
         $mail->isSMTP();
         //Enable SMTP debugging
@@ -43,11 +43,10 @@ class MailHelper {
         $mail->SMTPDebug = 0;
         //调试输出格式
         $mail->Debugoutput = 'html';
-        //smtp服务器
+        //smtp服务器 //smtp.163.com
         $mail->Host = $config['email_host'];
         //端口 - likely to be 25, 465 or 587
         $mail->Port = $config['email_port'];
-
         $mail->SMTPSecure =$config['email_secure'];// 使用安全协议
         //Whether to use SMTP authentication
         $mail->SMTPAuth = true;
@@ -67,7 +66,6 @@ class MailHelper {
         }else{
             $mail->addAddress($to);
         }
-
         $mail->isHTML(true);// send as HTML
         //标题
         $mail->Subject = $subject;

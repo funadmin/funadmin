@@ -58,7 +58,7 @@ class UploadService extends AbstractService
      * @throws \think\db\exception\ModelNotFoundException
      * 文件上传总入口 集成qiniu ali tenxunoss
      */
-    public function uploads()
+    public function uploads($uid,$adminid)
     {
         //获取上传文件表单字段名
         $type = Request::param('type', 'file');
@@ -107,8 +107,8 @@ class UploadService extends AbstractService
                 }
                 if (!empty($path)) {
                     $data = [
-                        'admin_id' => session('admin.id'),
-                        'user_id'     => cookie('uid'),
+                        'admin_id' => $adminid,
+                        'member_id'     => $uid,
                         'original_name' => $original_name,
                         'name' => $file_name,
                         'path' => $path,
@@ -175,7 +175,7 @@ class UploadService extends AbstractService
             throw new Exception(lang('File format is limited'));
         }
         //文件大小限制
-        if (($file->getSize() > $this->fileMaxsize)) {
+        if (($file->getSize() > $this->fileMaxsize*1024)) {
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制

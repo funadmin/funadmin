@@ -21,7 +21,7 @@ use think\App;
 
 class Attach extends Backend
 {
-    use Curd;
+
 
     public function __construct(App $app)
     {

@@ -20,7 +20,7 @@ use think\App;
 use think\facade\View;
 
 class ConfigGroup extends Backend {
-    use Curd;
+
     public function __construct(App $app)
     {
         parent::__construct($app);

@@ -6,7 +6,7 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','bootstrap','treeGrid','tableSelect',
+        'css','layui','lay','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
@@ -16,10 +16,9 @@
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
-        'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
-
         //layui等组件
-        'layui'         : 'plugins/layui/layui.all',
+        'layui'         : 'plugins/layui/layui', // jquery
+        'lay': 'js/require-lay',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -53,12 +52,9 @@
         }
     },
     shim: {
-        'bootstrap': ['jquery'],
         'layui': {
-            deps: ['css!plugins/layui/css/layui.css'],
-            init: function () {
-                return this.layui.config({dir: 'plugins/'})
-            },
+            // deps: ['css!plugins/layui/css/layui.css'],
+            init: function () {return this.layui.config({dir: '/static/plugins/layui/'})},
         },
         'regionCheckBox':{
             deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],

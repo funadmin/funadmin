@@ -46,7 +46,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         templet: Table.templet.operat,
                         operat: ['edit', 'delete',]
                     }
-
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,

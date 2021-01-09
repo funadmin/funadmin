@@ -83,23 +83,19 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         templet: Table.templet.operat,
                         operat: ['edit_full', 'delete']
                     }
-
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
                 page: true
-
             });
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         add:function () {
-
             Controller.api.bindevent()
         },
         edit:function () {
             Controller.api.bindevent()
-
         },
         api: {
             bindevent: function () {

@@ -17,7 +17,7 @@ use think\App;
 use think\facade\Db;
 use think\facade\View;
 class Blacklist extends Backend {
-    use Curd;
+
 
     public function __construct(App $app)
     {

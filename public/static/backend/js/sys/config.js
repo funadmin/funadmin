@@ -51,8 +51,8 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         templet : function(d){
                             if(d.is_system){
                                 $html = '';
-                                $html +='<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="'+Table.init.tableId+'" data-width="800" data-height="600" data-url="'+Table.init.requests.edit_url+'?id='+ d.id +'" title="'+_('Edit')+'" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>' +
-                                    '<button data-tableid="'+Table.init.tableId+'" class="layui-btn-xs layui-btn-danger layui-btn layui-btn-xs" title="'+_('SetValue')+'" data-url="'+Table.init.requests.setValue.url+'?id='+ d.id +'" lay-event="open" data-type="open" data-full="1"><i class="layui-icon layui-icon layui-icon-set"></i></button>';
+                                $html +='<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="'+Table.init.tableId+'" data-width="800" data-height="600" data-url="'+Table.init.requests.edit_url+'?id='+ d.id +'" title="'+__('Edit')+'" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>' +
+                                    '<button data-tableid="'+Table.init.tableId+'" class="layui-btn-xs layui-btn-danger layui-btn layui-btn-xs" title="'+__('SetValue')+'" data-url="'+Table.init.requests.setValue.url+'?id='+ d.id +'" lay-event="open" data-type="open" data-full="1"><i class="layui-icon layui-icon layui-icon-set"></i></button>';
                                 return $html;
                             }else{
                                 return Table.templet.operat.call(this,d);

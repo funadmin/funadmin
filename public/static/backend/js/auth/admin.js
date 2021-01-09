@@ -1,5 +1,4 @@
 define(['jquery', 'table', 'form'], function ($, Table, Form) {
-
     var Controller = {
         index: function () {
             Table.init = {
@@ -40,51 +39,50 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
 
 
                 },
-            },
+            };
             Table.render({
-                    elem: '#' + Table.init.table_elem,
-                    id: Table.init.tableId,
-                    url: Fun.url(Table.init.requests.index_url),
-                    init: Table.init,
-                    toolbar: ['refresh', 'add_full', 'delete'],
-                    cols: [[
-                        {checkbox: true, },
-                        {field:'id', title: 'ID', width:60,}
-                        ,{field:'username', title: __('username'), width:180}
-                        ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution}
-                        ,{field:'email', title: __("email"), width:200}
-                        ,{field:'mobile', title: __("mobile"), width:150}
-                        ,{field:'ip', title: __("Ip"),width:150,hide:true},
-                        {
-                            field: 'status',
-                            title: __('Status'),
-                            width: 120,
-                            search: 'select',
-                            selectList: {0: __('Disabled'), 1: __('Enabled')},
-                            filter: 'status',
-                            templet: Table.templet.switch
+                elem: '#' + Table.init.table_elem,
+                id: Table.init.tableId,
+                url: Fun.url(Table.init.requests.index_url),
+                init: Table.init,
+                toolbar: ['refresh', 'add_full', 'delete'],
+                cols: [[
+                    {checkbox: true, },
+                    {field:'id', title: 'ID', width:60,}
+                    ,{field:'username', title: __('username'), width:180}
+                    ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution}
+                    ,{field:'email', title: __("email"), width:200}
+                    ,{field:'mobile', title: __("mobile"), width:150}
+                    ,{field:'ip', title: __("Ip"),width:150,hide:true},
+                    {
+                        field: 'status',
+                        title: __('Status'),
+                        width: 120,
+                        search: 'select',
+                        selectList: {0: __('Disabled'), 1: __('Enabled')},
+                        filter: 'status',
+                        templet: Table.templet.switch
+                    },
+                    {field: 'create_time', title: __('CreateTime'),search: false, width: 180,templet:Table.templet.time},
+                    {field: 'update_time', title: __('UpdateTime'),search: false, width: 180, templet: Table.templet.time},
+                    {
+                        width: 250,
+                        align: 'center',
+                        title: __('Operat'),
+                        init: Table.init,
+                        templet: function (d){
+                            if(d.id==1){
+                                return '';
+                            }
+                            return Table.templet.operat.call(this,d)
                         },
-                        {field: 'create_time', title: __('CreateTime'),search: false, width: 180,templet:Table.templet.time},
-                        {field: 'update_time', title: __('UpdateTime'),search: false, width: 180, templet: Table.templet.time},
-                        {
-                            width: 250,
-                            align: 'center',
-                            title: __('Operat'),
-                            init: Table.init,
-                            templet: function (d){
-                                if(d.id==1){
-                                    return '';
-                                }
-                                return Table.templet.operat.call(this,d)
-                            },
-                            operat: ['password','edit_full', 'delete']
-                        }
-
-                    ]],
-                    limits: [10, 15, 20, 25, 50, 100],
-                    limit: 15,
-                    page: true
-                });
+                        operat: ['password','edit_full', 'delete']
+                    }
+                ]],
+                limits: [10, 15, 20, 25, 50, 100],
+                limit: 15,
+                page: true
+            });
             var table = $('#' + Table.init.table_elem);
             Table.api.bindEvent(table);
         },

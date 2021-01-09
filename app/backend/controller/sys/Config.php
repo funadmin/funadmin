@@ -21,7 +21,7 @@ use think\App;
 use think\facade\Db;
 use think\facade\View;
 class Config extends Backend {
-    use Curd;
+
 
     public function __construct(App $app)
     {
@@ -81,7 +81,8 @@ class Config extends Backend {
      * @throws \think\db\exception\ModelNotFoundException
      * 编辑配置
      */
-    public function edit($id){
+    public function edit(){
+        $id  = $this->request->get('id');
         if($this->request->isPost()){
             $list = $this->modelClass->find($id);
             if(empty($list)) $this->error(lang('Data is not exist'));

@@ -16,10 +16,13 @@ use app\common\controller\Backend;
 use Exception;
 use fun\helper\SignHelper;
 use fun\helper\StringHelper;
+use think\App;
 use think\exception\ValidateException;
 
 class Login extends Backend {
-
+    public function __construct(App $app) {
+        parent::__construct($app);
+    }
     protected $layout='';
     public function index(){
         if (!$this->request->isPost()) {
@@ -31,7 +34,6 @@ class Login extends Backend {
             }
             $view = ['loginbg'=> "/static/backend/images/admin-bg.jpg"];
             return view('',$view);
-
         } else {
             $post  = $this->request->post() ;
             $username = $this->request->post('username', '', 'fun\helper\StringHelper::filterWords');
@@ -48,7 +50,7 @@ class Login extends Backend {
                 $auth = new AuthService();
                 $auth->checkLogin($username, $password, $rememberMe);
             } catch (Exception $e) {
-                 $this->error(lang('Login Failed')."：{$e->getMessage()}",'',['token'=>$this->token()]);
+                $this->error(lang('Login Failed')."：{$e->getMessage()}",'',['token'=>$this->token()]);
             }
             $this->success(lang('Login Success').'...',__u('index/index'));
         }

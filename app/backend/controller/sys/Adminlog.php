@@ -18,8 +18,6 @@ use app\backend\model\AdminLog as LogModel;
 use think\App;
 
 class Adminlog extends Backend {
-
-    use Curd;
     public function __construct(App $app)
     {
         parent::__construct($app);

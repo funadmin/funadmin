@@ -1,70 +1,67 @@
 define(['jquery', 'table', 'form'], function ($, Table, Form) {
-
     let Controller = {
         index: function () {
             Table.init = {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    modify_url: 'auth.authgroup/modify',
-                    index_url: 'auth.authgroup/index',
-                    delete_url: 'auth.authgroup/delete',
-                    add_url: 'auth.authgroup/add',
-                    edit_url: 'auth.authgroup/edit',
+                    modify_url: 'auth.authGroup/modify',
+                    index_url: 'auth.authGroup/index',
+                    delete_url: 'auth.authGroup/delete',
+                    add_url: 'auth.authGroup/add',
+                    edit_url: 'auth.authGroup/edit',
                     access: {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-warm',
                         icon: 'layui-icon-set-sm',
-                        url: 'auth.authgroup/access',
+                        url: 'auth.authGroup/access',
                         text: __('Access Group'),
                         title: __('Access Group'),
                         full: 1,
                     },
-
                 },
             };
             Table.render({
-                    elem: '#' + Table.init.table_elem,
-                    id: Table.init.tableId,
-                    url: Fun.url(Table.init.requests.index_url),
-                    init: Table.init,
-                    toolbar: ['refresh', 'add', 'delete'],
-                    cols: [[
-                        {checkbox: true, },
-                        {field: 'id', title: __('ID'), width: 80, sort: true},
-                        {field: 'pid', title: __('Pid'), width: 150,},
-                        {field: 'title', title: __('GroupName'), minwidth: 120,},
-                        {
-                            field: 'status',
-                            title: __('Status'),
-                            width: 120,
-                            search: 'select',
-                            selectList: {0: __('Disabled'), 1: __('Enabled')},
-                            filter: 'status',
-                            templet: Table.templet.switch
+                elem: '#' + Table.init.table_elem,
+                id: Table.init.tableId,
+                url: Fun.url(Table.init.requests.index_url),
+                init: Table.init,
+                toolbar: ['refresh', 'add', 'delete'],
+                cols: [[
+                    {checkbox: true, },
+                    {field: 'id', title: __('ID'), width: 80, sort: true},
+                    {field: 'pid', title: __('Pid'), width: 150,},
+                    {field: 'title', title: __('GroupName'), minwidth: 120,},
+                    {
+                        field: 'status',
+                        title: __('Status'),
+                        width: 120,
+                        search: 'select',
+                        selectList: {0: __('Disabled'), 1: __('Enabled')},
+                        filter: 'status',
+                        templet: Table.templet.switch
+                    },
+                    {field: 'create_time', title: __('CreateTime'),search: false, width: 180, templet: Table.templet.time},
+                    {field: 'update_time', title: __('UpdateTime'), search: false,width: 180, templet: Table.templet.time},
+                    {
+                        width: 300,
+                        align: 'center',
+                        title: __('Operat'),
+                        init: Table.init,
+                        templet: function (d){
+                            if(d.id==1){
+                                return '';
+                            }else{
+                                return Table.templet.operat.call(this,d);
+                            }
                         },
-                        {field: 'create_time', title: __('CreateTime'),search: false, width: 180, templet: Table.templet.time},
-                        {field: 'update_time', title: __('UpdateTime'), search: false,width: 180, templet: Table.templet.time},
-                        {
-                            width: 300,
-                            align: 'center',
-                            title: __('Operat'),
-                            init: Table.init,
-                            templet: function (d){
-                                if(d.id==1){
-                                    return '';
-                                }else{
-                                    return Table.templet.operat.call(this,d);
-                                }
-                            },
-                            operat: ['access', 'edit', 'delete']
-                        }
-
-                    ]],
-                    limits: [10, 15, 20, 25, 50, 100],
-                    limit: 15,
-                    page: true
-                });
+                        operat: ['access', 'edit', 'delete']
+                    }
+                ]],
+                limits: [10, 15, 20, 25, 50, 100],
+                limit: 15,
+                page: true
+            });
             let table = $('#' + Table.init.table_elem);
             Table.api.bindEvent(table);
         },

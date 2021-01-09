@@ -8,7 +8,7 @@ use think\App;
 use think\Exception;
 class MemberGroup extends Backend{
 
-    use Curd;
+
 
     public function __construct(App $app)
     {

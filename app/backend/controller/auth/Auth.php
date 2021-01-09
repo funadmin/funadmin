@@ -22,7 +22,7 @@ use think\facade\View;
 
 class Auth extends Backend
 {
-    use Curd;
+
     public $uid;
     public function __construct(App $app)
     {

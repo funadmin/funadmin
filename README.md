@@ -1,4 +1,4 @@
-<h1 align="center"> 为梦想而创作：FunAdmin范管理框架</h1>
+<h1 align="center"> 为梦想而创作：FunAdmin开发框架系统</h1>
 
 <p align="center">
 	<a href="http://www.funadmin.com/">
@@ -19,7 +19,7 @@
 ### 如果您想获悉项目实时更新信息，您可以点右上角感谢您的支持！
 ### 官方网址：http://www.funadmin.com/
 ### 帮助文档：http://docs.funadmin.com/
-### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=f7p5ic6W)
+### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
 ## 项目介绍
 FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、数据库管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
@@ -34,7 +34,7 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
  + 强大的表单管理，只需要使用函数即可成就表单 
  + layui采用最新layui2.5.7 框架
  + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
- + require.js 模块化开发 一个命令即可打包js,css
+ + require.js 模块化开发 一个命令即可打包js,css ; node r.js -o backend-build.js
  + restful api 接口
  + ...更多功能尽请关注
 
@@ -45,6 +45,8 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
 * CURL PHP Extension
 * 开启静态重写
 * 要求环境支持pathinfo
+* Mysql 5.5及以上
+* Apache 或 Nginx
 
 ### 功能特性
 - **严谨规范：** 提供一套有利于团队协作的结构设计、编码、数据等规范。
@@ -60,7 +62,7 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
 ## 开发者信息
 * 系统名称：FunAdmin管理框架
 * 作者：FunAdmin
-* 作者QQ：903300326
+* 作者QQ：99492909
 * 官网网址：[http://www.funadmin.com/](http://www.funadmin.com/)
 * 文档网址：[http://docs.funadmin.com/](http://docs.funadmin.com/)
 * 开源协议：Apache 2.0

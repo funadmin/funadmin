@@ -1,7 +1,4 @@
-define(["jquery"], function ($) {
-    var form = layui.form,
-        table = layui.table,
-        laydate = layui.laydate;
+define(['jquery','timePicker'],function ($,timePicker) {
     var Table = {
         init: {
             table_elem: 'list',
@@ -20,8 +17,8 @@ define(["jquery"], function ($) {
             options.toolbar = options.toolbar || '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
-            options.searchinput = Fun.parame(options.searchinput, true);
-            options.searchname = Fun.parame(options.searchname, 'id');
+            options.searchinput = Fun.parame(Table.init.searchinput, true);
+            options.searchname = Fun.parame(Table.init.searchname, 'id');
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', {
@@ -34,13 +31,12 @@ define(["jquery"], function ($) {
             $(options.elem).attr('lay-filter', options.layFilter);
             // 初始化表格搜索
             options.toolbar = options.toolbar || ['refresh','export','add', 'delete'];
-
             if (options.search === true) {
                 Table.renderSearch(options.cols, options.id);
             }
             // 初始化表格左上方工具栏
             options.toolbar = Table.renderToolbar(options);
-            var newTable = table.render(options);
+            var newTable =  layui.table.render(options);
             // 监听表格开关切换
             Table.api.switch(options.cols, options.init, options.id);
             // 监听表格搜索开关和toolbar按钮显示等
@@ -157,13 +153,13 @@ define(["jquery"], function ($) {
                             d.searchOp = 'between';
                             formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' +
                                 '<div class="layui-form-item layui-inline layui-between">\n' +
-                                    '<label class="layui-form-label layui-col-xs4 ">' + d.title + '</label>\n' +
-                                    '<div class="layui-input-inline layui-col-xs4">\n' +
-                                    '<input id="filed_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
-                                    '</div>\n' +
-                                    '<div class="layui-input-inline layui-col-xs4">\n' +
-                                    '<input id="filed_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
-                                    '</div>\n' +
+                                '<label class="layui-form-label layui-col-xs4 ">' + d.title + '</label>\n' +
+                                '<div class="layui-input-inline layui-col-xs4">\n' +
+                                '<input id="filed_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                '</div>\n' +
+                                '<div class="layui-input-inline layui-col-xs4">\n' +
+                                '<input id="filed_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' +
+                                '</div>\n' +
                                 '</div>' +
                                 '</div>';
                             break;
@@ -224,16 +220,15 @@ define(["jquery"], function ($) {
                     '<form class="layui-form"><div class="layui-row">\n' +
                     formHtml +
                     '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' +
-                        '<button type="submit" class="layui-btn layui-btn-green" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' +
-                        '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' +
+                    '<button type="submit" class="layui-btn layui-btn-green" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' +
+                    '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' +
                     '</div>' +
                     '</div>' +
                     '</form>' +
                     '</fieldset>');
-
                 // 初始化form表单
                 Table.api.tableSearch(tableId);
-                form.render();
+                layui.form.render();
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
                         var timeList = document.querySelectorAll("*[lay-filter='timePicker']");
@@ -252,10 +247,10 @@ define(["jquery"], function ($) {
 
                         }                    }
                     if (ncV.search === 'time') {
-                        laydate.render({type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
+                        layui.laydate.render({type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
                     }
                     if (ncV.search === 'timerange') {
-                        laydate.render({range: true, type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
+                        layui.laydate.render({range: true, type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
                     }
                 });
 
@@ -510,7 +505,7 @@ define(["jquery"], function ($) {
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId;
                 }
-                table.reload(tableId);
+                layui.table.reload(tableId);
             },
             //切换选项卡
             tabswitch:function(othis){
@@ -532,12 +527,12 @@ define(["jquery"], function ($) {
                         url: url,
                     }, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            table.reload(tableId)
+                            layui.table.reload(tableId)
                         });
 
                     }, function (res) {
                         Fun.toastr.error(res.msg, function () {
-                            table.reload(tableId);
+                            layui.table.reload(tableId);
                         });
                     })
                     Fun.toastr.close();
@@ -548,7 +543,7 @@ define(["jquery"], function ($) {
                         return false;
                     }
                     Fun.toastr.success(res.msg, function () {
-                        table.reload(tableId);
+                        layui.table.reload(tableId);
                     });
                 });
 
@@ -560,7 +555,7 @@ define(["jquery"], function ($) {
                     url = othis.data('url');
                 tableId = tableId || Table.init.tableId;
                 url = url !== undefined ? Fun.url(url) : window.location.href;
-                var checkStatus = table.checkStatus(tableId),
+                var checkStatus = layui.table.checkStatus(tableId),
                     data = checkStatus.data;
                 var ids = [];
                 if (url.indexOf('?id=all') !== -1) {
@@ -578,22 +573,21 @@ define(["jquery"], function ($) {
                 }
                 Fun.toastr.confirm(__('Are you sure you want to delete or destory the %s selected item?', length),
                     function () {
-                    Fun.ajax({
-                        url: url,
-                        data: {
-                            ids: ids
-                        },
-                    }, function (res) {
-                        Fun.toastr.success(res.msg, function () {
-                        table.reload(tableId);
+                        Fun.ajax({
+                            url: url,
+                            data: {
+                                ids: ids
+                            },
+                        }, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                layui.table.reload(tableId);
+                            });
+                        }, function (res) {
+                            Fun.toastr.error(res.msg);
                         });
-                    }, function (res) {
-                        Fun.toastr.error(res.msg);
                     });
-                });
                 return false;
             },
-
             //返回页面
             closeOpen: function (othis) {
                 Fun.api.closeCurrentOpen();
@@ -604,11 +598,11 @@ define(["jquery"], function ($) {
                 tableId = tableId?tableId : Table.init.tableId;
                 $where= $where || {};
                 $map = {where: $where}
-                table.reload(tableId, $map);
+                layui.table.reload(tableId, $map);
             },
             //表格收索
             tableSearch: function (tableId) {
-                form.on('submit(' + tableId + '_filter)', function (data) {
+                layui.form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
                     var formatFilter = {},
                         formatOp = {};
@@ -628,7 +622,7 @@ define(["jquery"], function ($) {
                             formatOp[key] = op;
                         }
                     });
-                    table.reload(tableId, {
+                    layui.table.reload(tableId, {
                         // page: {
                         //     curr: 1
                         // }
@@ -650,7 +644,7 @@ define(["jquery"], function ($) {
                     $.each(cols, function (i, v) {
                         v.filter = v.filter || false;
                         if (v.filter !== false && tableInit.requests.modify_url !== false) {
-                            form.on('switch(' + v.filter + ')', function (obj) {
+                            layui.form.on('switch(' + v.filter + ')', function (obj) {
                                 var checked = obj.elem.checked ? 1 : 0;
                                 var data = {
                                     id: obj.value,
@@ -679,7 +673,7 @@ define(["jquery"], function ($) {
                 }
             },
             toolbar: function (layFilter, tableId) {
-                table.on('toolbar(' + layFilter + ')', function (obj) {
+                layui.table.on('toolbar(' + layFilter + ')', function (obj) {
                     // 搜索表单的显示
                     var othis = $(this)
                     switch (obj.event) {
@@ -715,7 +709,7 @@ define(["jquery"], function ($) {
             },
             //双击事件
             rowDouble:function (layFilter,url) {
-                table.on('rowDouble(' + layFilter + ')', function (obj) {
+                layui.table.on('rowDouble(' + layFilter + ')', function (obj) {
                     if(url && Fun.checkAuth(url)){
                         url = url.indexOf('?')!=-1 ?url+'&id='+ obj.data.id :url+'?id=' +obj.data.id
                         options = {url:url,}
@@ -731,7 +725,7 @@ define(["jquery"], function ($) {
                 tableInit.requests.modify_url = tableInit.requests.modify_url || false;
                 tableId = tableId || Table.init.tableId;
                 if (tableInit.requests.modify_url !== false) {
-                    table.on('edit(' + layFilter + ')', function (obj) {
+                    layui.table.on('edit(' + layFilter + ')', function (obj) {
                         var value = obj.value,
                             data = obj.data,
                             id = data.id,
@@ -747,14 +741,14 @@ define(["jquery"], function ($) {
                             data: _data,
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                table.reload(tableId);
+                                layui.table.reload(tableId);
                             });
                         }, function (res) {
                             Fun.toastr.error(res.msg, function () {
-                                table.reload(tableId);
+                                layui.table.reload(tableId);
                             });
                         }, function () {
-                            table.reload(tableId);
+                            layui.table.reload(tableId);
                         });
                     });
                 }
@@ -780,7 +774,6 @@ define(["jquery"], function ($) {
             },
         },
     };
-
     return Table;
 
 })

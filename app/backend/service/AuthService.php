@@ -60,8 +60,8 @@ class AuthService
         }
         // 初始化request
         $this->request = Request::instance();
-        $this->controller = strtolower($this->request->controller());
-        $this->action = strtolower($this->request->action());
+        $this->controller = parse_name($this->request->controller());
+        $this->action = parse_name($this->request->action());
         $this->action = $this->action ?  $this->action : 'index';
         $this->controller= $this->controller  ? $this->controller : 'index';
         $url =  $this->controller . '/' .  $this->action;
@@ -82,16 +82,15 @@ class AuthService
             if($v['menu_status']==1){
                 $v['href'] = trim($v['href'],'/') . '/index';
             }
-            if($v['module'] !='addon'){
-                $v['href'] = strtolower(parse_name(__u(trim($v['href'], ' ')),1));
+            if($v['module'] !== 'addon'){
+                $v['href'] = (parse_name(__u(trim($v['href'], ' ')),1));
             }else{
-                $v['href']=strtolower(parse_name('/'. trim($v['href'],'/'),1));
+                $v['href']= (parse_name('/'. trim($v['href'],'/'),1));
             }
             if ($v['pid'] == $pid) {
                 if (session('admin.id') != 1) {
                     if (in_array($v['id'], $authrules)) {
                         //假如pid 在数组内，且
-
                         $allchildids = $this->getallIdsBypid($v['id']);
                         //把下级没有list 的菜单全部删除
                         if($allchildids){
@@ -163,7 +162,7 @@ class AuthService
                     $allAuthNode = AuthRule::where('status',1)->whereIn('id', ($allAuthIds))->cache($cacheKey)->column('href','href');
                 }
                 foreach ($allAuthNode as $k=>$v){
-                    $allAuthNode[$k] = strtolower(parse_name($v,1));
+                    $allAuthNode[$k] = (parse_name($v,1));
                 }
                 $allAuthNode = array_flip($allAuthNode);
             }

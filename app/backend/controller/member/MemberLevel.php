@@ -7,7 +7,7 @@ use app\common\traits\Curd;
 use think\App;
 class MemberLevel extends Backend{
 
-    use Curd;
+
 
     public function __construct(App $app)
     {

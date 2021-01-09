@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>安装环境检测 - FunAdmin管理系统安装</title>
+    <?php require_once ('step-base.html');?>
+</head>
+<body>
+<div class="layui-container">
+    <h1 class="install-h1">环境检测</h1>
+    <?php if(is_file($lockFile)):?>
+    <div class="layui-error">
+        当前已经安装FunAdmin，如果需要重新安装，请手动移除FunAdmin/public/install.lock文件
+    </div>
+    <?php endif;?>
+    <!--系统环境信息-->
+    <table class="layui-table" lay-skin="line">
+        <thead>
+        <tr>
+            <th width="25%">环境</th>
+            <th width="25%">最低配置</th>
+            <th width="25%">当前配置</th>
+            <th width="25%">是否符合</th>
+        </tr>
+        </thead>
+        <tr>
+            <td>操作系统</td>
+            <td>不限</td>
+            <td><?php echo php_uname('s'); ?></td>
+            <td class="yes">√</td>
+        </tr>
+        <tr>
+            <td>php版本</td>
+            <td>7.2+</td>
+            <td><?php echo PHP_VERSION ?></td>
+            <?php $php_version=explode('.', PHP_VERSION);?>
+            <td class="<?php if(version_compare(PHP_VERSION, '7.2.0', '>')) echo 'yes'; ?>">
+                <?php if(version_compare(PHP_VERSION, '7.2.0', '>')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+    </table>
+    <!--扩展插件信息-->
+    <table class="layui-table" lay-skin="line">
+        <thead>
+        <tr>
+            <th width="25%">扩展</th>
+            <th width="25%">最低配置</th>
+            <th width="25%">当前配置</th>
+            <th width="25%">是否符合</th>
+        </tr>
+        </thead>
+        <tr>
+            <td>数据库模块</td>
+            <td>MySQLi</td>
+            <td><?php
+                    $pdo = false;
+                    if(class_exists('PDO', false))
+                    {
+                       if(defined('PDO::MYSQL_ATTR_USE_BUFFERED_QUERY'))
+                        {
+                            echo 'PDO_MYSQL';
+                            $pdo = true;
+                        }
+                        else
+                        {
+                            echo '不支持PDO_MYSQL';
+                        }
+                    }
+                    else
+                    {
+                        echo '不支持PDO_MYSQL';
+                    }
+                    if(!$pdo)
+                    {
+                        if (function_exists('mysqli_close'))
+                        {
+                            echo 'MySQLi';
+                            $pdo = true;
+                        }
+                    }
+                ?></td>
+            <td class="<?php if($pdo) echo 'yes'; ?>">
+                <?php if ($pdo): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>图象</td>
+            <td>GD或IMagick</td>
+            <td>
+                <?php if(function_exists('gd_info')): ?>
+                <?php if(class_exists('Imagick', false)): ?>
+                ImageMagick
+                <?php else: ?>
+                GD
+                <?php endif ?>
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('gd_info')) echo 'yes'; ?>">
+                <?php if(function_exists('gd_info')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>putenv</td>
+            <td>putenv</td>
+            <td>
+                <?php if(function_exists('putenv')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('putenv')) echo 'yes'; ?>">
+                <?php if(function_exists('putenv')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Session</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('session_start')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('session_start')) echo 'yes'; ?>">
+                <?php if(function_exists('session_start')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Cookie</td>
+            <td>支持</td>
+            <td>
+                <?php if(isset($_COOKIE)): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(isset($_COOKIE)) echo 'yes'; ?>">
+                <?php if(isset($_COOKIE)): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>CType</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('ctype_xdigit')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('ctype_xdigit')) echo 'yes'; ?>">
+                <?php if(function_exists('ctype_xdigit')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>openssl</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('openssl')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('openssl')) echo 'yes'; ?>">
+                <?php if(extension_loaded('openssl')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>CURL</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('curl_exec')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('curl_exec')) echo 'yes'; ?>">
+                <?php if(function_exists('curl_exec')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>FreeType</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('imageftbbox')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('imageftbbox')) echo 'yes'; ?>">
+                <?php if(function_exists('imageftbbox')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Zlib</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('gzcompress')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('gzcompress')) echo 'yes'; ?>">
+                <?php if(function_exists('gzcompress')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>iconv</td>
+            <td>支持</td>
+            <td>
+                <?php if(function_exists('iconv')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(function_exists('iconv')) echo 'yes'; ?>">
+                <?php if(function_exists('iconv')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>Fileinfo</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('fileinfo')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('fileinfo')) echo 'yes'; ?>">
+                <?php if(extension_loaded('fileinfo')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>pdo</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('pdo')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('pdo')) echo 'yes'; ?>">
+                <?php if(extension_loaded('pdo')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>xsl</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('xsl')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('xsl')) echo 'yes'; ?>">
+                <?php if(extension_loaded('xsl')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>mbstring</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('mbstring')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('mbstring')) echo 'yes'; ?>">
+                <?php if(extension_loaded('mbstring')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
+            <td>上传限制</td>
+            <td>50M+</td>
+            <td><?php echo get_cfg_var('upload_max_filesize'); ?></td>
+            <td class="<?php if(get_cfg_var('upload_max_filesize') >= 50) echo 'yes'; ?>">
+                <?php if(get_cfg_var('upload_max_filesize') >= 50): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+    </table>
+    <!--目录权限信息-->
+    <table class="layui-table" lay-skin="line">
+        <thead>
+        <tr>
+            <th width="25%">目录</th>
+            <th width="25%">最低配置</th>
+            <th width="25%">当前配置</th>
+            <th width="25%">是否符合</th>
+        </tr>
+        </thead>
+        <tr>
+            <td><?php $config['runtimePath'];?>/runtime</td>
+            <td>可写</td>
+            <td>
+                <?php if (is_writable($config['runtimePath'])): ?>
+                可写
+                <?php else: ?>
+                不可写
+                <?php endif ?>
+            </td>
+            <td class="<?php if(is_writable($config['runtimePath'])) echo 'yes'; ?>">
+                <?php if (is_writable($config['runtimePath'])): ?>
+                √
+                <?php else: ?>
+                ×
+                <?php endif ?>
+            </td>
+        </tr>
+    </table>
+    <div class="btn-box">
+        <a class="layui-btn  layui-btn-normal" href="./install.php?s=step1">上一步</a>
+        <a class="layui-btn  next" href="javascript:;" data-href="./install.php?s=step3">下一步</a>
+    </div>
+</div>
+<script type="text/javascript" src="style/layui/layui.js"></script>
+<script>
+    layui.use('layer', function(){
+        var $ = layui.jquery, layer = layui.layer;
+        // 判断是否通过
+        $(document).on("click",'.next',function(){
+            // 判断检测是否达标
+            if($('.yes').length < 19 || msg){
+                msg = msg?msg:'您的配置或权限未满足要求';
+                layer.msg(msg);
+            }else{
+                window.location.href = $(this).data('href');
+            }
+        });
+    });
+</script>
+</body>
+</html>

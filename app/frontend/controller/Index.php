@@ -12,9 +12,11 @@
  */
 namespace app\frontend\controller;
 
-use app\common\service\PredisService;
+use app\common\controller\Frontend;
 use think\App;
-class Index extends \app\BaseController{
+use think\captcha\facade\Captcha;
+
+class Index extends Frontend {
 
     public function __construct(App $app)
     {
@@ -22,15 +24,14 @@ class Index extends \app\BaseController{
     }
 
     public function index(){
-        $options = [
-            'host'=>'127.0.0.1',
-            'port'=>'6379',
-            'index'=>0,
-        ];
-//        var_dump(password_hash('13753501386',''));
-//        $predis = PredisService::instance($options);
-//        var_dump($predis->set('name',5,30));
         return view();
     }
-
+    /**
+     * @return \think\Response
+     * 验证码
+     */
+    public function verify()
+    {
+        return Captcha::create();
+    }
 }

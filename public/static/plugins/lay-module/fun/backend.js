@@ -1,292 +1,293 @@
-layui.define(["jquery", 'layer'], function (exports) {
-    var $ = layui.$, element = layui.element, layer = layui.layer;element.render();
+layui.define(["jquery", 'layer','element'], function (exports) {
+    var $ = layui.$, element = layui.element, layer = layui.layer;
+    element.init();
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
     }
-    var $document = $(document), $container = $('#fun-app'),FUN_APP='fun-app',
+    var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
         THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
-    //主题配置
-    THEME = [
-        {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#0c0c0c',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#772c6a',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#197971',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#0c0c0c',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#20b598',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+        //主题配置
+        THEME = [
+            {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#0c0c0c',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#197971',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#0c0c0c',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#20b598',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#722ed1',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#0c0c0c',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#722ed1',
-            menuLeftBgHover: '#722ed1',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#722ed1',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#0c0c0c',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#722ed1',
+                menuLeftBgHover: '#722ed1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-        }, {
-            headerBg: '#20b598',
-            headerfontColor: '#fff',
-            headerBgThis: '#197971',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#20b598',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-
-        }, {
-            headerBg: '#20b598',
-            headerfontColor: '#fff',
-            headerBgThis: '#197971',
-            headerBgLogo: '#20b598',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#3b3f4b',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#20b598',
+                headerfontColor: '#fff',
+                headerBgThis: '#197971',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#20b598',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#722ed1',
-            headerfontColor: '#fff',
-            headerBgThis: '#197971',
-            headerBgLogo: '#722ed1',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#722ed1',
-            menuLeftBgHover: '#722ed1',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#20b598',
+                headerfontColor: '#fff',
+                headerBgThis: '#197971',
+                headerBgLogo: '#20b598',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#3b3f4b',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#00a65a',
-            headerBgThis: '#197971',
-            headerBgLogo: '#00a65a',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#222d32',
-            menuLeftBgThis: '#00a65a',
-            menuLeftBgHover: '#00a65a',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#722ed1',
+                headerfontColor: '#fff',
+                headerBgThis: '#197971',
+                headerBgLogo: '#722ed1',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#722ed1',
+                menuLeftBgHover: '#722ed1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#23262e',
-            headerfontColor: '#fff',
-            headerBgThis: '#0c0c0c',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#3b3f4b',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#00a65a',
+                headerBgThis: '#197971',
+                headerBgLogo: '#00a65a',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#222d32',
+                menuLeftBgThis: '#00a65a',
+                menuLeftBgHover: '#00a65a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#ffa4d1',
-            headerfontColor: '#fff',
-            headerBgThis: '#bf7b9d',
-            headerBgLogo: '#e694bd',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#ffa4d1',
-            menuLeftBgHover: '#ffa4d1',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-        }, {
-            headerBg: '#1e9fff',
-            headerfontColor: '#fff',
-            headerBgThis: '#0069b7',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#1e9fff',
-            menuLeftBgHover: '#1e9fff',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-        }, {
-            headerBg: '#ffb800',
-            headerfontColor: '#fff',
-            headerBgThis: '#d09600',
-            headerBgLogo: '#243346',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#ffb800',
-            menuLeftBgHover: '#ffb800',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#23262e',
+                headerfontColor: '#fff',
+                headerBgThis: '#0c0c0c',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#3b3f4b',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#e82121',
-            headerfontColor: '#fff',
-            headerBgThis: '#ae1919',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#e82121',
-            menuLeftBgHover: '#e82121',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#ffa4d1',
+                headerfontColor: '#fff',
+                headerBgThis: '#bf7b9d',
+                headerBgLogo: '#e694bd',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#ffa4d1',
+                menuLeftBgHover: '#ffa4d1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-        }, {
-            headerBg: '#963885',
-            headerfontColor: '#fff',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#243346',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#963885',
-            menuLeftBgHover: '#963885',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#1e9fff',
+                headerfontColor: '#fff',
+                headerBgThis: '#0069b7',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#1e9fff',
+                menuLeftBgHover: '#1e9fff',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-
-        }, {
-            headerBg: '#1e9fff',
-            headerfontColor: '#fff',
-            headerBgThis: '#0069b7',
-            headerBgLogo: '#0069b7',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#1e9fff',
-            menuLeftBgHover: '#1e9fff',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-        }, {
-            headerBg: '#ffb800',
-            headerfontColor: '#fff',
-            headerBgThis: '#d09600',
-            headerBgLogo: '#d09600',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#ffb800',
-            menuLeftBgHover: '#ffb800',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#ffb800',
+                headerfontColor: '#fff',
+                headerBgThis: '#d09600',
+                headerBgLogo: '#243346',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#ffb800',
+                menuLeftBgHover: '#ffb800',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#e82121',
-            headerfontColor: '#fff',
-            headerBgThis: '#ae1919',
-            headerBgLogo: '#d91f1f',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#e82121',
-            menuLeftBgHover: '#e82121',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#e82121',
+                headerfontColor: '#fff',
+                headerBgThis: '#ae1919',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#e82121',
+                menuLeftBgHover: '#e82121',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#963885',
+                headerfontColor: '#fff',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#243346',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#963885',
+                menuLeftBgHover: '#963885',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
 
-        }, {
-            headerBg: '#e82121',
-            headerfontColor: '#fff',
-            headerBgThis: '#ae1919',
-            headerBgLogo: '#772c6a',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#1f1f1f',
-            menuLeftBgThis: '#e82121',
-            menuLeftBgHover: '#e82121',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#1e9fff',
+                headerfontColor: '#fff',
+                headerBgThis: '#0069b7',
+                headerBgLogo: '#0069b7',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#1e9fff',
+                menuLeftBgHover: '#1e9fff',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-        }, {
-            headerBg: '#963885',
-            headerfontColor: '#fff',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#772c6a',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#2f4056',
-            menuLeftBgThis: '#963885',
-            menuLeftBgHover: '#963885',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#ffb800',
+                headerfontColor: '#fff',
+                headerBgThis: '#d09600',
+                headerBgLogo: '#d09600',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#ffb800',
+                menuLeftBgHover: '#ffb800',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
 
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#1c2175',
-            headerLogofontColor: '#1c2175',
-            menuLeftBg: '#1c2175',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#772c6a',
-            menuLeftDlBg: '#272c91',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#23287c',
-            headerLogofontColor: '#23287c',
-            menuLeftBg: '#23287c',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#772c6a',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#772c6a',
-            headerLogofontColor: '#772c6a',
-            menuLeftBg: '#23287c',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#23287c',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        },
-    ];
+
+            }, {
+                headerBg: '#e82121',
+                headerfontColor: '#fff',
+                headerBgThis: '#ae1919',
+                headerBgLogo: '#d91f1f',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#e82121',
+                menuLeftBgHover: '#e82121',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+
+            }, {
+                headerBg: '#e82121',
+                headerfontColor: '#fff',
+                headerBgThis: '#ae1919',
+                headerBgLogo: '#772c6a',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#e82121',
+                menuLeftBgHover: '#e82121',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#963885',
+                headerfontColor: '#fff',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#772c6a',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#963885',
+                menuLeftBgHover: '#963885',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#1c2175',
+                headerLogofontColor: '#1c2175',
+                menuLeftBg: '#1c2175',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: '#272c91',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#23287c',
+                headerLogofontColor: '#23287c',
+                menuLeftBg: '#23287c',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#772c6a',
+                headerLogofontColor: '#772c6a',
+                menuLeftBg: '#23287c',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#23287c',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            },
+        ];
     var Backend = {
         /*** 版本*/
         v: '1.5.0',
@@ -313,8 +314,8 @@ layui.define(["jquery", 'layer'], function (exports) {
                 colorId = 0;
             }
             var bg = THEME[colorId]['menuLeftBgThis'];
-            if(colorId){
-                $(document).find('.fun-loading').find('span').css('background-color',THEME[colorId]['menuLeftBgHover']);
+            if (colorId) {
+                $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
             }
             setTimeout(function () {
                 //判断是否锁定了界面
@@ -322,11 +323,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 if (layui.data('BackendLock').lock) {
                     layer.prompt({
                         btn: [__('Unlock Now')],
-                        title: [__('Input Password'), 'background:' + bg + ';color:'+THEME[colorId]['menuLeftfontColor']],
+                        title: [__('Input Password'), 'background:' + bg + ';color:' + THEME[colorId]['menuLeftfontColor']],
                         closeBtn: 0,
                         formType: 1,
-                        success: function(layero, index){
-                            layero.find('.layui-layer-btn0').css('background',bg)
+                        success: function (layero, index) {
+                            layero.find('.layui-layer-btn0').css('background', bg)
                         }
                     }, function (value, index) {
                         if (value.length < 1) {
@@ -410,9 +411,9 @@ layui.define(["jquery", 'layer'], function (exports) {
                 $("#layui-side-left-menu [data-url]").each(function () {
                     var layId_this = $(this).attr('lay-id');
                     // if (funTabInfo[layId_this]){
-                    if (layId_this === layId){
+                    if (layId_this === layId) {
                         var text = $(this).data('tips') || $(this).attr('title'),
-                        url = $(this).data('url'), icon = $(this).find('i').attr('class');
+                            url = $(this).data('url'), icon = $(this).find('i').attr('class');
                         Backend.addTab({
                             layId: layId_this,
                             url: url,
@@ -461,11 +462,12 @@ layui.define(["jquery", 'layer'], function (exports) {
             }
             Backend.changeSessioinTabId(options.layId);
             layui.sessionData('funTabInfo', {
-                    key: options.layId,
-                    value: options.layId,
-                });
-            var ele = element;if(options.iframe) ele = parent.layui.element;
-            var checkLayId = Backend.checkLayId(options.layId),loadindex;
+                key: options.layId,
+                value: options.layId,
+            });
+            var ele = element;
+            if (options.iframe) ele = parent.layui.element;
+            var checkLayId = Backend.checkLayId(options.layId), loadindex;
             if (!checkLayId) {
                 loadindex = layer.load();
                 ele.tabAdd('layui-layout-tabs', {
@@ -500,7 +502,11 @@ layui.define(["jquery", 'layer'], function (exports) {
             var checkId = false;
             $(".layui-tab .layui-tab-title li").each(function () {
                 var checklayId = $(this).attr('lay-id');
-                if (checklayId != null && checklayId === layId) {checkId = true;}});return checkId !== false;
+                if (checklayId != null && checklayId === layId) {
+                    checkId = true;
+                }
+            });
+            return checkId !== false;
         },
 
         /**
@@ -685,8 +691,8 @@ layui.define(["jquery", 'layer'], function (exports) {
                     btn: [__('Lock Now')],
                     title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
                     formType: 1,
-                    success: function(layero, index){
-                        layero.find('.layui-layer-btn0').css('background',THEME[colorId]['menuLeftBgThis'])
+                    success: function (layero, index) {
+                        layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
                     }
                 }, function (value, index) {
                     if (value.length < 1) {
@@ -703,8 +709,8 @@ layui.define(["jquery", 'layer'], function (exports) {
                             title: [__('Input Password'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
                             closeBtn: 0,
                             formType: 1,
-                            success: function(layero, index){
-                                layero.find('.layui-layer-btn0').css('background',THEME[colorId]['menuLeftBgThis'])
+                            success: function (layero, index) {
+                                layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
                             }
                         }, function (value, index) {
                             if (value.length < 1) {
@@ -745,7 +751,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                 if ($container.hasClass(SIDE_SHRINK)) {
                     if (type === 1) {
                         let tip = othis.data('tips');
-                        layer.tips(tip,othis);
+                        layer.tips(tip, othis);
                     } else {
                         layer.close();
                     }
@@ -832,7 +838,7 @@ layui.define(["jquery", 'layer'], function (exports) {
             logout: function (othis) {
                 var url = othis.data('ajax');
                 Fun.toastr.confirm(__('Are you sure todo this'), function () {
-                    Fun.ajax({url:url,method:'post'}, function (res) {
+                    Fun.ajax({url: url, method: 'post'}, function (res) {
                         if (res.code > 0) {
                             Fun.toastr.success(res.msg, setTimeout(function () {
                                 window.location = res.url;
@@ -870,11 +876,11 @@ layui.define(["jquery", 'layer'], function (exports) {
                 /*菜单点击*/
                 $document.on('click', '*[lay-id]', function () {
                     var _that = $(this)
-                        , url = _that.data('url')?_that.data('url'):_that.data('iframe')
+                        , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                         , layId = _that.attr('data-id')
                         , text = _that.data('tips') || $(this).attr('title')
                         , icon = _that.find('i').attr('class')
-                        , iframe= _that.has('data-iframe')?true: false,
+                        , iframe = _that.has('data-iframe') ? true : false,
                         target = _that.prop('target');
                     layId = layId ? layId : url;
                     if (!$(this).data("url")) {
@@ -882,7 +888,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                         var child = _that.next('.layui-nav-child');
                         var height = child.height();
                         // 检测屏幕是否是展开状态
-                        if(!Fun.api.checkScreen() && $('.'+SIDE_SHRINK).length>0){
+                        if (!Fun.api.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
                             return false;
                         }
                         child.css({display: "block"});
@@ -902,9 +908,9 @@ layui.define(["jquery", 'layer'], function (exports) {
                             window.open(url, "_blank");
                             return false;
                         }
-                        let options = {layId: layId, text: text, url: url, icon: icon,iframe:iframe};
+                        let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
                         Backend.addTab(options);
-                        if(Backend.checkScreen()){
+                        if (Backend.checkScreen()) {
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
                     }
@@ -919,12 +925,12 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this);
-                    if(!Fun.api.checkScreen()){
+                    if (!Fun.api.checkScreen()) {
                         var top = _that.offset().top;
                         _that.removeClass('layui-nav-itemed');
                         _that.addClass('layui-nav-hover');
                         _that.children('dl').addClass('layui-nav-child-drop');
-                        _that.children('dl').css('top',top+'px');
+                        _that.children('dl').css('top', top + 'px');
                     }
                 }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
                     var _that = $(this);
@@ -935,8 +941,8 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop dd", function () {
                     var _that = $(this);
-                    if(!Fun.api.checkScreen()){
-                        if(_that.find('dl')){
+                    if (!Fun.api.checkScreen()) {
+                        if (_that.find('dl')) {
                             var top = _that.offset().top;
                             var left = _that.offset().left + _that.width();
                             _that.children('dl').addClass('layui-nav-child-drop');
@@ -960,14 +966,14 @@ layui.define(["jquery", 'layer'], function (exports) {
                 //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
                 // });
                 /*** 鼠标事件*/
-                $("#layui-tab-header > li").bind("contextmenu",function(e){
+                $(document).bind("contextmenu","#layui-tab-header > li", function (e) {
                     e.preventDefault();
                     return false;//
                 });
                 $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
                     event = event || window.event;  //兼容写法
                     if (event.which === 3) {
-                        var _that = $(this),leftwith = _that.offset().left + (_that.outerWidth()) / 2;
+                        var _that = $(this), leftwith = _that.offset().left + (_that.outerWidth()) / 2;
                         if ($('body').find('#layui-nav-righmenu').length === 0) {
                             var menuContent = '<div id="layui-nav-righmenu"><div class="rightMenu" style="left: ' + leftwith + 'px">\n' +
                                 '<div lay-event="refresh"><a href="javascript:;"><i class="layui-icon layui-icon-refresh"></i>刷新当前页</a></div>\n' +
@@ -977,7 +983,7 @@ layui.define(["jquery", 'layer'], function (exports) {
                                 '</div><div class="layui-rightmenu-shade"></div></div>';
                             _that.parents('.layui-tab-title').after(menuContent);
                         } else {
-                            $('.rightMenu').css('left',leftwith+'px');
+                            $('.rightMenu').css('left', leftwith + 'px');
                         }
                     }
                 });

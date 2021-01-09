@@ -12,27 +12,19 @@
  */
 
 namespace app\common\controller;
-use app\backend\lib\AuthService;
-use app\backend\model\Admin;
-use app\backend\model\AuthRule;
 use app\BaseController;
 use app\common\traits\Jump;
-use fun\helper\SignHelper;
+use app\common\traits\Curd;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\exception\ValidateException;
 use think\facade\Cookie;
-use think\facade\Db;
 use think\facade\Lang;
-use think\facade\Request;
-use think\facade\Session;
-use think\facade\View;
-use think\helper\Str;
 
 class Backend extends BaseController
 {
     use Jump;
-
+    use Curd;
     /**
     * @var
      * 模型
@@ -48,18 +40,15 @@ class Backend extends BaseController
      * 页数
      */
     protected $page;
-
     /**
      * 模板布局, false取消
      * @var string|bool
      */
     protected $layout = 'layout/main';
-
     /**
      * 快速搜索时执行查找的字段
      */
     protected $searchFields = 'id';
-
 
     protected $allowModifyFileds = [
         'status',
@@ -71,7 +60,6 @@ class Backend extends BaseController
      * 是否是关联查询
      */
     protected $relationSearch = false;
-
     public function __construct(App $app)
     {
         parent::__construct($app);
@@ -86,9 +74,7 @@ class Backend extends BaseController
         $this->pageSize = input('limit', 15);
         //加载语言包
         $this->loadlang($controller,'');
-
     }
-
     public function enlang()
     {
         $lang = $this->request->get('lang');
@@ -114,7 +100,6 @@ class Backend extends BaseController
     {
         return Captcha::create();
     }
-
     //自动加载语言
     protected function loadlang($name,$addon)
     {
@@ -130,7 +115,6 @@ class Backend extends BaseController
             ]);
         }
         return $res;
-
     }
     protected function validate(array $data, $validate, array $message = [], bool $batch = false)
     {

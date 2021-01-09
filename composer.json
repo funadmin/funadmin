@@ -1,72 +1,69 @@
 {
-    "name": "funadmin/funadmin",
-    "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的敏捷开发应用框架",
-    "type": "project",
-    "license": "Apache-2.0",
-    "keywords": [
-        "FunAdmin",
-        "Requirejs",
-        "easywechat",
-        "framework",
-        "thinkphp",
-        "thinkphp6",
-        "ORM"
-    ],
-    "homepage": "https://www.funadmin.com",
-    "authors": [
-        {
-            "name": "funadmin",
-            "email": "fun@gmail.com"
-        }
-    ],
-    "require": {
-        "php": ">=7.2.0",
-        "ext-json": "*",
-        "topthink/framework": "6.0.x-dev",
-        "topthink/think-orm": "2.0.*",
-        "topthink/think-view": "^1.0",
-        "topthink/think-image": "^1.0",
-        "topthink/think-queue": "^3.0",
-        "topthink/think-captcha": "^3.0",
-        "topthink/think-helper": "^3.1",
-        "topthink/think-multi-app": "^1.0",
-        "phpmailer/phpmailer": "^6.1",
-        "phpoffice/phpspreadsheet": "^1.15",
-        "aliyuncs/oss-sdk-php": "^2.4",
-        "qcloud/cos-sdk-v5": "^2.1",
-        "qiniu/php-sdk": "^7.3",
-        "topthink/think-ide-helper": "^1.0",
-        "topthink/think-annotation": "^1.1",
-        "topthink/think-throttle": "^1.1",
-        "james-heinrich/getid3": "^1.9",
-        "overtrue/wechat": "^5.2",
-        "overtrue/socialite": "^3.0",
-        "ramsey/uuid": "^4.1",
-        "funadmin/fun-addons": "v1.5"
-    },
-    "require-dev": {
-        "symfony/var-dumper": "^4.4"
-    },
-    "autoload": {
-        "psr-4": {
-            "app\\": "app"
-            },
-
-        "psr-0": {
-            "": "extend/"
-        },
-        "files": [
-            "extend/fun/form.php"
-        ]
-    },
-    "config": {
-        "preferred-install": "dist"
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "@php think service:discover",
-            "@php think vendor:publish"
-        ]
+  "name": "funadmin/funadmin",
+  "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的敏捷开发应用框架",
+  "type": "project",
+  "license": "Apache-2.0",
+  "keywords": [
+    "FunAdmin",
+    "Requirejs",
+    "easywechat",
+    "framework",
+    "thinkphp",
+    "thinkphp6",
+    "ORM"
+  ],
+  "homepage": "https://www.funadmin.com",
+  "authors": [
+    {
+      "name": "funadmin",
+      "email": "994927909@qq.com"
     }
-
+  ],
+  "require": {
+    "php": ">=7.2.0",
+    "ext-json": "*",
+    "topthink/framework": "6.0.x-dev",
+    "topthink/think-orm": "2.0.*",
+    "topthink/think-view": "^1.0",
+    "topthink/think-image": "^1.0",
+    "topthink/think-queue": "^3.0",
+    "topthink/think-captcha": "^3.0",
+    "topthink/think-helper": "^3.1",
+    "topthink/think-multi-app": "^1.0",
+    "phpmailer/phpmailer": "^6.2",
+    "phpoffice/phpspreadsheet": "^1.16",
+    "aliyuncs/oss-sdk-php": "^2.4",
+    "qcloud/cos-sdk-v5": "^2.1",
+    "qiniu/php-sdk": "^7.3",
+    "topthink/think-ide-helper": "^1.0",
+    "topthink/think-throttle": "^1.1",
+    "james-heinrich/getid3": "^1.9",
+    "overtrue/wechat": "^5.2",
+    "overtrue/socialite": "^3.1",
+    "ramsey/uuid": "^4.1",
+    "funadmin/fun-addons": "v1.2"
+  },
+  "require-dev": {
+    "symfony/var-dumper": "^4.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "app\\": "app"
+    },
+    "psr-0": {
+      "": "extend/"
+    },
+    "files": [
+      "extend/fun/form.php"
+    ]
+  },
+  "config": {
+    "preferred-install": "dist"
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "@php think service:discover",
+      "@php think vendor:publish"
+    ]
+  }
 }

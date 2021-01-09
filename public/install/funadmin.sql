@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost:3306
--- 生成日期： 2020-12-09 17:28:04
+-- 生成日期： 2020-12-24 19:59:52
 -- 服务器版本： 5.7.26-log
 -- PHP 版本： 7.4.9
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- 数据库： `www_fun_com`
+-- 数据库： `funadmin`
 --
 
 -- --------------------------------------------------------
@@ -43,704 +43,6 @@ CREATE TABLE `fun_addon` (
   `create_time` int(10) UNSIGNED DEFAULT NULL COMMENT '创建时间',
   `update_time` int(10) UNSIGNED DEFAULT NULL COMMENT '修改时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公用_插件表';
-
---
--- 转存表中的数据 `fun_addon`
---
-
-INSERT INTO `fun_addon` (`id`, `title`, `name`, `images`, `group`, `description`, `author`, `version`, `require`, `website`, `is_hook`, `status`, `create_time`, `update_time`) VALUES
-(11, '数据库管理', 'database', '', '', '数据库插件-FunAdmin数据库管理插件', 'yuege', '0.1', '0.1', '', 0, 1, 1603601991, 1606568832),
-(34, 'cms管理系统', 'cms', '', '', 'cms管理插件', 'yuege', '0.1', '0.1', '', 0, 1, 1604721122, 1604721122);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_adv`
---
-
-CREATE TABLE `fun_addons_cms_adv` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT '广告id',
-  `pid` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位置ID',
-  `type` tinyint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告类型 0,图片,1 链接,2 视频',
-  `name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告名称',
-  `url` varchar(255) DEFAULT '' COMMENT '链接地址',
-  `path` mediumtext COMMENT '文件地址',
-  `code` mediumtext COMMENT '代码',
-  `start_time` int(11) NOT NULL DEFAULT '0' COMMENT '投放时间',
-  `end_time` int(11) NOT NULL DEFAULT '0' COMMENT '结束时间',
-  `admin_id` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人',
-  `email` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人邮箱',
-  `phone` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人联系电话',
-  `hits` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击量',
-  `sort` int(20) DEFAULT NULL,
-  `status` tinyint(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '是否显示',
-  `target` tinyint(1) DEFAULT '0' COMMENT '是否开启浏览器新窗口',
-  `bgcolor` varchar(20) DEFAULT NULL COMMENT '背景颜色',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_adv`
---
-
-INSERT INTO `fun_addons_cms_adv` (`id`, `pid`, `type`, `name`, `url`, `path`, `code`, `start_time`, `end_time`, `admin_id`, `email`, `phone`, `hits`, `sort`, `status`, `target`, `bgcolor`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 1, 0, '首页', 'javascript:void(0);', '/static/addons/cms/frontend/images/190703111316458.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#ff8000', 0, 1566106884, 0),
-(2, 1, 0, '首页', 'javascript:void(0);', '/static/addons/cms/frontend/images/190702113753219.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#fea8c1', 0, 0, 0),
-(3, 1, 0, '首页', 'javascript:void(0);', '/static/addons/cms/frontend/images/190702114153240.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#f1e6d2', 0, 0, 0),
-(4, 2, 0, 'news', 'javascript:void(0);', '/static/addons/cms/frontend/images/190704110314965.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#f1dcf7', 0, 1567574061, 0),
-(5, 4, 0, 'about', 'javascript:void(0);', '/static/addons/cms/frontend/images/190704094410753.jpg', NULL, 1451577600, 1767283200, '', '', '', 0, 0, 1, 0, '#000000', 0, 0, 0),
-(6, 4, 0, 'product', 'https://www.baidu.com', '/static/addons/cms/frontend/images/190704110314965.jpg', NULL, 0, 0, '', '994927909@qq.com', '', 0, 0, 1, 0, '', 1566107420, 1582681681, 0),
-(7, 5, 0, 'cases', 'https://www.funadmin.com', '/static/addons/cms/frontend/images/190705114610748.jpg', NULL, 0, 0, '', '', '', 0, NULL, 1, 0, NULL, NULL, NULL, 0),
-(8, 1, 2, 'li ming yue', 'https://swapptest.singlewindow.cn/ceb2grab/grab/realTimeDataUpload', NULL, NULL, 0, 0, '', '', '', 0, NULL, 1, 0, NULL, 1604134926, 1604134926, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_adv_position`
---
-
-CREATE TABLE `fun_addons_cms_adv_position` (
-  `id` int(3) UNSIGNED NOT NULL COMMENT '表id',
-  `name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告位置名称',
-  `width` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位宽度',
-  `height` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位高度',
-  `intro` varchar(255) NOT NULL DEFAULT '' COMMENT '广告描述简洁',
-  `style` mediumtext COMMENT '模板样式',
-  `status` tinyint(1) DEFAULT '0' COMMENT '0关闭1开启',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0' COMMENT '删除时间\r\n'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_adv_position`
---
-
-INSERT INTO `fun_addons_cms_adv_position` (`id`, `name`, `width`, `height`, `intro`, `style`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'Index页面自动增加广告位 1 ', 0, 0, 'Cart页面', '', 1, 0, 0, 0),
-(2, 'about', 0, 0, 'about', '', 1, 0, 0, 0),
-(3, 'news', 0, 0, '', NULL, 1, NULL, 1582519639, 0),
-(4, 'cases', 0, 0, '', NULL, 1, NULL, 1582519640, 0),
-(5, 'product', 0, 0, '', NULL, 1, NULL, 1607484617, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_album`
---
-
-CREATE TABLE `fun_addons_cms_album` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT 'ID',
-  `pid` tinyint(2) UNSIGNED NOT NULL DEFAULT '0' COMMENT '推荐位',
-  `uid` int(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '用户ID',
-  `admin_id` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '管理员id',
-  `author` varchar(50) DEFAULT '' COMMENT '作者',
-  `title` varchar(120) NOT NULL DEFAULT ' ' COMMENT '标题',
-  `seotitle` varchar(255) DEFAULT '' COMMENT 'SEO标题',
-  `thumb` varchar(255) DEFAULT '' COMMENT '缩略图',
-  `keywords` varchar(120) DEFAULT ' ' COMMENT '关键词',
-  `intro` varchar(255) DEFAULT '' COMMENT '简介',
-  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
-  `diyname` varchar(50) DEFAULT '' COMMENT '自定义别名',
-  `tags` varchar(255) DEFAULT ' ' COMMENT '标签',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态 -1 0 1',
-  `likes` int(11) NOT NULL DEFAULT '0' COMMENT '点赞',
-  `dislikes` int(11) NOT NULL DEFAULT '0' COMMENT '踩下',
-  `flags` set('hot','new','recommend','top') DEFAULT '' COMMENT '标识',
-  `is_comment` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '允许评论',
-  `comments` int(11) NOT NULL DEFAULT '0' COMMENT '评论数量\r\n',
-  `is_read` smallint(5) NOT NULL DEFAULT '1' COMMENT '是否可阅读',
-  `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '阅读收费',
-  `sort` int(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '排序',
-  `weight` int(5) NOT NULL DEFAULT '0',
-  `hits` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击',
-  `delete_time` int(11) NOT NULL DEFAULT '0' COMMENT '删除时间',
-  `publish_time` int(11) NOT NULL DEFAULT '0' COMMENT '发布时间',
-  `create_time` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '创建时间',
-  `update_time` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '更新时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='fun_addons_cms_album模型表';
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_article`
---
-
-CREATE TABLE `fun_addons_cms_article` (
-  `id` int(11) NOT NULL COMMENT 'ID',
-  `content` longtext COMMENT '内容'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='fun_addons_cms_article模型表';
-
---
--- 转存表中的数据 `fun_addons_cms_article`
---
-
-INSERT INTO `fun_addons_cms_article` (`id`, `content`) VALUES
-(2, '中eeeeeeeeeeeeee'),
-(11, '1'),
-(19, '测水水水水水水测水水水水水水测水水水水水水测水水水水水水'),
-(23, '1111111111111111111');
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_category`
---
-
-CREATE TABLE `fun_addons_cms_category` (
-  `id` smallint(5) UNSIGNED NOT NULL,
-  `catename` varchar(255) NOT NULL DEFAULT '' COMMENT '栏目名字',
-  `cateflag` varchar(30) NOT NULL DEFAULT '' COMMENT '栏目唯一标识',
-  `pid` smallint(5) UNSIGNED NOT NULL DEFAULT '0',
-  `arrpid` varchar(100) DEFAULT '0',
-  `arrchildid` varchar(100) NOT NULL DEFAULT ''''' ',
-  `moduleid` tinyint(2) UNSIGNED NOT NULL DEFAULT '0' COMMENT '模型id',
-  `tablename` char(30) NOT NULL DEFAULT '' COMMENT '模型名字',
-  `items` int(11) NOT NULL DEFAULT '0' COMMENT '所属栏目下的文章数量\r\n',
-  `type` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '1普通列表2 单页，3外链 4频道分页',
-  `is_release` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否可以发布文章',
-  `seotitle` varchar(255) DEFAULT NULL COMMENT 'seotitle',
-  `title` varchar(150) NOT NULL DEFAULT '' COMMENT '标题',
-  `keywords` varchar(200) NOT NULL DEFAULT '' COMMENT '关键字',
-  `intro` varchar(255) NOT NULL DEFAULT '' COMMENT '描述',
-  `content` text COMMENT '介绍',
-  `sort` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '排序',
-  `is_menu` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否菜单',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否显示 -1  0 1',
-  `hits` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击量',
-  `thumb` varchar(255) NOT NULL DEFAULT '' COMMENT '图片',
-  `url` varchar(100) NOT NULL DEFAULT '' COMMENT '外部链接地址',
-  `template_column` varchar(100) DEFAULT NULL COMMENT '栏目封面模板',
-  `template_list` varchar(50) NOT NULL DEFAULT '',
-  `template_show` varchar(50) NOT NULL,
-  `page_size` tinyint(4) NOT NULL DEFAULT '15',
-  `create_time` int(11) NOT NULL DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_category`
---
-
-INSERT INTO `fun_addons_cms_category` (`id`, `catename`, `cateflag`, `pid`, `arrpid`, `arrchildid`, `moduleid`, `tablename`, `items`, `type`, `is_release`, `seotitle`, `title`, `keywords`, `intro`, `content`, `sort`, `is_menu`, `status`, `hits`, `thumb`, `url`, `template_column`, `template_list`, `template_show`, `page_size`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, '首页', 'index', 0, '0', '1', 2, 'addons_cms_article', 0, 2, 1, NULL, '首页', '首页', '首页', '', 50, 1, 1, 0, '', '', 'column.html', 'list.html', 'show.html', 15, 1605612919, 1606566178, 0),
-(2, '新闻中心', 'news', 0, '0', '2,3', 2, 'addons_cms_article', 0, 4, 1, NULL, '新闻中心', '新闻中心', '新闻中心', '', 50, 1, 1, 0, '', '', 'column_article.html', 'list.html', 'show.html', 15, 1606877600, 1606877673, 0),
-(3, '软件', 'soft', 2, '0,2', '3', 2, 'addons_cms_article', 2, 1, 1, NULL, '软件', '软件', '软件', '', 50, 0, 1, 0, '', '', 'column.html', 'list.html', 'show.html', 15, 1606877665, 1606877665, 0),
-(4, '产品中心', 'product', 0, '0', '4,5', 3, 'addons_cms_product', 0, 4, 1, NULL, 'product', 'product', 'product', 'product', 50, 1, 1, 0, '', '', 'column.html', 'list.html', 'show.html', 15, 1607398264, 1607398338, 0),
-(5, 'cms插件', 'cms', 4, '0,4', '5', 3, 'addons_cms_product', 9, 1, 1, NULL, 'cms插件', 'cms插件', 'cms插件', '', 50, 1, 1, 0, '', '', 'column.html', 'list.html', 'show.html', 15, 1607398319, 1607398319, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_debris`
---
-
-CREATE TABLE `fun_addons_cms_debris` (
-  `id` int(6) UNSIGNED NOT NULL,
-  `pid` int(6) DEFAULT NULL COMMENT '碎片分类ID',
-  `title` varchar(120) DEFAULT NULL COMMENT '标题',
-  `content` text COMMENT '内容',
-  `sort` int(11) DEFAULT '50' COMMENT '排序',
-  `url` varchar(120) DEFAULT '' COMMENT '链接',
-  `image` varchar(120) DEFAULT '' COMMENT '图片',
-  `status` tinyint(1) DEFAULT '1',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_debris`
---
-
-INSERT INTO `fun_addons_cms_debris` (`id`, `pid`, `title`, `content`, `sort`, `url`, `image`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 1, '底部版权', 'Copyright © 2018-2019. funadmin | 备案：湘ICP备18009588号 | Powered by funadmin', 50, 'http://127.0.0.1:88/', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', 1, 1579333649, 1604317428, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_debris_position`
---
-
-CREATE TABLE `fun_addons_cms_debris_position` (
-  `id` int(11) NOT NULL,
-  `title` varchar(120) DEFAULT NULL,
-  `sort` int(1) DEFAULT '50',
-  `status` tinyint(1) DEFAULT '1',
-  `create_time` int(11) DEFAULT '0',
-  `updated_time` int(11) NOT NULL DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_debris_position`
---
-
-INSERT INTO `fun_addons_cms_debris_position` (`id`, `title`, `sort`, `status`, `create_time`, `updated_time`, `delete_time`) VALUES
-(1, '底部版权', 1, 1, 0, 0, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_diyform`
---
-
-CREATE TABLE `fun_addons_cms_diyform` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` char(30) NOT NULL COMMENT '表单名称',
-  `title` varchar(100) DEFAULT NULL COMMENT '	表单标题',
-  `seotitle` varchar(255) DEFAULT NULL,
-  `keywords` varchar(100) DEFAULT NULL COMMENT '关键字',
-  `intro` varchar(255) DEFAULT NULL COMMENT '描述',
-  `tablename` varchar(30) DEFAULT NULL COMMENT '表名',
-  `fieldlist` varchar(255) DEFAULT NULL COMMENT '字段列表',
-  `needlogin` tinyint(1) DEFAULT '0' COMMENT '是否需要登录 0 不需要',
-  `successtips` varchar(50) DEFAULT NULL COMMENT '成功提示文字',
-  `redirecturl` varchar(120) DEFAULT NULL COMMENT '成功后跳转链接	',
-  `template` varchar(50) DEFAULT NULL,
-  `status` tinyint(1) DEFAULT '1',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_diyform`
---
-
-INSERT INTO `fun_addons_cms_diyform` (`id`, `name`, `title`, `seotitle`, `keywords`, `intro`, `tablename`, `fieldlist`, `needlogin`, `successtips`, `redirecturl`, `template`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, '留言', '留言', '留言', '留言', '留言', 'cms_message', 'username,mobile,wechat,', 0, NULL, NULL, NULL, 1, NULL, NULL, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_download`
---
-
-CREATE TABLE `fun_addons_cms_download` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT 'ID',
-  `content` longtext NOT NULL COMMENT '内容'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='fun_addons_cms_download模型表';
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_field`
---
-
-CREATE TABLE `fun_addons_cms_field` (
-  `id` smallint(5) UNSIGNED NOT NULL,
-  `diyformid` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '自定义表单id',
-  `moduleid` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '模型id',
-  `field` varchar(20) NOT NULL DEFAULT '' COMMENT '字段',
-  `name` varchar(30) NOT NULL DEFAULT '' COMMENT '别名',
-  `required` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否必须',
-  `radix` int(5) NOT NULL DEFAULT '0' COMMENT '小数点',
-  `minlength` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最少长度',
-  `maxlength` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最大长度',
-  `rule` varchar(255) NOT NULL DEFAULT '' COMMENT '规则',
-  `msg` varchar(255) NOT NULL DEFAULT '' COMMENT '错误提示',
-  `type` varchar(20) NOT NULL DEFAULT '' COMMENT '字段类型',
-  `is_filter` tinyint(1) DEFAULT '0' COMMENT '是否帅选',
-  `is_release` tinyint(1) NOT NULL DEFAULT '1' COMMENT '用户是否可以发布',
-  `value` varchar(50) DEFAULT NULL COMMENT '默认值',
-  `field_define` varchar(100) DEFAULT NULL COMMENT '字段定义',
-  `options` text COMMENT '选项',
-  `sort` int(10) UNSIGNED NOT NULL DEFAULT '0',
-  `status` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
-  `create_time` int(11) NOT NULL DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `max_num` int(10) NOT NULL DEFAULT '1',
-  `min_num` int(10) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_field`
---
-
-INSERT INTO `fun_addons_cms_field` (`id`, `diyformid`, `moduleid`, `field`, `name`, `required`, `radix`, `minlength`, `maxlength`, `rule`, `msg`, `type`, `is_filter`, `is_release`, `value`, `field_define`, `options`, `sort`, `status`, `create_time`, `update_time`, `max_num`, `min_num`) VALUES
-(1, 0, 3, 'ces232', 'ces23', 1, 0, 0, 0, '', '', 'text', 1, 1, '', 'varchar(255) DEFAULT \'\'', NULL, 50, 1, 1605525967, 1606543432, 1, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_filing`
---
-
-CREATE TABLE `fun_addons_cms_filing` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT 'ID',
-  `cateid` smallint(5) NOT NULL DEFAULT '0' COMMENT '分类ID',
-  `albumid` tinyint(2) UNSIGNED NOT NULL DEFAULT '0' COMMENT '专辑id',
-  `uid` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '用户id',
-  `adminid` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '管理员id',
-  `author` varchar(50) DEFAULT '' COMMENT '作者',
-  `title` varchar(120) NOT NULL DEFAULT ' ' COMMENT '标题',
-  `seotitle` varchar(255) DEFAULT '' COMMENT 'SEO标题',
-  `titlestyle` varchar(255) DEFAULT '' COMMENT '标题样式',
-  `thumb` varchar(255) DEFAULT '' COMMENT '缩略图',
-  `keywords` varchar(120) DEFAULT ' ' COMMENT '关键词',
-  `intro` varchar(255) DEFAULT '' COMMENT '简介',
-  `remark` varchar(255) DEFAULT NULL COMMENT '备注',
-  `diyname` varchar(50) DEFAULT NULL COMMENT '自定义别名',
-  `tags` varchar(255) DEFAULT ' ' COMMENT '标签',
-  `status` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '状态',
-  `likes` int(11) NOT NULL DEFAULT '0' COMMENT '点赞',
-  `dislikes` int(11) NOT NULL DEFAULT '0' COMMENT '踩下',
-  `flags` set('hot','new','recommend','top') DEFAULT '' COMMENT '标识',
-  `is_comment` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '允许评论',
-  `is_read` smallint(5) NOT NULL DEFAULT '1' COMMENT '是否可阅读',
-  `comments` int(11) NOT NULL DEFAULT '0' COMMENT '评论数量\r\n',
-  `price` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '阅读收费',
-  `sort` int(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '排序',
-  `weight` int(10) NOT NULL DEFAULT '0' COMMENT '权重',
-  `clicks` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击',
-  `delete_time` int(11) NOT NULL DEFAULT '0' COMMENT '删除时间',
-  `publish_time` int(11) NOT NULL DEFAULT '0' COMMENT '发布时间',
-  `create_time` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '创建时间',
-  `update_time` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '更新时间',
-  `userip` char(20) DEFAULT '' COMMENT 'ip'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='fun_addons_cms_muster  集合模型表';
-
---
--- 转存表中的数据 `fun_addons_cms_filing`
---
-
-INSERT INTO `fun_addons_cms_filing` (`id`, `cateid`, `albumid`, `uid`, `adminid`, `author`, `title`, `seotitle`, `titlestyle`, `thumb`, `keywords`, `intro`, `remark`, `diyname`, `tags`, `status`, `likes`, `dislikes`, `flags`, `is_comment`, `is_read`, `comments`, `price`, `sort`, `weight`, `clicks`, `delete_time`, `publish_time`, `create_time`, `update_time`, `userip`) VALUES
-(1, 3, 0, 0, 1, '', '1', '1', '', '', '', '', NULL, NULL, ' ', 1, 0, 0, '', 1, 1, 0, '0.00', 0, 0, 0, 0, 0, 1606889894, 0, ''),
-(2, 1, 0, 0, 3, '1', '2', '1', '#550e0e|bold', '1', '1', '1', '', '1', '1', 1, 0, 0, 'hot', 1, 1, 500, '0.00', 50, 0, 0, 0, 1607443200, 1607481429, 1607482340, ''),
-(7, 5, 0, 0, 0, '', '1231231', '123123', '', '', '12312', '123123', NULL, '121212', '', 1, 1231, 123, '', 1, 1, 123, '0.00', 0, 0, 1231, 0, 1607356800, 1607399003, 1607399003, ''),
-(10, 5, 0, 0, 1, '', '1231231', '123123', '', '', '12312', '123123', NULL, '121212', '', 1, 1231, 123, '', 1, 1, 123, '0.00', 0, 0, 1231, 0, 1607356800, 1607399018, 1607399018, ''),
-(11, 3, 0, 0, 1, '', '1', '1', '', '1', '1', '1', '1', '1', '', 1, 1, 11, '', 1, 1, 1, '0.00', 0, 0, 1, 0, 0, 1607410623, 1607410623, ''),
-(12, 5, 0, 0, 0, '', 'cesi', '121212', '', '/storage/cms/20200226/991a63d847e174beafe78b4994c4f626.jpg', '121212', '121212', '121212', '', '121212,', 1, 121212, 121212, '', 1, 1, 121212, '0.00', 0, 0, 1212121, 0, 0, 1607410725, 1607410725, ''),
-(13, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412452, 1607412452, ''),
-(14, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412494, 1607412494, ''),
-(15, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412526, 1607412526, ''),
-(16, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412541, 1607412541, ''),
-(17, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412571, 1607412571, ''),
-(18, 5, 0, 0, 1, '', '测试', '测试', '', '测试', '测试', '测试', '测试', '测试', '', 1, 1, 1, '', 1, 1, 1, '1.00', 0, 0, 1, 0, 0, 1607412595, 1607412595, ''),
-(19, 3, 0, 0, 1, '', '测水水水水水水', '测水水水水水水', '', '测水水水水水水', '测水水水水水水', '测水水水水水水', '测水水水水水水', '测水水水水水水', '请问,322432,', 1, 1, 1, '', 1, 1, 1, '0.00', 0, 0, 1, 0, 0, 1607412640, 1607412640, ''),
-(20, 5, 0, 0, 1, '', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '#7d1e1e|', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码,', 1, 1, 1, '', 1, 1, 1, '0.00', 0, 0, 1, 0, 1607356800, 1607413454, 1607420200, ''),
-(21, 5, 0, 0, 1, '', '秒杀和批发相比来说，不用修改那么多代码1111111111111111', '秒杀和批发相比来说，不用修改那么多代码', '', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码,', 1, 1, 1, '', 1, 1, 1, '0.00', 0, 0, 1, 0, 1607356800, 1607414404, 1607414404, ''),
-(22, 5, 0, 0, 1, '', '秒杀和批发相比来说，不用修改那么多代码22222222222', '秒杀和批发相比来说，不用修改那么多代码', '', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码2', '秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码', '阿斯蒂芬,啊打发打发,', 1, 1, 1, '', 1, 1, 1, '0.00', 0, 0, 1, 0, 1608220800, 1607414706, 1607416198, ''),
-(23, 3, 0, 0, 3, '', '2222222222222', '1111111111111112111', '#bb2828|bold', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '111111111111111111111', '111111111111111111111', '111111111111111111111111', '111111111111', 'ad,sdf,asdfasdf,2323,fasdf,asdfafd,dfasddddddddddddddddddddddddddddddddddd,sdddddddddddddddddddddddddd,asdddddddddddddddddddddddddddd,11111111111111111111111111,1233333333333333333,', 1, 0, 0, '', 1, 1, 0, '0.00', 0, 0, 1, 0, 1607443200, 1607417299, 1607482387, '');
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_link`
---
-
-CREATE TABLE `fun_addons_cms_link` (
-  `id` int(5) NOT NULL,
-  `name` varchar(50) NOT NULL COMMENT '链接名称',
-  `thumb` varchar(255) DEFAULT NULL COMMENT '缩略图',
-  `url` varchar(200) NOT NULL COMMENT '链接URL',
-  `category_id` tinyint(4) DEFAULT '0' COMMENT '所属栏目ID',
-  `email` varchar(100) DEFAULT NULL COMMENT '邮箱',
-  `qq` varchar(20) DEFAULT NULL COMMENT '联系QQ',
-  `sort` int(5) NOT NULL DEFAULT '50' COMMENT '排序',
-  `status` tinyint(2) NOT NULL DEFAULT '1' COMMENT '-1 删除 0禁用1启用',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_link`
---
-
-INSERT INTO `fun_addons_cms_link` (`id`, `name`, `thumb`, `url`, `category_id`, `email`, `qq`, `sort`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(23, 'funadmin', ' ', 'https://www.funadmin.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566102829, 1577524944, 0),
-(25, '百度', '', 'https://www.baidu.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566103165, 1606530296, 0),
-(26, '新浪', '', 'https://www.sina.com', 0, '994927909@qq.com', '994927909', 50, 1, 1566103233, 1606538698, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_message`
---
-
-CREATE TABLE `fun_addons_cms_message` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `username` varchar(30) DEFAULT NULL,
-  `company` varchar(50) DEFAULT NULL,
-  `mobile` varchar(11) DEFAULT NULL,
-  `wechat` varchar(50) DEFAULT NULL,
-  `content` varchar(150) DEFAULT NULL,
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='留言表';
-
---
--- 转存表中的数据 `fun_addons_cms_message`
---
-
-INSERT INTO `fun_addons_cms_message` (`id`, `username`, `company`, `mobile`, `wechat`, `content`, `create_time`, `update_time`) VALUES
-(1, 'ce', 'ce', 'ce', 'e', 'e', NULL, NULL);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_module`
---
-
-CREATE TABLE `fun_addons_cms_module` (
-  `id` tinyint(3) UNSIGNED NOT NULL,
-  `modulename` varchar(100) NOT NULL DEFAULT '' COMMENT '模型名称',
-  `tablename` varchar(50) NOT NULL DEFAULT '' COMMENT '表名',
-  `intro` varchar(200) NOT NULL DEFAULT '' COMMENT '描述',
-  `ispage` tinyint(1) DEFAULT '0' COMMENT '是否单页',
-  `listfields` varchar(255) DEFAULT '' COMMENT '字段集合',
-  `template` varchar(255) NOT NULL DEFAULT ' ',
-  `sort` smallint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '排序',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态',
-  `create_time` int(11) DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='模型表';
-
---
--- 转存表中的数据 `fun_addons_cms_module`
---
-
-INSERT INTO `fun_addons_cms_module` (`id`, `modulename`, `tablename`, `intro`, `ispage`, `listfields`, `template`, `sort`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(2, '文章表', 'addons_cms_article', '', 0, '*', '[\"column_article.html\",\"list_article.html\",\"show_article.html\"]', 50, 1, 1605315495, 1605315495, 0),
-(3, '产品模型模型', 'addons_cms_product', '产品模型', 0, '*', '[\"column_product.html\",\"list_product.html\",\"show_article.html\"]', 50, 1, 1605316149, 1605316149, 0),
-(4, '下载模型', 'addons_cms_download', '下载模型', 0, '*', '[\"column_download.html\",\"list_pic.html\",\"show_about.html\"]', 50, 1, 1605316504, 1605362006, 0);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_product`
---
-
-CREATE TABLE `fun_addons_cms_product` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT 'ID',
-  `content` longtext NOT NULL COMMENT '内容',
-  `ces232` varchar(255) DEFAULT '' COMMENT 'ces23'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='fun_addons_cms_product模型表';
-
---
--- 转存表中的数据 `fun_addons_cms_product`
---
-
-INSERT INTO `fun_addons_cms_product` (`id`, `content`, `ces232`) VALUES
-(12, '121212', ''),
-(18, '测试', '测试2222'),
-(20, '秒杀和批发相比来说，不用修改那么多代码秒杀和批发相比来说，不用修改那么多代码', '秒杀和批发相比来说，不用修改那么多代码秒杀和批发相比来说，不用修改那么多代码秒杀和批发相比来说，不用修改那么多代码'),
-(21, '秒杀和批发相比来说，不用修改那么多代码秒杀和批发相比来说，不用修改那么多代码', ''),
-(22, '秒杀和批发相比来说，不用修改那么多代码秒杀和批发相比来说，不用修改那么多代码111111', '测试2');
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addons_cms_tags`
---
-
-CREATE TABLE `fun_addons_cms_tags` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `name` varchar(80) NOT NULL,
-  `clicks` int(11) DEFAULT '0',
-  `nums` int(11) DEFAULT '0',
-  `filing_ids` text,
-  `status` tinyint(1) NOT NULL DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addons_cms_tags`
---
-
-INSERT INTO `fun_addons_cms_tags` (`id`, `name`, `clicks`, `nums`, `filing_ids`, `status`) VALUES
-(5, 'funadmin', 8, 3, ',1', 1),
-(6, 'layui', 2, 5, ',2,1', 1),
-(7, 'tp6', 0, 0, NULL, 1),
-(8, 'thinkphp', 0, 2, ',2', 1),
-(9, 'easywechat', 0, 1, ',2', 1),
-(10, 'requrejs', 0, 0, NULL, 1),
-(11, '1', 0, 41, ',2', 1),
-(12, '请问', 0, 0, NULL, 1),
-(13, '322432', 0, 0, NULL, 1),
-(14, '秒杀和批发相比来说，不用修改那么多代码', 0, 2476, ',21,22,20', 1),
-(15, '阿斯蒂芬', 0, 6, '22', 1),
-(16, '啊打发打发', 0, 1, '22', 1),
-(17, 'ad', 0, 7, '23', 1),
-(18, 'sdf', 0, 7, '23', 1),
-(19, 'asdfasdf', 0, 7, '23', 1),
-(20, '2323', 0, 7, '23', 1),
-(21, 'fasdf', 0, 7, '23', 1),
-(22, 'asdfafd', 0, 7, '23', 1),
-(23, 'dfasddddddddddddddddddddddddddddddddddd', 0, 7, '23', 1),
-(24, 'sdddddddddddddddddddddddddd', 0, 7, '23', 1),
-(25, 'asdddddddddddddddddddddddddddd', 0, 7, '23', 1),
-(26, '11111111111111111111111111', 0, 7, '23', 1),
-(27, '1233333333333333333', 0, 7, '23', 1);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addon_spshop_adv`
---
-
-CREATE TABLE `fun_addon_spshop_adv` (
-  `id` int(11) UNSIGNED NOT NULL COMMENT '广告id',
-  `merchant_id` int(10) NOT NULL DEFAULT '1' COMMENT '商户id\r\n',
-  `pid` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位置ID',
-  `media_type` tinyint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告类型',
-  `name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告名称',
-  `url` varchar(255) DEFAULT '' COMMENT '链接地址',
-  `image` mediumtext NOT NULL COMMENT '图片地址',
-  `start_time` int(11) NOT NULL DEFAULT '0' COMMENT '投放时间',
-  `end_time` int(11) NOT NULL DEFAULT '0' COMMENT '结束时间',
-  `link_admin` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人',
-  `email` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人邮箱',
-  `phone` varchar(60) NOT NULL DEFAULT '' COMMENT '添加人联系电话',
-  `click` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击量',
-  `sort` int(20) DEFAULT NULL,
-  `status` tinyint(3) UNSIGNED NOT NULL DEFAULT '1' COMMENT '是否显示',
-  `orderby` smallint(6) DEFAULT '50' COMMENT '排序',
-  `target` tinyint(1) DEFAULT '0' COMMENT '是否开启浏览器新窗口',
-  `bgcolor` varchar(20) DEFAULT NULL COMMENT '背景颜色',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addon_spshop_adv`
---
-
-INSERT INTO `fun_addon_spshop_adv` (`id`, `merchant_id`, `pid`, `media_type`, `name`, `url`, `image`, `start_time`, `end_time`, `link_admin`, `email`, `phone`, `click`, `sort`, `status`, `orderby`, `target`, `bgcolor`, `create_time`, `update_time`) VALUES
-(4, 1, 1, 0, 'PC首页轮播', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/e88bcf9364acbfd5ec3d1bdf99d0d394.jpg', 1451577600, 1767283200, '', '994927909@qq.com', '', 0, 0, 1, 0, 0, '#f1e6d2', 0, 1591952531),
-(88, 1, 1, 0, '滚动海报', 'http://shop.zhutiyuedu.com/index/goods/details.html?id=15', '/storage/uploads/20200612/ba7a1c2d4178a9cad2fcf0e0becf1204.jpg', 1573056000, 1577721600, '', '2943694612@qq.com', '', 0, 0, 1, 50, 0, '', 1573114077, 1591953494),
-(89, 1, 2, 0, '滚动海报', 'http://shop.zhutiyuedu.com/h5/goods/details.html?id=15', '/storage/uploads/20200612/b644a5ee6a4786d928b1d8106f5b204d.jpg', 0, 0, '', '123456@qq.com', '', 0, 0, 1, 50, 0, '', 0, 1591951860),
-(92, 1, 1, 0, 'PC 端首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=1', '/storage/uploads/20200612/53b1ca94c135e4cb6d3d998d42df723e.jpg', 1556640000, 1751212800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589167343, 1591951506),
-(93, 1, 1, 0, 'PC端首页广告', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=2', '/storage/uploads/20200612/15a837718a409244fb9291f2881f6586.jpg', 1588262400, 1593446400, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589177342, 1591949142),
-(94, 1, 2, 0, '手机首页海报', 'http://shop.zhutiyuedu.com/index/goods/index.html?cate_id=3', '/storage/uploads/20200612/90bfab0170969734a03868600afcfc72.jpg', 1588262400, 1782748800, '', '1158879326@qq.com', '', 0, 0, 1, 50, 0, '', 1589330964, 1591951809);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addon_spshop_adv_position`
---
-
-CREATE TABLE `fun_addon_spshop_adv_position` (
-  `id` int(3) UNSIGNED NOT NULL COMMENT '表id',
-  `position_name` varchar(60) NOT NULL DEFAULT '' COMMENT '广告位置名称',
-  `ad_width` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位宽度',
-  `ad_height` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '广告位高度',
-  `position_desc` varchar(255) NOT NULL DEFAULT '' COMMENT '广告描述',
-  `position_style` mediumtext COMMENT '模板',
-  `status` tinyint(1) DEFAULT '0' COMMENT '0关闭1开启',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addon_spshop_adv_position`
---
-
-INSERT INTO `fun_addon_spshop_adv_position` (`id`, `position_name`, `ad_width`, `ad_height`, `position_desc`, `position_style`, `status`, `create_time`, `update_time`) VALUES
-(1, '首页', 1080, 300, '其他1', '', 1, 1566111321, 1571818062),
-(2, '手机首页', 1080, 300, '手机端受饿', '', 1, 1576549734, 1576549750);
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addon_spshop_goods`
---
-
-CREATE TABLE `fun_addon_spshop_goods` (
-  `id` mediumint(8) UNSIGNED NOT NULL COMMENT '商品id',
-  `cate_id` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '商品分类id',
-  `extend_cate_id` int(11) UNSIGNED DEFAULT '0' COMMENT '扩展分类id',
-  `goods_sn` varchar(60) NOT NULL DEFAULT '' COMMENT '商品编号',
-  `name` varchar(120) NOT NULL DEFAULT '' COMMENT '商品名称',
-  `video` varchar(255) DEFAULT '' COMMENT '视频',
-  `hits` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '点击数',
-  `brand_id` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '品牌id',
-  `qty` int(10) UNSIGNED NOT NULL DEFAULT '10' COMMENT '库存数量',
-  `max_sales_qty` int(10) UNSIGNED DEFAULT NULL COMMENT '最大销售个数',
-  `min_sales_qty` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最小销售个数',
-  `weight` decimal(10,2) UNSIGNED NOT NULL DEFAULT '0.00' COMMENT '商品重量克为单位',
-  `volume` double(10,4) UNSIGNED NOT NULL DEFAULT '0.0000' COMMENT '商品体积。单位立方米',
-  `market_price` decimal(10,2) UNSIGNED NOT NULL DEFAULT '0.00' COMMENT '市场价',
-  `shop_price` decimal(10,2) UNSIGNED NOT NULL DEFAULT '0.00' COMMENT '本店价',
-  `cost_price` decimal(10,2) DEFAULT '0.00' COMMENT '商品成本价',
-  `price_ladder` mediumtext COMMENT '价格阶梯',
-  `brief` varchar(200) DEFAULT '' COMMENT '简介',
-  `keywords` varchar(255) NOT NULL DEFAULT '' COMMENT '商品关键词',
-  `details` mediumtext COMMENT '商品详细描述',
-  `gallery` varchar(1000) DEFAULT NULL COMMENT '商品轮播图 json 格式',
-  `main_image` varchar(255) NOT NULL DEFAULT '' COMMENT 'l商品展示图',
-  `share_image` varchar(255) DEFAULT NULL COMMENT '商品分享朋友圈图片',
-  `is_virtual` tinyint(3) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否为虚拟商品 1是，0否',
-  `virtual_indate` int(11) DEFAULT '0' COMMENT '虚拟商品有效期',
-  `virtual_refund` tinyint(1) DEFAULT '1' COMMENT '是否允许过期退款， 1是，0否',
-  `virtual_sales_sum` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '虚拟销售量',
-  `virtual_collect_sum` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '虚拟收藏量',
-  `collect_sum` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '收藏量',
-  `comment_sum` int(11) DEFAULT '0' COMMENT '商品评论数',
-  `sales_sum` int(11) DEFAULT '0' COMMENT '商品总销量',
-  `sort` smallint(4) UNSIGNED NOT NULL DEFAULT '50' COMMENT '商品排序',
-  `is_on_sale` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '是否上架',
-  `is_free_shipping` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否包邮0否1是',
-  `is_recommend` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否推荐',
-  `is_new` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否新品',
-  `is_hot` tinyint(1) UNSIGNED DEFAULT '0' COMMENT '是否热卖',
-  `give_integral` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '购买商品赠送积分',
-  `exchange_integral` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '积分兑换：0不参与积分兑换，积分和现金的兑换比例见后台配置',
-  `suppliers_id` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '供货商ID',
-  `prom_type` tinyint(1) DEFAULT '0' COMMENT '0默认1抢购2团购3优惠促销4预售5拼团6搭配购',
-  `prom_id` int(11) NOT NULL DEFAULT '0' COMMENT '优惠活动id',
-  `commission` decimal(10,2) DEFAULT '0.00' COMMENT '佣金用于分销分成',
-  `spu` varchar(128) DEFAULT '' COMMENT 'SPU',
-  `sku` varchar(128) DEFAULT '' COMMENT 'SKU',
-  `shipping_template_id` int(11) UNSIGNED DEFAULT '0' COMMENT '运费模板ID',
-  `status` tinyint(1) DEFAULT '1',
-  `create_time` int(11) DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '伪删除'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_addon_spshop_goods_category`
---
-
-CREATE TABLE `fun_addon_spshop_goods_category` (
-  `id` smallint(5) UNSIGNED NOT NULL COMMENT '商品分类id',
-  `name` varchar(90) NOT NULL DEFAULT '' COMMENT '商品分类名称',
-  `pid` smallint(5) UNSIGNED NOT NULL DEFAULT '0' COMMENT '父id',
-  `parent_id_path` varchar(128) DEFAULT '' COMMENT '家族图谱',
-  `level` tinyint(1) DEFAULT '0' COMMENT '等级',
-  `sort` tinyint(1) UNSIGNED NOT NULL DEFAULT '50' COMMENT '顺序排序',
-  `is_show` tinyint(1) UNSIGNED NOT NULL DEFAULT '1' COMMENT '是否显示',
-  `image` varchar(512) DEFAULT '' COMMENT '分类图片',
-  `is_new` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否上新',
-  `is_hot` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否为热门分类',
-  `cate_group` tinyint(1) DEFAULT '0' COMMENT '分类分组默认0',
-  `commission_rate` tinyint(1) DEFAULT '0' COMMENT '分佣比例',
-  `status` tinyint(1) NOT NULL DEFAULT '1',
-  `create_time` int(11) NOT NULL DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- 转存表中的数据 `fun_addon_spshop_goods_category`
---
-
-INSERT INTO `fun_addon_spshop_goods_category` (`id`, `name`, `pid`, `parent_id_path`, `level`, `sort`, `is_show`, `image`, `is_new`, `is_hot`, `cate_group`, `commission_rate`, `status`, `create_time`, `update_time`) VALUES
-(1, '主题阅读', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 1572319646, 1573605979),
-(2, '你读我诵', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 1572319670, 1572319670),
-(3, '立小言作文课', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 1572319712, 1572319712),
-(4, '主题探究', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 0, 1573606067),
-(5, '数创绘本', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 0, 1573606067),
-(52, '套书', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 1575016710, 1575016710),
-(53, '教师用书', 0, '', 0, 50, 1, '', 0, 0, 0, 0, 1, 1578379256, 1578379256),
-(54, '名师课堂', 0, '', 0, 50, 0, '', 0, 0, 0, 0, 1, 1593573335, 1593589692);
 
 -- --------------------------------------------------------
 
@@ -771,8 +73,8 @@ CREATE TABLE `fun_admin` (
 --
 
 INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', '1,3', 'admin@admin.com', '', '18397423845', '127.0.0.1', '3d666791caa38b2a770974749f26a3e23c25322e', '0', 1, '\\storage\\site/20200723\\045256245ee708a40a2ac1b567bc481a.png', 1482132862, 1607479321, 0),
-(3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1603265320, 0);
+(1, 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', '1,3', 'admin@admin.com', '', '18397423845', '127.0.0.1', 'ba5f311b093ce52581d277f1070eeb5456522a6b', '0', 1, '\\storage\\upload/20201212\\b824cb34e1d8054a606ae61e664239a4.png', 1482132862, 1608811007, 0),
+(3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1607839168, 0);
 
 -- --------------------------------------------------------
 
@@ -783,20 +85,22 @@ INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `rea
 CREATE TABLE `fun_admin_log` (
   `id` bigint(16) UNSIGNED NOT NULL COMMENT '表id',
   `module` varchar(50) DEFAULT NULL,
+  `addons` varchar(20) DEFAULT NULL,
   `admin_id` int(10) DEFAULT NULL COMMENT '管理员id',
   `username` varchar(100) DEFAULT NULL,
   `method` varchar(50) DEFAULT NULL COMMENT '请求方式',
+  `controller` varchar(50) NOT NULL,
+  `action` varchar(50) NOT NULL,
   `title` varchar(100) DEFAULT NULL COMMENT '日志描述',
   `url` varchar(100) DEFAULT NULL,
-  `content` text,
-  `agent` varchar(200) DEFAULT NULL,
+  `post_data` mediumtext,
+  `get_data` mediumtext,
+  `agent` mediumtext,
   `ip` varchar(30) DEFAULT NULL COMMENT 'ip地址',
   `create_time` int(11) DEFAULT NULL COMMENT '日志时间',
   `update_time` int(11) DEFAULT NULL,
   `status` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- --------------------------------------------------------
 
 --
 -- 表的结构 `fun_attach`
@@ -805,7 +109,7 @@ CREATE TABLE `fun_admin_log` (
 CREATE TABLE `fun_attach` (
   `id` int(11) NOT NULL,
   `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '管理员id',
-  `user_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表id',
+  `member_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表id',
   `original_name` varchar(255) DEFAULT NULL COMMENT '文件原名',
   `name` varchar(255) DEFAULT NULL COMMENT '文件名',
   `thumb` varchar(255) DEFAULT NULL COMMENT '缩略图',
@@ -831,15 +135,10 @@ CREATE TABLE `fun_attach` (
 -- 转存表中的数据 `fun_attach`
 --
 
-INSERT INTO `fun_attach` (`id`, `admin_id`, `user_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `sha1`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`, `delete_time`) VALUES
-(28, 1, 0, '1598258370953677.jpg', 'ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', '\\storage\\uploads/20201015\\ec3310db159d25e82da591f740d89300.jpg', 'jpg', 159, '537', '852', '0e3893e089007c97b741b108324dcb4b', NULL, 'image/jpeg', '0', NULL, 1602723224, 1602723224, 1, 50, 0),
-(29, 1, 0, 'admin-ajax.png', '7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', '\\storage\\uploads/20201015\\7f6bd5320eaec793f6c3ae855c7a2be0.png', 'png', 4, '115', '103', 'cb959c6185839156a4ebadd507b96f67', NULL, 'image/png', '0', NULL, 1602723370, 1602723370, 1, 50, 0),
-(30, 1, 0, 'logo.png', 'efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', '\\storage\\upload/20201025\\efc76aa0ba4a3ee23c96035049d0b96c.png', 'png', 12, '800', '800', '4fb3d30dbbfb2ad6d7df97397f91d791', NULL, 'image/png', '0', NULL, 1603620282, 1603620282, 1, 50, 0),
-(31, 1, 0, '168_1535351333114_70495.jpg', 'a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', '\\storage\\uploads/20201031\\a4ba32dd2c8369e7d3ecef9ff1e1a5e6.jpg', 'jpg', 120, '3840', '800', '8094d152873eb7269bbe39f9dfcf8260', NULL, 'image/jpeg', '0', NULL, 1604143741, 1604143741, 1, 50, 0),
-(32, 1, 0, '未标题-1.png', 'e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', '\\storage\\uploads/20201031\\e3ab4366e1c42b44892756b0a2b91444.png', 'png', 13, '800', '600', 'eead77ffb36d17b267b598a236673823', NULL, 'image/png', '0', NULL, 1604144846, 1604144846, 1, 50, 0),
-(33, 1, 0, '6991562840779.png', '04e8df88d7f4a0527f6a4d7909751985.png', '\\storage\\uploads/20201107\\04e8df88d7f4a0527f6a4d7909751985.png', '\\storage\\uploads/20201107\\04e8df88d7f4a0527f6a4d7909751985.png', '\\storage\\uploads/20201107\\04e8df88d7f4a0527f6a4d7909751985.png', 'png', 269, '800', '530', '5c94f9f8a18d3e4ae73023d800530da7', NULL, 'image/png', '0', NULL, 1604753776, 1604753776, 1, 50, 0),
+INSERT INTO `fun_attach` (`id`, `admin_id`, `member_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `sha1`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`, `delete_time`) VALUES
 (34, 1, 0, 'favicon.ico.png', '7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', 'png', 13, '250', '250', 'af81d0a4bbb154e4e4a3468f28bd826f', 'e2392698f3a204a6656f8cd87834931cc62d0006', 'image/png', '0', NULL, 1606530748, 1606530748, 1, 50, 0),
-(35, 1, 0, 'banner-bg.png', 'e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', 'png', 1083, '1917', '615', '9a4c9af6693c0855682e030e80f4efe4', '9425b7055cd3aafcad504b5cb0435cfe4b53f5b4', 'image/png', '0', NULL, 1607333753, 1607333753, 1, 50, 0);
+(35, 1, 0, 'banner-bg.png', 'e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', 'png', 1083, '1917', '615', '9a4c9af6693c0855682e030e80f4efe4', '9425b7055cd3aafcad504b5cb0435cfe4b53f5b4', 'image/png', '0', NULL, 1607333753, 1607333753, 1, 50, 0),
+(36, 1, 0, 'fun-avatar.png', 'f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', 'png', 66, '300', '300', 'eaf2ed79806161d42b31fa44dd25efaf', '70a3cdb2922f51ae2513ec0341f71098be60103f', 'image/png', '0', NULL, 1607769353, 1607769353, 1, 50, 0);
 
 -- --------------------------------------------------------
 
@@ -903,13 +202,13 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (6, 'backend', '_self', 'auth.auth/modify', 'Modify', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 3, 0, 0, 1599889809, 0),
 (7, 'backend', '_self', 'auth.auth/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 3, 0, 0, 1599889818, 0),
 (8, 'backend', '_self', 'auth.auth/add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 3, 0, 0, 1599889824, 0),
-(9, 'backend', '_self', 'auth.authgroup', 'AuthGroup', 1, 1, 1, 1, 'layui-icon layui-icon-list', 2, 0, 0, 1599892083, 0),
-(10, 'backend', '_self', 'auth.authgroup/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1601290654, 0),
-(11, 'backend', '_self', 'auth.authgroup/add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888854, 0),
-(12, 'backend', '_self', 'auth.authgroup/edit', 'Edit', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1601290636, 0),
-(13, 'backend', '_self', 'auth.authgroup/modify', 'Modify', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888865, 0),
-(14, 'backend', '_self', 'auth.authgroup/access', 'Access', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888872, 0),
-(15, 'backend', '_self', 'auth.authgroup/index', 'List', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 9, 50, 1599888556, 1599888556, 0),
+(9, 'backend', '_self', 'auth.authGroup', 'AuthGroup', 1, 1, 1, 1, 'layui-icon layui-icon-list', 2, 0, 0, 1599892083, 0),
+(10, 'backend', '_self', 'auth.authGroup/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1601290654, 0),
+(11, 'backend', '_self', 'auth.authGroup/add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888854, 0),
+(12, 'backend', '_self', 'auth.authGroup/edit', 'Edit', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1601290636, 0),
+(13, 'backend', '_self', 'auth.authGroup/modify', 'Modify', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888865, 0),
+(14, 'backend', '_self', 'auth.authGroup/access', 'Access', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 9, 0, 0, 1599888872, 0),
+(15, 'backend', '_self', 'auth.authGroup/index', 'List', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 9, 50, 1599888556, 1599888556, 0),
 (16, 'backend', '_self', 'auth.admin', 'Admin', 1, 1, 1, 1, 'layui-icon layui-icon-user', 2, 1, 1599888969, 1599892086, 0),
 (17, 'backend', '_self', 'auth.admin/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-username', 16, 0, 1, 1599889517, 0),
 (18, 'backend', '_self', 'auth.admin/add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 16, 0, 0, 1599889526, 0),
@@ -935,7 +234,7 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (38, 'backend', '_self', 'sys.attach/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-list', 37, 50, 1581588855, 1602817404, 0),
 (39, 'backend', '_self', 'sys.attach/add', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 37, 50, 1581588904, 1599888342, 0),
 (40, 'backend', '_self', 'sys.attach/delete', 'Delete', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 37, 50, 1581588934, 1599888349, 0),
-(41, 'backend', '_self', 'sys.config', 'Config', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile-fine', 1, 50, 1599887301, 1600398695, 0),
+(41, 'backend', '_self', 'sys.config', 'Config', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile-fine', 1, 50, 1599887301, 1607745761, 0),
 (42, 'backend', '_self', 'sys.configGroup', 'configGroup', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile-fine', 1, 50, 1599888082, 1600396158, 0),
 (43, 'backend', '_self', 'sys.adminlog/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-list', 24, 50, 1599888429, 1602809070, 0),
 (44, 'backend', '_self', 'ajax/uploads', 'Uploads', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 1, 0, 0, 1599887263, 0),
@@ -970,86 +269,6 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (73, 'backend', '_self', 'addon/modify', 'modify', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
 (74, 'backend', '_self', 'addon/config', 'Config', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
 (75, 'backend', '_self', 'addon/uninstall', 'Uninstall', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
-(76, 'addon', '_self', 'database', '数据库', 1, 1, 1, 1, 'fa fa-database', 0, 0, 1603601991, 1603601991, 0),
-(77, 'addon', '_self', 'addons/database/backend/index/index', '数据列表', 1, 1, 1, 1, 'fa fa-comments-o', 76, 0, 1603601991, 1603601991, 0),
-(78, 'addon', '_self', 'addons/database/backend/index//optimize', '数据优化', 1, 1, 1, 0, NULL, 77, 0, 1603601991, 1603601991, 0),
-(79, 'addon', '_self', 'addons/database/backend/index/repair', '数据修复', 1, 1, 1, 0, NULL, 77, 0, 1603601991, 1603601991, 0),
-(80, 'addon', '_self', 'addons/database/backend/index/backup', '数据备份', 1, 1, 1, 0, NULL, 77, 0, 1603601991, 1603601991, 0),
-(81, 'addon', '_self', 'addons/database/backend/index/restore', '备份列表', 1, 1, 1, 1, 'fa fa-comments-o', 76, 0, 1603601991, 1603601991, 0),
-(82, 'addon', '_self', 'addons/database/backend/index/import', '导入数据', 1, 1, 1, 0, NULL, 81, 0, 1603601991, 1603601991, 0),
-(83, 'addon', '_self', 'addons/database/backend/index/downFile', '下载数据', 1, 1, 1, 0, NULL, 81, 0, 1603601991, 1603601991, 0),
-(84, 'addon', '_self', 'addons/database/backend/index/delSqlFiles', '删除数据', 1, 1, 1, 0, NULL, 81, 0, 1603601991, 1603601991, 0),
-(85, 'addon', '_self', 'cms', 'cms管理', 1, 1, 1, 1, 'layui-icon layui-icon-component', 0, 0, 1604721117, 1604721117, 0),
-(86, 'addon', '_self', 'addons/cms/backend/cmsCategory', 'Category', 1, 1, 1, 1, 'layui-icon layui-icon-template-1', 85, 0, 1604721117, 1604721117, 0),
-(87, 'addon', '_self', 'addons/cms/backend/cmsCategory/index', '栏目', 1, 1, 1, 0, NULL, 86, 0, 1604721117, 1604721117, 0),
-(88, 'addon', '_self', 'addons/cms/backend/cmsCategory/add', '添加分类', 1, 1, 1, 0, NULL, 86, 0, 1604721117, 1604721117, 0),
-(89, 'addon', '_self', 'addons/cms/backend/cmsCategory/edit', '编辑分类', 1, 1, 1, 0, NULL, 86, 0, 1604721118, 1604721118, 0),
-(90, 'addon', '_self', 'addons/cms/backend/cmsCategory/delete', '删除分类', 1, 1, 1, 0, NULL, 86, 0, 1604721118, 1604721118, 0),
-(91, 'addon', '_self', 'addons/cms/backend/cmsCategory/modify', '分类状态', 1, 1, 1, 0, NULL, 86, 0, 1604721118, 1604721118, 0),
-(92, 'addon', '_self', 'addons/cms/backend/cmsCategory/flashCache', '清除缓存', 1, 1, 1, 0, NULL, 86, 0, 1604721118, 1604721118, 0),
-(93, 'addon', '_self', 'addons/cms/backend/cmsfiling', 'cmsfiling', 1, 1, 1, 1, 'layui-icon layui-icon-template-1', 85, 0, 1604721118, 1604721118, 0),
-(94, 'addon', '_self', 'addons/cms/backend/cmsfiling/index', '栏目内容', 1, 1, 1, 0, NULL, 93, 0, 1604721118, 1604721118, 0),
-(95, 'addon', '_self', 'addons/cms/backend/cmsfiling/add', '添加栏目信息', 1, 1, 1, 0, NULL, 93, 0, 1604721118, 1604721118, 0),
-(96, 'addon', '_self', 'addons/cms/backend/cmsfiling/delete', '添加栏目信息', 1, 1, 1, 0, NULL, 93, 0, 1604721118, 1604721118, 0),
-(97, 'addon', '_self', 'addons/cms/backend/cmsfiling/board', '栏目面板', 1, 1, 1, 0, NULL, 93, 0, 1604721118, 1604721118, 0),
-(98, 'addon', '_self', 'addons/cms/backend/cmsfiling/modify', '栏目内容状态', 1, 1, 1, 0, NULL, 93, 0, 1604721118, 1604721118, 0),
-(99, 'addon', '_self', 'addons/cms/backend/cmsModule', 'Module', 1, 1, 1, 1, 'layui-icon  layui-icon-template-1', 85, 0, 1604721118, 1604721118, 0),
-(100, 'addon', '_self', 'addons/cms/backend/cmsModule/index', 'list', 1, 1, 1, 0, NULL, 99, 0, 1604721118, 1604721118, 0),
-(101, 'addon', '_self', 'addons/cms/backend/cmsModule/add', 'add', 1, 1, 1, 0, NULL, 99, 0, 1604721118, 1604721118, 0),
-(102, 'addon', '_self', 'addons/cms/backend/cmsModule/edit', 'edit', 1, 1, 1, 0, NULL, 99, 0, 1604721118, 1604721118, 0),
-(103, 'addon', '_self', 'addons/cms/backend/cmsModule/modify', 'modify', 1, 1, 1, 0, NULL, 99, 0, 1604721118, 1604721118, 0),
-(104, 'addon', '_self', 'addons/cms/backend/cmsModule/delete', 'delete', 1, 1, 1, 0, NULL, 99, 0, 1604721118, 1604721118, 0),
-(105, 'addon', '_self', 'addons/cms/backend/cmsModule/field', 'field', 1, 1, 1, 0, NULL, 99, 0, 1604721119, 1604721119, 0),
-(106, 'addon', '_self', 'addons/cms/backend/cmsModule/fieldAdd', 'fieldadd', 1, 1, 1, 0, NULL, 99, 0, 1604721119, 1604721119, 0),
-(107, 'addon', '_self', 'addons/cms/backend/cmsModule/fieldEdit', 'fieldedit', 1, 1, 1, 0, NULL, 99, 0, 1604721119, 1604721119, 0),
-(108, 'addon', '_self', 'addons/cms/backend/cmsModule/fielddelete', 'fielddelete', 1, 1, 1, 0, NULL, 99, 0, 1604721119, 1604721119, 0),
-(109, 'addon', '_self', 'addons/cms/backend/cmsModule/fieldmodify', 'fieldmodify', 1, 1, 1, 0, NULL, 99, 0, 1604721119, 1604721119, 0),
-(110, 'addon', '_self', 'addons/cms/backend/cmsLink', 'Link', 1, 1, 1, 1, 'layui-icon layui-icon-unlink', 85, 0, 1604721119, 1604721119, 0),
-(111, 'addon', '_self', 'addons/cms/backend/cmsLink/index', 'List', 1, 1, 1, 0, NULL, 110, 0, 1604721119, 1604721119, 0),
-(112, 'addon', '_self', 'addons/cms/backend/cmsLink/add', 'Add', 1, 1, 1, 0, NULL, 110, 0, 1604721119, 1604721119, 0),
-(113, 'addon', '_self', 'addons/cms/backend/cmsLink/edit', 'Edit', 1, 1, 1, 0, NULL, 110, 0, 1604721119, 1604721119, 0),
-(114, 'addon', '_self', 'addons/cms/backend/cmsLink/modify', 'modify', 1, 1, 1, 0, NULL, 110, 0, 1604721119, 1604721119, 0),
-(115, 'addon', '_self', 'addons/cms/backend/cmsLink/delete', 'delete', 1, 1, 1, 0, NULL, 110, 0, 1604721119, 1604721119, 0),
-(116, 'addon', '_self', 'addons/cms/backend/cmsAdv', 'Adv', 1, 1, 1, 1, 'layui-icon layui-icon-component', 85, 0, 1604721119, 1604721119, 0),
-(117, 'addon', '_self', 'addons/cms/backend/cmsAdv/index', 'List', 1, 1, 1, 0, NULL, 116, 0, 1604721119, 1604721119, 0),
-(118, 'addon', '_self', 'addons/cms/backend/cmsAdv/add', '添加广告', 1, 1, 1, 0, NULL, 116, 0, 1604721119, 1604721119, 0),
-(119, 'addon', '_self', 'addons/cms/backend/cmsAdv/edit', '编辑广告', 1, 1, 1, 0, NULL, 116, 0, 1604721119, 1604721119, 0),
-(120, 'addon', '_self', 'addons/cms/backend/cmsAdv/modify', '广告状态', 1, 1, 1, 0, NULL, 116, 0, 1604721119, 1604721119, 0),
-(121, 'addon', '_self', 'addons/cms/backend/cmsAdv/delete', '删除广告', 1, 1, 1, 0, NULL, 116, 0, 1604721120, 1604721120, 0),
-(122, 'addon', '_self', 'addons/cms/backend/cmsAdvPos', 'Advpos', 1, 1, 1, 1, 'layui-icon layui-icon-unlink\r\n', 85, 0, 1604721120, 1604721120, 0),
-(123, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/index', 'List', 1, 1, 1, 0, NULL, 122, 0, 1604721120, 1604721120, 0),
-(124, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/add', 'add', 1, 1, 1, 0, NULL, 122, 0, 1604721120, 1604721120, 0),
-(125, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/edit', 'edit', 1, 1, 1, 0, NULL, 122, 0, 1604721120, 1604721120, 0),
-(126, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/modify', 'modify', 1, 1, 1, 0, NULL, 122, 0, 1604721120, 1604721120, 0),
-(127, 'addon', '_self', 'addons/cms/backend/cmsAdvPos/delete', 'delete', 1, 1, 1, 0, NULL, 122, 0, 1604721120, 1604721120, 0),
-(128, 'addon', '_self', 'addons/cms/backend/cmsDebris', 'Debris', 1, 1, 1, 1, 'layui-icon-list', 85, 0, 1604721120, 1604721120, 0),
-(129, 'addon', '_self', 'addons/cms/backend/cmsDebris/index', 'List', 1, 1, 1, 0, NULL, 128, 0, 1604721120, 1604721120, 0),
-(130, 'addon', '_self', 'addons/cms/backend/cmsDebris/add', 'add', 1, 1, 1, 0, NULL, 128, 0, 1604721120, 1604721120, 0),
-(131, 'addon', '_self', 'addons/cms/backend/cmsDebris/edit', 'edit', 1, 1, 1, 0, NULL, 128, 0, 1604721120, 1604721120, 0),
-(132, 'addon', '_self', 'addons/cms/backend/cmsDebris/modify', 'modify', 1, 1, 1, 0, NULL, 128, 0, 1604721120, 1604721120, 0),
-(133, 'addon', '_self', 'addons/cms/backend/cmsDebris/delete', 'delete', 1, 1, 1, 0, NULL, 128, 0, 1604721120, 1604721120, 0),
-(134, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos', 'DebrisPosition', 1, 1, 1, 1, 'layui-icon layui-icon-location', 85, 0, 1604721120, 1604721120, 0),
-(135, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos/index', 'list', 1, 1, 1, 0, NULL, 134, 0, 1604721120, 1604721120, 0),
-(136, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos/add', 'add', 1, 1, 1, 0, NULL, 134, 0, 1604721120, 1604721120, 0),
-(137, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos/edit', 'edit', 1, 1, 1, 0, NULL, 134, 0, 1604721121, 1604721121, 0),
-(138, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos/modify', 'modify', 1, 1, 1, 0, NULL, 134, 0, 1604721121, 1604721121, 0),
-(139, 'addon', '_self', 'addons/cms/backend/cmsDebrisPos/delete', 'delete', 1, 1, 1, 0, NULL, 134, 0, 1604721121, 1604721121, 0),
-(140, 'addon', '_self', 'addons/cms/backend/cmsTags', 'Tags', 1, 1, 1, 1, 'layui-icon layui-icon-face-smile', 85, 0, 1604721121, 1604721121, 0),
-(141, 'addon', '_self', 'addons/cms/backend/cmsTags/index', 'List', 1, 1, 1, 0, NULL, 140, 0, 1604721121, 1604721121, 0),
-(142, 'addon', '_self', 'addons/cms/backend/cmsTags/add', 'add', 1, 1, 1, 0, NULL, 140, 0, 1604721121, 1604721121, 0),
-(143, 'addon', '_self', 'addons/cms/backend/cmsTags/edit', 'edit', 1, 1, 1, 0, NULL, 140, 0, 1604721121, 1604721121, 0),
-(144, 'addon', '_self', 'addons/cms/backend/cmsTags/delete', 'delete', 1, 1, 1, 0, NULL, 140, 0, 1604721121, 1604721121, 0),
-(145, 'addon', '_self', 'addons/cms/backend/cmsDiyform', 'Diyform', 1, 1, 1, 1, 'layui-icon layui-icon-form', 85, 0, 1604721121, 1604721121, 0),
-(146, 'addon', '_self', 'addons/cms/backend/cmsDiyform/index', 'list', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(147, 'addon', '_self', 'addons/cms/backend/cmsDiyform/add', 'add', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(148, 'addon', '_self', 'addons/cms/backend/cmsDiyform/edit', 'edit', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(149, 'addon', '_self', 'addons/cms/backend/cmsDiyform/delete', 'delete', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(150, 'addon', '_self', 'addons/cms/backend/cmsDiyform/modify', 'modify', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(151, 'addon', '_self', 'addons/cms/backend/cmsDiyform/datalist', 'datalist', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(152, 'addon', '_self', 'addons/cms/backend/cmsDiyform/datadel', 'datadel', 1, 1, 1, 0, NULL, 145, 0, 1604721121, 1604721121, 0),
-(153, 'addon', '_self', 'addons/cms/backend/cmsDiyform/field', 'field', 1, 1, 1, 0, NULL, 145, 0, 1604721122, 1604721122, 0),
-(154, 'addon', '_self', 'addons/cms/backend/cmsDiyform/fieldadd', 'fieldadd', 1, 1, 1, 0, NULL, 145, 0, 1604721122, 1604721122, 0),
-(155, 'addon', '_self', 'addons/cms/backend/cmsDiyform/fielddel', 'fielddel', 1, 1, 1, 0, NULL, 145, 0, 1604721122, 1604721122, 0),
 (156, 'backend', '_self', 'sys.blacklist', 'blacklist', 1, 1, 1, 1, 'layui-icon layui-icon-rate', 1, 50, 1603427312, 1603428082, 0),
 (157, 'backend', '_self', 'sys.blacklist/index', 'list', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (158, 'backend', '_self', 'sys.blacklist/add', 'add', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
@@ -1084,7 +303,6 @@ CREATE TABLE `fun_blacklist` (
 CREATE TABLE `fun_config` (
   `id` smallint(5) NOT NULL,
   `code` varchar(30) NOT NULL,
-  `default_value` varchar(50) DEFAULT NULL COMMENT '默认值',
   `extra` varchar(500) DEFAULT NULL COMMENT '配置值',
   `value` mediumtext,
   `remark` varchar(100) DEFAULT '解释,备注',
@@ -1092,6 +310,7 @@ CREATE TABLE `fun_config` (
   `type` varchar(30) DEFAULT 'text' COMMENT 'text',
   `group` varchar(20) DEFAULT 'site',
   `status` tinyint(1) DEFAULT '1',
+  `is_system` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否系统必须',
   `create_time` int(11) DEFAULT NULL,
   `update_time` int(11) DEFAULT NULL,
   `delete_time` int(11) NOT NULL DEFAULT '0'
@@ -1101,56 +320,49 @@ CREATE TABLE `fun_config` (
 -- 转存表中的数据 `fun_config`
 --
 
-INSERT INTO `fun_config` (`id`, `code`, `default_value`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'site_name', '', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 0, 1602808542, 0),
-(2, 'site_phone', '', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 0, 1581831391, 0),
-(3, 'site_state', '', '', '1', '状态', '0', 'radio', 'site', 1, 0, 1581825436, 0),
-(4, 'site_logo', '', '', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '网站logo图1', '0', 'image', 'site', 1, 0, 1603438560, 0),
-(5, 'site_mobile_logo', '', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 0, 1583583460, 0),
-(6, 'site_logowx', '', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 0, 1583583460, 0),
-(7, 'site_icp', '', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 0, 1583583461, 0),
-(8, 'site_tel400', '', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 0, 0, 0),
-(9, 'site_email', '', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 0, 0, 0),
-(10, 'site_copyright', '', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 0, 1603435866, 0),
-(11, 'app_debug', '0', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 0, 1607071704, 0),
-(18, 'email_addr', '', '', '994927909@qq.com', '邮箱发件人地址', '0', 'text', 'email', 1, 0, 0, 0),
-(19, 'email_id', '', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0, 0),
-(20, 'email_pass', '', '', '11211', '用户名密码', '0', 'text', 'email', 1, 0, 0, 0),
-(21, 'email_secure', '', '', 'smtp', '邮箱发送协议', '0', 'text', 'email', 1, 0, 0, 0),
-(22, 'upload_file_type', '', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 0, 1602723793, 0),
-(24, 'alioss_accessid', '', '', '', 'accessid', '0', 'text', 'alioss', 1, 0, 0, 0),
-(25, 'alioss_accesssecret', '', '', '', 'oss_accesssecret', '0', 'text', 'alioss', 1, 0, 0, 0),
-(26, 'alioss_bucket', '', '', '', 'oss_bucket', '0', 'text', 'alioss', 1, 0, 0, 0),
-(27, 'alioss_endpoint', '', '', '', 'oss_endpoint', '0', 'text', 'alioss', 1, 0, 0, 0),
-(28, 'aliendpoint_type', '', '', '0', 'aliendpoint_type', '0', 'text', 'alioss', 1, 0, 0, 0),
-(31, 'qq_isuse', '', '', '1', '是否使用QQ互联', '0', 'text', 'qq', 1, 0, 0, 0),
-(32, 'qq_appid', '', '', '', 'qq互联id', '0', 'text', 'qq', 1, 0, 0, 0),
-(33, 'qq_appkey', '', '', '', 'qq秘钥', '0', 'text', 'qq', 1, 0, 0, 0),
-(34, 'sina_isuse', '', '', '1', '是的使用微博登录', '0', 'text', 'sina', 1, 0, 0, 0),
-(35, 'sina_wb_akey', '', '', '', '新浪id', '0', 'text', 'sina', 1, 0, 0, 0),
-(36, 'sina_wb_skey', '', '', '', '新浪秘钥', '0', 'text', 'sina', 1, 0, 0, 0),
-(37, 'sms_register', '', '', '0', '是否手机注册', '0', 'text', 'mobile', 1, 0, 0, 0),
-(38, 'sms_login', '', '', '0', '是否手机登录', '0', 'text', 'mobile', 1, 0, 0, 0),
-(39, 'sms_password', '', '', '0', '是否手机找回密码', '0', 'text', 'mobile', 1, 0, 0, 0),
-(44, 'site_licence', '', '', '', '营业执照', '0', 'text', 'site', 1, 0, 1595419166, 0),
-(45, 'site_domain', '', '', 'https://www.FunAdmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0),
-(46, 'upload_file_max', '', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 0, 0, 0),
-(47, 'site_seo_title', '', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 0, 0, 0),
-(48, 'site_seo_keywords', '', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 0, 1603266121, 0),
-(49, 'site_seo_desc', '', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 0, 1601288743, 0),
-(50, 'upload_water', '', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 1601287987, 0),
-(51, 'upload_water_position', '', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0),
-(59, 'upload_driver', 'local', '', 'alioss', '上传配置', '0', 'text', 'upload', 1, 1594213311, 1595419144, 0),
-(60, 'site_version', '1.2', '', '1.0', '版本', '0', 'text', 'site', 1, 0, 1600828560, 0),
-(61, 'qiniuoss_accesskey', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 1603266108, 0),
-(62, 'qiniuoss_accesssecret', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0),
-(63, 'qiniuoss_bucket', '', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0),
-(64, 'qiniuoss_cdn_domain', '', '', '', '解释,备注', '0', 'text', 'qiniuoss', 1, 0, 0, 0),
-(65, 'tecoss_region', '', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0),
-(66, 'tecoss_secretId', '', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0),
-(67, 'tecoss_secretKey', '', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0),
-(68, 'tecoss_bucket', '1', '1:是\n2:否\n3:其他', '2', '解释,备注\n1:是\n2:否\n3:其他', '', 'radio', 'teccos', 1, 0, 1601279971, 0),
-(69, 'tecoss_cdn_domain', '0', '1:是\n2:否', '2020-09-01 00:00:00', '解释,备注  中间用分隔符分割', '', 'text', 'teccos', 1, 0, 1602299856, 0);
+INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 'site_name', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
+(2, 'site_phone', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
+(3, 'site_state', '', '1', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
+(4, 'site_logo', '', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
+(5, 'site_mobile_logo', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
+(6, 'site_logowx', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
+(7, 'site_icp', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 1, 0, 1583583461, 0),
+(8, 'site_tel400', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 1, 0, 0, 0),
+(9, 'site_email', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 1, 0, 0, 0),
+(10, 'site_copyright', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 1, 0, 1603435866, 0),
+(11, 'app_debug', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 1, 0, 1607071704, 0),
+(18, 'email_addr', '', '994927909@qq.com', '邮箱发件人地址', '0', 'text', 'email', 1, 0, 0, 0, 0),
+(19, 'email_id', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0, 0, 0),
+(20, 'email_pass', '', '11211', '用户名密码', '0', 'text', 'email', 1, 0, 0, 0, 0),
+(21, 'email_secure', '', 'smtp', '邮箱发送协议', '0', 'text', 'email', 1, 0, 0, 0, 0),
+(22, 'upload_file_type', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 1, 0, 1602723793, 0),
+(24, 'alioss_accessid', '', '', 'accessid', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
+(25, 'alioss_accesssecret', '', '', 'oss_accesssecret', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
+(26, 'alioss_bucket', '', '', 'oss_bucket', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
+(27, 'alioss_endpoint', '', '', 'oss_endpoint', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
+(28, 'aliendpoint_type', '', '0', 'aliendpoint_type', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
+(44, 'site_licence', '', '', '营业执照', '0', 'text', 'site', 1, 1, 0, 1595419166, 0),
+(45, 'site_domain', '', 'https://www.FunAdmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0, 0),
+(46, 'upload_file_max', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
+(47, 'site_seo_title', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 1, 0, 0, 0),
+(48, 'site_seo_keywords', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 1, 0, 1603266121, 0),
+(49, 'site_seo_desc', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 1, 0, 1601288743, 0),
+(50, 'upload_water', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 0, 1601287987, 0),
+(51, 'upload_water_position', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0, 0),
+(59, 'upload_driver', '', 'alioss', '上传配置', '0', 'text', 'upload', 1, 0, 1594213311, 1595419144, 0),
+(60, 'site_version', '', '1.0', '版本', '0', 'text', 'site', 1, 1, 0, 1600828560, 0),
+(61, 'qiniuoss_accesskey', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 1603266108, 0),
+(62, 'qiniuoss_accesssecret', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0, 0),
+(63, 'qiniuoss_bucket', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0, 0),
+(64, 'qiniuoss_cdn_domain', '', '', '解释,备注', '0', 'text', 'qiniuoss', 1, 0, 0, 0, 0),
+(65, 'tecoss_region', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
+(66, 'tecoss_secretId', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
+(67, 'tecoss_secretKey', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
+(68, 'tecoss_bucket', '1:是\n2:否\n3:其他', '2', '解释,备注\n1:是\n2:否\n3:其他', '', 'radio', 'teccos', 1, 0, 0, 1601279971, 0),
+(69, 'tecoss_cdn_domain', '1:是\n2:否', '2020-09-01 00:00:00', '解释,备注  中间用分隔符分割', '', 'text', 'teccos', 1, 0, 0, 1602299856, 0),
+(70, 'email_port', '', '465', '邮箱发送协议', '0', 'text', 'email', 1, 1, 0, 0, 0),
+(71, 'email_host', '', 'smtp.163.com', '邮箱发送协议', '0', 'text', 'email', 1, 1, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1174,14 +386,11 @@ CREATE TABLE `fun_config_group` (
 
 INSERT INTO `fun_config_group` (`id`, `name`, `title`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
 (1, 'site', '网站', 1, 0, 0, 0),
-(2, 'qq', 'qq', 1, 0, 0, 0),
 (3, 'sms', '短信', 1, 0, 0, 0),
 (4, 'email', '邮箱', 1, 0, 0, 0),
 (5, 'alioss', '阿里oss', 1, 0, 0, 0),
-(6, 'sina', '新浪', 1, 0, 0, 0),
 (8, 'upload', '上传', 1, 0, 0, 0),
 (9, 'mobile', '手机', 1, 0, 0, 0),
-(10, 'baidu', '百度配置', 1, 0, 1606486198, 0),
 (11, 'teccos', '腾讯oss', 1, 0, 1606484970, 0),
 (12, 'qiniuoss', '七牛oss', 1, 0, 0, 0);
 
@@ -1296,7 +505,6 @@ CREATE TABLE `fun_member` (
   `email` varchar(60) DEFAULT '' COMMENT '邮件',
   `username` varchar(80) DEFAULT NULL,
   `password` varchar(100) DEFAULT '' COMMENT '密码',
-  `paypwd` varchar(32) DEFAULT NULL COMMENT '支付密码',
   `sex` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '0 保密 1 男 2 女',
   `birthday` int(11) NOT NULL DEFAULT '0' COMMENT '生日',
   `address_id` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '默认收货地址',
@@ -1304,9 +512,9 @@ CREATE TABLE `fun_member` (
   `update_time` int(11) DEFAULT NULL,
   `last_login` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最后登录时间',
   `login_num` int(11) DEFAULT '0' COMMENT '登录次数',
-  `last_ip` varchar(15) NOT NULL DEFAULT '' COMMENT '最后登录ip',
+  `last_ip` varchar(15) NOT NULL DEFAULT '0' COMMENT '最后登录ip',
   `qq` varchar(20) DEFAULT '' COMMENT 'QQ',
-  `mobile` varchar(20) NOT NULL DEFAULT '' COMMENT '手机号码',
+  `mobile` varchar(20) DEFAULT '' COMMENT '手机号码',
   `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
   `province` int(6) DEFAULT '0' COMMENT '省份',
   `city` int(6) DEFAULT '0' COMMENT '市区',
@@ -1315,30 +523,16 @@ CREATE TABLE `fun_member` (
   `nickname` varchar(50) DEFAULT '' COMMENT '第三方返回昵称',
   `motto` varchar(255) DEFAULT '' COMMENT '格言',
   `level_id` tinyint(1) DEFAULT '1' COMMENT '会员等级',
-  `discount` decimal(10,2) DEFAULT '1.00' COMMENT '会员折扣，默认1不享受',
   `status` tinyint(1) DEFAULT '1' COMMENT '是否被锁定冻结 0 冻结，1 正常',
-  `is_distribut` tinyint(1) DEFAULT '0' COMMENT '是否为分销商 0 否 1 是',
-  `under_num` int(5) DEFAULT '0' COMMENT '用户下线总数',
-  `first_leader` int(11) DEFAULT '0' COMMENT '第一个上级',
-  `second_leader` int(11) DEFAULT '0' COMMENT '第二个上级',
-  `third_leader` int(11) DEFAULT '0' COMMENT '第三个上级',
-  `token` varchar(64) DEFAULT '' COMMENT '用于app 授权类似于session_id',
-  `push_id` varchar(30) DEFAULT '' COMMENT '推送id',
-  `distribut_level` tinyint(2) DEFAULT '0' COMMENT '分销商等级',
+  `token` varchar(64) DEFAULT '' COMMENT '登陆tokeb',
   `is_vip` tinyint(1) DEFAULT '0' COMMENT '是否为VIP ：0不是，1是',
-  `min_qrcode` varchar(255) DEFAULT '' COMMENT '小程序专属二维码',
-  `poster` varchar(255) DEFAULT '' COMMENT '专属推广海报',
+  `scores` int(10) NOT NULL DEFAULT '0',
   `delete_time` int(11) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
---
--- 转存表中的数据 `fun_member`
---
-
-INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, `password`, `paypwd`, `sex`, `birthday`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province`, `city`, `district`, `realname`, `nickname`, `motto`, `level_id`, `discount`, `status`, `is_distribut`, `under_num`, `first_leader`, `second_leader`, `third_leader`, `token`, `push_id`, `distribut_level`, `is_vip`, `min_qrcode`, `poster`, `delete_time`) VALUES
-(4, 1, 1, '994927909@qq.com', '15647244355', '', '', 1, 0, 0, 1596181549, 1604323521, 0, 0, '', '', '18397423845', '\\storage\\avatar/20200731\\779df29efafbb6585286e64e0561e3d6.png', 0, 0, 0, '', '', '', 1, '1.00', 1, 0, 0, 0, 0, 0, '', '', 0, 0, '', '', 0);
-
 -- --------------------------------------------------------
+INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, `password`, `sex`, `birthday`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province`, `city`, `district`, `realname`, `nickname`, `motto`, `level_id`, `status`, `token`, `is_vip`, `scores`, `delete_time`) VALUES
+(1, 1, 1, 'admin@admin.com', 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', 0, 0, 0, 0, NULL, 0, 0, '0', '', '', NULL, 0, 0, 0, '', '', '', 1, 1, '', 0, 0, 0);
 
 --
 -- 表的结构 `fun_member_account`
@@ -1440,7 +634,7 @@ INSERT INTO `fun_member_level` (`id`, `name`, `amount`, `discount`, `status`, `s
 (3, '荣耀黄金', '3000.00', 94, 1, 0, '', 0, 1597652473),
 (4, '尊贵铂金', '10000.00', 95, 1, 0, '', 0, 1606484106),
 (5, '永恒钻石', '50000.00', 93, 1, 0, '', 0, 1597652927),
-(7, '默认', '11.00', 100, 1, 0, '', 1599307077, 1602818058);
+(7, '默认', '11.00', 100, 1, 0, '', 1599307077, 1607832281);
 
 -- --------------------------------------------------------
 
@@ -5219,151 +4413,6 @@ ALTER TABLE `fun_addon`
   ADD KEY `status` (`status`);
 
 --
--- 表的索引 `fun_addons_cms_adv`
---
-ALTER TABLE `fun_addons_cms_adv`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `enabled` (`status`) USING BTREE,
-  ADD KEY `position_id` (`pid`) USING BTREE;
-
---
--- 表的索引 `fun_addons_cms_adv_position`
---
-ALTER TABLE `fun_addons_cms_adv_position`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `position_id` (`id`);
-
---
--- 表的索引 `fun_addons_cms_album`
---
-ALTER TABLE `fun_addons_cms_album`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `status` (`id`,`status`,`sort`),
-  ADD KEY `cateid` (`id`,`status`),
-  ADD KEY `sort` (`id`,`status`,`sort`),
-  ADD KEY `uid` (`uid`),
-  ADD KEY `posid` (`pid`);
-
---
--- 表的索引 `fun_addons_cms_article`
---
-ALTER TABLE `fun_addons_cms_article`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_category`
---
-ALTER TABLE `fun_addons_cms_category`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `listorder` (`sort`),
-  ADD KEY `pid` (`pid`);
-
---
--- 表的索引 `fun_addons_cms_debris`
---
-ALTER TABLE `fun_addons_cms_debris`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_debris_position`
---
-ALTER TABLE `fun_addons_cms_debris_position`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_diyform`
---
-ALTER TABLE `fun_addons_cms_diyform`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_download`
---
-ALTER TABLE `fun_addons_cms_download`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_field`
---
-ALTER TABLE `fun_addons_cms_field`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_filing`
---
-ALTER TABLE `fun_addons_cms_filing`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `status` (`id`,`status`,`sort`),
-  ADD KEY `cateid` (`id`,`cateid`,`status`),
-  ADD KEY `sort` (`id`,`cateid`,`status`,`sort`),
-  ADD KEY `posid` (`albumid`),
-  ADD KEY `uid` (`uid`),
-  ADD KEY `adminid` (`adminid`);
-
---
--- 表的索引 `fun_addons_cms_link`
---
-ALTER TABLE `fun_addons_cms_link`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_message`
---
-ALTER TABLE `fun_addons_cms_message`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `id` (`id`);
-
---
--- 表的索引 `fun_addons_cms_module`
---
-ALTER TABLE `fun_addons_cms_module`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_product`
---
-ALTER TABLE `fun_addons_cms_product`
-  ADD PRIMARY KEY (`id`);
-
---
--- 表的索引 `fun_addons_cms_tags`
---
-ALTER TABLE `fun_addons_cms_tags`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `id` (`id`);
-
---
--- 表的索引 `fun_addon_spshop_adv`
---
-ALTER TABLE `fun_addon_spshop_adv`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `enabled` (`status`) USING BTREE,
-  ADD KEY `position_id` (`pid`) USING BTREE;
-
---
--- 表的索引 `fun_addon_spshop_adv_position`
---
-ALTER TABLE `fun_addon_spshop_adv_position`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `position_id` (`id`);
-
---
--- 表的索引 `fun_addon_spshop_goods`
---
-ALTER TABLE `fun_addon_spshop_goods`
-  ADD UNIQUE KEY `idb` (`id`) USING BTREE,
-  ADD KEY `cate_id` (`cate_id`),
-  ADD KEY `is_hot` (`is_hot`),
-  ADD KEY `is_new` (`is_hot`);
-
---
--- 表的索引 `fun_addon_spshop_goods_category`
---
-ALTER TABLE `fun_addon_spshop_goods_category`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `parent_id` (`pid`);
-
---
 -- 表的索引 `fun_admin`
 --
 ALTER TABLE `fun_admin`
@@ -5444,8 +4493,7 @@ ALTER TABLE `fun_languages`
 ALTER TABLE `fun_member`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
-  ADD KEY `email` (`email`),
-  ADD KEY `underling_number` (`under_num`);
+  ADD KEY `email` (`email`);
 
 --
 -- 表的索引 `fun_member_account`
@@ -5506,121 +4554,7 @@ ALTER TABLE `fun_provinces`
 -- 使用表AUTO_INCREMENT `fun_addon`
 --
 ALTER TABLE `fun_addon`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键', AUTO_INCREMENT=35;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_adv`
---
-ALTER TABLE `fun_addons_cms_adv`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '广告id', AUTO_INCREMENT=9;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_adv_position`
---
-ALTER TABLE `fun_addons_cms_adv_position`
-  MODIFY `id` int(3) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=6;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_album`
---
-ALTER TABLE `fun_addons_cms_album`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID';
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_category`
---
-ALTER TABLE `fun_addons_cms_category`
-  MODIFY `id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_debris`
---
-ALTER TABLE `fun_addons_cms_debris`
-  MODIFY `id` int(6) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_debris_position`
---
-ALTER TABLE `fun_addons_cms_debris_position`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_diyform`
---
-ALTER TABLE `fun_addons_cms_diyform`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_download`
---
-ALTER TABLE `fun_addons_cms_download`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID';
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_field`
---
-ALTER TABLE `fun_addons_cms_field`
-  MODIFY `id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_filing`
---
-ALTER TABLE `fun_addons_cms_filing`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID', AUTO_INCREMENT=24;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_link`
---
-ALTER TABLE `fun_addons_cms_link`
-  MODIFY `id` int(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_message`
---
-ALTER TABLE `fun_addons_cms_message`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_module`
---
-ALTER TABLE `fun_addons_cms_module`
-  MODIFY `id` tinyint(3) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_product`
---
-ALTER TABLE `fun_addons_cms_product`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID', AUTO_INCREMENT=23;
-
---
--- 使用表AUTO_INCREMENT `fun_addons_cms_tags`
---
-ALTER TABLE `fun_addons_cms_tags`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
-
---
--- 使用表AUTO_INCREMENT `fun_addon_spshop_adv`
---
-ALTER TABLE `fun_addon_spshop_adv`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '广告id', AUTO_INCREMENT=95;
-
---
--- 使用表AUTO_INCREMENT `fun_addon_spshop_adv_position`
---
-ALTER TABLE `fun_addon_spshop_adv_position`
-  MODIFY `id` int(3) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=3;
-
---
--- 使用表AUTO_INCREMENT `fun_addon_spshop_goods`
---
-ALTER TABLE `fun_addon_spshop_goods`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商品id';
-
---
--- 使用表AUTO_INCREMENT `fun_addon_spshop_goods_category`
---
-ALTER TABLE `fun_addon_spshop_goods_category`
-  MODIFY `id` smallint(5) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商品分类id', AUTO_INCREMENT=55;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键';
 
 --
 -- 使用表AUTO_INCREMENT `fun_admin`
@@ -5632,13 +4566,13 @@ ALTER TABLE `fun_admin`
 -- 使用表AUTO_INCREMENT `fun_admin_log`
 --
 ALTER TABLE `fun_admin_log`
-  MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id';
+  MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=1388;
 
 --
 -- 使用表AUTO_INCREMENT `fun_attach`
 --
 ALTER TABLE `fun_attach`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_group`
@@ -5662,7 +4596,7 @@ ALTER TABLE `fun_blacklist`
 -- 使用表AUTO_INCREMENT `fun_config`
 --
 ALTER TABLE `fun_config`
-  MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config_group`
@@ -5686,7 +4620,7 @@ ALTER TABLE `fun_languages`
 -- 使用表AUTO_INCREMENT `fun_member`
 --
 ALTER TABLE `fun_member`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=5;
+  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_account`

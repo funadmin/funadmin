@@ -28,7 +28,7 @@ return [
     'app_map'          => [],
     // 域名绑定（自动多应用模式有效）
     'domain_bind'      => [
-//        'blog'        =>  'blog',  //  blog子域名绑定到blog应用
+//        'cms'        =>  'bbs',  //  blog子域名绑定到blog应用
 //        'speed'        =>  'cms',  //  blog子域名绑定到blog应用
 
     ],
@@ -53,6 +53,4 @@ return [
     'error_message'    => '您访问的内容飞走了',
     // 显示错误信息
     'show_error_msg'   => true,
-
-    'cdnurl' =>'',
 ];

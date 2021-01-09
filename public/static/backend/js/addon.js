@@ -2,8 +2,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
     //时间戳
     function getTimestamp() {
         return Date.parse(new Date()) / 1000
-    };
-
+    }
     //随机数
     function getNonce(len) {
         var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz123456789';
@@ -14,8 +13,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
             nonce += $chars.charAt(Math.floor(Math.random() * maxPos));
         }
         return nonce;
-    };
-
+    }
     //获取签名
     function getSign(obj) {
         //先用Object内置类的keys方法获取要排序对象的属性名，再利用Array原型上的sort方法对获取的属性名进行排序，newkey是一个数组
@@ -34,14 +32,12 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
         }
         str = str.substring(0, str.length - 1);
         return Md5(decodeURI(str)).toLowerCase();
-    };
-
+    }
     //获取用户信息
     function getUserinfo() {
         var userinfo = localStorage.getItem("FunAdmin_userinfo");
         return userinfo ? JSON.parse(userinfo) : null;
-    };
-
+    }
     //设置用户信息
     function setUserinfo(data) {
         if (data) {
@@ -49,7 +45,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
         } else {
             localStorage.removeItem("FunAdmin_userinfo");
         }
-    };
+    }
     let Controller = {
         index: function () {
             Table.init = {
@@ -62,9 +58,10 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                     config_url: 'addon/config',
                     modify_url: 'addon/modify',
                     // 配置
-                    api_url: 'https://www.FunAdmin.com',   // 接口地址
+                    api_url: 'https://www.funadmin.com',   // 接口地址
                     login_url: '/api/v1.token/accessToken',   // 登陆地址获取token地址
                 },
+                searchinput:false,
                 appid: 'FunAdmin',   // appid
                 appsecret: 'L9EwqM1jQQFOvniYnpe6K0SavguQOgoS',   // appserct
             }
@@ -80,7 +77,13 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         field: 'title',
                         title: __('Title'),
                         width: 120,
-                        sort: true,
+                        sort: true,templet: function (d){
+                            if(d.url){
+                                return '<a target="_blank" href="'+d.url+'">'+d.title+'</a>';
+                            }else{
+                                return d.title;
+                            }
+                        }
                     },
                     {
                         field: 'name',
@@ -110,13 +113,13 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             if (d.install === 1) {
                                 html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
                                 if (d.status === 1) {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('modify')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('disabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('modify')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
+                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="request"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
                             } else {
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="request" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
+                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
                             if (d.install === 1) {
                                 if (d.website !== '') {
@@ -136,18 +139,23 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
-                    if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
+                    // if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
+                    if (true) {
                         Fun.toastr.confirm('Are you sure you want to install it', function () {
                             let index = layer.load();
                             Fun.ajax({
                                 url: url,
                             }, function (res) {
-                                Fun.toastr.success(res.msg, function () {
-                                    layer.close(index);
-                                    Fun.refreshmenu();
-                                    Fun.toastr.close();
-                                    layui.table.reload(Table.init.tableId);
-                                });
+                                if(res.code>0){
+                                    Fun.toastr.success(res.msg, function () {
+                                        Fun.toastr.close(index)
+                                        Fun.refreshmenu();
+                                        Fun.toastr.close();
+                                        layui.table.reload(Table.init.tableId);
+                                    });
+                                }else{
+                                    Fun.toastr.close(index)
+                                }
                             })
                         });
                     } else {
@@ -202,91 +210,47 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         });
                     }
                 }
-                // if (event === 'uninstall') {
-                //     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
-                //         Fun.ajax({
-                //             url: url,
-                //             method: 'post'
-                //         }, function (res) {
-                //             Fun.toastr.success(res.msg, function () {
-                //                 Fun.refreshmenu();
-                //                 layui.table.reload(Table.init.tableId);
-                //                 Fun.toastr.close()
-                //             });
-                //         })
-                //     });
-                // }
-                // if (event === 'status') {
-                //     Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
-                //         Fun.ajax({
-                //             url: url,
-                //         }, function (res) {
-                //             Fun.toastr.success(res.msg, function () {
-                //                 layui.table.reload(Table.init.tableId);
-                //                 Fun.toastr.close()
-                //
-                //             });
-                //         })
-                //     });
-                // }
+                if (event === 'uninstall') {
+                    Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
+                        let index = layer.load();
+                        Fun.ajax({
+                            url: url,
+                            method: 'post'
+                        }, function (res) {
+                            Fun.toastr.close(index)
+                            Fun.toastr.success(res.msg, function () {
+                                Fun.refreshmenu();
+                                layui.table.reload(Table.init.tableId);
+                                Fun.toastr.close()
+                            });
+                        },function(res){
+                            Fun.toastr.error(res.msg)
+                            Fun.toastr.close(index)
+                            Fun.toastr.close()
+                            layui.table.reload(Table.init.tableId);
+                        })
+                    });
+                }
+                if (event === 'status') {
+                    Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
+                        Fun.ajax({
+                            url: url,
+                        }, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                layui.table.reload(Table.init.tableId);
+                                Fun.toastr.close()
 
-                // if (event === 'open') {
-                //     Fun.api.open({
-                //         type: 1,
-                //         shadeClose: true,
-                //         url:url ,
-                //         zIndex: 9999,
-                //         with:'100%',
-                //         height:'100%',
-                //         title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
-                //         resize: false,
-                //         btnAlign: 'c',
-                //         btn: 'Login,Register',
-                //
-                //     })
-                //
-                //     // var index = layer.open({
-                //     //     type: 2,
-                //     //     content: url,
-                //     //     area: ['600px', '800px'],
-                //     //     maxmin: true
-                //     // });
-                //     // layer.full(index)
-                //
-                // }
+                            });
+                        })
+                    });
+                }
                 return false;
             })
-
             let table = $('#' + Table.init.table_elem);
             Table.api.bindEvent(table);
         },
         config: function () {
             Controller.api.bindevent()
-            //动态添加input输入框
-            $("body").on('click', ".addInput", function () {
-                name = $(this).data('name');
-                verify = $(this).data('verify');
-                var str = '<div class="layui-form-item">' +
-                    '<label class="layui-form-label"></label>'+
-                    '<div class="layui-input-inline">' +
-                    '<input type="text" name="'+name+'[][\'key\']" placeholder="key" class="layui-input input-double-width">' +
-                    '</div>' +
-                    '<div class="layui-input-inline">\n' +
-                    '<input type="text" id="" name="'+name+'[][\'key\']" lay-verify="required" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' +
-                    '</div>'+
-                    '<div class="layui-input-inline" style="margin-left: 180px">' +
-                    '<button data-name="'+name+'" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' +
-                    '</div>' +
-                    '</div>';
-                $("#"+name).append(str);
-            });
-            //删除动态添加的input输入框
-            $("body").on('click', ".removeInupt", function () {
-                //元素移除前校验是否被引用
-                var parentEle = $(this).parent().parent();
-                //移除父元素
-                parentEle.remove();
-            });
         },
         api: {
             bindevent: function () {

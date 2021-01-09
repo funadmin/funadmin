@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2017/8/2
  */
+
 namespace app\backend\controller;
 
 use app\backend\model\AuthRule;
@@ -28,14 +29,10 @@ use think\facade\Lang;
 
 class Ajax extends Backend
 {
-
-    use Curd;
-
     public function __construct(App $app)
     {
         $this->modelClass = new AttachModel();
         parent::__construct($app);
-
     }
     /**
      * @return \think\response\Json
@@ -48,15 +45,13 @@ class Ajax extends Backend
     {
         try {
             $upload = UploadService::instance();
-            $result = $upload->uploads();
+            $result = $upload->uploads(0,session('admin.id'));
             return json($result);
 
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $this->error($e->getMessage());
         }
-
     }
-
 
     /**
      * @throws \think\db\exception\DataNotFoundException
@@ -64,11 +59,11 @@ class Ajax extends Backend
      * @throws \think\db\exception\ModelNotFoundException
      * 刷新菜单
      */
-    public function refreshmenu(){
+    public function refreshmenu()
+    {
         $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
         $menulsit = (new AuthService())->menuhtml($cate);
         $this->success($menulsit);
-
     }
     /**
      * @return \think\response\Jsonp
@@ -78,16 +73,15 @@ class Ajax extends Backend
     {
         header('Content-Type: application/javascript');
         $name = $this->request->get("controllername");
-        $name = strtolower(parse_name($name,1));
+        $name = strtolower(parse_name($name, 1));
         $addon = $this->request->get("addons");
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
-        return jsonp($this->loadlang($name,$addon))->code(200)->options([
-                    'var_jsonp_handler'     => 'callback',
-                    'default_jsonp_handler' => 'jsonpReturn',
-                    'json_encode_param'     => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,
-                ])->allowCache(true)->expires(7200);
+        return jsonp($this->loadlang($name, $addon))->code(200)->options([
+            'var_jsonp_handler' => 'callback',
+            'default_jsonp_handler' => 'jsonpReturn',
+            'json_encode_param' => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,
+        ])->allowCache(true)->expires(7200);
     }
-
     /**
      * @return \think\response\Json
      * 获取图片列表
@@ -109,7 +103,6 @@ class Ajax extends Backend
         $post['list'] = array_merge($post['list'], $attach);
         return json($post);
     }
-
     /**
      * @return \think\response\Json
      * @throws \think\db\exception\DataNotFoundException
@@ -133,15 +126,13 @@ class Ajax extends Backend
             $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
-
     }
-
     /*
      * 清除缓存
     */
     public function clearcache()
     {
-        Cache::clear()?$this->success('清除成功'):$this->success('清除成功');
+        Cache::clear() ? $this->success('清除成功') : $this->success('清除成功');
     }
 
 }

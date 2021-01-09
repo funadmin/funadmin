@@ -1,6 +1,6 @@
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
-    urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
+    urlArgs: 'v=' + (Config.site.app_debug ===0 ? Config.site.site_version :(new Date().getTime())),
     packages: [
         {
             name: 'moment',
@@ -10,19 +10,16 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','bootstrap','treeGrid','tableSelect',
+        'css','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker',
         'regionCheckBox','timePicker','croppers', 'moment',
-        'backend','md5','fun','fu','form','table','upload','addons'],
+        'backend','md5','fun','fu','form','table','upload','addons',],
     paths: {
-        // 'layui'         : 'plugins/layui/layui.all',
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
-        'bootstrap'     : 'plugins/bootstrap-3.3.7/js/bootstrap', // jquery
-
         //layui等组件
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
@@ -41,7 +38,6 @@ require.config({
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'moment'        : 'plugins/moment/moment',
-
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend'+(Config.site.app_debug?'':'.min'), // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
@@ -56,11 +52,6 @@ require.config({
         '*': {'css': 'plugins/require-css/css.min'}
     },
     shim: {
-        'bootstrap': ['jquery'],
-        // 'layui': {
-        //     deps: ['css!plugins/layui/css/layui.css'],
-        //     init: function () {return this.layui.config({dir: 'plugins/'})},
-        // },
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data', 'css!plugins/lay-module/cityPicker/city-picker.css'],
         },
@@ -94,9 +85,10 @@ require(["jquery"], function ($) {
     paths['backend/'] = 'backend/';
     require.config({paths:paths});
     $(function () {
-        require(['fun','addons'], function (Fun) {
+        require(['fun','backend','addons'], function (Fun,Backend) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
+                    console.log(Config.jspath)
                     require([BASE_URL+Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();

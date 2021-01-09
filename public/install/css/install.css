@@ -1,27 +1,3 @@
-body {
-
-    /*color: #fff;*/
-
-    font-size: 14px;
-
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-
-    height: 100%;
-    color: #7E96B3;
-
-}
-
-body:before {
-
-    content: '';
-
-    display: inline-block;
-
-    vertical-align: middle;
-
-    height: 100%;
-
-}
 ::-webkit-input-placeholder {
     color: #ccc
 }
@@ -49,9 +25,69 @@ body:before {
     background: rgba(240, 240, 240, 0.5) !important;;
     cursor: pointer !important;
 }
-.layui-tabs-control{
-    max-width: 500px;
-    margin: 0 auto;
+.layui-red{
+    color:red;font-size:18px;
+}
+.layui-container{
+    max-width: 1024px!important;
+    margin: 10px auto;
+}
+.layui-container .install-h1{
+    line-height: 60px;
+    color: #393D49;
+    font-size: 28px;
+    font-weight: 300;
+    text-align: center;
+}
+.layui-elem-quote{
+    margin-bottom: 20px;
+}
+.layui-elem-quote h1{
+    font-size: 24px;
+    font-weight: 300;
+    margin-bottom: 20px;
+}
+.btn-box{
+    text-align: center;
+    margin: 30px 0;
+}
+
+.layui-elem-quote>p{
+    margin-bottom: 10px;
+}
+.layui-elem-quote>p a{
+    color: #009688;
+}
+.layui-elem-quote>p a:hover{
+    color: #333;
+}
+.protocol{
+    width: 100%;
+    height: 400px;
+    padding: 10px 20px;
+    background-color: #fff;
+    overflow-y: scroll;
+    box-sizing: border-box;
+}
+.protocol h3{
+    text-align: center;
+    font-size: 18px;
+    margin: 10px 0 15px;
+}
+.protocol h4{
+    font-size: 16px;
+    margin-top: 10px;
+    color: #333;
+}
+.protocol p{
+    line-height: 1.7;
+    color: #555;
+}
+.protocol span{
+    margin-top: 20px;
+    display: block;
+    color: #999;
+    font-size: 12px;
 }
 input {
     -webkit-writing-mode: horizontal-tb !important;
@@ -86,29 +122,19 @@ input::-webkit-input-placeholder {
     font-size: 12px;
     /* placeholder位置  */
 }
-.layui-form-item,.layui-form-item input{
-    background: #EDF2F7;
-}
-
 .layui-form-item {
     margin-bottom: 10px;
 }
-.layui-form-item.submit{
-    text-align: center;
+.layui-form-item input:focus {
     background: #fff;
+    color: #444;
+    outline: none;
+    border-color:#FF5722!important;
 }
-.layui-elem-field legend{
-    color: #009688;
-    font-weight: bold;
-}
-.form-main{
-    padding: 10px 10px;
-    border-radius: 3px;
-}
-.notice{
+.layui-notice{
     text-align: center;
 }
-#error, .error, #success, .success, #warmtips, .warmtips {
+#layui-error, .layui-error, #layui-success, .layui-success, #layui-warmtips, .layui-warmtips {
     background: #D83E3E;
     color: #fff;
     padding: 15px 20px;
@@ -116,22 +142,18 @@ input::-webkit-input-placeholder {
     margin-bottom: 20px;
 }
 
-#success {
-    background: #3C5675;
-}
-
-#error a, .error a {
+#layui-error a, .layui-error a {
     color: white;
     text-decoration: underline;
 }
 
-#warmtips {
+#layui-warmtips {
     background: #ffcdcd;
     font-size: 14px;
     color: #e74c3c;
 }
 
-#warmtips a {
+#layui-warmtips a {
     background: #ffffff7a;
     display: block;
     height: 30px;
@@ -140,7 +162,24 @@ input::-webkit-input-placeholder {
     color: #e21a1a;
     border-radius: 3px;
 }
-
-.layui-footer{
-    text-align: center;
+.submit{
+    text-align: center
 }
+.footer{
+    text-align:center;
+}
+
+@media screen and(max-width: 1024px){
+    .layui-container{
+        width: 100%;
+    }
+}
+@media screen and(max-width: 768px){
+    .layui-container{
+        max-width: 100%;
+    }
+}
+
+
+
+

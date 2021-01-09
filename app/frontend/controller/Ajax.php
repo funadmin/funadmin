@@ -38,13 +38,11 @@ class Ajax extends Frontend
     {
         try {
             $upload = UploadService::instance();
-            $result = $upload->uploads();
+            $result = $upload->uploads(session('member.id'),0);
             return json($result);
-
         } catch (Exception $e) {
             $this->error($e->getMessage());
         }
-
     }
 
     /**

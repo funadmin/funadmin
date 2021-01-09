@@ -81,7 +81,7 @@ if (!function_exists('form_select')) {
      */
     function form_select($name = null,$select=[], $options = [],$attr='',$value=null)
     {
-        if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
+        if(!empty($attr) and !is_array($attr)) $attr = explode(',',$attr);
         return FormHelper::select($name,$select,$options,$attr,$value);
     }
 }
@@ -91,7 +91,7 @@ if (!function_exists('form_xmselect')) {
      * @param array $options
      * @return string
      */
-    function form_xmselect($name = null,$select=[], $options = [],$attr)
+    function form_xmselect($name = null,$select=[], $options = [],$attr='')
     {
         if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
         return FormHelper::select($name,$select,$options,$attr);

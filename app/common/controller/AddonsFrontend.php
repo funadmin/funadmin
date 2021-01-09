@@ -19,13 +19,13 @@ use think\App;
 use think\exception\ValidateException;
 use think\facade\Cookie;
 use think\facade\Lang;
+use think\facade\Request;
 use think\facade\View;
 use think\helper\Str;
 
 class AddonsFrontend extends Controller
 {
     use Jump;
-
     /**
      * @var
      * 入口
@@ -70,7 +70,7 @@ class AddonsFrontend extends Controller
     public function __construct(App $app)
     {
         parent::__construct($app);
-
+        $this->request = Request::instance();
         //过滤参数
         $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->pageSize = input('limit', 15);
@@ -108,7 +108,7 @@ class AddonsFrontend extends Controller
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
             'authNode'           => $authNode,
-            'superAdmin'           => session('admin.id')==1,
+            'superAdmin'           => session('member.id')==1,
             'lang'           =>  strip_tags( Lang::getLangset()),
             'site'           =>  syscfg('site'),
             'upload'           =>  syscfg('upload'),

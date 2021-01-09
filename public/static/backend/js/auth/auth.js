@@ -51,7 +51,6 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {field: 'title', title: __('Auth Name'), minwidth: 120,},
                     {field: 'href', title: __('Controller/Action'), minwidth: 200},
                     {
-
                         field: 'auth_verify',
                         align: 'center',
                         title: __('Auth Verify'),
