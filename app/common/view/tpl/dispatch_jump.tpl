@@ -29,31 +29,30 @@
 <?php
 	$codeText = $code == 1 ? 'success' : ($code == 0 ? 'error' : 'info');
 ?>
-    <div class="system-message {$codeText}">
-        <div class="image">
-            <img src="/static/common/images/{$codeText}.svg" alt="" width="150" />
-        </div>
-        <h1><?php echo(strip_tags($msg));?></h1>
-        <p class="jump">
-            页面将在 <span id="wait"><?php echo($wait);?></span> 秒后自动跳转
-        </p>
-        <p class="clearfix">
-            <a href="#" onClick="javascript :history.back(-1);" class="btn btn-grey">返回上一页</a>
-            <a id="href" href="{$url}" class="btn btn-primary">立即跳转</a>
-        </p>
+<div class="system-message {$codeText}">
+    <div class="image">
+        <img src="/static/common/images/{$codeText}.svg" alt="" width="150" />
     </div>
- 	<script type="text/javascript">
-        (function(){
-            var wait = document.getElementById('wait')
-                href = document.getElementById('href').href;
-            var interval = setInterval(function(){
-                var time = --wait.innerHTML;
-                if(time <= 0) {
-                    location.href = href;
-                    clearInterval(interval);
-                };
-            }, 1000);
-        })();
-    </script>
+    <h1><?php echo(strip_tags($msg));?></h1>
+    <p class="jump">
+        页面将在 <span id="wait"><?php echo($wait);?></span> 秒后自动跳转
+    </p>
+    <p class="clearfix">
+        <a href="#" onClick="javascript :history.back(-1);" class="btn btn-grey">返回上一页</a>
+        <a id="href" href="{$url}" class="btn btn-primary">立即跳转</a>
+    </p>
+</div>
+<script type="text/javascript">
+    (function(){
+        var wait = document.getElementById('wait'),href = document.getElementById('href').href;
+        var interval = setInterval(function(){
+            var time = --wait.innerHTML;
+            if(time <= 0) {
+                location.href = href;
+                clearInterval(interval);
+            };
+        }, 2000);
+    })();
+</script>
 </body>
 </html>

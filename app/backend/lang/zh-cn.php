@@ -32,6 +32,7 @@ return [
     'Access'  =>  '分配',
     'AddChild'  =>  '添加子类',
     'Back'  =>  '返回',
+    'Confirm'=>'确定',
     'Cancel'  =>  '取消',
     'Remark'  =>  '备注',
     'Reset'  =>  '重置',
@@ -105,6 +106,7 @@ return [
     'UpdateTime'  =>  '更新时间',
     'Verify'  =>  '验证码',
     'Please check data'  =>  '请检查数据',
+    'Are you sure'  =>  '确定?',
     'Are you sure you want to delete it'  =>  '确定删除此项?',
     'Are you sure to delete'  =>  '确定删除此项?',
     'Are you sure to Destroy'  =>  '确定伪删除此项?',
@@ -180,6 +182,9 @@ return [
     'AddonName'  =>  '插件名',
     'Languages'  =>  '语言',
     'sysset'  =>  '系统设置',
+    'clear all'=>"清除全部缓存",
+    'clear frontend'=>"清除前台缓存",
+    'clear backend'=>"清除后台缓存",
 
 
 ];

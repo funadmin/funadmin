@@ -132,6 +132,25 @@ class Ajax extends Backend
     */
     public function clearcache()
     {
+        $type = $this->request->param('type');
+        $frontpath = app()->getRootPath().'runtime'.DIRECTORY_SEPARATOR.'frontend'.DIRECTORY_SEPARATOR;
+        try {
+            switch ($type) {
+                case 'all':
+                    FileHelper::delDir(runtime_path());
+                    FileHelper::delDir($frontpath);
+                    break;
+                case 'backend':
+                    FileHelper::delDir(runtime_path());
+                    break;
+                case 'frontend':
+                    FileHelper::delDir($frontpath);
+                    break;
+            }
+        }catch(Exception $e){
+            $this->error($e->getMessage());
+        }
+
         Cache::clear() ? $this->success('清除成功') : $this->success('清除成功');
     }
 

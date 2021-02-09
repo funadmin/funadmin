@@ -67,7 +67,7 @@ class Frontend extends BaseController
      * 模板布局, false取消
      * @var string|bool
      */
-    protected $layout = '';
+    protected $layout = 'layout/main';
 
     /**
      * 快速搜索时执行查找的字段
@@ -83,11 +83,11 @@ class Frontend extends BaseController
     {
         parent::__construct($app);
         //过滤参数
-        $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->pageSize = input('limit', 15);
 
         //加载语言包
         $this->loadlang(strtolower($this->controller));
+        $this->initialize();
     }
 
     public function initialize()
@@ -96,7 +96,7 @@ class Frontend extends BaseController
         $this->module = app('http')->getName();
         $this->controller = request()->controller();
         $this->action = request()->action();
-        $this->entrance = '';
+        $this->entrance = '/';
         [$modulename, $controllername, $actionname] = [$this->module, $this->controller, $this->action];
         $controllername = str_replace('\\','.',$controllername);
         $controllers = explode('.', $controllername);
@@ -124,6 +124,11 @@ class Frontend extends BaseController
             'editor'           =>  syscfg('editor'),
 
         ];
+        // 如果有使用模板布局 可以更换布局
+        if($this->layout=='layout/main'){
+            $this->layout && app()->view->engine()->layout(trim($this->layout,'/'));
+        }
+
         View::assign('config',$config);
     }
 

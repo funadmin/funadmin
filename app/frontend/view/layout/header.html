@@ -1,0 +1,47 @@
+<div class="fly-header layui-bg-black">
+  <div class="layui-container">
+    <a class="fly-logo" href="/">
+      <span style="color:#009688;
+   ;font-size: 24px;">FunAdmin</span>
+    </a>
+
+    <ul class="layui-nav fly-nav-user">
+      {if !$member}
+      <!-- 未登入的状态 -->
+      <li class="layui-nav-item">
+        <a class="iconfont icon-touxiang layui-hide-xs" href="{:__u('login/index')}"></a>
+      </li>
+      <li class="layui-nav-item">
+        <a href="{:__u('login/index')}">登入</a>
+      </li>
+      <li class="layui-nav-item">
+        <a href="{:__u('login/reg')}">注册</a>
+      </li>
+<!--      <li class="layui-nav-item layui-hide-xs">-->
+<!--        <a href="" onclick="layer.msg('正在通过QQ登入', {icon:16, shade: 0.1, time:0})" title="QQ登入" class="iconfont icon-qq"></a>-->
+<!--      </li>-->
+<!--      <li class="layui-nav-item layui-hide-xs">-->
+<!--        <a href="" onclick="layer.msg('正在通过微博登入', {icon:16, shade: 0.1, time:0})" title="微博登入" class="iconfont icon-weibo"></a>-->
+<!--      </li>-->
+
+      <!-- 登入后的状态 -->
+      {else /}
+      <li class="layui-nav-item">
+        <a class="fly-nav-avatar" href="javascript:;">
+          <cite class="layui-hide-xs">{$member.username}</cite>
+          <i class="iconfont icon-renzheng layui-hide-xs" title="{$member.username}"></i>
+          <i class="layui-badge fly-badge-vip layui-hide-xs">VIP{$member.level_id}</i>
+          <img src="{$member.avatar}">
+        </a>
+        <dl class="layui-nav-child">
+          <dd><a href="{:__u('member/set')}"><i class="layui-icon">&#xe620;</i>基本设置</a></dd>
+          <dd><a href="{:__u('member/home')}"><i class="layui-icon" style="margin-left: 2px; font-size: 22px;">&#xe68e;</i>我的主页</a></dd>
+          <hr style="margin: 5px 0;">
+          <dd><a href="javascript:;" data-url="{:__u('member/logout')}" id="logout" style="text-align: center;">退出</a></dd>
+        </dl>
+      </li>
+    {/if}
+    </ul>
+  </div>
+</div>
+

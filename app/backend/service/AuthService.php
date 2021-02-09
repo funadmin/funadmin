@@ -118,15 +118,11 @@ class AuthService
                             $list[] = $v;
                         }
                     }
-
                 } else {
-
                     $v['child'] = self::authMenuNode($menu, $v['id']);
                     $list[] = $v;
-
                 }
             }
-
         }
         return $list;
     }
@@ -144,7 +140,6 @@ class AuthService
         }
         return $str;
     }
-
     /**
      * 权限节点
      */
@@ -263,7 +258,7 @@ class AuthService
     public function checkNode()
     {
         $cfg = config('backend');
-        if($this->requesturl=='/'){
+        if($this->requesturl === '/'){
             $this->error(lang('Login again'),  __u('login/index'));
         }
 
@@ -271,10 +266,8 @@ class AuthService
         if (
             !in_array($this->controller, $cfg['noLoginController'])
             && !in_array($this->requesturl, $cfg['noLoginNode'])
-
         ) {
             empty($adminId) && $this->error('请先登录后台', __u('login/index'));
-
             if(!$this->isLogin()){
                 $this->error(lang('Please Login Again'), __u('login/index'));
             }
@@ -304,7 +297,6 @@ class AuthService
                         }
                     }
                 }
-//
             }else{
                 if(!in_array($this->controller,$cfg['noRightController']) && !in_array($this->requesturl,$cfg['noRightNode'])) {
                     if ($this->request->isPost() && $cfg['isDemo'] == 1) {
@@ -314,14 +306,13 @@ class AuthService
             }
         }elseif(
             //不需要登录
-                in_array($this->controller, $cfg['noLoginController'])
-               //不需要登录
-               && in_array($this->requesturl, $cfg['noLoginNode'])
-
+            in_array($this->controller, $cfg['noLoginController'])
+            //不需要登录
+            && in_array($this->requesturl, $cfg['noLoginNode'])
         ){
-          if($this->isLogin()){
-              $this->redirect(__u('index/index'));
-          }
+            if($this->isLogin()){
+                $this->redirect(__u('index/index'));
+            }
         }
 
     }

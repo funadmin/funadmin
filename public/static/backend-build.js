@@ -11,9 +11,9 @@
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker',
+        'timeago','multiSelect','cityPicker','xmSelect',
         'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','fu', 'form','table','upload'],
+        'moment', 'backend','md5','fun','fu', 'form','table','upload','Vue'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -35,7 +35,9 @@
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
+        'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
+        'Vue'           : 'plugins/vue/vue.global',
 
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend.min', // fun后台扩展

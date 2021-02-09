@@ -18,6 +18,7 @@ use app\common\traits\Jump;
 use app\common\traits\Curd;
 use fun\addons\Controller;
 use think\App;
+use think\facade\Config;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\View;
@@ -41,6 +42,7 @@ class AddonsBackend extends Controller
      * 页面大小
      */
     protected $pageSize;
+
     /**
      * @var
      * 页数
@@ -51,6 +53,13 @@ class AddonsBackend extends Controller
      * @var string|bool
      */
     protected $layout = '../app/backend/view/layout/main.html';
+
+    /**
+     * 主题
+     * @var
+     */
+    protected $theme;
+
     /**
      * 快速搜索时执行查找的字段
      */
@@ -58,7 +67,7 @@ class AddonsBackend extends Controller
     /**
      * 允许修改的字段
      */
-    protected $allowModifyFields = [
+    protected $allowModifyFileds = [
         'status',
         'title',
         'auth_verify'
@@ -75,12 +84,32 @@ class AddonsBackend extends Controller
         if(!(new AuthService())->isLogin()){
             $this->redirect($this->entrance);
         }
-        //过滤参数
-        $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->pageSize = request()->param('limit', 15);
         //加载语言包
         $this->loadlang(strtolower($this->controller));
         $this->_initialize();
+        $this->theme();
+    }
+
+    /**
+     * 获取主题路径
+     */
+    public function theme(){
+        $theme = cache($this->addon.'_theme');
+        if($theme){
+            $this->theme = $theme;
+        }else{
+            $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
+            $this->prefix = Config::get('database.connections.mysql.prefix');
+            $theme = $view_config['view_base'];
+            $addonsconfig = get_addons_config($this->addon);
+            if(isset($addonsconfig['theme']) && $addonsconfig['theme']['value']){
+                $theme = $addonsconfig['theme']['value'];
+            }
+            $this->theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
+            cache($this->addon.'_theme',$this->theme);
+        }
+
     }
 
     public function _initialize()

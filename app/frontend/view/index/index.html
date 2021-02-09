@@ -14,15 +14,6 @@
     <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" type="text/css" href="__PLUGINS__/layui/css/layui.css"/>
     <link rel="stylesheet" href="__STATIC__/frontend/css/index.css?t={:time()}" media="all">
-    <script>
-        var _hmt = _hmt || [];
-        (function () {
-            var hm = document.createElement("script");
-            hm.src = "https://hm.baidu.com/hm.js?d7fcc824c81abdf6e6d33ffc0e10c071";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(hm, s);
-        })();
-    </script>
     <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
     <!--[if lt IE 9]>
     <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
@@ -52,10 +43,10 @@
                     <a href="https://gitee.com/funadmin/FunAdmin/tree/master/docs" target="_blank">文档
                         <!-- <span class="layui-badge-dot"></span> --></a>
                 </li>
-<!--                <li class="layui-nav-item ">-->
-<!--                    <a href="https://demo.FunAdmin.com/index.php/admin" target="_blank" class="layui-tips">示例-->
-<!--                        &lt;!&ndash; <span class="layui-badge-dot"></span> &ndash;&gt;</a>-->
-<!--                </li>-->
+                <li class="layui-nav-item ">
+                    <a href="{:__u('member/index')}" target="_blank" class="layui-tips">会员中心
+                        <!-- <span class="layui-badge-dot"></span> --></a>
+                </li>
 <!--                <li class="layui-nav-item ">-->
 <!--                    <a href="{:url('member/index')}" target="_blank" class="layui-tips">会员-->
 <!--                        &lt;!&ndash; <span class="layui-badge-dot"></span> &ndash;&gt;</a>-->

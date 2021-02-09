@@ -41,7 +41,7 @@ class Backend extends BaseController
      */
     protected $page;
     /**
-     * 模板布局, false取消
+     * 模板布局,
      * @var string|bool
      */
     protected $layout = 'layout/main';

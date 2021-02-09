@@ -17,7 +17,7 @@ use think\App;
 use think\captcha\facade\Captcha;
 
 class Index extends Frontend {
-
+    protected $layout='';
     public function __construct(App $app)
     {
         parent::__construct($app);

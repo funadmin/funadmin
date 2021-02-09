@@ -2,13 +2,12 @@
 $cdnurl = function_exists('config') ? config('view_replace_str.__CDN__') : '';
 $publicurl = function_exists('config') ? config('view_replace_str.__PUBLIC__') : '/';
 $debug = function_exists('config') ? config('app_debug') : false;
-
 $lang = [
     'An error occurred' => '发生错误',
 'Home' => '返回主页',
 'Feedback' => '反馈错误',
 'The page you are looking for is temporarily unavailable' => '你所浏览的页面暂时无法访问',
-'You can return to the previous page and try again' => '你可以返回上一页重试，或直接向我们反馈错误报告'
+'You can return to the previous page and try again Or send us a bug report directly' => '你可以返回上一页重试，或直接向我们反馈错误报告'
 ];
 
 $langSet = '';

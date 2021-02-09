@@ -17,6 +17,7 @@ use app\common\traits\Jump;
 use fun\addons\Controller;
 use think\App;
 use think\exception\ValidateException;
+use think\facade\Config;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\Request;
@@ -53,7 +54,11 @@ class AddonsFrontend extends Controller
      * @var string|bool
      */
     protected $layout = false;
-
+    /**
+     * 主题
+     * @var
+     */
+    protected $theme;
     /**
      * 快速搜索时执行查找的字段
      */
@@ -72,11 +77,28 @@ class AddonsFrontend extends Controller
         parent::__construct($app);
         $this->request = Request::instance();
         //过滤参数
-        $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->pageSize = input('limit', 15);
         //加载语言包
         $this->loadlang(strtolower($this->controller));
         $this->_initialize();
+        $this->theme();
+    }
+    public function theme(){
+        $theme = cache($this->addon.'_theme');
+        if($theme){
+            $this->theme = $theme;
+        }else{
+            $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
+            $this->prefix = Config::get('database.connections.mysql.prefix');
+            $theme = $view_config['view_base'];
+            $addonsconfig = get_addons_config($this->addon);
+            if(isset($addonsconfig['theme']) && $addonsconfig['theme']['value']){
+                $theme = $addonsconfig['theme']['value'];
+            }
+            $this->theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
+            cache($this->addon.'_theme',$theme);
+        }
+
     }
 
     public function _initialize()

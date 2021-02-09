@@ -17,6 +17,7 @@ use app\common\controller\Backend;
 use think\facade\Db;
 use think\facade\View;
 use think\facade\Cache;
+use think\facade\Session;
 class Index extends Backend{
 
     protected $layout='';
@@ -26,17 +27,18 @@ class Index extends Backend{
      * 首页
      */
     public function index(){
-        $menulsit = cache('adminmenushtml' .session('admin.id'));
-        if (!$menulsit) {
+//        $menulist = cache('adminmenushtml' .session('admin.id'));
+        $menulist =[];
+        if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type',1)
                 ->where('status',1)
                 ->order('sort asc')->select()->toArray();
-            $menulsit = (new AuthService())->menuhtml($cate,false);
-            cache('adminmenushtml' . session('admin.id'), $menulsit, ['expire' => 3600]);
+            $menulist = (new AuthService())->menuhtml($cate,false);
+            cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }
         $languages = Db::name('languages')->cache(3600)->select();
-        View::assign('menulist',$menulsit);
+        View::assign('menulist',$menulist);
         View::assign('languages',$languages);
         return view();
     }
@@ -63,8 +65,7 @@ class Index extends Backend{
             ];
             Cache::set('main_config',$config,3600);
         }
-        View::assign('config', $config);
-        return view();
+        return view('',['config'=> $config]);
     }
 
     /**
@@ -72,8 +73,8 @@ class Index extends Backend{
      */
     public function logout()
     {
-
-        (new AuthService())->logout();
+        Session::clear();
+        Cache::clear();
         $this->success(lang('Logout success'), __u('login/index'));
     }
 

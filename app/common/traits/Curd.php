@@ -160,7 +160,7 @@ trait Curd
         $field = input('field');
         $value = input('value');
         if($id){
-            if(!$this->allowModifyFileds = ['*'] and !in_array($field, $this->allowModifyFileds)){
+            if($this->allowModifyFileds != ['*'] and !in_array($field, $this->allowModifyFileds)){
 
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
@@ -169,7 +169,11 @@ trait Curd
                 $this->error(lang('Data Is Not 存在'));
             }
             $model->$field = $value;
-            $save = $model->save();
+            try{
+                $save = $model->save();
+            }catch(\Exception $e){
+                $this->error(lang($e->getMessage()));
+            }
             $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
 
         }else{

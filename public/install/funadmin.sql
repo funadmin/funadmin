@@ -500,7 +500,7 @@ INSERT INTO `fun_languages` (`id`, `name`, `create_time`, `update_time`, `is_def
 
 CREATE TABLE `fun_member` (
   `id` mediumint(8) UNSIGNED NOT NULL COMMENT '表id',
-  `merchant_id` int(11) DEFAULT '1',
+  `merchant_id` int(11) DEFAULT '0',
   `group_id` int(11) DEFAULT '1',
   `email` varchar(60) DEFAULT '' COMMENT '邮件',
   `username` varchar(80) DEFAULT NULL,
@@ -508,31 +508,34 @@ CREATE TABLE `fun_member` (
   `sex` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '0 保密 1 男 2 女',
   `birthday` int(11) NOT NULL DEFAULT '0' COMMENT '生日',
   `address_id` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '默认收货地址',
-  `create_time` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '注册时间',
-  `update_time` int(11) DEFAULT NULL,
   `last_login` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最后登录时间',
   `login_num` int(11) DEFAULT '0' COMMENT '登录次数',
   `last_ip` varchar(15) NOT NULL DEFAULT '0' COMMENT '最后登录ip',
   `qq` varchar(20) DEFAULT '' COMMENT 'QQ',
   `mobile` varchar(20) DEFAULT '' COMMENT '手机号码',
   `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  `province` int(6) DEFAULT '0' COMMENT '省份',
-  `city` int(6) DEFAULT '0' COMMENT '市区',
-  `district` int(6) DEFAULT '0' COMMENT '县',
+  `province_id` int(6) DEFAULT '0' COMMENT '省份',
+  `city_id` int(6) DEFAULT '0' COMMENT '市区',
+  `district_id` int(6) DEFAULT '0' COMMENT '县',
   `realname` varchar(50) DEFAULT '' COMMENT '真名',
   `nickname` varchar(50) DEFAULT '' COMMENT '第三方返回昵称',
   `motto` varchar(255) DEFAULT '' COMMENT '格言',
+  `tags` varchar(200) DEFAULT '' COMMENT '标签',
   `level_id` tinyint(1) DEFAULT '1' COMMENT '会员等级',
   `status` tinyint(1) DEFAULT '1' COMMENT '是否被锁定冻结 0 冻结，1 正常',
-  `token` varchar(64) DEFAULT '' COMMENT '登陆tokeb',
+  `token` varchar(64) DEFAULT '' COMMENT '登陆token',
+  `promo_code` varchar(64) DEFAULT '' COMMENT '推广码',
   `is_vip` tinyint(1) DEFAULT '0' COMMENT '是否为VIP ：0不是，1是',
+  `role` tinyint(4) DEFAULT '1' COMMENT '是否为 普通 10管理员',
   `scores` int(10) NOT NULL DEFAULT '0',
+  `create_time` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '注册时间',
+  `update_time` int(11) DEFAULT NULL,
   `delete_time` int(11) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- --------------------------------------------------------
-INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, `password`, `sex`, `birthday`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province`, `city`, `district`, `realname`, `nickname`, `motto`, `level_id`, `status`, `token`, `is_vip`, `scores`, `delete_time`) VALUES
-(1, 1, 1, 'admin@admin.com', 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', 0, 0, 0, 0, NULL, 0, 0, '0', '', '', NULL, 0, 0, 0, '', '', '', 1, 1, '', 0, 0, 0);
+INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`,`email`, `username`, `password`, `sex`, `birthday`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province_id`, `city_id`, `area_id`, `realname`, `nickname`, `motto`, `level_id`, `status`, `token`, `is_vip`, `scores`, `delete_time`) VALUES
+(1, 0, 1, 'admin@admin.com', 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', 0, 0, 0, 0, NULL, 0, 0, '0', '', '', NULL, 0, 0, 0, '', '', '', 1, 1, '', 0, 0, 0);
 
 --
 -- 表的结构 `fun_member_account`
@@ -540,7 +543,7 @@ INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `username`, 
 
 CREATE TABLE `fun_member_account` (
   `id` int(10) UNSIGNED NOT NULL,
-  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
   `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
   `level` int(11) DEFAULT '-1' COMMENT '会员等级',
   `user_money` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
@@ -564,7 +567,7 @@ CREATE TABLE `fun_member_account` (
 
 CREATE TABLE `fun_member_address` (
   `id` int(10) NOT NULL COMMENT '主键',
-  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
   `member_id` int(11) UNSIGNED DEFAULT '0' COMMENT '用户id',
   `province_id` int(10) UNSIGNED DEFAULT '0' COMMENT '省id',
   `city_id` int(10) UNSIGNED DEFAULT '0' COMMENT '市id',
@@ -672,7 +675,7 @@ CREATE TABLE `fun_member_third` (
 
 CREATE TABLE `fun_oauth2_client` (
   `id` int(11) UNSIGNED NOT NULL,
-  `merchant_id` int(10) UNSIGNED DEFAULT '1' COMMENT '商户id',
+  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
   `title` varchar(100) NOT NULL DEFAULT '' COMMENT '标题',
   `appid` varchar(64) NOT NULL,
   `appsecret` varchar(150) NOT NULL,
@@ -690,7 +693,7 @@ CREATE TABLE `fun_oauth2_client` (
 --
 
 INSERT INTO `fun_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 1, 'FunAdmin', 'FunAdmin', '123456', '', '', '', 1, 0, 0, 0);
+(1, 0, 'FunAdmin', 'FunAdmin', '123456', '', '', '', 1, 0, 0, 0);
 
 -- --------------------------------------------------------
 

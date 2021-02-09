@@ -66,12 +66,7 @@
 }
 .timePicker .time-div .time-down {
   padding: 0 10px;
+  text-align:right;
 }
-.timePicker .time-div .time-down .sure {
-  float: right;
-  padding: 5px 20px;
-  border: 1px solid #ccc;
-  text-align: center;
-  cursor: pointer;
-}
+
 /*# sourceMappingURL=timepicker.css.map */

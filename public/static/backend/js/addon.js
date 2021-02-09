@@ -110,9 +110,9 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                     {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
-                            if (d.install === 1) {
+                            if (d.install && d.install === 1 || d.install==='1') {
                                 html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
-                                if (d.status === 1) {
+                                if (d.status === 1 ||  d.status === '1') {
                                     html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('disabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
                                     html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
@@ -121,7 +121,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             } else {
                                 html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
-                            if (d.install === 1) {
+                            if (d.install && d.install === 1 || d.install==='1') {
                                 if (d.website !== '') {
                                     html += '<a  href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }

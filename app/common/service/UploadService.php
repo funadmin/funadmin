@@ -141,7 +141,6 @@ class UploadService extends AbstractService
                     }
                     return ($result);
                 }
-
             } else {
                 $result['data'][] = $attach->path; //兼容wangeditor
                 $result['id'] = $attach->id;
@@ -149,7 +148,6 @@ class UploadService extends AbstractService
                 $result["url"] = $attach->path;
             }
         }
-
         $result['state'] = 'SUCCESS'; //兼容百度
         $result['errno'] = 0; //兼容wangeditor
         $result['code'] = 1;//默认
@@ -160,7 +158,6 @@ class UploadService extends AbstractService
         }
         return ($result);
     }
-
     /**
      * @param $file
      * @return bool
@@ -169,9 +166,12 @@ class UploadService extends AbstractService
      */
     protected function checkFile($file)
     {
-
-        //禁止上传PHP和HTML.ssh文件
-        if (in_array($file->getMime(), ['application/octet-stream', 'text/html','application/x-javascript']) || in_array($file->extension(), ['php', 'html', 'htm','xml','ssh'])) {
+        //禁止上传PHP和HTML.ssh等脚本文件
+        if (in_array($file->getMime(),
+                ['application/octet-stream', 'text/html','application/x-javascript','text/x-php','application/x-msdownload','application/java-archive'])
+            ||
+            in_array($file->extension(),
+                ['php', 'html', 'htm','xml','ssh','bat','jar','java'])) {
             throw new Exception(lang('File format is limited'));
         }
         //文件大小限制

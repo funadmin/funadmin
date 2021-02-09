@@ -1,6 +1,7 @@
 /*** 后台总控制API*/
 define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Moment) {
     var layer = layui.layer, table = layui.table;upload = layui.upload,element = layui.element,form = layui.form;
+    layer = layer || parent.layer;
     layui.layer.config({
         skin: 'fun-layer-class'
     });
@@ -167,6 +168,13 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             lower: function (name) {
                 return name.toLowerCase();
             },
+            arrTostr(arr) {
+                var str = '';
+                for (i = 0; i < arr.length; i++) {
+                    str += arr[i]['name'] + ',';
+                }
+                return str.substring(0, str.length - 1);
+            }
         },
         toastr: {
             // 成功消息
@@ -194,6 +202,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             confirm: function (msg, success, error) {
                 var index = layer.confirm(msg, {
                     title: __('Are you sure'),
+                    icon: 3,
                     btn: [__('Confirm'), __('Cancel')]
                 }, function () {
                     typeof success === 'function' && success.call(this);
@@ -223,7 +232,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             close: function (index) {
                 if (index) {
                     return layer.close(index);
-
                 } else {
                     return layer.closeAll();
                 }
@@ -264,7 +272,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     full: data.full,
                     btn: data.btn,
                     btnAlign: data.btnAlign,
-
                 };
                 Fun.api.open(options)
             },
@@ -287,6 +294,14 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 var $win = $(window);
                 var width = $win.width();
                 return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
+            },
+            //检测上级是否有窗口
+            checkLayerIframe:function(){
+                if(parent.$(".layui-layer").length){
+                    return true;
+                }else{
+                    return false;
+                }
             },
             //打开新窗口
             open: function (options) {
@@ -314,12 +329,12 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 if (options.btn === undefined) {
                     btns = ['submit', 'close'];
                     options.btn_lang = [__('submit'), __('close')];
-                } else if (options.btn === 'false' || options.btn === '') {
-                    options.btn_lang = [];
+                } else if (options.btn === 'false' || options.btn === false  || options.btn === '') {
+                    options.btn_lang = false;
                 } else {
                     btnsdata = options.btn
                     btnsdata = (btnsdata.split(','))
-                    options.btn_lang = [];
+                    options.btn_lang = false;
                     $.each(btnsdata, function (k, v) {
                         options.btn_lang[k] = __(v);
                         btns.push(v);
@@ -328,6 +343,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 if (options.btnAlign === undefined) {
                     options.btnAlign = 'c';
                 }
+                var  parentiframe =Fun.api.checkLayerIframe()
                 options = {
                     title: title,
                     type: type,
@@ -335,15 +351,19 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     content: [url],
                     shadeClose: true,
                     anim: 0,
+                    shade : 0.1,
                     isOutAnim: true,
+                    // zIndex: layer.zIndex, //
                     maxmin: true,
                     moveOut: true,
                     resize: isResize,
                     scrollbar: true,
                     btnAlign: options.btnAlign,
                     btn: options.btn_lang,
-                    success: success === undefined ? function (layero, index) {
+                    success: success === undefined ? function (layero) {
                         try {
+                            // 置顶当前窗口
+                            layer.setTop(layero);
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
@@ -353,20 +373,33 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     } : success,
                     yes: yes === undefined ? function (index, layero) {
                         try {
-                            var frameId = layero[0].getElementsByTagName("iframe")[0].id;
-                            $("#" + frameId).contents().find('button[type="' + btns[0] + '"]').trigger('click');
-                            $("#" + frameId).contents().find('.layui-hide').hide();
+                            $(document).ready(function () {
+                                // 父页面获取子页面的iframe
+                                var body = layer.getChildFrame('body', index);
+                                if(parentiframe){
+                                    body = parent.layer.getChildFrame('body', index);
+                                }
+                                body.find('button[type="' + btns[0] + '"]').trigger('click')
+                                body.find('.layui-hide').hide();
+                            })
                         } catch (err) {
-                            parent.layer.close(index);
+                            layer.close(index);
                         }
                         return false;
                     } : yes,
                     btn2: btn2 === undefined ? function (index) {
-                        parent.layer.closeAll(index);
+                        layer.close(layer.index);
                     } : btn2,
-
+                    cancel: function(index, layero){
+                        console.log(layero)
+                        layer.close(layer.index);
+                    }
                 }
-                var index = layer.open(options);
+                if(parentiframe){
+                    var index = parent.layer.open(options);
+                }else{
+                    var index = layer.open(options);
+                }
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layer.full(index);
                 }
@@ -379,7 +412,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     })
                 }
             },
-
             refreshiFrame: function () {
                 parent.location.reload();
                 return false;
@@ -388,7 +420,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 tableName = tableName | 'list';
                 layui.table.reload(tableName);
             },
-
         },
         /**
          *
@@ -443,19 +474,30 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
         init: function () {
             // 绑定ESC关闭窗口事件
             $(window).keyup(function (event) {
-                if (event.keyCode === 27) {
-                    if ($(".layui-layer").length > 0) {
-                        var index = 0;
-                        $(".layui-layer").each(function () {
-                            index = Math.max(index, parseInt($(this).attr("times")));
-                        });
-                        if (index) {
-                            Fun.toastr.close(index)
+                console.log(event.keyCode)
+                if (event.keyCode === 27 || event.keyCode === '27') {
+                    var index = 0;
+                    $(document).ready(function () {
+                        if ($(".layui-layer").length > 0) {
+                            $(".layui-layer").each(function () {
+                                index = Math.max(index, parseInt($(this).attr("times")));
+                            });
+                            if (index) {
+                                layer.close(index);
+                            }
+                        }else if (parent.$(".layui-layer").length) {
+                            parent.$(".layui-layer").each(function () {
+                                index = Math.max(index, parseInt($(this).attr("times")));
+                            });
+                            if (index) {
+                                parent.layer.close(index);
+                            }
                         }
-                    }
+
+                    })
+
                 }
             });
-
         },
         /**
          *

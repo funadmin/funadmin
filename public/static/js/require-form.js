@@ -38,6 +38,7 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                                 $.each(list, function () {
                                     if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                                         var id = $(this).prop('id');
+
                                         return layui.layedit.sync(window['editor' + id])
                                     }
                                 })
@@ -88,7 +89,7 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                             var filter = $(this).attr('lay-filter'),
                                 type = $(this).data('type'),
                                 refresh = $(this).data('refresh'),
-                                url = $(this).data('data-request');
+                                url = $(this).data('request');
                             // 表格搜索不做自动提交
                             if (type === 'tableSearch') {
                                 return false;
@@ -252,7 +253,8 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                         layui.form.val("form", Config.formData);
                         layui.form.render();
                     }
-                    layui.multiSelect.render();
+                    multiSelect = layui.multiSelect?layui.multiSelect:parent.layui.multiSelect;
+                    multiSelect.render();
                 },
                 /**
                  * 选择文件
@@ -260,7 +262,7 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                 chooseFiles: function () {
                     var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-select\"]");
                     if (fileSelectList.length > 0) {
-                        $.each(fileSelectList, function () {
+                        $.each(fileSelectList, function (i,v) {
                             var data = $(this).data();
                             var uploadType = data.value.type,
                                 uploadNum = data.value.num,
@@ -271,7 +273,8 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                             var input = $(this).parents('.layui-upload').find('input[type="text"]');
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
-                            layui.tableSelect.render({
+                            tableSelect = layui.tableSelect?layui.tableSelect:parent.layui.tableSelect;
+                            tableSelect.render({
                                 elem: '#' + id,
                                 checkedKey: 'id',
                                 searchType: 2,

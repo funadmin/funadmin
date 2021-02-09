@@ -243,7 +243,7 @@ class FormHelper
      * @param $value
      * @param $options
      */
-    public static function select($name, $select, $options, $attr, $value)
+    public static function multiselect($name, $select, $options, $attr, $value)
     {
         $op = '';
         foreach ($select as $k => $v) {
@@ -279,6 +279,58 @@ class FormHelper
                   </select>
                   ' . self::tips($options) . '
                 </div>
+                </div>';
+        return $str;
+    }
+    /**
+     * @param $name
+     * @param $value
+     * @param $options
+     */
+    public static function xmselect($name, $select, $options, $attr, $value)
+    {
+        $op = '';
+        if(isset($options['lang'])){
+            $op.=' data-lang="'.$options['lang'].'"';
+        }
+        if(isset($options['radio'])){
+            $op.=" data-radio='true'";
+        }
+        if(isset($options['pageSize'])){
+            $op.=" data-pageSize='".$options['pageSize']."'";
+        }
+        if(isset($options['pageSize'])){
+            $op.=" data-pageSize='".$options['pageSize']."'";
+        }
+        if(isset($options['paging'])){
+            $op.=" data-paging='".$options['pageSize']."'";
+        }
+        if(isset($options['disabled'])){
+            $op.=" data-disabled='".$options['disabled']."'";
+        }
+        if(isset($options['clickClose'])){
+            $op.=" data-clickClose='".$options['clickClose']."'";
+        }
+        if(isset($options['create'])){
+            $op.=" data-create='".$options['create']."'";
+        }
+        if(is_array($select)){
+            $op.=" data-value='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
+        }
+        if(is_object($select)){
+            $op.=" data-value='".$select."'";
+        }
+        $label = isset($options['label']) ? $options['label'] : $name;
+        if (isset($options['multiple'])) {
+            $multiple = 'multiple="multiple"';
+        }
+        $str = '<div class="layui-form-item">
+                <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
+                <div id="'.$name.'" class="layui-input-block" '.$op.' lay-filter="xmSelect">
+                <input type="hidden" name="'.$name.'">   
+                ' . self::tips($options) . '
+                </div>
+                
                 </div>';
         return $str;
     }
@@ -460,7 +512,6 @@ class FormHelper
      */
     public static function upload($name = 'avatar', $formdata = '', $options = [])
     {
-
         if (!isset($options['type'])) {
             $options['type'] = 'radio';
         }
@@ -531,11 +582,13 @@ class FormHelper
                                    data-fileurl="' . $v . '"></i></li>';
                         break;
                 }
-
             }
         }
-        $value = isset($formdata[$name]) ? $formdata[$name] : '';
-
+        $value ='';
+        if($formdata){
+            $value = implode(',',$formdata);
+        }
+        $value = isset($formdata[$name]) ? $formdata[$name] : $value;
         $op = [
             'path' => isset($options['path']) ? $options['path'] : '',
             'mime' => isset($options['mime']) ? $options['mime'] : '',
@@ -547,10 +600,6 @@ class FormHelper
             'multiple' => isset($options['multiple']) ? $options['multiple'] : '',
         ];
         $op = "data-value='" . json_encode($op, true) . "'";
-//        $op .= 'data-path="' . $options['path'] . '"';
-//        $op .= 'data-mime="' . $options['mime'] . '"';
-//        $op .= 'data-num="' . $options['num'] . '"';
-//        $op .= 'data-type="' . $options['type'] . '"';
         $str = ' <div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
@@ -558,7 +607,7 @@ class FormHelper
                         <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '/>
                        ' . $croper_container . '
                         <button type="button" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>' . lang('Uploads') . '</button>
-                        <button id="select-upload" type="button" class="layui-btn layui-btn-danger"  ' . $op . '  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>
+                        <button id="'.$name.'" type="button" class="layui-btn layui-btn-danger upload-select"  ' . $op . '  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>
                         <div class="layui-upload-list">'
             . $li . '
                         </div>

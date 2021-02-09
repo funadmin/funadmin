@@ -19,6 +19,7 @@ use fun\helper\FileHelper;
 use fun\addons\Service;
 use think\App;
 use think\Exception;
+use think\facade\Console;
 use app\common\model\Addon as AddonModel;
 
 /**
@@ -45,7 +46,7 @@ class Addon extends Backend
                 //是否已经安装过
                 if ($addons && !isset($addons[$key]) || !$addons) {
                     $class = get_addons_instance($key);
-                    $addons[$key] = $class->getInfo();
+                    $addons["$key"] = $class->getInfo();
                     if ($addons[$key]) {
                         $addons[$key]['install'] = 0;
                         $addons[$key]['status'] = 0;
@@ -169,18 +170,18 @@ class Addon extends Backend
         $class->uninstall();
         //删除菜单
         $menu_config=$this->get_menu_config($class);
-        if(!empty($menu_config)){
-            $menu[] = $menu_config['menu'];
-            $addonService = new AddonService();
-            $addonService->delAddonMenu($menu);
-        }
-        try {
-            uninstallsql($name);
 
+        try {
+            if(!empty($menu_config)){
+                $menu[] = $menu_config['menu'];
+                $addonService = new AddonService();
+                $addonService->delAddonMenu($menu);
+            }
+            //卸载sql;
+            uninstallsql($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
-        //卸载sql;
         // 移除插件基础资源目录
         $destAssetsDir = Service::getDestAssetsDir($name);
         if (is_dir($destAssetsDir)) {
@@ -310,6 +311,7 @@ class Addon extends Backend
         $menu = $class->menu;
         return $menu;
     }
+
 
 
 

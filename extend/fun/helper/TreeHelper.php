@@ -5,7 +5,9 @@ namespace fun\helper;
 class TreeHelper
 {
     /**
-     * 无限分类
+     * @param array $arr
+     * @param int $pid
+     * @return array
      */
     public static function getTree($arr,$pid=0){
 
@@ -18,12 +20,13 @@ class TreeHelper
         }
         return $list;
     }
+
     /**
      * 无限分类-权限
-     * @param $cate            栏目
+     * @param array $cate         栏目
      * @param string $lefthtml 分隔符
      * @param int $pid         父ID
-     * @param int $lvl         层级
+     * @param int $level         层级
      * @return array
      */
     public static function cateTree($cate ,$name='title', $lefthtml = '|— ' , $pid = 0 , $level = 0 ){

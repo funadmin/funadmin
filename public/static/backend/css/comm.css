@@ -6,9 +6,7 @@ html{-ms-overflow-style:none;overflow:-moz-scrollbars-none}
 body{background:#f1f4f6;padding:10px}
 .fun-container{background:#fff}
 .layui-table,.layui-table-view{margin:0 auto}
-.fl{float:left}
-.fr{float:right}
-.clearfix{clear:both}
+.fl{float:left}.fr{float:right}.clearfix{clear:both}
 .layui-table-tool{z-index:80}
 .layui-table-tool-temp{padding-right:60px}
 .layui-layer.layui-layer-dialog .layui-layer-btn,.layui-layer-content{text-align:center}

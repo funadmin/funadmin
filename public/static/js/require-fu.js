@@ -1,16 +1,51 @@
-define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox', 'multiSelect', 'upload' ],
-    function ($, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload) {
+define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox', 'multiSelect', 'upload' ],
+    function ($,xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload) {
         var Fu = {
             init: {},
             //事件
             events: {
+                //单多选框
+                xmSelect:function(){
+                    var list = document.querySelectorAll("*[lay-filter='xmSelect']");
+                    if (list.length > 0) {
+                        $.each(list, function () {
+                            var id = $(this).prop('id'),lang = $(this).data('lang'),paging = $(this).data('paging');
+                            var pageSize = $(this).data('pageSize'),radio = $(this).data('radio');
+                            var disabled = $(this).data('disabled'),clickClose = $(this).data('clickClose');
+                            var create = $(this).data('create'), value = $(this).data('value'),theme = $(this).data('theme');
+                            theme=theme?theme:'#333';value = value?value:[];lang = lang?lang:'zh';paging = paging === undefined || paging !== 'false';
+                            pageSize = pageSize?pageSize:10;radio = !!radio;disabled = !!disabled;clickClose = clickClose?clickClose:false;
+                            create = !create?function(val){//返回一个创建成功的对象, val是搜索的数据, arr是搜索后的当前页面数据
+                                return {name: val, value: val}
+                            }:false;
+                            xmSelect = window.xmSelect?window.xmSelect:parent.window.xmSelect;
+                            xmselect = xmSelect.render({
+                                el: '#'+id,
+                                toolbar: {show: true, showIcon: false,},
+                                theme: {color: theme,},
+                                language: lang, radio:radio, paging: paging, pageSize:pageSize,
+                                filterable: true,
+                                autoRow: true,
+                                disabled:disabled,
+                                clickClose:clickClose,
+                                data: value,
+                                on: function(data){
+                                    $('#'+id).find('input[name="'+id+'"]').val(Fun.common.arrTostr(data.arr))
+                                },
+                                // 想创建就必须要开启本地搜索
+                                create: create,
+                            })
+
+                        })
+                    }
+                },
                 editor: function () {
                     var list = document.querySelectorAll("*[lay-filter='editor']");
                     if (list.length > 0) {
                         $.each(list, function () {
-                            if ($(this).data('editor') === 2) {
+                            if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                                 var id = $(this).prop('id');
-                                window['editor' + id] = layedit.build(id,
+                                window['editor' + id] = layui.layedit.build(id,
                                     {
                                         height: 350,
                                         uploadImage: {
@@ -31,7 +66,8 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                             var tag = _that.parents('.tags').find('input[type="hidden"]').val();
                             if (tag) content = tag.substring(0, tag.length - 1).split(',');
                             var id = _that.prop('id');
-                            layui.inputTags.render({
+                            var inputTags = layui.inputTags?layui.inputTags:parent.layui.inputTags
+                            inputTags.render({
                                 elem: '#' + id,//定义输入框input对象
                                 content: content,//默认标签
                                 done: function (value) { //空格后的回调
@@ -75,7 +111,7 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                             var _that = $(this);
                             var id = _that.prop('id');
                             var color = _that.prev('input').val();
-                            layui.colorPicker.render({
+                            layui.colorpicker.render({
                                 // 选择器，推荐使用input
                                 elem: '#' + id,
                                 // 数据类型：fontClass/unicode，推荐使用fontClass
@@ -174,7 +210,6 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                                 trigger: 'click',
                                 calendar: true,
                                 theme: '#393D49'
-
                             };
                             if (format !== undefined && format !== '' && format != null) {
                                 options['format'] = format;
@@ -194,13 +229,14 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                     $(document).on('click', ".addInput", function () {
                         name = $(this).data('name');
                         verify = $(this).data('verify');
+                        num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length+1;
                         var str = '<div class="layui-form-item">' +
                             '<label class="layui-form-label"></label>' +
                             '<div class="layui-input-inline">' +
-                            '<input type="text" name="' + name + '[][key]" placeholder="key" class="layui-input input-double-width">' +
+                            '<input type="text" name="' + name + '[key]['+num+']" placeholder="key" class="layui-input input-double-width">' +
                             '</div>' +
                             '<div class="layui-input-inline">\n' +
-                            '<input type="text" id="" name="' + name + '[][key]" lay-verify="required" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' +
+                            '<input type="text" id="" name="' + name + '[value]['+num+']" lay-verify="required" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' +
                             '</div>' +
                             '<div class="layui-input-inline">' +
                             '<button data-name="' + name + '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' +
@@ -226,6 +262,7 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                 bindEvent: function () {
                     var events = Fu.events;
                     events.icon();
+                    events.xmSelect();
                     events.color();
                     events.tags();
                     events.city();
@@ -236,11 +273,9 @@ define(['jquery', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'region
                     events.addInput();
                     events.removeInupt();
                     events.bindevent();
-
                 }
             }
         };
-
         return Fu;
 
     })

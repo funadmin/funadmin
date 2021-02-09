@@ -14,7 +14,6 @@
     <meta name="format-detection" content="telephone=no"  >
     <link rel="stylesheet" href="__PLUGINS__/layui/css/layui.css" media="all" />
     <link rel="stylesheet" href="__STATIC__/backend/css/fun.css?v={:time()}" media="all">
-    <link rel="stylesheet" href="__PLUGINS__/font-awesome-4.7.0/css/font-awesome.min.css" media="all">
     {:token_meta()}
     <style id="fun-bg-color">
     </style>
@@ -47,11 +46,21 @@
                 </li>
                 <li class="layui-nav-item layui-hide-xs" lay-unselect>
                     <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" data-ajax="{:__u('ajax/clearcache')}"><i
-                            class="layui-icon layui-icon-refresh-1"></i></a>
+                        class="layui-icon layui-icon-refresh-1"></i></a>
                 </li>
-                <li class="layui-nav-item " lay-unselect>
-                    <a href="javascript:;" lay-event="clear" title="{:lang('Clear')}" data-ajax="{:__u('ajax/clearcache')}"><i
-                            class="layui-icon layui-icon-fonts-clear"></i></a>
+                <li class="layui-nav-item layui-hide-xs" lay-unselect>
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-fonts-clear"></i>
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear All')}" data-ajax="{:__u('ajax/clearcache',['type'=>'all'])}"><i
+                            class="layui-icon layui-icon-fonts-clear">{:lang('Clear All')}</i></a></dd>
+                        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear Frontend')}" data-ajax="{:__u('ajax/clearcache',['type'=>'frontend'])}"><i
+                                class="layui-icon layui-icon-delete">{:lang('Clear Frontend')}</i></a></dd>
+                        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear Backend')}" data-ajax="{:__u('ajax/clearcache',['type'=>'backend'])}"><i
+                                class="layui-icon layui-icon-delete">{:lang('Clear Backend')}</i></a></dd>
+
+                    </dl>
                 </li>
             </ul>
             <ul class="layui-nav layui-layout-right">
@@ -94,7 +103,7 @@
             <div class="layui-side-scroll">
                 <!--logo-->
                 <div class="layui-logo">
-                    <a href="https://www.FunAdmin.com">
+                    <a href="https://www.FunAdmin.com" target="_blank">
                         <img src="{:syscfg('site','site_logo')}" alt="logo">
                         <cite>{:syscfg('site','site_name')}</cite></a>
                 </div>

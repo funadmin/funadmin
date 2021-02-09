@@ -52,8 +52,7 @@ class AddonService
                 if ($hasChild) {
                     $this->addAddonMenu($v['menulist'], $menu->id);
                 }
-
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 throw new Exception($e->getMessage());
             }
         }
@@ -81,7 +80,7 @@ class AddonService
                         $manager->delete();
                     }
                 }
-            } catch (PDOException $e) {
+            } catch (Exception $e) {
                 throw new Exception($e->getMessage());
             }
         }

@@ -27,7 +27,15 @@ return [
             // 端口
             'hostport'          => Env::get('database.hostport', '3306'),
             // 数据库连接参数
-            'params'            => [],
+            'params'            => [
+                'MYSQL_ATTR_USE_BUFFERED_QUERY' => true,
+                \PDO::ATTR_PERSISTENT   => true,
+                \PDO::ATTR_CASE         => \PDO::CASE_LOWER,
+                \PDO::ATTR_EMULATE_PREPARES => true,
+                '1000'  =>  true,               #PDO::MYSQL_ATTR_USE_BUFFERED_QUERY
+
+
+            ],
             // 数据库编码默认采用utf8
             'charset'           => Env::get('database.charset', 'utf8mb4'),
             // 数据库表前缀

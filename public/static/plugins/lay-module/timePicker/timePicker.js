@@ -53,7 +53,8 @@ timePicker.prototype.render = function (opt) {
             '<input type="text" class="layui-input" id="eTime">' +
             '</div></div>' +
             '<div class="time-down">' +
-            '<div class="sure" data-role="sure">确定</div>' +
+            '<div class="layui-btn layui-btn-sm layui-btn-normal"   data-role="clear">清除</div>' +
+            '<div class="layui-btn layui-btn-sm" data-role="sure">确定</div>' +
             '</div>' +
             '</div>';
         timeDiv = $(timeDiv);
@@ -67,7 +68,6 @@ timePicker.prototype.render = function (opt) {
         //自定义时间选择器
         laydate.render({elem: '#sTime',theme: '#393D49'});
         laydate.render({elem: '#eTime',theme: '#393D49'});
-
         //选择固定日期
         var $li=$('.time-info').children().find('li');
         $li.on('click',function () {
@@ -79,6 +79,10 @@ timePicker.prototype.render = function (opt) {
                 $(this).children('input').prop('checked',true);
             }
         });
+        $('[data-role="clear"]').on('click',function () {
+            elem.val('');
+            $('.timePicker').remove();
+        })
         //确定后生成时间区间 如：2018-9-14 - 2018-9-15
         $('[data-role="sure"]').on('click',function () {
             var inputVal=$('.time-info').children().find('input:checked').val();

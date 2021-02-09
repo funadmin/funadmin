@@ -1,6 +1,6 @@
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
-    urlArgs: 'v=' + (Config.site.app_debug ===0 ? Config.site.site_version :(new Date().getTime())),
+    urlArgs: 'v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime())),
     packages: [
         {
             name: 'moment',
@@ -14,9 +14,9 @@ require.config({
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker',
+        'timeago','multiSelect','cityPicker','xmSelect',
         'regionCheckBox','timePicker','croppers', 'moment',
-        'backend','md5','fun','fu','form','table','upload','addons',],
+        'backend','md5','fun','fu','form','table','upload','addons','Vue'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -37,7 +37,10 @@ require.config({
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
+        'xmSelect'     : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
+        'Vue'           : 'plugins/vue/vue.global',
+
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend'+(Config.site.app_debug?'':'.min'), // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
@@ -53,7 +56,8 @@ require.config({
     },
     shim: {
         'cityPicker':{
-            deps: ['plugins/lay-module/cityPicker/city-picker-data', 'css!plugins/lay-module/cityPicker/city-picker.css'],
+            deps: ['plugins/lay-module/cityPicker/city-picker-data',
+                'css!plugins/lay-module/cityPicker/city-picker.css'],
         },
         'inputTags':{
             deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
@@ -88,12 +92,11 @@ require(["jquery"], function ($) {
         require(['fun','backend','addons'], function (Fun,Backend) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    console.log(Config.jspath)
                     require([BASE_URL+Config.jspath], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('action is not find')
+                            console.log('action'+ Config.actionname+' is not find')
                         }
                     });
                 }

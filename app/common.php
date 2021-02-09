@@ -52,7 +52,24 @@ if (!function_exists('__u')) {
     }
 }
 
+if (!function_exists("_getProvicesByPid")) {
+    function _getProvicesByPid($pid = 0)
+    {
 
+        return \think\facade\Db::name('provinces')->cache(true)->find($pid);
+    }
+}
+
+if (!function_exists("_getMember")) {
+    function _getMember($id)
+    {
+        $member = \think\facade\Db::name('member')->cache(true)->find($id);
+        if ($member) {
+            return $member;
+        }
+        return [];
+    }
+}
 /** 百度编辑器*/
 if (!function_exists('build_ueditor')) {
     function build_ueditor($params = array())

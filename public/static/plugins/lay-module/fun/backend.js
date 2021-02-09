@@ -593,11 +593,11 @@ layui.define(["jquery", 'layer','element'], function (exports) {
             var left = tabNav.scrollLeft();
             if (type === 'left') {
                 tabNav.animate({
-                    scrollLeft: left - 450
+                    scrollLeft: left - 550
                 }, 100);
             } else {
                 tabNav.animate({
-                    scrollLeft: left + 450
+                    scrollLeft: left + 550
                 }, 100);
             }
         },

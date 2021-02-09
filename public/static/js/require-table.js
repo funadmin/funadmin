@@ -323,16 +323,15 @@ define(['jquery','timePicker'],function ($,timePicker) {
             switch: function (d) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
-                ele.checked = ele.checked || 1;
                 ele.tips = ele.tips || __('open') + '|' + __('close');
-                var checked = d[ele.field] === ele.checked ? 'checked' : '';
+                var checked = d[ele.field] > 0 ? 'checked="checked"' : '';
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >';
             },
             //解析
             resolution: function (d) {
                 var ele = $(this)[0];
                 ele.field = ele.filter || ele.field || null;
-                return eval('d.' + ele.field);
+                return  val = ele.field ? eval('d.' + ele.field) : '';
             },
             //操作
             operat: function (d) {
@@ -529,7 +528,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         Fun.toastr.success(res.msg, function () {
                             layui.table.reload(tableId)
                         });
-
                     }, function (res) {
                         Fun.toastr.error(res.msg, function () {
                             layui.table.reload(tableId);
@@ -656,16 +654,15 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                     prefix: true,
                                     data: data,
                                 }, function (res) {
-
                                     Fun.toastr.success(res.msg, function () {
-                                        table.reload(tableId);
+                                        layui.table.reload(tableId);
                                     });
                                 }, function (res) {
                                     Fun.toastr.error(res.msg, function () {
-                                        table.reload(tableId);
+                                        layui.table.reload(tableId);
                                     });
                                 }, function () {
-                                    table.reload(tableId);
+                                    layui.table.reload(tableId);
                                 });
                             });
                         }

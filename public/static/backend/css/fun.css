@@ -9,11 +9,9 @@ html {
 [lay-url] {
     cursor: pointer
 }
-
 .layui-site-mobile {
     display: none
 }
-
 body .layui-layer-content,
 .layui-layer.layui-layer-dialog .layui-layer-btn {
     text-align: center

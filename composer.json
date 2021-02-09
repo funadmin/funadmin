@@ -38,10 +38,11 @@
     "topthink/think-ide-helper": "^1.0",
     "topthink/think-throttle": "^1.1",
     "james-heinrich/getid3": "^1.9",
-    "overtrue/wechat": "^5.2",
     "overtrue/socialite": "^3.1",
+    "overtrue/wechat": "^5.4",
     "ramsey/uuid": "^4.1",
-    "funadmin/fun-addons": "v1.2"
+    "funadmin/fun-addons": "v1.22"
+
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"

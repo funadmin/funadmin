@@ -1,0 +1,51 @@
+
+<div class="fly-home fly-panel" style="background-image: url();">
+  <img src="{$ouser.avatar}" alt="{$ouser.username}">
+  <i class="iconfont icon-renzheng" title="funadmin-bbs社区认证"></i>
+  <h1>
+    {$ouser.username}
+
+    <i class="iconfont  {if $member.sex==1}icon-nan{elseif $member.sex==2 }icon-nv{else /}保密{/if}"></i>
+    <!-- <i class="iconfont icon-nv"></i>  -->
+    <i class="layui-badge fly-badge-vip">VIP{$member.level_id}</i>
+    <!--
+    <span style="color:#c00;">（管理员）</span>
+    <span style="color:#5FB878;">（社区之光）</span>
+    <span>（该号已被封）</span>
+    -->
+  </h1>
+  {if $ouser.auth_info}
+  <p style="padding: 10px 0; color: #5FB878;">认证信息：{$ouser.auth_info} </p>
+  {/if}
+  <p class="fly-home-info">
+    <i class="iconfont icon-kiss" title="L币"></i><span style="color: #FF7200;">{$ouser.scores} L币</span>
+    <i class="iconfont icon-shijian"></i><span>{:timeAgo($ouser.create_time)} 加入</span>
+    {if $ouser.province}<i class="iconfont icon-chengshi"></i><span>来自{:_getProvicesByPid($ouser.province)['name']}</span>{/if}
+  </p>
+  {if $ouser.sign}
+  <p class="fly-home-sign">（{$ouser.sign}）</p>
+  {/if}
+<!--  <div class="fly-sns" data-user="">-->
+<!--    <a href="javascript:;" class="layui-btn layui-btn-primary fly-imActive" data-type="addFriend">加为好友</a>-->
+<!--    <a href="javascript:;" class="layui-btn layui-btn-normal fly-imActive" data-type="chat">发起会话</a>-->
+<!--  </div>-->
+
+</div>
+
+<div class="layui-container">
+  <div class="layui-row layui-col-space15">
+    <div class="layui-col-md6 fly-home-jie">
+      <div class="fly-panel">
+        <h3 class="fly-panel-title">{$ouser.username} 最近的提问</h3>
+
+      </div>
+    </div>
+    
+    <div class="layui-col-md6 fly-home-da">
+      <div class="fly-panel">
+        <h3 class="fly-panel-title">{$ouser.username} 最近的文章</h3>
+
+      </div>
+    </div>
+  </div>
+</div>

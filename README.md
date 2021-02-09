@@ -19,6 +19,7 @@
 ### 如果您想获悉项目实时更新信息，您可以点右上角感谢您的支持！
 ### 官方网址：http://www.funadmin.com/
 ### 帮助文档：http://docs.funadmin.com/
+### 邮箱：994927909@qq.com
 ### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
 ## 项目介绍
@@ -62,7 +63,7 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
 ## 开发者信息
 * 系统名称：FunAdmin管理框架
 * 作者：FunAdmin
-* 作者QQ：99492909
+* 作者QQ：994927909
 * 官网网址：[http://www.funadmin.com/](http://www.funadmin.com/)
 * 文档网址：[http://docs.funadmin.com/](http://docs.funadmin.com/)
 * 开源协议：Apache 2.0
@@ -90,7 +91,7 @@ All rights reserved。
 
 ## 若此项目能得到你的青睐，支持开源项目，可以捐赠支持作者持续开发与维护。
 
-![image](docs/images/pay.png)
+![image](doc/images/pay.png)
 
 ## 问题反馈
 在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流

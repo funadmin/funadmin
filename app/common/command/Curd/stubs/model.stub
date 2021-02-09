@@ -1,0 +1,23 @@
+<?php
+declare (strict_types = 1);
+
+namespace {%modelNamespace%};
+use app\common\model\BaseModel;
+use think\Model;
+
+/**
+ * @mixin \think\Model
+ */
+class {%modelName%} extends BaseModel
+{
+
+    // 表名
+    protected $name = '{%modelTableName%}';
+    protected $pk = '{%modelTablePk%}';
+
+    public function __construct(array $data = [])
+    {
+        parent::__construct($data);
+    }
+
+}

@@ -15,6 +15,6 @@
 return [
     // 指令定义
     'commands' => [
-//        'crud' => 'app\common\command\crud\Crud',
+//        'crud' => 'app\common\command\Curd',
     ],
 ];
