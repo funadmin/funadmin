@@ -44,6 +44,7 @@ class Addon extends Backend
             $addons =  $this->modelClass->column('*', 'name');
             foreach ($list as $key => $value) {
                 //是否已经安装过
+                $config = get_addons_config($key);
                 if ($addons && !isset($addons[$key]) || !$addons) {
                     $class = get_addons_instance($key);
                     $addons["$key"] = $class->getInfo();
@@ -53,6 +54,12 @@ class Addon extends Backend
                     }
                 } else {
                     $addons[$key]['install'] = 1;
+                }
+                if(isset($config['domain']) && $config['domain']['value']){
+                    $index = strpos($_SERVER['HTTP_HOST'],'.');
+                    $addons[$key]['web'] = httpType().$config['domain']['value'].substr($_SERVER['HTTP_HOST'],$index);
+                }else{
+                    $addons[$key]['web'] = '/addons/'.$key;
                 }
             }
             $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $addons, 'count' => count($addons)];

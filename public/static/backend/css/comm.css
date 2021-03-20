@@ -39,10 +39,8 @@ body{background:#f1f4f6;padding:10px}
 .fun-layer-class .layui-layer-btn a{background:#2c3e50;border-radius: 3px;}
 .fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccc}
 /* 偶数行背景色 */
-.layui-table[lay-even] tr:nth-child(even) {
-    background-color: #eee;
-}
+.layui-table tr:nth-child(even) {background-color: rgb(243 245 243);}
 /* 鼠标指向表格时,奇数行背景颜色 */
-.layui-table tbody tr:hover,.layui-table-hover {
-    background-color: #eee;
-}
+.layui-table tbody tr:hover,.layui-table-hover {background-color: #eeeeee;}
+.layui-form-item input[lay-filter=date] {padding-left:36px;}
+.layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 4px;font-size: 30px;color: #f44336;}

@@ -2,47 +2,24 @@ html {
     color: #666;
     font: 14px Helvetica Neue, Helvetica, PingFang SC, Tahoma, Arial, sans-serif
 }
-
-[lay-ajax],
-[lay-href],
-[lay-tips],
-[lay-url] {
-    cursor: pointer
-}
-.layui-site-mobile {
-    display: none
-}
+[lay-ajax], [lay-href], [lay-tips], [lay-url] {cursor: pointer}
 body .layui-layer-content,
-.layui-layer.layui-layer-dialog .layui-layer-btn {
-    text-align: center
-}
-
+.layui-layer.layui-layer-dialog .layui-layer-btn {text-align: center}
 body .layui-blue {
     color: #00c0ef!important
 }
-
 body .layui-red {
     color: #dd4b39!important
 }
-
 body .layui-yellow {
     color: #f39c12!important
 }
-
-body .fun-layer-class .layui-layer-title {
-    background: #1aa094;
-    color: #fff;
-    border: none
-}
-
-body .fun-layer-class .layui-layer-btn a {
-    background: #333
-}
-
+body .fun-layer-class .layui-layer-title { background: #1aa094;color: #fff;border: none}
+body .fun-layer-class .layui-layer-btn a {background: #333}
 body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     background: #999
 }
-
+body .layui-site-mobile {display: none}
 .layui-layer.layui-layer-dialog .layui-layer-btn a {
     background-color: #95a5a6;
     color: #fff !important;
@@ -51,36 +28,29 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     border-color: #95a5a6;
     border: 1px solid transparent;
 }
-
 .layui-layer.layui-layer-dialog .layui-layer-btn0 {
     background-color: #1aa094!important
 }
-
 .layui-layout-admin .layui-header {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%
 }
-
 .layui-header .layui-nav .layui-nav-item.layui-this {
     transition: all .3s
 }
-
 .layui-header .layui-nav {
     padding: 0 !important
 }
-
 .layui-header .layui-layout-left {
     left: 255px
 }
-
 .layui-header .layui-layout-left {
     position: absolute !important;
     top: 0;
     left: 220px
 }
-
 .layui-header .layui-nav .layui-nav-item,
 .layui-layout-admin .layui-header .layui-tool,
 .layui-layout-admin .layui-layout-left,
@@ -95,11 +65,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     padding: 0;
     text-align: left
 }
-
 .layui-header .layui-nav .layui-nav-child dd.layui-this a {
     background-color: #18bc9c
 }
-
 .layui-header .layui-tool {
     height: 100%;
     line-height: 60px;
@@ -114,7 +82,6 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 .layui-header .layui-tool a {
     color: #fff
 }
-
 .layui-layout-admin .layui-header ul li dl dd a {
     color: #595959!important
 }
@@ -674,7 +641,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 
 .fun-loading .loading>span,
 .signal-loader>span {
-    /*background-color: #00a65a;*/
+    background-color: #00a65a;
     display: inline-block
 }
 

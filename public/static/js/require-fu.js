@@ -35,7 +35,6 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                                 // 想创建就必须要开启本地搜索
                                 create: create,
                             })
-
                         })
                     }
                 },
@@ -198,6 +197,7 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                     var list = document.querySelectorAll("*[lay-filter='date']");
                     if (list.length > 0) {
                         $.each(list, function () {
+                            //自定义事件
                             var format = $(this).data('format'),
                                 type = $(this).data('type'),
                                 range = $(this).data('range');
@@ -220,7 +220,8 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                                 }
                                 options['range'] = range;
                             }
-                            layui.laydate.render(options);
+                            laydate = layui.laydate?layui.laydate:parent.layui.laydate;
+                            laydate.render(options);
                         });
                     }
                 },

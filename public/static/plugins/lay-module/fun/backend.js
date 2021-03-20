@@ -545,6 +545,7 @@ layui.define(["jquery", 'layer','element'], function (exports) {
             var styleHtml = '.layui-layout-admin .layui-header ul li a{color:' + themeData.headerfontColor + '!important;}' +
                 '.layui-layout-admin .layui-header{background-color:' + themeData.headerBg + '!important;}\n' +
                 '.layui-header>ul>.layui-nav-item.layui-this:hover{color:' + themeData.headerBgThis + '!important;}\n' +
+                '.layui-header .layui-nav .layui-nav-child dd.layui-this a{background-color:' + themeData.headerBg + '!important;}\n' +
                 '.layui-layout-admin .layui-logo {background-color:' + themeData.headerBgLogo + '!important;}\n' +
                 '.layui-layout-admin .layui-logo{color:' + themeData.headerfontColor + '!important;}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item a{color:' + themeData.menuLeftfontColor + '}\n' +

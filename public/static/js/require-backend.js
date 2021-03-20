@@ -1,3 +1,8 @@
+/**
+ @ WWW.FUNADMIN.COM
+ @ Name：REQUIRE-BACKEND
+ @ Author：YUEGE
+ */
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
     urlArgs: 'v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime())),
@@ -88,7 +93,8 @@ require(["jquery"], function ($) {
     paths["lang"] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
     paths['backend/'] = 'backend/';
     require.config({paths:paths});
-    $(function () {
+    //直接使用$经常出现未定义
+    layui.$(function () {
         require(['fun','backend','addons'], function (Fun,Backend) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {

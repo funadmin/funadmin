@@ -1,4 +1,0 @@
-<form class="layui-form" lay-filter="form">
-{%formField%}
-{:form_submitbtn()}
-</form>

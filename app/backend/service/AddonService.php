@@ -35,7 +35,6 @@ class AddonService
     {
 
     }
-
     //添加菜单
     public function addAddonMenu($menu,$pid = 0){
 
@@ -112,9 +111,7 @@ class AddonService
         }
         $this->delMenuCache();
         return $manager;
-
     }
-
     /**
      * 删除菜单配置缓存
      */

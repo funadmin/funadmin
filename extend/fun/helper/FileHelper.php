@@ -33,7 +33,7 @@ class FileHelper
             if($file!="." && $file!="..") {
                 $fullpath=$dir."/".$file;
                 if(!is_dir($fullpath)) {
-                    unlink($fullpath);
+                    @unlink($fullpath);
                 } else {
                     self::delDir($fullpath);
                 }
@@ -41,7 +41,7 @@ class FileHelper
         }
         closedir($dh);
         //删除当前文件夹：
-        if(rmdir($dir)) {
+        if(@rmdir($dir)) {
             return true;
         } else {
             return false;
@@ -70,7 +70,7 @@ class FileHelper
                     self::mkdirs($sontDir, 0755, true);
                 }
             } else {
-                copy($item, $dest . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
+                @copy($item, $dest . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
             }
         }
         return true;
@@ -152,7 +152,7 @@ class FileHelper
     {
         foreach ($files as $key => $value) {
             if (substr($value, -1) == '/') {
-                mkdir($value);
+                mkdir($value,0755);
             } else {
                 file_put_contents($value, '');
             }
@@ -185,7 +185,12 @@ class FileHelper
         return file_put_contents($path, "\r\n" . $content, FILE_APPEND);
     }
 
-
+    /**
+     * 获取本地文件列表
+     * @param $path
+     * @param string $type
+     * @return array
+     */
     public static function getFileList($path,$type='')
     {
         $list = [];

@@ -21,12 +21,15 @@ define(['jquery','timePicker'],function ($,timePicker) {
             options.searchname = Fun.parame(Table.init.searchname, 'id');
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
-            options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', {
-                title: __("Search"),
-                layEvent: 'TABLE_SEARCH',
-                icon: 'layui-icon-search',
-                extend: 'data-tableid="' + options.id + '"'
-            }];
+            options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', ];
+            if(options.search){
+                options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', {
+                    title: __("Search"),
+                    layEvent: 'TABLE_SEARCH',
+                    icon: 'layui-icon-search',
+                    extend: 'data-tableid="' + options.id + '"'
+                }];
+            }
             // 初始化表格lay-filter
             $(options.elem).attr('lay-filter', options.layFilter);
             // 初始化表格搜索
@@ -658,6 +661,8 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                         layui.table.reload(tableId);
                                     });
                                 }, function (res) {
+                                    obj.elem.checked=!checked;
+                                    layui.form.render();
                                     Fun.toastr.error(res.msg, function () {
                                         layui.table.reload(tableId);
                                     });

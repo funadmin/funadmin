@@ -1,4 +1,4 @@
-<h1 align="center"> 为梦想而创作：FunAdmin开发框架系统</h1>
+<h1 align="center"> 为梦想而创作：FunAdmin开发框架系统--首款支持PHP8.0的系统 </h1>
 
 <p align="center">
 	<a href="http://www.funadmin.com/">
@@ -18,13 +18,13 @@
 ### 如果对您有帮助，您可以点右上角 "Star" 支持一下 谢谢！
 ### 如果您想获悉项目实时更新信息，您可以点右上角感谢您的支持！
 ### 官方网址：http://www.funadmin.com/
-### 帮助文档：http://docs.funadmin.com/
+### 帮助文档：http://docs.funadmin.com/ 正在编写中...
 ### 邮箱：994927909@qq.com
 ### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
 ## 项目介绍
 FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、数据库管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
-
+ + PHP：首款支持php8.0的快速开发框架
  + 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
  + 这是一个有趣的后台管理系统   
  + 这是一款快速、高效、便捷、灵活敏捷的应用开发框架。
@@ -40,7 +40,7 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
  + ...更多功能尽请关注
 
 ## 环境要求:
-* PHP >= 7.2
+* PHP >= 7.2 支持php8.0
 * PDO PHP Extension
 * MBstring PHP Extension
 * CURL PHP Extension
@@ -70,15 +70,13 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
 
 ## 后台演示（用户名:admin 密码:123456）
 
-- 演示地址：[http://demo.funadmin.com/](http://demo.funadmin.com/)
-
+- 演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
 
 ## 鸣谢以下开源项目以及项目中用到的其他开源项目 （排名不分先后，）
 - [Thinkphp](http://thinkphp.cn)
 - [JQuery](http://jquery.com)
 - [Layui](http://www.layui.com)
 - [Requirejs](https://requirejs.org)
-- [Bootstrap](http://www.bootstrap.com)
 
 ## 版权信息
 FunAdmin 方便二次开发，您可以方便的使用到自己或企业的项目中,你可以免费学习或者使用

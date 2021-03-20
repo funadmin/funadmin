@@ -51,4 +51,5 @@ return [
     'error_message'    => '您访问的内容飞走了',
     // 显示错误信息
     'show_error_msg'   => true,
+    'isDemo'=>1
 ];

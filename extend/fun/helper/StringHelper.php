@@ -82,7 +82,7 @@ class StringHelper
     /**
      * 字符串截取
      */
-    public static function msubstr($str, $start=0, $length, $charset="utf-8", $suffix=true) {
+    public static function msubstr($str, $start, $length, $charset="utf-8", $suffix=true) {
         // 过滤html代码
         $str=strip_tags($str);
         if(function_exists("mb_substr")){

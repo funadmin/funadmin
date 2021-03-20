@@ -1,3 +1,8 @@
+/**
+ @ WWW.FUNADMIN.COM
+ @ Name：FUN
+ @ Author：YUEGE
+ */
 /*** 后台总控制API*/
 define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Moment) {
     var layer = layui.layer, table = layui.table;upload = layui.upload,element = layui.element,form = layui.form;
@@ -90,7 +95,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 Fun.toastr.error(__('Request url can not empty'));
                 return false;
             }
-
             // var index = Fun.toastr.loading(option.tips)
             $.ajax({
                 url: option.url,
@@ -112,7 +116,9 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
                     } else {
-                        $("input[name='__token__']").val(res.data.token);
+                        if(res.hasOwnProperty('data') && res.data['token']){
+                            $("input[name='__token__']").val(res.data.token);
+                        }
                         return error(res);
                     }
                 },
@@ -311,8 +317,8 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     success = options.success,
                     yes = options.yes,
                     btn2 = options.btn2,
-                    type = options.options,
-                    type = type === undefined ? 2 : 1;
+                    type = options.options;
+                type = type === undefined ? 2 : 1;
                 isResize = options.isResize === undefined;
                 isFull = options.full !== undefined;
                 url = Fun.url(url)
@@ -391,7 +397,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                         layer.close(layer.index);
                     } : btn2,
                     cancel: function(index, layero){
-                        console.log(layero)
                         layer.close(layer.index);
                     }
                 }
@@ -474,7 +479,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
         init: function () {
             // 绑定ESC关闭窗口事件
             $(window).keyup(function (event) {
-                console.log(event.keyCode)
                 if (event.keyCode === 27 || event.keyCode === '27') {
                     var index = 0;
                     $(document).ready(function () {

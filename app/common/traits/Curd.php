@@ -57,7 +57,7 @@ trait Curd
             try {
                 $save = $this->modelClass->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('operation failed'));
+                $this->error(lang($e->getMessage()));
             }
             $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
@@ -88,7 +88,7 @@ trait Curd
             try {
                 $save = $list->save($post);
             } catch (\Exception $e) {
-                $this->error(lang('operation filed'));
+                $this->error(lang($e->getMessage()));
             }
             $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
@@ -112,7 +112,7 @@ trait Curd
         try {
             $save = $list->delete();
         } catch (\Exception $e) {
-            $this->error(lang("operation success"));
+            $this->error(lang($e->getMessage()));
         }
 
         $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
@@ -135,7 +135,7 @@ trait Curd
                 $v->save();
             }
         } catch (\Exception $e) {
-            $this->error(lang("Destroy Fail"));
+            $this->error(lang($e->getMessage()));
         }
 
         $this->success(lang("Destroy Success"));
@@ -148,8 +148,6 @@ trait Curd
         $sort = $this->request->param('sort');
         $save = $model->sort = $sort;
         $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
-
-
     }
 
     /**

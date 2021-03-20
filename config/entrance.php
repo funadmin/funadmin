@@ -1,5 +1,5 @@
 <?php
 return [ 
-    'backendEntrance'=>'/ET4WKhcwHL.php/',
+    'backendEntrance'=>'/3sZUO6vrxK.php/',
 ];
 ?>

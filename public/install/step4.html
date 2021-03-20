@@ -14,7 +14,7 @@
         <h1>安装成功</h1>
         <p>账号:&nbsp;<?php echo $_SESSION['admin']; ?>&nbsp;密码:&nbsp;<?php echo $_SESSION['password']; ?>&nbsp;</p>
         <p style="color: red;">为了安全，请一定要删除或重命名 /public/install.php</p>
-        <p style="color: red;">请牢记后台登录地址：<?= $_SERVER['HTTP_HOST'].'/'.$_SESSION['backend']?></p>
+        <p style="color: red;">请牢记后台登录地址：<a href="<?= $_SERVER['HTTP_HOST'].'/'.$_SESSION['backend']?>"><?= $_SERVER['HTTP_HOST'].'/'.$_SESSION['backend']?></a></p>
     </blockquote>
     <div class="btn-box">
         <a href="/" class="layui-btn layui-btn-normal">前往前台浏览</a>

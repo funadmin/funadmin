@@ -9,8 +9,8 @@ return array (
   array (
     0 => 
     array (
-      'addons' => 'cms',
-      'domain' => 'cms',
+      'addons' => 'funshop',
+      'domain' => 'shop',
       'rule' => 
       array (
         'cms' => 'cms/frontend/index/index',

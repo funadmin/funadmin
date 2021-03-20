@@ -1,48 +1,23 @@
--- phpMyAdmin SQL Dump
--- version 5.0.2
--- https://www.phpmyadmin.net/
---
--- 主机： localhost:3306
--- 生成日期： 2020-12-24 19:59:52
--- 服务器版本： 5.7.26-log
--- PHP 版本： 7.4.9
-
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
---
--- 数据库： `funadmin`
---
-
--- --------------------------------------------------------
-
 --
 -- 表的结构 `fun_addon`
 --
 
 CREATE TABLE `fun_addon` (
-  `id` int(11) NOT NULL COMMENT '主键',
-  `title` varchar(20) NOT NULL DEFAULT '' COMMENT '中文名',
-  `name` varchar(100) NOT NULL DEFAULT '' COMMENT '插件名或标识',
-  `images` varchar(200) DEFAULT '' COMMENT '封面',
-  `group` varchar(20) DEFAULT '' COMMENT '组别',
-  `description` varchar(1000) DEFAULT '' COMMENT '插件描述',
-  `author` varchar(40) DEFAULT '' COMMENT '作者',
-  `version` varchar(20) DEFAULT '' COMMENT '版本号',
-  `require` varchar(50) NOT NULL DEFAULT ' ' COMMENT '需求版本',
-  `website` varchar(200) NOT NULL DEFAULT ' ',
-  `is_hook` tinyint(1) DEFAULT '0' COMMENT '钩子[0:不支持;1:支持]',
-  `status` tinyint(4) DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]',
-  `create_time` int(10) UNSIGNED DEFAULT NULL COMMENT '创建时间',
-  `update_time` int(10) UNSIGNED DEFAULT NULL COMMENT '修改时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公用_插件表';
+                             `id` int(11) NOT NULL COMMENT '主键',
+                             `title` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '中文名',
+                             `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '插件名或标识',
+                             `images` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '封面',
+                             `group` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '组别',
+                             `description` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '插件描述',
+                             `author` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '作者',
+                             `version` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '版本号',
+                             `require` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ' ' COMMENT '需求版本',
+                             `website` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ' ',
+                             `is_hook` tinyint(1) DEFAULT '0' COMMENT '钩子[0:不支持;1:支持]',
+                             `status` tinyint(4) DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]',
+                             `create_time` int(10) UNSIGNED DEFAULT NULL COMMENT '创建时间',
+                             `update_time` int(10) UNSIGNED DEFAULT NULL COMMENT '修改时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公用_插件表';
 
 -- --------------------------------------------------------
 
@@ -51,29 +26,29 @@ CREATE TABLE `fun_addon` (
 --
 
 CREATE TABLE `fun_admin` (
-  `id` tinyint(4) NOT NULL COMMENT '管理员ID',
-  `username` varchar(20) NOT NULL COMMENT '管理员用户名',
-  `password` varchar(200) NOT NULL COMMENT '管理员密码',
-  `group_id` varchar(8) DEFAULT NULL COMMENT '分组ID,用逗号隔开',
-  `email` varchar(30) DEFAULT NULL COMMENT '邮箱',
-  `realname` varchar(10) DEFAULT NULL COMMENT '真实姓名',
-  `mobile` varchar(30) DEFAULT NULL COMMENT '电话号码',
-  `ip` varchar(20) DEFAULT NULL COMMENT 'IP地址',
-  `token` varchar(100) DEFAULT NULL,
-  `mdemail` varchar(50) DEFAULT '0' COMMENT '传递修改密码参数加密',
-  `status` tinyint(2) DEFAULT '1' COMMENT '审核状态',
-  `avatar` varchar(120) DEFAULT '' COMMENT '头像',
-  `create_time` int(11) DEFAULT NULL COMMENT '添加时间',
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='后台管理员';
+                             `id` tinyint(4) NOT NULL COMMENT '管理员ID',
+                             `username` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员用户名',
+                             `password` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员密码',
+                             `group_id` varchar(8) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分组ID,用逗号隔开',
+                             `email` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱',
+                             `realname` varchar(10) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '真实姓名',
+                             `mobile` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '电话号码',
+                             `ip` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'IP地址',
+                             `token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                             `mdemail` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '传递修改密码参数加密',
+                             `status` tinyint(2) DEFAULT '1' COMMENT '审核状态',
+                             `avatar` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '头像',
+                             `create_time` int(11) DEFAULT NULL COMMENT '添加时间',
+                             `update_time` int(11) DEFAULT NULL,
+                             `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='后台管理员';
 
 --
 -- 转存表中的数据 `fun_admin`
 --
 
 INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `mdemail`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', '1,3', 'admin@admin.com', '', '18397423845', '127.0.0.1', 'ba5f311b093ce52581d277f1070eeb5456522a6b', '0', 1, '\\storage\\upload/20201212\\b824cb34e1d8054a606ae61e664239a4.png', 1482132862, 1608811007, 0),
+(1, 'admin', '$2y$10$AcIWqhGP1q8Kt/PdVwhkyu9gPTwAxOYztjnF2y9Kk/IYs9a43FNve', '1,3', 'admin@admin.com', '', '18397423845', '127.0.0.1', 'ba5f311b093ce52581d277f1070eeb5456522a6b', '0', 1, '\\storage\\upload/20201212\\b824cb34e1d8054a606ae61e664239a4.png', 1482132862, 1608811007, 0),
 (3, 'demo', '$2y$12$jJNSWOS.8he.z3s17YCRtesZ1v6F6Ck3zUGBhniRDr2LNHfUUwH5.', '3', '994927909@qq.com', '', '18397423845', '127.0.0.1', 'f4c62e44330799b5bb922cbe5fff24d4d2669ddf', '0', 1, '/storage/uploads/20190817\\a17c794ac7fae7db012aa6e997cf3400.jpg', 1564041575, 1607839168, 0);
 
 -- --------------------------------------------------------
@@ -83,53 +58,55 @@ INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `rea
 --
 
 CREATE TABLE `fun_admin_log` (
-  `id` bigint(16) UNSIGNED NOT NULL COMMENT '表id',
-  `module` varchar(50) DEFAULT NULL,
-  `addons` varchar(20) DEFAULT NULL,
-  `admin_id` int(10) DEFAULT NULL COMMENT '管理员id',
-  `username` varchar(100) DEFAULT NULL,
-  `method` varchar(50) DEFAULT NULL COMMENT '请求方式',
-  `controller` varchar(50) NOT NULL,
-  `action` varchar(50) NOT NULL,
-  `title` varchar(100) DEFAULT NULL COMMENT '日志描述',
-  `url` varchar(100) DEFAULT NULL,
-  `post_data` mediumtext,
-  `get_data` mediumtext,
-  `agent` mediumtext,
-  `ip` varchar(30) DEFAULT NULL COMMENT 'ip地址',
-  `create_time` int(11) DEFAULT NULL COMMENT '日志时间',
-  `update_time` int(11) DEFAULT NULL,
-  `status` tinyint(1) DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                 `id` bigint(16) UNSIGNED NOT NULL COMMENT '表id',
+                                 `module` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                 `addons` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                 `admin_id` int(10) DEFAULT NULL COMMENT '管理员id',
+                                 `username` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                 `method` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '请求方式',
+                                 `controller` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                 `action` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                 `title` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '日志描述',
+                                 `url` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                 `post_data` mediumtext COLLATE utf8mb4_unicode_ci,
+                                 `get_data` mediumtext COLLATE utf8mb4_unicode_ci,
+                                 `agent` mediumtext COLLATE utf8mb4_unicode_ci,
+                                 `ip` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'ip地址',
+                                 `create_time` int(11) DEFAULT NULL COMMENT '日志时间',
+                                 `update_time` int(11) DEFAULT NULL,
+                                 `status` tinyint(1) DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
 
 --
 -- 表的结构 `fun_attach`
 --
 
 CREATE TABLE `fun_attach` (
-  `id` int(11) NOT NULL,
-  `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '管理员id',
-  `member_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表id',
-  `original_name` varchar(255) DEFAULT NULL COMMENT '文件原名',
-  `name` varchar(255) DEFAULT NULL COMMENT '文件名',
-  `thumb` varchar(255) DEFAULT NULL COMMENT '缩略图',
-  `path` varchar(255) DEFAULT NULL COMMENT '路径',
-  `url` varchar(255) DEFAULT NULL COMMENT '完整地址',
-  `ext` varchar(5) DEFAULT NULL COMMENT '后缀',
-  `size` int(11) DEFAULT '0' COMMENT '大小',
-  `width` varchar(30) DEFAULT '0' COMMENT '宽度',
-  `height` varchar(30) DEFAULT '0' COMMENT '高度',
-  `md5` char(32) DEFAULT NULL,
-  `sha1` varchar(40) DEFAULT NULL COMMENT 'sha1 散列值',
-  `mime` varchar(80) DEFAULT NULL,
-  `duration` varchar(50) DEFAULT '0' COMMENT '音视频时长',
-  `driver` varchar(20) DEFAULT 'local',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT '1',
-  `sort` int(5) NOT NULL DEFAULT '50',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                              `id` int(11) NOT NULL,
+                              `admin_id` int(11) NOT NULL DEFAULT '0' COMMENT '管理员id',
+                              `member_id` int(11) NOT NULL DEFAULT '0' COMMENT '用户表id',
+                              `original_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件原名',
+                              `name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件名',
+                              `thumb` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略图',
+                              `path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '路径',
+                              `url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '完整地址',
+                              `ext` varchar(5) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '后缀',
+                              `size` int(11) DEFAULT '0' COMMENT '大小',
+                              `width` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '宽度',
+                              `height` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '高度',
+                              `md5` char(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                              `sha1` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'sha1 散列值',
+                              `mime` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                              `duration` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '音视频时长',
+                              `driver` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'local',
+                              `create_time` int(11) DEFAULT NULL,
+                              `update_time` int(11) DEFAULT NULL,
+                              `status` tinyint(1) NOT NULL DEFAULT '1',
+                              `sort` int(5) NOT NULL DEFAULT '50',
+                              `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- 转存表中的数据 `fun_attach`
@@ -147,15 +124,15 @@ INSERT INTO `fun_attach` (`id`, `admin_id`, `member_id`, `original_name`, `name`
 --
 
 CREATE TABLE `fun_auth_group` (
-  `id` smallint(8) UNSIGNED NOT NULL COMMENT '分组id',
-  `pid` int(8) DEFAULT '0' COMMENT '父级',
-  `title` char(100) NOT NULL DEFAULT '' COMMENT '标题',
-  `status` tinyint(1) DEFAULT '0' COMMENT '状态',
-  `rules` longtext COMMENT '规则',
-  `create_time` int(11) DEFAULT NULL COMMENT '添加时间',
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员分组';
+                                  `id` smallint(8) UNSIGNED NOT NULL COMMENT '分组id',
+                                  `pid` int(8) DEFAULT '0' COMMENT '父级',
+                                  `title` char(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
+                                  `status` tinyint(1) DEFAULT '0' COMMENT '状态',
+                                  `rules` longtext COLLATE utf8mb4_unicode_ci COMMENT '规则',
+                                  `create_time` int(11) DEFAULT NULL COMMENT '添加时间',
+                                  `update_time` int(11) DEFAULT NULL,
+                                  `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='管理员分组';
 
 --
 -- 转存表中的数据 `fun_auth_group`
@@ -172,22 +149,22 @@ INSERT INTO `fun_auth_group` (`id`, `pid`, `title`, `status`, `rules`, `create_t
 --
 
 CREATE TABLE `fun_auth_rule` (
-  `id` mediumint(8) UNSIGNED NOT NULL,
-  `module` char(50) NOT NULL DEFAULT 'backend',
-  `target` varchar(50) DEFAULT '_self' COMMENT '默认窗口',
-  `href` char(150) NOT NULL DEFAULT '' COMMENT '链接',
-  `title` char(20) NOT NULL DEFAULT '' COMMENT '名字',
-  `type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '类型 1菜单，0 非菜单',
-  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态1 可以用，0 所有禁止使用',
-  `auth_verify` tinyint(2) NOT NULL DEFAULT '1' COMMENT '1验证 0不验证',
-  `menu_status` tinyint(1) DEFAULT '0' COMMENT '0 不显示，1 显示',
-  `icon` varchar(50) DEFAULT NULL COMMENT '图标样式',
-  `pid` int(5) NOT NULL DEFAULT '0' COMMENT '父栏目ID',
-  `sort` int(11) DEFAULT '0' COMMENT '排序',
-  `create_time` int(11) NOT NULL DEFAULT '0' COMMENT '添加时间',
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限节点';
+                                 `id` mediumint(8) UNSIGNED NOT NULL,
+                                 `module` char(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'backend',
+                                 `target` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '_self' COMMENT '默认窗口',
+                                 `href` char(150) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '链接',
+                                 `title` char(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名字',
+                                 `type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '类型 1菜单，0 非菜单',
+                                 `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态1 可以用，0 所有禁止使用',
+                                 `auth_verify` tinyint(2) NOT NULL DEFAULT '1' COMMENT '1验证 0不验证',
+                                 `menu_status` tinyint(1) DEFAULT '0' COMMENT '0 不显示，1 显示',
+                                 `icon` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '图标样式',
+                                 `pid` int(5) NOT NULL DEFAULT '0' COMMENT '父栏目ID',
+                                 `sort` int(11) DEFAULT '999' COMMENT '排序',
+                                 `create_time` int(11) NOT NULL DEFAULT '0' COMMENT '添加时间',
+                                 `update_time` int(11) DEFAULT NULL,
+                                 `delete_time` int(11) DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='权限节点';
 
 --
 -- 转存表中的数据 `fun_auth_rule`
@@ -285,14 +262,14 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 --
 
 CREATE TABLE `fun_blacklist` (
-  `id` int(11) NOT NULL,
-  `ip` varchar(20) NOT NULL,
-  `remark` varchar(20) DEFAULT NULL,
-  `status` tinyint(1) NOT NULL DEFAULT '1',
-  `create_time` int(11) NOT NULL DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                 `id` int(11) NOT NULL,
+                                 `ip` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                 `remark` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                 `status` tinyint(1) NOT NULL DEFAULT '1',
+                                 `create_time` int(11) NOT NULL DEFAULT '0',
+                                 `update_time` int(11) NOT NULL DEFAULT '0',
+                                 `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -301,20 +278,20 @@ CREATE TABLE `fun_blacklist` (
 --
 
 CREATE TABLE `fun_config` (
-  `id` smallint(5) NOT NULL,
-  `code` varchar(30) NOT NULL,
-  `extra` varchar(500) DEFAULT NULL COMMENT '配置值',
-  `value` mediumtext,
-  `remark` varchar(100) DEFAULT '解释,备注',
-  `verfiy` varchar(30) DEFAULT '',
-  `type` varchar(30) DEFAULT 'text' COMMENT 'text',
-  `group` varchar(20) DEFAULT 'site',
-  `status` tinyint(1) DEFAULT '1',
-  `is_system` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否系统必须',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='配置参数表';
+                              `id` smallint(5) NOT NULL,
+                              `code` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+                              `extra` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '配置值',
+                              `value` mediumtext COLLATE utf8mb4_unicode_ci,
+                              `remark` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '解释,备注',
+                              `verfiy` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '',
+                              `type` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT 'text' COMMENT 'text',
+                              `group` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'site',
+                              `status` tinyint(1) DEFAULT '1',
+                              `is_system` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否系统必须',
+                              `create_time` int(11) DEFAULT NULL,
+                              `update_time` int(11) DEFAULT NULL,
+                              `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='配置参数表';
 
 --
 -- 转存表中的数据 `fun_config`
@@ -371,14 +348,14 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `t
 --
 
 CREATE TABLE `fun_config_group` (
-  `id` int(11) NOT NULL,
-  `name` varchar(30) NOT NULL,
-  `title` varchar(60) NOT NULL,
-  `status` tinyint(1) DEFAULT '1' COMMENT '1',
-  `create_time` int(11) NOT NULL DEFAULT '0',
-  `update_time` int(11) NOT NULL DEFAULT '0',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                    `id` int(11) NOT NULL,
+                                    `name` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                    `title` varchar(60) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                    `status` tinyint(1) DEFAULT '1' COMMENT '1',
+                                    `create_time` int(11) NOT NULL DEFAULT '0',
+                                    `update_time` int(11) NOT NULL DEFAULT '0',
+                                    `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- 转存表中的数据 `fun_config_group`
@@ -401,15 +378,15 @@ INSERT INTO `fun_config_group` (`id`, `name`, `title`, `status`, `create_time`, 
 --
 
 CREATE TABLE `fun_field_type` (
-  `id` int(11) NOT NULL,
-  `name` varchar(32) NOT NULL COMMENT '字段类型',
-  `title` varchar(64) NOT NULL DEFAULT '' COMMENT '中文类型名',
-  `sort` int(4) NOT NULL DEFAULT '0' COMMENT '排序',
-  `default_define` varchar(128) NOT NULL DEFAULT '' COMMENT '默认定义',
-  `isoption` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否需要设置选项',
-  `rules` varchar(256) NOT NULL DEFAULT '' COMMENT '验证规则',
-  `status` tinyint(1) NOT NULL DEFAULT '1'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='字段类型表';
+                                  `id` int(11) NOT NULL,
+                                  `name` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '字段类型',
+                                  `title` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '中文类型名',
+                                  `sort` int(4) NOT NULL DEFAULT '0' COMMENT '排序',
+                                  `default_define` varchar(128) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '默认定义',
+                                  `isoption` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '是否需要设置选项',
+                                  `rules` varchar(256) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '验证规则',
+                                  `status` tinyint(1) NOT NULL DEFAULT '1'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='字段类型表';
 
 --
 -- 转存表中的数据 `fun_field_type`
@@ -448,9 +425,9 @@ INSERT INTO `fun_field_type` (`id`, `name`, `title`, `sort`, `default_define`, `
 --
 
 CREATE TABLE `fun_field_verify` (
-  `verify` varchar(50) DEFAULT NULL,
-  `title` varchar(100) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                    `verify` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                                    `title` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- 转存表中的数据 `fun_field_verify`
@@ -474,14 +451,14 @@ INSERT INTO `fun_field_verify` (`verify`, `title`) VALUES
 --
 
 CREATE TABLE `fun_languages` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `name` varchar(20) NOT NULL,
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL,
-  `is_default` tinyint(1) NOT NULL DEFAULT '0',
-  `status` tinyint(1) NOT NULL DEFAULT '1',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                 `id` int(11) UNSIGNED NOT NULL,
+                                 `name` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                 `create_time` int(11) DEFAULT NULL,
+                                 `update_time` int(11) DEFAULT NULL,
+                                 `is_default` tinyint(1) NOT NULL DEFAULT '0',
+                                 `status` tinyint(1) NOT NULL DEFAULT '1',
+                                 `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- 转存表中的数据 `fun_languages`
@@ -499,65 +476,70 @@ INSERT INTO `fun_languages` (`id`, `name`, `create_time`, `update_time`, `is_def
 --
 
 CREATE TABLE `fun_member` (
-  `id` mediumint(8) UNSIGNED NOT NULL COMMENT '表id',
-  `merchant_id` int(11) DEFAULT '0',
-  `group_id` int(11) DEFAULT '1',
-  `email` varchar(60) DEFAULT '' COMMENT '邮件',
-  `username` varchar(80) DEFAULT NULL,
-  `password` varchar(100) DEFAULT '' COMMENT '密码',
-  `sex` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '0 保密 1 男 2 女',
-  `birthday` int(11) NOT NULL DEFAULT '0' COMMENT '生日',
-  `address_id` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '默认收货地址',
-  `last_login` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最后登录时间',
-  `login_num` int(11) DEFAULT '0' COMMENT '登录次数',
-  `last_ip` varchar(15) NOT NULL DEFAULT '0' COMMENT '最后登录ip',
-  `qq` varchar(20) DEFAULT '' COMMENT 'QQ',
-  `mobile` varchar(20) DEFAULT '' COMMENT '手机号码',
-  `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  `province_id` int(6) DEFAULT '0' COMMENT '省份',
-  `city_id` int(6) DEFAULT '0' COMMENT '市区',
-  `district_id` int(6) DEFAULT '0' COMMENT '县',
-  `realname` varchar(50) DEFAULT '' COMMENT '真名',
-  `nickname` varchar(50) DEFAULT '' COMMENT '第三方返回昵称',
-  `motto` varchar(255) DEFAULT '' COMMENT '格言',
-  `tags` varchar(200) DEFAULT '' COMMENT '标签',
-  `level_id` tinyint(1) DEFAULT '1' COMMENT '会员等级',
-  `status` tinyint(1) DEFAULT '1' COMMENT '是否被锁定冻结 0 冻结，1 正常',
-  `token` varchar(64) DEFAULT '' COMMENT '登陆token',
-  `promo_code` varchar(64) DEFAULT '' COMMENT '推广码',
-  `is_vip` tinyint(1) DEFAULT '0' COMMENT '是否为VIP ：0不是，1是',
-  `role` tinyint(4) DEFAULT '1' COMMENT '是否为 普通 10管理员',
-  `scores` int(10) NOT NULL DEFAULT '0',
-  `create_time` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '注册时间',
-  `update_time` int(11) DEFAULT NULL,
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+                              `id` mediumint(8) UNSIGNED NOT NULL COMMENT '表id',
+                              `merchant_id` int(11) DEFAULT '0',
+                              `group_id` int(11) DEFAULT '1',
+                              `email` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '邮件',
+                              `realname` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '真名',
+                              `nickname` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '第三方返回昵称',
+                              `username` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+                              `password` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '密码',
+                              `sex` tinyint(1) UNSIGNED NOT NULL DEFAULT '0' COMMENT '0 保密 1 男 2 女',
+                              `birthday` int(11) NOT NULL DEFAULT '0' COMMENT '生日',
+                              `address_id` mediumint(8) UNSIGNED NOT NULL DEFAULT '0' COMMENT '默认收货地址',
+                              `last_login` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '最后登录时间',
+                              `login_num` int(11) DEFAULT '0' COMMENT '登录次数',
+                              `last_ip` varchar(15) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '0' COMMENT '最后登录ip',
+                              `qq` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT 'QQ',
+                              `mobile` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '手机号码',
+                              `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头像',
+                              `province_id` int(6) DEFAULT '0' COMMENT '省份',
+                              `city_id` int(6) DEFAULT '0' COMMENT '市区',
+                              `area_id` int(6) DEFAULT '0' COMMENT '县区',
+                              `motto` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '格言',
+                              `tags` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '标签',
+                              `level_id` tinyint(1) DEFAULT '1' COMMENT '会员等级',
+                              `status` tinyint(1) DEFAULT '1' COMMENT '是否被锁定冻结 0 冻结，1 正常',
+                              `token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '登陆token',
+                              `promo_code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '推广码',
+                              `is_vip` tinyint(1) DEFAULT '0' COMMENT '是否为VIP ：0不是，1是',
+                              `role` tinyint(4) DEFAULT '1' COMMENT '是否为 普通 10管理员',
+                              `scores` int(10) NOT NULL DEFAULT '0',
+                              `create_time` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '注册时间',
+                              `update_time` int(11) DEFAULT NULL,
+                              `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
+
+--
+-- 转存表中的数据 `fun_member`
+--
+
+INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `realname`, `nickname`, `username`, `password`, `sex`, `birthday`, `address_id`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province_id`, `city_id`, `area_id`, `motto`, `tags`, `level_id`, `status`, `token`, `promo_code`, `is_vip`, `role`, `scores`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 0, 1, 'admin@admin.com', '', '', 'admin', '$2y$10$AcIWqhGP1q8Kt/PdVwhkyu9gPTwAxOYztjnF2y9Kk/IYs9a43FNve', 0, 0, 0, 0, 0, '0', '', '', NULL, 0, 0, 0, '', '', 1, 1, '', '', 0, 1, 0, 0, NULL, 0);
 
 -- --------------------------------------------------------
-INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`,`email`, `username`, `password`, `sex`, `birthday`, `address_id`, `create_time`, `update_time`, `last_login`, `login_num`, `last_ip`, `qq`, `mobile`, `avatar`, `province_id`, `city_id`, `area_id`, `realname`, `nickname`, `motto`, `level_id`, `status`, `token`, `is_vip`, `scores`, `delete_time`) VALUES
-(1, 0, 1, 'admin@admin.com', 'admin', '$2y$13$vNUl7Pfy8Cxdwj7o6Sqyp.EAzvarg1DSWvH0I1rWKA8FuOqTE1bZy', 0, 0, 0, 0, NULL, 0, 0, '0', '', '', NULL, 0, 0, 0, '', '', '', 1, 1, '', 0, 0, 0);
 
 --
 -- 表的结构 `fun_member_account`
 --
 
 CREATE TABLE `fun_member_account` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
-  `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
-  `level` int(11) DEFAULT '-1' COMMENT '会员等级',
-  `user_money` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
-  `accumulate_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计余额',
-  `give_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计赠送余额',
-  `consume_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费金额',
-  `frozen_money` decimal(10,2) DEFAULT '0.00' COMMENT '冻结金额',
-  `user_integral` int(11) DEFAULT '0' COMMENT '当前积分',
-  `accumulate_integral` int(11) DEFAULT '0' COMMENT '累计积分',
-  `give_integral` int(11) DEFAULT '0' COMMENT '累计赠送积分',
-  `consume_integral` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费积分',
-  `frozen_integral` int(11) DEFAULT '0' COMMENT '冻结积分',
-  `status` tinyint(4) DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会员_账户统计表';
+                                      `id` int(10) UNSIGNED NOT NULL,
+                                      `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
+                                      `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
+                                      `level` int(11) DEFAULT '-1' COMMENT '会员等级',
+                                      `user_money` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
+                                      `accumulate_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计余额',
+                                      `give_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计赠送余额',
+                                      `consume_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费金额',
+                                      `frozen_money` decimal(10,2) DEFAULT '0.00' COMMENT '冻结金额',
+                                      `user_integral` int(11) DEFAULT '0' COMMENT '当前积分',
+                                      `accumulate_integral` int(11) DEFAULT '0' COMMENT '累计积分',
+                                      `give_integral` int(11) DEFAULT '0' COMMENT '累计赠送积分',
+                                      `consume_integral` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费积分',
+                                      `frozen_integral` int(11) DEFAULT '0' COMMENT '冻结积分',
+                                      `status` tinyint(4) DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会员_账户统计表';
 
 -- --------------------------------------------------------
 
@@ -566,25 +548,25 @@ CREATE TABLE `fun_member_account` (
 --
 
 CREATE TABLE `fun_member_address` (
-  `id` int(10) NOT NULL COMMENT '主键',
-  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
-  `member_id` int(11) UNSIGNED DEFAULT '0' COMMENT '用户id',
-  `province_id` int(10) UNSIGNED DEFAULT '0' COMMENT '省id',
-  `city_id` int(10) UNSIGNED DEFAULT '0' COMMENT '市id',
-  `area_id` int(10) UNSIGNED DEFAULT '0' COMMENT '区id',
-  `district_id` int(10) DEFAULT NULL,
-  `address_name` varchar(200) DEFAULT '' COMMENT '地址',
-  `address_details` varchar(200) DEFAULT '' COMMENT '详细地址',
-  `is_default` tinyint(4) UNSIGNED DEFAULT '0' COMMENT '默认地址',
-  `zip_code` int(10) UNSIGNED DEFAULT '0' COMMENT '邮编',
-  `consignee` varchar(100) DEFAULT NULL COMMENT '收件人',
-  `realname` varchar(100) DEFAULT '' COMMENT '真实姓名',
-  `home_phone` varchar(20) DEFAULT '' COMMENT '家庭号码',
-  `mobile` varchar(20) DEFAULT '' COMMENT '手机号码',
-  `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态(-1:已删除,0:禁用,1:正常)',
-  `created_at` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
-  `updated_at` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户_收货地址表';
+                                      `id` int(10) NOT NULL COMMENT '主键',
+                                      `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
+                                      `member_id` int(11) UNSIGNED DEFAULT '0' COMMENT '用户id',
+                                      `province_id` int(10) UNSIGNED DEFAULT '0' COMMENT '省id',
+                                      `city_id` int(10) UNSIGNED DEFAULT '0' COMMENT '市id',
+                                      `area_id` int(10) UNSIGNED DEFAULT '0' COMMENT '区id',
+                                      `district_id` int(10) DEFAULT NULL,
+                                      `address_name` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '地址',
+                                      `address_details` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '详细地址',
+                                      `is_default` tinyint(4) UNSIGNED DEFAULT '0' COMMENT '默认地址',
+                                      `zip_code` int(10) UNSIGNED DEFAULT '0' COMMENT '邮编',
+                                      `consignee` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '收件人',
+                                      `realname` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '真实姓名',
+                                      `home_phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '家庭号码',
+                                      `mobile` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '手机号码',
+                                      `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态(-1:已删除,0:禁用,1:正常)',
+                                      `created_at` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
+                                      `updated_at` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户_收货地址表';
 
 -- --------------------------------------------------------
 
@@ -593,13 +575,13 @@ CREATE TABLE `fun_member_address` (
 --
 
 CREATE TABLE `fun_member_group` (
-  `id` int(10) UNSIGNED NOT NULL,
-  `name` varchar(50) DEFAULT '' COMMENT '组名',
-  `rules` mediumtext COMMENT '权限节点',
-  `create_time` int(10) DEFAULT NULL COMMENT '添加时间',
-  `update_time` int(10) DEFAULT NULL COMMENT '更新时间',
-  `status` tinyint(1) DEFAULT '1' COMMENT '状态'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='会员组表' ROW_FORMAT=COMPACT;
+                                    `id` int(10) UNSIGNED NOT NULL,
+                                    `name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '组名',
+                                    `rules` mediumtext COLLATE utf8mb4_unicode_ci COMMENT '权限节点',
+                                    `create_time` int(10) DEFAULT NULL COMMENT '添加时间',
+                                    `update_time` int(10) DEFAULT NULL COMMENT '更新时间',
+                                    `status` tinyint(1) DEFAULT '1' COMMENT '状态'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会员组表' ROW_FORMAT=COMPACT;
 
 --
 -- 转存表中的数据 `fun_member_group`
@@ -616,16 +598,16 @@ INSERT INTO `fun_member_group` (`id`, `name`, `rules`, `create_time`, `update_ti
 --
 
 CREATE TABLE `fun_member_level` (
-  `id` smallint(4) UNSIGNED NOT NULL COMMENT '表id',
-  `name` varchar(30) DEFAULT NULL COMMENT '头衔名称',
-  `amount` decimal(10,2) DEFAULT NULL COMMENT '等级必要金额',
-  `discount` smallint(4) DEFAULT '100' COMMENT '折扣',
-  `status` tinyint(1) DEFAULT '1',
-  `sort` int(5) DEFAULT '0',
-  `description` varchar(200) DEFAULT NULL COMMENT '头街 描述',
-  `create_time` int(11) DEFAULT NULL,
-  `update_time` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户等级表';
+                                    `id` smallint(4) UNSIGNED NOT NULL COMMENT '表id',
+                                    `name` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头衔名称',
+                                    `amount` decimal(10,2) DEFAULT NULL COMMENT '等级必要金额',
+                                    `discount` smallint(4) DEFAULT '100' COMMENT '折扣',
+                                    `status` tinyint(1) DEFAULT '1',
+                                    `sort` int(5) DEFAULT '0',
+                                    `description` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头街 描述',
+                                    `create_time` int(11) DEFAULT NULL,
+                                    `update_time` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户等级表';
 
 --
 -- 转存表中的数据 `fun_member_level`
@@ -646,26 +628,26 @@ INSERT INTO `fun_member_level` (`id`, `name`, `amount`, `discount`, `status`, `s
 --
 
 CREATE TABLE `fun_member_third` (
-  `id` int(10) UNSIGNED NOT NULL COMMENT 'ID',
-  `member_id` int(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT '会员ID',
-  `platform` varchar(30) NOT NULL DEFAULT '' COMMENT '第三方应用 weixin /qq /sina /',
-  `unionid` varchar(80) DEFAULT NULL COMMENT 'unionid',
-  `openid` varchar(50) NOT NULL DEFAULT '' COMMENT '第三方唯一ID',
-  `nickname` varchar(50) NOT NULL DEFAULT '' COMMENT '第三方会员昵称',
-  `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  `sex` tinyint(1) DEFAULT '-1' COMMENT '性别',
-  `birthday` date DEFAULT NULL,
-  `country` varchar(100) DEFAULT NULL COMMENT '国家',
-  `province` varchar(100) DEFAULT NULL COMMENT '省',
-  `city` varchar(100) DEFAULT NULL COMMENT '市',
-  `access_token` varchar(255) NOT NULL DEFAULT '' COMMENT 'AccessToken',
-  `refresh_token` varchar(255) NOT NULL DEFAULT 'RefreshToken',
-  `expires_in` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '有效期',
-  `create_time` int(10) UNSIGNED DEFAULT NULL COMMENT '创建时间',
-  `update_time` int(10) UNSIGNED DEFAULT NULL COMMENT '更新时间',
-  `login_time` int(10) UNSIGNED DEFAULT NULL COMMENT '登录时间',
-  `expiretime` int(10) UNSIGNED DEFAULT NULL COMMENT '过期时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='第三方登录表';
+                                    `id` int(10) UNSIGNED NOT NULL COMMENT 'ID',
+                                    `member_id` int(10) UNSIGNED NOT NULL DEFAULT '1' COMMENT '会员ID',
+                                    `platform` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '第三方应用 weixin /qq /sina /',
+                                    `unionid` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'unionid',
+                                    `openid` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '第三方唯一ID',
+                                    `nickname` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '第三方会员昵称',
+                                    `avatar` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头像',
+                                    `sex` tinyint(1) DEFAULT '-1' COMMENT '性别',
+                                    `birthday` date DEFAULT NULL,
+                                    `country` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '国家',
+                                    `province` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '省',
+                                    `city` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '市',
+                                    `access_token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'AccessToken',
+                                    `refresh_token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'RefreshToken',
+                                    `expires_in` int(10) UNSIGNED NOT NULL DEFAULT '0' COMMENT '有效期',
+                                    `create_time` int(10) UNSIGNED DEFAULT NULL COMMENT '创建时间',
+                                    `update_time` int(10) UNSIGNED DEFAULT NULL COMMENT '更新时间',
+                                    `login_time` int(10) UNSIGNED DEFAULT NULL COMMENT '登录时间',
+                                    `expiretime` int(10) UNSIGNED DEFAULT NULL COMMENT '过期时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='第三方登录表';
 
 -- --------------------------------------------------------
 
@@ -674,19 +656,19 @@ CREATE TABLE `fun_member_third` (
 --
 
 CREATE TABLE `fun_oauth2_client` (
-  `id` int(11) UNSIGNED NOT NULL,
-  `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
-  `title` varchar(100) NOT NULL DEFAULT '' COMMENT '标题',
-  `appid` varchar(64) NOT NULL,
-  `appsecret` varchar(150) NOT NULL,
-  `redirect_uri` varchar(2000) NOT NULL DEFAULT '' COMMENT '回调Url',
-  `remark` varchar(200) DEFAULT NULL COMMENT '备注',
-  `group` varchar(30) DEFAULT '' COMMENT '组别',
-  `status` tinyint(4) DEFAULT '1' COMMENT '状态[0:禁用;1启用]',
-  `create_time` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
-  `update_time` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间',
-  `delete_time` int(11) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='oauth2_授权客户端';
+                                     `id` int(11) UNSIGNED NOT NULL,
+                                     `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
+                                     `title` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
+                                     `appid` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                     `appsecret` varchar(150) COLLATE utf8mb4_unicode_ci NOT NULL,
+                                     `redirect_uri` varchar(2000) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '回调Url',
+                                     `remark` varchar(200) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+                                     `group` varchar(30) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '组别',
+                                     `status` tinyint(4) DEFAULT '1' COMMENT '状态[0:禁用;1启用]',
+                                     `create_time` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
+                                     `update_time` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间',
+                                     `delete_time` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='oauth2_授权客户端';
 
 --
 -- 转存表中的数据 `fun_oauth2_client`
@@ -702,18 +684,18 @@ INSERT INTO `fun_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecr
 --
 
 CREATE TABLE `fun_provinces` (
-  `id` int(10) NOT NULL COMMENT 'ID',
-  `name` varchar(50) NOT NULL DEFAULT '' COMMENT '栏目名',
-  `pid` int(10) NOT NULL DEFAULT '0' COMMENT '父栏目',
-  `short_name` varchar(50) DEFAULT '' COMMENT '缩写',
-  `areacode` int(6) DEFAULT '0' COMMENT '区域编码',
-  `zipcode` int(10) DEFAULT '0' COMMENT '邮政编码',
-  `pinyin` varchar(100) DEFAULT '' COMMENT '拼音',
-  `lng` varchar(20) DEFAULT '' COMMENT '经度',
-  `lat` varchar(20) DEFAULT '' COMMENT '纬度',
-  `level` tinyint(4) NOT NULL DEFAULT '1' COMMENT '级别',
-  `sort` tinyint(3) UNSIGNED DEFAULT '0' COMMENT '排序'
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='公用_省市区记录表';
+                                 `id` int(10) NOT NULL COMMENT 'ID',
+                                 `name` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '栏目名',
+                                 `pid` int(10) NOT NULL DEFAULT '0' COMMENT '父栏目',
+                                 `short_name` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '缩写',
+                                 `areacode` int(6) DEFAULT '0' COMMENT '区域编码',
+                                 `zipcode` int(10) DEFAULT '0' COMMENT '邮政编码',
+                                 `pinyin` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '拼音',
+                                 `lng` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '经度',
+                                 `lat` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '纬度',
+                                 `level` tinyint(4) NOT NULL DEFAULT '1' COMMENT '级别',
+                                 `sort` tinyint(3) UNSIGNED DEFAULT '0' COMMENT '排序'
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公用_省市区记录表';
 
 --
 -- 转存表中的数据 `fun_provinces`
@@ -4411,7 +4393,7 @@ INSERT INTO `fun_provinces` (`id`, `name`, `pid`, `short_name`, `areacode`, `zip
 -- 表的索引 `fun_addon`
 --
 ALTER TABLE `fun_addon`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `name` (`name`),
   ADD KEY `status` (`status`);
 
@@ -4419,14 +4401,14 @@ ALTER TABLE `fun_addon`
 -- 表的索引 `fun_admin`
 --
 ALTER TABLE `fun_admin`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `admin_username` (`username`);
 
 --
 -- 表的索引 `fun_admin_log`
 --
 ALTER TABLE `fun_admin_log`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`) USING BTREE,
   ADD KEY `admin_id` (`admin_id`);
 
@@ -4434,13 +4416,13 @@ ALTER TABLE `fun_admin_log`
 -- 表的索引 `fun_attach`
 --
 ALTER TABLE `fun_attach`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_auth_group`
 --
 ALTER TABLE `fun_auth_group`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`) USING BTREE,
   ADD UNIQUE KEY `title` (`title`);
 
@@ -4448,7 +4430,7 @@ ALTER TABLE `fun_auth_group`
 -- 表的索引 `fun_auth_rule`
 --
 ALTER TABLE `fun_auth_rule`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD UNIQUE KEY `href` (`href`) USING BTREE;
 
@@ -4456,13 +4438,13 @@ ALTER TABLE `fun_auth_rule`
 -- 表的索引 `fun_blacklist`
 --
 ALTER TABLE `fun_blacklist`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_config`
 --
 ALTER TABLE `fun_config`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD UNIQUE KEY `code` (`code`);
 
@@ -4470,31 +4452,31 @@ ALTER TABLE `fun_config`
 -- 表的索引 `fun_config_group`
 --
 ALTER TABLE `fun_config_group`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_field_type`
 --
 ALTER TABLE `fun_field_type`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_field_verify`
 --
 ALTER TABLE `fun_field_verify`
-  ADD UNIQUE KEY `verfiy` (`verify`);
+    ADD UNIQUE KEY `verfiy` (`verify`);
 
 --
 -- 表的索引 `fun_languages`
 --
 ALTER TABLE `fun_languages`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_member`
 --
 ALTER TABLE `fun_member`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`),
   ADD KEY `email` (`email`);
 
@@ -4502,34 +4484,34 @@ ALTER TABLE `fun_member`
 -- 表的索引 `fun_member_account`
 --
 ALTER TABLE `fun_member_account`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `member_id` (`member_id`);
 
 --
 -- 表的索引 `fun_member_address`
 --
 ALTER TABLE `fun_member_address`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `member_id` (`member_id`);
 
 --
 -- 表的索引 `fun_member_group`
 --
 ALTER TABLE `fun_member_group`
-  ADD PRIMARY KEY (`id`);
+    ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_member_level`
 --
 ALTER TABLE `fun_member_level`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `id` (`id`);
 
 --
 -- 表的索引 `fun_member_third`
 --
 ALTER TABLE `fun_member_third`
-  ADD PRIMARY KEY (`id`,`member_id`),
+    ADD PRIMARY KEY (`id`,`member_id`),
   ADD UNIQUE KEY `platform` (`platform`,`openid`) USING BTREE,
   ADD UNIQUE KEY `openid` (`openid`),
   ADD KEY `member_id` (`member_id`,`platform`) USING BTREE,
@@ -4539,14 +4521,14 @@ ALTER TABLE `fun_member_third`
 -- 表的索引 `fun_oauth2_client`
 --
 ALTER TABLE `fun_oauth2_client`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `client_id` (`appid`);
 
 --
 -- 表的索引 `fun_provinces`
 --
 ALTER TABLE `fun_provinces`
-  ADD PRIMARY KEY (`id`),
+    ADD PRIMARY KEY (`id`),
   ADD KEY `parentid` (`pid`);
 
 --
@@ -4557,109 +4539,109 @@ ALTER TABLE `fun_provinces`
 -- 使用表AUTO_INCREMENT `fun_addon`
 --
 ALTER TABLE `fun_addon`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键';
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键';
 
 --
 -- 使用表AUTO_INCREMENT `fun_admin`
 --
 ALTER TABLE `fun_admin`
-  MODIFY `id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=4;
+    MODIFY `id` tinyint(4) NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=4;
 
 --
 -- 使用表AUTO_INCREMENT `fun_admin_log`
 --
 ALTER TABLE `fun_admin_log`
-  MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=1388;
+    MODIFY `id` bigint(16) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=1388;
 
 --
 -- 使用表AUTO_INCREMENT `fun_attach`
 --
 ALTER TABLE `fun_attach`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_group`
 --
 ALTER TABLE `fun_auth_group`
-  MODIFY `id` smallint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=4;
+    MODIFY `id` smallint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=4;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_rule`
 --
 ALTER TABLE `fun_auth_rule`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=164;
+    MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=164;
 
 --
 -- 使用表AUTO_INCREMENT `fun_blacklist`
 --
 ALTER TABLE `fun_blacklist`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config`
 --
 ALTER TABLE `fun_config`
-  MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+    MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config_group`
 --
 ALTER TABLE `fun_config_group`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- 使用表AUTO_INCREMENT `fun_field_type`
 --
 ALTER TABLE `fun_field_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- 使用表AUTO_INCREMENT `fun_languages`
 --
 ALTER TABLE `fun_languages`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+    MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member`
 --
 ALTER TABLE `fun_member`
-  MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=2;
+    MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_account`
 --
 ALTER TABLE `fun_member_account`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+    MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_address`
 --
 ALTER TABLE `fun_member_address`
-  MODIFY `id` int(10) NOT NULL AUTO_INCREMENT COMMENT '主键';
+    MODIFY `id` int(10) NOT NULL AUTO_INCREMENT COMMENT '主键';
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_group`
 --
 ALTER TABLE `fun_member_group`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+    MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_level`
 --
 ALTER TABLE `fun_member_level`
-  MODIFY `id` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=8;
+    MODIFY `id` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=8;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_third`
 --
 ALTER TABLE `fun_member_third`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID';
+    MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID';
 
 --
 -- 使用表AUTO_INCREMENT `fun_oauth2_client`
 --
 ALTER TABLE `fun_oauth2_client`
-  MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+    MODIFY `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

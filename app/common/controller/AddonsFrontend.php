@@ -82,21 +82,25 @@ class AddonsFrontend extends Controller
         $this->loadlang(strtolower($this->controller));
         $this->_initialize();
         $this->theme();
+        View::assign('addon',$this->addon);
     }
     public function theme(){
         $theme = cache($this->addon.'_theme');
         if($theme){
             $this->theme = $theme;
         }else{
-            $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
-            $this->prefix = Config::get('database.connections.mysql.prefix');
-            $theme = $view_config['view_base'];
-            $addonsconfig = get_addons_config($this->addon);
-            if(isset($addonsconfig['theme']) && $addonsconfig['theme']['value']){
-                $theme = $addonsconfig['theme']['value'];
+            $view_config_file = $this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php';
+            if(file_exists($view_config_file)){
+                $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
+                $this->prefix = Config::get('database.connections.mysql.prefix');
+                $theme = $view_config['view_base'];
+                $addonsconfig = get_addons_config($this->addon);
+                if(isset($addonsconfig['theme']) && $addonsconfig['theme']['value']){
+                    $theme = $addonsconfig['theme']['value'];
+                }
+                $this->theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
+                cache($this->addon.'_theme',$this->theme);
             }
-            $this->theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
-            cache($this->addon.'_theme',$theme);
         }
 
     }

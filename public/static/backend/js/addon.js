@@ -71,20 +71,10 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh'],
+                search: false,
                 cols: [[
                     {checkbox: true,},
-                    {
-                        field: 'title',
-                        title: __('Title'),
-                        width: 120,
-                        sort: true,templet: function (d){
-                            if(d.url){
-                                return '<a target="_blank" href="'+d.url+'">'+d.title+'</a>';
-                            }else{
-                                return d.title;
-                            }
-                        }
-                    },
+
                     {
                         field: 'name',
                         title: __('Name'),
@@ -102,6 +92,19 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         align: "center",
                         templet: Table.templet.image
                     },
+                    {
+                        field: 'title',
+                        title: __('Title'),
+                        width: 120,
+                        sort: true,templet: function (d){
+                            if(d.url){
+                                return '<a target="_blank" href="'+d.url+'">'+d.title+'</a>';
+                            }else{
+                                return d.title;
+                            }
+                        }
+                    },
+
                     {field: 'description', title: __('Description'), minWidth: 220, sort: true,},
                     {field: 'version', title: __('Addon version'), width: 160, sort: true, search: false},
                     {field: 'require', title: __('Addon require'), width: 160, sort: true, search: false},
@@ -125,7 +128,9 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                 if (d.website !== '') {
                                     html += '<a  href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
+                                html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
                             }
+
                             return html;
                         }
                     }

@@ -15,9 +15,7 @@ use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use Exception;
 use fun\helper\SignHelper;
-use fun\helper\StringHelper;
 use think\App;
-use think\exception\ValidateException;
 
 class Login extends Backend {
     public function __construct(App $app) {

@@ -114,6 +114,7 @@ return [
     'Are you sure you want to delete or empty?'  =>  '确定删除或清空?',
     'Are you sure you want to empty?'  =>  '确定清空?',
     'English characters. Canot duplicate the current existing'  =>  '英文字符,不能重复',
+    'Please install the upload plugin first'=>'请先安装上传插件',
 
     //菜单
     'Fullscreen'  =>  "全屏",
@@ -187,4 +188,8 @@ return [
     'clear backend'=>"清除后台缓存",
 
 
+    "Demo is not allow to change data"=>"演示站点不允许修改数据",
+    'safe'=>'安全设置',
+    'info'=>'基本信息',
+    'Logout'=>'退出',
 ];

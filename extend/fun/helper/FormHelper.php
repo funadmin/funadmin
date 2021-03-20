@@ -24,35 +24,35 @@ class FormHelper
      * @param array $options
      * @return string
      */
-    public static function input($name = '', $type = 'text', $options = [], $value)
+    public static function input($name = '', $type = 'text', $options = [], $value='')
     {
         $label = isset($options['label']) ? $options['label'] : $name;
         $tips = isset($options['tips']) ? $options['tips'] : $label;
         $placeholder = isset($options['ptips']) ? $options['ptips'] : $tips;
         $value = !is_null($value) ? 'value="' . $value . '"' : '';
+        $disorread = self::readonlyOrdisabled($options)?self::readonlyOrdisabled($options):self::readonlyOrdisabled($options);
+        $disorread  = $disorread?'layui-disabled':'';
         if ($type == 'hidden') {
-            return '<input type="' . $type . '" name="' . $name . '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"         placeholder="' . $placeholder . '" class="layui-input" ' . $value . '/>';
+            return '<input type="' . $type . '" name="' . $name . '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"         placeholder="' . $placeholder . '" class="layui-input '.$disorread.'" ' . $value . '/>';
         }
         $str = '<div class="layui-form-item"> 
         <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
         <div class="layui-input-block">
          <input type="' . $type . '" name="' . $name . '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"
-         placeholder="' . $placeholder . '" class="layui-input"' . $value . '/>
+         placeholder="' . $placeholder . '" class="layui-input '.$disorread.'"' . $value . '/>
          ' . self::tips($options) . '
          </div></div>';
         return $str;
     }
 
     /**
-     * 生成单选
-     *
      * @param $name
-     * @param null $value
-     * @param null $checked
+     * @param $radiolist
      * @param array $options
+     * @param string $value
      * @return string
      */
-    public static function radio($name, $radiolist, $options = [], $value)
+    public static function radio($name, $radiolist, $options = [], $value='')
     {
         if (is_null($radiolist)) {
             $radiolist = $name;
@@ -93,7 +93,7 @@ class FormHelper
      * switch是关键字不能用
      */
 
-    public static function switchs($name = null, $switch, $options = [], $value)
+    public static function switchs($name , $switch, $options = [], $value='')
     {
 
         if (is_string($switch) && strpos($switch, '|')) $switch = implode('|', $switch);
@@ -116,7 +116,7 @@ class FormHelper
      * @param $value
      * @return string
      */
-    public static function checkbox($name = null, $list = [], $options = [], $value)
+    public static function checkbox($name = null, $list = [], $options = [], $value='')
     {
         if (empty($value)) {
             $value = $name;
@@ -223,7 +223,7 @@ class FormHelper
      * @param $value
      * @return string
      */
-    public static function textarea($name = null, $options = [], $value)
+    public static function textarea($name = null, $options = [], $value='')
     {
         $label = isset($options['label']) ? $options['label'] : $name;
         $tips = isset($options['tips']) ? $options['tips'] : $name;
@@ -342,7 +342,7 @@ class FormHelper
      * @return string
      * 颜色选择
      */
-    public static function tags($id, $name, $options = [], $value)
+    public static function tags($id, $name, $options = [], $value='')
     {
         $label = isset($options['label']) ? $options['label'] : $name;
         $str = '<div class="layui-form-item">
@@ -365,7 +365,7 @@ class FormHelper
      * @return string
      * 颜色选择
      */
-    public static function color($id, $name, $options = [], $value)
+    public static function color($id, $name, $options = [], $value='')
     {
 
         $label = isset($options['label']) ? $options['label'] : $name;
@@ -386,7 +386,7 @@ class FormHelper
      * @return string
      * 图标，有点小问题
      */
-    public static function icon($name, $options = [], $value)
+    public static function icon($name, $options = [], $value='')
     {
         $name = $name ? $name : 'icon';
         $value = $value ? $value : 'layui-icon-rate';
@@ -427,7 +427,7 @@ class FormHelper
          <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang($label) . '</label>
          <div class="layui-input-block">
          <input  type="text" name="' . $name . '" value="' . $value . '" class="layui-input" lay-filter="date" ' . $op . ' placeholder="yyyy-MM-dd HH:mm:ss"/>
-         </div>
+         <i class="layui-icon layui-icon-date"></i></div>
         </div>';
         return $str;
     }
@@ -439,7 +439,7 @@ class FormHelper
      * @param $options
      * @return string
      */
-    public static function city($name = 'cityPicker', $id = 'cityPicker', $options)
+    public static function city($name = 'cityPicker', $id = 'cityPicker', $options=[])
     {
 
         $str = ' <div class="layui-form-item">

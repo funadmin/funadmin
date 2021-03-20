@@ -32,16 +32,12 @@
     "topthink/think-multi-app": "^1.0",
     "phpmailer/phpmailer": "^6.2",
     "phpoffice/phpspreadsheet": "^1.16",
-    "aliyuncs/oss-sdk-php": "^2.4",
-    "qcloud/cos-sdk-v5": "^2.1",
-    "qiniu/php-sdk": "^7.3",
     "topthink/think-ide-helper": "^1.0",
     "topthink/think-throttle": "^1.1",
-    "james-heinrich/getid3": "^1.9",
     "overtrue/socialite": "^3.1",
     "overtrue/wechat": "^5.4",
     "ramsey/uuid": "^4.1",
-    "funadmin/fun-addons": "v1.22"
+    "funadmin/fun-addons": "v1.25"
 
   },
   "require-dev": {

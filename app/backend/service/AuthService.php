@@ -267,11 +267,11 @@ class AuthService
             !in_array($this->controller, $cfg['noLoginController'])
             && !in_array($this->requesturl, $cfg['noLoginNode'])
         ) {
-            empty($adminId) && $this->error('请先登录后台', __u('login/index'));
+            empty($adminId) && $this->error(lang('Please Login first'), __u('login/index'));
             if(!$this->isLogin()){
                 $this->error(lang('Please Login Again'), __u('login/index'));
             }
-            if ($adminId  && $adminId != $cfg['superAdminId']) {
+            if ($adminId  && $adminId !=1) {
                 if(!in_array($this->controller,$cfg['noRightController']) && !in_array($this->requesturl,$cfg['noRightNode'])){
                     if($this->request->isPost() && $cfg['isDemo'] == 1){
                         $this->error(lang('Demo is not allow to change data'));
@@ -314,9 +314,7 @@ class AuthService
                 $this->redirect(__u('index/index'));
             }
         }
-
     }
-
     /**
      * @param $cate
      * @return string
@@ -335,7 +333,6 @@ class AuthService
                 $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
             }
             if($val['child'] and count($val['child'])>0){
-
                 $html .= '<a href="javascript:;" lay-id="'.$val['id'].'" data-id="'.$val['id'].'" title="'.lang($val['title']).'" data-tips="'.lang($val['title']).'"><i class="'.$val['icon'].'"></i><cite> '.lang($val['title']).'</cite>'.$badge.'<span class="layui-nav-more"></span></a>';
                 $html = $this->childmenuhtml($html, $val['child']);
             }else{
@@ -374,7 +371,6 @@ class AuthService
     }
     /**
      * 检测是否登录
-     *
      * @return boolean
      */
     public function isLogin()

@@ -36,7 +36,6 @@ class UploadService extends AbstractService
     {
         $this->app = $app;
         $this->initialize();
-
     }
 
     /**
@@ -45,7 +44,7 @@ class UploadService extends AbstractService
      */
     protected function initialize()
     {
-        $this->driver = syscfg('upload','uplad_driver');
+        $this->driver = syscfg('upload','upload_driver');
         $this->fileExt = syscfg('upload','upload_file_type');
         $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
         return $this;
@@ -56,7 +55,7 @@ class UploadService extends AbstractService
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
-     * 文件上传总入口 集成qiniu ali tenxunoss
+     * 文件上传总入口 集成qiniu alioss tenxunoss
      */
     public function uploads($uid,$adminid)
     {
@@ -64,14 +63,14 @@ class UploadService extends AbstractService
         $type = Request::param('type', 'file');
         $path = Request::param('path', 'uploads');
         $editor = Request::param('editor', '');
+        $save = Request::param('save', '');
         $files = request()->file();
-        $uploadService = OssService::instance();
+        $ossService = OssService::instance();
         foreach ($files as $k => $file) {
             $this->checkFile($file);
             $file_size = $file->getSize();
             $original_name = $file->getOriginalName();
-            $md5 = $file->md5();
-            $sha1 = $file->sha1();;
+            $md5 = $file->md5();$sha1 = $file->sha1();;
             $file_mime = $file->getMime();
             $attach = AttachModel::where('md5', $md5)->find();
             if (!$attach) {
@@ -79,20 +78,21 @@ class UploadService extends AbstractService
                     $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                     $path = DS . 'storage' . DS . $savename;
                     $paths = trim($path, '/');
-                    //整合上传接口 获取视频音频长度
-                    $getID3 = new getID3();
-                    $analyzeFileInfo = $getID3->analyze('./'.$path);
-                    $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
-                    if ($this->driver == 'alioss') {
-                        $path = $uploadService->alioss($paths, './' . $paths);
-                    } elseif ($this->driver == 'qiniuoss') {
-                        $path = $uploadService->qiniuoss($paths, './' . $paths);
-                    } elseif ($this->driver == 'teccos') {
-                        $path = $uploadService->teccos($paths, './' . $paths);
+//                    整合上传接口 获取视频音频长度
+                    $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                    $duration=0;
+                    if($analyzeFileInfo) {
+                        $analyzeFileInfo = json_decode($analyzeFileInfo,true);
+                        $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
+                    }
+                    if ($this->driver != 'local') {
+                        $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                        if(!$path ) throw new Exception(lang('Please install the upload plugin first'));
                     }
                 }catch (Exception $e){
                     $path = '';
                     $error = $e->getMessage();
+                    var_dump($error);die;
                 }
                 $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
                 $file_name = basename($savename);
@@ -107,23 +107,22 @@ class UploadService extends AbstractService
                 }
                 if (!empty($path)) {
                     $data = [
-                        'admin_id' => $adminid,
+                        'admin_id'      => $adminid,
                         'member_id'     => $uid,
                         'original_name' => $original_name,
-                        'name' => $file_name,
-                        'path' => $path,
-                        'thumb' => $path,
-                        'url' => $this->driver == 'local' ? Request::domain() . $path : $path,
-                        'ext' => $file_ext,
-                        'size' => $file_size / 1024,
-                        'width' => $width,
-                        'height' => $height,
-                        'duration' => $duration,
-                        'md5' => $md5,
-                        'sha1' => $sha1,
-                        'mime' => $file_mime,
-                        'driver' => $this->driver,
-
+                        'name'          => $file_name,
+                        'path'          => $path,
+                        'thumb'         => $path,
+                        'url'           => $this->driver == 'local' ? Request::domain() . $path : $path,
+                        'ext'           => $file_ext,
+                        'size'          => $file_size / 1024,
+                        'width'         => $width,
+                        'height'        => $height,
+                        'duration'      => $duration,
+                        'md5'           => $md5,
+                        'sha1'          => $sha1,
+                        'mime'          => $file_mime,
+                        'driver'        => $this->driver,
                     ];
                     $attach = AttachModel::create($data);
                     $result['data'][] = $attach->path; //兼容wangeditor

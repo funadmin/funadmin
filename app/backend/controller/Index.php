@@ -13,12 +13,13 @@
 namespace app\backend\controller;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
+use app\BaseController;
 use app\common\controller\Backend;
 use think\facade\Db;
 use think\facade\View;
 use think\facade\Cache;
 use think\facade\Session;
-class Index extends Backend{
+class Index extends Backend {
 
     protected $layout='';
     /**
