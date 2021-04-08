@@ -5,7 +5,7 @@
  */
 /*** 后台总控制API*/
 define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Moment) {
-    var layer = layui.layer, table = layui.table;upload = layui.upload,element = layui.element,form = layui.form;
+    var layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
     layui.layer.config({
         skin: 'fun-layer-class'
@@ -24,7 +24,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
         iconClass: 'toast-info', // 自定义图标，有内置，如不需要则传空 支持layui内置图标/自定义iconfont类名
         onclick: null, // 点击关闭回调
         showMethod: "fadeIn",
-        hideMethod: "fadeOut"
+        hideMethod: "fadeOut",
     };
     var Fun = {
         url: function (url) {
@@ -32,16 +32,21 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             if (url.indexOf(domain) !== -1) {
                 return url;
             }
-            url = Fun.common.parseNodeStr(url)
+            url = Fun.common.parseNodeStr(url);
+            console.log(url)
             if (!Config.addonname) {
-                if (url.indexOf(Config.entrance) === -1) {
+                console.log(Config.entrance)
+                if (Config.entrance!=='/' && url.indexOf(Config.entrance) === -1) {
                     return Config.entrance + $.trim(url, '/');
-                } else {
-                    return url;
+                } else if(Config.entrance ==='/') {
+                    //前台
+                    return $.trim(url, '/');
+                }else{
+                    //后台
+                    return  $.trim(url, '/');
                 }
             } else if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
                 return Config.entrance + $.trim(url, '/');
-
             } else {
                 return '/' + $.trim(url, '/');
             }
@@ -80,7 +85,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             success = success || function (res) {
                 var msg = (res.msg === undefined && res.message === undefined) ? __('Return data is not right') : res.msg ? res.msg : res.message;
                 Fun.toastr.success(msg);
-                Fun.toastr.close()
+                Fun.toastr.close();
                 return false;
             };
             error = error || function (res) {
@@ -140,292 +145,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             });
             return true;
         },
-        common: {
-            parseNodeStr: function (node) {
-                if (node.indexOf('/') === -1) {
-                    node = Config.controllername + '/' + node;
-                }
-                var arrayNode = node.split('/');
-                $.each(arrayNode, function (key, val) {
-                    if (key === 0) {
-                        val = val.split('.');
-                        $.each(val, function (i, v) {
-                            v = Fun.common.lower(Fun.common.snake(v));
-                            val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
-                        });
-                        val = val.join(".");
-                        arrayNode[key] = val;
-                    }
-                });
-                node = arrayNode.join("/");
-                return node;
-            },
-            //下划线变驼峰
-            camel: function (name) {
-                return name.replace(/_(\w)/g, function (all, letter) {
-                    return letter.toUpperCase();
-                });
-            },
-            //大写变下划线
-            snake: function (name) {
-                return name.replace(/([A-Z])/g, "_$1").toLowerCase();
-            },
-            //大写变小写
-            lower: function (name) {
-                return name.toLowerCase();
-            },
-            arrTostr(arr) {
-                var str = '';
-                for (i = 0; i < arr.length; i++) {
-                    str += arr[i]['name'] + ',';
-                }
-                return str.substring(0, str.length - 1);
-            }
-        },
-        toastr: {
-            // 成功消息
-            success: function (msg, callback) {
-                if (callback === undefined) {
-                    callback = function () {
-                    }
-                }
-                return Toastr.success(msg, callback);
-
-            },
-            // 失败消息
-            error: function (msg, callback) {
-                if (callback === undefined) {
-                    callback = function () {
-                    }
-                }
-                return Toastr.error(msg, callback);
-            },
-            // 警告消息框
-            alert: function (msg, callback) {
-                return Toastr.warning(msg, callback)
-            },
-            // 对话框
-            confirm: function (msg, success, error) {
-                var index = layer.confirm(msg, {
-                    title: __('Are you sure'),
-                    icon: 3,
-                    btn: [__('Confirm'), __('Cancel')]
-                }, function () {
-                    typeof success === 'function' && success.call(this);
-                    Fun.toastr.close(index);
-                }, function () {
-                    typeof error === 'function' && error.call(this);
-                    self.close(index);
-                });
-                return index;
-            },
-            // 消息提示
-            tips: function (msg, callback) {
-                return Toastr.info(msg, callback)
-
-            },
-            // 加载中提示
-            loading: function (msg, callback) {
-                return msg ? layer.msg(msg, {
-                    icon: 16,
-                    scrollbar: false,
-                    shade: this.shade,
-                    time: 0,
-                    end: callback
-                }) : layer.load(0, {time: 0, scrollbar: false, shade: this.shade, end: callback});
-            },
-            // 关闭消息框
-            close: function (index) {
-                if (index) {
-                    return layer.close(index);
-                } else {
-                    return layer.closeAll();
-                }
-            }
-        },
-
-        events: {
-            photos: function (othis) {
-                var title = othis.prop('title'),
-                    src = othis.prop('src'),
-                    alt = othis.prop('alt');
-                var photos = {
-                    "title": title,
-                    "id": Math.random(),
-                    "data": [
-                        {
-                            "alt": alt,
-                            "pid": Math.random(),
-                            "src": src,
-                            "thumb": src
-                        }
-                    ]
-                };
-                layer.photos({
-                    photos: photos,
-                    anim: 5
-                });
-                return false;
-            },
-            open: function (othis) {
-                var data = othis.data();
-                var options = {
-                    title: othis.prop('title') ? othis.prop('title') : data.title,
-                    url: data.url ? data.url : data.href,
-                    width: data.width,
-                    height: data.height,
-                    isResize: data.title,
-                    full: data.full,
-                    btn: data.btn,
-                    btnAlign: data.btnAlign,
-                };
-                Fun.api.open(options)
-            },
-        },
-
-        //接口
-        api: {
-            /**
-             * 检测屏幕是否手机
-             * @returns {boolean}
-             */
-            checkScreen: function () {
-                //屏幕类型 大小
-                var ua = navigator.userAgent.toLocaleLowerCase();
-                var pl = navigator.platform.toLocaleLowerCase();
-                var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
-                    || (/ucweb.*linux/i.test(ua));
-                var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
-                var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
-                var $win = $(window);
-                var width = $win.width();
-                return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
-            },
-            //检测上级是否有窗口
-            checkLayerIframe:function(){
-                if(parent.$(".layui-layer").length){
-                    return true;
-                }else{
-                    return false;
-                }
-            },
-            //打开新窗口
-            open: function (options) {
-                var title = options.title,
-                    url = options.url, width = options.width,
-                    height = options.height,
-                    success = options.success,
-                    yes = options.yes,
-                    btn2 = options.btn2,
-                    type = options.options;
-                type = type === undefined ? 2 : 1;
-                isResize = options.isResize === undefined;
-                isFull = options.full !== undefined;
-                url = Fun.url(url)
-                isResize = isResize === false ? true : isResize;
-                width = width || '800';
-                height = height || '600';
-                width = width + 'px';
-                height = height + 'px';
-                if (isFull) {
-                    width = '100%';
-                    height = '100%';
-                }
-                var btns = [];
-                if (options.btn === undefined) {
-                    btns = ['submit', 'close'];
-                    options.btn_lang = [__('submit'), __('close')];
-                } else if (options.btn === 'false' || options.btn === false  || options.btn === '') {
-                    options.btn_lang = false;
-                } else {
-                    btnsdata = options.btn
-                    btnsdata = (btnsdata.split(','))
-                    options.btn_lang = false;
-                    $.each(btnsdata, function (k, v) {
-                        options.btn_lang[k] = __(v);
-                        btns.push(v);
-                    })
-                }
-                if (options.btnAlign === undefined) {
-                    options.btnAlign = 'c';
-                }
-                var  parentiframe =Fun.api.checkLayerIframe()
-                options = {
-                    title: title,
-                    type: type,
-                    area: [width, height],
-                    content: [url],
-                    shadeClose: true,
-                    anim: 0,
-                    shade : 0.1,
-                    isOutAnim: true,
-                    // zIndex: layer.zIndex, //
-                    maxmin: true,
-                    moveOut: true,
-                    resize: isResize,
-                    scrollbar: true,
-                    btnAlign: options.btnAlign,
-                    btn: options.btn_lang,
-                    success: success === undefined ? function (layero) {
-                        try {
-                            // 置顶当前窗口
-                            layer.setTop(layero);
-                            // 将保存按钮改变成提交按钮
-                            layero.addClass('layui-form');
-                            layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
-                        } catch (err) {
-                            //在此处理错误
-                        }
-                    } : success,
-                    yes: yes === undefined ? function (index, layero) {
-                        try {
-                            $(document).ready(function () {
-                                // 父页面获取子页面的iframe
-                                var body = layer.getChildFrame('body', index);
-                                if(parentiframe){
-                                    body = parent.layer.getChildFrame('body', index);
-                                }
-                                body.find('button[type="' + btns[0] + '"]').trigger('click')
-                                body.find('.layui-hide').hide();
-                            })
-                        } catch (err) {
-                            layer.close(index);
-                        }
-                        return false;
-                    } : yes,
-                    btn2: btn2 === undefined ? function (index) {
-                        layer.close(layer.index);
-                    } : btn2,
-                    cancel: function(index, layero){
-                        layer.close(layer.index);
-                    }
-                }
-                if(parentiframe){
-                    var index = parent.layer.open(options);
-                }else{
-                    var index = layer.open(options);
-                }
-                if (Fun.api.checkScreen() || width === undefined || height === undefined) {
-                    layer.full(index);
-                }
-                if (isFull) {
-                    layer.full(index);
-                }
-                if (isResize) {
-                    $(window).on("resize", function () {
-                        layer.full(index);
-                    })
-                }
-            },
-            refreshiFrame: function () {
-                parent.location.reload();
-                return false;
-            },
-            refreshTable: function (tableName) {
-                tableName = tableName | 'list';
-                layui.table.reload(tableName);
-            },
-        },
         /**
          *
          * @returns {void|undefined|string|*}
@@ -434,7 +153,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             var args = arguments,
                 string = args[0],
                 i = 1;
-
             string = string.toLowerCase();
             if (typeof Lang !== 'undefined' && typeof Lang[string] !== 'undefined') {
                 if (typeof Lang[string] == 'object')
@@ -497,7 +215,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                                 parent.layer.close(index);
                             }
                         }
-
                     })
 
                 }
@@ -510,7 +227,289 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
          * @param error
          * @param ex
          */
-        bineEvent: function (formCallback, success, error, ex) {
+        bindEvent: function (formCallback, success, error, ex) {
+
+        },
+        common: {
+            parseNodeStr: function (node) {
+                if (node.indexOf('/') === -1) {
+                    node = Config.controllername + '/' + node;
+                }
+                var arrayNode = node.split('/');
+                $.each(arrayNode, function (key, val) {
+                    if (key === 0) {
+                        val = val.split('.');
+                        $.each(val, function (i, v) {
+                            v = Fun.common.lower(Fun.common.snake(v));
+                            val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
+                        });
+                        val = val.join(".");
+                        arrayNode[key] = val;
+                    }
+                });
+                node = arrayNode.join("/");
+                return node;
+            },
+            //下划线变驼峰
+            camel: function (name) {
+                return name.replace(/_(\w)/g, function (all, letter) {
+                    return letter.toUpperCase();
+                });
+            },
+            //大写变下划线
+            snake: function (name) {
+                return name.replace(/([A-Z])/g, "_$1").toLowerCase();
+            },
+            //大写变小写
+            lower: function (name) {
+                return name.toLowerCase();
+            },
+            arrTostr:function(arr) {
+                var str = '';
+                for (i = 0; i < arr.length; i++) {
+                    str += arr[i]['name'] + ',';
+                }
+                return str.substring(0, str.length - 1);
+            }
+        },
+        toastr: {
+            // 成功消息
+            success: function (msg, callback) {
+                if (callback === undefined) {
+                    callback = function () {
+                    }
+                }
+                return Toastr.success(msg, callback);
+
+            },
+            // 失败消息
+            error: function (msg, callback) {
+                if (callback === undefined) {
+                    callback = function () {
+                    }
+                }
+                return Toastr.error(msg, callback);
+            },
+            // 警告消息框
+            alert: function (msg, callback) {
+                return Toastr.warning(msg, callback);
+            },
+            // 对话框
+            confirm: function (msg, success, error) {
+                var index = layer.confirm(msg, {
+                    title: __('Are you sure'),
+                    icon: 3,
+                    btn: [__('Confirm'), __('Cancel')]
+                }, function () {
+                    typeof success === 'function' && success.call(this);
+                    Fun.toastr.close(index);
+                }, function () {
+                    typeof error === 'function' && error.call(this);
+                    self.close(index);
+                });
+                return index;
+            },
+            // 消息提示
+            tips: function (msg, callback) {
+                return Toastr.info(msg, callback);
+
+            },
+            // 加载中提示
+            loading: function (msg, callback) {
+                return msg ? layer.msg(msg, {
+                    icon: 16,
+                    scrollbar: false,
+                    shade: this.shade,
+                    time: 0,
+                    end: callback
+                }) : layer.load(0, {time: 0, scrollbar: false, shade: this.shade, end: callback});
+            },
+            // 关闭消息框
+            close: function (index) {
+                if (index) {
+                    return layer.close(index);
+                } else {
+                    return layer.closeAll();
+                }
+            }
+        },
+        //事件
+        events: {
+            photos: function (othis) {
+                var title = othis.prop('title'),
+                    src = othis.prop('src'),
+                    alt = othis.prop('alt');
+                var photos = {
+                    "title": title,
+                    "id": Math.random(),
+                    "data": [
+                        {
+                            "alt": alt,
+                            "pid": Math.random(),
+                            "src": src,
+                            "thumb": src
+                        }
+                    ]
+                };
+                layer.photos({
+                    photos: photos,
+                    anim: 5
+                });
+                return false;
+            },
+            open: function (othis) {
+                var data = othis.data();
+                var options = {
+                    title: othis.prop('title') ? othis.prop('title') : data.title,
+                    url: data.url ? data.url : data.href,
+                    width: data.width,
+                    height: data.height,
+                    isResize: data.title,
+                    full: data.full,
+                    btn: data.btn,
+                    btnAlign: data.btnAlign,
+                };
+                Fun.api.open(options);
+            },
+        },
+        //接口
+        api: {
+            /**
+             * 检测屏幕是否手机
+             * @returns {boolean}
+             */
+            checkScreen: function () {
+                //屏幕类型 大小
+                var ua = navigator.userAgent.toLocaleLowerCase();
+                var pl = navigator.platform.toLocaleLowerCase();
+                var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl)) || (/ucweb.*linux/i.test(ua));
+                var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
+                var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
+                var $win = $(window);
+                var width = $win.width();
+                return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
+            },
+            //检测上级是否有窗口
+            checkLayerIframe:function(){
+                return !!parent.$(".layui-layer").length;
+            },
+            //打开新窗口
+            open: function (options) {
+                var title = options.title,
+                    url = options.url, width = options.width,
+                    height = options.height,
+                    success = options.success,
+                    yes = options.yes,
+                    btn2 = options.btn2,
+                    type = options.options;
+                type = type === undefined ? 2 : 1;
+                isResize = options.isResize === undefined;
+                isFull = !!options.full;
+                url = Fun.url(url);
+                isResize = isResize === false ? true : isResize;
+                width = width || '800';
+                height = height || '600';
+                width = width + 'px';
+                height = height + 'px';
+                if (isFull) {
+                    width = '100%';
+                    height = '100%';
+                }
+                var btns = [];
+                if (options.btn === undefined) {
+                    btns = ['submit', 'close'];
+                    options.btn_lang = [__('submit'), __('close')];
+                } else if (options.btn === 'false' || options.btn === false  || options.btn === '') {
+                    options.btn_lang = false;
+                } else {
+                    btnsdata = options.btn;
+                    btnsdata = (btnsdata.split(','));
+                    options.btn_lang = [];
+                    $.each(btnsdata, function (k, v) {
+                        options.btn_lang[k] = __(v);
+                        btns.push(v);
+                    })
+                }
+                if (options.btnAlign === undefined) {
+                    options.btnAlign = 'c';
+                }
+                if(options.btn_lang ===[])　options.btn_lang=false;
+                var  parentiframe =Fun.api.checkLayerIframe()
+                options = {
+                    title: title,
+                    type: type,
+                    area: [width, height],
+                    content: [url],
+                    shadeClose: true,
+                    anim: 0,
+                    shade : 0.1,
+                    isOutAnim: true,
+                    // zIndex: layer.zIndex, //
+                    maxmin: true,
+                    moveOut: true,
+                    resize: isResize,
+                    scrollbar: true,
+                    btnAlign: options.btnAlign,
+                    btn: options.btn_lang,
+                    success: success === undefined ? function (layero) {
+                        try {
+                            // 置顶当前窗口
+                            layer.setTop(layero);
+                            // 将保存按钮改变成提交按钮
+                            layero.addClass('layui-form');
+                            layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
+                        } catch (err) {
+                            //在此处理错误
+                        }
+                    } : success,
+                    yes: yes === undefined ? function (index, layero) {
+                        try {
+                            $(document).ready(function () {
+                                // 父页面获取子页面的iframe
+                                var body = layer.getChildFrame('body', index);
+                                if(parentiframe){
+                                    body = parent.layer.getChildFrame('body', index);
+                                }
+                                body.find('button[type="' + btns[0] + '"]').trigger('click');
+                                body.find('.layui-hide').hide();
+                            })
+                        } catch (err) {
+                            layer.close(index);
+                        }
+                        return false;
+                    } : yes,
+                    btn2: btn2 === undefined ? function (index) {
+                        layer.close(layer.index);
+                    } : btn2,
+                    cancel: function(index, layero){
+                        layer.close(layer.index);
+                    }
+                }
+                if(parentiframe){
+                    var index = parent.layer.open(options);
+                }else{
+                    var index = layer.open(options);
+                }
+                if (Fun.api.checkScreen() || width === undefined || height === undefined) {
+                    layer.full(index);
+                }
+                if (isFull) {
+                    layer.full(index);
+                }
+                if (isResize) {
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    })
+                }
+            },
+            refreshiFrame: function () {
+                parent.location.reload();
+                return false;
+            },
+            refreshTable: function (tableName) {
+                tableName = tableName | 'list';
+                layui.table.reload(tableName);
+            },
         },
     };
     //初始化

@@ -5,7 +5,7 @@
 
     <div class="fly-panel fly-panel-user" pad20="" style="padding-top:20px;">
         {if !$member.email_validated}
-        <div class="fly-msg" style="margin-bottom: 20px;"> 您的邮箱尚未验证，这比较影响您的帐号安全，<a href="{:url('user/activate')}">立即去激活？</a>
+        <div class="fly-msg" style="margin-bottom: 20px;"> 您的邮箱尚未验证，这比较影响您的帐号安全，<a href="{:__u('user/activate')}">立即去激活？</a>
         </div>
         {/if}
         <div class="layui-row layui-col-space20">
@@ -39,22 +39,22 @@
                     <div class="fly-panel-title"> 快捷方式</div>
                     <div class="fly-panel-main">
                         <ul class="layui-row layui-col-space10 fly-shortcut">
-                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('member/set')}"><i
+                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('member/set')}"><i
                                     class="layui-icon"></i><cite>修改信息</cite></a></li>
-                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('member/set')}#avatar"><i
+                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('member/set')}#avatar"><i
                                     class="layui-icon"></i><cite>修改头像</cite></a></li>
-                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('member/set')}#pass"><i
+                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('member/set')}#pass"><i
                                     class="layui-icon"></i><cite>修改密码</cite></a></li>
-                            <!--              <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('member/set')}#bind"><i-->
+                            <!--              <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('member/set')}#bind"><i-->
                             <!--                      class="layui-icon"></i><cite>帐号绑定</cite></a></li>-->
-                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('bbs/add')}"><i
+                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('bbs/add')}"><i
                                     class="layui-icon"></i><cite>发表新帖</cite></a></li>
                             <!--              <li class="layui-col-sm3 layui-col-xs4"><a href="/column/share/"><i-->
                             <!--                      class="layui-icon"></i><cite>查看分享</cite></a>-->
                             <!--              </li>-->
                             <!--              <li class="layui-col-sm3 layui-col-xs4 LAY_search"><a href="javascript:;"><i-->
                             <!--                      class="layui-icon"></i><cite>搜索资源</cite></a></li>-->
-                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:url('member/bbs')}#collection"><i
+                            <li class="layui-col-sm3 layui-col-xs4"><a href="{:__u('member/bbs')}#collection"><i
                                     class="layui-icon"></i><cite>我的收藏</cite></a></li>
                             <!--              <li class="layui-col-sm3 layui-col-xs4"><a href="/jie/15697/"><i-->
                             <!--                      class="layui-icon"></i><cite>成为赞助商</cite></a></li>-->

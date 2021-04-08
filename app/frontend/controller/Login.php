@@ -3,7 +3,7 @@
  * funadmin
  * ============================================================================
  * 版权所有 2018-2027 funadmin，并保留所有权利。
- * 网站地址: https://www.funadmin.com
+ * 网站地址: http://www.Funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -77,12 +77,13 @@ class Login extends Frontend
             }catch(\Exception $e){
                 $this->error(lang($e->getMessage()));
             }
-            $this->success(lang('The activation email has been sent successfully, please enter the email verification code, the activation email'), url('login/reg'));
+//            $this->success(lang('The activation email has been sent successfully, please enter the email verification code, the activation email'), url('login/reg'));
+            $this->success(lang('reg successful'), url('login/index'));
         }
         if ($this->request->param('type') == 1) {
             cookie('code', null);
             cookie('email', null);
-            cookie('membername', null);
+            cookie('username', null);
         }
         return view();
 
@@ -108,14 +109,14 @@ class Login extends Frontend
             if ($data['vercode'] != cookie('code')) {
                 $this->error('验证码错误！');
             }
-            $data = cookie('regData');
+            $data = session('regData');
             $data['email_validated'] = 1;
             $member = $this->modelClass->save($data);
             if ($member) {
                 cookie('code', null);
                 cookie('email', null);
-                cookie('membername', null);
-                $this->success('激活成功', __u('login/login'));
+                cookie('username', null);
+                $this->success('激活成功', __u('login/index'));
             } else {
                 $this->error('激活失败');
             }
@@ -185,7 +186,7 @@ class Login extends Frontend
             cookie('forget_uid', null);
             cookie('forget_email', null);
             if ($res) {
-                $this->success('修改成功', __u('login/login'));
+                $this->success('修改成功', __u('login/index'));
             } else {
                 $this->error('修改失败');
             }

@@ -4,7 +4,7 @@
 	  <div class="fly-none">
           {if $info.code==0}
 	         <h2><i class="iconfont icon-404"></i></h2>
-          <p>{$info.msg}<a href="{:url('member/activate')}" target="_blank" class="">重新激活</a></p>
+          <p>{$info.msg}<a href="{:__u('member/activate')}" target="_blank" class="">重新激活</a></p>
 
           {else /}
           <h2><i class="iconfont layui-icon-ok" style="color: #009688"></i></h2>

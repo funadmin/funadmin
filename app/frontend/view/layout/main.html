@@ -3,14 +3,12 @@
 <head>
     <head>
         <meta charset="utf-8">
-        <title>FunAdmin-登入</title>
+        <title>FunAdmin-首个支持php8.0的管理系统</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <meta name="keywords" content="FunAdmin">
         <meta name="description" content="FunAdmin">
         <meta name="csrf-token" content="{:token()}">
-        <link rel="stylesheet" href="__CDN____STATIC__/frontend/css/login.css">
-        <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css">
-        <script rel="stylesheet" href="__CDN____PLUGINS__/layui/layui.js"></script>
+        <link rel="stylesheet" href="__CDN____STATIC__/frontend/css/comm.css">
         <link rel="stylesheet" href="__PLUGINS__/layui/css/layui.css">
     </head>
 <body>
@@ -31,7 +29,7 @@
     window.ADDONS = '__ADDONS__'
     window.PLUGINS = '__PLUGINS__';
 </script>
-<script src="__CDN____PLUGINS__/layui/layui.all.js" charset="utf-8"></script>
+<script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
 <script src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-frontend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
 
 </body>

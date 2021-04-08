@@ -3,7 +3,7 @@
  * funadmin
  * ============================================================================
  * 版权所有 2018-2027 funadmin，并保留所有权利。
- * 网站地址: https://www.funadmin.com
+ * 网站地址: http://www.Funadmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -33,6 +33,7 @@ class Member extends Frontend {
      * 个人首页
      */
     public function index(){
+
         if(!session('member')) $this->redirect(__u('login/index'));
         return view();
 
@@ -125,8 +126,15 @@ class Member extends Frontend {
      */
     public function activate(){
         $member = $this->isLogin();
-        if(!$member) $this->redirect(__u('login/index'));
-        $email = $this->sendEmail()->getData();
+        if (!$member) $this->redirect(__u('login/index'));
+        if($this->request->isPost()){
+            try {
+                $this->modelClass->sendEmail($member);
+            } catch (\Exception $e) {
+                $this->error($e->getMessage());
+            }
+            $this->success(lang("sendEmail successful"));
+        }
         return view();
     }
     //链接邮箱激活
@@ -197,20 +205,10 @@ class Member extends Frontend {
      */
     public function logout(){
 
-        session('user',null);
+        session('member',null);
         Session::clear();
         $this->success('退成成功！',__u('login/index'));
 
-    }
-
-    //是否登录
-    protected function isLogin()
-    {
-        if (session('member.id')) {
-            return session('member');
-        } else {
-            return false;
-        }
     }
 
 }

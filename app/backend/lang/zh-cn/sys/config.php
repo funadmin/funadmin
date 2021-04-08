@@ -36,7 +36,7 @@ return [
     'local'=>'本地',
     'Alioss'=>'阿里oss',
     'Qiniuoss'=>'七牛oss',
-    'Teccos'=>'腾讯oss',
+    'Tencos'=>'腾讯oss',
     'Email server' => '邮箱服务器',
     'Email address' => '邮箱地址',
     'Email port' => '邮箱端口',

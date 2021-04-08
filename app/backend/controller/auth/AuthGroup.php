@@ -70,7 +70,7 @@ class AuthGroup extends Backend
     public function edit()
     {
         $id = $this->request->get('id');
-        $list = $this->modelClass->find();
+        $list = $this->modelClass->find($id);
         if ($this->request->isPost()) {
             $post = $this->request->post();
             if($id==1){

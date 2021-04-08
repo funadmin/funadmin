@@ -7,7 +7,17 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 tableId: 'list',
                 requests: {
                     index_url: 'sys.attach/index',
-                    add_url: 'sys.attach/add',
+                    // add_url: 'sys.attach/add',
+                    add_full:{
+                        type: 'open',
+                        class: 'layui-btn-sm layui-btn-green',
+                        url: 'sys.attach/add',
+                        icon: 'layui-icon layui-icon-add',
+                        text: __('Add'),
+                        title: __('Add'),
+                        full: 0,
+                        extend:"data-btn='close'",
+                    },
                     edit_url: 'sys.attach/edit',
                     delete_url: 'sys.attach/delete',
                     modify_url: 'sys.attach/modify',
@@ -19,7 +29,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh', 'add', 'delete'],
+                toolbar: ['refresh', 'add_full', 'delete'],
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80 , sort: true},

@@ -4,8 +4,8 @@ define(["jquery",'croppers'], function ($,croppers) {
     var Upload = {
         init: {
             requests: {
-                upload_url: 'ajax/uploads',
-                attach_url: 'ajax/getAttach',
+                upload_url: '/ajax/uploads',
+                attach_url: '/ajax/getAttach',
             },
             upload_exts: Config.upload.upload_exts,
             upload_size: Config.upload.upload_size,

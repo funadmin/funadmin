@@ -309,37 +309,17 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `t
 (9, 'site_email', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 1, 0, 0, 0),
 (10, 'site_copyright', '', '© 2020 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 1, 0, 1603435866, 0),
 (11, 'app_debug', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 1, 0, 1607071704, 0),
-(18, 'email_addr', '', '994927909@qq.com', '邮箱发件人地址', '0', 'text', 'email', 1, 0, 0, 0, 0),
-(19, 'email_id', '', '994927909@qq.com', '身份验证用户名', '0', 'text', 'email', 1, 0, 0, 0, 0),
-(20, 'email_pass', '', '11211', '用户名密码', '0', 'text', 'email', 1, 0, 0, 0, 0),
-(21, 'email_secure', '', 'smtp', '邮箱发送协议', '0', 'text', 'email', 1, 0, 0, 0, 0),
-(22, 'upload_file_type', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 1, 0, 1602723793, 0),
-(24, 'alioss_accessid', '', '', 'accessid', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
-(25, 'alioss_accesssecret', '', '', 'oss_accesssecret', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
-(26, 'alioss_bucket', '', '', 'oss_bucket', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
-(27, 'alioss_endpoint', '', '', 'oss_endpoint', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
-(28, 'aliendpoint_type', '', '0', 'aliendpoint_type', '0', 'text', 'alioss', 1, 0, 0, 0, 0),
-(44, 'site_licence', '', '', '营业执照', '0', 'text', 'site', 1, 1, 0, 1595419166, 0),
-(45, 'site_domain', '', 'https://www.FunAdmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0, 0),
-(46, 'upload_file_max', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
-(47, 'site_seo_title', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 1, 0, 0, 0),
-(48, 'site_seo_keywords', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 1, 0, 1603266121, 0),
-(49, 'site_seo_desc', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 1, 0, 1601288743, 0),
-(50, 'upload_water', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 0, 1601287987, 0),
-(51, 'upload_water_position', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0, 0),
-(59, 'upload_driver', '', 'alioss', '上传配置', '0', 'text', 'upload', 1, 0, 1594213311, 1595419144, 0),
-(60, 'site_version', '', '1.0', '版本', '0', 'text', 'site', 1, 1, 0, 1600828560, 0),
-(61, 'qiniuoss_accesskey', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 1603266108, 0),
-(62, 'qiniuoss_accesssecret', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0, 0),
-(63, 'qiniuoss_bucket', '', '', '解释,备注', '0', 'textarea', 'qiniuoss', 1, 0, 0, 0, 0),
-(64, 'qiniuoss_cdn_domain', '', '', '解释,备注', '0', 'text', 'qiniuoss', 1, 0, 0, 0, 0),
-(65, 'tecoss_region', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
-(66, 'tecoss_secretId', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
-(67, 'tecoss_secretKey', '', '', '解释,备注', '0', 'textarea', 'teccos', 1, 0, 0, 0, 0),
-(68, 'tecoss_bucket', '1:是\n2:否\n3:其他', '2', '解释,备注\n1:是\n2:否\n3:其他', '', 'radio', 'teccos', 1, 0, 0, 1601279971, 0),
-(69, 'tecoss_cdn_domain', '1:是\n2:否', '2020-09-01 00:00:00', '解释,备注  中间用分隔符分割', '', 'text', 'teccos', 1, 0, 0, 1602299856, 0),
-(70, 'email_port', '', '465', '邮箱发送协议', '0', 'text', 'email', 1, 1, 0, 0, 0),
-(71, 'email_host', '', 'smtp.163.com', '邮箱发送协议', '0', 'text', 'email', 1, 1, 0, 0, 0);
+(25, 'site_licence', '', '', '营业执照', '0', 'text', 'site', 1, 1, 0, 1595419166, 0),
+(26, 'site_domain', '', 'http://www.funadmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0, 0),
+(27, 'site_seo_title', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 1, 0, 0, 0),
+(28, 'site_seo_keywords', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 1, 0, 1603266121, 0),
+(29, 'site_seo_desc', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 1, 0, 1601288743, 0),
+(30, 'site_version', '', '1.0', '版本', '0', 'text', 'site', 1, 1, 0, 1600828560, 0),
+(31, 'upload_file_type', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 1, 0, 1602723793, 0),
+(32, 'upload_file_max', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
+(33, 'upload_water', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 0, 1601287987, 0),
+(34, 'upload_water_position', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0, 0),
+(35, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 0, 1594213311, 1595419144, 0);
 
 -- --------------------------------------------------------
 
@@ -364,12 +344,8 @@ CREATE TABLE `fun_config_group` (
 INSERT INTO `fun_config_group` (`id`, `name`, `title`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
 (1, 'site', '网站', 1, 0, 0, 0),
 (3, 'sms', '短信', 1, 0, 0, 0),
-(4, 'email', '邮箱', 1, 0, 0, 0),
-(5, 'alioss', '阿里oss', 1, 0, 0, 0),
 (8, 'upload', '上传', 1, 0, 0, 0),
-(9, 'mobile', '手机', 1, 0, 0, 0),
-(11, 'teccos', '腾讯oss', 1, 0, 1606484970, 0),
-(12, 'qiniuoss', '七牛oss', 1, 0, 0, 0);
+(9, 'mobile', '手机', 1, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -524,21 +500,19 @@ INSERT INTO `fun_member` (`id`, `merchant_id`, `group_id`, `email`, `realname`, 
 --
 
 CREATE TABLE `fun_member_account` (
-                                      `id` int(10) UNSIGNED NOT NULL,
-                                      `merchant_id` int(10) UNSIGNED DEFAULT '0' COMMENT '商户id',
-                                      `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
-                                      `level` int(11) DEFAULT '-1' COMMENT '会员等级',
-                                      `user_money` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
-                                      `accumulate_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计余额',
-                                      `give_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计赠送余额',
-                                      `consume_money` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费金额',
-                                      `frozen_money` decimal(10,2) DEFAULT '0.00' COMMENT '冻结金额',
-                                      `user_integral` int(11) DEFAULT '0' COMMENT '当前积分',
-                                      `accumulate_integral` int(11) DEFAULT '0' COMMENT '累计积分',
-                                      `give_integral` int(11) DEFAULT '0' COMMENT '累计赠送积分',
-                                      `consume_integral` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费积分',
-                                      `frozen_integral` int(11) DEFAULT '0' COMMENT '冻结积分',
-                                      `status` tinyint(4) DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]'
+                                      `id` int UNSIGNED NOT NULL,
+                                      `merchant_id` int UNSIGNED DEFAULT '0' COMMENT '商户id',
+                                      `member_id` int UNSIGNED DEFAULT '0' COMMENT '用户id',
+                                      `money_before` decimal(10,2) DEFAULT '0.00' COMMENT '变更之前金额',
+                                      `money_now` decimal(10,2) DEFAULT '0.00' COMMENT '当前余额',
+                                      `money_change` decimal(10,2) DEFAULT NULL COMMENT '变更金额\r\n',
+                                      `money_all` decimal(10,2) DEFAULT '0.00' COMMENT '累计余额',
+                                      `money_consume` decimal(10,2) DEFAULT '0.00' COMMENT '累计消费金额',
+                                      `money_frozen` decimal(10,2) DEFAULT '0.00' COMMENT '冻结金额',
+                                      `status` tinyint DEFAULT '1' COMMENT '状态[-1:删除;0:禁用;1启用]',
+                                      `type` int DEFAULT '1' COMMENT '类型\r\n',
+                                      `create_time` int(11) UNSIGNED NOT NULL DEFAULT '0' COMMENT '创建时间',
+                                      `update_time` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会员_账户统计表';
 
 -- --------------------------------------------------------
@@ -564,8 +538,8 @@ CREATE TABLE `fun_member_address` (
                                       `home_phone` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '家庭号码',
                                       `mobile` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '手机号码',
                                       `status` tinyint(4) NOT NULL DEFAULT '1' COMMENT '状态(-1:已删除,0:禁用,1:正常)',
-                                      `created_at` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
-                                      `updated_at` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间'
+                                      `create_time` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',
+                                      `update_time` int(10) UNSIGNED DEFAULT '0' COMMENT '修改时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户_收货地址表';
 
 -- --------------------------------------------------------
@@ -4581,7 +4555,7 @@ ALTER TABLE `fun_blacklist`
 -- 使用表AUTO_INCREMENT `fun_config`
 --
 ALTER TABLE `fun_config`
-    MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+    MODIFY `id` smallint(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config_group`

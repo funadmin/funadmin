@@ -3,7 +3,7 @@
  * FunAdmin
  * ============================================================================
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -232,6 +232,8 @@ class Addon extends Backend
             Service::updateAddonsInfo($name,$addoninfo['status']);
             refreshaddons();
             $info->save();
+            $class = get_addons_instance($name);
+            $addoninfo['status']==1 ?$class->enabled():$class->disabled();
         }catch (\Exception $e){
             $this->error(lang($e->getMessage()));
 

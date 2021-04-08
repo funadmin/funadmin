@@ -149,16 +149,6 @@ EOT;
 /**
  * 打印
  */
-if (!function_exists('getUser')) {
-    function getUser($id, $field='*')
-    {
-        return \app\common\model\Member::field($field)->find($id);
-    }
-}
-
-/**
- * 打印
- */
 if (!function_exists('p')) {
     function p($var, $die = 0)
     {

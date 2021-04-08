@@ -23,7 +23,7 @@ define(['backend'], function (Backend) {
             });
         },
         console:function () {
-            Backend.api.bindEvent()
+            Backend.api.bindEvent();
         }
 
     }

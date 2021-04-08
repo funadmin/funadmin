@@ -3,7 +3,7 @@
  * FunAdmin
  * ============================================================================
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -28,8 +28,8 @@ class Index extends Backend {
      * 首页
      */
     public function index(){
-//        $menulist = cache('adminmenushtml' .session('admin.id'));
-        $menulist =[];
+       $menulist = cache('adminmenushtml' .session('admin.id'));
+        // $menulist =[];
         if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type',1)

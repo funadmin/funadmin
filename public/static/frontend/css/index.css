@@ -107,7 +107,7 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
 }
 
 .site-desc{position: relative; height: 70px; margin-top: 20px;}
-.site-desc .web-font-desc{color: #fff;  font-size: 50px;}
+.site-desc .web-font-desc{color: #fff;  font-size: 30px;}
 
 .site-desc-anim{-webkit-animation-name: site-desc; animation-name: site-desc;}
 .site-desc cite{position: absolute; bottom: -45px; left: 0; width: 100%; color: #fff;font-size:16px; font-style: normal;}
@@ -173,6 +173,7 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
   .site-banner-other{bottom: 10px;}
 
 }
+.site-out-up{-webkit-animation-duration: 3s; animation-duration: 3s; -webkit-animation-fill-mode: both; animation-fill-mode: both; -webkit-animation-name: site-anim-closeup; animation-name: site-anim-closeup; overflow: hidden;}
 @-webkit-keyframes site-anim-closeup{ /* 特写 */
   from {-webkit-transform: translate3d(0, 0, 0) scale(1);  opacity: 1;}
   to { -webkit-transform: translate3d(0, 400px, 0) scale(2);  opacity: 0.5;}
@@ -181,4 +182,3 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
   from {transform: translate3d(0, 0, 0) scale(1); opacity: 1;}
   to {transform: translate3d(0, 400px, 0) scale(2); opacity: 0.5;}
 }
-.site-out-up{-webkit-animation-duration: 3s; animation-duration: 3s; -webkit-animation-fill-mode: both; animation-fill-mode: both; -webkit-animation-name: site-anim-closeup; animation-name: site-anim-closeup; overflow: hidden;}

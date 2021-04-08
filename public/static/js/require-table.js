@@ -23,12 +23,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', ];
             if(options.search){
-                options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', {
+                options.defaultToolbar.push({
                     title: __("Search"),
                     layEvent: 'TABLE_SEARCH',
                     icon: 'layui-icon-search',
                     extend: 'data-tableid="' + options.id + '"'
-                }];
+                })
             }
             // 初始化表格lay-filter
             $(options.elem).attr('lay-filter', options.layFilter);
@@ -90,10 +90,10 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         v.full = v.full || 0;
                         v.resize = v.resize || 0;
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" ><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" '+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         } else {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
-                                url + '" title="' + v.title + '" ><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
+                                url + '" title="' + v.title + '"'+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         }
                     }
                 }
@@ -502,7 +502,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 Fun.events.photos(othis);
             },
             refresh: function (othis) {
-                console.log(othis.data())
                 var tableId = othis.data('tableId');
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId;
@@ -703,7 +702,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         case 'request':
                             Table.events.request(othis);
                             break;
-
                         default:
                             return true;
                     }
@@ -716,10 +714,8 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         url = url.indexOf('?')!=-1 ?url+'&id='+ obj.data.id :url+'?id=' +obj.data.id
                         options = {url:url,}
                         Fun.api.open(options);
-
                     }
                     return false;
-
                 });
             },
             //编辑

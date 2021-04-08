@@ -13,23 +13,23 @@
   <div class="fly-panel fly-panel-user" pad20>
     <div class="layui-tab layui-tab-brief" lay-filter="user">
       <ul class="layui-tab-title">
-        <li><a href="{:url('login/index')}">登入</a></li>
+        <li><a href="{:__u('login/index')}">登入</a></li>
         <li class="layui-this">注册</li>
       </ul>
       <div class="layui-form layui-tab-content" id="LAY_ucm" style="padding: 20px 0;">
         <div class="layui-tab-item layui-show">
           {if cookie('code') && cookie('email')}
-          <div class="fly-msg">{:cookie('username')}，打开邮箱,获取验证码,注册并激活您的邮箱，<a href="{:url('login/reg',['type'=>1])}"> 没收到邮件？点击重新注册</a></div>
+          <div class="fly-msg">{:cookie('username')}，打开邮箱,获取验证码,注册并激活您的邮箱，<a href="{:__u('login/reg',['type'=>1])}"> 没收到邮件？点击重新注册</a></div>
           <div class="layui-form"  style="margin-top: 30px;">
-            <form action="{:url('login/regActive')}" method="post">
+            <form action="{:__u('login/regActive')}" method="post">
               <div class="layui-form-item">
                 <label for="L_vercode" class="layui-form-label">验证码</label>
                 <div class="layui-input-block">
-                  <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请输入邮箱验证码" autocomplete="off" class="layui-input">
+                  <input type="text" id="" name="vercode" required lay-verify="required" placeholder="请输入邮箱验证码" autocomplete="off" class="layui-input">
                 </div>
                 <!--                <div class="layui-form-mid" style="padding: 0!important;">-->
                 <!--                  <span style="color: #c00;">-->
-                <!--                    <img  id="captchaPic" src="{:url('verify')}?{:time()}" alt="验证码" onclick="this.src='{:url("verify")}?'+'id='+Math.timeom()" style="height: 36px;border: 1px solid #ececec;"/>-->
+                <!--                    <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="验证码" onclick="this.src='{:__u("verify")}?'+'id='+Math.timeom()" style="height: 36px;border: 1px solid #ececec;"/>-->
                 <!--                  </span>-->
                 <!--                </div>-->
               </div>
@@ -38,12 +38,12 @@
                 <input type="hidden" name="id" value="{:cookie('mid')}">
                 <input type="hidden" name="email" value="{:cookie('email')}">
                 <input type="hidden" name="username" value="{:cookie('username')}">
-                <button class="layui-btn" lay-filter="*" lay-submit>提交</button>
+                <button class="layui-btn" data-request="{:__u('login/regActive')}" lay-filter="*" lay-submit>提交</button>
               </div>
             </form>
           </div>
           {else /}
-          <div class="layui-form layui-tab-content" id="LAY_ucm" style="padding: 20px 0;">
+          <div class="layui-form layui-tab-content"  style="padding: 20px 0;">
             <form method="post">
               <div class="layui-form-item">
                 <div class="layui-input-block">
@@ -76,7 +76,7 @@
                   <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请填写验证码" autocomplete="off" class="layui-input">
                   <div class="layui-form-mid" style="padding: 0!important;">
                   <span style="color: #c00;">
-                    <img style="height: 36px;border: 1px solid #ececec;" id="captchaPic" src="{:url('index/verify',['t'=>time()])}" alt="验证码" onclick="this.src='{:url("index/verify")}'+'?t='+Math.random()" />
+                    <img style="height: 36px;border: 1px solid #ececec;" id="captchaPic" src="{:__u('index/verify',['t'=>time()])}" alt="验证码" onclick="this.src='{:__u("index/verify")}'+'?t='+Math.random()" />
                   </span>
                   </div>
                 </div>

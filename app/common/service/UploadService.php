@@ -86,13 +86,15 @@ class UploadService extends AbstractService
                         $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                     }
                     if ($this->driver != 'local') {
-                        $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
-                        if(!$path ) throw new Exception(lang('Please install the upload plugin first'));
+                        try {
+                            $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                        }catch (\Exception $e) {
+                            throw new Exception($e->getMessage());
+                        }
                     }
                 }catch (Exception $e){
                     $path = '';
                     $error = $e->getMessage();
-                    var_dump($error);die;
                 }
                 $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
                 $file_name = basename($savename);

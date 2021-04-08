@@ -3,7 +3,7 @@
  * FunAdmin
  * ============================================================================
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -13,6 +13,7 @@
 namespace app\frontend\controller;
 
 use app\common\controller\Frontend;
+use app\common\model\Attach;
 use app\common\service\UploadService;
 use think\App;
 use think\Exception;
@@ -24,6 +25,7 @@ class Ajax extends Frontend
     public function __construct(App $app)
     {
         parent::__construct($app);
+        $this->modelClass = new Attach();
 
     }
 
@@ -44,7 +46,30 @@ class Ajax extends Frontend
             $this->error($e->getMessage());
         }
     }
-
+    /**
+     * @return \think\response\Json
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     * 获取附件列表
+     */
+    public function getAttach()
+    {
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $count = $this->modelClass
+                ->where($where)
+                ->order($sort)
+                ->count();
+            $list = $this->modelClass
+                ->where($where)
+                ->order($sort)
+                ->page($this->page, $this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
+            return json($result);
+        }
+    }
     /**
      * @return \think\response\Jsonp
      * 自动加载语言函数

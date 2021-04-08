@@ -3,7 +3,7 @@
  * FunAdmin
  * ============================================================================
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -144,7 +144,7 @@ class Backend extends BaseController
      * @param null $relationSearch
      * @return array
      */
-    protected function buildParames($searchfields=null,$relationSearch=null)
+    protected function buildParames($searchfields=null,$relationSearch=null,$withStatus=true)
     {
         $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
         $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
@@ -264,7 +264,7 @@ class Backend extends BaseController
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
-        $where[]=['status','<>',-1];
+        if($withStatus)$where[]=['status','<>',-1];
         return [$page, $limit,$sort,$where];
     }
 

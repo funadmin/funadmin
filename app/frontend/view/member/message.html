@@ -24,7 +24,7 @@
           {php}$username =_getMember($vo['send_id']); {/php}
           <li data-id="{$vo.id}">
             <blockquote class="layui-elem-quote">
-              <a href="{:url('member/home')}?name={$username['username']}" target="_blank"><cite>{$username['username']}</cite></a>{$vo.content}<a target="_blank" href="{:url('bbs/detail',['id'=>$vo.bbs_id])}"><cite>{$vo['bbs']['title']}</cite></a>
+              <a href="{:__u('member/home')}?name={$username['username']}" target="_blank"><cite>{$username['username']}</cite></a>{$vo.content}<a target="_blank" href="{:__u('bbs/detail',['id'=>$vo.bbs_id])}"><cite>{$vo['bbs']['title']}</cite></a>
             </blockquote>
             <p><span>{:timeAgo($vo.create_time)}</span><a href="javascript:;" class="layui-btn layui-btn-small layui-btn-danger fly-delete">删除</a></p>
           </li>
@@ -33,7 +33,7 @@
           {case 2}
           <li data-id="{$vo.id}">
             <blockquote class="layui-elem-quote">
-              <a href="{:url('member/home')}?name={:_getMember($vo.send_id)['username']}" target="_blank"><cite>{:_getMember($vo.send_id)['username']}</cite></a>{$vo.content}<a target="_blank" href="{:url('bbs/detail')}?id={$vo.bbs_id}"><cite>{$vo['article']['title']}</cite></a>
+              <a href="{:__u('member/home')}?name={:_getMember($vo.send_id)['username']}" target="_blank"><cite>{:_getMember($vo.send_id)['username']}</cite></a>{$vo.content}<a target="_blank" href="{:__u('bbs/detail')}?id={$vo.bbs_id}"><cite>{$vo['article']['title']}</cite></a>
             </blockquote>
             <p><span>{:timeAgo($vo.create_time)}</span><a href="javascript:;" class="layui-btn layui-btn-small layui-btn-danger fly-delete">删除</a></p>
           </li>

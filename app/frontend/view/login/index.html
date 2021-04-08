@@ -5,7 +5,7 @@
     <div class="layui-tab layui-tab-brief" lay-filter="user">
       <ul class="layui-tab-title" style="">
         <li class="layui-this">登入</li>
-        <li><a href="{:url('login/reg')}">注册</a></li>
+        <li><a href="{:__u('login/reg')}">注册</a></li>
       </ul>
       <div class="layui-form layui-tab-content" id="LAY_ucm" style="padding: 20px 0;">
         <div class="layui-tab-item layui-show" style="">
@@ -30,7 +30,7 @@
                     <input type="text" id="L_vercode" name="vercode" required lay-verify="required" placeholder="请输入正确的答案" autocomplete="off" class="layui-input vercode">
                     <div class="layui-form-mid" style="padding: 0!important;">
                     <span style="color: #c00;">
-                    <img style="height: 36px;border: 1px solid #ececec;" id="captchaPic" src="{:url('index/verify',['t'=>time()])}" alt="验证码" onclick="this.src='{:url("index/verify")}'+'?t='+Math.random()" />
+                    <img style="height: 36px;border: 1px solid #ececec;" id="captchaPic" src="{:__u('index/verify',['t'=>time()])}" alt="验证码" onclick="this.src='{:__u("index/verify")}'+'?t='+Math.random()" />
                   </span>
                     </div>
                   </div>
@@ -45,7 +45,7 @@
               <div class="layui-form-item">
                 <button class="layui-btn" lay-filter="*" lay-submit>立即登录</button>
                 <span style="padding-left:20px;">
-                  <a href="{:url('login/forget')}">忘记密码？</a>
+                  <a href="{:__u('login/forget')}">忘记密码？</a>
                 </span>
               </div>
 <!--              <div class="layui-form-item fly-form-app">-->

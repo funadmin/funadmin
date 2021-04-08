@@ -74,7 +74,6 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 search: false,
                 cols: [[
                     {checkbox: true,},
-
                     {
                         field: 'name',
                         title: __('Name'),
@@ -104,10 +103,9 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             }
                         }
                     },
-
                     {field: 'description', title: __('Description'), minWidth: 220, sort: true,},
                     {field: 'version', title: __('Addon version'), width: 160, sort: true, search: false},
-                    {field: 'require', title: __('Addon require'), width: 160, sort: true, search: false},
+                    {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120, sort: true},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false},
                     {
@@ -207,7 +205,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                 return false;
                             },
                             success: function (layero, index) {
-                                $(".layui-layer-btn1", layero).prop("href", "https://www.FunAdmin.com/bbs/login/reg.html").prop("target", "_blank");
+                                $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/bbs/login/reg.html").prop("target", "_blank");
                             },
                             end: function () {
                                 $("#login").hide();
@@ -244,7 +242,6 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             Fun.toastr.success(res.msg, function () {
                                 layui.table.reload(Table.init.tableId);
                                 Fun.toastr.close()
-
                             });
                         })
                     });
@@ -262,7 +259,6 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 Form.api.bindEvent($('form'))
             }
         }
-
     };
     return Controller;
 });

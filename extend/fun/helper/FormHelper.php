@@ -495,7 +495,7 @@ class FormHelper
             $str .= '<div id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-filter="editor" type="text/plain"></div>';
         } else {
             //LAYEDIT
-            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
+            $str .= '<div id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></div>';
         }
         $str .= '</div></div>';
 
@@ -542,6 +542,7 @@ class FormHelper
             $options['num'] = 1;
             $options['type'] = 'radio';
         }
+
         if ($formdata) {
             if (isset($formdata[$name])) {
                 $formdata = explode(',', $formdata[$name]);
@@ -600,6 +601,10 @@ class FormHelper
             'multiple' => isset($options['multiple']) ? $options['multiple'] : '',
         ];
         $op = "data-value='" . json_encode($op, true) . "'";
+        $select_container= '';
+        if ((isset($options['select']) and $options['select']) || !isset($options['select'])) {
+            $select_container =  '<button id="'.$name.'" type="button" class="layui-btn layui-btn-danger upload-select"  ' . $op . '  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>';
+        }
         $str = ' <div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
@@ -607,7 +612,7 @@ class FormHelper
                         <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach"' . self::verify($options) . '/>
                        ' . $croper_container . '
                         <button type="button" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>' . lang('Uploads') . '</button>
-                        <button id="'.$name.'" type="button" class="layui-btn layui-btn-danger upload-select"  ' . $op . '  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>
+                        '. $select_container .'
                         <div class="layui-upload-list">'
             . $li . '
                         </div>

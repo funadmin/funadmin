@@ -1,0 +1,39 @@
+{
+  "name": "funadmin/fun-addons",
+  "license": "mit",
+  "authors": [
+    {
+      "name": "fun",
+      "email": "fun@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.1.0",
+    "topthink/framework": "6.0.*",
+    "topthink/think-view": "^1.0",
+    "topthink/think-helper": "^3.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "fun\\": "src/"
+    },
+    "files": [
+      "src/helper.php"
+    ]
+  },
+  "extra": {
+    "think": {
+      "services": [
+        "fun\\addons\\Service"
+      ],
+      "config":{
+        "addons": "src/config.php"
+      }
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "php think addons:config"
+    ]
+  }
+}

@@ -26,8 +26,10 @@ class OssService extends AbstractService
             'localpath'=>$path,
             'save'=>$save,
         ];
-        if($driver=='alioss') return hook('aliossHook',$param);
-        if($driver=='qiniuoss') return hook('qiniuossHook',$param);
-        if($driver=='tencos')  return hook('tencosHook',$param);
+        try {
+            return hook('OssUpload', $param);
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 }

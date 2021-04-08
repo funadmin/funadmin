@@ -194,14 +194,19 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                         if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
                             parent.layui.table.reload(option.refreshTable)
                         } else {
-                            location.reload();
+                            setTimeout(function(){
+                                location.reload();
+                            },2000)
                             return false;
                         }
                     }
                     if (!option.refreshFrame) {
                         return false;
                     }
-                    location.reload();
+                    setTimeout(function(){
+                        location.reload();
+                    },2000)
+
                     return false;
                 },
                 /**
@@ -315,7 +320,6 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                                     var fileArr = [];
                                     var html = '';
                                     $.each(data.data, function (index, val) {
-                                        console.log(uploadMime)
                                         if (uploadMime === 'image') {
                                             html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
                                         } else if (uploadMime === 'video') {
@@ -377,5 +381,4 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
             },
         };
         return Form;
-
     });

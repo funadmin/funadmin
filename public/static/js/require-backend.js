@@ -94,12 +94,13 @@ require(["jquery"], function ($) {
     paths['backend/'] = 'backend/';
     require.config({paths:paths});
     //直接使用$经常出现未定义
-    layui.$(function () {
+    $ = layui.jquery;
+    $(function () {
         require(['fun','backend','addons'], function (Fun,Backend) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     require([BASE_URL+Config.jspath], function (Controller) {
-                        if (Controller.hasOwnProperty(Config.actionname)) {
+                        if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
                             console.log('action'+ Config.actionname+' is not find')

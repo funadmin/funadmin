@@ -7,107 +7,111 @@
         <li class="">{:lang('upload setting')}</li>
     </ul>
     <div class="layui-tab-content">
-<!--网站配置-->
-            <div class="layui-tab-item layui-show">
-                <form class="layui-form" action="{:__u('site')}" lay-filter="form">
+        <!--网站配置-->
+        <div class="layui-tab-item layui-show">
+            <form class="layui-form" action="{:__u('site')}" lay-filter="form">
 
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('Site name')}</label>
-                        <div class="layui-input-block">
-                            <input type="text" name="site_name" lay-verify="required" lay-reqtext="{:lang('site name can not empty')}"
-                                   placeholder="{:lang('site name')}" value="" class="layui-input">
-                            <!--                                    <tip>填写自己部署网站的名称。</tip>-->
-                        </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Site name')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="site_name" lay-verify="required"
+                               lay-reqtext="{:lang('site name can not empty')}"
+                               placeholder="{:lang('site name')}" value="" class="layui-input">
+                        <!--                                    <tip>填写自己部署网站的名称。</tip>-->
                     </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('Site Domain')}</label>
-                        <div class="layui-input-block">
-                            <input type="text" name="site_domain" lay-verify="required|url" lay-reqtext="{:lang('Site Domain can not empty')}"
-                                   placeholder="{:lang('Site Domain')}" value="" class="layui-input">
-                        </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Site Domain')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="site_domain" lay-verify="required|url"
+                               lay-reqtext="{:lang('Site Domain can not empty')}"
+                               placeholder="{:lang('Site Domain')}" value="" class="layui-input">
                     </div>
+                </div>
 
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('Site Email')}</label>
-                        <div class="layui-input-block">
-                            <input type="text" name="site_email" lay-verify="email" lay-reqtext="{:lang('Site Email can not empty')}"
-                                   placeholder="{:lang('Site Email')}" value="" class="layui-input">
-                        </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Site Email')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="site_email" lay-verify="email"
+                               lay-reqtext="{:lang('Site Email can not empty')}"
+                               placeholder="{:lang('Site Email')}" value="" class="layui-input">
                     </div>
+                </div>
 
-                    {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
+                {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
 
-                    <div class="layui-form-item layui-form-text">
-                        <label class="layui-form-label">{:lang('Site title')}</label>
-                        <div class="layui-input-block">
-                            <textarea name="site_seo_title" lay-verify="required" placeholder="{:lang('Site title')}" class="layui-textarea"></textarea>
-                        </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:lang('Site title')}</label>
+                    <div class="layui-input-block">
+                        <textarea name="site_seo_title" lay-verify="required" placeholder="{:lang('Site title')}"
+                                  class="layui-textarea"></textarea>
                     </div>
-                    <div class="layui-form-item layui-form-text">
-                        <label class="layui-form-label">{:lang('Meta keywords')}</label>
-                        <div class="layui-input-block">
-                            <textarea name="site_seo_keywords" lay-verify="required"  class="layui-textarea"
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:lang('Meta keywords')}</label>
+                    <div class="layui-input-block">
+                            <textarea name="site_seo_keywords" lay-verify="required" class="layui-textarea"
                                       placeholder="多个关键词用英文状态 , 号分割"></textarea>
-                        </div>
                     </div>
-                    <div class="layui-form-item layui-form-text">
-                        <label class="layui-form-label">{:lang('Meta description')}</label>
-                        <div class="layui-input-block">
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label">{:lang('Meta description')}</label>
+                    <div class="layui-input-block">
                             <textarea name="site_seo_desc" lay-verify="required" placeholder="建议200字以内"
                                       class="layui-textarea"></textarea>
-                        </div>
                     </div>
-                    <div class="layui-form-item layui-form-text">
-                        <label class="layui-form-label required">{:lang('All right')}</label>
-                        <div class="layui-input-block">
-                            <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2019 www.FunAadmin.com MIT license</textarea>
-                        </div>
+                </div>
+                <div class="layui-form-item layui-form-text">
+                    <label class="layui-form-label required">{:lang('All right')}</label>
+                    <div class="layui-input-block">
+                        <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2019 www.FunAadmin.com MIT license</textarea>
                     </div>
+                </div>
 
-                    {:form_submitbtn(true,['show'=>1])}
+                {:form_submitbtn(true,['show'=>1])}
 
 
-                </form>
-            </div>
-            <!--上传配置-->
-            <div class="layui-tab-item">
-                <form class="layui-form " lay-filter="form">
-
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('File type')}</label>
-                        <div class="layui-input-block">
-                            <input type="text" name="upload_file_type"
-                                   value="bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4"
-                                   class="layui-input">
-                        </div>
-                    </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('Maxfilesize')}</label>
-                        <div class="layui-input-block" >
-                            <input type="text" name="upload_file_max" lay-verify="number" value="2048"
-                                   class="layui-input">
-                            <div class="layui-form-mid layui-word-aux">M  {:lang('Tips')}：1 M = 1024 KB</div>
-                        </div>
-                    </div>
-
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">{:lang('Upload Driver')}</label>
-                        <div class="layui-input-block" >
-                            <select name="upload_driver" lay-verify="required" lay-search="">
-                                <option value="">--{:lang('Select')}--</option>
-                                <option value="local">{:lang('local')}</option>
-                                <option value="alioss">{:lang('AliOSS')}</option>
-                                <option value="qiniuoss">{:lang('QiniuOSS')}</option>
-                                <option value="teccos">{:lang('Teccos')}</option>
-                            </select>
-                            <div class="layui-form-mid layui-word-aux">M  {:lang('Driver')}：1 M = 1024 KB</div>
-                        </div>
-                    </div>
-                    {:form_submitbtn(true,['show'=>1])}
-                </form>
-            </div>
-
+            </form>
         </div>
+        <!--上传配置-->
+        <div class="layui-tab-item">
+            <form class="layui-form " lay-filter="form">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('File type')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="upload_file_type"
+                               value="bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4"
+                               class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Maxfilesize')}</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="upload_file_max" lay-verify="number" value="2048"
+                               class="layui-input">
+                        <div class="layui-form-mid layui-word-aux">M {:lang('Tips')}：1 M = 1024 KB</div>
+                    </div>
+                </div>
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('Upload Driver')}</label>
+                    <div class="layui-input-block">
+                        <select name="upload_driver" lay-verify="required" lay-search="">
+                            <option value="">--{:lang('Select')}--</option>
+                            <option value="local">{:lang('local')}</option>
+                            <option value="alioss">{:lang('AliOSS')}</option>
+                            <option value="qiniuoss">{:lang('QiniuOSS')}</option>
+                            <option value="tencos">{:lang('Tencos')}</option>
+                        </select>
+                        <div class="layui-form-mid layui-word-aux">M {:lang('Driver')}：1 M = 1024 KB</div>
+                    </div>
+                </div>
+                {:form_submitbtn(true,['show'=>1])}
+            </form>
+        </div>
+
+    </div>
 </div>
 
 

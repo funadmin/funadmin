@@ -81,9 +81,6 @@ class AddonsBackend extends Controller
     {
         parent::__construct($app);
         $this->entrance = config('entrance.backendEntrance');
-        if(!(new AuthService())->isLogin()){
-            $this->redirect($this->entrance);
-        }
         (new AuthService())->checkNode();
         $this->pageSize = request()->param('limit', 15);
         //加载语言包
@@ -178,7 +175,7 @@ class AddonsBackend extends Controller
      * @param null $relationSearch
      * @return array
      */
-    protected function buildParames($searchfields=null,$relationSearch=null)
+    protected function buildParames($searchfields=null,$relationSearch=null,$withStatus=true)
     {
         $searchfields = is_null($searchfields) ? $this->searchFields : $searchfields;
         $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
@@ -280,7 +277,7 @@ class AddonsBackend extends Controller
             }
 
         }
-        $where[]=['status','<>',-1];
+        if($withStatus)$where[]=['status','<>',-1];
         return [$page, $limit,$sort,$where];
     }
     /**

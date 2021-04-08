@@ -18,9 +18,9 @@
           <ul class="mine-view jie-row">
             {volist name="bbs" id="vo"}
             <li>
-              <a class="jie-title" href="{:url('bbs/detail',['id'=>$vo.id])}" target="_blank">{$vo.title}</a>
+              <a class="jie-title" href="{:__u('bbs/detail',['id'=>$vo.id])}" target="_blank">{$vo.title}</a>
               <i>{:timeAgo($vo.create_time)}</i>
-              <a class="mine-edit" href="{:url('bbs/add')}?id={$vo.id}">编辑</a>
+              <a class="mine-edit" href="{:__u('bbs/add')}?id={$vo.id}">编辑</a>
               <em>{$vo.click}阅/{$vo.comment_count}答</em>
             </li>
             {/volist}
@@ -32,7 +32,7 @@
           <ul class="mine-view jie-row">
             {volist name="collect" id="vo"}
             <li>
-              <a class="jie-title" href="{:url('bbs/detail')}?id={$vo.id}" target="_blank">{$vo.title}</a>
+              <a class="jie-title" href="{:__u('bbs/detail')}?id={$vo.id}" target="_blank">{$vo.title}</a>
               <i>{:timeAgo($vo.create_time)}</i>
             </li>
             {/volist}

@@ -12,7 +12,7 @@ return [
     //超级管理员id
     'superAdminId'=>'1',
     //是否演示站点
-    'isDemo'=>1,
+    'isDemo'=>0,
 
 ];
 

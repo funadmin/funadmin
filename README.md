@@ -5,7 +5,7 @@
 	    <img src="https://img.shields.io/hexpm/l/plug.svg" />
 	</a>
 	<a href="https://www.layui.com/">
-        <img src="https://img.shields.io/badge/layui-2.5.7-blue.svg" alt="layui">
+        <img src="https://img.shields.io/badge/layui-2.6.4-blue.svg" alt="layui">
     </a>
 	<a href='https://gitee.com/funadmin/funadmin/stargazers'>
 	    <img src='https://gitee.com/funadmin/funadmin/badge/star.svg?theme=white' alt='star'></img>
@@ -21,9 +21,10 @@
 ### 帮助文档：http://docs.funadmin.com/ 正在编写中...
 ### 邮箱：994927909@qq.com
 ### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
+### 安装前到目录先执行composer install 或者composer update
 
 ## 项目介绍
-FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、数据库管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
+FunAdmin 基于thinkphp6 +Layui2.6.4+requirejs 开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、数据库管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
  + PHP：首款支持php8.0的快速开发框架
  + 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
  + 这是一个有趣的后台管理系统   
@@ -33,7 +34,7 @@ FunAdmin 基于thinkphp6 +Layui2.5.7+requirejs 开发权限(RBAC)管理框架，
  + 自适应前端，桌面和移动端访问界面友好简洁，模块清晰
  + 兼容ie11 + firefox + Chrome +360 等浏览器
  + 强大的表单管理，只需要使用函数即可成就表单 
- + layui采用最新layui2.5.7 框架
+ + layui采用最新layui2.6.4 框架
  + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
  + require.js 模块化开发 一个命令即可打包js,css ; node r.js -o backend-build.js
  + restful api 接口
@@ -83,7 +84,7 @@ FunAdmin 方便二次开发，您可以方便的使用到自己或企业的项�
 
 本项目包含的第三方源码和二进制文件之版权信息另行标注。
 
-版权所有Copyright © 2018-2020 by FunAdmin [www.FunAdmin.com](https://www.FunAdmin.com)
+版权所有Copyright © 2018-2020 by FunAdmin [www.FunAdmin.com](http://www.funadmin.com)
 
 All rights reserved。
 
