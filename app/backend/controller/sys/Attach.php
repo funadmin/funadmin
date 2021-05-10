@@ -18,7 +18,14 @@ use app\common\controller\Backend;
 use app\common\traits\Curd;
 use app\common\model\Attach as AttachModel;
 use think\App;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 
+/**
+ * @ControllerAnnotation(title="文件")
+ * Class Attach
+ * @package app\backend\controller\sys
+ */
 class Attach extends Backend
 {
 
@@ -30,6 +37,13 @@ class Attach extends Backend
 
     }
 
+    /**
+     * @NodeAnnotation(title="列表")
+     * @return mixed|\think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function index()
     {
         if ($this->request->isAjax()) {
@@ -48,6 +62,13 @@ class Attach extends Backend
         return view();
     }
 
+    /**
+     * @NodeAnnotation(title="删除")
+     * @return mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function delete()
     {
         $ids = $this->request->param('ids') ? $this->request->param('ids') : $this->request->param('id');
@@ -62,7 +83,6 @@ class Attach extends Backend
         } catch (\Exception $e) {
             $this->error(lang("operation success"));
         }
-
         $save ? $this->success(lang('operation success')) : $this->error(lang("Delete fail"));
     }
 

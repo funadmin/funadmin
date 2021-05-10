@@ -32,6 +32,9 @@ class Service extends \think\Service
 
     public function register()
     {
+        // 绑定插件容器
+        $this->app->bind('addons', Service::class);
+
         $this->addons_path = $this->getAddonsPath();
         // 自动载入插件
         $this->autoload();
@@ -45,8 +48,7 @@ class Service extends \think\Service
         $this->loadService();
         //加载配置
         $this->loadApp();
-        // 绑定插件容器
-        $this->app->bind('addons', Service::class);
+
     }
 
     public function boot()
@@ -140,6 +142,7 @@ class Service extends \think\Service
             if (in_array($name, ['.', '..'])) {
                 continue;
             }
+            if(!is_dir($this->addons_path . $name)) continue;
             $module_dir = $this->addons_path . $name . DS;
             foreach (scandir($module_dir) as $mdir) {
                 if (in_array($mdir, ['.', '..'])) {
@@ -180,14 +183,13 @@ class Service extends \think\Service
             }
             Cache::set('hooks', $hooks);
         }
-
+        Event::listenEvents($hooks);
         //如果在插件中有定义 AddonsInit，则直接执行
         if (isset($hooks['AddonsInit'])) {
             foreach ($hooks['AddonsInit'] as $k => $v) {
                 Event::trigger('AddonsInit', $v);
             }
         }
-        Event::listenEvents($hooks);
     }
 
     /**
@@ -290,7 +292,8 @@ class Service extends \think\Service
                     continue;
                 }
                 $addon_config = parse_ini_file($ini, true, INI_SCANNER_TYPED) ?: [];
-                if(!$addon_config['status'] || !$addon_config['install']) continue;
+                if(!$addon_config['status']) continue;
+                if(!$addon_config['install']) continue;
                 // 跟插件基类方法做比对，得到差异结果
                 $hooks = array_diff($methods, $base);
                 // 循环将钩子方法写入配置中

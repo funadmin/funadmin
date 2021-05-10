@@ -15,6 +15,7 @@ namespace app\backend\controller\member;
 
 use app\common\controller\Backend;
 use app\common\traits\Curd;
+use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use think\facade\Request;
 use think\facade\View;
 use app\backend\model\MemberLevel;
@@ -25,7 +26,7 @@ use think\App;
 class Member extends Backend
 {
 
-
+    protected $relationSearch = true;
     public function __construct(App $app)
     {
         parent::__construct($app);
@@ -37,17 +38,17 @@ class Member extends Backend
     {
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
-            $count = $this->modelClass->with('group')
+            $count = $this->modelClass
+                ->withJoin(['memberGroup','memberLevel'])
                 ->where($where)
                 ->count();
             $list = $this->modelClass
-                ->with('memberGroup')
-                ->with('memberLevel')
+                ->withJoin(['memberGroup','memberLevel'])
                 ->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
                 ->select();
-            $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $list, 'count' => $count];
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
         return view();

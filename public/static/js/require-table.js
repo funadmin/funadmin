@@ -5,7 +5,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             tableId: 'list',
             searchinput: true,
             requests:{
-                export_url :'ajax/export'
+                export_url :'/ajax/export'
             },
         },
         render: function (options) {
@@ -87,12 +87,11 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     }
                     url = Fun.replaceurl(v.url,d);
                     if (Fun.checkAuth(v.url)) {
-                        v.full = v.full || 0;
-                        v.resize = v.resize || 0;
+                        v.full = v.full || 0;v.resize = v.resize || 0;v.width = v.width || 800;v.height = v.height || 800;v.extend=v.extend||'';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" '+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-extend="'+ v.extend+'" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" '+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-extend="'+ v.extend+'" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
                                 url + '" title="' + v.title + '"'+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         }
                     }
@@ -571,7 +570,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     });
                     length = ids.length;
                 }
-                Fun.toastr.confirm(__('Are you sure you want to delete or destory the %s selected item?', length),
+                Fun.toastr.confirm(__('Are you sure you want to delete the %s selected item?', length),
                     function () {
                         Fun.ajax({
                             url: url,

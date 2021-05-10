@@ -31,9 +31,10 @@
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
     "topthink/think-ide-helper": "^1.0",
-    "topthink/think-throttle": "^1.1",
+    "topthink/think-throttle": "^1.2",
+    "doctrine/annotations": "^1.12",
     "ramsey/uuid": "^4.1",
-    "funadmin/fun-addons": "v1.32"
+    "funadmin/fun-addons": "v1.36"
 
   },
   "require-dev": {

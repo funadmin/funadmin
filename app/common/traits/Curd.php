@@ -11,6 +11,11 @@
  * Date: 2017/8/2
  */
 namespace app\common\traits;
+use app\common\annotation\NodeAnnotation;
+use think\facade\Cache;
+use think\facade\Db;
+use think\helper\Str;
+
 /**
  * Trait Curd
  * @package common\traits
@@ -18,10 +23,9 @@ namespace app\common\traits;
 trait Curd
 {
     /**
-     * 首页
-     * @return mixed
+     * @NodeAnnotation ('List')
+     * @return \think\response\Json|\think\response\View
      */
-
 
     public function index()
     {
@@ -42,12 +46,18 @@ trait Curd
     }
 
     /**
+     * @NodeAnnotation ('add')
      * @return \think\response\View
      */
     public function add()
     {
         if ($this->request->isPost()) {
             $post = $this->request->post();
+            foreach ($post as $k=>$v){
+                if(is_array($v)){
+                    $post[$k] = implode(',',$v);
+                }
+            }
             $rule = [];
             try {
                 $this->validate($post, $rule);
@@ -69,7 +79,7 @@ trait Curd
     }
 
     /**
-     * @param $id
+     * @NodeAnnotation('edit')
      * @return \think\response\View
      */
     public function edit()
@@ -95,10 +105,9 @@ trait Curd
         $view = ['formData'=>$list,'title' => lang('Add'),];
         return view('add',$view);
     }
+
     /**
-     * 删除
-     * @param $id
-     * @return mixed
+     * @NodeAnnotation('delete)
      */
     public function delete()
     {
@@ -119,9 +128,7 @@ trait Curd
     }
 
     /**
-     * 伪删除
-     * @param $id
-     * @return mixed
+     * @NodeAnnotation('destroy)
      */
     public function destroy()
     {
@@ -137,10 +144,13 @@ trait Curd
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));
         }
-
         $this->success(lang("Destroy Success"));
-
     }
+
+    /**
+     * @NodeAnnotation('sort')
+     * @param $id
+     */
     public function sort($id)
     {
         $model = $this->findModel($id);
@@ -151,7 +161,7 @@ trait Curd
     }
 
     /**
-     * 修改字段
+     * @NodeAnnotation('modify')
      */
     public function modify(){
         $id = input('id');
@@ -159,7 +169,6 @@ trait Curd
         $value = input('value');
         if($id){
             if($this->allowModifyFileds != ['*'] and !in_array($field, $this->allowModifyFileds)){
-
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
             $model = $this->findModel($id);
@@ -173,10 +182,53 @@ trait Curd
                 $this->error(lang($e->getMessage()));
             }
             $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-
         }else{
             $this->error(lang('Invalid data'));
         }
+    }
+
+    /**
+     * @NodeAnnotation('import')
+     * @return bool
+     */
+    public function import()
+    {
+        return true;
+    }
+
+    /**
+     * @NodeAnotation(title="export")
+     */
+    public function export()
+    {
+        list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+        $tableName = $this->modelClass->getName();
+        $tableName  = Str::snake($tableName);
+        $tablePrefix = $this->modelClass->get_table_prefix();
+        $fieldList =  Cache::get($tableName.'_field');
+        if(!$fieldList){
+            $fieldList = Db::query("show full columns from {$tablePrefix}{$tableName}");
+            Cache::tag($tableName)->set($tableName.'_field',$fieldList);
+        }
+        $tableInfo =  Cache::get($tableName);
+        if(!$tableInfo){
+            $tableInfo = Db::query("show table status like '{$tablePrefix}{$tableName}'");
+            Cache::tag($tableName)->set($tableName,$tableInfo);
+        }
+        $headerArr = [];
+        foreach ($fieldList as $vo) {
+            $comment = !empty($vo['Comment']) ? $vo['Comment'] : $vo['Field'];
+            $comment = explode('=',$comment)[0];
+            if(!in_array($vo['Field'],['update_time','delete_time','status'])) {
+                $headerArr[$vo['Field']] =$comment;
+            } ;
+        }
+        $list = $this->modelClass->where($where)->order($sort)->select()->toArray();
+        $tableChName =  $tableInfo[0]['Comment']? $tableInfo[0]['Comment']:$tableName;
+        $headTitle = $tableChName.'-'.date('Y-m-d H:i:s');;
+        $headTitle= "<tr style='height:50px;border-style:none;'><th border=\"0\" style='height:60px;font-size:22px;' colspan='".(count($headerArr))."' >{$headTitle}</th></tr>";
+        $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
+        $this->excelData($list,$headerArr,$headTitle,$fileName);
     }
     /**
      * 返回模型
@@ -189,6 +241,29 @@ trait Curd
         }
         return $model;
     }
-
+    protected function excelData($data,$headerArr,$headTitle,$filename){
+        $str = "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\"\r\nxmlns:x=\"urn:schemas-microsoft-com:office:excel\"\r\nxmlns=\"http://www.w3.org/TR/REC-html40\">\r\n<head>\r\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\r\n</head>\r\n<body>";
+        $str .="<style>tr,td,th{text-align: center;height: 22px;line-height: 22px;}</style>";
+        $str .="<table border=1>".$headTitle."<tr>";
+        foreach ($headerArr as $k=>$v){
+            $str.= "<th>".$v."</th>";
+        }
+        $str.= '</tr>';
+        foreach ($data  as $key=> $rt ) {
+            $str .= "<tr>";
+            foreach($headerArr as $k=>$v){
+                $str.= "<td>".$rt[$k]."</td>";
+            }
+            $str .= "</tr>\n";
+        }
+        $str .= "</table></body></html>";
+        header( "Content-Type: application/vnd.ms-excel; name='excel'" );
+        header( "Content-type: application/octet-stream" );
+        header( "Content-Disposition: attachment; filename=".$filename );
+        header( "Cache-Control: must-revalidate, post-check=0, pre-check=0" );
+        header( "Pragma: no-cache" );
+        header( "Expires: 0" );
+        exit( $str );
+    }
 
 }

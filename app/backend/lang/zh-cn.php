@@ -1,10 +1,10 @@
 <?php
 
 /**
- * FunAadmin
+ * FunAdmin
  * ============================================================================
- * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: http://www.FunAadmin.com
+ * 版权所有 2017-2028 FunAdmin，并保留所有权利。
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -26,6 +26,7 @@ return [
     'Order'  =>  '排序',
     'Del'  =>  '删除',
     'Delete'  =>  '删除',
+    'Destory'  =>  '伪删除',
     'Add'  =>  '添加',
     'Update'  =>  '更新',
     'Operat'  =>  '操作',
@@ -43,6 +44,8 @@ return [
     'Close'  =>  '关闭',
     'Email'  =>  '邮箱',
     'Ip'  =>  'ip地址',
+    'Yes'  =>  '是',
+    'No'  =>  '否',
     'Mobile'  =>  '手机号',
     'PleaseEnter'  =>  '请输入',
     'Username'  =>  '用户名',
@@ -184,12 +187,14 @@ return [
     'Addons'  =>  '插件',
     'Addon'  =>  '插件',
     'AddonName'  =>  '插件名',
+    'Uninstall'  =>  '卸载',
+    'Install'  =>  '安装',
     'Languages'  =>  '语言',
-    'sysset'  =>  '系统设置',
+    'Sysset'  =>  '系统设置',
     'clear all'=>"清除全部缓存",
     'clear frontend'=>"清除前台缓存",
     'clear backend'=>"清除后台缓存",
-
+    'Please Login First' => '请先登录',
 
     "Demo is not allow to change data"=>"演示站点不允许修改数据",
     'safe'=>'安全设置',

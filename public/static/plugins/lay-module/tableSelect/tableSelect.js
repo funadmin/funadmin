@@ -13,9 +13,12 @@ layui.define(['table', 'jquery', 'form'], function (exports) {
      * 初始化表格选择器
      */
     tableSelect.prototype.render = function (opt) {
-        var elem = $(opt.elem);
+        if(opt.elem.indexOf('[')!== -1){
+            var elem = $("[id='"+opt.elem.replace('#','')+"']");
+        }else{
+            var elem = $(opt.elem);
+        }
         var tableDone = opt.table.done || function(){};
-
         //默认设置
         opt.searchKey = opt.searchKey || 'keyword';
         opt.searchPlaceholder = opt.searchPlaceholder || '关键词搜索';
@@ -29,10 +32,8 @@ layui.define(['table', 'jquery', 'form'], function (exports) {
         //多搜索条件
         opt.searchType = opt.searchType || '1';
         opt.searchList = opt.searchList || [{key: opt.searchKey, placeholder: opt.searchPlaceholder}];
-
         elem.off('click').on('click', function(e) {
             e.stopPropagation();
-
             if($('div.tableSelect').length >= 1){
                 return false;
             }

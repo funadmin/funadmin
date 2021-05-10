@@ -15,7 +15,7 @@ namespace app\frontend\controller;
 use app\common\controller\Frontend;
 use think\App;
 use think\captcha\facade\Captcha;
-
+use think\facade\Db;
 class Index extends Frontend {
     protected $layout='';
     public function __construct(App $app)
@@ -33,4 +33,5 @@ class Index extends Frontend {
     {
         return Captcha::create();
     }
+
 }

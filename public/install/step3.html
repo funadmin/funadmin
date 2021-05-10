@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>系统配置 - FunAdmin管理系统安装</title>
+    <title>系统配置 - FunAdmin开源系统安装</title>
     <?php require_once ('step-base.html');?>
 </head>
 <body>
@@ -118,7 +118,7 @@
                 <br>
                 <div class="layui-footer footer">
                     <h5>Powered by <font>FunAdmin</font><font class="orange"></font></h5>
-                    <h6>版权所有 2018-2020 © <a href="http://www.funadmin.com" target="_blank">FunAdmin</a></h6>
+                    <h6>版权所有 2018-2021 © <a href="http://www.funadmin.com" target="_blank">FunAdmin</a></h6>
                 </div>
             </div>
         </div>
@@ -131,6 +131,7 @@
         //监听提交
         form.on('submit(submit)', function(data){
             var that = $(this);
+            var load = layer.load();
             that.text('安装中...').prop('disabled', true);
             $.post('', data.field)
                 .done(function (res) {
@@ -138,7 +139,12 @@
                         $('#layui-error').hide();
                         $("#layui-fun-box").remove();
                         that.remove();
-                        window.location.href='./install.php?s=step4';
+                        layer.msg('安装成功', {
+                            icon: 1,
+                            time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                        }, function(){
+                            window.location.href='./install.php?s=step4';
+                        });
                     } else {
                         $('#layui-error').show().text(res);
                         that.prop('disabled', false).text('点击安装');
@@ -146,6 +152,7 @@
                             scrollTop: 0
                         }, 500);
                     }
+                    layer.close(load)
                 })
                 .fail(function (data) {
                     $('#layui-error').show().text('发生错误:\n\n' + data.responseText);
@@ -153,13 +160,12 @@
                     $("html,body").animate({
                         scrollTop: 0
                     }, 500);
+                    layer.close(load)
                 });
-
             return false;
         });
 
     })
-
 </script>
 </body>
 </html>

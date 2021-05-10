@@ -20,6 +20,8 @@ use app\common\traits\Curd;
 use think\App;
 use think\facade\Db;
 use think\facade\View;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 class Config extends Backend {
 
 
@@ -30,8 +32,9 @@ class Config extends Backend {
     }
 
     /**
+     * @NodeAnnotation(title="设置")
      * @return \think\response\View
-     * 设置
+     *
      */
     public function set(){
         if ($this->request->isPost()) {
@@ -51,7 +54,14 @@ class Config extends Backend {
         return view();
 
     }
-    //添加配置
+
+    /**
+     * @NodeAnnotation(title="添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add(){
         if($this->request->isPost()){
             $post = $this->request->param();
@@ -74,12 +84,13 @@ class Config extends Backend {
     }
 
     /**
+     * @NodeAnnotation(title="编辑配置")
      * @param $id
      * @return \think\response\View
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
-     * 编辑配置
+     *
      */
     public function edit(){
         $id  = $this->request->get('id');
@@ -108,12 +119,12 @@ class Config extends Backend {
     }
 
     /**
+     * @NodeAnnotation(title="设置值")
      * @param $id
      * @return \think\response\View
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
-     * 设置值
      */
     public function setValue($id){
 

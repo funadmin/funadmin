@@ -19,7 +19,14 @@ use app\common\traits\Curd;
 use think\App;
 use think\facade\Cache;
 use think\facade\View;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 
+/**
+ * @ControllerAnnotation(title="权限")
+ * Class Auth
+ * @package app\backend\controller\auth
+ */
 class Auth extends Backend
 {
 
@@ -34,11 +41,12 @@ class Auth extends Backend
 
 
     /**
+     * @NodeAnnotation(title="权限列表")
      * @return array|\think\response\View
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
-     * 权限列表
+     *
      */
     public function index()
     {
@@ -50,7 +58,7 @@ class Auth extends Backend
                     ->order('pid asc,sort asc')
                     ->select()->toArray();
                 foreach ($list as $k => &$v) {
-                    $v['lay_is_open'] = true;
+//                    $v['lay_is_open'] = true;
                     $v['title'] = lang($v['title']);
                 }
                 Cache::set('ruleList_' . $uid, $list, 3600);
@@ -61,7 +69,13 @@ class Auth extends Backend
         return view();
     }
 
-    // 权限增加
+    /**
+     * @NodeAnnotation(title="权限增加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add()
     {
         if ($this->request->isAjax()) {
@@ -98,7 +112,13 @@ class Auth extends Backend
         }
     }
 
-    //权限修改
+    /**
+     * @NodeAnnotation(title="修改")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function edit()
     {
         if (request()->isAjax()) {
@@ -123,7 +143,14 @@ class Auth extends Backend
             return view('add');
         }
     }
-    //子权限添加
+
+    /**
+     * @NodeAnnotation(title="子权限添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function child()
     {
         if (request()->isAjax()) {
@@ -153,7 +180,13 @@ class Auth extends Backend
         }
     }
 
-    // 权限删除
+    /**
+     * @NodeAnnotation(title="权限删除")
+     * @return mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function delete()
     {
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
@@ -169,6 +202,9 @@ class Auth extends Backend
         }
     }
 
+    /**
+     * @NodeAnnotation(title="修改")
+     */
     public function modify()
     {
         $uid = session('admin.id');
@@ -177,7 +213,6 @@ class Auth extends Backend
         $value = $this->request->param('value');
         if($id){
             if(!$this->allowModifyFileds = ['*'] and !in_array($field, $this->allowModifyFileds)){
-
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
             $model = $this->findModel($id);

@@ -62,9 +62,66 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                     login_url: '/api/v1.token/accessToken',   // 登陆地址获取token地址
                 },
                 searchinput:false,
-                appid: 'FunAdmin',   // appid
-                appsecret: 'L9EwqM1jQQFOvniYnpe6K0SavguQOgoS',   // appserct
+                appid: 'funadmin',   // appid
+                appsecret: '',   // appserct
             }
+            // layui.cardTable.render({
+            //     elem: '#'+Table.init.tableId,
+            //     //此为动态
+            //     //url: '/card.json',
+            //     //此为静态
+            //     data:[{
+            //         "id": "1",
+            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/gLaIAoVWTtLbBWZNYEMg.png",
+            //         "title": "Alipay",
+            //         "remark": "那是一种内在的东西， 他们到达不了，也无法触及的",
+            //         "time": "几秒前"
+            //     },{
+            //         "id": "2",
+            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/iXjVmWVHbCJAyqvDxdtx.png",
+            //         "title": "Layui",
+            //         "intro": "生命就像一盒巧克力，结果往往出人意料",
+            //         "time": "几秒前"
+            //     },{
+            //         "id": "3",
+            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/iZBVOIhGJiAnhplqjvZW.png",
+            //         "title": "Angular",
+            //         "intro": "希望是一个好东西，也许是最好的，好东西是不会消亡的",
+            //         "time": "几秒前"
+            //     },
+            //         {
+            //             "id": "4",
+            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png",
+            //             "title": "React",
+            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
+            //             "time": "几秒前"
+            //         },{
+            //             "id": "5",
+            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/gLaIAoVWTtLbBWZNYEMg.png",
+            //             "title": "Alipay",
+            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
+            //             "time": "几秒前"
+            //         },{
+            //             "id": "6",
+            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/iXjVmWVHbCJAyqvDxdtx.png",
+            //             "title": "Layui",
+            //             "intro": "生命就像一盒巧克力，结果往往出人意料",
+            //             "time": "几秒前"
+            //         },{
+            //             "id": "7",
+            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/iZBVOIhGJiAnhplqjvZW.png",
+            //             "title": "Angular",
+            //             "intro": "希望是一个好东西，也许是最好的，好东西是不会消亡的",
+            //             "time": "几秒前"
+            //         },
+            //         {
+            //             "id": "8",
+            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png",
+            //             "title": "React",
+            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
+            //             "time": "几秒前",
+            //         }]
+            // })
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,
@@ -128,7 +185,6 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                 }
                                 html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
                             }
-
                             return html;
                         }
                     }
@@ -142,8 +198,8 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
-                    // if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
-                    if (true) {
+                    if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
+                    // if (true) {
                         Fun.toastr.confirm('Are you sure you want to install it', function () {
                             let index = layer.load();
                             Fun.ajax({
@@ -182,30 +238,32 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                     Fun.toastr.error(__('Account Or Password Cannot Empty'));
                                     return false;
                                 }
-                                data.sign = getSign(data);
-                                data.timestamp = getTimestamp();
-                                data.nonce = getNonce();
                                 data.appid = Table.init.appid;
                                 data.appsecret = Table.init.appsecret;
-                                post = {url: url, data: data, method: 'post'}
-                                Fun.ajax(post);
-                                // $.post(url, data, function (res) {
-                                //     console.log(res);
-                                //     res = JSON.parse(res)
-                                //     if (res.code === 200) {
-                                //         setUserinfo(res.data);
-                                //         Fun.toastr.success(res.message, Fun.api.closeCurrentOpen())
-                                //     } else {
-                                //         Fun.toastr.alert(res.message)
-                                //     }
-                                // })
+                                data.timestamp = getTimestamp();
+                                data.nonce = getNonce();
+                                data.key = Table.init.appsecret;
+                                data.sign = getSign(data);
+                                $.ajax({
+                                    url: url, type: 'post', data: data, dataType: "json", success: function (res) {
+                                        console.log(res)
+                                        if (res.code === 200) {
+                                            setUserinfo(res.data);
+                                            Fun.toastr.success(res.msg, layer.closeAll())
+                                        } else {
+                                            Fun.toastr.alert(res.msg)
+                                        }
+                                    }, error: function (res) {
+                                        Fun.toastr.error(res.responseJSON.msg)
+                                    }
+                                })
                             },
                             btn2: function () {
                                 Fun.api.closeCurrentOpen();
                                 return false;
                             },
                             success: function (layero, index) {
-                                $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/bbs/login/reg.html").prop("target", "_blank");
+                                $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
                             },
                             end: function () {
                                 $("#login").hide();

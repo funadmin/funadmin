@@ -16,7 +16,14 @@ use app\common\controller\Backend;
 use app\common\traits\Curd;
 use app\common\model\Languages as LanguagesModel;
 use think\App;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 
+/**
+ * @ControllerAnnotation(title="多语言")
+ * Class Languages
+ * @package app\backend\controller\sys
+ */
 class Languages extends Backend {
 
 

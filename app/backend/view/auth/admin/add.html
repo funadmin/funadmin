@@ -3,10 +3,10 @@
     {if !$formData}
     {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
     {/if}
-    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formdata)?$formdata['group_id']:''))}
+    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formData)?$formData['group_id']:''))}
     {:form_upload('avatar',$formData,['mime'=>'image'])}
     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
-    {:form_input('mobile','text',['verify'=>'phone','tips'=>'For password retrieval, please fill in carefully.'] )}
+    {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
     {if(input('type'))}
     {:form_submitbtn(true,['show'=>1])}
 <!--    菜单个人信息编辑-->

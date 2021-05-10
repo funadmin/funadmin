@@ -22,8 +22,8 @@ h1,h2,h3{font-size: 14px;}
 
 .header .layui-container .logo{left: 15px;}
 .header .layui-container .layui-nav{right: 15px;}
-.header .layui-nav .layui-badge,
-.header .layui-nav .layui-badge-dot{right: 0;}
+/*.header .layui-nav .layui-badge,*/
+/*.header .layui-nav .layui-badge-dot{right: 0;}*/
 
 .header-index{}
 .header-index .site-banner-bg{}
@@ -70,7 +70,7 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
 .site-banner-bg{background: url(/frontend/images/banner-bg1.png) no-repeat center center/cover;background-position: center 0;}
 
 
-.site-zfj{padding-top: 25px; height: 150px;}
+.site-zfj{padding-top: 25px; height: 60px;}
 .site-zfj i{position: absolute; left: 50%; top: 50px; width: 200px; height: 200px; margin-left: -100px; font-size: 120px; color: #c2c2c2;}
 
 @keyframes site-zfj {
@@ -107,12 +107,12 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
 }
 
 .site-desc{position: relative; height: 70px; margin-top: 20px;}
-.site-desc .web-font-desc{color: #fff;  font-size: 30px;}
+.site-desc .web-font-desc{color: #fff;  font-size: 60px;}
 
 .site-desc-anim{-webkit-animation-name: site-desc; animation-name: site-desc;}
 .site-desc cite{position: absolute; bottom: -45px; left: 0; width: 100%; color: #fff;font-size:16px; font-style: normal;}
 
-.site-download{margin-top: 80px; font-size: 0;}
+.site-download{margin-top: 150px; font-size: 0;}
 .site-download a{position: relative; padding: 0 55px 0 95px; height: 65px; line-height: 65px; border: 1px solid #c2c2c2;  border-color: rgba(255,255,255,.2); font-size: 24px; color: #fff; transition: all .5s; -webkit-transition: all .5s;}
 .site-download a:hover{border-color: rgba(255,255,255,.3); color: #fff; background-color: rgba(255,255,255,.05); border-radius: 30px;}
 .site-download a cite{position: absolute; left: 55px; top: 2px; font-size: 30px;}
@@ -162,12 +162,10 @@ body .layui-layout-admin .footer-demo{height: 50px; line-height: 50px; padding: 
   .header .layui-nav .layui-nav-item[mobile]{display: inline-block;}
   .site-banner{height: 300px;}
   .site-banner-bg{background-size: cover;}
-  .site-zfj{height: 100px; padding-top: 5px;}
-  .site-zfj i{top: 10px; width: 100px; height: 100px; margin-left: -50px; font-size: 100px;}
   .site-desc{background-size: 70%; margin: 0;}
   .site-desc .web-font-desc{padding-top: 20px; font-size: 30px;}
   .site-desc cite{display: none;}
-  .site-download{margin-top: 0; }
+  .site-download{margin-top: 85px; }
   .site-download a{height: 40px; line-height: 40px; padding: 0 25px 0 60px; border-radius: 30px; color: #fff; font-size: 16px;}
   .site-download a cite{left: 20px;}
   .site-banner-other{bottom: 10px;}

@@ -210,13 +210,10 @@ class FileHelper
                         if(strpos($fileType,$type)!==false){
                             $list[] = $path.'/'.$file;
                         }
-
                     }
-
                 }
             }
         }
         return $list;
-
     }
 }

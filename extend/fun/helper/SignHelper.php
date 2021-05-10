@@ -49,8 +49,14 @@ class SignHelper{
         return password_hash($password,PASSWORD_BCRYPT,self::passwordOption(13));
     }
 
+    /**
+     * bin2hex()把ASCII字符串转换为十六进制
+     * @param int $length
+     * @return string
+     * @throws \Exception
+     */
     public static function salt($length=32){
-        return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+        return bin2hex(random_bytes($length));
     }
 
     /**

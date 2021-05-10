@@ -33,6 +33,11 @@ class BaseModel extends Model
         return Config::get('database.connections'.'.'.Config::get('database.default').'.database');
 
     }
+    //当前数据库
+    public static function get_tablename(){
+        return Config::get('database.connections'.'.'.Config::get('database.default').'.database');
+
+    }
 
     public static function get_addonstablename($tablename,$addon)
     {

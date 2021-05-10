@@ -30,15 +30,14 @@ use think\facade\Session;
 class AddonService
 {
     use Jump;
-    
+
     public function __construct()
     {
 
     }
     //添加菜单
-    public function addAddonMenu($menu,$pid = 0){
-
-        foreach ($menu as $k=>$v){
+    public function addAddonMenu(array $menu,int $pid = 0){
+        foreach ($menu as $v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
                 $v['pid'] = $pid ;
@@ -56,10 +55,9 @@ class AddonService
             }
         }
         $this->delMenuCache();
-
     }
     //循环删除菜单
-    public function delAddonMenu($menu){
+    public function delAddonMenu(array $menu){
         foreach ($menu as $k=>$v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
@@ -121,7 +119,7 @@ class AddonService
         Cache::delete('adminMenus_' . session('admin.id'));
 
     }
-
+    
 
 
 

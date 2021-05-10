@@ -26,6 +26,7 @@ require.config({
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
+        // 'cardTable'     : 'plugins/lay-module/cardTable/cardTable',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -60,6 +61,9 @@ require.config({
         '*': {'css': 'plugins/require-css/css.min'}
     },
     shim: {
+        // 'cardTable':{
+        //     deps: ['css!plugins/lay-module/cardTable/cardTable.css'],
+        // },
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data',
                 'css!plugins/lay-module/cityPicker/city-picker.css'],

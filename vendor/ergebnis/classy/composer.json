@@ -1,0 +1,70 @@
+{
+  "name": "ergebnis/classy",
+  "type": "library",
+  "description": "Provides a finder for classy constructs (classes, interfaces, and traits).",
+  "keywords": [
+    "finder",
+    "classy",
+    "constructs",
+    "classes",
+    "interfaces",
+    "traits"
+  ],
+  "homepage": "https://github.com/ergebnis/classy",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Andreas Möller",
+      "email": "am@localheinz.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2 || ^8.0",
+    "ext-tokenizer": "*"
+  },
+  "require-dev": {
+    "ergebnis/composer-normalize": "^2.13.2",
+    "ergebnis/license": "^1.1.0",
+    "ergebnis/php-cs-fixer-config": "^2.13.0",
+    "ergebnis/phpstan-rules": "~0.15.3",
+    "ergebnis/test-util": "^1.0.0",
+    "infection/infection": "~0.15.3",
+    "phpstan/extension-installer": "^1.1.0",
+    "phpstan/phpstan": "~0.12.70",
+    "phpstan/phpstan-deprecation-rules": "~0.12.6",
+    "phpstan/phpstan-strict-rules": "~0.12.9",
+    "phpunit/phpunit": "^8.5.14",
+    "psalm/plugin-phpunit": "~0.15.0",
+    "vimeo/psalm": "^4.4.1",
+    "zendframework/zend-file": "^2.8.3"
+  },
+  "config": {
+    "platform": {
+      "php": "7.2.33"
+    },
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0-dev"
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Ergebnis\\Classy\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ergebnis\\Classy\\Test\\": "test/"
+    },
+    "classmap": [
+      "test/Fixture"
+    ]
+  },
+  "support": {
+    "issues": "https://github.com/ergebnis/classy/issues",
+    "source": "https://github.com/ergebnis/classy"
+  }
+}

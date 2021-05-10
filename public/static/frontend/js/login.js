@@ -15,6 +15,8 @@ define(['jquery', "form", 'toastr'], function ($, Form, Toastr) {
         },
         api: {
             bindevent: function () {
+                Form.api.bindEvent($('form'));
+
                 Form.api.bindEvent($('form'), function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         window.location = res.url;

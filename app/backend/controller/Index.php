@@ -10,7 +10,9 @@
  * Author: yuege
  * Date: 2017/8/2
  */
+
 namespace app\backend\controller;
+
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\BaseController;
@@ -19,54 +21,57 @@ use think\facade\Db;
 use think\facade\View;
 use think\facade\Cache;
 use think\facade\Session;
-class Index extends Backend {
 
-    protected $layout='';
+class Index extends Backend
+{
+    protected $layout = '';
     /**
      * @return string
      * @throws \Exception
      * 首页
      */
-    public function index(){
-       $menulist = cache('adminmenushtml' .session('admin.id'));
-        // $menulist =[];
+    public function index()
+    {
+        $menulist = cache('adminmenushtml' . session('admin.id'));
+        $menulist = [];
         if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
-                ->where('type',1)
-                ->where('status',1)
+                ->where('type', 1)
+                ->where('status', 1)
                 ->order('sort asc')->select()->toArray();
-            $menulist = (new AuthService())->menuhtml($cate,false);
+            $menulist = (new AuthService())->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }
         $languages = Db::name('languages')->cache(3600)->select();
-        View::assign('menulist',$menulist);
-        View::assign('languages',$languages);
+        View::assign('menulist', $menulist);
+        View::assign('languages', $languages);
         return view();
     }
 
     /**
      * @return \think\response\View
      */
-    public function console(){
+    public function console()
+    {
         $version = Db::query('SELECT VERSION() AS ver');
         $config = Cache::get('main_config');
-        if(!$config){
-            $config  = [
-                'url'             => $_SERVER['HTTP_HOST'],
-                'document_root'   => $_SERVER['DOCUMENT_ROOT'],
-                'document_protocol'   => $_SERVER['SERVER_PROTOCOL'],
-                'server_os'       => PHP_OS,
-                'server_port'     => $_SERVER['SERVER_PORT'],
-                'server_ip'       => $_SERVER['REMOTE_ADDR'],
-                'server_soft'     => $_SERVER['SERVER_SOFTWARE'],
-                'server_file'     => $_SERVER['SCRIPT_FILENAME'],
-                'php_version'     => PHP_VERSION,
-                'mysql_version'   => $version[0]['ver'],
+        if (!$config) {
+            $config = [
+                'url' => $_SERVER['HTTP_HOST'],
+                'document_root' => $_SERVER['DOCUMENT_ROOT'],
+                'document_protocol' => $_SERVER['SERVER_PROTOCOL'],
+                'server_os' => PHP_OS,
+                'server_port' => $_SERVER['SERVER_PORT'],
+                'server_ip' => $_SERVER['REMOTE_ADDR'],
+                'server_soft' => $_SERVER['SERVER_SOFTWARE'],
+                'server_file' => $_SERVER['SCRIPT_FILENAME'],
+                'php_version' => PHP_VERSION,
+                'mysql_version' => $version[0]['ver'],
                 'max_upload_size' => ini_get('upload_max_filesize'),
             ];
-            Cache::set('main_config',$config,3600);
+            Cache::set('main_config', $config, 3600);
         }
-        return view('',['config'=> $config]);
+        return view('', ['config' => $config]);
     }
 
     /**

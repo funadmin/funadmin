@@ -2,8 +2,8 @@
 
 namespace think\ide\console;
 
+use Ergebnis\Classy\Constructs;
 use Exception;
-use Symfony\Component\ClassLoader\ClassMapGenerator;
 use think\console\Command;
 use think\console\input\Argument;
 use think\console\input\Option;
@@ -25,11 +25,11 @@ class ModelCommand extends Command
     protected function configure()
     {
         $this->setName("ide-helper:model")
-            ->addArgument('model', Argument::OPTIONAL | Argument::IS_ARRAY, 'Which models to include', [])
-            ->addOption('dir', 'D', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, 'The model dir', [])
-            ->addOption('ignore', 'I', Option::VALUE_OPTIONAL, 'Which models to ignore', '')
-            ->addOption('reset', 'R', Option::VALUE_NONE, 'Remove the original phpdocs instead of appending')
-            ->addOption('overwrite', 'O', Option::VALUE_NONE, 'Overwrite the phpdocs');
+             ->addArgument('model', Argument::OPTIONAL | Argument::IS_ARRAY, 'Which models to include', [])
+             ->addOption('dir', 'D', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, 'The model dir', [])
+             ->addOption('ignore', 'I', Option::VALUE_OPTIONAL, 'Which models to ignore', '')
+             ->addOption('reset', 'R', Option::VALUE_NONE, 'Remove the original phpdocs instead of appending')
+             ->addOption('overwrite', 'O', Option::VALUE_NONE, 'Overwrite the phpdocs');
     }
 
     public function handle()
@@ -97,8 +97,10 @@ class ModelCommand extends Command
         foreach ($this->dirs as $dir) {
             $dir = $this->app->getBasePath() . $dir;
             if (file_exists($dir)) {
-                foreach (ClassMapGenerator::createMap($dir) as $model => $path) {
-                    $models[] = $model;
+                $constructs = Constructs::fromDirectory($dir);
+
+                foreach ($constructs as $construct) {
+                    $models[] = $construct->name();
                 }
             }
         }

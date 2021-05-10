@@ -1,7 +1,7 @@
 <?php
 /**
- * Created by FunAadmin.
- * Copyright FunAadmin.
+ * Created by FunAdmin.
+ * Copyright FunAdmin.
  * Author: Yuege
  * Date: 2020/3/9
  * Time: 14:39

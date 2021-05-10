@@ -8,6 +8,14 @@ use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Session;
 use think\facade\View;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
+
+/**
+ * @ControllerAnnotation(title="会员组")
+ * Class AuthGroup
+ * @package app\backend\controller\auth
+ */
 class AuthGroup extends Backend
 {
     public function __construct(App $app)
@@ -16,6 +24,13 @@ class AuthGroup extends Backend
         $this->modelClass = new AuthGroupModel();
     }
 
+    /**
+     * @NodeAnnotation(title="列表")
+     * @return mixed|\think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function index()
     {
         if ($this->request->isAjax()) {
@@ -34,7 +49,13 @@ class AuthGroup extends Backend
         return view();
     }
 
-    // 用户组添加
+    /**
+     * @NodeAnnotation(title="添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add()
     {
         if ($this->request->isPost()) {
@@ -66,7 +87,13 @@ class AuthGroup extends Backend
         }
     }
 
-    // 用户组修改
+    /**
+     * @NodeAnnotation(title="修改")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function edit()
     {
         $id = $this->request->get('id');
@@ -97,7 +124,12 @@ class AuthGroup extends Backend
         }
     }
 
-    // 用户组状态修改
+    /**
+     * @NodeAnnotation(title="修改")
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function modify()
     {
         if ($this->request->isPost()) {
@@ -119,6 +151,13 @@ class AuthGroup extends Backend
         }
     }
 
+    /**
+     * @NodeAnnotation(title="删除")
+     * @return mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function delete()
     {
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
@@ -135,7 +174,14 @@ class AuthGroup extends Backend
 
         }
     }
-    // 用户组显示权限
+
+    /**
+     * @NodeAnnotation(title="显示权限")
+     * @return \think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function access()
     {
         $AuthModel = new AuthRule();
@@ -177,10 +223,23 @@ class AuthGroup extends Backend
                     $this->error(lang('please choose rule'));
                 }
                 $rules = (new AuthService())->authNormal($rules);
+                $rules = array_column($rules, 'id');
                 $rls = '';
+                $childIndexId='';
                 foreach ($rules as $k=>$v){
-                    $rls.=$v['id'].',';
+                    $child = AuthRule::where('pid',$v)
+                        ->where('id','in',$rules)->find();
+
+                    if($child){
+                        $childIndex = AuthRule::where('pid','=',$v)
+                            ->where('href', 'like', '%/index')
+                            ->field('id')
+                            ->find();
+                        $childIndexId .= ($childIndex?$childIndex['id']:'').',';
+                    }
+                    $rls.= $v.',';
                 }
+                $rls = $childIndexId.$rls;
                 $list = $this->modelClass->find($group_id);
                 $list->rules = $rls;
                 if ($list->save()) {

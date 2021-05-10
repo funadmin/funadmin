@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
+class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
 {
     public static $files = array (
         '9b552a3cc426e3287cc811caefa3cf53' => __DIR__ . '/..' . '/topthink/think-helper/src/helper.php',
@@ -58,7 +58,6 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
             'Symfony\\Component\\VarDumper\\' => 28,
             'Symfony\\Component\\Translation\\' => 30,
             'Symfony\\Component\\Process\\' => 26,
-            'Symfony\\Component\\ClassLoader\\' => 30,
         ),
         'R' => 
         array (
@@ -77,6 +76,15 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
             'League\\MimeTypeDetection\\' => 25,
             'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
+        ),
+        'E' => 
+        array (
+            'Ergebnis\\Classy\\' => 16,
+        ),
+        'D' => 
+        array (
+            'Doctrine\\Common\\Lexer\\' => 22,
+            'Doctrine\\Common\\Annotations\\' => 28,
         ),
         'C' => 
         array (
@@ -111,18 +119,18 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
         ),
         'think\\' => 
         array (
-            0 => __DIR__ . '/..' . '/topthink/think-template/src',
+            0 => __DIR__ . '/..' . '/topthink/framework/src/think',
             1 => __DIR__ . '/..' . '/topthink/think-helper/src',
-            2 => __DIR__ . '/..' . '/topthink/think-orm/src',
-            3 => __DIR__ . '/..' . '/topthink/framework/src/think',
-            4 => __DIR__ . '/..' . '/topthink/think-image/src',
-            5 => __DIR__ . '/..' . '/topthink/think-queue/src',
+            2 => __DIR__ . '/..' . '/topthink/think-image/src',
+            3 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            4 => __DIR__ . '/..' . '/topthink/think-queue/src',
+            5 => __DIR__ . '/..' . '/topthink/think-template/src',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
         ),
         'fun\\' => 
         array (
@@ -168,10 +176,6 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
         array (
             0 => __DIR__ . '/..' . '/symfony/process',
         ),
-        'Symfony\\Component\\ClassLoader\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/symfony/class-loader',
-        ),
         'Ramsey\\Uuid\\' => 
         array (
             0 => __DIR__ . '/..' . '/ramsey/uuid/src',
@@ -208,6 +212,18 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
         array (
             0 => __DIR__ . '/..' . '/league/flysystem/src',
         ),
+        'Ergebnis\\Classy\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/ergebnis/classy/src',
+        ),
+        'Doctrine\\Common\\Lexer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/lexer/lib/Doctrine/Common/Lexer',
+        ),
+        'Doctrine\\Common\\Annotations\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/annotations/lib/Doctrine/Common/Annotations',
+        ),
         'Carbon\\' => 
         array (
             0 => __DIR__ . '/..' . '/nesbot/carbon/src/Carbon',
@@ -233,10 +249,10 @@ class ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr0 = ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInit0b8c680eafca0b21d72e18302dafa42a::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142::$prefixDirsPsr4;
+            $loader->fallbackDirsPsr0 = ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142::$classMap;
 
         }, null, ClassLoader::class);
     }

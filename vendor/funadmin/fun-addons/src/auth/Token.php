@@ -37,7 +37,7 @@ class Token
     /**
      * 测试appid，正式请数据库进行相关验证
      */
-    public static $appid = '';
+    public static $appid = 'funadmin';
     /**
      * appsecret
      */
@@ -55,13 +55,12 @@ class Token
         header('Access-Control-Allow-Credentials:true');
         header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
         $this->request = Request::instance();
-        if(self::$authapp){
+        if (self::$authapp) {
             $appid = Request::post('appid');
             $appsecret = Request::post('appsecret');
             $oauth2_client = Db::name('oauth2_client')->where('appid', $appid)->find();
             if (!$oauth2_client) {
                 self::error('Invalid authorization credentials', '', 401);
-
             }
             if ($oauth2_client['appsecret'] != $appsecret) {
                 self::error(lang('appsecret is not right'));
@@ -79,11 +78,11 @@ class Token
     {
         //参数验证
         $validate = new \fun\auth\validate\Token;
-        if(self::$authapp) {
+        if (self::$authapp) {
             if (!$validate->scene('authapp')->check(Request::post())) {
                 self::error($validate->getError());
             }
-        }else{
+        } else {
             if (!$validate->scene('noauthapp')->check(Request::post())) {
                 self::error($validate->getError());
             }
@@ -94,10 +93,11 @@ class Token
         //虚拟一个uid返回给调用方
         try {
             $accessToken = self::setAccessToken(array_merge($memberInfo, Request::post()));  //传入参数应该是根据手机号查询改用户的数据
-            self::success('success', $accessToken);
         } catch (\Exception $e) {
-            self::error($e, 'fail', 500);
+            self::error($e, $e->getMessage(), 500);
         }
+        self::success('success', $accessToken);
+
     }
 
     /**
@@ -127,18 +127,18 @@ class Token
         //时间戳校验
         if (abs($params['timestamp'] - time()) > self::$timeDif) {
 
-             self::error('请求时间戳与服务器时间戳异常' . time(), '', 401);
+            self::error('请求时间戳与服务器时间戳异常' . time(), '', 401);
         }
-
-        //appid检测，查找数据库或者redis进行验证
-        if ($params['appid'] !== self::$appid) {
-             self::error('appid 错误','',401);
+        if (self::$authapp) {
+            //appid检测，查找数据库或者redis进行验证
+            if ($params['appid'] !== self::$appid) {
+                self::error('appid 错误', '', 401);
+            }
         }
-
         //签名检测
         $sign = Oauth::makeSign($params, self::$appsecret);
         if ($sign !== $params['sign']) {
-             self::error('sign错误',401);
+            self::error('sign错误', 401);
         }
     }
 
@@ -152,7 +152,6 @@ class Token
         //生成令牌
         $accessToken = self::buildAccessToken();
         $refresh_token = self::getRefreshToken($clientInfo['appid']);
-
         $accessTokenInfo = [
             'access_token' => $accessToken,//访问令牌
             'expires_time' => time() + self::$expires,      //过期时间时间戳
@@ -191,7 +190,7 @@ class Token
      * @param $accessTokenInfo
      */
     protected static function saveAccessToken($accessToken, $accessTokenInfo)
-    {   
+    {
         $token_type = config('api.auth.token_type');
         cache(self::$accessTokenPrefix . $accessToken, $accessTokenInfo, self::$expires);
     }
@@ -217,11 +216,11 @@ class Token
                 $member['uid'] = $member['id'];
                 return $member;
             } else {
-                 self::error(lang('Password is not right'),'',401 );
+                self::error(lang('Password is not right'), '', 401);
             }
 
         } else {
-             self::error( lang('Account is not exist'),'',401);
+            self::error(lang('Account is not exist'), '', 401);
         }
     }
 }

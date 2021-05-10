@@ -3,11 +3,16 @@ namespace app\backend\controller\member;
 
 use app\backend\model\MemberLevel as MemberLevelModel;
 use app\common\controller\Backend;
-use app\common\traits\Curd;
 use think\App;
+use app\common\annotation\NodeAnnotation;
+use app\common\annotation\ControllerAnnotation;
+
+/**
+ * @ControllerAnnotation (title="会员等级")
+ * Class MemberLevel
+ * @package app\backend\controller\member
+ */
 class MemberLevel extends Backend{
-
-
 
     public function __construct(App $app)
     {
@@ -15,8 +20,13 @@ class MemberLevel extends Backend{
         $this->modelClass = new MemberLevelModel();
     }
 
-    /**---------------用户等级--------------------**/
-
+    /**
+     * @NodeAnnotation (title="添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add(){
         if ($this->request->isPost()) {
             $post = $this->request->post();
@@ -44,8 +54,5 @@ class MemberLevel extends Backend{
         ];
         return view('',$view);
     }
-
-
-
 
 }

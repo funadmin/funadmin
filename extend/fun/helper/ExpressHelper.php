@@ -11,7 +11,7 @@
  * Date: 2019/9/26
  */
 namespace fun\helper;
-
+use fun\helper\HttpHelper;
 class ExpressHelper{
 
     /**
@@ -22,7 +22,7 @@ class ExpressHelper{
      */
     function queryExpress($postcom , $getNu) {
         $url = "https://m.kuaidi100.com/query?type=".$postcom."&postid=".$getNu."&id=1&valicode=&temp=0.49738534969422676";
-        $resp = httpRequest($url,"GET");
+        $resp = HttpHelper::get($url);
         return json_decode($resp,true);
     }
 }

@@ -22,7 +22,7 @@ class ArrayHelper
     public static function arrayFilter($para)
     {
         $paraFilter = [];
-        while (list($key, $val) = each($para)) {
+        foreach($para as $key=>$val) {
             if ($val === '' || $val === null) {
                 continue;
             } else {
@@ -34,7 +34,6 @@ class ArrayHelper
         }
         return $paraFilter;
     }
-
     /**
      * 删除一位数组中，指定的key与对应的值
      * @param array $array 要操作的数组
@@ -72,9 +71,9 @@ class ArrayHelper
      */
     public static function arraySort(array $array)
     {
-        ksort($param);
-        reset($param);
-        return $param;
+        ksort($array);
+        reset($array);
+        return $array;
     }
 
     /**
@@ -90,7 +89,7 @@ class ArrayHelper
         }
         reset($array);
         $arg = '';
-        while (list($key, $val) = each($array)) {
+        foreach ($array as $key=>$val){
             if (is_array($val)) {
                 continue;
             }

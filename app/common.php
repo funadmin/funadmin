@@ -113,8 +113,8 @@ if (!function_exists('build_ueditor')) {
         }
         $include_js = '<script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.config.js"></script> <script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.all.min.js""> </script><script type="text/javascript" charset="utf-8" src="' . $lang . '"></script>';
         $content = json_encode($content);
-        $imgeurl = url('ajax/uploads');
-        $imgeurllist = url('ajax/getList');
+        $imgeurl = __u('ajax/uploads');
+        $imgeurllist = __u('ajax/getList');
         return <<<EOT
 $include_js
 <script type="text/javascript">

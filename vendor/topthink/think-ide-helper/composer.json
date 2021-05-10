@@ -11,7 +11,7 @@
     "require": {
         "topthink/framework": "^6.0",
         "phpdocumentor/reflection-docblock": "^5.0",
-        "symfony/class-loader": "~3.2.0"
+        "ergebnis/classy": "^1.1"
     },
     "autoload": {
         "psr-4": {

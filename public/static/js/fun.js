@@ -35,15 +35,14 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             url = Fun.common.parseNodeStr(url);
             console.log(url)
             if (!Config.addonname) {
-                console.log(Config.entrance)
-                if (Config.entrance!=='/' && url.indexOf(Config.entrance) === -1) {
+                if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
                     return Config.entrance + $.trim(url, '/');
-                } else if(Config.entrance ==='/') {
+                } else if (Config.entrance === '/') {
                     //前台
                     return $.trim(url, '/');
-                }else{
+                } else {
                     //后台
-                    return  $.trim(url, '/');
+                    return $.trim(url, '/');
                 }
             } else if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
                 return Config.entrance + $.trim(url, '/');
@@ -121,7 +120,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
                     } else {
-                        if(res.hasOwnProperty('data') && res.data['token']){
+                        if (res.hasOwnProperty('data') && res.data['token']) {
                             $("input[name='__token__']").val(res.data.token);
                         }
                         return error(res);
@@ -146,53 +145,29 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             return true;
         },
         /**
-         *
-         * @returns {void|undefined|string|*}
+         * @returns {*}
          */
         lang: function () {
-            var args = arguments,
-                string = args[0],
-                i = 1;
-            string = string.toLowerCase();
-            if (typeof Lang !== 'undefined' && typeof Lang[string] !== 'undefined') {
-                if (typeof Lang[string] == 'object')
-                    return Lang[string];
-                string = Lang[string];
-            } else if (string.indexOf('.') !== -1 && false) {
-                var arr = string.split('.');
-                var current = Lang[arr[0]];
-                for (var i = 1; i < arr.length; i++) {
-                    current = typeof current[arr[i]] != 'undefined' ? current[arr[i]] : '';
-                    if (typeof current != 'object')
-                        break;
-                }
-                if (typeof current == 'object')
-                    return current;
-                string = current;
+            var obj = arguments, str = arguments[0],
+                str = str.toLowerCase();
+            if (typeof Lang !== 'undefined' && typeof Lang[str] !== 'undefined') {
+                str = Lang[str];
             } else {
-                string = args[0];
+                str = obj[0];
             }
-            return string.replace(/%((%)|s|d)/g, function (match) {
-                var val;
-                if (match[2]) {
-                    val = match[2];
-                } else {
-                    val = args[i];
-                    switch (match) {
-                        case '%d':
-                            val = parseFloat(val);
-                            if (isNaN(val)) {
-                                val = 0;
-                            }
-                            break;
-                    }
-                    i++;
+            if (typeof obj[1] === 'object') {
+                for (i = 0; i < obj[1].length; i++) {
+                    str= str.replace(/%((%)|s|d)/g, obj[1][i]);
                 }
-                return val;
-            });
+            } else if (typeof obj[1]=== 'string' || typeof obj[1]=== 'number' ) {
+                str = str.replace(/%((%)|s|d)/g, obj[1]);
+            } else {
+                str;
+            }
+            return str;
         },
         /**
-         * 初始化
+         *inti 初始化
          */
         init: function () {
             // 绑定ESC关闭窗口事件
@@ -207,7 +182,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                             if (index) {
                                 layer.close(index);
                             }
-                        }else if (parent.$(".layui-layer").length) {
+                        } else if (parent.$(".layui-layer").length) {
                             parent.$(".layui-layer").each(function () {
                                 index = Math.max(index, parseInt($(this).attr("times")));
                             });
@@ -216,7 +191,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                             }
                         }
                     })
-
                 }
             });
         },
@@ -264,7 +238,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             lower: function (name) {
                 return name.toLowerCase();
             },
-            arrTostr:function(arr) {
+            arrTostr: function (arr) {
                 var str = '';
                 for (i = 0; i < arr.length; i++) {
                     str += arr[i]['name'] + ',';
@@ -280,7 +254,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     }
                 }
                 return Toastr.success(msg, callback);
-
             },
             // 失败消息
             error: function (msg, callback) {
@@ -312,7 +285,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             // 消息提示
             tips: function (msg, callback) {
                 return Toastr.info(msg, callback);
-
             },
             // 加载中提示
             loading: function (msg, callback) {
@@ -390,7 +362,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
             },
             //检测上级是否有窗口
-            checkLayerIframe:function(){
+            checkLayerIframe: function () {
                 return !!parent.$(".layui-layer").length;
             },
             //打开新窗口
@@ -419,7 +391,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 if (options.btn === undefined) {
                     btns = ['submit', 'close'];
                     options.btn_lang = [__('submit'), __('close')];
-                } else if (options.btn === 'false' || options.btn === false  || options.btn === '') {
+                } else if (options.btn === 'false' || options.btn === false || options.btn === '') {
                     options.btn_lang = false;
                 } else {
                     btnsdata = options.btn;
@@ -433,8 +405,8 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 if (options.btnAlign === undefined) {
                     options.btnAlign = 'c';
                 }
-                if(options.btn_lang ===[])　options.btn_lang=false;
-                var  parentiframe =Fun.api.checkLayerIframe()
+                if (options.btn_lang === []) options.btn_lang = false;
+                var parentiframe = Fun.api.checkLayerIframe()
                 options = {
                     title: title,
                     type: type,
@@ -442,7 +414,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     content: [url],
                     shadeClose: true,
                     anim: 0,
-                    shade : 0.1,
+                    shade: 0.1,
                     isOutAnim: true,
                     // zIndex: layer.zIndex, //
                     maxmin: true,
@@ -467,7 +439,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                             $(document).ready(function () {
                                 // 父页面获取子页面的iframe
                                 var body = layer.getChildFrame('body', index);
-                                if(parentiframe){
+                                if (parentiframe) {
                                     body = parent.layer.getChildFrame('body', index);
                                 }
                                 body.find('button[type="' + btns[0] + '"]').trigger('click');
@@ -481,13 +453,13 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     btn2: btn2 === undefined ? function (index) {
                         layer.close(layer.index);
                     } : btn2,
-                    cancel: function(index, layero){
+                    cancel: function (index, layero) {
                         layer.close(layer.index);
                     }
                 }
-                if(parentiframe){
+                if (parentiframe) {
                     var index = parent.layer.open(options);
-                }else{
+                } else {
                     var index = layer.open(options);
                 }
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {

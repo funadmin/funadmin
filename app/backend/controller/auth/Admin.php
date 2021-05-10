@@ -20,6 +20,14 @@ use think\facade\Session;
 use think\facade\View;
 use app\backend\model\Admin as AdminModel;
 use think\App;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
+
+/**
+ * @ControllerAnnotation (title="管理员")
+ * Class Admin
+ * @package app\backend\controller\auth
+ */
 class Admin extends Backend
 {
 
@@ -28,8 +36,14 @@ class Admin extends Backend
         parent::__construct($app);
         $this->modelClass = new AdminModel();
     }
-    /*-----------------------管理员管理----------------------*/
-    // 管理员列表
+
+    /**
+     * @NodeAnnotation (title="列表")
+     * @return mixed|\think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function index()
     {
         if($this->request->isAjax()){
@@ -54,7 +68,13 @@ class Admin extends Backend
         return view();
     }
 
-    // 管理员添加
+    /**
+     * @NodeAnnotation (title="添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add()
     {
         if ($this->request->isPost()) {
@@ -99,7 +119,13 @@ class Admin extends Backend
 
     }
 
-    // 管理员添加
+    /**
+     * @NodeAnnotation (title="编辑")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function edit()
     {
         $id = $this->request->param('id');
@@ -130,7 +156,9 @@ class Admin extends Backend
 
     }
 
-    // 管理员删除
+    /**
+     * @NodeAnnotation (title="修改")
+     */
     public function modify()
     {
         $id = $this->request->param('id');
@@ -150,7 +178,13 @@ class Admin extends Backend
 
     }
 
-    // 管理员删除
+    /**
+     * @NodeAnnotation(title="删除")
+     * @return mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function delete()
     {
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
@@ -171,9 +205,12 @@ class Admin extends Backend
     }
 
 
-
-    /*
-     * 修改密码
+    /**
+     * @NodeAnnotation(title="修改密码")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function password()
     {
@@ -196,8 +233,9 @@ class Admin extends Backend
         return view();
     }
 
-    /*
-     * 基本信息
+    /**
+     * @NodeAnnotation(title="基本信息")
+     * @return string
      */
     public function base()
     {

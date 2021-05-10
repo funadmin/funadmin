@@ -419,14 +419,14 @@ if (!function_exists('refreshaddons')) {
                 $jsArr[] = file_get_contents($jsArrFile);
             }
         }
-        $addonsjsFile = app()->getRootPath() . "public/static/require-addons.js";
+        $addonsjsFile = app()->getRootPath() . "public/static/js/require-addons.js";
         if ($file = fopen($addonsjsFile, 'w')) {
             $tpl = <<<EOF
 define([], function () {
-    {__ADDONJS__}
+    {__PLUGINSJS__}
 });
 EOF;
-            fwrite($file, str_replace("{__ADDONJS__}", implode("\n", $jsArr), $tpl));
+            fwrite($file, str_replace("{__PLUGINSJS__}", implode("\n", $jsArr), $tpl));
             fclose($file);
         } else {
             throw new Exception(lang("addons.js File does not have write permission"));

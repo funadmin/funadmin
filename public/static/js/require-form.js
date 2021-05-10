@@ -38,7 +38,6 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                                 $.each(list, function () {
                                     if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                                         var id = $(this).prop('id');
-
                                         return layui.layedit.sync(window['editor' + id])
                                     }
                                 })
@@ -206,7 +205,6 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                     setTimeout(function(){
                         location.reload();
                     },2000)
-
                     return false;
                 },
                 /**
@@ -219,7 +217,6 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                  * @returns {boolean}
                  */
                 formSubmit: function (url, data, success, error, refresh) {
-                    console.log(refresh);
                     success = success || function (res) {
                         res.msg = res.msg || 'success';
                         Fun.toastr.success(res.msg, function () {
@@ -279,7 +276,7 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
                             tableSelect = layui.tableSelect?layui.tableSelect:parent.layui.tableSelect;
-                            tableSelect.render({
+                            layui.tableSelect.render({
                                 elem: '#' + id,
                                 checkedKey: 'id',
                                 searchType: 2,

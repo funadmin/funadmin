@@ -6,8 +6,8 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','layui','lay','treeGrid','tableSelect',
-        'treeTable','tableEdit','tableTree',
+        'css','layui','treeGrid','tableSelect',
+        'treeTable','tableEdit','tableTree','xmSelect',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker',
@@ -18,7 +18,6 @@
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
         'layui'         : 'plugins/layui/layui', // jquery
-        'lay': 'js/require-lay',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -36,6 +35,7 @@
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'moment'        : 'plugins/moment/moment',
+        'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
 
         //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展

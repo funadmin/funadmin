@@ -76,7 +76,6 @@ class StringHelper
 
                 break;
         }
-
         return $uuid->toString();
     }
     /**

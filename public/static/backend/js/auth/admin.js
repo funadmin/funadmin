@@ -17,7 +17,9 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                         icon: 'layui-icon layui-icon-add-circle',
                         text: __('Add'),
                         title: __('Add'),
-                        full: 1,
+                        full: 0,
+                        width: 800,
+                        height: 600,
                     },
                     edit_full: {
                         type: 'open',

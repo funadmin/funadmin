@@ -1,9 +1,9 @@
 <?php
 /**
- * FunAadmin
+ * FunAdmin
  * ============================================================================
- * 版权所有 2017-2028 FunAadmin，并保留所有权利。
- * 网站地址: http://www.FunAadmin.com
+ * 版权所有 2017-2028 FunAdmin，并保留所有权利。
+ * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
  * 采用最新Thinkphp6实现
  * ============================================================================
@@ -18,7 +18,14 @@ use app\common\model\FieldType;
 use app\common\traits\Curd;
 use think\App;
 use think\facade\View;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 
+/**
+ * @ControllerAnnotation(title="配置组")
+ * Class ConfigGroup
+ * @package app\backend\controller\sys
+ */
 class ConfigGroup extends Backend {
 
     public function __construct(App $app)
@@ -28,7 +35,10 @@ class ConfigGroup extends Backend {
 
     }
 
-//    配置分组
+    /**
+     * @NodeAnnotation(title="添加")
+     * @return \think\response\View
+     */
     public function add(){
         if($this->request->isPost()){
             $post = $this->request->param();
@@ -48,10 +58,10 @@ class ConfigGroup extends Backend {
     }
 
     /**
+     * @NodeAnnotation(title="删除")
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
-     * 删除
      */
     public function delete(){
         $id = $this->request->param('id')?$this->request->param('id'):$this->request->param('ids');
@@ -75,5 +85,4 @@ class ConfigGroup extends Backend {
 
     }
 
-//
 }

@@ -104,8 +104,8 @@ if (@$_GET['s'] === 'step3') {
         if ($adminPassword != $rePassword) {
             die('两次输入密码不一致！');
         }
-        if (!preg_match("/^[\S]+$/", $adminPassword)) {
-            die('密码不能包含空格！');
+        if(!preg_match('/^[0-9a-z_$]{6,16}$/i', $adminPassword)){
+            die('密码必须6-16位,且必须包含字母和数字,不能有中文和空格');
         }
         if (!preg_match("/^\w+$/", $adminUserName)) {
             die('用户名只能输入字母、数字、下划线！');
@@ -121,45 +121,50 @@ if (@$_GET['s'] === 'step3') {
         if (!$sql) {
             throw new Exception("无法读取/public/install/funadmin.sql文件，请检查是否有读权限");
         }
-        //替换表前缀
-        $sql = str_replace("`fun_", "`{$mysqlPreFix}", $sql);
         try {
-
-            //链接数据库
-            $pdo = new PDO("mysql:host={$host};port={$port}", $mysqlUserName, $mysqlPassword, array(
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
-            ));
-            $version = $pdo->query('select version()')->fetchColumn();
-            if ((string)$version < 5.5) {
-                die("MySQL数据库版本不能低于5.5,请将您的MySQL升级到5.5及以上");
-            }
             // 连接数据库
             $link = @new mysqli("{$host}:{$port}", $mysqlUserName, $mysqlPassword);
+            $error = $link->connect_error;
+            if (!is_null($error)) {// 转义防止和alert中的引号冲突
+                $error = addslashes($error);
+                exit("数据库链接失败:$error");
+            }
             $link->query('set global wait_timeout=2147480');
             $link->query("set global interactive_timeout=2147480");
             $link->query("set global max_allowed_packet=104857600");
             $link->query("SET NAMES 'utf8mb4'");
-            $error = $link->connect_error;
-            if (!is_null($error)) {// 转义防止和alert中的引号冲突
-                $error = addslashes($error);
-                die("数据库链接失败:$error");
-            }
-            //检测是否支持innodb存储引擎
-            $pdoStatement = $pdo->query("SHOW VARIABLES LIKE 'innodb_version'");
-            $result = $pdoStatement->fetch();
-            if (!$result) {
-                throw new Exception("当前数据库不支持innodb存储引擎，请开启后再重新尝试安装");
+            if ($link->server_info < 5.5) {
+                exit("MySQL数据库版本不能低于5.5,请将您的MySQL升级到5.5及以上");
             }
             // 创建数据库并选中
             if (!$link->select_db($mysqlDatabase)) {
                 $create_sql = 'CREATE DATABASE IF NOT EXISTS ' . $mysqlDatabase . ' DEFAULT CHARACTER SET utf8mb4;';
-                $link->query($create_sql) or die('创建数据库失败');
+                $link->query($create_sql) or exit('创建数据库失败');
                 $link->select_db($mysqlDatabase);
             }
-            $pdo->query("USE `{$mysqlDatabase}`");//使用数据库
-            $pdo->query($sql);
-            sleep(3);
+            $link->query("USE `{$mysqlDatabase}`");//使用数据库
+            // 写入数据库
+            $sqlArr = file(WWW_ROOT . DIRECTORY_SEPARATOR . "install" . DIRECTORY_SEPARATOR . 'funadmin.sql');
+            $sql = '';
+            foreach ($sqlArr as $value) {
+                if (substr($value, 0, 2) == '--' || $value == '' || substr($value, 0, 2) == '/*')
+                    continue;
+                $sql .= $value;
+                if (substr(trim($value), -1, 1) == ';' and $value != 'COMMIT;') {
+                    $sql = str_ireplace("`fun_", "`{$mysqlPreFix}", $sql);
+                    $sql = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $sql);
+                    try {
+                        $link->query($sql);
+                    } catch (\PDOException $e) {
+                        exit($e->getMessage());
+                    }
+                    $sql = '';
+                }
+            }
+            sleep(2);
+            $password = password_hash($adminPassword, PASSWORD_BCRYPT);
+            $result = $link->query("UPDATE {$mysqlPreFix}admin SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
+            $result2 = $link->query("UPDATE {$mysqlPreFix}member SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
             $databaseConfig = @file_get_contents($databaseConfigFile);
             //替换数据库相关配置
             $config = <<<Fun
@@ -222,14 +227,7 @@ return [
 Fun;
             $putConfig = @file_put_contents($databaseConfigFile, $config);
             if (!$putConfig) {
-                die('安装失败、请确定database.php是否有写入权限！:' . $error);
-            }
-            $password = password_hash($adminPassword, PASSWORD_BCRYPT);
-            $result = $link->query("UPDATE {$mysqlPreFix}admin SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
-            $result2 = $link->query("UPDATE {$mysqlPreFix}member SET `email`='{$email}',`username` = '{$adminUserName}',`password` = '{$password}' WHERE `username` = 'admin'");
-            if (!$result || !$result2) {
-//                $link->close();
-                die("安装数据库失败！:$error");
+                exit('安装失败、请确定database.php是否有写入权限！:' . $error);
             }
             $adminStr = <<<Fun
 <?php
@@ -237,7 +235,7 @@ Fun;
 namespace think;
 if (version_compare(PHP_VERSION, '7.2.0', '<')) {
     header("Content-type: text/html; charset=utf-8");
-    die('PHP 7.2.0 及以上版本系统才可运行~ ');
+    exit('PHP 7.2.0 及以上版本系统才可运行~ ');
 }
 if (!is_file(\$_SERVER['DOCUMENT_ROOT'].'/install.lock'))
 {
@@ -253,7 +251,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Fun;
             $adminName = '';
             $x = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            $adminName = substr(str_shuffle(str_repeat($x, ceil(10 / strlen($x)))), 1, 10) . '.php';
+            $adminName = substr(str_shuffle($x), 0, 10) . '.php';
             $backendFile = "." . DIRECTORY_SEPARATOR . $adminName;
             if (!file_exists($backendFile)) {
                 @touch($backendFile);
@@ -272,15 +270,13 @@ Fun;
             $entranceConfig = @file_put_contents($entranceConfigFile, $entrance);
             $result = @file_put_contents($lockFile, 'ok');
             if (!$result) {
-                die("安装失败、请确定install.lock是否有写入权限！:$error");
+                exit("安装失败、请确定install.lock是否有写入权限！:$error");
             }
             $_SESSION['admin'] = $adminUserName;
             $_SESSION['password'] = $adminPassword;
             $_SESSION['backend'] = $adminName;
             echo $msg = 'success|' . $adminName;exit();
-        } catch (\PDOException $e) {
-            $errMsg = $e->getMessage();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $errMsg = $e->getMessage();
         }
         echo $errMsg;

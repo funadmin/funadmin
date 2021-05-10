@@ -30,7 +30,8 @@ class Login extends Backend {
             if ($admin && $admin_sign) {
                 $this->redirect(__u('index/index'));
             }
-            $view = ['loginbg'=> "/static/backend/images/admin-bg.jpg"];
+            $bg = hook('bgHook')?hook('bgHook'):'/static/backend/images/admin-bg.jpg';
+            $view = ['bg'=>$bg];
             return view('',$view);
         } else {
             $post  = $this->request->post() ;

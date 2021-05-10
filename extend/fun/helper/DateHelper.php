@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2019/9/22
  */
+
 namespace fun\helper;
 
 use DateTime;
@@ -25,9 +26,11 @@ class DateHelper
      * @return false|string
      * 获取当前日期时间
      */
-   public static function intToDate($time){
-       return date('Y-m-d H:i:s',$time);
-   }
+    public static function intToDate($time)
+    {
+        return date('Y-m-d H:i:s', $time);
+    }
+
     /**
      * 日期转时间戳
      *
@@ -46,71 +49,73 @@ class DateHelper
 
         return $value;
     }
+
     /**
      * @param $posttime
      * @return string
      * 多少天前
      */
-   public static function timeAgo($posttime){
-       //当前时间的时间戳
-       $nowtimes = strtotime(date('Y-m-d H:i:s'),time());
-       //之前时间参数的时间戳
-       $posttimes = strtotime($posttime);
-       //相差时间戳
-       $counttime = $nowtimes - $posttimes;
+    public static function timeAgo($posttime)
+    {
+        //当前时间的时间戳
+        $nowtimes = strtotime(date('Y-m-d H:i:s'), time());
+        //之前时间参数的时间戳
+        $posttimes = strtotime($posttime);
+        //相差时间戳
+        $counttime = $nowtimes - $posttimes;
 
-       //进行时间转换
-       if($counttime<=10){
+        //进行时间转换
+        if ($counttime <= 10) {
 
-           return '刚刚';
+            return '刚刚';
 
-       }else if($counttime>10 && $counttime<=30){
+        } else if ($counttime > 10 && $counttime <= 30) {
 
-           return '刚才';
+            return '刚才';
 
-       }else if($counttime>30 && $counttime<=60){
+        } else if ($counttime > 30 && $counttime <= 60) {
 
-           return '刚一会';
+            return '刚一会';
 
-       }else if($counttime>60 && $counttime<=120){
+        } else if ($counttime > 60 && $counttime <= 120) {
 
-           return '1分钟前';
+            return '1分钟前';
 
-       }else if($counttime>120 && $counttime<=180){
+        } else if ($counttime > 120 && $counttime <= 180) {
 
-           return '2分钟前';
+            return '2分钟前';
 
-       }else if($counttime>180 && $counttime<3600){
+        } else if ($counttime > 180 && $counttime < 3600) {
 
-           return intval(($counttime/60)).'分钟前';
+            return intval(($counttime / 60)) . '分钟前';
 
-       }else if($counttime>=3600 && $counttime<3600*24){
+        } else if ($counttime >= 3600 && $counttime < 3600 * 24) {
 
-           return intval(($counttime/3600)).'小时前';
+            return intval(($counttime / 3600)) . '小时前';
 
-       }else if($counttime>=3600*24 && $counttime<3600*24*2){
+        } else if ($counttime >= 3600 * 24 && $counttime < 3600 * 24 * 2) {
 
-           return '昨天';
+            return '昨天';
 
-       }else if($counttime>=3600*24*2 && $counttime<3600*24*3){
+        } else if ($counttime >= 3600 * 24 * 2 && $counttime < 3600 * 24 * 3) {
 
-           return '前天';
+            return '前天';
 
-       }else if($counttime>=3600*24*3 && $counttime<=3600*24*20){
+        } else if ($counttime >= 3600 * 24 * 3 && $counttime <= 3600 * 24 * 20) {
 
-           return intval(($counttime/(3600*24))).'天前';
+            return intval(($counttime / (3600 * 24))) . '天前';
 
-       }else{
+        } else {
 
-           return $posttime;
+            return $posttime;
 
-       }
-   }
+        }
+    }
 
     /**
      * 格式化 UNIX 时间戳为人易读的字符串
-     * @param    int    Unix 时间戳
-     * @param    mixed $local 本地时间
+     * @param int    Unix 时间戳
+     * @param mixed $local 本地时间
      * @return    string    格式化的日期字符串
      */
     public static function humanDate($remote, $local = null)

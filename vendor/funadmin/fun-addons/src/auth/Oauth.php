@@ -86,8 +86,7 @@ class Oauth
     {
         $request = Request::instance();
         $arr = is_array($arr) ? $arr : explode(',', $arr);
-        if (!$arr)
-        {
+        if (!$arr) {
             return false;
         }
         $arr = array_map('strtolower', $arr);

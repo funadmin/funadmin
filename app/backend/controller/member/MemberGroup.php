@@ -3,21 +3,30 @@ namespace app\backend\controller\member;
 
 use app\backend\model\MemberGroup as MemberGroupModel;
 use app\common\controller\Backend;
-use app\common\traits\Curd;
 use think\App;
 use think\Exception;
+use app\common\annotation\NodeAnnotation;
+use app\common\annotation\ControllerAnnotation;
+
+/**
+ * @ControllerAnnotation (title="会员组")
+ * Class MemberGroup
+ * @package app\backend\controller\member
+ */
 class MemberGroup extends Backend{
-
-
 
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->modelClass = new MemberGroupModel();
     }
-
-    /**---------------用户等级--------------------**/
-
+    /**
+     * @NodeAnnotation (title="添加")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
     public function add(){
         if ($this->request->isAjax()) {
             $post = $this->request->post();
@@ -38,9 +47,11 @@ class MemberGroup extends Backend{
     }
 
     /**
-     * 删除
-     * @param $id
-     * @return mixed
+     * @NodeAnnotation (title="删除")
+     * @return mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
      */
     public function delete()
     {

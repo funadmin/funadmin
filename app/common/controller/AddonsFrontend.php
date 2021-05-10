@@ -24,7 +24,7 @@ use think\facade\Request;
 use think\facade\View;
 use think\helper\Str;
 
-class AddonsFrontend extends Controller
+class AddonsFrontend extends AddonsController
 {
     use Jump;
     /**
@@ -70,8 +70,6 @@ class AddonsFrontend extends Controller
         'status',
         'title',
     ];
-
-
     public function __construct(App $app)
     {
         parent::__construct($app);
@@ -143,57 +141,6 @@ class AddonsFrontend extends Controller
         ];
         View::assign('config',$config);
     }
-
-
-
-    protected function validate(array $data, $validate, array $message = [], bool $batch = false)
-    {
-        try {
-            parent::validate($data, $validate, $message, $batch);
-            $this->checkToken();
-        } catch (ValidateException $e) {
-            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
-        }
-        return true;
-    }
-
-    /**
-     * 检测token 并刷新
-     *
-     */
-    protected function checkToken()
-    {
-        $check = $this->request->checkToken('__token__', $this->request->param());
-        if (false === $check) {
-            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
-        }
-    }
-    //自动加载语言
-    protected function loadlang($name)
-    {
-        $lang = Cookie::get('think_lang');
-        return Lang::load([
-            $this->addon_path.$this->module.DS . 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php',
-            $this->addon_path.$this->module.DS . 'lang' . DS . $lang . '.php',
-        ]);
-    }
-
-
-    /**
-     * 刷新Token
-     */
-    protected function token()
-    {
-        $check = $this->request->checkToken('__token__', $this->request->param());
-        if (false === $check) {
-            $this->error(lang('Token verification error'), '', ['__token__' => $this->request->buildToken()]);
-        }
-        //刷新Token
-        $this->request->buildToken();
-    }
-
-
-
 
 
 }

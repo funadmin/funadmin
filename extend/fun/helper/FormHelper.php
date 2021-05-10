@@ -127,35 +127,42 @@ class FormHelper
         if (is_string($list) && strpos($list, "\n") !== false) $list = explode("\n", $list);
         if (is_string($list) && strpos($list, ",") !== false) $list = explode(",", $list);
         if (is_string($list) && strpos($list, "|") !== false) $list = explode("|", $list);
+        if (is_string($value)
+            && strpos($value, "\n") === false
+            && strpos($value, ",") === false
+            && strpos($value, "|") === false
+        ) $value = explode(",", $value);
         $input = '';
         $skin = '';
         if (isset($options['skin'])) {
             $skin = 'lay-skin="' . $options['skin'] . '"';
         }
-
         if (is_array($list) and $list) {
             foreach ($list as $k => $v) {
                 if (is_string($v) && strpos($v, ':') !== false) {
                     $v = explode(":", $v);
                     $check = '';
-                    if (is_array($value) && in_array($v[0], $value) || $value = $v[0]) {
+                    if (is_array($value) && in_array($v[0], $value) || $value == $v[0]) {
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" ' . $check . '  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v[1]) . '"/>';
-
+                    $input .= '<input type="checkbox" ' . $check . ' value="'.$k.'"  name="' . $name . '[' . $v[0] . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v[1]) . '"/>';
                 } else {
                     $check = '';
-                    if (is_array($value) && in_array($v[0], $value) || $value = $v) {
+                    if ((is_array($value) &&  is_array($v) && in_array($v[0], $value)) || $value == $v) {
                         $check = 'checked';
                     }
-                    $input .= '<input type="checkbox" ' . $check . ' name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v) . '"/>';
+                    elseif ((is_array($value) &&  is_string($v) && in_array($k, $value)) || $value == $v) {
+                        $check = 'checked';
+                    }
+                    $input .= '<input type="checkbox" ' . $check .  '  value="'.$k.'" name="' . $name . '[' . $k . ']" ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' title="' . lang($v) . '"/>';
                 }
             }
         } else {
             $input .= '<input type="checkbox" name="' . $name . '[]"  ' . $skin . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . '  title="' . lang($value) . '"/>';
         }
+        $label = isset($options['label'])?($options['label']):$name;
         $str = '<div class="layui-form-item">
-        <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($name)) . '</label>
+        <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
         <div class="layui-input-block">
          ' . $input . self::tips($options) . '
         </div>';
@@ -411,16 +418,14 @@ class FormHelper
     public static function date($name, $options, $value)
     {
         $op = '';
-        if (isset($options['type'])) {
-            $op .= 'data-type="' . $options['range'] . '"';
+        if (isset($options['range'])) {
+            $op .= 'data-range="' . $options['range'] . '"';
         }
         if (isset($options['type'])) {
             $op .= 'data-type="' . $options['type'] . '"';
-
         }
         if (isset($options['format'])) {
             $op .= 'data-format="' . $options['format'] . '"';
-
         }
         $label = isset($options['label']) ? $options['label'] : $name;
         $str = '<div class="layui-form-item">
@@ -431,7 +436,6 @@ class FormHelper
         </div>';
         return $str;
     }
-
     /**
      * 城市选择
      * @param string $name
@@ -482,7 +486,6 @@ class FormHelper
      */
     public static function editor($name = 'container', $id = null, $type = 1, $options = [])
     {
-
         if ($id == '') {
             $id = $name;
         }
@@ -495,22 +498,21 @@ class FormHelper
             $str .= '<div id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-filter="editor" type="text/plain"></div>';
         } else {
             //LAYEDIT
-            $str .= '<div id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></div>';
+            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
         }
         $str .= '</div></div>';
-
         return $str;
 
     }
 
     /**
+     * 上传
      * @param string $name
-     * @param string $formdata
+     * @param string $formData
      * @param array $options
      * @return string
-     * 上传
      */
-    public static function upload($name = 'avatar', $formdata = '', $options = [])
+    public static function upload($name = 'avatar', $formData = '', $options = [])
     {
         if (!isset($options['type'])) {
             $options['type'] = 'radio';
@@ -529,8 +531,8 @@ class FormHelper
         $croper_container = '';
         if (isset($options['cropper'])) {
             $width = isset($options['width']) ? $options['width'] : '300';
-            $height = isset($options['width']) ? $options['width'] : '300';
-            $mark = isset($options['width']) ? $options['width'] : '1';
+            $height = isset($options['height']) ? $options['height'] : '300';
+            $mark = isset($options['mark']) ? $options['mark'] : '1';
             $area = isset($options['area']) ? $options['area'] : '900px';
             $cops = ['width' => $width, 'height' => $height, 'mark' => $mark, 'area' => $area];
             $crpperops = 'data-value="' . json_encode($cops, true) . '"';
@@ -542,16 +544,16 @@ class FormHelper
             $options['num'] = 1;
             $options['type'] = 'radio';
         }
-
-        if ($formdata) {
-            if (isset($formdata[$name])) {
-                $formdata = explode(',', $formdata[$name]);
+        $values = [];
+        if ($formData) {
+            if (isset($formData[$name])) {
+                $values = explode(',', $formData[$name]);
             } else {
-                $formdata = explode(',', $formdata);
+                $values = explode(',', $formData);
             }
-            foreach ($formdata as $k => $v) {
-                switch ($options['mime']) {
-
+            foreach ($values as $k => $v) {
+                if($k+1<=$options['num']){
+                    switch ($options['mime']) {
                     case 'video':
                         $li .= '<li><video lay-event="" class="layui-upload-img fl"  width="150" src="' . $v . '"></video>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
@@ -583,13 +585,14 @@ class FormHelper
                                    data-fileurl="' . $v . '"></i></li>';
                         break;
                 }
+                }
             }
         }
         $value ='';
-        if($formdata){
-            $value = implode(',',$formdata);
+        if($values){
+            $value = implode(',',$values);
         }
-        $value = isset($formdata[$name]) ? $formdata[$name] : $value;
+        $value = isset($formData[$name]) ? $formData[$name] : $value;
         $op = [
             'path' => isset($options['path']) ? $options['path'] : '',
             'mime' => isset($options['mime']) ? $options['mime'] : '',
@@ -663,7 +666,6 @@ class FormHelper
         $str .= '</div>';
 
         return $str;
-
     }
 
     /**

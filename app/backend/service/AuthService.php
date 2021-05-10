@@ -67,11 +67,14 @@ class AuthService
         $this->controller = strtolower($this->controller ? $this->controller : 'index');
         $url = $this->controller . '/' . $this->action;
         $pathurl = $this->request->url();
-        $pathurl = explode('?',trim($pathurl, '/'))[0];
+        $pathurl = explode('?', trim($pathurl, '/'))[0];
         $this->requesturl = strtolower($url);
-        if(strpos($pathurl,'addons')!==false) $this->requesturl = $pathurl;
+        if (substr($pathurl, 0,7) === 'addons/') {
+            $this->requesturl = $pathurl;
+        }else{
+            $this->requesturl = str_replace(Config::get('entrance.backendEntrance'),'',$this->requesturl);
+        }
     }
-
     //获取左侧主菜单
     public function authMenuNode($menu, $pid = 0, $rules = [])
     {
@@ -100,21 +103,23 @@ class AuthService
                         if ($allchildids) {
                             $allchildids = trim($allchildids, ',');
                             $allIndexChild = AuthRule::field('href,id')
-                                ->where('href', 'like', '%/index')
+//                                ->where('href', 'like', '%/index')
                                 ->where('id', 'in', $authrules)
+                                ->where('id', 'in', $allchildids)
                                 ->where('status', 1)
-                                ->where('id', 'in', $allchildids)->find();
+                                ->find();
                             if (!$allIndexChild) {
                                 unset($menu[$k]);
                                 continue;
                             }
                         }
                         $child = AuthRule::field('href,id')
-                            ->where('href', 'like', '%/index')
+//                            ->where('href', 'like', '%/index')
                             ->where('status', 1)
                             ->where('pid', $v['id'])->find();
                         //删除下级没有list的菜单权限
-                        if ($child && !in_array($child['id'], $authrules)) {
+//                        if ($child && !in_array($child['id'], $authrules)) {
+                        if (!$child) {
                             unset($menu[$k]);
                             continue;
                         } else {
@@ -130,11 +135,10 @@ class AuthService
         }
         return $list;
     }
-
     /**
      * 获取所有子id
      */
-    public function getallIdsBypid($pid)
+    protected function getallIdsBypid($pid)
     {
         $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
         $str = '';
@@ -287,9 +291,9 @@ class AuthService
                         $this->error(lang('Demo is not allow to change data'));
                     }
                     $this->hrefId = AuthRule::where('href', $this->requesturl)
-                        ->where('status', 1)->value('id');
+                        ->where('status', 1)
+                        ->value('id');
                     //当前管理员权限
-                    $map['a.id'] = session('admin.id');
                     $rules = AuthGroupModel::where('id', 'in', session('admin.group_id'))
                         ->where('status', 1)->value('rules');
                     //用户权限规则id
@@ -299,7 +303,7 @@ class AuthService
                     $this->adminRules = array_merge($adminRules, $noruls);
                     if ($this->hrefId) {
                         if (!in_array($this->hrefId, $this->adminRules)) {
-                            $this->error(lang('Permission denied1'));
+                            $this->error(lang('Permission Denied'));
                         }
                     } else {
                         if (!in_array($this->requesturl, $cfg['noRightNode'])) {
@@ -345,13 +349,11 @@ class AuthService
                 $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
             }
             if ($val['child'] and count($val['child']) > 0) {
-
                 $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '<span class="layui-nav-more"></span></a>';
                 $html = $this->childmenuhtml($html, $val['child']);
             } else {
                 $target = $val['target'] ? $val['target'] : '_self';
                 $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-
             }
             $html .= '</li>';
         }
@@ -394,7 +396,7 @@ class AuthService
         if (!$admin) {
             return false;
         }
-//判断是否同一时间同一账号只能在一个地方登录// 要是备份还原的话，这里会有点问题
+        //判断是否同一时间同一账号只能在一个地方登录// 要是备份还原的话，这里会有点问题
         $me = AdminModel::find($admin['id']);
 //        if (!$me || $me['token'] != $admin['token']) {
         if (!$me) {
@@ -402,7 +404,7 @@ class AuthService
             return false;
         }
 //        }
-//过期
+        //过期
         if (!session('admin.expiretime') || session('admin.expiretime') < time()) {
             $this->logout();
             return false;
@@ -415,7 +417,6 @@ class AuthService
         return true;
     }
 
-
     /**
      * 根据用户名密码，验证用户是否能成功登陆
      * @param string $username
@@ -423,7 +424,8 @@ class AuthService
      * @return mixed
      * @throws \Exception
      */
-    public function checkLogin($username, $password, $rememberMe)
+    public
+    function checkLogin($username, $password, $rememberMe)
     {
         try {
             $where['username'] = strip_tags(trim($username));
@@ -453,7 +455,7 @@ class AuthService
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
             } else {
-                $admin['expiretime'] = 7 * 24 * 3600 + time();
+                $admin['expiretime'] = \session('session.expire');
             }
             unset($admin['password']);
             Session::set('admin', $admin);
@@ -466,7 +468,8 @@ class AuthService
     /**
      * 注销登录
      */
-    public function logout()
+    public
+    function logout()
     {
         $admin = AdminModel::find(intval(\session('admin.id')));
         if ($admin) {

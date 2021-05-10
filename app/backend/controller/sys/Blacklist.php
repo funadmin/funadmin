@@ -16,6 +16,8 @@ use app\common\traits\Curd;
 use think\App;
 use think\facade\Db;
 use think\facade\View;
+use app\common\annotation\ControllerAnnotation;
+use app\common\annotation\NodeAnnotation;
 class Blacklist extends Backend {
 
 

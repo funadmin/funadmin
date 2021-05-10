@@ -1280,6 +1280,7 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
         var that = this,
             options = that.config;
         if (options.isTree) {
+            console.log(n.hasOwnProperty(table.config.cols.isOpen))
             if (!n.hasOwnProperty(table.config.cols.isOpen)) { //如果不存在该属性则默认为true
                 n[table.config.cols.isOpen] = options.isOpenDefault;
             }
