@@ -104,6 +104,7 @@ All rights reserved。
 在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流
 QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
+Gitee：https://gitee.com/funadmin/funadmin
 Github：https://github.com/funadmin/funadmin
 
 

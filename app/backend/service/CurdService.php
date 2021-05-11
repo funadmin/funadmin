@@ -94,7 +94,6 @@ class CurdService
         $this->rootPath = root_path();
         return $this;
     }
-
     /**
      * 获取配置
      * @return \string[][]
