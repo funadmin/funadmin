@@ -13,7 +13,6 @@
 
 
 namespace app\backend\model;
-use think\model\relation\HasOne;
 
 class AuthGroup extends BackendModel
 {

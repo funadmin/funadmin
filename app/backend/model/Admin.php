@@ -24,8 +24,7 @@ class Admin extends BackendModel {
      * @return \think\model\relation\BelongsTo
      */
     public function authGroup(){
-
-       return  $this->belongsTo(AuthGroup::class,'group_id','id');
+        return  $this->belongsTo(AuthGroup::class,'group_id','id');
     }
 
 

@@ -47,7 +47,6 @@ class Ajax extends Backend
             $upload = UploadService::instance();
             $result = $upload->uploads(0,session('admin.id'));
             return json($result);
-
         } catch (Exception $e) {
             $this->error($e->getMessage());
         }
