@@ -22,8 +22,8 @@
 ### 插件市场 https://www.funadmin.com/frontend/plugins
 ### 帮助文档：https://www.kancloud.cn/limingyue/funadmin 正在持续更新中...
 ### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
-### QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
-### QQ群：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
+### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
+### QQ群2：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
 ### 安装前到目录先执行composer install 或者composer update
 
 ## 项目介绍
