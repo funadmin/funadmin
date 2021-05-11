@@ -26,6 +26,7 @@
 ### 如果对您有帮助，您可以点右上角 "Star" 支持一下 谢谢！
 ### 如果您想获悉项目实时更新信息，您可以点右上角"Watch"
 ### 如果您想参与项目的开发，您可以点右上角"Fork"！
+### Github：https://github.com/funadmin/funadmin
 ### 官方网址：http://www.funadmin.com/
 ### 插件市场 https://www.funadmin.com/frontend/plugins
 ### 帮助文档：https://www.kancloud.cn/limingyue/funadmin 正在持续更新中...
