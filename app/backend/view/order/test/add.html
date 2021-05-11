@@ -1,0 +1,28 @@
+<form class="layui-form" lay-filter="form">
+    {:form_input('cate_id', 'text', ['label' => 'cate_id', 'verify' => 'required'], '')}
+{:form_input('cate_ids', 'text', ['label' => 'cate_ids', 'verify' => 'required'], '')}
+{:form_select('week',$weekList, ['label' => '星期', 'verify' => 'required', 'search' => 1], [], 'monday')}
+{:form_radio('sexdata' ,$sexdataList, ['label' => '性别', 'verify' => 'required'], 'secret')}
+{:form_textarea('textarea', ['label' => '内容', 'verify' => 'required',], '')}
+{:form_upload('image',$formData?$formData['image']:'' ,['label' => '图片', 'verify' => 'required', 'type' => 'radio', 'mime' => 'image', 'path' => 'Test', 'num' => '1'])}
+{:form_upload('images', $formData?$formData['images']:'', ['label' => '图片集合', 'verify' => 'required', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'Test', 'num' => '*'])}
+{:form_upload('attach_file', $formData?$formData['attach_file']:'', ['label' => '附件', 'verify' => 'required', 'type' => 'radio', 'mime' => 'file', 'path' =>'Test', 'num' => '1'])}
+{:form_upload('attach_files', $formData?$formData['attach_files']:'', ['label' => '附件', 'verify' => 'required', 'type' => 'checkbox', 'mime' => 'file', 'path' => 'Test', 'num' => '*'])}
+{:form_input('keywords', 'text', ['label' => 'keywords', 'verify' => 'required'], '')}
+{:form_input('price', 'text', ['label' => 'price', 'verify' => 'required'], '0.00')}
+{:form_date('startdate', ['label' => '开始日期', 'verify' => 'required', 'type' => 'date'])}
+{:form_date('activitytime', ['label' => '活动时间', 'verify' => 'required'])}
+{:form_date('timestaptime', ['label' => '时间戳', 'verify' => 'required'])}
+{:form_date('year', ['label' => '年', 'verify' => 'required', 'type' => 'year'])}
+{:form_date('times', ['label' => '时间', 'verify' => 'required', 'type' => 'time'])}
+{:form_switch('switch', [0 => 'Close', 1 => 'open'], ['label' => '上架状态', 'verify' => 'required'], $formData?$formData['switch']:'1') }
+{:form_switch('open_switch', [0 => 'Close', 1 => 'open'], ['label' => '开关', 'verify' => 'required'], $formData?$formData['open_switch']:'0') }
+{:form_checkbox('teststate', $teststateList,['label' => '复选', 'verify' => 'required'], $formData?$formData['teststate']:'1')}
+{:form_checkbox('test2state', $test2stateList,['label' => '爱好', 'verify' => ''], $formData?$formData['test2state']:'2')}
+{:form_editor('editor_content', 'editor_content', 2,['label'=>'富文本','verify' => ''])}
+{:form_editor('description', 'description', 2,['label'=>'描述','verify' => ''])}
+{:form_color('test_color', 'test_color', ['label' => '颜色', 'verify' => '', 'search' => 1])}
+
+    {:form_submitbtn()}
+</form>
+

@@ -195,7 +195,6 @@ class CurdService
                 'addFileName' =>
                     $this->rootPath . "app" . DS . "backend" . DS . "view" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::snake($this->controllerName) : Str::snake($this->controllerName)) . DS . 'add.html',
             ];
-
         } else {
             //插件模式
             $this->controllerNamespace = "addons\\{$this->addon}\\backend\\controller" . $nameSpace;
@@ -514,7 +513,7 @@ class CurdService
     public function makeFile($filename, $content)
     {
         if (is_file($filename) && !$this->force) {
-            throw new \Exception('文件已经存在');
+            throw new \Exception($filename.'文件已经存在');
         }
         if (!is_dir(dirname($filename))) {
             @mkdir(dirname($filename), 0755, true);
@@ -720,10 +719,16 @@ class CurdService
         $assignKeys = $this->table . '_assign';
         $tableField = Cache::get($keys);
         $assign = Cache::get($assignKeys);
+        $sql = "show tables like '{$this->tablePrefix}{$this->table}'";
+        $table = Db::query($sql);
+        if(!$table){
+            throw new \Exception($this->table.'表不存在');
+        }
         if (!$tableField) {
 //        if (1) {
             $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
             $tableField = Db::query($sql);
+
             foreach ($tableField as $k => &$v) {
                 $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
                 $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');

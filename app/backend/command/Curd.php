@@ -98,7 +98,9 @@ class Curd extends Command
             $curdService->maker();
             $output->info('make success');
         }catch (\Exception $e){
+            $output->writeln('----------------');
             $output->error($e->getMessage());
+            $output->writeln('----------------');
         }
     }
 }
