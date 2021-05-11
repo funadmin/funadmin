@@ -1,18 +1,25 @@
 <h1 align="center">🔥🔥🔥🔥🔥🔥为梦想而创作：FunAdmin开发框架系统--支持PHP8.0的系统 </h1>
 
 <p align="center">
-	<a href="http://www.funadmin.com/">
-	    <img src="https://img.shields.io/hexpm/l/plug.svg" />
-	</a>
-	<a href="https://www.layui.com/">
+    <a href="http://www.funadmin.com/">
+        <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
+    </a>
+    <a href="https://www.layui.com/">
         <img src="https://img.shields.io/badge/layui-2.6.5-blue.svg" alt="layui">
     </a>
-	<a href='https://gitee.com/funadmin/funadmin/stargazers'>
-	    <img src='https://gitee.com/funadmin/funadmin/badge/star.svg?theme=white' alt='star'></img>
-	</a>
-	<a href='https://gitee.com/funadmin/funadmin/members'>
-	    <img src='https://gitee.com/funadmin/funadmin/badge/fork.svg?theme=white' alt='fork'></img>
-	</a>
+    <a href="http://www.funadmin.com/">
+        <img src="https://img.shields.io/badge/php-%3E%3D7.2-8892BF.svg" alt="PHP Version">
+    </a>
+    <a href='https://gitee.com/funadmin/funadmin'>
+        <img src='https://img.shields.io/badge/Mysql-%3E%3D5.7-green' alt='MYSQL'></img>
+    </a>
+    <a href='https://gitee.com/funadmin/funadmin'>
+        <img src='https://gitee.com/funadmin/funadmin/badge/star.svg?theme=dark' alt='star'></img>
+    </a>
+    <a href='https://gitee.com/funadmin/funadmin'>
+        <img src='https://gitee.com/funadmin/funadmin/badge/fork.svg?theme=white' alt='fork'></img>
+    </a>
+
 </p>
 
 ### 如果对您有帮助，您可以点右上角 "Star" 支持一下 谢谢！
