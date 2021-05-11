@@ -49,7 +49,7 @@ FunAdmin 基于thinkphp6 +Layui2.6.5+requirejs开发权限(RBAC)管理框架，�
 * CURL PHP Extension
 * 开启静态重写
 * 要求环境支持pathinfo
-* Mysql 5.5及以上
+* Mysql 5.5及以上 建议5.7及以上
 * Apache 或 Nginx
 
 ### 功能特性
