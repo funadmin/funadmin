@@ -2,26 +2,30 @@ body,html{height:100%}
 body{-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;width:100%;overflow:hidden;color:#999;background-size:cover;background-position-x:initial;background-position-y:initial;background-attachment:initial;background-origin:initial;background-clip:initial;background-color:initial}
 body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-filter:blur(3px);-moz-filter:blur(3px);-o-filter:blur(3px);-ms-filter:blur(3px);filter:blur(3px);position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1}
 .layui-form-item input,.layui-form-item label{transition:all .3s ease-in-out;-webkit-transition:all .3s ease-in-out}
-.layui-input:focus{border-color:#ff6700!important}
+.layui-input:focus{border-color:#623ceb!important}
 .layui-login-body{max-width:360px;margin:0 auto;margin-top:12%}
 .layui-container{width:100%;height:100%;overflow:hidden}
+.layui-header{height: auto}
 .layui-icon-header{text-align:center;padding-top:10px}
-.layui-icon-header i{font-size:60px;color: #0cafa0;text-align:center}
-.layui-card-header{color:#0cafa0;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:24px;border-bottom:none}
-.layui-card-body{border:1px solid #0cafa0;border-radius:8px;padding:14px 20px;box-shadow:0 0 8px #eee}
-.layui-card-body .layui-form-item label{color:#0cafa0!important}
+.layui-icon-header i{font-size:60px;color: #623ceb;text-align:center}
+.layui-card-header{color:#623ceb;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:36px;border-bottom:none}
+.layui-card-body{line-height:normal;border:1px solid #623ceb;border-radius:8px;padding:0 0 14px 0;box-shadow:0 0 8px #eee}
+.layui-card-body .layui-form{padding:14px 15px;}
+.layui-card-body .layui-form-item label{color:#623ceb!important}
 .layui-card-body .layui-form-item{position:relative}
 .layui-card-body .layui-form-item label{position:absolute;left:1px;top:1px;width:38px;line-height:36px;text-align:center;color:#d2d2d2}
 .layui-card-body .layui-form-item input{padding-left:40px;border-radius:2px}
 .layui-form-item .captcha{width:65%;display:inline-block}
 .layui-form-item .captcha-img{display:inline-block;width:34%;float:right}
 .layui-form-item .captcha-img img{border:1px solid #e6e6e6;height:36px;width:100%}
-.layui-form-item.copyright{font-size:12px;color:#0cafa0;text-align:center}
-.layui-form-item.copyright a{color:#0cafa0}
-.layui-btn{background-color:#0cafa0!important}
-input::-webkit-input-placeholder{color:#bdcada}
-input:-moz-placeholder{color:#bdcada}
-input::-moz-placeholder{color:#bdcada}
+.layui-form-item.copyright{font-size:12px;color:#623ceb;text-align:center}
+.layui-form-item.copyright a{color:#623ceb}
+.layui-form-checked[lay-skin=primary] i{border-color: #623ceb!important;background-color: #623ceb;}
+.layui-btn{background-color:#623ceb!important}
+input::-webkit-input-placeholder{color:#b29ff3}
+input:-moz-placeholder{color:#b29ff3}
+input::-moz-placeholder{color: #b29ff3
+}
 input:-ms-input-placeholder{color:#bdcada}
 @media screen and (max-width:1200px){.layui-login-body{max-width:360px;margin-top:250px}
 }

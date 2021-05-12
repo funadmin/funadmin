@@ -21,15 +21,20 @@
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/login.css" media="all">
 </head>
 <body>
-<style>body{background:url("{$bg}") 0% 0% / cover no-repeat}</style>
+
+<style>
+    body{background:url("{$bg}") 0% 0% / cover no-repeat}
+</style>
 <div class="layui-container">
     <div class="layui-login-body">
-        <div class="layui-form layui-card-body">
-            <form class="layui-form layui-form-pane" action="">
+        <div class="layui-form layui-card-body ">
+            <div class="layui-header">
                 <div class="layui-icon-header"><i class="layui-icon">&#xe770;</i></div>
                 <div class="layui-card-header">
                     FunAdmin
                 </div>
+            </div>
+            <form class="layui-form layui-form-pane" action="">
                 {:token_field()}
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-username"></label>
