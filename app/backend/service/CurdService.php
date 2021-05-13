@@ -734,7 +734,7 @@ class CurdService
                 $v['comment'] = str_replace(array("\r\n", "\r", "\n"), "", $v['COLUMN_COMMENT']);
                 $v['name'] = $v['COLUMN_NAME'];
                 $v['value'] = $v['COLUMN_DEFAULT'];
-                if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' || !in_array($v['name'], $this->config['ignoreFields'])) {
+                if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
                     throw new \Exception('字段' . $v['name'] . '注释无效');
                 }
                 $v['type'] = 'text';
@@ -847,7 +847,7 @@ class CurdService
                     $v['type'] = "_id";
                     $assign[$v['name'] . 'List']='';
                 }
-                if (in_array($v['DATA_TYPE'], ['tinyint', 'set', 'enum'])) {
+                if (in_array($v['DATA_TYPE'], ['tinyint','set', 'enum']) and $v['type']!='_id') {
                     $comment = explode('=', $v['comment']);
                     if (!in_array($v['name'], $this->config['ignoreFields'])) {
                         if (count($comment) != 2) {
@@ -871,7 +871,6 @@ class CurdService
         $this->assign = $assign;
         return $this;
     }
-
     /**
      * @param $v
      * @return string
