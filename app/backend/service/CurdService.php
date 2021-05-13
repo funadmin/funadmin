@@ -442,11 +442,12 @@ class CurdService
                 ['{{$addon}}','{{$menu}}'],
                 [Str::lower($this->addon),$this->menuListStr],
                 file_get_contents($pluginTpl));
-            $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
-            $this->makeFile($this->fileList['pluginIniFileName'], $iniTpl);
-            $this->makeFile($this->fileList['pluginFileName'], $pluginTpl);
+            if(!$this->fileList['pluginConfigFileName'] || $this->force){
+                $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
+                $this->makeFile($this->fileList['pluginIniFileName'], $iniTpl);
+                $this->makeFile($this->fileList['pluginFileName'], $pluginTpl);
+            }
         }
-
     }
 
     /**
