@@ -12,6 +12,7 @@
  */
 
 namespace app\common\controller;
+use app\common\traits\Curd;
 use app\common\traits\Jump;
 use fun\addons\Controller;
 use think\App;
@@ -24,6 +25,7 @@ use think\facade\View;
 class AddonsController extends Controller
 {
     use Jump;
+    use Curd;
     /**
      * @var
      * 入口
@@ -66,6 +68,7 @@ class AddonsController extends Controller
     protected $allowModifyFields = [
         'status',
         'title',
+        'sort',
     ];
 
     public function __construct(App $app)
@@ -73,7 +76,7 @@ class AddonsController extends Controller
         parent::__construct($app);
         $this->request = Request::instance();
         //过滤参数
-        $this->pageSize = input('limit', 15);
+        $this->pageSize = input('limit/d', 15);
         //加载语言包
         $this->loadlang(strtolower($this->controller));
         View::assign('addon',$this->addon);
@@ -151,7 +154,7 @@ class AddonsController extends Controller
             $sort = ["$sort"=>$order];
         }
         if ($search) {
-            $searcharr = is_array($searchFields) ? $searchFields : explode(',', $searchfields);
+            $searcharr = is_array($searchFields) ? $searchFields : explode(',', $searchFields);
             foreach ($searcharr as $k => &$v) {
                 $v = stripos($v, ".") === false ? $tableName . $v : $v;
             }

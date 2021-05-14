@@ -60,6 +60,7 @@ class Backend extends BaseController
      * 是否是关联查询
      */
     protected $relationSearch = false;
+
     public function __construct(App $app)
     {
         parent::__construct($app);

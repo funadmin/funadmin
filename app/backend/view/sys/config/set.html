@@ -10,7 +10,6 @@
         <!--网站配置-->
         <div class="layui-tab-item layui-show">
             <form class="layui-form" action="{:__u('site')}" lay-filter="form">
-
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Site name')}</label>
                     <div class="layui-input-block">
@@ -28,7 +27,6 @@
                                placeholder="{:lang('Site Domain')}" value="" class="layui-input">
                     </div>
                 </div>
-
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Site Email')}</label>
                     <div class="layui-input-block">
@@ -37,9 +35,7 @@
                                placeholder="{:lang('Site Email')}" value="" class="layui-input">
                     </div>
                 </div>
-
                 {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
-
                 <div class="layui-form-item layui-form-text">
                     <label class="layui-form-label">{:lang('Site title')}</label>
                     <div class="layui-input-block">
@@ -64,19 +60,15 @@
                 <div class="layui-form-item layui-form-text">
                     <label class="layui-form-label required">{:lang('All right')}</label>
                     <div class="layui-input-block">
-                        <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2019 www.FunAdmin.com MIT license</textarea>
+                        <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2021 www.FunAdmin.com Apache2 license</textarea>
                     </div>
                 </div>
-
                 {:form_submitbtn(true,['show'=>1])}
-
-
             </form>
         </div>
         <!--上传配置-->
         <div class="layui-tab-item">
             <form class="layui-form " lay-filter="form">
-
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('File type')}</label>
                     <div class="layui-input-block">
@@ -93,7 +85,6 @@
                         <div class="layui-form-mid layui-word-aux">M {:lang('Tips')}：1 M = 1024 KB</div>
                     </div>
                 </div>
-
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Upload Driver')}</label>
                     <div class="layui-input-block">
@@ -110,7 +101,6 @@
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
-
     </div>
 </div>
 

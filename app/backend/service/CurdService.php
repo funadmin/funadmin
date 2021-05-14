@@ -169,8 +169,8 @@ class CurdService
         $methodArr = explode(',', $this->method);
         foreach ($methodArr as $k => $v) {
             if ($v != 'refresh') {
-                $concontrollerPrefix  = $this->addon?"addons/$this->addon/$this->module/":"";
-                $this->requests .= $v . '_url:' ."'{$concontrollerPrefix}{$this->controllerUrl}/{$v}'" . ','.PHP_EOL;
+                $controllerPrefix  = $this->addon?"addons/$this->addon/". ($this->module=='common'?'backend':$this->module) ."/":"";
+                $this->requests .= $v . '_url:' ."'{$controllerPrefix}{$this->controllerUrl}/{$v}'" . ','.PHP_EOL;
             }
         }
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
@@ -570,7 +570,7 @@ class CurdService
         $formFieldData = '';
         foreach ($this->fieldsList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
-            if (in_array($vo['name'], $this->config['ignoreFields'])) continue;
+            if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name']!='status') continue;
             if (in_array($vo['name'], $this->config['keepField'])) continue;
             switch ($vo['type']) {
                 case "text":
@@ -589,29 +589,33 @@ class CurdService
                     $formFieldData .= "{:form_textarea('{$vo['name']}', '{$vo['value']}', ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
                     break;
                 case "checkbox":
-                    $formFieldData .= "{:form_checkbox('{$vo['name']}', \${$vo['name']}List,['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
+                    $vo['name_list'] = lcfirst(Str::studly($vo['name']));
+                    $formFieldData .= "{:form_checkbox('{$vo['name']}', \${$vo['name_list']}List,['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "radio":
-                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $vo['name_list'] = lcfirst(Str::studly($vo['name']));
+                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "_id":
                     if($this->joinTable){
+                        $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                         if(strpos($vo['name'],'_ids')){
                             $vo['name'] = str_replace('_ids','',$vo['name']);
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         }elseif(strpos($vo['name'],'_id')){
                             $vo['name'] = str_replace('_id','',$vo['name']);
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         }
                     }else{
                         $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['name']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "select":
+                    $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                     if ($vo['DATA_TYPE'] == 'set') {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     } else {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "color":
@@ -676,7 +680,7 @@ class CurdService
                         case 'checkbox':
                         case 'select':
                         case 'radio':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',selectList:".$v['option'].",title: __('{$v['comment']}'),sort:true,templet: Table.templet.select},".PHP_EOL;;
+                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',selectList:".$v['option'].",title: __('{$v['comment']}'),sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'switch':
                             $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',  selectList: ".$v['option'].",title: __('{$v['comment']}'),sort:true,templet: Table.templet.switch},".PHP_EOL;;
@@ -843,7 +847,7 @@ class CurdService
                 //指定后缀结尾 且类型为number系列的字段 为其他表主键
                 if ($this->hasSuffix($fieldsName, $this->config['priSuffix']) && (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'mediumint', 'int', 'bigint','varchar','char']))) {
                     $v['type'] = "_id";
-                    $assign[$v['name'] . 'List']='';
+                    $assign[lcfirst(Str::studly($v['name'])) . 'List']='';
                 }
                 if (in_array($v['DATA_TYPE'], ['tinyint','set', 'enum']) and $v['type']!='_id') {
                     $comment = explode('=', $v['comment']);
@@ -852,9 +856,10 @@ class CurdService
                             throw new \Exception('字段' . $v['name'] . '注释无效');
                         }
                         $v['comment'] = $comment[0];
-                        list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($comment[1]);
+                        list($assign[lcfirst(Str::studly($v['name'])) . 'List'],$v['option']) = $this->getOptionStr($comment[1]);
                     }else{
                         if($v['name']=='status'){
+                            $assign[lcfirst(Str::studly($v['name'])) . 'List'] = '[0=>"enabled",1=>"disabled"]';
                             $v['option'] = '{0:"enabled",1:"disabled"}';
                         }
                         $v['comment'] = $comment[0];

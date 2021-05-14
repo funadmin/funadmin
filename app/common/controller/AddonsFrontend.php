@@ -26,7 +26,6 @@ use think\helper\Str;
 
 class AddonsFrontend extends AddonsController
 {
-    use Jump;
     /**
      * @var
      * 入口

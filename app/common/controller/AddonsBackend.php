@@ -16,17 +16,13 @@ use app\backend\service\AuthService;
 use app\common\service\AdminLogService;
 use app\common\traits\Jump;
 use app\common\traits\Curd;
-use fun\addons\Controller;
 use think\App;
 use think\facade\Config;
-use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\View;
 use think\helper\Str;
 class AddonsBackend extends AddonsController
 {
-    use Jump;
-    use Curd;
     /**
      * @var
      * 后台入口
@@ -67,7 +63,7 @@ class AddonsBackend extends AddonsController
     /**
      * 允许修改的字段
      */
-    protected $allowModifyFileds = [
+    protected $allowModifyFields = [
         'status',
         'title',
         'auth_verify'
@@ -82,7 +78,7 @@ class AddonsBackend extends AddonsController
         parent::__construct($app);
         $this->entrance = config('entrance.backendEntrance');
         (new AuthService())->checkNode();
-        $this->pageSize = request()->param('limit', 15);
+        $this->pageSize = request()->param('limit/d', 15);
         //加载语言包
         $this->loadlang(strtolower($this->controller));
         $this->_initialize();

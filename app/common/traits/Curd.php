@@ -168,7 +168,7 @@ trait Curd
         $field = input('field');
         $value = input('value');
         if($id){
-            if($this->allowModifyFileds != ['*'] and !in_array($field, $this->allowModifyFileds)){
+            if($this->allowModifyFields != ['*'] and !in_array($field,$this->allowModifyFields)){
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
             $model = $this->findModel($id);
