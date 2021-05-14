@@ -16,6 +16,10 @@ use function time;
 
 /**
  * A cache aware annotation reader.
+ *
+ * @deprecated the CachedReader is deprecated and will be removed
+ *             in version 2.0.0 of doctrine/annotations. Please use the
+ *             {@see \Doctrine\Common\Annotations\PsrCachedReader} instead.
  */
 final class CachedReader implements Reader
 {

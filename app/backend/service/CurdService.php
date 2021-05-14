@@ -431,7 +431,7 @@ class CurdService
      */
     protected function makeAddon()
     {
-        if ($this->addon) {
+        if ($this->addon and (!$this->fileList['pluginFileName'] || $this->force)){
             $configTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'addon' . DS . 'config.tpl';
             $iniTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'addon' . DS . 'ini.tpl';
             $pluginTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'addon' . DS . 'plugin.tpl';
@@ -442,11 +442,9 @@ class CurdService
                 ['{{$addon}}','{{$menu}}'],
                 [Str::lower($this->addon),$this->menuListStr],
                 file_get_contents($pluginTpl));
-            if(!$this->fileList['pluginConfigFileName'] || $this->force){
-                $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
-                $this->makeFile($this->fileList['pluginIniFileName'], $iniTpl);
-                $this->makeFile($this->fileList['pluginFileName'], $pluginTpl);
-            }
+            $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
+            $this->makeFile($this->fileList['pluginIniFileName'], $iniTpl);
+            $this->makeFile($this->fileList['pluginFileName'], $pluginTpl);
         }
     }
 
