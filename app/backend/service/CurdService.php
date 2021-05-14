@@ -211,7 +211,7 @@ class CurdService
                 'addFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "view" . DS . "backend". DS .($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName  : Str::snake($this->controllerName)). DS . "add.html",
                 'pluginFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "Plugin.php",
                 'pluginIniFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "Plugin.ini",
-                'pluginConfigFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "config.html",
+                'pluginConfigFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "config.php",
             ];
         }
         return $this;
@@ -726,7 +726,6 @@ class CurdService
 //        if (1) {
             $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
             $tableField = Db::query($sql);
-
             foreach ($tableField as $k => &$v) {
                 $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
                 $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');
