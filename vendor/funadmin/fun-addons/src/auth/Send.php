@@ -68,7 +68,7 @@ trait Send
                 header($name . ':' . $val);
             }
         }
-        $response = Response::create($result, $type, $code)->header($header);
+        $response = Response::create($result, $type, (int)$code)->header($header);
         throw new HttpResponseException($response);
     }
 }

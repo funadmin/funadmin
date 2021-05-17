@@ -65,17 +65,17 @@
     },
     {
         "name": "doctrine/annotations",
-        "version": "1.13.0",
-        "version_normalized": "1.13.0.0",
+        "version": "1.13.1",
+        "version_normalized": "1.13.1.0",
         "source": {
             "type": "git",
             "url": "https://github.com/doctrine/annotations.git",
-            "reference": "03cb2123a67d4be806554fe670d0adc298199808"
+            "reference": "e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/doctrine/annotations/zipball/03cb2123a67d4be806554fe670d0adc298199808",
-            "reference": "03cb2123a67d4be806554fe670d0adc298199808",
+            "url": "https://api.github.com/repos/doctrine/annotations/zipball/e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f",
+            "reference": "e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f",
             "shasum": "",
             "mirrors": [
                 {
@@ -94,10 +94,10 @@
             "doctrine/cache": "^1.11 || ^2.0",
             "doctrine/coding-standard": "^6.0 || ^8.1",
             "phpstan/phpstan": "^0.12.20",
-            "phpunit/phpunit": "^7.5 || ^9.1.5",
+            "phpunit/phpunit": "^7.5 || ^8.0 || ^9.1.5",
             "symfony/cache": "^4.4 || ^5.2"
         },
-        "time": "2021-04-29T07:39:39+00:00",
+        "time": "2021-05-16T18:07:53+00:00",
         "type": "library",
         "installation-source": "dist",
         "autoload": {
@@ -314,17 +314,17 @@
     },
     {
         "name": "funadmin/fun-addons",
-        "version": "v1.36",
-        "version_normalized": "1.36.0.0",
+        "version": "v1.37",
+        "version_normalized": "1.37.0.0",
         "source": {
             "type": "git",
             "url": "https://github.com/funadmin/fun-addons.git",
-            "reference": "7f056cc50ecf7b51e7eb9d1c636b495ab9cc5056"
+            "reference": "2983bcda9d308dd9e2c09423079f16b961460350"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7f056cc50ecf7b51e7eb9d1c636b495ab9cc5056",
-            "reference": "7f056cc50ecf7b51e7eb9d1c636b495ab9cc5056",
+            "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/2983bcda9d308dd9e2c09423079f16b961460350",
+            "reference": "2983bcda9d308dd9e2c09423079f16b961460350",
             "shasum": "",
             "mirrors": [
                 {
@@ -339,7 +339,7 @@
             "topthink/think-helper": "^3.1",
             "topthink/think-view": "^1.0"
         },
-        "time": "2021-04-22T08:52:10+00:00",
+        "time": "2021-05-17T01:07:34+00:00",
         "type": "library",
         "extra": {
             "think": {
@@ -362,18 +362,14 @@
         },
         "notification-url": "https://packagist.org/downloads/",
         "license": [
-            "mit"
+            "Apache-2.0"
         ],
         "authors": [
             {
                 "name": "fun",
                 "email": "fun@qq.com"
             }
-        ],
-        "support": {
-            "issues": "https://github.com/funadmin/fun-addons/issues",
-            "source": "https://github.com/funadmin/fun-addons/tree/v1.36"
-        }
+        ]
     },
     {
         "name": "league/flysystem",

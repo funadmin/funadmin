@@ -11,8 +11,8 @@
  * Date: 2019/9/30
  */
 use think\facade\Route;
-////一般路由规则，访问的url为：v1/user/1,对应的文件为Address类下的read方法
-Route::get(':version/address/:id','api/:version.member/address');
+////一般路由规则，访问的url为：v1/member/1,对应的文件为member类下的index方法
+Route::get(':version/member/index','api/:version.member/index');
 //
 ////资源路由，详情查看tp手册资源路由
 Route::resource(':version/member','api/:version.member')->app('api');

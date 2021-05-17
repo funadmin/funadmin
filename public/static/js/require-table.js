@@ -545,7 +545,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         layui.table.reload(tableId);
                     });
                 });
-
                 return false;
             },
             // 数据表格多删除

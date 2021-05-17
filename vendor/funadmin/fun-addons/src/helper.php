@@ -479,20 +479,20 @@ if (!function_exists('importsql')) {
         $sqlFile = $addons_path . $name . DS . 'install.sql';
         if (is_file($sqlFile)) {
             $lines = file($sqlFile);
-            $templine = '';
+            $tempLine = '';
             foreach ($lines as $line) {
                 if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
                     continue;
-                $templine .= $line;
+                $tempLine .= $line;
                 if (substr(trim($line), -1, 1) == ';' and $line != 'COMMIT;') {
-                    $templine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $templine);
-                    $templine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $templine);
+                    $tempLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $tempLine);
+                    $tempLine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $tempLine);
                     try {
-                        Db::execute($templine);
+                        Db::execute($tempLine);
                     } catch (\PDOException $e) {
                         throw new PDOException($e->getMessage());
                     }
-                    $templine = '';
+                    $tempLine = '';
                 }
             }
         }
@@ -515,19 +515,19 @@ if (!function_exists('uninstallsql')) {
         $sqlFile = $addons_path . $name . DS . 'uninstall.sql';
         if (is_file($sqlFile)) {
             $lines = file($sqlFile);
-            $templine = '';
+            $tempLine = '';
             foreach ($lines as $line) {
                 if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
                     continue;
-                $templine .= $line;
+                $tempLine .= $line;
                 if (substr(trim($line), -1, 1) == ';') {
-                    $templine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $templine);
+                    $tempLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $tempLine);
                     try {
-                        Db::query($templine);
+                        Db::execute($tempLine);
                     } catch (\PDOException $e) {
                         throw new PDOException($e->getMessage());
                     }
-                    $templine = '';
+                    $tempLine = '';
                 }
             }
         }

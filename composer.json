@@ -34,7 +34,7 @@
     "topthink/think-throttle": "^1.2",
     "doctrine/annotations": "^1.12",
     "ramsey/uuid": "^4.1",
-    "funadmin/fun-addons": "v1.36"
+    "funadmin/fun-addons": "v1.37"
 
   },
   "require-dev": {
