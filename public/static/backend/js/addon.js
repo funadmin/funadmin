@@ -65,63 +65,6 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 appid: 'funadmin',   // appid
                 appsecret: '',   // appserct
             }
-            // layui.cardTable.render({
-            //     elem: '#'+Table.init.tableId,
-            //     //此为动态
-            //     //url: '/card.json',
-            //     //此为静态
-            //     data:[{
-            //         "id": "1",
-            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/gLaIAoVWTtLbBWZNYEMg.png",
-            //         "title": "Alipay",
-            //         "remark": "那是一种内在的东西， 他们到达不了，也无法触及的",
-            //         "time": "几秒前"
-            //     },{
-            //         "id": "2",
-            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/iXjVmWVHbCJAyqvDxdtx.png",
-            //         "title": "Layui",
-            //         "intro": "生命就像一盒巧克力，结果往往出人意料",
-            //         "time": "几秒前"
-            //     },{
-            //         "id": "3",
-            //         "image": "https://gw.alipayobjects.com/zos/rmsportal/iZBVOIhGJiAnhplqjvZW.png",
-            //         "title": "Angular",
-            //         "intro": "希望是一个好东西，也许是最好的，好东西是不会消亡的",
-            //         "time": "几秒前"
-            //     },
-            //         {
-            //             "id": "4",
-            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png",
-            //             "title": "React",
-            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
-            //             "time": "几秒前"
-            //         },{
-            //             "id": "5",
-            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/gLaIAoVWTtLbBWZNYEMg.png",
-            //             "title": "Alipay",
-            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
-            //             "time": "几秒前"
-            //         },{
-            //             "id": "6",
-            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/iXjVmWVHbCJAyqvDxdtx.png",
-            //             "title": "Layui",
-            //             "intro": "生命就像一盒巧克力，结果往往出人意料",
-            //             "time": "几秒前"
-            //         },{
-            //             "id": "7",
-            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/iZBVOIhGJiAnhplqjvZW.png",
-            //             "title": "Angular",
-            //             "intro": "希望是一个好东西，也许是最好的，好东西是不会消亡的",
-            //             "time": "几秒前"
-            //         },
-            //         {
-            //             "id": "8",
-            //             "image": "https://gw.alipayobjects.com/zos/rmsportal/uMfMFlvUuceEyPpotzlq.png",
-            //             "title": "React",
-            //             "intro": "那是一种内在的东西， 他们到达不了，也无法触及的",
-            //             "time": "几秒前",
-            //         }]
-            // })
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,

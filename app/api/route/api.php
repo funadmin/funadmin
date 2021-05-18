@@ -15,10 +15,9 @@ use think\facade\Route;
 Route::get(':version/member/index','api/:version.member/index');
 //
 ////资源路由，详情查看tp手册资源路由
-Route::resource(':version/member','api/:version.member')->app('api');
+Route::resource(':version/member','api/:version.member');
 //
 ////生成access_token，post访问Token类下的token方法
-//Route::post(':version/token','api/:version.token/accessToken')->app('api');;
-//Route::post(':version/token/refresh','api/:version.token/refresh')->app('api');
-//Route::rule('blog/:id','api/:v1.order/changeOrder');
+Route::post(':version/token','api/:version.token/accessToken');
+Route::post(':version/token/refresh','api/:version.token/refresh');
 
