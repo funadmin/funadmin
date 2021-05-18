@@ -85,13 +85,14 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     if(typeof v ==='string'){
                         v = eval('Table.init.requests.' + v);
                     }
+                    v.extend = typeof v.extend==="object"? "data-extend='"+JSON.stringify(v.extend)+"'":v.extend;
                     url = Fun.replaceurl(v.url,d);
                     if (Fun.checkAuth(v.url)) {
                         v.full = v.full || 0;v.resize = v.resize || 0;v.width = v.width || 800;v.height = v.height || 800;v.extend=v.extend||'';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-extend="'+ v.extend+'" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" '+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="'+v.type+'" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" '+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-extend="'+ v.extend+'" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="'+ v.width+'" data-height="'+ v.height+'" data-full="' + v.full + '" data-resize="'+v.resize+'" lay-event="request" data-tableid="' + tableId + '" data-url="' +
                                 url + '" title="' + v.title + '"'+ v.extend +'><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n';
                         }
                     }
@@ -319,7 +320,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 var ele = $(this)[0];
                 var icon = d[ele.field];
                 return '<i class="' + icon + '"></i>';
-
             },
             //开关
             switch: function (d) {
@@ -421,6 +421,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         vv.text = va.text || '';
                         vv.title = va.title || va.text || '';
                         vv.extend = va.extend || '';
+                        vv.extend = typeof vv.extend==="object"? "data-extend='"+JSON.stringify(vv.extend)+"'":vv.extend;
                         // 组合数据
                         vv.node = va.url;
                         vv.class = vv.class ?vv.class+' layui-btn-xs':vv.class;
@@ -463,6 +464,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         vv.text = va.text || '';
                         vv.title = va.title || vv.text || '';
                         vv.extend = va.extend || '';
+                        vv.extend = typeof vv.extend==="object"? "data-extend='"+JSON.stringify(vv.extend)+"'":vv.extend;
                         vv.node = va.url;
                         vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.id : va.url + '?id=' + d.id;
                         vv.url = Fun.replaceurl(vv.url,d);
@@ -494,7 +496,11 @@ define(['jquery','timePicker'],function ($,timePicker) {
         },
         //事件
         events: {
-            open: function (othis) {
+            open: function (othis,options=null) {
+                if(options){
+                    Fun.api.open(options);
+                    return ;
+                }
                 Fun.events.open(othis);
             },
             photos: function (othis) {
@@ -515,13 +521,19 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 Table.api.reload(Table.init.tableId,$where);
                 return false;
             },
-            request: function (othis) {
+            request: function (othis,options=null) {
                 var data = othis.data();
-                var title = othis.prop('title')?othis.prop('title'):data.title,
-                    url = data.url?data.url:data.href,tableId = data.tableId;
-                title = title || __('Are you sure');
-                tableId = tableId || Table.init.tableId;
-                url = url !== undefined ? url : window.location.href;
+                if(options){
+                    title = options.title;
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId;
+                }else{
+                    var title = othis.prop('title')?othis.prop('title'):data.title,
+                        url = data.url?data.url:data.href,tableId = data.tableId;
+                    title = title || __('Are you sure');
+                    url = url !== undefined ? url : window.location.href;
+                    tableId = tableId || Table.init.tableId;
+                }
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({
                         url: url,
@@ -535,7 +547,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         });
                     })
                     Fun.toastr.close();
-
                 }, function (res) {
                     if (res === undefined) {
                         Fun.toastr.close();
@@ -548,10 +559,17 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 return false;
             },
             // 数据表格多删除
-            delete: function (othis) {
-                var tableId = othis.data('tableid'),
+            delete: function (othis,options=null) {
+                var tableId = othis.data('tableid');
+                if(options){
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId;
+                } else{
                     url = othis.data('url');
-                tableId = tableId || Table.init.tableId;
+                    tableId = tableId || Table.init.tableId;
+                }
+                var checkStatus = layui.table.checkStatus(tableId),
+                    data = checkStatus.data;
                 url = url !== undefined ? Fun.url(url) : window.location.href;
                 var checkStatus = layui.table.checkStatus(tableId),
                     data = checkStatus.data;
@@ -585,6 +603,36 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         });
                     });
                 return false;
+            },
+            //下拉菜单
+            dropdown:function (othis){
+                var extend = $(othis).attr('data-extend');
+                extend = JSON.parse(extend)
+                if(typeof extend ==='object'){
+                    $.each(extend, function (k, v) {
+                        v.class = v.class|| 'layui-btn layui-btn-xs';
+                        v.title = v.title|| v.text;
+                        v.event = v.event|| v.type;
+                        extend[k].id=v.event
+                        extend[k].textTitle=v.title
+                        extend[k].url = $(othis).attr('data-url');
+                        extend[k].title='<button lay-event="'+ v.event+'" class="layui-btn '+v.class+'" title="'+v.title+'"><i class="'+v.icon+'"></i>'+v.title+'</button>';
+                    })
+                    layui.dropdown.render({
+                        elem: othis
+                        ,show: true //外部事件触发即显示
+                        // ,trigger: 'hover'
+                        ,data: extend
+                        ,click: function(data, _that){
+                            //根据 id 做出不同操作
+                            attrEvent = data.id;data.title = data.textTitle;
+                            if (Table.events.hasOwnProperty(attrEvent)) {
+                                Table.events[attrEvent] && Table.events[attrEvent].call(this, _that,data);
+                            }
+                        }
+                        ,style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);' //设置额外样式
+                    });
+                }
             },
             //返回页面
             closeOpen: function (othis) {

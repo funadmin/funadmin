@@ -567,41 +567,6 @@ body .layui-site-mobile {display: none}
     color: #f0f0f0
 }
 
-#layui-nav-righmenu .rightMenu {
-    background: #fff;
-    min-width: 110px;
-    max-width: 250px;
-    height: auto;
-    position: fixed;
-    z-index: 999;
-    left: 299px;
-    top: 100px;
-    /*border: 1px solid #d2d2d2*/
-}
-
-#layui-nav-righmenu .rightMenu div>a {
-    display: inline-block;
-    font-size: 14px;
-    color: #666;
-    padding: 0 10px;
-    cursor: pointer;
-    line-height: 36px;
-    text-decoration: none;
-    position: relative
-}
-#layui-nav-righmenu .rightMenu div>a i{
-
-    padding: 0 5px 0 0;
-}
-
-#layui-nav-righmenu .rightMenu div>a>layui-side-shrink i {
-    position: absolute;
-    left: 12px;
-    top: 0;
-    font-size: 15px;
-    color: #666
-}
-
 .layui-rightmenu-shade {
     display: block;
     width: 100%;

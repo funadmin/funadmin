@@ -880,6 +880,7 @@ class CurdService
      */
     protected function getOptionStr($op)
     {
+        $op = trim(trim($op, '('), ')');
         $option = explode(',', (trim(trim($op, '['), ']')));
         $optionsArrStr = "[";
         $optionObjStr = '{';

@@ -1,5 +1,5 @@
-layui.define(["jquery", 'layer','element'], function (exports) {
-    var $ = layui.$, element = layui.element, layer = layui.layer;
+layui.define(["jquery", 'layer','element','dropdown'], function (exports) {
+    var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
     element.init();
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
@@ -290,7 +290,7 @@ layui.define(["jquery", 'layer','element'], function (exports) {
         ];
     var Backend = {
         /*** 版本*/
-        v: '1.5.0',
+        v: '1.6.0',
         /**
          * @param options
          */
@@ -957,40 +957,48 @@ layui.define(["jquery", 'layer','element'], function (exports) {
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                 });
-                // //鼠标提示
-                // $document.on("mouseenter", "*[lay-tips]", function () {
-                //     var _that = $(this)
-                //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 1);
-                //
-                // }).on("mouseleave", "*[lay-tips]", function () {
-                //     var _that = $(this)
-                //    Backend.events['showtips'] && Backend.events['showtips'].call(this, _that, 2);
-                // });
-                /*** 鼠标事件*/
-                $(document).bind("contextmenu","#layui-tab-header > li", function (e) {
-                    e.preventDefault();
-                    return false;//
-                });
-                $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
-                    event = event || window.event;  //兼容写法
-                    if (event.which === 3) {
-                        var _that = $(this), leftwith = _that.offset().left + (_that.outerWidth()) / 2;
-                        if ($('body').find('#layui-nav-righmenu').length === 0) {
-                            var menuContent = '<div id="layui-nav-righmenu"><div class="rightMenu" style="left: ' + leftwith + 'px">\n' +
-                                '<div lay-event="refresh"><a href="javascript:;"><i class="layui-icon layui-icon-refresh"></i>刷新当前页</a></div>\n' +
-                                '<div lay-event="closeThisTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close-fill"></i>关闭当前页</a></div>\n' +
-                                '<div lay-event="closeOtherTabs"><a href="javascript:;"><i class="layui-icon layui-icon-unlink"></i>关闭其它页</a></div>\n' +
-                                '<div lay-event="closeAllTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close"></i>关闭全部页</a></div>\n' +
-                                '</div><div class="layui-rightmenu-shade"></div></div>';
-                            _that.parents('.layui-tab-title').after(menuContent);
-                        } else {
-                            $('.rightMenu').css('left', leftwith + 'px');
-                        }
+                //鼠标右键盘
+                dropdown.render({
+                    elem: '#layui-tab-header' //也可绑定到 document，从而重置整个右键
+                    ,trigger: 'contextmenu' //contextmenu
+                    ,isAllowSpread: false //禁止菜单组展开收缩
+                    ,style: 'width: 130px' //定义宽度，默认自适应
+                    ,id: 'layui-tab-header-menu' //定义唯一索引
+                    ,data: [{
+                        title: '<a href="javascript:;" lay-event="refresh"><i class="layui-icon layui-icon-refresh"></i>  刷新当前页</a>'
+                        ,id: 'refresh'
+                    }, {type:'-'},{
+                        title: '<a href="javascript:;" lay-event="closeThisTabs">&nbsp;<i class="layui-icon layui-icon-close-fill"></i>  关闭当前页</a>'
+                        ,id: 'closeThisTabs'
+                    },{type:'-'},{
+                        title: '<a href="javascript:;" lay-event="closeOtherTabs">&nbsp;<i class="layui-icon layui-icon-unlink"></i>  关闭其它页</a>'
+                        ,id: 'closeOtherTabs'
+                    },{type:'-'},{
+                        title: '<a href="javascript:;" lay-event="closeAllTabs">&nbsp;<i class="layui-icon layui-icon-close"></i>  关闭全部页</a>'
+                        ,id: 'closeAllTabs'
                     }
+                    ]
                 });
-                //关闭右键菜单
+                // $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
+                //     event = event || window.event;  //兼容写法
+                //     if (event.which === 3) {
+                //         var _that = $(this), leftwith = _that.offset().left + (_that.outerWidth()) / 2;
+                //         if ($('body').find('#layui-nav-righmenu').length === 0) {
+                //             var menuContent = '<div id="layui-nav-righmenu"><div class="rightMenu" style="left: ' + leftwith + 'px">\n' +
+                //                 '<div lay-event="refresh"><a href="javascript:;"><i class="layui-icon layui-icon-refresh"></i>刷新当前页</a></div>\n' +
+                //                 '<div lay-event="closeThisTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close-fill"></i>关闭当前页</a></div>\n' +
+                //                 '<div lay-event="closeOtherTabs"><a href="javascript:;"><i class="layui-icon layui-icon-unlink"></i>关闭其它页</a></div>\n' +
+                //                 '<div lay-event="closeAllTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close"></i>关闭全部页</a></div>\n' +
+                //                 '</div><div class="layui-rightmenu-shade"></div></div>';
+                //             _that.parents('.layui-tab-title').after(menuContent);
+                //         } else {
+                //             $('.rightMenu').css('left', leftwith + 'px');
+                //         }
+                //     }
+                // });
+                // //关闭右键菜单
                 $document.on('click', '.layui-body,.layui-header,.layui-side-menu,.layui-tab,.layui-right-shade', function () {
-                    $('#layui-nav-righmenu').remove();
+                    $('.layui-dropdown').remove();
                 });
                 $(window).on("resize", function () {
                     $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');

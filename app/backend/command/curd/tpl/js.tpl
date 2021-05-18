@@ -5,7 +5,7 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-{{$requests}}
+                    {{$requests}}
                 }
             }
             Table.render({
