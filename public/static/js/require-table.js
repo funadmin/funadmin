@@ -568,8 +568,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     url = othis.data('url');
                     tableId = tableId || Table.init.tableId;
                 }
-                var checkStatus = layui.table.checkStatus(tableId),
-                    data = checkStatus.data;
                 url = url !== undefined ? Fun.url(url) : window.location.href;
                 var checkStatus = layui.table.checkStatus(tableId),
                     data = checkStatus.data;

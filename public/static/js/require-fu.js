@@ -135,8 +135,7 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                     if (list.length > 0) {
                         $.each(list, function () {
                             var _that = $(this);
-                            var id = _that.prop('id');
-                            var name = _that.prop('name');
+                            var id = _that.prop('id'), name = _that.prop('name');
                             //执行实例
                             layui.regionCheckBox.render({
                                 elem: '#' + id,
@@ -166,14 +165,32 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                     if (list.length > 0) {
                         cityPicker = layui.cityPicker;
                         $.each(list, function () {
-                            var id = $(this).prop('id');
-                            new cityPicker("#" + id, {
-                                provincename: "provinceId",
-                                cityname: "cityId",
-                                districtname: "districtId",
+                            var id = $(this).prop('id'),name = $(this).prop('name');
+                            var provinceId = $(this).data('provinceid'), cityId = $(this).data('cityid');
+                            var districtId = $(this).data('districtid');
+                            currentPicker = new cityPicker("#" + id, {
+                                provincename: provinceId,
+                                cityname: cityId,
+                                districtname: districtId,
                                 level: 'districtId',// 级别
+                                // province: '',// 默认省份名称
+                                // city: '',// 默认地市名称
+                                // district: ''// 默认区县名称
                             });
-                            // currentPicker.setValue("");
+                            var str ='';
+                            if(Config.formData.hasOwnProperty(provinceId)){
+                                str += ChineseDistricts[886][Config.formData[provinceId]];
+                            }
+                            if(Config.formData.hasOwnProperty(cityId) && Config.formData.hasOwnProperty(provinceId)){
+                                str += '/'+ChineseDistricts[Config.formData[provinceId]][Config.formData[cityId]];
+                            }
+                            if(Config.formData.hasOwnProperty(cityId) && Config.formData.hasOwnProperty(districtId)){
+                                str += '/'+ChineseDistricts[Config.formData[cityId]][Config.formData[districtId]];
+                            }
+                            if(!str){
+                                str = Config.formData.hasOwnProperty(name)? Config.formData['name']:'';
+                            }
+                            currentPicker.setValue(str);//设置值
                         })
                     }
                 },

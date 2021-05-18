@@ -15,6 +15,7 @@ namespace app\frontend\controller;
 use app\common\controller\Frontend;
 use think\App;
 use think\captcha\facade\Captcha;
+use think\facade\Console;
 use think\facade\Db;
 class Index extends Frontend {
     protected $layout='';

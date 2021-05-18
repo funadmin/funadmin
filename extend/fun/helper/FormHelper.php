@@ -445,11 +445,14 @@ class FormHelper
      */
     public static function city($name = 'cityPicker', $id = 'cityPicker', $options=[])
     {
-
+        $options['provinceId'] = isset($options['provinceId'])?$options['provinceId']:'province_id';
+        $options['cityId'] = isset($options['cityId'])?$options['cityId']:'city_id';
+        $options['districtId'] = isset($options['districtId'])?$options['districtId']:'area_id';
+        $attr = 'data-districtid="'.$options['districtId'].'" data-cityid="'.$options['cityId'].'" data-provinceid="'.$options['provinceId'].'"';
         $str = ' <div class="layui-form-item">
                     <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
                     <div class="layui-input-block">
-                        <input type="hidden" autocomplete="on" class="layui-input" lay-filter="cityPicker" id="' . $id . '" name="' . $name . '" readonly="readonly" data-toggle="city-picker" placeholder="请选择"/>
+                        <input type="hidden" autocomplete="on" class="layui-input" '.$attr.' lay-filter="cityPicker" id="' . $id . '" name="' . $name . '" readonly="readonly" data-toggle="city-picker" placeholder="请选择"/>
                     </div>
                     </div>';
         return $str;

@@ -979,23 +979,6 @@ layui.define(["jquery", 'layer','element','dropdown'], function (exports) {
                     }
                     ]
                 });
-                // $document.on("mousedown", "#layui-tab-header.layui-tab-title>li", function (event) {
-                //     event = event || window.event;  //兼容写法
-                //     if (event.which === 3) {
-                //         var _that = $(this), leftwith = _that.offset().left + (_that.outerWidth()) / 2;
-                //         if ($('body').find('#layui-nav-righmenu').length === 0) {
-                //             var menuContent = '<div id="layui-nav-righmenu"><div class="rightMenu" style="left: ' + leftwith + 'px">\n' +
-                //                 '<div lay-event="refresh"><a href="javascript:;"><i class="layui-icon layui-icon-refresh"></i>刷新当前页</a></div>\n' +
-                //                 '<div lay-event="closeThisTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close-fill"></i>关闭当前页</a></div>\n' +
-                //                 '<div lay-event="closeOtherTabs"><a href="javascript:;"><i class="layui-icon layui-icon-unlink"></i>关闭其它页</a></div>\n' +
-                //                 '<div lay-event="closeAllTabs"><a href="javascript:;"><i class="layui-icon layui-icon-close"></i>关闭全部页</a></div>\n' +
-                //                 '</div><div class="layui-rightmenu-shade"></div></div>';
-                //             _that.parents('.layui-tab-title').after(menuContent);
-                //         } else {
-                //             $('.rightMenu').css('left', leftwith + 'px');
-                //         }
-                //     }
-                // });
                 // //关闭右键菜单
                 $document.on('click', '.layui-body,.layui-header,.layui-side-menu,.layui-tab,.layui-right-shade', function () {
                     $('.layui-dropdown').remove();

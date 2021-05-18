@@ -15,7 +15,7 @@ use think\facade\Route;
 Route::get(':version/member/index','api/:version.member/index');
 //
 ////资源路由，详情查看tp手册资源路由
-Route::resource(':version/member','api/:version.member');
+//Route::resource(':version/member','api/:version.member');
 //
 ////生成access_token，post访问Token类下的token方法
 Route::post(':version/token','api/:version.token/accessToken');
