@@ -33,7 +33,6 @@ class Member extends Backend
         $this->modelClass = new MemberModel();
     }
 
-
     public function index()
     {
         if ($this->request->isAjax()) {
@@ -52,9 +51,7 @@ class Member extends Backend
             return json($result);
         }
         return view();
-
     }
-
 
     public function add()
     {
@@ -113,12 +110,10 @@ class Member extends Backend
             'title' => lang('Edit'),
             'memberLevel' => $memberLevel,
             'memberGroup' => $memberGroup,
-
         ];
         View::assign($view);
         return view('add');
 
     }
-
 
 }

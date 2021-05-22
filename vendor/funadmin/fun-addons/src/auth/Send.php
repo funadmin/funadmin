@@ -17,12 +17,10 @@ use think\Response;
 
 trait Send
 {
-    public static $timeDif = 10000;
-    public static $accessTokenPrefix = 'accessToken_';
-    public static $refreshAccessTokenPrefix = 'refreshAccessToken_';
-    public static $refreshExpires = 3600 * 24 * 30;   //刷新token过期时间
-    public static $expires = 7200;
-    public static $responseType = 'json';
+    public  $timeDif = 10000;
+    public  $refreshExpires = 3600 * 24 * 30;   //刷新token过期时间
+    public  $expires = 7200;
+    public  $responseType = 'json';
 
     /**
      * 操作成功返回的数据
@@ -32,9 +30,9 @@ trait Send
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public static function success($msg = '', $data = null, $code = 200, $type = null, array $header = [])
+    public  function success($msg = '', $data = null, $code = 200, $type = null, array $header = [])
     {
-        self::result($msg, $data, $code, $type, $header);
+        $this->result($msg, $data, $code, $type, $header);
     }
 
     /**
@@ -45,12 +43,12 @@ trait Send
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public static function error($msg = '', $data = null, $code = 404, $type = null, array $header = [])
+    public function error($msg = '', $data = null, $code = 404, $type = null, array $header = [])
     {
-        self::result($msg, $data, $code, $type, $header);
+        $this->result($msg, $data, $code, $type, $header);
     }
 
-    protected static function result($msg, $data = null, $code = 404, $type = null, array $header = [])
+    protected  function result($msg, $data = null, $code = 404, $type = null, array $header = [])
     {
         $result = [
             'code' => $code,
@@ -59,7 +57,7 @@ trait Send
             'data' => $data,
         ];
         // 如果未设置类型则自动判断
-        $type = $type ? $type : (\think\facade\Request::param(config('var_jsonp_handler')) ? 'jsonp' : self::$responseType);
+        $type = $type ? $type : (\think\facade\Request::param(config('var_jsonp_handler')) ? 'jsonp' : $this->responseType);
         // 发送头部信息
         foreach ($header as $name => $val) {
             if (is_null($val)) {

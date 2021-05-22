@@ -58,7 +58,9 @@ return [
     'Level'  =>  '等级',
     'Please choose data'  =>  '请选择数据',
     'Defaults'  =>  '默认',
-
+    'upgrade'=>'更新',
+    'check'=>'检测',
+    'backup'=>'备份',
     'Wechat'  =>  '微信',
     'Message'  =>  '消息',
     'Material'  =>  '素材',

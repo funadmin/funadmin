@@ -1,0 +1,36 @@
+<script type="text/html" id="login_tpl">
+  <style>
+    .layui-form-label {
+      padding: 9px 0px;
+    }
+    .layui-form-item .required::after{
+      position:unset;
+    }
+  </style>
+  <div>
+    <div class="layui-card">
+      <div class="layui-card-header">
+        登录提示：账号为 <a class="layui-bg-blue" target="_blank" href="http://www.FunAdmin.com">FunAdmin</a> 官方账号
+      </div>
+      <br>
+      <div class="layui-card-body">
+        <form class="layui-form" action="">
+          <div class="layui-form-item">
+            <label class="layui-form-label required">账号<i class="fa fa-user"></i></label>
+            <div class="layui-input-block">
+              <input type="text" class="layui-input"  lay-verify="required" id="inputUsername" value=""
+                     placeholder="{:lang('username or email')}">
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label required">密码<i class="fa fa-lock"></i></label>
+            <div class="layui-input-block">
+              <input type="password" class="layui-input"  lay-verify="required" id="inputPassword" value=""
+                     placeholder="{:lang('Your password')}">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</script>

@@ -10,6 +10,7 @@
  * Author: yuege
  * Date: 2019/9/26
  */
+
 namespace fun\helper;
 
 class HttpHelper
@@ -17,39 +18,39 @@ class HttpHelper
 
     /**
      * 发送一个POST请求
-     * @param string $url     请求URL
-     * @param array  $params  请求参数
-     * @param array  $options 扩展参数
+     * @param string $url 请求URL
+     * @param array $params 请求参数
+     * @param array $options 扩展参数
      * @return mixed|string
      */
-    public static function post($url, $params = [], $options = [],$cookies=[])
+    public static function post($url, $params = [], $header = [], $options = [], $cookies = [])
     {
-        $req = self::sendRequest($url, $params, 'POST', $options,$cookies);
+        $req = self::sendRequest($url, $params, 'POST', $header = [], $options, $cookies);
         return $req['ret'] ? $req['msg'] : '';
     }
 
     /**
      * 发送一个GET请求
-     * @param string $url     请求URL
-     * @param array  $params  请求参数
-     * @param array  $options 扩展参数
+     * @param string $url 请求URL
+     * @param array $params 请求参数
+     * @param array $options 扩展参数
      * @return mixed|string
      */
-    public static function get($url, $params = [], $options = [],$cookies=[])
+    public static function get($url, $params = [], $header = [], $options = [], $cookies = [])
     {
-        $req = self::sendRequest($url, $params, 'GET', $options,$cookies);
+        $req = self::sendRequest($url, $params, 'GET', $header = [], $options, $cookies);
         return $req['ret'] ? $req['msg'] : '';
     }
 
     /**
      * CURL发送Request请求,含POST和REQUEST
-     * @param string $url     请求的链接
-     * @param mixed  $params  传递的参数
-     * @param string $method  请求的方法
-     * @param mixed  $options CURL的参数
+     * @param string $url 请求的链接
+     * @param mixed $params 传递的参数
+     * @param string $method 请求的方法
+     * @param mixed $options CURL的参数
      * @return array
      */
-    public static function sendRequest($url, $params = [], $method = 'POST', $options = [],$cookies=[])
+    public static function sendRequest($url, $params = [], $method = 'POST', $header = [], $options = [], $cookies = [])
     {
         $method = strtoupper($method);
         $protocol = substr($url, 0, 5);
@@ -69,7 +70,7 @@ class HttpHelper
             }
             $defaults[CURLOPT_POSTFIELDS] = $query_string;
         }
-        if(!empty($cookies)){
+        if (!empty($cookies)) {
             curl_setopt($ch, CURLOPT_COOKIE, $cookies);
             curl_setopt($ch, CURLOPT_COOKIEJAR, $cookies);
 
@@ -80,17 +81,12 @@ class HttpHelper
         $defaults[CURLOPT_RETURNTRANSFER] = true;
         $defaults[CURLOPT_CONNECTTIMEOUT] = 3;
         $defaults[CURLOPT_TIMEOUT] = 3;
-
-        // disable 100-continue
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
-
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header ?: array('Expect:'));
         if ('https' == $protocol) {
             $defaults[CURLOPT_SSL_VERIFYPEER] = false;
             $defaults[CURLOPT_SSL_VERIFYHOST] = false;
         }
-
         curl_setopt_array($ch, (array)$options + $defaults);
-
         $ret = curl_exec($ch);
         $err = curl_error($ch);
 
@@ -99,10 +95,10 @@ class HttpHelper
             $info = curl_getinfo($ch);
             curl_close($ch);
             return [
-                'ret'   => false,
+                'ret' => false,
                 'errno' => $errno,
-                'msg'   => $err,
-                'info'  => $info,
+                'msg' => $err,
+                'info' => $info,
             ];
         }
         curl_close($ch);
@@ -114,8 +110,8 @@ class HttpHelper
 
     /**
      * 异步发送一个请求
-     * @param string $url    请求的链接
-     * @param mixed  $params 请求的参数
+     * @param string $url 请求的链接
+     * @param mixed $params 请求的参数
      * @param string $method 请求的方法
      * @return boolean TRUE
      */
@@ -167,8 +163,8 @@ class HttpHelper
     /**
      * 发送文件到客户端
      * @param string $file
-     * @param bool   $delaftersend
-     * @param bool   $exitaftersend
+     * @param bool $delaftersend
+     * @param bool $exitaftersend
      */
     public static function sendToBrowser($file, $delaftersend = true, $exitaftersend = true)
     {
@@ -190,6 +186,101 @@ class HttpHelper
             if ($exitaftersend) {
                 exit;
             }
+        }
+    }
+
+    /**
+     * 下载并保存
+     * @param $url
+     * @param $savePath
+     * @param string $params
+     * @param array $header
+     * @param int $timeout
+     * @return false|mixed
+     */
+    public static function download($url, $savePath,$saveName, $method = 'GET', $params = '', $header = [], $cookies = [], $timeout = 3600)
+    {
+        if(!is_dir($savePath)){
+            FileHelper::mkdirs($savePath);
+        }
+        @touch($saveName);
+        $fp = fopen($savePath.$savePath, 'wb');
+        $protocol = substr($url, 0, 5);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        if ('https' == $protocol) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        }
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, FALSE); //需要response body
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header ?: ['Expect:']);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_NOPROGRESS, 0);
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+        curl_setopt($ch, CURLOPT_BUFFERSIZE, 64000);
+        if ($method == 'POST') {
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        }
+        if (!empty($cookies)) {
+            curl_setopt($ch, CURLOPT_COOKIE, $cookies);
+            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookies);
+        }
+        $res = curl_exec($ch);
+        $curlInfo = curl_getinfo($ch);
+        if (curl_errno($ch) || $curlInfo['http_code'] != 200) {
+            curl_error($ch);
+            @unlink($savePath.$savePath);
+            return false;
+        } else {
+            curl_close($ch);
+        }
+        fclose($fp);
+        return $savePath.$savePath;
+    }
+
+    /** php 接收流文件
+     * @param String $file 接收后保存的文件名
+     * @return boolean
+     */
+    public static function receiveStreamFile($receiveFile)
+    {
+        $streamData = isset($GLOBALS['HTTP_RAW_POST_DATA']) ? $GLOBALS['HTTP_RAW_POST_DATA'] : '';
+        if (empty($streamData)) {
+            $streamData = file_get_contents('php://input');
+        }
+        if ($streamData != '') {
+            $ret = file_put_contents($receiveFile, $streamData, true);
+        } else {
+            $ret = false;
+        }
+        return $ret;
+    }
+
+    /** php 发送流文件
+     * @param String $url 接收的路径
+     * @param String $file 要发送的文件
+     * @return boolean
+     */
+    public static function sendStreamFile($url, $file)
+    {
+        if (file_exists($file)) {
+            $opts = array(
+                'http' => array(
+                    'method' => 'POST',
+                    'header' => 'content-type:application/x-www-form-urlencoded',
+                    'content' => file_get_contents($file)
+                )
+            );
+            $context = stream_context_create($opts);
+            $response = file_get_contents($url, false, $context);
+            $ret = json_decode($response, true);
+            return $ret['success'];
+        } else {
+            return false;
         }
     }
 }

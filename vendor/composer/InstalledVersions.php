@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '283819cfd8889a15d908201a6a948cd9d26838c3',
+    'reference' => 'a0bed0f83b38d56b29f4300965dec50dbeb551ce',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -46,12 +46,12 @@ private static $installed = array (
     ),
     'doctrine/annotations' => 
     array (
-      'pretty_version' => '1.12.1',
-      'version' => '1.12.1.0',
+      'pretty_version' => '1.13.1',
+      'version' => '1.13.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'b17c5014ef81d212ac539f07a1001832df1b6d3b',
+      'reference' => 'e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f',
     ),
     'doctrine/lexer' => 
     array (
@@ -73,12 +73,12 @@ private static $installed = array (
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v1.36',
-      'version' => '1.36.0.0',
+      'pretty_version' => 'v1.50',
+      'version' => '1.50.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '7f056cc50ecf7b51e7eb9d1c636b495ab9cc5056',
+      'reference' => 'b982edb263f8c90742362f44afcca7d865d09726',
     ),
     'funadmin/funadmin' => 
     array (
@@ -87,7 +87,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '283819cfd8889a15d908201a6a948cd9d26838c3',
+      'reference' => 'a0bed0f83b38d56b29f4300965dec50dbeb551ce',
     ),
     'league/flysystem' => 
     array (
@@ -260,12 +260,12 @@ private static $installed = array (
     ),
     'symfony/translation' => 
     array (
-      'pretty_version' => 'v5.2.8',
-      'version' => '5.2.8.0',
+      'pretty_version' => 'v5.2.9',
+      'version' => '5.2.9.0',
       'aliases' => 
       array (
       ),
-      'reference' => '445caa74a5986f1cc9dd91a2975ef68fa7cb2068',
+      'reference' => '61af68dba333e2d376a325a29c2a3f2a605b4876',
     ),
     'symfony/translation-contracts' => 
     array (

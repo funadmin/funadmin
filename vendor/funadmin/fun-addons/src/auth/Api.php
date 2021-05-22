@@ -54,7 +54,8 @@ class Api
         if ($this->request->isOptions()) {
             $this->success('success');
         }
-        if (!Oauth::match($this->noAuth) || Oauth::match($this->noAuth) && Request::header('authentication')) {               //请求方法白名单
+        $oauth = new Oauth();
+        if (!$oauth->match($this->noAuth) || $oauth->match($this->noAuth) && Request::header(config('api.authentication'))) {               //请求方法白名单
             $oauth = new Oauth();
             return $this->clientInfo = $oauth->authenticate();
         }

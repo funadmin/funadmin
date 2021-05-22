@@ -11,7 +11,7 @@ $runtimePath = str_replace(DIRECTORY_SEPARATOR . 'public', DIRECTORY_SEPARATOR .
 //定义后台名称
 $config = [
     'siteName' => "FunAdmin",
-    'siteVersion' => "V1.0",
+    'siteVersion' => "V1.1",
     'tablePrefix' => "fun_",
     'runtimePath' => $runtimePath,
 ];

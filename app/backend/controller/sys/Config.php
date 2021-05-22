@@ -22,6 +22,12 @@ use think\facade\Db;
 use think\facade\View;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
+
+/**
+ * @ControllerAnnotation('配置')
+ * Class Config
+ * @package app\backend\controller\sys
+ */
 class Config extends Backend {
 
 

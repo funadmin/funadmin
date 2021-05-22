@@ -270,8 +270,11 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (73, 'backend', '_self', 'addon/modify', 'modify', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
 (74, 'backend', '_self', 'addon/config', 'Config', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
 (75, 'backend', '_self', 'addon/uninstall', 'Uninstall', 0, 1, 1, 0, 'layui-icon-face-smile-fine', 64, 50, 1599889019, 1599889019, 0),
-(156, 'backend', '_self', 'sys.blacklist', 'blacklist', 1, 1, 1, 1, 'layui-icon layui-icon-rate', 1, 50, 1603427312, 1603428082, 0),
-(157, 'backend', '_self', 'sys.blacklist/index', 'list', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
+(76, 'backend', '_self', 'sys.upgrade', 'upgrade', 1, 1, 1, 1, 'layui-icon \r\n layui-icon-refresh-3\r\n\r\n', 1, 50, 1599889019, 1599889019, 0),
+(77, 'backend', '_self', 'sys.upgrade/index', 'list', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
+(78, 'backend', '_self', 'sys.upgrade/check', 'check', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
+(79, 'backend', '_self', 'sys.upgrade/backup', 'backup', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
+(80, 'backend', '_self', 'sys.upgrade/install', 'install', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
 (158, 'backend', '_self', 'sys.blacklist/add', 'add', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (159, 'backend', '_self', 'sys.blacklist/delete', 'delete', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (160, 'backend', '_self', 'sys.blacklist/edit', 'edit', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
@@ -676,7 +679,26 @@ CREATE TABLE `fun_oauth2_client` (
 INSERT INTO `fun_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
 (1, 0, 'FunAdmin', 'FunAdmin', '123456', '', '', '', 1, 0, 0, 0);
 
--- --------------------------------------------------------
+
+--
+-- 表的结构 `fun_oauth2_access_token`
+--
+
+CREATE TABLE `fun_oauth2_access_token` (
+                                           `id` int UNSIGNED NOT NULL,
+                                           `client_id` int NOT NULL COMMENT '客户端ID',
+                                           `merchant_id` int UNSIGNED DEFAULT '0' COMMENT '商户id',
+                                           `refresh_token` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '刷新令牌',
+                                           `access_token` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权令牌',
+                                           `expires_time` int NOT NULL COMMENT '过期时间',
+                                           `refresh_expires_time` int NOT NULL COMMENT '刷新过期时间',
+                                           `member_id` int UNSIGNED DEFAULT '0' COMMENT '用户id',
+                                           `openid` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权对象openid',
+                                           `group` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
+                                           `status` tinyint DEFAULT '1' COMMENT '状态=[-1:删除,0:禁用,1启用]',
+                                           `create_time` int UNSIGNED DEFAULT '0' COMMENT '创建时间',
+                                           `update_time` int UNSIGNED DEFAULT '0' COMMENT '修改时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='oauth授权表token';
 
 --
 -- 表的结构 `fun_provinces`
@@ -4578,6 +4600,28 @@ ALTER TABLE `fun_oauth2_client`
     ADD PRIMARY KEY (`id`),
   ADD KEY `client_id` (`appid`);
 
+--
+-- 转储表的索引
+--
+
+--
+-- 表的索引 `fun_oauth2_access_token`
+--
+ALTER TABLE `fun_oauth2_access_token`
+    ADD PRIMARY KEY (`id`),
+    ADD UNIQUE KEY `access_token` (`access_token`),
+    ADD UNIQUE KEY `refresh_token` (`refresh_token`);
+
+--
+-- 在导出的表使用AUTO_INCREMENT
+--
+
+--
+-- 使用表AUTO_INCREMENT `fun_oauth2_access_token`
+--
+ALTER TABLE `fun_oauth2_access_token`
+    MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+COMMIT;
 --
 -- 表的索引 `fun_provinces`
 --

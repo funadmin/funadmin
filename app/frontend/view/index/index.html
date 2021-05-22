@@ -102,7 +102,7 @@
                 </a>
             </div>
             <div class="site-version">
-                <span>当前版本：<cite class="site-showv">v1.020210408</cite></span>
+                <span>当前版本：<cite class="site-showv">v{:config('app.version')}</cite></span>
                 <span><a href="{:__u('version/log')}" rel="nofollow" target="_blank">更新日志</a></span>
                 <!--<span>下载量：<em class="site-showdowns">1894161</em></span>-->
             </div>
@@ -196,15 +196,66 @@
     </div>
 </section>
 <section>
-    <div class="layui-footer footer footer-index">
-        <p>&copy; 2018-2021 <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6">FunAdmin版权所有</a> Apache license</p>
+    <style>
+        .footer {
+            color: #aaa;
+            background: #393d49c2;
+            margin-top: 25px;
+        }
+        .footer ul {
+            margin: 60px 0 30px 0;
+            padding: 0;
+        }
+        .footer ul li.f-tit {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #fff;
+        }
+        .footer ul li {
+            line-height: 26px;
+            white-space: nowrap;
+            list-style: none;
+            color: #aaa;
+            margin: 0;
+            padding: 0;
+        }
+        .footer ul li a{
+            color: #aaa;
+        }
+        .fly-footer{
+            text-align: center;
+            line-height: 30px;
+            border-top: none;
+            background: #393D49;
+            color: #fff;
+            padding: 0;
+            margin: 0;
+        }
+        .fly-footer a{
+            color: #aaa;
+        }
+    </style>
+    <div class="fly-footer">
         <p>
-            <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6" site-event="contactInfo">QQ 群：775616363</a>
-            <a href="https://github.com/FunAdmin/FunAdmin" target="_blank" rel="nofollow">GitHub</a>
-            <a target="_blank" href="http://beian.miit.gov.com" target="_blank" rel="nofollow">粤ICP备19106066号</a>
+            <a href="javascript:;" target="_blank">Powered by funadmin</a>  <a href="javascript:;" target="_blank">2018-2028 &copy;</a></p>
+        <p>
+            <a href="javascript:;" >版权所有:funadmin版权所有</a>
+            <a href="http://www.funadmin.com/" title="funadmin官网">funadmin官网</a>
+            <a href="https://jq.qq.com/?_wv=1027&k=5wj2Wdy" title="获取源码">社区插件授权获取源码</a>
+            <a href="http://www.Funadmin.com/" title="开源后台管理系统">开源后台管理系统</a>
+            <a href="https://demo.funadmin.com/admin.php" title="php cms 后台管理系统">php后台管理系统</a>
+            <a href="http://www.beian.miit.gov.cn">粤ICP备19106066号</a>
         </p>
-
     </div>
+<!--    <div class="layui-footer footer footer-index">-->
+<!--        <p>&copy; 2018-2021 <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6">FunAdmin版权所有</a> Apache license</p>-->
+<!--        <p>-->
+<!--            <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6" site-event="contactInfo">QQ 群：775616363</a>-->
+<!--            <a href="https://github.com/FunAdmin/FunAdmin" target="_blank" rel="nofollow">GitHub</a>-->
+<!--            <a target="_blank" href="http://beian.miit.gov.com" target="_blank" rel="nofollow">粤ICP备19106066号</a>-->
+<!--        </p>-->
+
+<!--    </div>-->
 </section>
 
 <script src="__PLUGINS__/layui/layui.js"></script>

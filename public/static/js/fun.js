@@ -373,11 +373,11 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     success = options.success,
                     yes = options.yes,
                     btn2 = options.btn2,
-                    type = options.options;
-                type = type === undefined ? 2 : 1;
+                    type = options.type;
+                type = type === undefined || type===2  ? 2 : 1;
                 isResize = options.isResize === undefined;
                 isFull = !!options.full;
-                url = Fun.url(url);
+                url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';
                 height = height || '600';
@@ -411,7 +411,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     title: title,
                     type: type,
                     area: [width, height],
-                    content: [url],
+                    content: url,
                     shadeClose: true,
                     anim: 0,
                     shade: 0.1,

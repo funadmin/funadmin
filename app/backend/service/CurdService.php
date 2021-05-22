@@ -221,6 +221,7 @@ class CurdService
      */
     public function maker()
     {
+
         $this->getFieldList();
         if (!$this->config['delete']) {
             $this->makeModel();
@@ -365,24 +366,26 @@ class CurdService
         }
         //变量分配
         $i=0;
-        foreach ($this->assign as $k=>$v){
-            if(!$this->hasSuffix($k,$this->config['priSuffix'])){
-                $joinTplStr.=str_replace(['{{$method}}','{{$values}}'],
-                        ['get'.ucfirst($k),$v],
-                        file_get_contents($attrTpl)).PHP_EOL;
-            }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
-                //关联模型搜索属性
-                $model = isset($this->joinModel[$i])?$this->joinModel[$i]:$this->joinModel[0];
-                if(count($this->joinTable)==1){
-                    $value = isset($this->selectFields[0])?$this->selectFields[0]:'name';
-                }else{
-                    $value = isset($this->selectFields[$i])?$this->selectFields[$i]:'name';
+        if($this->assign){
+            foreach ($this->assign as $k=>$v){
+                if(!$this->hasSuffix($k,$this->config['priSuffix'])){
+                    $joinTplStr.=str_replace(['{{$method}}','{{$values}}'],
+                            ['get'.ucfirst($k),$v],
+                            file_get_contents($attrTpl)).PHP_EOL;
+                }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
+                    //关联模型搜索属性
+                    $model = isset($this->joinModel[$i])?$this->joinModel[$i]:$this->joinModel[0];
+                    if(count($this->joinTable)==1){
+                        $value = isset($this->selectFields[0])?$this->selectFields[0]:'name';
+                    }else{
+                        $value = isset($this->selectFields[$i])?$this->selectFields[$i]:'name';
+                    }
+                    $k = str_replace(['_id','_ids'],['',''],$k);
+                    $joinTplStr.=str_replace(['{{$method}}','{{$values}}','{{$joinModel}}'],
+                            ['get'.ucfirst($k),$value,ucfirst(Str::studly($model))],
+                            file_get_contents($joinAttrTpl)).PHP_EOL;
+                    $i++;
                 }
-                $k = str_replace(['_id','_ids'],['',''],$k);
-                $joinTplStr.=str_replace(['{{$method}}','{{$values}}','{{$joinModel}}'],
-                        ['get'.ucfirst($k),$value,ucfirst(Str::studly($model))],
-                        file_get_contents($joinAttrTpl)).PHP_EOL;
-                $i++;
             }
         }
         $modelTpl = str_replace([

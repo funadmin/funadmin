@@ -79,6 +79,12 @@ class Frontend extends BaseController
      */
     protected $relationSearch = false;
 
+    protected $allowModifyFields = [
+        'status',
+        'sort',
+        'title',
+    ];
+
     public function __construct(App $app)
     {
         parent::__construct($app);

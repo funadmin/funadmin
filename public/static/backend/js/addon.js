@@ -1,51 +1,4 @@
 define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
-    //时间戳
-    function getTimestamp() {
-        return Date.parse(new Date()) / 1000
-    }
-    //随机数
-    function getNonce(len) {
-        var $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnoprstuvwxyz123456789';
-        var maxPos = $chars.length;
-        var nonce = '';
-        len = len || 8;
-        for (i = 0; i < len; i++) {
-            nonce += $chars.charAt(Math.floor(Math.random() * maxPos));
-        }
-        return nonce;
-    }
-    //获取签名
-    function getSign(obj) {
-        //先用Object内置类的keys方法获取要排序对象的属性名，再利用Array原型上的sort方法对获取的属性名进行排序，newkey是一个数组
-        var newkey = Object.keys(obj).sort();
-        var newObj = {}; //创建一个新的对象，用于存放排好序的键值对
-        //排序
-        for (var i = 0; i < newkey.length; i++) {
-            //遍历newkey数组
-            newObj[newkey[i]] = obj[newkey[i]];
-            //向新创建的对象中按照排好的顺序依次增加键值对
-        }
-        var str = '';
-        //拼接
-        for (var key in newObj) {
-            str += key + '=' + newObj[key] + '&';
-        }
-        str = str.substring(0, str.length - 1);
-        return Md5(decodeURI(str)).toLowerCase();
-    }
-    //获取用户信息
-    function getUserinfo() {
-        var userinfo = localStorage.getItem("FunAdmin_userinfo");
-        return userinfo ? JSON.parse(userinfo) : null;
-    }
-    //设置用户信息
-    function setUserinfo(data) {
-        if (data) {
-            localStorage.setItem("FunAdmin_userinfo", JSON.stringify(data));
-        } else {
-            localStorage.removeItem("FunAdmin_userinfo");
-        }
-    }
     let Controller = {
         index: function () {
             Table.init = {
@@ -57,13 +10,8 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                     uninstall_url: 'addon/uninstall',
                     config_url: 'addon/config',
                     modify_url: 'addon/modify',
-                    // 配置
-                    api_url: 'https://www.funadmin.com',   // 接口地址
-                    login_url: '/api/v1.token/accessToken',   // 登陆地址获取token地址
                 },
                 searchinput:false,
-                appid: 'funadmin',   // appid
-                appsecret: '',   // appserct
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
@@ -112,21 +60,21 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install === 1 || d.install==='1') {
-                                html += '<a href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
+                                html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">config</a>'
                                 if (d.status === 1 ||  d.status === '1') {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('disabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
+                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('disabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已启用</a>'
                                 } else {
-                                    html += '<a class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
+                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
+                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
                             } else {
-                                html += '<a href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
+                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
                             }
                             if (d.install && d.install === 1 || d.install==='1') {
                                 if (d.website !== '') {
-                                    html += '<a  href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
+                                    html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
-                                html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
                             }
                             return html;
                         }
@@ -137,12 +85,11 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 page: true
             });
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
-                var url = $(this).data('url');
+                var url = $(this).data('url'),auth = $(this).data('auth');
                 url = Fun.url(url);
                 var event = $(this).attr('lay-event');
                 if (event === 'install') {
-                    if (getUserinfo() && getUserinfo().hasOwnProperty('client')) {
-                    // if (true) {
+                    if (auth) {
                         Fun.toastr.confirm('Are you sure you want to install it', function () {
                             let index = layer.load();
                             Fun.ajax({
@@ -172,7 +119,7 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                             btnAlign: 'c',
                             btn: ['login','register'],
                             yes: function (index, layero) {
-                                var url = Table.init.requests.api_url + Table.init.requests.login_url;
+                                var url = Fun.url(Table.init.requests.index_url);
                                 var data = {
                                     username: $("#inputUsername", layero).val(),
                                     password: $("#inputPassword", layero).val(),
@@ -181,23 +128,15 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                     Fun.toastr.error(__('Account Or Password Cannot Empty'));
                                     return false;
                                 }
-                                data.appid = Table.init.appid;
-                                data.appsecret = Table.init.appsecret;
-                                data.timestamp = getTimestamp();
-                                data.nonce = getNonce();
-                                data.key = Table.init.appsecret;
-                                data.sign = getSign(data);
                                 $.ajax({
                                     url: url, type: 'post', data: data, dataType: "json", success: function (res) {
-                                        console.log(res)
-                                        if (res.code === 200) {
-                                            setUserinfo(res.data);
+                                        if (res.code === 1) {
                                             Fun.toastr.success(res.msg, layer.closeAll())
                                         } else {
                                             Fun.toastr.alert(res.msg)
                                         }
                                     }, error: function (res) {
-                                        Fun.toastr.error(res.responseJSON.msg)
+                                        Fun.toastr.error(res.msg)
                                     }
                                 })
                             },

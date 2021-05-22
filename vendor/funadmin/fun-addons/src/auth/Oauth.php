@@ -12,10 +12,11 @@
  */
 namespace fun\auth;
 
+use app\common\model\Oauth2AccessToken;
 use fun\auth\Send;
 use think\Exception;
+use think\facade\Db;
 use think\facade\Request;
-use think\facade\Cache;
 
 /**
  * API鉴权验证
@@ -32,7 +33,7 @@ class Oauth
      */
     final function authenticate()
     {      
-        return self::certification(self::getClient());
+        return $this->certification($this->getClient());
     }
 
     /**
@@ -41,20 +42,20 @@ class Oauth
      * @return $this
      * @throws UnauthorizedException
      */
-    public static function getClient()
+    public  function getClient()
     {   
         //获取头部信息
+        $authorization = config('api.authentication')?config('api.authentication'):'authentication';
+        $authorizationHeader = Request::header($authorization); //获取请求中的authentication字段，值形式为USERID asdsajh..这种形式
         try {
-            $authorization = config('api.authentication')?config('api.authentication'):'authentication';
-            $authorization = Request::header($authorization); //获取请求中的authentication字段，值形式为USERID asdsajh..这种形式
-            $authorization = explode(" ", $authorization);//explode分割，获取后面一窜base64加密数据
-            $authorizationInfo  = explode(":", base64_decode($authorization[1]));  //对base_64解密，获取到用:拼接的自字符串，然后分割，可获取appid、accesstoken、uid这三个参数
+            $authorizationArr = explode(" ", $authorizationHeader);//explode分割，获取后面一窜base64加密数据
+            $authorizationInfo  = explode(":", base64_decode($authorizationArr[1]));  //对base_64解密，获取到用:拼接的自字符串，然后分割，可获取appid、accesstoken、uid这三个参数
             $clientInfo['appid'] = $authorizationInfo[0];
-            $clientInfo['access-token'] = $authorizationInfo[1];
+            $clientInfo['access_token'] = $authorizationInfo[1];
             $clientInfo['uid'] = $authorizationInfo[2];
             return $clientInfo;
         } catch (Exception $e) {
-            self::error('Invalid authorization credentials','',401,'',Request::header(''));
+            $this->error('Invalid authorization credentials','',401,'',$authorizationHeader?$authorizationHeader:[]);
         }
     }
 
@@ -62,16 +63,16 @@ class Oauth
      * 获取用户信息后 验证权限
      * @return mixed
      */
-    public static function certification($data = []){
+    public  function certification($data = []){
 
-        
-        $getCacheAccessToken = Cache::get(self::$accessTokenPrefix . $data['access-token']);  //获取缓存access-token
-        if(!$getCacheAccessToken){
-            self::error('access-token不存在或为空','',401);
-
+        $AccessToken = Db::name('oauth2_access_token')->where('member_id',$data['uid'])
+            ->where('access_token',$data['access_token'])->order('id desc')->find();
+        if(!$AccessToken){
+            $this->error('access_token不存在或为空','',401);
         }
-        if($getCacheAccessToken['client']['appid'] !== $data['appid']){
-            self::error('appid错误','',401);//appid与缓存中的appid不匹配
+        $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
+        if(!$client || $client['appid'] !== $data['appid']){
+            $this->error('appid错误','',401);//appid与缓存中的appid不匹配
         }
         return $data;
     }
@@ -82,7 +83,7 @@ class Oauth
      * @param array $arr 需要验证权限的数组
      * @return boolean
      */
-    public static function match($arr = [])
+    public  function match($arr = [])
     {
         $request = Request::instance();
         $arr = is_array($arr) ? $arr : explode(',', $arr);
@@ -104,17 +105,17 @@ class Oauth
      * 生成签名
      * _字符开头的变量不参与签名
      */
-    public static function makeSign ($data = [],$app_secret = '')
-    {   
+    public  function makeSign ($data = [],$app_secret = '')
+    {
         unset($data['version']);
         unset($data['sign']);
-        return self::buildSign($data,$app_secret);
+        return $this->buildSign($data,$app_secret);
     }
 
     /**
      * 计算ORDER的MD5签名
      */
-    private static function buildSign($params = [] , $app_secret = '') {
+    private  function buildSign($params = [] , $app_secret = '') {
         ksort($params);
         $params['key'] = $app_secret;
         return strtolower(md5(urldecode(http_build_query($params))));

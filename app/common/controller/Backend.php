@@ -50,7 +50,7 @@ class Backend extends BaseController
      */
     protected $searchFields = 'id';
 
-    protected $allowModifyFileds = [
+    protected $allowModifyFields = [
         'status',
         'sort',
         'title',

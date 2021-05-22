@@ -15,6 +15,7 @@ namespace app\backend\controller;
 
 use app\backend\service\AddonService;
 use app\common\controller\Backend;
+use app\common\service\AuthCloudService;
 use fun\helper\FileHelper;
 use fun\addons\Service;
 use think\App;
@@ -31,12 +32,13 @@ use app\common\annotation\NodeAnnotation;
 class Addon extends Backend
 {
     protected $addonService;
+    protected $authCloudService;
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->modelClass = new AddonModel();
         $this->addonService = new AddonService();
-
+        $this->authCloudService = AuthCloudService::instance();
     }
     /**
      * @NodeAnnotation(title="列表")
@@ -45,32 +47,49 @@ class Addon extends Backend
     public function index()
     {
         if ($this->request->isAjax()) {
-            $list = get_addons_list();
-            $addons =  $this->modelClass->column('*', 'name');
-            foreach ($list as $key => $value) {
-                //是否已经安装过
-                $config = get_addons_config($key);
-                if ($addons && !isset($addons[$key]) || !$addons) {
-                    $class = get_addons_instance($key);
-                    $addons["$key"] = $class->getInfo();
-                    if ($addons[$key]) {
-                        $addons[$key]['install'] = 0;
-                        $addons[$key]['status'] = 0;
-                    }
+            if($this->request->isPost()){
+                //登录请求
+                $data = $this->request->post();
+                $this->authCloudService->setUserParams($data);
+                $result = $this->authCloudService->setApiUrl('')->setMethod('post')
+                    ->setParams($this->authCloudService->getUserParams())
+                    ->run();
+                if ($result['code'] == 200) {
+                    $this->authCloudService->setAuth($result['data']);
+                    $this->success(lang('login successful'));
                 } else {
-                    $addons[$key]['install'] = 1;
+                    $this->error(lang('Login failed:' . $result['msg']));
                 }
-                if(isset($config['domain']) && $config['domain']['value']){
-                    $index = strpos($_SERVER['HTTP_HOST'],'.');
-                    $addons[$key]['web'] = httpType().$config['domain']['value'].substr($_SERVER['HTTP_HOST'],$index);
-                }else{
-                    $addons[$key]['web'] = '/addons/'.$key;
+            }else{
+                $list = get_addons_list();
+                $addons =  $this->modelClass->column('*', 'name');
+                foreach ($list as $key => $value) {
+                    //是否已经安装过
+                    $config = get_addons_config($key);
+                    if ($addons && !isset($addons[$key]) || !$addons) {
+                        $class = get_addons_instance($key);
+                        $addons["$key"] = $class->getInfo();
+                        if ($addons[$key]) {
+                            $addons[$key]['install'] = 0;
+                            $addons[$key]['status'] = 0;
+                        }
+                    } else {
+                        $addons[$key]['install'] = 1;
+                    }
+                    if(isset($config['domain']) && $config['domain']['value']){
+                        $index = strpos($_SERVER['HTTP_HOST'],'.');
+                        $addons[$key]['web'] = httpType().$config['domain']['value'].substr($_SERVER['HTTP_HOST'],$index);
+                    }else{
+                        $addons[$key]['web'] = '/addons/'.$key;
+                    }
                 }
+                $result = ['code' => 0, 'msg' => lang('Delete Data Success'),
+                    'data' => $addons, 'count' => count($addons)];
+                return json($result);
             }
-            $result = ['code' => 0, 'msg' => lang('Delete Data Success'), 'data' => $addons, 'count' => count($addons)];
-            return json($result);
+
         }
-        return view();
+        return view('',['auth'=>$this->authCloudService->getAuth()?1:0]);
     }
     /**
      * @NodeAnnotation(title="安装")

@@ -1,0 +1,89 @@
+<table class="layui-table" lay-skin="line">
+    <thead>
+    <tr>
+        <th>系统信息</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>当前版本：FunAdmin v{$now_version}&nbsp;&nbsp;
+            <button id="upgrade" data-auth="{$auth}" data-login="{:__u('index')}"
+                    data-check="{:__u('check')}"
+                    class="layui-btn layui-btn-sm layui-btn-warm" >点此检测版本</button>
+        </td>
+    </tr>
+    <tr>
+        <td>服务器域名：{$url}</td>
+    </tr>
+    <tr>
+        <td>服务器ip：{$server_ip}</td>
+    </tr>
+    <tr>
+        <td>站点目录：{$document_root}</td>
+    </tr>
+    <tr>
+        <td>当前协议：{$document_protocol}</td>
+    </tr>
+    <tr>
+        <td>端口：{$server_port}</td>
+    </tr>
+    <tr>
+        <td>PHP版本：{$php_version}</td>
+    </tr>
+    <tr>
+        <td>数据库版本：{$mysql_version}</td>
+    </tr>
+    <tr>
+        <td>Nginx：{$server_soft}</td>
+    </tr>
+    <tr>
+        <td>服务器时间：{:date('Y-m-d H:i:s')}</td>
+    </tr>
+    </tbody>
+</table>
+<script type="text/html" id="upgrade_tpl">
+    <table class="layui-table" lay-skin="line" style="text-align: left">
+        <thead>
+        <tr>
+            <th>版本信息</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>可升级版本：FunAdmin <span class="layui-font-green">v{{ d.version }}</span>&nbsp;&nbsp;
+            </td>
+        </tr>
+        <tr>
+            <td>系统备份：<button data-url="{:__u('backup')}" class="layui-btn layui-btn-sm layui-btn-warm" id="backup">点击备份</button>
+            </td>
+        </tr>
+        <tr>
+            <td>系统升级：<button data-url="{:__u('install')}" class="layui-btn layui-btn-sm" id="install">点击升级</button>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                更新内容：
+                <div style="padding: 20px;
+    line-height: 30px;
+    background: #dee8e5">
+                    {{#if (d.content) {}}
+                    {{#  layui.each(d.content, function(index, item){ }}
+                    <li class="">
+                        <span class="layui-font-blue">{{index+1}} : {{ item }}</span>
+                    </li>
+                    {{#  }); }}
+                    {{#}else{ }}
+                    若干问题
+                    {{# } }}
+
+
+
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</script>
+{include file="layout/logintpl"}

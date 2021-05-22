@@ -31,7 +31,6 @@ class Languages extends Backend {
     {
         parent::__construct($app);
         $this->modelClass = new LanguagesModel();
-
     }
 
 }

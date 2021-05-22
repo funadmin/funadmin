@@ -23,12 +23,10 @@ class Member extends Api
      * @return \think\Response
      */
     public function index()
-    {  
-
+    {
         //通用参数验证
-        ValidataBase::validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证
-        //通用分页
-        dump($this->uid);
+        $validate = new ValidataBase();
+        $validate->validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证
     }
 
     /**

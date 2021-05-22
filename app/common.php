@@ -11,6 +11,7 @@
 
 use think\App;
 use think\facade\Route;
+use think\facade\Db;
 
 if (!function_exists('syscfg')) {
     /**
@@ -257,5 +258,51 @@ if (!function_exists('timeAgo')) {
             return $posttime;
         }
     }
+    /**
+     * 导入数据库
+     */
+    if (!function_exists('importSqlData')) {
+        /**
+         * http 类型
+         * @return string
+         */
+        function importSqlData($sqlFile)
+        {
+            $lines = file($sqlFile);
+            $sqlLine = '';
+            foreach ($lines as $line) {
+                if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
+                    continue;
+                $sqlLine .= $line;
+                if (substr(trim($line), -1, 1) == ';' and $line != 'COMMIT;') {
+                    $sqlLine = str_ireplace('fun_', config('database.connections.mysql.prefix'), $sqlLine);
+                    $sqlLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $sqlLine);
+                    $sqlLine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $sqlLine);
+                    try {
+                        Db::execute($sqlLine);
+                    } catch (\PDOException $e) {
+                        throw new PDOException($e->getMessage());
+                    }
+                    $sqlLine = '';
+                }
+            }
+        }
+    }
+
+    /**
+     * 动态永久修改 config 文件内容
+     * @param $key
+     * @param $value
+     * @return bool|int
+     */
+    if (!function_exists('setConfig')) {
+        function setConfig($configFile,$key, $value)
+        {
+            $config = file_get_contents($configFile); //加载配置文件
+            $config = preg_replace("/'{$key}'.*?=>.*?'.*?'/", "'{$key}' => '{$value}'", $config);
+            return file_put_contents($configFile, $config); // 写入配置文件
+        }
+    }
+
 }
 

@@ -137,7 +137,6 @@ class FileHelper
      */
     public static function createFile($file,$content)
     {
-
         $myfile = fopen($file, "w") or die("Unable to open file!");
         fwrite($myfile, $content);
         fclose($myfile);
