@@ -455,7 +455,7 @@ class AuthService
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
             } else {
-                $admin['expiretime'] = \session('session.expire');
+                $admin['expiretime'] = config('session.expire') +time();
             }
             unset($admin['password']);
             Session::set('admin', $admin);
