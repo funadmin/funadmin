@@ -263,7 +263,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             //时间
             time: function (d) {
                 var ele = $(this)[0];
-                var time = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'/static/common/images/image.gif');
+                var time = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
                 if (time) {
                     return layui.util.toDateString(time * 1000,'yyyy-MM-dd')
                 } else {
