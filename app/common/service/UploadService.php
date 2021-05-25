@@ -137,6 +137,8 @@ class UploadService extends AbstractService
                     $result['code'] = 0;
                     $result['state'] = 'ERROR'; //兼容百度
                     $result['errno'] = 'ERROR'; //兼容wangeditor
+                    $result['uploaded'] = false; //兼容ckeditorditor
+                    $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
                     if($editor=='layedit'){
                         $result['code'] = 1;
                     }
@@ -144,6 +146,8 @@ class UploadService extends AbstractService
                 }
             } else {
                 $result['data'][] = $attach->path; //兼容wangeditor
+                $result['uploaded'] = true; //兼容ckeditorditor
+                $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
                 $result['id'] = $attach->id;
                 $result['fileType'] = $type;
                 $result["url"] = $attach->path;
@@ -151,6 +155,8 @@ class UploadService extends AbstractService
         }
         $result['state'] = 'SUCCESS'; //兼容百度
         $result['errno'] = 0; //兼容wangeditor
+        $result['uploaded'] = true; //兼容ckeditorditor
+        $result['error'] = ["message"=> "ok"]; //兼容ckeditorditor
         $result['code'] = 1;//默认
         $result['msg'] = lang('upload success');
         if($editor=='layedit'){

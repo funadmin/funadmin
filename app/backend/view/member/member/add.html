@@ -2,7 +2,6 @@
         {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
         {:form_input('mobile','text',['verify'=>'phone'])}
         {:form_upload('avatar',$formData,['cropper'=>1])}
-        {:form_city($name='cityPickers',$id='cityPicker',$options = [])}
         {:form_input('email','text',['verify'=>'email'])}
         {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
         {:form_select('group_id',$memberGroup,['verify'=>'required'] ,'id,name')}

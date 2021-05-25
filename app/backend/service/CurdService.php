@@ -577,10 +577,10 @@ class CurdService
             if (in_array($vo['name'], $this->config['keepField'])) continue;
             switch ($vo['type']) {
                 case "text":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['name']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "tags":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['name']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "number":
                     $formFieldData .= "{:form_input('{$vo['name']}', 'number', ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
@@ -610,7 +610,7 @@ class CurdService
                             $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         }
                     }else{
-                        $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['name']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$vo['comment']}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "select":

@@ -263,7 +263,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             //时间
             time: function (d) {
                 var ele = $(this)[0];
-                var time = eval('d.' + ele.field);
+                var time = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'/static/common/images/image.gif');
                 if (time) {
                     return layui.util.toDateString(time * 1000,'yyyy-MM-dd')
                 } else {
@@ -276,7 +276,8 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
-                var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
+                ele.field = ele.filter || ele.field || null;
+                var src = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'/static/common/images/image.gif'),
                     title = d[ele.title];
                 return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" title="' + title + '"  lay-event="photos" alt="">';
             },
@@ -286,7 +287,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
-                var src = d[ele.field] ? d[ele.field] : '/static/common/images/image.gif',
+                var src = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'/static/common/images/image.gif'),
                     title = d[ele.title];
                 src = src.split(',');
                 var html = [];
@@ -297,8 +298,14 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 return html.join(' ');
             },
             content: function (d) {
-                var ele = $(this)[0]; content = d[ele.field] ? d[ele.field] : '';
-                return "<div style='white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:60px;'>" + content + "</div>";
+                var ele = $(this)[0];
+                var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                return "<div style='white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:80px;'>" + content + "</div>";
+            },
+            text: function (d) {
+                var ele = $(this)[0];
+                var text = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                return text;
             },
             //选择
             select: function (d) {
@@ -313,12 +320,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
             },
             url: function (d) {
                 var ele = $(this)[0];
-                var src = d[ele.field];
+                var src = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
                 return '<a class="layui-table-url" href="' + src + '" target="_blank" class="label bg-green">' + src + '</a>';
             },
             icon: function (d) {
                 var ele = $(this)[0];
-                var icon = d[ele.field];
+                var icon = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
                 return '<i class="' + icon + '"></i>';
             },
             //开关
@@ -326,7 +333,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
                 ele.tips = ele.tips || __('open') + '|' + __('close');
-                var checked = d[ele.field] > 0 ? 'checked="checked"' : '';
+                var checked = d[ele.field]>0 ? 'checked="checked"' :(eval('d.' + ele.field)>0?'checked="checked"':'');
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >';
             },
             //解析

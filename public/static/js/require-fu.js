@@ -181,10 +181,10 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                             if(Config.formData.hasOwnProperty(provinceId)){
                                 str += ChineseDistricts[886][Config.formData[provinceId]];
                             }
-                            if(Config.formData.hasOwnProperty(cityId) && Config.formData.hasOwnProperty(provinceId)){
+                            if(Config.formData.hasOwnProperty(cityId) && Config.formData[[cityId]] && Config.formData.hasOwnProperty(provinceId)){
                                 str += '/'+ChineseDistricts[Config.formData[provinceId]][Config.formData[cityId]];
                             }
-                            if(Config.formData.hasOwnProperty(cityId) && Config.formData.hasOwnProperty(districtId)){
+                            if(Config.formData.hasOwnProperty(cityId) && Config.formData[districtId] &&  Config.formData.hasOwnProperty(districtId)){
                                 str += '/'+ChineseDistricts[Config.formData[cityId]][Config.formData[districtId]];
                             }
                             if(!str){

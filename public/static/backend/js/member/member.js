@@ -45,7 +45,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'username', title: __('membername'), width: 120,},
+                    {field: 'username', title: __('memberName'), width: 120},
                     {field: 'email', title: __('Email'), width: 120,},
                     {field: 'mobile', title: __('mobile'), width: 120,edit: 'text'},
                     {
@@ -62,10 +62,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         field: 'memberLevel.name',
                         title: __('MemberLevel'),
                         width: 120,
-                        templet: Table.templet.resolution
+                        templet: Table.templet.text
                     },
                     {field: 'avatar', title: __('Avatar'), width: 120, templet: Table.templet.image},
-                    // {field: 'shop_id', title: '店铺id', width: 120,sort: true},
                     {
                         field: 'status',
                         title: __('Status'),
