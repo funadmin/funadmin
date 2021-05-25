@@ -509,7 +509,10 @@ body .layui-site-mobile {display: none}
     -webkit-transition: width .3s;
     transition: width .3s
 }
-
+/*---*/
+.layui-nav-tree .layui-nav-item>a .layui-nav-more{
+    padding:0;
+}
 .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item>a .layui-nav-more {
     display: none !important
 }
