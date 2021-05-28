@@ -13,7 +13,6 @@
 namespace app\frontend\controller;
 
 use app\common\controller\Frontend;
-use fun\helper\MailHelper;
 use fun\helper\StringHelper;
 use think\App;
 use think\exception\ValidateException;
@@ -99,7 +98,7 @@ class Member extends Frontend {
         if($this->request->isPost()){
             $member = $this->isLogin();
             $data = $this->request->param('post.','','trim');
-            $validate = new \app\common\validate\MemberValidate();
+            $validate = new \app\frontend\validate\MemberValidate();
             $res = $validate->scene('setPass')->check($data);
             if(!$res){
                 $this->error($validate->getError());
@@ -178,10 +177,15 @@ class Member extends Frontend {
         }
         $link = __u('member/emailactive',['token' => $token]);
         $content = $this->_geteamilContent($validity/3600, $link);
-        $mail = MailHelper::sendEmail($member->email, 'FunAdmin  社区激活邮件', $content);
-        if($mail['code']==1){
-            cookie('activeToken', $tokenData);
+        $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
+        $mail = hook('sendEmail',$param);
+        $mail = json_decode($mail);
+        if($mail['code']>0){
+            cookie('activeToken', json_encode($tokenData));
+        }else{
+            throw new Exception($mail['msg']);
         }
+
         return json($mail);
     }
     //邮箱内容

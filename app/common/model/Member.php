@@ -12,7 +12,6 @@
  */
 namespace app\common\model;
 
-use fun\helper\MailHelper;
 use app\common\validate\MemberValidate;
 use fun\helper\StringHelper;
 use think\exception\ValidateException;
@@ -133,12 +132,12 @@ class  Member extends BaseModel{
         }
         $link = __u('member/emailactive',['token' => $token]);
         $content = $this->_geteamilContent($validity/3600, $link);
-        try {
-            $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
-            hook('sendEmail',$param);
+        $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
+        $mail = json_decode( hook('sendEmail',$param));
+        if($mail['code']>0){
             cookie('activeToken', json_encode($tokenData));
-        }catch (\Exception $e){
-            throw new Exception($e->getMessage());
+        }else{
+            throw new Exception($mail['msg']);
         }
         return true;
     }

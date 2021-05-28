@@ -14,10 +14,9 @@
 namespace app\frontend\controller;
 
 use app\common\controller\Frontend;
-use fun\helper\MailHelper;
 use think\App;
 use think\facade\View;
-use app\common\validate\MemberValidate;
+use app\frontend\validate\MemberValidate;
 use think\exception\ValidateException;
 
 class Login extends Frontend
@@ -131,7 +130,6 @@ class Login extends Frontend
 
     public function forget()
     {
-
         if ($this->request->isPost()) {
             $data = $this->request->post();
             if (!captcha_check($data['vercode'])) $this->error('验证码错误');
@@ -139,9 +137,11 @@ class Login extends Frontend
             if (!$member) $this->error('邮箱不存在');
             $code = mt_rand('100000', '999999');
             $time = 10 * 60;
-            $content = '亲爱的lemobbs用户:' . $member->name . '<br>您正在重置密码，您的验证码为:' . $code . '，请在' . $time / 60 . '分钟内进行验证';
-            $mail = MailHelper::sendEmail($member->email, 'lemobbs 重置密码邮件', $content);
-            if ($mail['code'] > 0) {
+            $content = '亲爱的FunAdmin用户:' . $member->name . '<br>您正在重置密码，您的验证码为:' . $code . '，请在' . $time / 60 . '分钟内进行验证';
+            $param = ['to'=>$member->email,'subject'=>'FunAdmin重置密码邮件','content'=>$content];
+            $mail = hook('sendEmail',$param);
+            $mail = json_decode($mail);
+            if($mail['code']>0){
                 cookie('forget_code', $code, $time);
                 cookie('forget_uid', $member->id, $time);
                 cookie('forget_email', $member->email, $time);
