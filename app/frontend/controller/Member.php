@@ -179,7 +179,7 @@ class Member extends Frontend {
         $content = $this->_geteamilContent($validity/3600, $link);
         $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
         $mail = hook('sendEmail',$param);
-        $mail = json_decode($mail);
+        $mail = json_decode($mail,true);
         if($mail['code']>0){
             cookie('activeToken', json_encode($tokenData));
         }else{

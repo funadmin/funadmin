@@ -133,7 +133,7 @@ class  Member extends BaseModel{
         $link = __u('member/emailactive',['token' => $token]);
         $content = $this->_geteamilContent($validity/3600, $link);
         $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
-        $mail = json_decode( hook('sendEmail',$param));
+        $mail = json_decode( hook('sendEmail',$param),true);
         if($mail['code']>0){
             cookie('activeToken', json_encode($tokenData));
         }else{

@@ -2,8 +2,7 @@
 
 return array(
     'autoload' => true,
-    'hooks' =>
-        array(),
+    'hooks' => array(),
     'route' =>
         array(),
     'service' =>

@@ -140,7 +140,7 @@ class Login extends Frontend
             $content = '亲爱的FunAdmin用户:' . $member->name . '<br>您正在重置密码，您的验证码为:' . $code . '，请在' . $time / 60 . '分钟内进行验证';
             $param = ['to'=>$member->email,'subject'=>'FunAdmin重置密码邮件','content'=>$content];
             $mail = hook('sendEmail',$param);
-            $mail = json_decode($mail);
+            $mail = json_decode($mail,true);
             if($mail['code']>0){
                 cookie('forget_code', $code, $time);
                 cookie('forget_uid', $member->id, $time);
