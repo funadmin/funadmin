@@ -9,5 +9,4 @@ return [
     'Account is disabled' => '账号禁用',
     'Account is not accessed' => '账号未成功接入',
     'Please check username or password' => '请检查用户名或密码',
-
 ];

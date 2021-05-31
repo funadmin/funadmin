@@ -187,8 +187,11 @@ class CurdService
                     $this->rootPath . "app" . DS . $this->module . DS . "model" . DS .($modelArr?$modelArr[0].DS :''). ($this->modelName) . '.php',
                 'validateFileName' =>
                     $this->rootPath . "app" . DS . $this->module . DS . "validate" . DS .($modelArr?$modelArr[0].DS :''). ($this->modelName) . '.php',
+                'langFileName' =>
+                    $this->rootPath . "app" . DS . $this->module . DS . "lang" . DS . "zh-cn" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.php' : Str::lower($this->controllerName) . '.php'),
                 'jsFileName' =>
                     $this->rootPath . "public" . DS . "static" . DS . "backend" . DS . "js" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.js' : Str::lower($this->controllerName) . '.js'),
+
                 'indexFileName' =>
                     $this->rootPath . "app" . DS . "backend" . DS . "view" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::snake($this->controllerName) : Str::snake($this->controllerName)) . DS . "index.html",
                 'addFileName' =>
@@ -206,6 +209,7 @@ class CurdService
                 'controllerFrontFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "frontend" . DS . "controller" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName . '.php' : $this->controllerName . '.php'),
                 'modelFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}" . DS . "model" . DS . $this->modelName . '.php',
                 'validateFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}" . DS . "validate" . DS . $this->modelName . '.php',
+                'langFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}". "lang" . DS . "zh-cn" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.php' : Str::lower($this->controllerName) . '.php'),
                 'jsFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "public".DS."backend".DS."js" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.js' : Str::lower($this->controllerName) . '.js'),
                 'indexFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "view" . DS . "backend" . DS .($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName : Str::snake($this->controllerName)). DS . "index.html",
                 'addFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "view" . DS . "backend". DS .($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName  : Str::snake($this->controllerName)). DS . "add.html",
@@ -337,11 +341,12 @@ class CurdService
                 , $controllerTplFront
             );
         }
-
-
-
+        //语言文件
+        $langTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'lang.tpl';
+        $this->makeFile($this->fileList['langFileName']
+            , file_get_contents($langTpl)
+        );
     }
-
     // 创建模型文件
     protected function makeModel()
     {
@@ -413,7 +418,7 @@ class CurdService
         $indexViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'index.tpl';
         $addViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'add.tpl';
         $addViewTpl = str_replace(['{{$formDataField}}'], [$formFieldData], file_get_contents($addViewTpl));
-        $this->makeFile($this->fileList['indexFileName'], file_get_contents($indexViewTpl));
+        $this->makeFile($this->fileList['indexFileName'], $indexViewTpl);
         $this->makeFile($this->fileList['addFileName'], $addViewTpl);
     }
 
@@ -720,159 +725,159 @@ class CurdService
      */
     protected function getFieldList($field = '*')
     {
-        $keys = $this->table . '_fields';
-        $assignKeys = $this->table . '_assign';
-        $tableField = Cache::get($keys);
-        $assign = Cache::get($assignKeys);
+//        $keys = $this->table . '_fields';
+//        $assignKeys = $this->table . '_assign';
+//        $tableField = Cache::get($keys);
+//        $assign = Cache::get($assignKeys);
         $sql = "show tables like '{$this->tablePrefix}{$this->table}'";
         $table = Db::query($sql);
         if(!$table){
             throw new \Exception($this->table.'表不存在');
         }
-        if (!$tableField) {
+//        if (!$tableField) {
 //        if (1) {
-            $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
-            $tableField = Db::query($sql);
-            foreach ($tableField as $k => &$v) {
-                $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
-                $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');
-                $v['comment'] = str_replace(array("\r\n", "\r", "\n"), "", $v['COLUMN_COMMENT']);
-                $v['name'] = $v['COLUMN_NAME'];
-                $v['value'] = $v['COLUMN_DEFAULT'];
-                if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
-                    throw new \Exception('字段' . $v['name'] . '注释无效');
-                }
+        $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
+        $tableField = Db::query($sql);
+        foreach ($tableField as $k => &$v) {
+            $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
+            $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');
+            $v['comment'] = str_replace(array("\r\n", "\r", "\n"), "", $v['COLUMN_COMMENT']);
+            $v['name'] = $v['COLUMN_NAME'];
+            $v['value'] = $v['COLUMN_DEFAULT'];
+            if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
+                throw new \Exception('字段' . $v['name'] . '注释无效');
+            }
+            $v['type'] = 'text';
+            if (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'int', 'mediumint', 'bigint'])) {
+                $v['type'] = 'number';
+            }
+            if (in_array($v['DATA_TYPE'], ['decimal', 'double', 'float'])) {
                 $v['type'] = 'text';
-                if (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'int', 'mediumint', 'bigint'])) {
-                    $v['type'] = 'number';
-                }
-                if (in_array($v['DATA_TYPE'], ['decimal', 'double', 'float'])) {
-                    $v['type'] = 'text';
-                }
-                if (in_array($v['DATA_TYPE'], ['enum', 'set'])) {
-                    $v['type'] = 'select';
-                }
-                if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext', 'json'])) {
-                    $v['type'] = 'textarea';
-                }
-                if (in_array($v['DATA_TYPE'], ['timestamp', 'datetime'])) {
-                    $v['type'] = 'datetime';
-                }
-                if (in_array($v['DATA_TYPE'], ['date'])) {
-                    $v['type'] = 'date';
-                }
-                if (in_array($v['DATA_TYPE'], ['year'])) {
-                    $v['type'] = 'year';
-                }
-                if (in_array($v['DATA_TYPE'], ['time'])) {
-                    $v['type'] = 'time';
-                }
-                $fieldsName = $v['COLUMN_NAME'];
-                // 指定后缀说明也是个时间字段
-                if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
-                    $comment = explode('=', $v['comment']);
-                    $v['comment'] = $comment[0];
-                    $v['type'] = "file";
-                    if (isset($comment[1]) and $comment[1] > 1) {
-                        $v['type'] = "files";
-                    }
-                }
-                // 指定后缀结尾且类型为varchar || char,文件上传
-                if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
-                    (($v['DATA_TYPE'] == 'varchar') || $v['DATA_TYPE'] == 'char')) {
-                    $comment = explode('=', $v['comment']);
-                    $v['comment'] = $comment[0];
-                    $v['type'] = "image";
-                    if (isset($comment[1]) and $comment[1] > 1) {
-                        $v['type'] = "images";
-                    }
-                }
-                // 指定后缀说明也是个时间字段
-                if ($this->hasSuffix($fieldsName, $this->config['sortSuffix'])) {
-                    $v['type'] = "number";
-                }
-                // 指定后缀说明也是个时间字段
-                if ($this->hasSuffix($fieldsName, $this->config['tagsSuffix'])) {
-                    $v['type'] = "tags";
-                }
-                //指定后缀结尾 且类型为text系列的字段 为富文本编辑器
-                if ($this->hasSuffix($fieldsName, $this->config['editorSuffix'])
-                    && in_array($v['DATA_TYPE'], ['longtext', 'mediumtext', 'text', 'smalltext', 'tinytext'])) {
-                    $v['type'] = "editor";
-                }
-                //指定后缀结尾 下来
-                if ($this->hasSuffix($fieldsName, $this->config['selectSuffix'])
-                    && in_array($v['DATA_TYPE'], ['enum', 'set','varchar','char'])) {
-                    $v['type'] = "select";
-                }
-                // 指定后缀说明也是个时间字段
-                if ($this->hasSuffix($fieldsName, $this->config['timeSuffix'])
-                    and $v['type'] != 'time' and $v['type'] != 'year'
-                    and $v['type'] != 'date'
-                ) {
-                    $v['type'] = 'datetime';
-                }
-                // 指定后缀结尾且类型为enum,单选框
-                if ($this->hasSuffix($fieldsName, $this->config['enumRadioSuffix']) && $v['DATA_TYPE'] == 'enum'
-                    &&
-                    $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null
-                ) {
-                    $v['type'] = "radio";
-                }
-                // 指定后缀结尾且类型为int,说明是radio
-                if ($this->hasSuffix($fieldsName, $this->config['enumRadioSuffix']) && $v['DATA_TYPE'] == 'tinyint'
-                    &&
-                    $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null
-                ) {
-                    $v['type'] = "radio";
-                }
-                // 指定后缀结尾且类型为icon 颜色选择
-                if ($this->hasSuffix($fieldsName, $this->config['iconSuffix']) && $v['DATA_TYPE'] == 'char') {
-                    $v['type'] = "icon";
-                }
-                // 指定后缀结尾且类型为set,说明是个复选框
-                if ($this->hasSuffix($fieldsName, $this->config['setCheckboxSuffix']) && $v['DATA_TYPE'] == 'set') {
-                    $v['type'] = "checkbox";
-                }
-                // 指定后缀结尾且类型为char或tinyint且长度为1,说明是个Switch复选框
-                if ($this->hasSuffix($fieldsName, $this->config['switchSuffix']) &&
-                    ($v['DATA_TYPE'] == 'tinyint' || $v['DATA_TYPE'] == 'int' || $v['COLUMN_TYPE'] == 'char(1)') &&
-                    $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null) {
-                    $v['type'] = "switch";
-                }
-                //指定后缀结尾 且类型为input系列的字段 为颜色选择器
-                if ($this->hasSuffix($fieldsName, $this->config['colorSuffix'])
-                    &&
-                    (($v['DATA_TYPE'] == 'varchar'
-                        || $v['DATA_TYPE'] == 'char'))) {
-                    $v['type'] = "color";
-                }
-                //指定后缀结尾 且类型为number系列的字段 为其他表主键
-                if ($this->hasSuffix($fieldsName, $this->config['priSuffix']) && (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'mediumint', 'int', 'bigint','varchar','char']))) {
-                    $v['type'] = "_id";
-                    $assign[lcfirst(Str::studly($v['name'])) . 'List']='';
-                }
-                if (in_array($v['DATA_TYPE'], ['tinyint','set', 'enum']) and $v['type']!='_id') {
-                    $comment = explode('=', $v['comment']);
-                    if (!in_array($v['name'], $this->config['ignoreFields'])) {
-                        if (count($comment) != 2) {
-                            throw new \Exception('字段' . $v['name'] . '注释无效');
-                        }
-                        $v['comment'] = $comment[0];
-                        list($assign[lcfirst(Str::studly($v['name'])) . 'List'],$v['option']) = $this->getOptionStr($comment[1]);
-                    }else{
-                        if($v['name']=='status'){
-                            $assign[lcfirst(Str::studly($v['name'])) . 'List'] = '[0=>"enabled",1=>"disabled"]';
-                            $v['option'] = '{0:"enabled",1:"disabled"}';
-                        }
-                        $v['comment'] = $comment[0];
-                    }
+            }
+            if (in_array($v['DATA_TYPE'], ['enum', 'set'])) {
+                $v['type'] = 'select';
+            }
+            if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext', 'json'])) {
+                $v['type'] = 'textarea';
+            }
+            if (in_array($v['DATA_TYPE'], ['timestamp', 'datetime'])) {
+                $v['type'] = 'datetime';
+            }
+            if (in_array($v['DATA_TYPE'], ['date'])) {
+                $v['type'] = 'date';
+            }
+            if (in_array($v['DATA_TYPE'], ['year'])) {
+                $v['type'] = 'year';
+            }
+            if (in_array($v['DATA_TYPE'], ['time'])) {
+                $v['type'] = 'time';
+            }
+            $fieldsName = $v['COLUMN_NAME'];
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
+                $comment = explode('=', $v['comment']);
+                $v['comment'] = $comment[0];
+                $v['type'] = "file";
+                if (isset($comment[1]) and $comment[1] > 1) {
+                    $v['type'] = "files";
                 }
             }
-            unset($v);
-            Cache::tag($this->table)->set($keys, $tableField, 3600);
-            Cache::tag($this->table.'assign')->set($assignKeys, $assign, 3600);
+            // 指定后缀结尾且类型为varchar || char,文件上传
+            if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
+                (($v['DATA_TYPE'] == 'varchar') || $v['DATA_TYPE'] == 'char')) {
+                $comment = explode('=', $v['comment']);
+                $v['comment'] = $comment[0];
+                $v['type'] = "image";
+                if (isset($comment[1]) and $comment[1] > 1) {
+                    $v['type'] = "images";
+                }
+            }
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['sortSuffix'])) {
+                $v['type'] = "number";
+            }
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['tagsSuffix'])) {
+                $v['type'] = "tags";
+            }
+            //指定后缀结尾 且类型为text系列的字段 为富文本编辑器
+            if ($this->hasSuffix($fieldsName, $this->config['editorSuffix'])
+                && in_array($v['DATA_TYPE'], ['longtext', 'mediumtext', 'text', 'smalltext', 'tinytext'])) {
+                $v['type'] = "editor";
+            }
+            //指定后缀结尾 下来
+            if ($this->hasSuffix($fieldsName, $this->config['selectSuffix'])
+                && in_array($v['DATA_TYPE'], ['enum', 'set','varchar','char'])) {
+                $v['type'] = "select";
+            }
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['timeSuffix'])
+                and $v['type'] != 'time' and $v['type'] != 'year'
+                and $v['type'] != 'date'
+            ) {
+                $v['type'] = 'datetime';
+            }
+            // 指定后缀结尾且类型为enum,单选框
+            if ($this->hasSuffix($fieldsName, $this->config['enumRadioSuffix']) && $v['DATA_TYPE'] == 'enum'
+                &&
+                $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null
+            ) {
+                $v['type'] = "radio";
+            }
+            // 指定后缀结尾且类型为int,说明是radio
+            if ($this->hasSuffix($fieldsName, $this->config['enumRadioSuffix']) && $v['DATA_TYPE'] == 'tinyint'
+                &&
+                $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null
+            ) {
+                $v['type'] = "radio";
+            }
+            // 指定后缀结尾且类型为icon 颜色选择
+            if ($this->hasSuffix($fieldsName, $this->config['iconSuffix']) && $v['DATA_TYPE'] == 'char') {
+                $v['type'] = "icon";
+            }
+            // 指定后缀结尾且类型为set,说明是个复选框
+            if ($this->hasSuffix($fieldsName, $this->config['setCheckboxSuffix']) && $v['DATA_TYPE'] == 'set') {
+                $v['type'] = "checkbox";
+            }
+            // 指定后缀结尾且类型为char或tinyint且长度为1,说明是个Switch复选框
+            if ($this->hasSuffix($fieldsName, $this->config['switchSuffix']) &&
+                ($v['DATA_TYPE'] == 'tinyint' || $v['DATA_TYPE'] == 'int' || $v['COLUMN_TYPE'] == 'char(1)') &&
+                $v['COLUMN_DEFAULT'] !== '' && $v['COLUMN_DEFAULT'] !== null) {
+                $v['type'] = "switch";
+            }
+            //指定后缀结尾 且类型为input系列的字段 为颜色选择器
+            if ($this->hasSuffix($fieldsName, $this->config['colorSuffix'])
+                &&
+                (($v['DATA_TYPE'] == 'varchar'
+                    || $v['DATA_TYPE'] == 'char'))) {
+                $v['type'] = "color";
+            }
+            //指定后缀结尾 且类型为number系列的字段 为其他表主键
+            if ($this->hasSuffix($fieldsName, $this->config['priSuffix']) && (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'mediumint', 'int', 'bigint','varchar','char']))) {
+                $v['type'] = "_id";
+                $assign[lcfirst(Str::studly($v['name'])) . 'List']='';
+            }
+            if (in_array($v['DATA_TYPE'], ['tinyint','set', 'enum']) and $v['type']!='_id') {
+                $comment = explode('=', $v['comment']);
+                if (!in_array($v['name'], $this->config['ignoreFields'])) {
+                    if (count($comment) != 2) {
+                        throw new \Exception('字段' . $v['name'] . '注释无效');
+                    }
+                    $v['comment'] = $comment[0];
+                    list($assign[lcfirst(Str::studly($v['name'])) . 'List'],$v['option']) = $this->getOptionStr($comment[1]);
+                }else{
+                    if($v['name']=='status'){
+                        $assign[lcfirst(Str::studly($v['name'])) . 'List'] = '[0=>"enabled",1=>"disabled"]';
+                        $v['option'] = '{0:__("enabled"),1:__("disabled")}';
+                    }
+                    $v['comment'] = $comment[0];
+                }
+            }
         }
+        unset($v);
+//            Cache::tag($this->table)->set($keys, $tableField, 3600);
+//            Cache::tag($this->table.'assign')->set($assignKeys, $assign, 3600);
+//        }
         $this->fieldsList = $tableField;
         $this->assign = $assign;
         return $this;

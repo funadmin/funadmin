@@ -86,7 +86,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                         filter: 'status',
                         templet: Table.templet.switch,
                     },
-                    {field: 'sort',align: 'center', title: __("order"), width: 80, edit: 'text'},
+                    {field: 'sort',align: 'center', title: __("sort"), width: 80, edit: 'text'},
                     {
                         width: 300,
                         align: 'center',

@@ -143,7 +143,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                                         input.val(val_temp);
                                     } else {
                                         if (_parent.find('li').length >= uploadNum) {
-                                            Fun.toastr.error(__('File nun is limited'), function () {
+                                            Fun.toastr.error(__('File nums is limited'), function () {
                                                 setTimeout(function () {
                                                     Fun.toastr.close();
                                                 }, 2000)
@@ -165,7 +165,7 @@ define(["jquery",'croppers'], function ($,croppers) {
                                         }, 2000)
                                     })
                                 } else {
-                                    Fun.toastr.error(__('Upload Failed ') + __(res.msg), function () {
+                                    Fun.toastr.error(__('Upload Failed') + __(res.msg), function () {
                                         setTimeout(function () {
                                             Fun.toastr.close();
                                         }, 2000)
