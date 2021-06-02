@@ -18,8 +18,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         text: __('Add'),
                         title: __('Add'),
                         // full: 1,
-                        width:'1200',
-                        height:'800',
+                        width:'800',
+                        height:'600',
                     },
                     edit_full:{
                         type: 'open',
@@ -29,11 +29,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         text: __('Edit'),
                         title: __('Edit'),
                         // full: 1,
-                        width:'1200',
-                        height:'800',
+                        width:'800',
+                        height:'600',
                     },
-
-
                 },
             };
             Table.render({

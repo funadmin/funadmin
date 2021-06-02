@@ -44,6 +44,8 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                         $.each(list, function () {
                             if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                                 var id = $(this).prop('id');
+                                var name = $(this).prop('name');
+                                $(this).html(Config.formData[name]);
                                 window['editor' + id] = layui.layedit.build(id,
                                     {
                                         height: 350,

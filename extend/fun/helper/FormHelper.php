@@ -95,12 +95,19 @@ class FormHelper
 
     public static function switchs($name , $switch, $options = [], $value='')
     {
-
-        if (is_string($switch) && strpos($switch, '|')) $switch = implode('|', $switch);
+        $label = isset($options['label']) ? $options['label'] : $name;
+        $switchArr = $switch;
+        if (is_string($switch) && strpos($switch, '|')) {
+            $switchArr = implode('|', $switch);
+        }
+        $switchStr = '';
+        foreach ($switchArr as $k=>$v){
+            $switchStr.=lang($v).'|';
+        }
         $str = '<div class="layui-form-item">
-        <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($name)) . '</label>
+        <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
         <div class="layui-input-block">
-        <input type="checkbox" value="' . $value . '" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' lay-skin="switch"   data-text="' . lang($value) . '"/>
+        <input type="checkbox" value="' . $value . '" checked="" name="' . $name . '" ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' lay-skin="switch" lay-text="'.$switchStr.'"  data-text="' . lang($value) . '"/>
         ' . self::tips($options) . '
         </div>
         </div>';

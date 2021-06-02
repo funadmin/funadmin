@@ -17,6 +17,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             options.toolbar = options.toolbar || '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
+            options.searchShow = Fun.parame(options.searchShow, false);
             options.searchinput = Fun.parame(Table.init.searchinput, true);
             options.searchname = Fun.parame(Table.init.searchname, 'id');
             options.limit = options.limit || 15;
@@ -35,7 +36,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             // 初始化表格搜索
             options.toolbar = options.toolbar || ['refresh','export','add', 'delete'];
             if (options.search === true) {
-                Table.renderSearch(options.cols, options.id);
+                Table.renderSearch(options);
             }
             // 初始化表格左上方工具栏
             options.toolbar = Table.renderToolbar(options);
@@ -104,7 +105,13 @@ define(['jquery','timePicker'],function ($,timePicker) {
             }
             return '<div>' + toolbarHtml + '</div>';
         },
-        renderSearch: function (cols,tableId) {
+        renderSearch: function (options) {
+            tableId = options.id;
+            cols = options.cols;
+            show = Fun.parame(options.searchShow,false)? '':'layui-hide';
+            console.log(options.searchShow)
+            console.log( Fun.parame(options.searchShow,false))
+            console.log(show)
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
@@ -218,7 +225,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 }
             });
             if (formHtml !== '') {
-                $('#'+tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset layui-hide">\n' +
+                $('#'+tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset '+show+'">\n' +
                     '<legend>' + __('Search') + '</legend>\n' +
                     '<form class="layui-form"><div class="layui-row">\n' +
                     formHtml +
@@ -245,9 +252,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                         format:'YYYY-MM-DD HH:ss:mm',//格式化时间具体可以参考moment.js官网 默认是YYYY-MM-DD HH:ss:mm
                                     },
                                 });
-
                             })
-
                         }                    }
                     if (ncV.search === 'time') {
                         layui.laydate.render({type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
@@ -256,19 +261,23 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         layui.laydate.render({range: true, type: ncV.timeType, elem: '[name="' + ncV.field + '"]'});
                     }
                 });
-
             }
         },
         templet: {
             //时间
             time: function (d) {
                 var ele = $(this)[0];
-                var time = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                var time = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
                 if (time) {
                     return layui.util.toDateString(time * 1000,'yyyy-MM-dd')
                 } else {
-                    return '';
+                    return '-';
                 }
+            },
+            label: function (d) {
+                var ele = $(this)[0];
+                var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
+                return "<span class='layui-btn layui-btn-xs'>" + content + "</span>";
             },
             //图片
             image: function (d) {
@@ -299,12 +308,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
             },
             content: function (d) {
                 var ele = $(this)[0];
-                var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
                 return "<div style='white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:80px;'>" + content + "</div>";
             },
             text: function (d) {
                 var ele = $(this)[0];
-                var text = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                var text = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
                 return text;
             },
             //选择
@@ -320,12 +329,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
             },
             url: function (d) {
                 var ele = $(this)[0];
-                var src = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
-                return '<a class="layui-table-url" href="' + src + '" target="_blank" class="label bg-green">' + src + '</a>';
+                var src = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
+                return '<a class="layui-table-url layui-btn layui-btn-xs" href="' + src + '" target="_blank" class="label bg-green">' + src + '</a>';
             },
             icon: function (d) {
                 var ele = $(this)[0];
-                var icon = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                var icon = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'-');
                 return '<i class="' + icon + '"></i>';
             },
             //开关
@@ -333,14 +342,14 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
                 ele.tips = ele.tips || __('open') + '|' + __('close');
-                var checked = d[ele.field]>0 ? 'checked="checked"' :(eval('d.' + ele.field)>0?'checked="checked"':'');
+                var checked = d[ele.field]>0 ? 'checked="checked"' :(eval('d.' + ele.field)>0?'checked="checked"':'-');
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >';
             },
             //解析
             resolution: function (d) {
                 var ele = $(this)[0];
                 ele.field = ele.filter || ele.field || null;
-                return  val = ele.field ? eval('d.' + ele.field) : '';
+                return  val = ele.field ? eval('d.' + ele.field) : '-';
             },
             //操作
             operat: function (d) {
