@@ -76,7 +76,7 @@ class AddonsBackend extends AddonsController
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->entrance = config('entrance.backendEntrance');
+        $this->entrance = config('backend.backendEntrance');
         (new AuthService())->checkNode();
         $this->pageSize = request()->param('limit/d', 15);
         //加载语言包

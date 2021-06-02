@@ -56,7 +56,6 @@ if (!function_exists('__u')) {
 if (!function_exists("_getProvicesByPid")) {
     function _getProvicesByPid($pid = 0)
     {
-
         return \think\facade\Db::name('provinces')->cache(true)->find($pid);
     }
 }

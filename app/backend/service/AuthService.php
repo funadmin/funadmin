@@ -72,7 +72,7 @@ class AuthService
         if (substr($pathurl, 0,7) === 'addons/') {
             $this->requesturl = $pathurl;
         }else{
-            $this->requesturl = str_replace(Config::get('entrance.backendEntrance'),'',$this->requesturl);
+            $this->requesturl = str_replace(Config::get('backend.backendEntrance'),'',$this->requesturl);
         }
     }
     //获取左侧主菜单
@@ -464,12 +464,10 @@ class AuthService
         }
         return true;
     }
-
     /**
      * 注销登录
      */
-    public
-    function logout()
+    public function logout()
     {
         $admin = AdminModel::find(intval(\session('admin.id')));
         if ($admin) {
@@ -481,5 +479,70 @@ class AuthService
         return true;
     }
 
+    /**
+     * 前台权限节点
+     */
+    public function authNode($url)
+    {
+        $urlArr = explode('/',$url);
+        $this->controller =  parse_name($urlArr[0], 1);
+        $cfg = config('backend');
+        $this->requesturl = $url;
+        if ($this->requesturl === '/') {
+            return false;
+        }
+        $adminId = session('admin.id');
+        if (
+            !in_array($this->controller, $cfg['noLoginController'])
+            && !in_array($this->requesturl, $cfg['noLoginNode'])
+        ) {
+            if(empty($adminId)) return false;;
+            if (!$this->isLogin()) {
+                return false;
+            }
+            if ($adminId && $adminId != $cfg['superAdminId']) {
+                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
+                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
+                        return false;
+                    }
+                    $this->hrefId = AuthRule::where('href', $this->requesturl)
+                        ->where('status', 1)
+                        ->value('id');
+                    //当前管理员权限
+                    $rules = AuthGroupModel::where('id', 'in', session('admin.group_id'))
+                        ->where('status', 1)->value('rules');
+                    //用户权限规则id
+                    $adminRules = explode(',', $rules);
+                    // 不需要权限的规则id;
+                    $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
+                    $this->adminRules = array_merge($adminRules, $noruls);
+                    if ($this->hrefId) {
+                        if (!in_array($this->hrefId, $this->adminRules)) {
+                            return false;
+                        }
+                    } else {
+                        if (!in_array($this->requesturl, $cfg['noRightNode'])) {
+                            return false;
+                        }
+                    }
+                }
+            } else {
+                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
+                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        } elseif (
+            //不需要登录
+            in_array($this->controller, $cfg['noLoginController'])
+            //不需要登录
+            && in_array($this->requesturl, $cfg['noLoginNode'])
+        ) {
+            return true;
+        }
+        return true;
+    }
 
 }

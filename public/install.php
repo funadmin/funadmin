@@ -22,7 +22,7 @@ $lockFile = "." . DIRECTORY_SEPARATOR . "install.lock";
 //数据库
 $databaseConfigFile = "../config" . DIRECTORY_SEPARATOR . "database.php";
 //后台入口配置
-$entranceConfigFile = "../config" . DIRECTORY_SEPARATOR . "entrance.php";
+$entranceConfigFile = "../config" . DIRECTORY_SEPARATOR . "backend.php";
 
 session_start();
 
@@ -260,14 +260,11 @@ Fun;
             if (!file_exists($entranceConfigFile)) {
                 @touch($entranceConfigFile);
             }
-            $entrance = <<<Fun
-<?php
-return [ 
-    'backendEntrance'=>'/{$adminName}/',
-];
-?>
-Fun;
-            $entranceConfig = @file_put_contents($entranceConfigFile, $entrance);
+            $key = 'backendEntrance';
+            $config = file_get_contents($entranceConfigFile); //加载配置文件
+            $config = preg_replace("/'{$key}'.*?=>.*?'.*?'/", "'{$key}' => '/{$adminName}/'", $config);
+            @file_put_contents($entranceConfigFile, $config); // 写入配置文件
+//            $entranceConfig = @file_put_contents($entranceConfigFile, $entrance);
             $result = @file_put_contents($lockFile, 'ok');
             if (!$result) {
                 exit("安装失败、请确定install.lock是否有写入权限！:$error");

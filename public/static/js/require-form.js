@@ -156,6 +156,12 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                     Fun.events.photos(otihs)
                 },
                 bindevent: function (form) {
+                    $('body').on('click', '[lay-event]', function () {
+                        var _that = $(this), attrEvent = _that.attr('lay-event');
+                        if (Table.events.hasOwnProperty(attrEvent)) {
+                            Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                        }
+                    });
                 },
             },
             api: {
