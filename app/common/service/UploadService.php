@@ -77,7 +77,7 @@ class UploadService extends AbstractService
                 try {
                     $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                     $path = DS . 'storage' . DS . $savename;
-                    $paths = trim($path, '/');
+                    $paths = trim(trim($path, '/'),'\\');
 //                    整合上传接口 获取视频音频长度
                     $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
                     $duration=0;
