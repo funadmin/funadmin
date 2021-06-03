@@ -250,8 +250,7 @@ class Admin extends Backend
             }
             $password = Request::post('password', '123456', 'fun\helper\StringHelper::filterWords');
             try {
-                $post['password'] = password_hash($password, PASSWORD_BCRYPT, SignHelper::passwordSalt());
-
+                $post['password'] = SignHelper::password($password);
                 if (Session::get('admin.id') == 1) {
                     Admin::update($post);
                 } elseif (Session::get('admin.id') == $post['id']) {

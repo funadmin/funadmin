@@ -283,11 +283,12 @@ class CurdService
         $assignStr = '';
         $i=0;
         foreach ($this->assign as $k => $v) {
+            $kk = (Str::studly($k));
             if(!$this->hasSuffix($k,$this->config['priSuffix'])){
-                $assignStr .= str_replace(['{{$name}}','{{$method}}'],[$k,'get'.ucfirst($k)],$assignTpl).PHP_EOL;
+                $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
             }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
                 $k = str_replace(['_id','_ids'],['',''],$k);
-                $assignStr .= str_replace(['{{$name}}','{{$method}}'],[$k,'get'.ucfirst($k)],$assignTpl).PHP_EOL;
+                $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
                 $i++;
             }
         }
@@ -367,7 +368,7 @@ class CurdService
         //单模型
         $joinTplStr = '';
         if ($this->joinTable) {
-            foreach ($this->joinName as $k=>$v){
+            foreach ($this->joinTable as $k=>$v){
                 if(isset($this->joinMethod[$k])){
                     $method = $this->joinMethod[$k];
                 }else{
@@ -383,11 +384,15 @@ class CurdService
         $i=0;
         if($this->assign){
             foreach ($this->assign as $k=>$v){
+                $kk = Str::studly($k);
                 if(!$this->hasSuffix($k,$this->config['priSuffix'])){
                     $joinTplStr.=str_replace(['{{$method}}','{{$values}}'],
-                            ['get'.ucfirst($k),$v],
+                            ['get'.$kk,$v],
                             file_get_contents($attrTpl)).PHP_EOL;
-                }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
+                }elseif($this->hasSuffix($k,$this->config['priSuffix'])
+                    and $this->joinTable and isset($this->joinForeignKey[$i])
+                    and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])
+                ){
                     //关联模型搜索属性
                     $model = isset($this->joinModel[$i])?$this->joinModel[$i]:$this->joinModel[0];
                     if(count($this->joinTable)==1){
@@ -397,7 +402,7 @@ class CurdService
                     }
                     $k = str_replace(['_id','_ids'],['',''],$k);
                     $joinTplStr.=str_replace(['{{$method}}','{{$values}}','{{$joinModel}}'],
-                            ['get'.ucfirst($k),$value,ucfirst(Str::studly($model))],
+                            ['get'.ucfirst($kk),$value,ucfirst(Str::studly($model))],
                             file_get_contents($joinAttrTpl)).PHP_EOL;
                     $i++;
                 }
@@ -619,10 +624,8 @@ class CurdService
                     if($this->joinTable){
                         $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                         if(strpos($vo['name'],'_ids')){
-                            $vo['name'] = str_replace('_ids','',$vo['name']);
                             $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         }elseif(strpos($vo['name'],'_id')){
-                            $vo['name'] = str_replace('_id','',$vo['name']);
                             $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         }
                     }else{
@@ -698,12 +701,14 @@ class CurdService
                             $this->jsCols .= "                  {field: '{$v['name']}',title: __('{$name}'),sort:true,templet: Table.templet.image},".PHP_EOL;;
                             break;
                         case 'checkbox':
+                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',,selectList:".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            break;
                         case 'select':
                         case 'radio':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),selectList:".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',,selectList:".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'switch':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),  selectList: ".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}',  selectList: ".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'number':
                             if ($this->hasSuffix($v['name'], ['sort'])) {
@@ -864,7 +869,7 @@ class CurdService
             //指定后缀结尾 且类型为number系列的字段 为其他表主键
             if ($this->hasSuffix($fieldsName, $this->config['priSuffix']) && (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'mediumint', 'int', 'bigint','varchar','char']))) {
                 $v['type'] = "_id";
-                $assign[lcfirst(Str::studly($v['name'])) . 'List']='';
+                $assign[$v['name']. 'List']='';
             }
             $lang .= $this->getlangStr($v);
             if (in_array($v['DATA_TYPE'], ['tinyint','set', 'enum']) and $v['type']!='_id') {
@@ -874,10 +879,10 @@ class CurdService
                         throw new \Exception('字段' . $v['name'] . '注释无效');
                     }
                     $v['comment'] = $comment[0];
-                    list($assign[lcfirst(Str::studly($v['name'])) . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
+                    list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
                 }else{
                     if($v['name']=='status'){
-                        $assign[lcfirst(Str::studly($v['name'])) . 'List'] = '[0=>"enabled",1=>"disabled"]';
+                        $assign[$v['name'] . 'List'] = '[0=>"enabled",1=>"disabled"]';
                         $v['option'] = '{0:__("enabled"),1:__("disabled")}';
                     }
                     $v['comment'] = $comment[0];
