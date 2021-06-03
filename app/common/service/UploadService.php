@@ -79,7 +79,7 @@ class UploadService extends AbstractService
                     $path = DS . 'storage' . DS . $savename;
                     $paths = trim(trim($path, '/'),'\\');
 //                    整合上传接口 获取视频音频长度
-                    $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                    $analyzeFileInfo = hook('getID3Hook',['path'=>'.'.DS.$path]);
                     $duration=0;
                     if($analyzeFileInfo) {
                         $analyzeFileInfo = json_decode($analyzeFileInfo,true);
@@ -87,7 +87,7 @@ class UploadService extends AbstractService
                     }
                     if ($this->driver != 'local') {
                         try {
-                            $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                            $path = $ossService->uploads($this->driver,$paths, '.'.DS . $paths,$save);
                         }catch (\Exception $e) {
                             throw new Exception($e->getMessage());
                         }
