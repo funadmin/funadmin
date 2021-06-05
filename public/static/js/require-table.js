@@ -57,11 +57,11 @@ define(['jquery','timePicker'],function ($,timePicker) {
             var toolbarHtml = '';
             $.each(d, function (i, v) {
                 if (v === 'refresh') {
-                    url = Fun.replaceurl(Table.init.requests.export_url,d);
+                    url = Fun.replaceurl(Table.init.requests.refresh,d);
                     toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n';
                 } else if (v === 'export') {
                     url = Fun.replaceurl(Table.init.requests.export_url,d);
-                    toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
+                    toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Delete') + '</a>\n';
                 } else if (v === 'add') {
                     url = Fun.replaceurl(Table.init.requests.add_url,d);
                     if (Fun.checkAuth('add')) {
