@@ -4422,7 +4422,7 @@ CREATE TABLE `fun_test` (
                             `image` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '图片=1',
                             `images` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '图片集合=10',
                             `attach_file` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '附件=1',
-                            `attach_files` int(11) NOT NULL COMMENT '附件=10',
+                            `attach_files` varchar (255) NOT NULL COMMENT '附件=10',
                             `keywords` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '关键字',
                             `price` float(10,2) UNSIGNED NOT NULL DEFAULT '0.00' COMMENT '价格',
   `startdate` date NOT NULL COMMENT '开始日期',

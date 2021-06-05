@@ -3,6 +3,7 @@
     */
     public function index()
     {
+        {{$relationSearch}}
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass

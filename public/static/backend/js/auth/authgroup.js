@@ -30,8 +30,8 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80, sort: true},
-                    {field: 'pid', title: __('Pid'), width: 150,},
-                    {field: 'title', title: __('GroupName'), minwidth: 120,},
+                    // {field: 'pid', title: __('Pid'), width: 150,},
+                    {field: 'ltitle', title: __('GroupName'), minwidth: 120,},
                     {
                         field: 'status',
                         title: __('Status'),

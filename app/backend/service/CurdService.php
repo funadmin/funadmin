@@ -79,6 +79,7 @@ class CurdService
     protected $selectFields;
     protected $jsCols;
     protected $assign;
+    protected $script;
     protected $requests;
     protected $limit;
     protected $page = "true";
@@ -249,7 +250,11 @@ class CurdService
         $controllerTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'controller.tpl';
         $modelTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'model.tpl';
         $indexTpl = '';
+        $relationSearch = '';
+        $statusResult = Db::query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name ='".$this->tablePrefix.$this->table."' AND column_name ='status'");
+        $status= $statusResult[0]['COUNT(*)'];
         if ($this->joinTable) {
+            $relationSearch ='$this->relationSearch = true;';
             $indexTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'index.tpl';
             $joinIndexMethod = "withJoin(";
             foreach ($this->joinTable as $k => $v) {
@@ -277,21 +282,28 @@ class CurdService
             $joinIndexMethod = substr($joinIndexMethod,0,strlen($joinIndexMethod)-1);
             $joinIndexMethod.=")";
             $joinIndexMethod = trim($joinIndexMethod, ',');
-            $indexTpl = str_replace(['{{$joinIndexMethod}}'], [$joinIndexMethod], file_get_contents($indexTpl));
+            $indexTpl = str_replace(['{{$joinIndexMethod}}','{{$relationSearch}}','{{$status}}'], [$joinIndexMethod,$relationSearch,$status], file_get_contents($indexTpl));
         }
         $assignTpl = file_get_contents($this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'assign.tpl');
+        $scriptTpl = file_get_contents($this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'script.tpl');
         $assignStr = '';
+        $scriptStr = '<script>';
         $i=0;
         foreach ($this->assign as $k => $v) {
-            $kk = (Str::studly($k));
+            $kk = Str::studly($k);
             if(!$this->hasSuffix($k,$this->config['priSuffix'])){
                 $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
-            }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
-                $k = str_replace(['_id','_ids'],['',''],$k);
+                $scriptStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),lcfirst($kk)],$scriptTpl).PHP_EOL;
+            }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable
+                and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
                 $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
+                $scriptStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),lcfirst($kk)],$scriptTpl).PHP_EOL;
+
                 $i++;
             }
         }
+        $scriptStr.='</script>';
+        $this->script = $scriptStr;
         $controllerTplBack = str_replace(
             [
                 '{{$controllerNamespace}}',
@@ -429,11 +441,13 @@ class CurdService
     // 创建模板
     protected function makeView()
     {
+        ;
         $formFieldData = $this->getFormData();
         $indexViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'index.tpl';
+        $indexViewTpl = str_replace(['{{$script}}'], [$this->script], file_get_contents($indexViewTpl));
         $addViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'add.tpl';
         $addViewTpl = str_replace(['{{$formDataField}}'], [$formFieldData], file_get_contents($addViewTpl));
-        $this->makeFile($this->fileList['indexFileName'], file_get_contents($indexViewTpl));
+        $this->makeFile($this->fileList['indexFileName'], $indexViewTpl);
         $this->makeFile($this->fileList['addFileName'], $addViewTpl);
     }
 
@@ -693,22 +707,30 @@ class CurdService
             if (($this->config['fields'] && in_array($v['name'], $this->config['fields'])) || !$this->config['fields']) {
                 if ($v['COLUMN_KEY'] != "PRI") {
                     $name = Str::studly($v['name']);
+                    $listName = lcfirst(Str::studly($v['name']));
                     switch ($v['type']) {
+                        case '_id':
+                            if($this->joinTable and in_array($v['name'],$this->joinForeignKey)){ //
+                                $this->jsCols .= "                  {field:'{$v['name']}',search: true,title: __('{$name}'),selectList:{$listName}List,sort:true,templet: Table.templet.tags},".PHP_EOL;;
+                            }else{
+                                $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:'sort'},".PHP_EOL;
+                            }
+                            break;
                         case 'image':
-                            $this->jsCols .= "                  {field: '{$v['name']}',title: __('{$name}'),sort:true,templet: Table.templet.image},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),sort:true,templet: Table.templet.image},".PHP_EOL;;
                             break;
                         case 'file':
-                            $this->jsCols .= "                  {field: '{$v['name']}',title: __('{$name}'),sort:true,templet: Table.templet.image},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),sort:true,templet: Table.templet.image},".PHP_EOL;;
                             break;
                         case 'checkbox':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',,selectList:".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,sort:true,templet: Table.templet.tags},".PHP_EOL;;
                             break;
                         case 'select':
                         case 'radio':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',,selectList:".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,sort:true,templet: Table.templet.select},".PHP_EOL;;
                             break;
                         case 'switch':
-                            $this->jsCols .= "                  {field: '{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}',  selectList: ".$v['option'].",sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}', selectList:{$listName}List,sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'number':
                             if ($this->hasSuffix($v['name'], ['sort'])) {

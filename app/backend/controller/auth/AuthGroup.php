@@ -43,6 +43,7 @@ class AuthGroup extends Backend
                 ->order('id asc')
                 ->page($this->page, $this->pageSize)
                 ->select();
+            $list = TreeHelper::cateTree($list,'title');
             $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }

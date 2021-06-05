@@ -13,7 +13,7 @@ define(['table','form'], function (Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add','delete'],
+                toolbar: ['refresh','add','delete','export'],
                 cols: [[
                     {{$jsCols}}
                 ]],
