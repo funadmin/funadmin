@@ -138,6 +138,9 @@ class CurdService
         $this->limit = $this->config['limit'] ?:15;
         $this->page = (empty($this->config['page']) || $this->config['page']=='true')? "true" : 'false';
         $this->joinTable = $this->config['joinTable'] ;
+        foreach ($this->joinTable as $k=>$v){
+            $this->joinTable[$k] = str_replace($this->tablePrefix,'',$v);
+        }
         $this->joinName = $this->config['joinName']?:$this->joinTable;
         $this->joinModel = $this->config['joinModel']?:$this->joinTable ;
         $this->joinMethod = $this->config['joinMethod'];
@@ -637,10 +640,12 @@ class CurdService
                 case "_id":
                     if($this->joinTable){
                         $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                        if(strpos($vo['name'],'_ids')){
+                        if(strpos($vo['name'],'_ids') and in_array($vo['name'],$this->joinForeignKey)){
                             $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
-                        }elseif(strpos($vo['name'],'_id')){
+                        }elseif(strpos($vo['name'],'_id') and in_array($vo['name'],$this->joinForeignKey)){
                             $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        }else{
+                            $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                         }
                     }else{
                         $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;

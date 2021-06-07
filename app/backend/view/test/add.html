@@ -1,0 +1,29 @@
+<form class="layui-form" lay-filter="form">
+    {:form_select('cate_id',$cateIdList, ['label' => 'CateId', 'verify' => 'required', 'search' => 1], [], '')}
+{:form_input('cate_ids', 'text', ['label' => 'CateIds', 'verify' => 'required'], '')}
+{:form_select('week',$weekList, ['label' => 'Week', 'verify' => 'required', 'search' => 1], [], 'monday')}
+{:form_radio('sexdata' ,$sexdataList, ['label' => 'Sexdata', 'verify' => 'required'], 'secret')}
+{:form_textarea('textarea', ['label' => 'Textarea', 'verify' => 'required',], '')}
+{:form_upload('image',$formData?$formData['image']:'' ,['label' => 'Image', 'verify' => 'required', 'type' => 'radio', 'mime' => 'image', 'path' => 'Test', 'num' => '1'])}
+{:form_upload('images', $formData?$formData['images']:'', ['label' => 'Images', 'verify' => 'required', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'Test', 'num' => '*'])}
+{:form_upload('attach_file', $formData?$formData['attach_file']:'', ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio', 'mime' => 'file', 'path' =>'Test', 'num' => '1'])}
+{:form_upload('attach_files', $formData?$formData['attach_files']:'', ['label' => 'AttachFiles', 'verify' => 'required', 'type' => 'checkbox', 'mime' => 'file', 'path' => 'Test', 'num' => '*'])}
+{:form_input('keywords', 'text', ['label' => 'Keywords', 'verify' => 'required'], '')}
+{:form_input('price', 'text', ['label' => 'Price', 'verify' => 'required'], '0.00')}
+{:form_date('startdate', ['label' => 'Startdate', 'verify' => 'required', 'type' => 'date'])}
+{:form_date('activitytime', ['label' => 'Activitytime', 'verify' => 'required'])}
+{:form_date('timestaptime', ['label' => 'Timestaptime', 'verify' => 'required'])}
+{:form_date('year', ['label' => 'Year', 'verify' => 'required', 'type' => 'year'])}
+{:form_date('times', ['label' => 'Times', 'verify' => 'required', 'type' => 'time'])}
+{:form_switch('switch', [0 => 'Close', 1 => 'open'], ['label' => 'Switch', 'verify' => 'required'], $formData?$formData['switch']:'1') }
+{:form_switch('open_switch', [0 => 'Close', 1 => 'open'], ['label' => 'OpenSwitch', 'verify' => 'required'], $formData?$formData['open_switch']:'0') }
+{:form_checkbox('teststate', $teststateList,['label' => 'Teststate', 'verify' => 'required'], $formData?$formData['teststate']:'1')}
+{:form_checkbox('test2state', $test2stateList,['label' => 'Test2state', 'verify' => ''], $formData?$formData['test2state']:'2')}
+{:form_editor('editor_content', 'editor_content', 2,['label'=>'EditorContent','verify' => ''])}
+{:form_editor('description', 'description', 2,['label'=>'Description','verify' => ''])}
+{:form_color('test_color', 'test_color', ['label' => 'TestColor', 'verify' => '', 'search' => 1])}
+{:form_radio('status' ,$statusList, ['label' => 'Status', 'verify' => 'required'], '1')}
+
+    {:form_submitbtn()}
+</form>
+

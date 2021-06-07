@@ -278,11 +278,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 var ele = $(this)[0];
                 var selectList = ele.selectList;
                 var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
-                if(selectList && content !==''){
+                if(selectList.toString()!=="{}" && content !=''){
                     var reg = RegExp(/,/);
                     content = reg.test(content) ?content.split(','):[content];
                     html = '';
                     $.each(content, function (i, v) {
+                        console.log(selectList[v]);
                         if(selectList[v]){
                             html +="<span lay-event='search' data-tips='"+__(selectList[v])+"' title='"+__(selectList[v])+"' class='layui-btn layui-btn-xs layui-table-tags'>" +  __(selectList[v]) + "</span>";
                         }
