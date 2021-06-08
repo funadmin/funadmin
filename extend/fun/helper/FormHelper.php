@@ -287,7 +287,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
-                  <select name="' . $name . '" ' . $multiple . self::filter($options) . self::verify($options) . self::search($options) . ' >
+                  <select name="' . $name . '" ' . $multiple . self::filter($options) . self::verify($options) . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
                     <option value="">' . lang($default) . '</option>
                     ' . $op . '
                   </select>

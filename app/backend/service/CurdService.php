@@ -541,7 +541,7 @@ class CurdService
         $menu['menu']['menulist'][0]['menulist'] = $menuList;
         $menuListArr[] = $menu['menu'];
         $this->menuListStr = $this->getMenuStr($menu);
-        if(!$this->addon){
+        if(!$this->addon && $this->config['menu']){
             $this->operateMenu($menuListArr,$type);
         }
     }
