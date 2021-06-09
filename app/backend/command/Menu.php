@@ -9,6 +9,7 @@ use think\console\input\Option;
 use think\console\Output;
 use think\facade\Cache;
 use think\facade\Db;
+use think\helper\Str;
 
 /**
  * Class Menu
@@ -41,6 +42,13 @@ class Menu extends Command
         if($param['addon']){
 
         }
+        $controllerArr = explode(DS,$param['controller']);
+        $controller = array_pop($controllerArr);
+        $this->controllerUrl = $controllerArr ? Str::lower($controllerArr[0]) . '.' . Str::camel($this->controllerName) : Str::camel($this->controllerName);
+        $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
+        $class = 'app\\backend\\controller'.$nameSpace;
+        var_dump($class);
+        var_dump(        class_exists($class));
         try {
             $output->info('make success');
         }catch (\Exception $e){
