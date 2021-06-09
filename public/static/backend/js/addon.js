@@ -131,9 +131,8 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                                 $.ajax({
                                     url: url, type: 'post', data: data, dataType: "json", success: function (res) {
                                         if (res.code === 1) {
-                                            Fun.toastr.success(res.msg, layer.closeAll({time:2000},function () {
-                                                layui.table.reload(Table.init.tableId);
-                                            }))
+                                            Fun.toastr.success(res.msg, layer.closeAll());
+                                            layui.table.reload(Table.init.tableId);
                                         } else {
                                             Fun.toastr.alert(res.msg);
                                         }

@@ -481,7 +481,7 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             },
             refreshTable: function (tableName) {
                 tableName = tableName | 'list';
-                layui.table.reload(tableName);
+                layui.table.reload(tableName,{},true);
             },
         },
     };

@@ -34,7 +34,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
             // 初始化表格lay-filter
             $(options.elem).attr('lay-filter', options.layFilter);
             // 初始化表格搜索
-            options.toolbar = options.toolbar || ['refresh','export','add', 'delete'];
+            options.toolbar = options.toolbar || ['refresh','export','add', 'delete','recycle'];
             if (options.search === true) {
                 Table.renderSearch(options);
             }
@@ -72,17 +72,22 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     if (Fun.checkAuth('delete')) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
                     }
-                }   else if (v === 'destory') {
+                } else if (v === 'destory') {
                     url = Fun.replaceurl(Table.init.requests.destory_url,d);
                     if (Fun.checkAuth('destory')) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n';
+                    }
+                } else if (v === 'recycle') {
+                    url = Fun.replaceurl(Table.init.requests.recycle_url,d);
+                    if (Fun.checkAuth('recycle')) {
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n';
                     }
                 } else if ( typeof v === 'string' && typeof eval('Table.init.requests.' + v) === 'string') {
                     if (Fun.checkAuth(v)) {
                         url = Fun.replaceurl(eval(('Table.init.requests.'+v+'_url')),d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __(v) + '</a>\n';
                     }
-                }else if (typeof v==='string' && typeof eval('Table.init.requests.' + v) === 'object'  || typeof v === 'object') {
+                } else if (typeof v==='string' && typeof eval('Table.init.requests.' + v) === 'object'  || typeof v === 'object') {
                     if(typeof v ==='string'){
                         v = eval('Table.init.requests.' + v);
                     }
@@ -111,7 +116,6 @@ define(['jquery','timePicker'],function ($,timePicker) {
             show = Fun.parame(options.searchShow,false)? '':'layui-hide';
             console.log(options.searchShow)
             console.log( Fun.parame(options.searchShow,false))
-            console.log(show)
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
@@ -375,14 +379,14 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     //曾删改查
                     var vv={};
                     var va={};
-                    if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || (typeof v !=="object" && typeof eval('requests.' + v +'_url')==='string')) {
+                    if (v === 'edit' || v === 'delete' || v === 'add' || v === 'destroy' || v==='restore' || (typeof v !=="object" && typeof eval('requests.' + v +'_url')==='string')) {
                         if (v === 'add') {
                             va = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-warm',
                                 text: __('Add'),
-                                title: '',
+                                title: __('Add'),
                                 url: requests.add_url,
                                 icon: 'layui-icon layui-icon-add-circle-fine',
                                 extend: "",
@@ -395,7 +399,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                 event: 'open',
                                 class: 'layui-btn layui-btn-xs',
                                 text: __('Edit'),
-                                title: '',
+                                title: __('Edit'),
                                 url: requests.edit_url,
                                 icon: 'layui-icon layui-icon-edit',
                                 extend: "",
@@ -407,8 +411,8 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                 type: 'delete',
                                 event: 'request',
                                 class: 'layui-btn layui-btn-danger',
-                                text: __('Delete'),
-                                title: __('Are you sure to delete'),
+                                text: __('Are you sure to delete'),
+                                title: __('Delete'),
                                 url: requests.delete_url,
                                 icon: 'layui-icon layui-icon-delete',
                                 extend: "",
@@ -420,15 +424,28 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                 type: 'delete',
                                 event: 'request',
                                 class: 'layui-btn layui-btn-warm',
-                                text: __('Destroy'),
-                                title: __('Are you sure to Destroy'),
+                                text: __('Are you sure to Destroy'),
+                                title: __('Destroy'),
                                 url: requests.destroy_url,
                                 icon: 'layui-icon layui-icon-fonts-clear',
                                 extend: "",
                                 width: '800',
                                 height: '600',
                             };
-                        }else{
+                        } else if (v === 'restore') {
+                            va = {
+                                type: 'request',
+                                event: 'request',
+                                class: 'layui-btn layui-btn-warm',
+                                text: __('Are you sure to restore'),
+                                title: __('Restore'),
+                                url: requests.restore_url,
+                                icon: 'layui-icon layui-icon-refresh-1',
+                                extend: "",
+                                width: '800',
+                                height: '600',
+                            };
+                        } else{
                             va = {
                                 type: 'open',
                                 event: 'open',
@@ -461,7 +478,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         vv.height = va.height !== '' ? 'data-height="' + va.height + '"' : '';
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="' + vv.icon + '"></i>' : '';
-                        vv.class = vv.class !== '' ? 'class="' + vv.class + '" ' : '';
+                        vv.class = vv.class !== '' ? 'class="layui-event-tips ' + vv.class + '" ' : '';
                         vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
@@ -469,8 +486,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         if(!vv.icon){
                             vv.icon =  vv.icon + vv.text
                         }
+                        vv.text = 'data-text="'+vv.text +'"';
                         if (Fun.checkAuth(vv.node)) {
-                            html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + '>' + vv.icon + '</button>';
+                            html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>';
                         }
                     } else if (typeof v==='string' && typeof eval('requests.' + v) === "object" || typeof v=== 'object') {
                         if(typeof v === 'string'){
@@ -502,7 +520,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                        vv.class = vv.class ? 'class="'+vv.class+ '"':vv.class;
+                        vv.class = vv.class ? 'class="layui-event-tips '+vv.class+ '"':vv.class;
                         vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
                         vv.title= vv.title !== '' ? 'title="' + vv.title +'"':'';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
@@ -513,8 +531,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         if(!vv.icon){
                             vv.icon =  vv.icon + vv.text
                         }
+                        vv.text = 'data-text="'+vv.text +'"';
                         if (Fun.checkAuth(vv.node)) {
-                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align+ '>' + vv.icon + '</button>';
+                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text  +vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align+ '>' + vv.icon + '</button>';
                         }
                     }
                 });
@@ -541,7 +560,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId;
                 }
-                layui.table.reload(tableId);
+                Table.api.reload(tableId)
             },
             //切换选项卡
             tabswitch:function(othis){
@@ -551,6 +570,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 Table.api.reload(Table.init.tableId,$where);
                 return false;
             },
+            export: function (othis) {
+                window.open(Fun.url(othis.data('url')),'_blank')
+            },
             request: function (othis,options=null) {
                 var data = othis.data();
                 if(options){
@@ -558,7 +580,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     url = options.url;
                     tableId = options.tableId || Table.init.tableId;
                 }else{
-                    var title = othis.prop('title')?othis.prop('title'):data.title,
+                    var title = data.text?data.text:data.title,
                         url = data.url?data.url:data.href,tableId = data.tableId;
                     title = title || __('Are you sure');
                     url = url !== undefined ? url : window.location.href;
@@ -569,11 +591,11 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         url: url,
                     }, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            layui.table.reload(tableId)
+                            Table.api.reload(tableId)
                         });
                     }, function (res) {
                         Fun.toastr.error(res.msg, function () {
-                            layui.table.reload(tableId);
+                            Table.api.reload(tableId)
                         });
                     })
                     Fun.toastr.close();
@@ -583,7 +605,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                         return false;
                     }
                     Fun.toastr.success(res.msg, function () {
-                        layui.table.reload(tableId);
+                        Table.api.reload(tableId)
                     });
                 });
                 return false;
@@ -624,7 +646,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                             },
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                layui.table.reload(tableId);
+                                Table.api.reload(tableId)
                             });
                         }, function (res) {
                             Fun.toastr.error(res.msg);
@@ -668,11 +690,11 @@ define(['jquery','timePicker'],function ($,timePicker) {
             },
         },
         api: {
-            reload:function (tableId,$where) {
+            reload:function (tableId,$where,$deep=true) {
                 tableId = tableId?tableId : Table.init.tableId;
                 $where= $where || {};
                 $map = {where: $where}
-                layui.table.reload(tableId, $map);
+                layui.table.reload(tableId, $map,$deep);
             },
             //表格收索
             tableSearch: function (tableId) {
@@ -731,16 +753,16 @@ define(['jquery','timePicker'],function ($,timePicker) {
                                     data: data,
                                 }, function (res) {
                                     Fun.toastr.success(res.msg, function () {
-                                        layui.table.reload(tableId);
+                                        Table.api.reload(tableId)
                                     });
                                 }, function (res) {
                                     obj.elem.checked=!checked;
                                     layui.form.render();
                                     Fun.toastr.error(res.msg, function () {
-                                        layui.table.reload(tableId);
+                                        Table.api.reload(tableId)
                                     });
                                 }, function () {
-                                    layui.table.reload(tableId);
+                                    Table.api.reload(tableId)
                                 });
                             });
                         }
@@ -772,6 +794,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                             break;
                         case 'open':
                             Table.events.open(othis);
+                            break;
+                        case 'export':
+                            Table.events.export(othis);
                             break;
                         case 'request':
                             Table.events.request(othis);
@@ -813,14 +838,14 @@ define(['jquery','timePicker'],function ($,timePicker) {
                             data: _data,
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                layui.table.reload(tableId);
+                                Table.api.reload(tableId)
                             });
                         }, function (res) {
                             Fun.toastr.error(res.msg, function () {
-                                layui.table.reload(tableId);
+                                Table.api.reload(tableId)
                             });
                         }, function () {
-                            layui.table.reload(tableId);
+                            Table.api.reload(tableId)
                         });
                     });
                 }

@@ -116,4 +116,26 @@ class Member extends Backend
 
     }
 
+    public function recycle()
+    {
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames('','',0);
+            $where[] = ['member.status','=',-1];
+            $count = $this->modelClass
+                ->withJoin(['memberGroup','memberLevel'])
+                ->where($where)
+                ->count();
+            $list = $this->modelClass
+                ->withJoin(['memberGroup','memberLevel'])
+                ->where($where)
+                ->order($sort)
+                ->page($this->page, $this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
+            return json($result);
+        }
+        return view('index');
+    }
+
+
 }

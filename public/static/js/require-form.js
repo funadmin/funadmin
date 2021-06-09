@@ -197,7 +197,7 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'],
                     }
                     if (option.refreshTable !== false) {
                         if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
-                            parent.layui.table.reload(option.refreshTable)
+                            parent.layui.table.reload(option.refreshTable,{},true)
                         } else {
                             setTimeout(function(){
                                 location.reload();

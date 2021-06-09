@@ -25,5 +25,6 @@ class {{$controllerName}} extends {{$baseController}}
     }
 
     {{$indexTpl}}
+
 }
 

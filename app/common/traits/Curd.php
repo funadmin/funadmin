@@ -173,7 +173,7 @@ trait Curd
             }
             $model = $this->findModel($id);
             if (!$model) {
-                $this->error(lang('Data Is Not 存在'));
+                $this->error(lang('Data Is Not Exist'));
             }
             $model->$field = $value;
             try{
@@ -188,7 +188,53 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('import')
+     * @NodeAnnotation ('Recycle')
+     * @return \think\response\Json|\think\response\View
+     */
+
+    public function recycle()
+    {
+        if ($this->request->isAjax()) {
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames('','',false);
+            $where[] = ['status','=','-1'];
+            $count = $this->modelClass
+                ->where($where)
+                ->count();
+            $list = $this->modelClass
+                ->where($where)
+                ->order($sort)
+                ->page($this->page,$this->pageSize)
+                ->select();
+            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
+            return json($result);
+        }
+        return view('index');
+    }
+    /**
+     * @NodeAnnotation('Restore')
+     * @return bool
+     */
+    public function restore(){
+        $id = input('id');
+        if($id){
+            $model = $this->findModel($id);
+            if (!$model) {
+                $this->error(lang('Data Is Not Exist'));
+            }
+            $model->status = 1;
+            try{
+                $save = $model->save();
+            }catch(\Exception $e){
+                $this->error(lang($e->getMessage()));
+            }
+            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
+        }else{
+            $this->error(lang('Invalid data'));
+        }
+    }
+
+    /**
+     * @NodeAnnotation('Import')
      * @return bool
      */
     public function import()

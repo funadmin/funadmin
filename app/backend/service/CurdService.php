@@ -55,7 +55,7 @@ class CurdService
     protected $database = 'funadmin';
     protected $force = false;
     protected $rootPath;
-    protected $method = 'index,add,edit,delete,deleteAll,import,export,modify';
+    protected $method = 'index,add,edit,delete,deleteAll,recycle,import,export,modify';
     protected $fileList;
     protected $fieldsList;
     protected $table;
@@ -78,6 +78,7 @@ class CurdService
     protected $joinPrimaryKey;
     protected $selectFields;
     protected $jsCols;
+    protected $jsColsRecycle;
     protected $assign;
     protected $script;
     protected $requests;
@@ -174,7 +175,8 @@ class CurdService
         foreach ($methodArr as $k => $v) {
             if ($v != 'refresh') {
                 $controllerPrefix  = $this->addon?"addons/$this->addon/". ($this->module=='common'?'backend':$this->module) ."/":"";
-                $this->requests .= $v . '_url:' ."'{$controllerPrefix}{$this->controllerUrl}/{$v}'" . ','.PHP_EOL;
+                $space = $k==0?'':'                    ';
+                $this->requests .=  $space. $v . '_url:' ."'{$controllerPrefix}{$this->controllerUrl}/{$v}'" . ','.PHP_EOL;
             }
         }
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
@@ -285,7 +287,7 @@ class CurdService
             $joinIndexMethod = substr($joinIndexMethod,0,strlen($joinIndexMethod)-1);
             $joinIndexMethod.=")";
             $joinIndexMethod = trim($joinIndexMethod, ',');
-            $indexTpl = str_replace(['{{$joinIndexMethod}}','{{$relationSearch}}','{{$status}}'], [$joinIndexMethod,$relationSearch,$status], file_get_contents($indexTpl));
+            $indexTpl = str_replace(['{{$joinIndexMethod}}','{{$relationSearch}}','{{$table}}','{{$status}}'], [$joinIndexMethod,$relationSearch,$this->table.'.',$status], file_get_contents($indexTpl));
         }
         $assignTpl = file_get_contents($this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'assign.tpl');
         $scriptTpl = file_get_contents($this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'script.tpl');
@@ -459,8 +461,8 @@ class CurdService
     {
         $this->getCols();
         $jsTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'js.tpl';
-        $jsTpl = str_replace(['{{$requests}}', '{{$jsCols}}', '{{$limit}}', '{{$page}}'],
-            [$this->requests, $this->jsCols, $this->limit, $this->page],
+        $jsTpl = str_replace(['{{$requests}}','{{$controller}}', '{{$jsCols}}','{{$jsColsRecycle}}', '{{$limit}}', '{{$page}}'],
+            [$this->requests,$this->controllerUrl, $this->jsCols,$this->jsColsRecycle, $this->limit, $this->page],
             file_get_contents($jsTpl));
         $this->makeFile($this->fileList['jsFileName'], $jsTpl);
     }
@@ -752,15 +754,23 @@ class CurdService
                 }
             }
         }
+        $this->jsColsRecycle =$this->jsCols . '                  {
+                        minWidth: 250,
+                        align: "center",
+                        title: __("Operat"),
+                        init: Table.init,
+                        templet: Table.templet.operat,
+                        operat: ["restore","delete"]
+                    },';
         $this->jsCols .= '                  {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: "center",
                         title: __("Operat"),
                         init: Table.init,
                         templet: Table.templet.operat,
                         operat: ["edit", "destroy","delete"]
                     },';
-        return $this->jsCols;
+        return [$this->jsCols,$this->jsColsRecycle];
     }
 
     /**

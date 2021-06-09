@@ -261,17 +261,17 @@ class FormHelper
     {
         $op = '';
         foreach ($select as $k => $v) {
-            $select = '';
+            $selected = '';
             if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
-                $select = 'selected';
+                $selected = 'selected';
             }
-            if ($value == $k && !$attr)
-                $select = 'selected';
+            if ($value!=null && $value == $k  && !$attr){
+                $selected = 'selected';
+            }
             if (!empty($attr)) {
-                $op .= '<option ' . $select . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
+                $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
             } else {
-                $op .= '<option ' . $select . ' value="' . $k . '">' . lang($v) . '</option>';
-
+                $op .= '<option ' . $selected . ' value="' . $k . '">' . lang($v) . '</option>';
             }
         }
         $label = isset($options['label']) ? $options['label'] : $name;
