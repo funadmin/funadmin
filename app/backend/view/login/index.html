@@ -44,6 +44,7 @@
                     <label class="layui-icon layui-icon-password"></label>
                     <input type="password" name="password" lay-verify="pass" placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" value="">
                 </div>
+                {if config('captcha.check')}
                 <div class="layui-form-item">
                     <label class="layui-icon layui-icon-vercode" ></label>
                     <input type="text" name="captcha" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" value="">
@@ -51,6 +52,7 @@
                         <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
                     </div>
                 </div>
+                {/if}
                 <div class="layui-form-item">
                     <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
                 </div>

@@ -38,8 +38,10 @@ class Login extends Backend {
             $username = $this->request->post('username', '', 'fun\helper\StringHelper::filterWords');
             $password = $this->request->post('password', '', 'fun\helper\StringHelper::filterWords');
             $rememberMe = $this->request->post('rememberMe');
+            if(config('captcha.check')){
+                $rule["captcha|验证码"] = 'require|captcha';
+            }
             $rule = [
-                "captcha|验证码" => 'require|captcha',
                 "username|用户名" => 'require',
                 "password|密码" => 'require',
             ];

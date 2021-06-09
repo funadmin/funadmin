@@ -38,6 +38,9 @@ class Menu extends Command
             $output->info("控制器不能为空");
             return false;
         }
+        if($param['addon']){
+
+        }
         try {
             $output->info('make success');
         }catch (\Exception $e){
