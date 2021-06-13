@@ -19,11 +19,11 @@ return [
             // 服务器地址
             'hostname'          => Env::get('database.hostname', '127.0.0.1'),
             // 数据库名
-            'database'          => Env::get('database.database', 'funadmin'),
+            'database'          => Env::get('database.database', 'testfunadmin'),
             // 用户名
-            'username'          => Env::get('database.username', 'funadmin'),
+            'username'          => Env::get('database.username', 'testfunadmin'),
             // 密码
-            'password'          => Env::get('database.password', '82YJytaKwLfZ2M74'),
+            'password'          => Env::get('database.password', 'NpFJkMeDR4PHjdTW'),
             // 端口
             'hostport'          => Env::get('database.hostport', '3306'),
             // 数据库连接参数

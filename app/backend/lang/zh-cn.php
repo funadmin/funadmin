@@ -15,7 +15,6 @@
 return [
     'UserName or Email'  =>  '用户名或邮箱',
     'Login In'  =>  '登入',
-
     'Lang'  =>  '语言',
     'Input'  =>  '输入',
     'Top'  =>  "顶级",
@@ -24,7 +23,7 @@ return [
     'Edit'  =>  '编辑',
     'Status'  =>  '状态',
     'Del'  =>  '删除',
-    'Delete'  =>  '删除',
+    'Delete'  =>  '销毁',
     'Destroy'  =>  '删除',
     'Add'  =>  '添加',
     'Update'  =>  '更新',

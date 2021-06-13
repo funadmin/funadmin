@@ -201,10 +201,10 @@ class AuthGroup extends Backend
                     ->select()->toArray();
                 $rules = $this->modelClass->where('id', $group_id)
                     ->where('status',1)
-                    ->cache(true)
                     ->value('rules');
                 $list = cache('authCheckedList_'.session('admin.id'));
                 if(!$list){
+                    $rules = $rules?$rules:'';
                     $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
                     cache('authCheckedList_'.session('admin.id'),$list);
                 }
@@ -230,7 +230,6 @@ class AuthGroup extends Backend
                 foreach ($rules as $k=>$v){
                     $child = AuthRule::where('pid',$v)
                         ->where('id','in',$rules)->find();
-
                     if($child){
                         $childIndex = AuthRule::where('pid','=',$v)
                             ->where('href', 'like', '%/index')

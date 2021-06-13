@@ -169,15 +169,22 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                         $.each(list, function () {
                             var id = $(this).prop('id'),name = $(this).prop('name');
                             var provinceId = $(this).data('provinceid'), cityId = $(this).data('cityid');
+                            var province,city,district;
+                            if(Config.formData[name]){
+                                var cityValue =   Config.formData[name];
+                                province = cityValue.split('/')[0]
+                                city = cityValue.split('/')[1]
+                                district = cityValue.split('/')[2]
+                            }
                             var districtId = $(this).data('districtid');
                             currentPicker = new cityPicker("#" + id, {
                                 provincename: provinceId,
                                 cityname: cityId,
                                 districtname: districtId,
                                 level: 'districtId',// 级别
-                                // province: '',// 默认省份名称
-                                // city: '',// 默认地市名称
-                                // district: ''// 默认区县名称
+                                province: province,// 默认省份名称
+                                city: city,// 默认地市名称
+                                district: district// 默认区县名称
                             });
                             var str ='';
                             if(Config.formData.hasOwnProperty(provinceId)){
@@ -192,7 +199,7 @@ define(['jquery','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicke
                             if(!str){
                                 str = Config.formData.hasOwnProperty(name)? Config.formData['name']:'';
                             }
-                            currentPicker.setValue(str);//设置值
+                            currentPicker.setValue(Config.formData[name]?Config.formData[name]:str);//设置值
                         })
                     }
                 },

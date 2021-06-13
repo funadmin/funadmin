@@ -3,7 +3,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
         init: {
             table_elem: 'list',
             tableId: 'list',
-            searchinput: true,
+            searchInput: true,
             requests:{
                 export_url :'/ajax/export'
             },
@@ -17,9 +17,10 @@ define(['jquery','timePicker'],function ($,timePicker) {
             options.toolbar = options.toolbar || '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
+            options.rowDouble = Fun.parame(options.rowDouble, true);
             options.searchShow = Fun.parame(options.searchShow, false);
-            options.searchinput = Fun.parame(Table.init.searchinput, true);
-            options.searchname = Fun.parame(Table.init.searchname, 'id');
+            options.searchInput = Fun.parame(Table.init.searchInput, true);
+            options.searchName = Fun.parame(Table.init.searchName, 'id');
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print', ];
@@ -46,13 +47,15 @@ define(['jquery','timePicker'],function ($,timePicker) {
             // 监听表格搜索开关和toolbar按钮显示等
             Table.api.toolbar(options.layFilter, options.id,options);
             // 监听表格双击事件
-            Table.api.rowDouble(options.layFilter, options.init.requests.edit_url);
+            if(options.rowDouble){
+                Table.api.rowDouble(options.layFilter, options.init.requests.edit_url);
+            }
             // 监听表格编辑
             Table.api.edit(options.init, options.layFilter, options.id);
             return newTable;
         },
         renderToolbar: function (options) {
-            var d= options.toolbar,tableId = options.id, searchinput = options.searchinput;
+            var d= options.toolbar,tableId = options.id, searchInput = options.searchInput;
             d = d || [];
             var toolbarHtml = '';
             $.each(d, function (i, v) {
@@ -70,22 +73,27 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 } else if (v === 'delete') {
                     url = Fun.replaceurl(Table.init.requests.delete_url,d);
                     if (Fun.checkAuth('delete')) {
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="'+__('Are you sure to delete')+'"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n';
                     }
-                } else if (v === 'destory') {
-                    url = Fun.replaceurl(Table.init.requests.destory_url,d);
-                    if (Fun.checkAuth('destory')) {
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n';
+                } else if (v === 'destroy') {
+                    url = Fun.replaceurl(Table.init.requests.destroy_url,d);
+                    if (Fun.checkAuth('destroy')) {
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="'+__('Are you sure  to destroy')+'"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n';
                     }
                 } else if (v === 'recycle') {
                     url = Fun.replaceurl(Table.init.requests.recycle_url,d);
                     if (Fun.checkAuth('recycle')) {
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n';
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n';
+                    }
+                } else if (v === 'restore') {
+                    url = Fun.replaceurl(Table.init.requests.restore_url,d);
+                    if (Fun.checkAuth('restore')) {
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="request" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="'+__('Are you sure restore')+'"><i class="layui-icon layui-icon-find-fill"></i>' + __('Restore') + '</a>\n';
                     }
                 } else if ( typeof v === 'string' && typeof eval('Table.init.requests.' + v) === 'string') {
                     if (Fun.checkAuth(v)) {
                         url = Fun.replaceurl(eval(('Table.init.requests.'+v+'_url')),d);
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-delete"></i>' + __(v) + '</a>\n';
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n';
                     }
                 } else if (typeof v==='string' && typeof eval('Table.init.requests.' + v) === 'object'  || typeof v === 'object') {
                     if(typeof v ==='string'){
@@ -104,8 +112,8 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     }
                 }
             });
-            if(searchinput){
-                toolbarHtml += '<input id="layui-input-search"  name="'+options.searchname+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
+            if(searchInput){
+                toolbarHtml += '<input id="layui-input-search"  name="'+options.searchName+'" value="" placeholder="'+__('Search')+'" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' +
                     'margin:2px 25px 0 0;height:30px;">\n' ;
             }
             return '<div>' + toolbarHtml + '</div>';
@@ -282,20 +290,27 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 var ele = $(this)[0];
                 var selectList = ele.selectList;
                 var content = d[ele.field] ? d[ele.field] :(eval('d.' + ele.field)?eval('d.' + ele.field):'');
+                op = d.search?d.searchOp:'%*%';
+                filter={};ops={};
+                ops[ele.field] = op;
+                op = JSON.stringify(ops);
                 if(selectList.toString()!=="{}" && content !=''){
                     var reg = RegExp(/,/);
                     content = reg.test(content) ?content.split(','):[content];
                     html = '';
                     $.each(content, function (i, v) {
-                        console.log(selectList[v]);
+                        filter[ele.field] = v;
+                        filter = JSON.stringify(filter);
                         if(selectList[v]){
-                            html +="<span lay-event='search' data-tips='"+__(selectList[v])+"' title='"+__(selectList[v])+"' class='layui-btn layui-btn-xs layui-table-tags'>" +  __(selectList[v]) + "</span>";
+                            html += Table.getBadge(d,ele,i,__(selectList[v]));
                         }
                     });
                     return html;
                 }
+                filter[ele.field] = d[ele.field];
+                filter = JSON.stringify(filter);
                 content =  content?__(content):'-';
-                return "<span lay-event='search' data-tips='"+content+"' title='"+content+"' class='layui-btn layui-btn-xs layui-table-tags'>" +  content  + "</span>";
+                return "<span lay-event='search'  data-filter='"+filter+"' data-op='"+op+"' data-tips='"+content+"' title='"+content+"' class='layui-btn layui-btn-xs layui-search layui-table-tags'>" +  content  + "</span>";
             },
             //图片
             image: function (d) {
@@ -340,9 +355,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 ele.selectList = ele.selectList || {};
                 var value = d[ele.field];
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
-                    return value;
+                    return Table.getBadge(d,ele,value,value,2);
                 } else {
-                    return ele.selectList[value];
+                    return Table.getBadge(d,ele,value,ele.selectList[value],2);
                 }
             },
             url: function (d) {
@@ -543,6 +558,59 @@ define(['jquery','timePicker'],function ($,timePicker) {
         on: function (fitler) {
 
         },
+        //获取徽章
+        getBadge:function (d,ele,key=0,value='',type=1){
+            op = d.search?d.searchOp:'%*%';
+            var badge = [
+                '<span class="layui-badge-dot" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-orange" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-green" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-cyan" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-blue" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-black" title="'+value+'"></span> '+value,
+                '<span class="layui-badge-dot layui-bg-gray"title="'+value+'"></span> '+value,
+            ];
+            if(type===2){
+                var badge = [
+                    '<span class="layui-badge" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-orange" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-green" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-cyan" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-blue" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-black" title="'+value+'">'+value+'</span>',
+                    '<span class="layui-badge layui-bg-gray" title="'+value+'">'+value+'</span>',
+                ];
+            }
+            var filter = {},ops = {};
+            filter[ele.field] = key;
+            ops[ele.field] = op;
+            filter = JSON.stringify(filter);
+            op = JSON.stringify(ops);
+            if(badge[key]){
+                return "<div data-event='search' data-filter='"+filter+"'  data-op='"+op+"'  class='layui-search' data-tips='"+value+"'  title='"+value+"'>"+ badge[key]+"</div>";
+            }else{
+                return "<div data-event='search'  data-filter='"+filter+"'  data-op='"+op+"' class='layui-search'  data-tips='"+value+"'  title='"+value+"'>"+ badge[0]+"</div>";
+            }
+        },
+        getIds:function(url,tableId){
+            url = url !== undefined ? Fun.url(url) : window.location.href;
+            var checkStatus = layui.table.checkStatus(tableId),
+                data = checkStatus.data;
+            var ids = [];
+            if (url.indexOf('?id=all') !== -1) {
+                ids = 'all';
+                length = __('All');
+            }else if (url.indexOf('?id=') !== -1) {
+                ids = [];
+                length = 1;
+            }else if (data.length > 0) {
+                $.each(data, function (k, v) {
+                    ids.push(v.id);
+                });
+                length = ids.length;
+            }
+            return [ids,length];
+        },
         //事件
         events: {
             open: function (othis,options=null) {
@@ -586,9 +654,19 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     url = url !== undefined ? url : window.location.href;
                     tableId = tableId || Table.init.tableId;
                 }
+                arr = Table.getIds(url,tableId);
+                ids = arr[0];
+                length = arr[1];
+                if(length <=0){
+                    Fun.toastr.error(__('Please check data'));
+                    return false;
+                }
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({
                         url: url,
+                        data: {
+                            ids: ids
+                        },
                     }, function (res) {
                         Fun.toastr.success(res.msg, function () {
                             Table.api.reload(tableId)
@@ -620,22 +698,12 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     url = othis.data('url');
                     tableId = tableId || Table.init.tableId;
                 }
-                url = url !== undefined ? Fun.url(url) : window.location.href;
-                var checkStatus = layui.table.checkStatus(tableId),
-                    data = checkStatus.data;
-                var ids = [];
-                if (url.indexOf('?id=all') !== -1) {
-                    ids = 'all';
-                    length = __('All');
-                } else {
-                    if (data.length <= 0) {
-                        Fun.toastr.error(__('Please check data'));
-                        return false;
-                    }
-                    $.each(data, function (k, v) {
-                        ids.push(v.id);
-                    });
-                    length = ids.length;
+                arr = Table.getIds(url,tableId);
+                ids = arr[0]
+                length = arr[1];
+                if(length <=0){
+                    Fun.toastr.error(__('Please check data'));
+                    return false;
                 }
                 Fun.toastr.confirm(__('Are you sure you want to delete the %s selected item?', length),
                     function () {
@@ -695,6 +763,7 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 $where= $where || {};
                 $map = {where: $where}
                 layui.table.reload(tableId, $map,$deep);
+                parent.layui.table.reload(tableId,{},$deep);
             },
             //表格收索
             tableSearch: function (tableId) {
@@ -718,16 +787,21 @@ define(['jquery','timePicker'],function ($,timePicker) {
                             formatOp[key] = op;
                         }
                     });
-                    layui.table.reload(tableId, {
-                        // page: {
-                        //     curr: 1
-                        // }
-                        // ,
-                        where: {
+                    //input 赋值
+                    var text = '';
+                    if($('#layui-input-search').length>0){
+                        text = $('#layui-input-search').val();
+                    }
+                    Table.api.reload(tableId,
+                        {
                             filter: JSON.stringify(formatFilter),
                             op: JSON.stringify(formatOp)
                         }
-                    }, 'data');
+                    );
+                    //input 赋值
+                    if($('#layui-input-search').length>0){
+                        $('#layui-input-search').val(text);
+                    }
                     return false;
                 });
             },
@@ -859,13 +933,13 @@ define(['jquery','timePicker'],function ($,timePicker) {
                     }
                 });
                 //输入框搜索
-                $(document).on('keyup blur','#layui-input-search',function(event){
+                $(document).on('blur','#layui-input-search',function(event){
                     var text = $(this).val();
                     $('#searchFieldList_'+Table.init.tableId).find('input[name="'+$(this).prop('name')+'"]').prop('value',text);
                     $('[lay-filter="'+Table.init.tableId+'_filter'+'"]').trigger("click");
                     return false;
-                }).unbind('keyup  blur','#layui-input-search', function (event) {
-                    $(this).prop('value',$(this).val());
+                }).unbind('blur','#layui-input-search', function (event) {
+                    $(this).val($(this).val());
                     return false;
                 });
             },

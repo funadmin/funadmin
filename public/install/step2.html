@@ -92,6 +92,24 @@
             </td>
         </tr>
         <tr>
+            <td>PDO</td>
+            <td>支持</td>
+            <td>
+                <?php if(extension_loaded('pdo')): ?>
+                支持
+                <?php else: ?>
+                不支持
+                <?php endif ?>
+            </td>
+            <td class="<?php if(extension_loaded('pdo')) echo 'yes'; ?>">
+                <?php if(extension_loaded('pdo')): ?>
+                √
+                <?php else: ?>
+                <span class="layui-red">×</span>
+                <?php endif ?>
+            </td>
+        </tr>
+        <tr>
             <td>图象</td>
             <td>GD或IMagick</td>
             <td>
@@ -115,7 +133,7 @@
         </tr>
         <tr>
             <td>putenv</td>
-            <td>putenv</td>
+            <td>支持</td>
             <td>
                 <?php if(function_exists('putenv')): ?>
                 支持
@@ -143,42 +161,6 @@
             </td>
             <td class="<?php if(function_exists('session_start')) echo 'yes'; ?>">
                 <?php if(function_exists('session_start')): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
-            <td>Cookie</td>
-            <td>支持</td>
-            <td>
-                <?php if(isset($_COOKIE)): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(isset($_COOKIE)) echo 'yes'; ?>">
-                <?php if(isset($_COOKIE)): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
-            <td>CType</td>
-            <td>支持</td>
-            <td>
-                <?php if(function_exists('ctype_xdigit')): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(function_exists('ctype_xdigit')) echo 'yes'; ?>">
-                <?php if(function_exists('ctype_xdigit')): ?>
                 √
                 <?php else: ?>
                 <span class="layui-red">×</span>
@@ -240,42 +222,6 @@
             </td>
         </tr>
         <tr>
-            <td>Zlib</td>
-            <td>支持</td>
-            <td>
-                <?php if(function_exists('gzcompress')): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(function_exists('gzcompress')) echo 'yes'; ?>">
-                <?php if(function_exists('gzcompress')): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
-            <td>iconv</td>
-            <td>支持</td>
-            <td>
-                <?php if(function_exists('iconv')): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(function_exists('iconv')) echo 'yes'; ?>">
-                <?php if(function_exists('iconv')): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
             <td>Fileinfo</td>
             <td>支持</td>
             <td>
@@ -294,47 +240,11 @@
             </td>
         </tr>
         <tr>
-            <td>pdo</td>
-            <td>支持</td>
-            <td>
-                <?php if(extension_loaded('pdo')): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(extension_loaded('pdo')) echo 'yes'; ?>">
-                <?php if(extension_loaded('pdo')): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
-            <td>mbstring</td>
-            <td>支持</td>
-            <td>
-                <?php if(extension_loaded('mbstring')): ?>
-                支持
-                <?php else: ?>
-                不支持
-                <?php endif ?>
-            </td>
-            <td class="<?php if(extension_loaded('mbstring')) echo 'yes'; ?>">
-                <?php if(extension_loaded('mbstring')): ?>
-                √
-                <?php else: ?>
-                <span class="layui-red">×</span>
-                <?php endif ?>
-            </td>
-        </tr>
-        <tr>
             <td>上传限制</td>
-            <td>50M+</td>
+            <td>10M+</td>
             <td><?php echo get_cfg_var('upload_max_filesize'); ?></td>
-            <td class="<?php if(get_cfg_var('upload_max_filesize') >= 50) echo 'yes'; ?>">
-                <?php if(get_cfg_var('upload_max_filesize') >= 50): ?>
+            <td class="<?php if(get_cfg_var('upload_max_filesize') >= 10) echo 'yes'; ?>">
+                <?php if(get_cfg_var('upload_max_filesize') >= 10): ?>
                 √
                 <?php else: ?>
                 <span class="layui-red">×</span>
@@ -376,14 +286,13 @@
         <a class="layui-btn  next" href="javascript:;" data-href="./install.php?s=step3">下一步</a>
     </div>
 </div>
-<script type="text/javascript" src="style/layui/layui.js"></script>
 <script>
     layui.use('layer', function(){
         var $ = layui.jquery, layer = layui.layer;
         // 判断是否通过
         $(document).on("click",'.next',function(){
             // 判断检测是否达标
-            if($('.yes').length < 18 || msg){
+            if($('.yes').length < 13 || msg){
                 msg = msg?msg:'您的配置或权限未满足要求';
                 layer.msg(msg);
             }else{

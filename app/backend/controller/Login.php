@@ -35,8 +35,8 @@ class Login extends Backend {
             return view('',$view);
         } else {
             $post  = $this->request->post() ;
-            $username = $this->request->post('username', '', 'fun\helper\StringHelper::filterWords');
-            $password = $this->request->post('password', '', 'fun\helper\StringHelper::filterWords');
+            $username = $this->request->post('username', '', ['strip_tags','trim','htmlspecialchars']);
+            $password = $this->request->post('password', '',['strip_tags','trim','htmlspecialchars']);
             $rememberMe = $this->request->post('rememberMe');
             if(config('captcha.check')){
                 $rule["captcha|验证码"] = 'require|captcha';

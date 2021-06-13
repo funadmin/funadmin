@@ -146,7 +146,7 @@ abstract class BaseController
             $sort = ["$sort"=>$order];
         }
         if ($search) {
-            $searcharr = is_array($searchFields) ? $searchFields : explode(',', $searchfields);
+            $searcharr = is_array($searchFields) ? $searchFields : explode(',', $searchFields);
             foreach ($searcharr as $k => &$v) {
                 $v = stripos($v, ".") === false ? $tableName . $v : $v;
             }

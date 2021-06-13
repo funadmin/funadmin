@@ -52,7 +52,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     {checkbox: true, },
                     {field:'id', title: 'ID', width:60,}
                     ,{field:'username', title: __('username'), width:180}
-                    ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution}
+                    ,{field:'authGroup.title', title: __("AuthGroup"),templet:Table.templet.resolution,search: false}
                     ,{field:'email', title: __("email"), width:200}
                     ,{field:'mobile', title: __("mobile"), width:150}
                     ,{field:'ip', title: __("Ip"),width:150,hide:true},

@@ -14,9 +14,10 @@ namespace fun\helper;
 use Ramsey\Uuid\Uuid;
 class StringHelper
 {
+
     /*
-    参数过滤防止攻击
-    */
+        参数过滤防止攻击SQL
+        */
     public static function filterWords($str)
     {
         $farr = array(
@@ -303,12 +304,10 @@ class StringHelper
             foreach ($data as $val) {
                 $arr.=$val;
             }
-
         }
         if(is_string($data)){
             $arr = $data;
         }
-
         $token = md5($arr);
         return $token;
     }

@@ -112,6 +112,7 @@ trait Curd
     public function delete()
     {
         $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
+        if(empty($ids)) $this->error('id is not exist');
         if($ids=='all'){
             $list = $this->modelClass->select();
         }else{
@@ -123,7 +124,6 @@ trait Curd
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));
         }
-
         $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
     }
 
@@ -133,6 +133,7 @@ trait Curd
     public function destroy()
     {
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
+        if(empty($ids)) $this->error('id is not exist');
         $list = $this->modelClass->whereIn('id', $ids)->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
@@ -215,22 +216,19 @@ trait Curd
      * @return bool
      */
     public function restore(){
-        $id = input('id');
-        if($id){
-            $model = $this->findModel($id);
-            if (!$model) {
-                $this->error(lang('Data Is Not Exist'));
+        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
+        if(empty($ids)) $this->error('id is not exist');
+        $list = $this->modelClass->whereIn('id', $ids)->select();
+        if(empty($list)) $this->error('Data is not exist');
+        try {
+            foreach ($list as $k=>$v){
+                $v->status = 1;
+                $v->save();
             }
-            $model->status = 1;
-            try{
-                $save = $model->save();
-            }catch(\Exception $e){
-                $this->error(lang($e->getMessage()));
-            }
-            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-        }else{
-            $this->error(lang('Invalid data'));
+        } catch (\Exception $e) {
+            $this->error(lang($e->getMessage()));
         }
+        $this->success(lang("Restore Success"));
     }
 
     /**

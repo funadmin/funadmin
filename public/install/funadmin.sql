@@ -275,6 +275,21 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (78, 'backend', '_self', 'sys.upgrade/check', 'check', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
 (79, 'backend', '_self', 'sys.upgrade/backup', 'backup', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
 (80, 'backend', '_self', 'sys.upgrade/install', 'install', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 76, 50, 1603427312, 1605321497, 0),
+(81, 'backend', '_self', 'member.member/import', 'Import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, 0),
+(82, 'backend', '_self', 'member.member/export', 'Export', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, 0),
+(83, 'backend', '_self', 'member.member/recycle', 'Recycle', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, 0),
+(84, 'backend', '_self', 'member.member/restore', 'Restore', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, 0),
+(85, 'backend', '_self', 'member.member/destroy', 'Destroy', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, 0),
+(86, 'backend', '_self', 'member.memberLevel/recycle', 'recycle', 0, 1, 1, 0, '', 52, 50, 1567568357, 1599884254, 0),
+(87, 'backend', '_self', 'member.memberLevel/destroy', 'destroy', 0, 1, 1, 0, '', 52, 50, 1567568357, 1599884254, 0),
+(88, 'backend', '_self', 'member.memberLevel/restore', 'restore', 0, 1, 1, 0, '', 52, 50, 1567568357, 1599884254, 0),
+(89, 'backend', '_self', 'member.memberLevel/import', 'import', 0, 1, 1, 0, '', 52, 50, 1567568357, 1599884254, 0),
+(90, 'backend', '_self', 'member.memberLevel/export', 'export', 0, 1, 1, 0, '', 52, 50, 1567568357, 1599884254, 0),
+(91, 'backend', '_self', 'member.memberGroup/recycle', 'recycle', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
+(92, 'backend', '_self', 'member.memberGroup/restore', 'restore', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
+(93, 'backend', '_self', 'member.memberGroup/destroy', 'destroy', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
+(94, 'backend', '_self', 'member.memberGroup/import', 'import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
+(95, 'backend', '_self', 'member.memberGroup/export', 'export', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
 (158, 'backend', '_self', 'sys.blacklist/add', 'add', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (159, 'backend', '_self', 'sys.blacklist/delete', 'delete', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (160, 'backend', '_self', 'sys.blacklist/edit', 'edit', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
@@ -4674,7 +4689,7 @@ ALTER TABLE `fun_auth_group`
 -- 使用表AUTO_INCREMENT `fun_auth_rule`
 --
 ALTER TABLE `fun_auth_rule`
-    MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=173;
+    MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- 使用表AUTO_INCREMENT `fun_blacklist`

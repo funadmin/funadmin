@@ -46,7 +46,7 @@ class SignHelper{
      */
     public static function password($password){
 
-        return password_hash($password,PASSWORD_BCRYPT,self::passwordOption(13));
+        return password_hash($password,PASSWORD_DEFAULT);
     }
 
     /**
