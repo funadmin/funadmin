@@ -108,11 +108,12 @@ class Menu extends Command
                     $type = 2;
                     $this->makeMenu($type);
                 }
+            }else{
+                $output->error('class is not exist');
+                return false;
             }
         }catch (\Exception $e){
-            $output->writeln('----------------');
             $output->error($e->getMessage());
-            $output->writeln('----------------');
         }
         $output->info('make success');
     }
