@@ -55,19 +55,21 @@ class CurdService
     protected $database = 'funadmin';
     protected $force = false;
     protected $rootPath;
-    protected $method = 'index,add,edit,delete,deleteAll,recycle,import,export,modify';
+    protected $method = 'index,add,edit,delete,recycle,import,export,modify';
     protected $fileList;
     protected $fieldsList;
     protected $table;
     protected $addon;
     protected $module;
     protected $baseController;
+    protected $tableComment;
     protected $controllerNamespace;
     protected $controllerName;
     protected $modelName;
     protected $modelNamespace;
     protected $controllerUrl;
     protected $modelTableName;
+    protected $childMethod;
     protected $validateName;
     protected $validateNamespace;
     protected $joinMethod;
@@ -309,11 +311,13 @@ class CurdService
         }
         $scriptStr.='</script>';
         $this->script = $scriptStr;
+        $this->tableComment = $this->tableComment?:$this->controllerName;
         $controllerTplBack = str_replace(
             [
                 '{{$controllerNamespace}}',
                 '{{$controllerName}}',
                 '{{$baseController}}',
+                '{{$tableComment}}',
                 '{{$modelName}}',
                 '{{$modelNamespace}}',
                 '{{$assign}}',
@@ -323,6 +327,7 @@ class CurdService
                 $this->controllerNamespace,
                 $this->controllerName,
                 $this->baseController,
+                $this->tableComment,
                 $this->modelName,
                 $this->modelNamespace,
                 $assignStr,
@@ -496,6 +501,8 @@ class CurdService
      */
     protected function makeMenu(int $type=1)
     {
+        $title  =  $this->addon?'addons/'.$this->addon.ucfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
+        $title = $this->tableComment?$this->tableComment:$title;
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
@@ -509,7 +516,7 @@ class CurdService
                 'menulist' => [
                     [
                         'href' => $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)),
-                        'title' => $this->addon?'addons/'.$this->addon.ucfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName)),
+                        'title' => $title,
                         'status' => 1,
                         'menu_status' => 1,
                         'type' => 1,
@@ -530,6 +537,7 @@ class CurdService
                     'menu_status'=>0,
                     'icon'=>'layui-icon layui-icon-app'
                 ];
+                $childMethod[] = 'addons/'.$this->addon.'/backend/' . lcfirst($this->controllerName . '/' . $v);
             } else {
                 $menuList[] = [
                     'href'=>($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)) . '/' . $v,
@@ -538,8 +546,11 @@ class CurdService
                     'menu_status'=>0,
                     'icon'=>'layui-icon layui-icon-app'
                 ];
+                $childMethod[] =($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)) . '/' . $v;
             }
         }
+        $parentMethod = $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName));
+        $this->childMethod  = array_merge($childMethod,[$parentMethod]);
         $menu['menu']['menulist'][0]['menulist'] = $menuList;
         $menuListArr[] = $menu['menu'];
         $this->menuListStr = $this->getMenuStr($menu);
@@ -573,7 +584,11 @@ class CurdService
                     $menu = AuthRule::create($v);
                 }
             }else{
-                $menu && $menu->delete();
+                $child = AuthRule::where('href','not in',$this->childMethod)
+                    ->where('pid',$menu['id'])->where('module',$module)->find();
+                if(!$child){
+                    $menu && $menu->delete();
+                }
             }
             foreach ($v['menulist'] as $kk=>$vv){
                 $menu2 = AuthRule::where('href',$vv['href'])->where('module',$module)->find();
@@ -788,6 +803,8 @@ class CurdService
         }
         $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
         $tableField = Db::query($sql);
+        $tableComment = Db::query(' SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_NAME =  "'.$this->tablePrefix . $this->table.'";');
+        $this->tableComment =$tableComment[0]['TABLE_COMMENT'];
         foreach ($tableField as $k => &$v) {
             $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
             $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');

@@ -11,7 +11,7 @@ use app\common\annotation\NodeAnnotation;
 use app\common\annotation\ControllerAnnotation;
 
 /**
- * @ControllerAnnotation ('{{$controllerName}}')
+ * @ControllerAnnotation (title="{{$tableComment}}")
  */
 class {{$controllerName}} extends {{$baseController}}
 {

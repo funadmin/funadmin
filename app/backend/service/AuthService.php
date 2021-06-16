@@ -428,7 +428,7 @@ class AuthService
     function checkLogin($username, $password, $rememberMe)
     {
         try {
-            $where['username'] = strip_tags(trim($username));
+            $where['username|email'] = strip_tags(trim($username));
             $password = strip_tags(trim($password));
             $admin = AdminModel::where($where)->find();
             if (!$admin) {

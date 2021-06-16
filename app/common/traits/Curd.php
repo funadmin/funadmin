@@ -23,10 +23,9 @@ use think\helper\Str;
 trait Curd
 {
     /**
-     * @NodeAnnotation ('List')
+     * @NodeAnnotation(title='List')
      * @return \think\response\Json|\think\response\View
      */
-
     public function index()
     {
         if ($this->request->isAjax()) {
@@ -46,7 +45,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation ('add')
+     * @NodeAnnotation (title='add')
      * @return \think\response\View
      */
     public function add()
@@ -79,7 +78,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('edit')
+     * @NodeAnnotation(title='edit')
      * @return \think\response\View
      */
     public function edit()
@@ -107,7 +106,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('delete)
+     * @NodeAnnotation(title='delete')
      */
     public function delete()
     {
@@ -128,7 +127,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('destroy)
+     * @NodeAnnotation(title='destroy')
      */
     public function destroy()
     {
@@ -149,7 +148,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('sort')
+     * @NodeAnnotation(title='sort')
      * @param $id
      */
     public function sort($id)
@@ -162,7 +161,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('modify')
+     * @NodeAnnotation(title='modify')
      */
     public function modify(){
         $id = input('id');
@@ -189,10 +188,9 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation ('Recycle')
+     * @NodeAnnotation (title='Recycle')
      * @return \think\response\Json|\think\response\View
      */
-
     public function recycle()
     {
         if ($this->request->isAjax()) {
@@ -212,7 +210,7 @@ trait Curd
         return view('index');
     }
     /**
-     * @NodeAnnotation('Restore')
+     * @NodeAnnotation(title='Restore')
      * @return bool
      */
     public function restore(){
@@ -232,14 +230,13 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation('Import')
+     * @NodeAnnotation(title='Import')
      * @return bool
      */
     public function import()
     {
         return true;
     }
-
     /**
      * @NodeAnotation(title="export")
      */
@@ -285,6 +282,13 @@ trait Curd
         }
         return $model;
     }
+
+    /**
+     * @param $data
+     * @param $headerArr
+     * @param $headTitle
+     * @param $filename
+     */
     protected function excelData($data,$headerArr,$headTitle,$filename){
         $str = "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\"\r\nxmlns:x=\"urn:schemas-microsoft-com:office:excel\"\r\nxmlns=\"http://www.w3.org/TR/REC-html40\">\r\n<head>\r\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\r\n</head>\r\n<body>";
         $str .="<style>tr,td,th{text-align: center;height: 22px;line-height: 22px;}</style>";

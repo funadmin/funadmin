@@ -1,5 +1,5 @@
 /**
-    * @NodeAnotation(title="List")
+    * @NodeAnnotation(title="List")
     */
     public function index()
     {
@@ -22,7 +22,7 @@
     }
 
     /**
-    * @NodeAnotation(title="Recycle")
+    * @NodeAnnotation(title="Recycle")
     */
     public function recycle()
     {

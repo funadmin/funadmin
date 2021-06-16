@@ -13,6 +13,6 @@ namespace app;
 
 class Request extends \think\Request
 {
-    protected $filter = ['htmlspecialchars'];
+//    protected $filter = ['htmlspecialchars'];
 
 }

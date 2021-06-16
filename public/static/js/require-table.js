@@ -355,9 +355,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
                 ele.selectList = ele.selectList || {};
                 var value = d[ele.field];
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
-                    return Table.getBadge(d,ele,value,value,2);
+                    return Table.getBadge(d,ele,value,__(value),2);
                 } else {
-                    return Table.getBadge(d,ele,value,ele.selectList[value],2);
+                    return Table.getBadge(d,ele,value,__(ele.selectList[value]),2);
                 }
             },
             url: function (d) {
@@ -587,9 +587,9 @@ define(['jquery','timePicker'],function ($,timePicker) {
             filter = JSON.stringify(filter);
             op = JSON.stringify(ops);
             if(badge[key]){
-                return "<div data-event='search' data-filter='"+filter+"'  data-op='"+op+"'  class='layui-search' data-tips='"+value+"'  title='"+value+"'>"+ badge[key]+"</div>";
+                return "<span data-event='search' data-filter='"+filter+"'  data-op='"+op+"'  class='layui-search' data-tips='"+value+"'  title='"+value+"'>"+ badge[key]+"</span>";
             }else{
-                return "<div data-event='search'  data-filter='"+filter+"'  data-op='"+op+"' class='layui-search'  data-tips='"+value+"'  title='"+value+"'>"+ badge[0]+"</div>";
+                return "<span data-event='search'  data-filter='"+filter+"'  data-op='"+op+"' class='layui-search'  data-tips='"+value+"'  title='"+value+"'>"+ badge[0]+"</span>";
             }
         },
         getIds:function(url,tableId){
