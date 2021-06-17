@@ -12,7 +12,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     destroy_url: 'member.member/destroy',
                     export_url: 'member.member/export',
                     // add_url: 'member.member/add',
-                    edit_url: 'member.member/edit',
+                    // edit_url: 'member.member/edit',
                     add_full:{
                         type: 'open',
                         class: 'layui-btn-sm layui-btn-green',
@@ -42,14 +42,13 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                rowDouble:true,//双击开关
                 toolbar: ['refresh','add_full','destroy','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
                     {field: 'username', title: __('memberName'), width: 120},
                     {field: 'email', title: __('Email'), width: 120,},
-                    {field: 'mobile', title: __('mobile'), width: 120,},
+                    {field: 'mobile', title: __('mobile'), width: 120,edit: 'text'},
                     {
                         field: 'sex',
                         title: __('Sex'),

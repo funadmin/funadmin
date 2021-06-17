@@ -23,7 +23,7 @@ use think\helper\Str;
 trait Curd
 {
     /**
-     * @NodeAnnotation(title='List')
+     * @NodeAnnotation(title="List")
      * @return \think\response\Json|\think\response\View
      */
     public function index()
@@ -45,7 +45,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation (title='add')
+     * @NodeAnnotation (title="add")
      * @return \think\response\View
      */
     public function add()
@@ -78,7 +78,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='edit')
+     * @NodeAnnotation(title="edit")
      * @return \think\response\View
      */
     public function edit()
@@ -106,7 +106,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='delete')
+     * @NodeAnnotation(title="delete")
      */
     public function delete()
     {
@@ -127,7 +127,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='destroy')
+     * @NodeAnnotation(title="destroy")
      */
     public function destroy()
     {
@@ -148,7 +148,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='sort')
+     * @NodeAnnotation(title="sort")
      * @param $id
      */
     public function sort($id)
@@ -161,7 +161,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='modify')
+     * @NodeAnnotation(title="modify")
      */
     public function modify(){
         $id = input('id');
@@ -188,7 +188,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation (title='Recycle')
+     * @NodeAnnotation (title="Recycle")
      * @return \think\response\Json|\think\response\View
      */
     public function recycle()
@@ -210,7 +210,7 @@ trait Curd
         return view('index');
     }
     /**
-     * @NodeAnnotation(title='Restore')
+     * @NodeAnnotation(title="Restore")
      * @return bool
      */
     public function restore(){
@@ -230,7 +230,7 @@ trait Curd
     }
 
     /**
-     * @NodeAnnotation(title='Import')
+     * @NodeAnnotation(title="Import")
      * @return bool
      */
     public function import()

@@ -47,6 +47,7 @@ class Menu extends Command
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
         $this->config = $param;
+        $this->addon = $param['addon'];
         $this->force = $param['force'];
         $this->delete = $param['delete'];
         if (empty($param['controller'])) {
@@ -85,7 +86,7 @@ class Menu extends Command
                     if ($this->addon) {
                         $menuList[] = [
                             'href'=>'addons/'.$this->addon.'/backend/' . lcfirst($this->controllerName . '/' . $m->getName()),
-                            'title'=>trim(trim($title,'('),')'),
+                            'title'=>trim($title),
                             'status'=>1,
                             'menu_status'=>0,
                             'icon'=>'layui-icon layui-icon-app'
@@ -93,7 +94,7 @@ class Menu extends Command
                     } else {
                         $menuList[] = [
                             'href'=>($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)) . '/' . $m->getName(),
-                            'title'=>trim(trim($title,'('),')'),
+                            'title'=>trim($title),
                             'status'=>1,
                             'menu_status'=>0,
                             'icon'=>'layui-icon layui-icon-app'
@@ -124,7 +125,7 @@ class Menu extends Command
     protected function makeMenu(int $type=1)
     {
         $title  =  $this->addon?'addons/'.$this->addon.ucfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
-        $title = $this->tableComment?$this->tableComment:$title;
+        $title = $this->tableComment??$title;
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
@@ -163,9 +164,9 @@ class Menu extends Command
         $this->childMethod  = array_merge($childMethod,[$parentMethod]);
         $menu['menu']['menulist'][0]['menulist'] = $menuList;
         $menuListArr[] = $menu['menu'];
-        if(!$this->force && !$this->delete){
+        if(!$this->delete){
             $this->operateMenu($menuListArr,1);
-        }else{
+        } elseif ($this->config['force'] and $this->config['delete']) {
             $this->operateMenu($menuListArr,2);
         }
     }
@@ -217,7 +218,7 @@ class Menu extends Command
     function getTitle($doc)
     {
         $tmp = array();
-        preg_match_all('/@NodeAnnotation.*?(title=.*?)[\r\n|\n]/', $doc, $tmp);
+        preg_match_all('/@NodeAnnotation.*?title="(.*?)"\)[\r\n|\n]/', $doc, $tmp);
         return trim($tmp[1][0] ?? "");
     }
 

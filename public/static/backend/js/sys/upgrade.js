@@ -31,6 +31,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                                 url: url, type: 'post', data: data, dataType: "json", success: function (res) {
                                     if (res.code === 1) {
                                         Fun.toastr.success(res.msg, layer.closeAll())
+                                        window.location.reload()
                                     } else {
                                         Fun.toastr.alert(res.msg)
                                     }

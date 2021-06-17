@@ -18,5 +18,5 @@ return [
         'length'   => 4,        //长度
         'reset'    => true, // 验证成功后是否重置        15.
         'expire'    =>60*5, //过期时间
-        'check'    =>true, //是否检测check
+        'check'    =>true, //过期时间
 ];

@@ -215,7 +215,7 @@ class Admin extends Backend
     public function password()
     {
         if ($this->request->isAjax()) {
-            $oldpassword = $this->request->post('oldpassword','',['strip_tags','trim','htmlspecialchars']);
+            $oldpassword = $this->request->post('oldpassword');
             $one = $this->modelClass->find(session('admin.id'));
             if (!password_verify($oldpassword, $one['password'])) {
                 $this->error(lang('Old Password Error'),'',['token'=>$this->token()]);

@@ -55,7 +55,7 @@ class CurdService
     protected $database = 'funadmin';
     protected $force = false;
     protected $rootPath;
-    protected $method = 'index,add,edit,delete,recycle,import,export,modify';
+    protected $method = 'index,add,edit,destroy,delete,recycle,import,export,modify';
     protected $fileList;
     protected $fieldsList;
     protected $table;
@@ -217,7 +217,7 @@ class CurdService
                 'controllerFrontFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "frontend" . DS . "controller" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName . '.php' : $this->controllerName . '.php'),
                 'modelFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}" . DS . "model" . DS . $this->modelName . '.php',
                 'validateFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}" . DS . "validate" . DS . $this->modelName . '.php',
-                'langFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}". "lang" . DS . "zh-cn" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.php' : Str::lower($this->controllerName) . '.php'),
+                'langFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}".DS. "lang" . DS . "zh-cn" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.php' : Str::lower($this->controllerName) . '.php'),
                 'jsFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "public".DS."backend".DS."js" . DS . ($controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) . '.js' : Str::lower($this->controllerName) . '.js'),
                 'indexFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "view" . DS . "backend" . DS .($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName : Str::snake($this->controllerName)). DS . "index.html",
                 'addFileName' => $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "view" . DS . "backend". DS .($controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName  : Str::snake($this->controllerName)). DS . "add.html",

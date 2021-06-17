@@ -162,11 +162,13 @@ class Upgrade extends Backend
             try {
                 foreach ($dir as $k => $v) {
                     if ($v == '.' || $v == '..') continue;
+                    $file = $fileDir . $filename . '/' . $v;
                     if ($v == 'upgrade.sql') {
-                        $sqlFile = $fileDir . $filename . '/' . $v;
-                        importSqlData($sqlFile);
-                    } else {
-                        FileHelper::copyDir($fileDir . $filename . '/' . $v, '../' . $v);
+                        importSqlData($file);
+                    } else if (is_file($file)){
+                        @copy($file,'../'.$v);
+                    }else{
+                        FileHelper::copyDir($file, '../' . $v);
                     }
                 }
             }catch (\Exception $e){
