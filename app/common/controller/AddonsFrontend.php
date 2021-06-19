@@ -88,15 +88,18 @@ class AddonsFrontend extends AddonsController
         }else{
             $view_config_file = $this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php';
             if(file_exists($view_config_file)){
-                $view_config = include_once($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
+                $view_config = include($this->addon_path.'frontend'.DIRECTORY_SEPARATOR.'config'.DIRECTORY_SEPARATOR.'view.php');
                 $this->prefix = Config::get('database.connections.mysql.prefix');
-                $theme = $view_config['view_base'];
+                $theme = isset($view_config['view_base']) && $view_config['view_base']?$view_config['view_base']:'';
                 $addonsconfig = get_addons_config($this->addon);
                 if(isset($addonsconfig['theme']) && $addonsconfig['theme']['value']){
                     $theme = $addonsconfig['theme']['value'];
                 }
-                $this->theme = $theme?$theme.DIRECTORY_SEPARATOR:'';
-                cache($this->addon.'_theme',$this->theme);
+                $this->theme = $theme?$theme.DS:'';
+                $view_config = Config::get('view');
+                $view_config = array_merge($view_config,['view_path' => $this->addon_path .'view'.DS.$this->module.DS.$this->theme]);
+                View::engine('Think')->config($view_config);
+                cache($this->addon.'_theme',$this->theme,3600);
             }
         }
 

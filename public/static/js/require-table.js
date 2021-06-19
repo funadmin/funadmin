@@ -474,10 +474,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             url = url !== undefined ? Fun.url(url) : window.location.href;
             var checkStatus = layui.table.checkStatus(tableId), data = checkStatus.data;
             var ids = [];
-            if (url.indexOf('?id=all') !== -1) {
+            if (url.indexOf('id=all') !== -1) {
                 ids = 'all';
                 length = __('All')
-            } else if (url.indexOf('?id=') !== -1) {
+            } else if (url.indexOf('id=') !== -1) {
                 ids = [];
                 length = 1
             } else if (data.length > 0) {
@@ -603,7 +603,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 }
             }, closeOpen: function (othis) {
                 Fun.api.closeCurrentOpen()
-            },
+            },common:function (othis){
+                console.log(othis.data('callback'))
+                return othis.data('callback')?eval(othis.data('callback')):true;
+            }
         },
         api: {
             reload: function (tableId, $where, $deep = true) {
@@ -702,7 +705,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             Table.events.request(othis);
                             break;
                         default:
-                            return true
+                            Table.events.common(othis);
                     }
                 })
             }, rowDouble: function (layFilter, url) {

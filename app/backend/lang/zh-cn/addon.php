@@ -15,4 +15,6 @@ return [
     'Addon require'=>'需求版本',
     'author'=>'作者',
     'publishtime'=>'发布时间',
+    'localinstall'=>'离线安装',
+    'local install'=>'离线安装',
 ];

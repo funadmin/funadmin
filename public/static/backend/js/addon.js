@@ -1,4 +1,8 @@
-define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
+define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md5,Upload) {
+    //表格重载失效的问题解决方案
+    importFile=function (){
+        $('#importFile').click();
+    }
     let Controller = {
         index: function () {
             Table.init = {
@@ -10,15 +14,24 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                     uninstall_url: 'addon/uninstall',
                     config_url: 'addon/config',
                     modify_url: 'addon/modify',
+                    localinstall:{
+                        type: 'upload',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'addon/localinstall',
+                        icon: 'layui-icon layui-icon-upload-drag',
+                        text: __('Local Install'),
+                        title: __('Local Install'),
+                        extend:"id='localinstall' data-callback='importFile()'",
+                    },
                 },
-                searchinput:false,
+                searchInput:false,
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh'],
+                toolbar: ['refresh','localinstall'],
                 search: false,
                 cols: [[
                     {checkbox: true,},
@@ -190,6 +203,33 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
                 return false;
             })
             let table = $('#' + Table.init.table_elem);
+            //指定允许上传的文件类型
+            var uploadinit = layui.upload.render({
+                elem: '#importFile'
+                ,url: Fun.url(Upload.init.requests.upload_url)+'?save=1&path=addon' //改成您自己的上传接口
+                ,accept: 'file' //普通文件
+                ,exts: 'zip|rar|7z' //只允许上传压缩文件
+                ,done: function(res){
+                    if(res.code<=0){
+                        Fun.toastr.error(res.msg);
+                        return false;
+                    }
+                    var load = layer.load();
+                    Fun.ajax({
+                        url:Table.init.requests.localinstall.url,
+                        data:{url:res.url}
+                    },function (res){
+                        Fun.toastr.success(res.msg);
+                        uploadinit.reload({  elem: '#localinstall'});
+                        Table.api.reload();//渲染表格点击无效无效
+                        Fun.toastr.close(load)
+                        //重载该实例，支持重载全部基础参数
+                    },function (res) {
+                        Fun.toastr.error(res.msg);
+                        Fun.toastr.close(load)
+                    })
+                }
+            });
             Table.api.bindEvent(table);
         },
         config: function () {
@@ -198,8 +238,9 @@ define(['jquery', 'table', 'form', 'md5'], function ($, Table, Form, Md5) {
         api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'))
-            }
-        }
+            },
+        },
+
     };
     return Controller;
 });

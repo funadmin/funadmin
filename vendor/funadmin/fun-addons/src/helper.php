@@ -488,6 +488,10 @@ if (!function_exists('importsql')) {
                     $tempLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $tempLine);
                     $tempLine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $tempLine);
                     try {
+                        preg_match('/CREATE\s+TABLE\s+\`?(\w+)`/i', $tempLine, $tables);
+                        $sql = "show tables like '".$tables[1]."'";
+                        $table = Db::query($sql);
+                        if($table) continue;
                         Db::execute($tempLine);
                     } catch (\PDOException $e) {
                         throw new PDOException($e->getMessage());

@@ -18,6 +18,7 @@ use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
 use fun\helper\FileHelper;
 use fun\addons\Service;
+use fun\helper\ZipHelper;
 use think\App;
 use think\Exception;
 use app\common\model\Addon as AddonModel;
@@ -95,10 +96,10 @@ class Addon extends Backend
      * @NodeAnnotation(title="安装")
      * @throws Exception
      */
-    public function install()
+    public function install($name='')
     {
         set_time_limit(0);
-        $name = $this->request->param("name");
+        $name = $this->request->param("name")??$name;
 //        插件名是否为空
         if (!$name) {
             $this->error(lang('addon  %s can not be empty', [$name]));
@@ -108,7 +109,8 @@ class Addon extends Backend
             $this->error(lang('addon name inright'));
         }
         //检查插件是否安装
-        if ($this->isInstall($name)) {
+        $list = $this->isInstall($name);
+        if ($list and $list->status==1) {
             $this->error(lang('addons %s is already installed', [$name]));
         }
         $class = get_addons_instance($name);
@@ -130,7 +132,12 @@ class Addon extends Backend
         }
         $addon_info = get_addons_info($name);
         $addon_info['status'] = 1;
-        $res =  $this->modelClass->save($addon_info);
+        if($list){
+            $list->status=1;
+            $res = $list->save();
+        }else{
+            $res =  $this->modelClass->save($addon_info);
+        }
         if (!$res) {
             $this->error(lang('addon install fail'));
         }
@@ -162,6 +169,31 @@ class Addon extends Backend
             $this->error($e->getMessage());
         }
         $this->success(lang('Install success'));
+    }
+    /**
+     * @NodeAnnotation(title="离线安装")
+     * @throws Exception
+     */
+    public function localinstall()
+    {
+        if($this->request->isAjax()){
+            set_time_limit(0);
+            $urls = parse_url(input('url'));
+            $file = $urls['path']??'';
+            if($file && file_exists('.'.$file)){
+                $zip = zip_open('.'.$file);
+                $filename = zip_entry_name(zip_read($zip));
+                zip_close($zip);
+                $addon = explode('/',$filename)[0];
+                try {
+                    ZipHelper::unzip('.'.$file,'../addons');
+                }catch (\Exception $e){
+                    $this->error($e->getMessage());
+                }
+                $this->install($addon);
+                $this->success('upload success');
+            }
+        }
     }
     /**
      * @NodeAnnotation(title="卸载")

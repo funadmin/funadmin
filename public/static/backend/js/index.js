@@ -1,8 +1,7 @@
 define(['backend'], function (Backend) {
-
-    return  {
+    var  Backend = layui.Backend;
+    return controller=  {
         index: function () {
-            var  Backend = layui.Backend;
             Backend.render(options =  {
                 refreshUrl: '',
                 themeid: '',
@@ -25,6 +24,5 @@ define(['backend'], function (Backend) {
         console:function () {
             Backend.api.bindEvent();
         }
-
     }
 });

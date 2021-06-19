@@ -33,7 +33,6 @@ class Index extends Backend
     public function index()
     {
         $menulist = cache('adminmenushtml' . session('admin.id'));
-        $menulist = [];
         if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type', 1)
@@ -54,8 +53,8 @@ class Index extends Backend
     public function console()
     {
         $version = Db::query('SELECT VERSION() AS ver');
-        $config = Cache::get('main_config');
-        if (!$config) {
+        $main_config = Cache::get('main_config');
+        if (!$main_config) {
             $config = [
                 'url' => $_SERVER['HTTP_HOST'],
                 'document_root' => $_SERVER['DOCUMENT_ROOT'],
@@ -71,7 +70,7 @@ class Index extends Backend
             ];
             Cache::set('main_config', $config, 3600);
         }
-        return view('', ['config' => $config]);
+        return view('', ['main_config' => $main_config]);
     }
 
     /**

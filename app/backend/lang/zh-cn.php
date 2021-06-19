@@ -210,4 +210,5 @@ return [
     'Request url can not empty'=>'请求网址不能为空',
     'Choose Success'=>'选择成功',
     'Return data is not right'=>'返回数据不正确',
+    'File type is limited'=>"不支持上传文件类型,请配置"
 ];

@@ -1,4 +1,4 @@
-layui.define(["jquery", 'layer','element','dropdown'], function (exports) {
+layui.define(['layer','element','dropdown'], function (exports) {
     var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
     element.init();
     if (!/http(s*):\/\//.test(location.href)) {

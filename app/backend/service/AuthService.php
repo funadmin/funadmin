@@ -410,7 +410,7 @@ class AuthService
             return false;
         }
 //判断管理员IP是否变动
-        if (config('app.ip_check') && !isset($admin['lastloginip']) || $admin['lastloginip'] != request()->ip()) {
+        if (config('app.ip_check') && ( !isset($admin['lastloginip']) || $admin['lastloginip'] != request()->ip())) {
             $this->logout();
             return false;
         }

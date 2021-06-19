@@ -9,6 +9,7 @@
 <!--        <li data-value="6" lay-event="tabswitch">接口</li>-->
 <!--        <li data-value="7" lay-event="tabswitch">辅助</li>-->
 <!--        <li data-value="8" lay-event="tabswitch">最新</li>-->
+<!--        <li data-value="9" lay-event="tabswitch">主题</li>-->
 <!--        <li data-value="9" lay-event="tabswitch">其他</li>-->
 <!--    </ul>-->
 <!--</div>-->
@@ -16,7 +17,7 @@
 <!--<table  id="list" lay-filter="list"></table>-->
 <!--登陆页面-->
 {include file="layout/logintpl"}
-
+<button type="button" class="layui-btn layui-btn-sm" id="importFile" value="离线安装" style="display: none"/>
 <script>
-    var auth = {$auth}
+    var auth = {$auth};
 </script>
