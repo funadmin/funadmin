@@ -1,26 +1,15 @@
 <style> .layui-iconpicker-body.layui-iconpicker-body-page .hide {display: none;}</style>
-    <blockquote class="layui-elem-quote">
-        1、控制器/方法 例如 Wechat/index 或者多级 wechat.sys/index
-    </blockquote>
-    <form class="layui-form" lay-filter="form">
-        <div class="layui-form-item">
-            <label class="layui-form-label">{:lang('Pid')}</label>
-            <div class="layui-input-block">
-                <select name="pid" lay-verify="required" lay-filter="pid" lay-search>
-                    <option value="0">—{:lang('Top')}—</option>
-                    {volist name="ruleList" id="vo"}
-                    <option value="{$vo.id}" {if $formData and $formData['id']==$vo.id}selected
-                    {/if}>{$vo.lefthtml}{:lang($vo.title)}</option>
-                    {/volist}
-                </select>
-            </div>
-        </div>
-        {:form_input('title','text',['verify'=>'required','lable'=>"Name"])}
-        {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
-        {:form_icon('icon',[],$formData?$formData.icon:'')}
-        {:form_radio('type',['NO','YES'],['filter'=>'type','label'=>'IsMenu'],0)}
-        {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','lable'=>'Menu Status'],0)}
-        {:form_radio('target',['_self'=>'_self','_blank'=>'_blank','_top'=>'_top','_parent'=>'_parent'],['filter'=>'target'],'_self')}
-        {:form_input('sort','text',['verify'=>'number'])}
-        {:form_submitbtn()}
-    </form>
+<blockquote class="layui-elem-quote">
+    1、控制器/方法 例如 Wechat/index 或者多级 wechat.sys/index
+</blockquote>
+<form class="layui-form" lay-filter="form">
+    {:form_xmselect('pid',$ruleList,['verify'=>'required',"radio"=>1,'tree'=>'true'],['title','id'],$formData?$formData['id']:'')}
+    {:form_input('title','text',['verify'=>'required','lable'=>"Name"])}
+    {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
+    {:form_icon('icon',[],$formData?$formData.icon:'')}
+    {:form_radio('type',['NO','YES'],['filter'=>'type','label'=>'IsMenu'],0)}
+    {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','lable'=>'Menu Status'],0)}
+    {:form_radio('target',['_self'=>'_self','_blank'=>'_blank','_top'=>'_top','_parent'=>'_parent'],['filter'=>'target'],'_self')}
+    {:form_input('sort','text',['verify'=>'number'])}
+    {:form_submitbtn()}
+</form>

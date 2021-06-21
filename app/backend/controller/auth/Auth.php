@@ -16,6 +16,7 @@ namespace app\backend\controller\auth;
 use app\common\controller\Backend;
 use app\backend\model\AuthRule;
 use app\common\traits\Curd;
+use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Cache;
 use think\facade\View;
@@ -68,7 +69,6 @@ class Auth extends Backend
         }
         return view();
     }
-
     /**
      * @NodeAnnotation(title="权限增加")
      * @return \think\response\View
@@ -101,8 +101,9 @@ class Auth extends Backend
         } else {
             $list = $this->modelClass
                 ->order('sort ASC')
-                ->select();
-            $list = $this->modelClass->cateTree($list);
+                ->field('id,title,pid')
+                ->select()->toArray();
+            $list = TreeHelper::getTree($list);
             $view = [
                 'formData' => null,
                 'ruleList' => $list,
@@ -131,7 +132,11 @@ class Auth extends Backend
             $list = $this->modelClass
                 ->order('sort asc')
                 ->select();
-            $list = $this->modelClass->cateTree($list);
+            $list = $this->modelClass
+                ->order('sort ASC')
+                ->field('id,title,pid')
+                ->select()->toArray();
+            $list = TreeHelper::getTree($list);
             $id = $this->request->param('id');
             $one = $this->modelClass->find($id)->toArray();
             $one['icon'] = $one['icon'] ? trim(substr($one['icon'],10),' ') : 'layui-icon layui-icon-diamond';

@@ -105,7 +105,7 @@ if (!function_exists('form_xmselect')) {
      */
     function form_xmselect($name = null,$select=[], $options = [],$attr='',$value='')
     {
-        if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
+        if(!empty($attr) and is_array($attr))$attr = implode(',',$attr);
         return FormHelper::xmselect($name,$select,$options,$attr,$value);
     }
 }

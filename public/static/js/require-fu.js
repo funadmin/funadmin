@@ -7,22 +7,54 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 if (list.length > 0) {
                     $.each(list, function() {
                         var id = $(this).prop('id'),
+                            url = $(this).data('url'),
                             lang = $(this).data('lang'),
-                            paging = $(this).data('paging');
-                        var pageSize = $(this).data('pageSize'),
-                            radio = $(this).data('radio');
-                        var disabled = $(this).data('disabled'),
-                            clickClose = $(this).data('clickClose');
-                        var create = $(this).data('create'),
                             value = $(this).data('value'),
-                            theme = $(this).data('theme');
-                        theme = theme ? theme : '#333';
-                        value = value ? value : [];
+                            data = $(this).data('data'),
+                            tips = $(this).data('tips') ? $(this).data('tips') : '请选择',
+                            searchTips = $(this).data('searchtips') ? $(this).data('searchtips') : '请选择',
+                            empty = $(this).data('empty') ? $(this).data('empty') : '呀,没有数据',
+                            height = $(this).data('height') ? $(this).data('height') : 'auto',
+                            paging = $(this).data('paging'),
+                            pageSize = $(this).data('pageSize'),
+                            remoteMethod = $(this).data('remotemethod'),
+                            content = $(this).data('content') ? $(this).data('content') : '',
+                            radio = $(this).data('radio'),
+                            disabled = $(this).data('disabled'),
+                            clickClose = $(this).data('clickClose'),
+                            prop = $(this).data('prop') ? $(this).data('prop') : $(this).data('attr'),
+                            max = $(this).data('max'),
+                            create = $(this).data('create'),
+                            repeat = !! $(this).data('repeat'),
+                            theme = $(this).data('theme') ? $(this).data('theme') : '#6739b6',
+                            name = $(this).data('name') ? $(this).data('name') : 'pid',
+                            style = $(this).data('style') ? $(this).data('style') : {},
+                            cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
+                            tree = $(this).data('tree') ? {show: true, showFolderIcon: true, showLine: true, indent: 20, expandedKeys: [], strict: false, simple: false, clickExpand: true, clickCheck: true,} : false,
+                            layVerify = $(this).attr('lay-verify') ? $(this).attr('lay-verify') : '',
+                            layReqText = $(this).data('reqtext') ? $(this).data('reqtext') : '';
+                        var size = $(this).data('size') === undefined ? 'medium' : $(this).data('size');
+                        var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
+                        var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
+                        var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote')));
+                        if (typeof value != 'object' && value) {
+                            value = typeof value === "number" ? [value] : value.split(',')
+                        }
+                        props = {
+                            name: 'name',
+                            value: "value"
+                        };
+                        if (prop) {
+                            propArr = prop.split(',');
+                            props.name = propArr[0];
+                            props.value = propArr[1]
+                        }
                         lang = lang ? lang : 'zh';
                         paging = paging === undefined || paging !== 'false';
                         pageSize = pageSize ? pageSize : 10;
                         radio = !! radio;
                         disabled = !! disabled;
+                        max = max ? max : 0;
                         clickClose = clickClose ? clickClose : false;
                         create = !create ?
                             function(val) {
@@ -30,31 +62,75 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     name: val,
                                     value: val
                                 }
-                            } : false;
+                            } : eval(create)?eval(create):false;
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
-                        xmselect = xmSelect.render({
+                        options = {
                             el: '#' + id,
+                            language: lang,
+                            data: data,
+                            initValue: value,
+                            name: name,
+                            tips: tips,
+                            empty: empty,
+                            filterable: filterable,
+                            searchTips: searchTips,
+                            prop: props,
+                            disabled: disabled,
+                            remoteSearch: remoteSearch,
+                            remoteMethod: function(val, cb, show) {
+                                if (remoteMethod !== undefined) {
+                                    eval(remoteMethod)
+                                } else {
+                                    var formatFilter = {},
+                                        formatOp = {};
+                                    formatFilter[name] = val;
+                                    formatOp[name] = '%*%';
+                                    Fun.ajax({
+                                        url: Fun.url(url ? url : window.location.href),
+                                        data: {
+                                            filter: JSON.stringify(formatFilter),
+                                            op: JSON.stringify(formatOp)
+                                        }
+                                    }, function(res) {
+                                        cb(res.data)
+                                    }, function(res) {
+                                        cb([])
+                                    })
+                                }
+                            },
+                            paging: paging,
+                            pageSize: pageSize,
+                            autoRow: true,
+                            size: size,
+                            repeat: repeat,
+                            height: height,
+                            max: max,
+                            pageRemote: pageRemote,
                             toolbar: {
                                 show: true,
-                                showIcon: false,
+                                list: ['ALL', 'CLEAR', 'REVERSE']
                             },
                             theme: {
                                 color: theme,
                             },
-                            language: lang,
                             radio: radio,
-                            paging: paging,
-                            pageSize: pageSize,
-                            filterable: true,
-                            autoRow: true,
-                            disabled: disabled,
+                            layVerify: layVerify,
                             clickClose: clickClose,
-                            data: value,
+                            maxMethod: function(val) {
+                                console.log(val)
+                            },
                             on: function(data) {
-                                $('#' + id).find('input[name="' + id + '"]').val(Fun.common.arrTostr(data.arr))
+                                console.log(data)
                             },
                             create: create,
-                        })
+                        }
+                        if (tree) options.tree = tree;
+                        if (cascader) options.cascader = cascader;
+                        if (style) options.style = style;
+                        if (layReqText) options.layReqText = layReqText;
+                        if (content) options.content = content;
+                        console.log(options)
+                        xmselect = xmSelect.render(options)
                     })
                 }
             },
@@ -178,7 +254,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             cityId = $(this).data('cityid');
                         var province, city, district;
                         if (Config.formData[name]) {
-                            var cityValue = Config.formData[name], province = cityValue.split('/')[0], city = cityValue.split('/')[1],district = cityValue.split('/')[2];
+                            var cityValue = Config.formData[name],
+                                province = cityValue.split('/')[0],
+                                city = cityValue.split('/')[1],
+                                district = cityValue.split('/')[2]
                         }
                         var districtId = $(this).data('districtid');
                         currentPicker = new cityPicker("#" + id, {

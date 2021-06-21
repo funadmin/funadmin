@@ -49,7 +49,7 @@ class AuthRule extends BackendModel
             if ($v['pid'] == $pid) {
                 $v['level']      = $level + 1;
                 $v['lefthtml'] = str_repeat($lefthtml,$level);
-                $v['l'.$name]   = $v['lefthtml'].$v[$name];
+                $v['l'.$name]   = $v['lefthtml'].lang($v[$name]);
                 $arr[] = $v;
                 $arr = array_merge($arr, self::cateTree($cate,$name, $lefthtml, $v['id'], $level+1));
             }

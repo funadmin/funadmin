@@ -9,18 +9,17 @@ class TreeHelper
      * @param int $pid
      * @return array
      */
-    public static function getTree($arr,$pid=0){
-
+    public static function getTree($arr,$title='title',$pid=0){
         $list =array();
         foreach ($arr as $k=>$v){
             if ($v['pid'] == $pid){
-                $v['child'] = self::getTree($arr,$v['id']);
+                $v[$title] = lang($v[$title]);
+                $v['children'] = self::getTree($arr,$title,$v['id']);
                 $list[] = $v;
             }
         }
         return $list;
     }
-
     /**
      * 无限分类-权限
      * @param array $cate         栏目
@@ -35,7 +34,7 @@ class TreeHelper
             if ($v['pid'] == $pid) {
                 $v['level']      = $level + 1;
                 $v['lefthtml'] = str_repeat($lefthtml,$level);
-                $v['l'.$name]   = $v['lefthtml'].$v[$name];
+                $v['l'.$name]   = $v['lefthtml'].lang($v[$name]);
                 $arr[] = $v;
                 $arr = array_merge($arr, self::cateTree($cate,$name, $lefthtml, $v['id'], $level+1));
             }

@@ -3,7 +3,6 @@
 namespace fun\helper;
 
 
-use phpDocumentor\Reflection\Types\Self_;
 use think\helper\Str;
 
 class FormHelper
@@ -44,7 +43,6 @@ class FormHelper
          </div></div>';
         return $str;
     }
-
     /**
      * @param $name
      * @param $radiolist
@@ -67,7 +65,6 @@ class FormHelper
                     $input .= '<input type="radio"' . self::selectedOrchecked($value, $v[0], 2) . ' name="' . $name . '" ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' value="' . $v[0] . '" title="' . lang($v[1]) . '" />';
                 } else {
                     $input .= '<input type="radio"' . self::selectedOrchecked($value, $k, 2) . ' name="' . $name . '" ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' value="' . $k . '" title="' . lang($v) . '" />';
-
                 }
             }
         } else {
@@ -304,47 +301,47 @@ class FormHelper
     public static function xmselect($name, $select, $options, $attr, $value)
     {
         $op = '';
-        if(isset($options['lang'])){
-            $op.=' data-lang="'.$options['lang'].'"';
-        }
-        if(isset($options['radio'])){
-            $op.=" data-radio='true'";
-        }
-        if(isset($options['pageSize'])){
-            $op.=" data-pageSize='".$options['pageSize']."'";
-        }
-        if(isset($options['pageSize'])){
-            $op.=" data-pageSize='".$options['pageSize']."'";
-        }
-        if(isset($options['paging'])){
-            $op.=" data-paging='".$options['pageSize']."'";
-        }
-        if(isset($options['disabled'])){
-            $op.=" data-disabled='".$options['disabled']."'";
-        }
-        if(isset($options['clickClose'])){
-            $op.=" data-clickClose='".$options['clickClose']."'";
-        }
-        if(isset($options['create'])){
-            $op.=" data-create='".$options['create']."'";
-        }
         if(is_array($select)){
-            $op.=" data-value='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
+            $op.=" data-data='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
         }
         if(is_object($select)){
             $op.=" data-value='".$select."'";
         }
+        $attr? $op.=' data-attr="'.$attr.'"':"";
+        $value? $op.=' data-value="'.json_encode($value,true).'"':"";
+        isset($options['lang'])?$op.=' data-lang="'.$options['lang'].'"':'';
+        isset($options['tips'])?$op.=' data-tips="'.$options['tips'].'"':'';
+        isset($options['empty'])?$op.=' data-empty="'.$options['empty'].'"':'';
+        isset($options['repeat'])?$op.=' data-repeat="'.$options['repeat'].'"':'';
+        isset($options['content'])?$op.=' data-content="'.$options['content'].'"':'';
+        isset($options['searchTips'])?$op.=' data-searchtips="'.$options['searchTips'].'"':'';
+        isset($options['style'])?$op.=' data-style="'.$options['style'].'"':'';
+        isset($options['filterable'])?$op.=' data-filterable="'.$options['filterable'].'"':'';
+        isset($options['remoteSearch'])? $op.=" data-remotesearch='".$options['remoteSearch']."'":'';
+        isset($options['remoteMethod'])? $op.=" data-remotemethod='".$options['remoteMethod']."'":'';
+        isset($options['height'])? $op.=" data-height='".$options['height']."'":'';
+        isset($options['paging'])? $op.=" data-paging='".$options['paging']."'":'';
+        isset($options['size'])? $op.=" data-size='".$options['size']."'":'';
+        isset($options['pageSize'])? $op.=" data-pagesize='".$options['pageSize']."'":'';
+        isset($options['pageRemote'])? $op.=" data-pageremote='".$options['pageRemote']."'":'';
+        isset($options['clickClose'])? $op.=" data-clickclose='".$options['clickClose']."'":'';
+        isset($options['reqext'])? $op.=" data-reqtext='".$options['reqtext']."'":'';
+        isset($options['radio'])?$op.=" data-radio='true'":'';
+        isset($options['url']) ?$op.=" data-url='".$options['url']."'":'';
+        isset($options['tree']) ?$op.=" data-tree='".$options['tree']."'":'';
+        isset($options['prop']) ?$op.=" data-prop='".$options['prop']."'":'';
+        isset($options['max']) ?$op.=" data-max='".$options['max']."'":'';
+        isset($options['verify']) ?$op.=" data-verify='".$options['verify']."'":'';
+        isset($options['disabled']) ?$op.=" data-disabled='".$options['disabled']."'":'';
+        isset($options['create']) ?$op.=" data-create='".$options['create']."'":'';
+        isset($options['theme']) ?$op.=" data-theme='".$options['theme']."'":'';
+        isset($options['value']) ?$op.=" data-value='".$options['value']."'":'';
         $label = isset($options['label']) ? $options['label'] : $name;
-        if (isset($options['multiple'])) {
-            $multiple = 'multiple="multiple"';
-        }
         $str = '<div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
-                <div id="'.$name.'" class="layui-input-block" '.$op.' lay-filter="xmSelect">
-                <input type="hidden" name="'.$name.'">   
+                <div id="'.$name.'" name="'.$name.'" class="layui-input-block" '.$op.' lay-filter="xmSelect">
                 ' . self::tips($options) . '
                 </div>
-                
                 </div>';
         return $str;
     }
