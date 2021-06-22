@@ -497,6 +497,7 @@ class FormHelper
             $id = $name;
         }
         $height = isset($options['height'])?$options['height']:'350px';
+        $path = isset($options['path'])?$options['path']:'';
         $label = isset($options['label']) ? $options['label'] : $name;
         $str = '<div class="layui-form-item">
          <label class="layui-form-label ' . self::labelRequire($options) . ' ">' . lang(Str::title($label)) . '</label>
@@ -504,10 +505,10 @@ class FormHelper
         if ($type == 1) {
             //百度。quill wangeditor ckeditor
             $str .= '<div id="' . $id . '" name="' . $name . '" 
-            data-editor="' . $type . '" lay-filter="editor" data-height="'.$height.'" type="text/plain"></div>';
+            data-editor="' . $type . '" lay-filter="editor" data-path="'.$path.'" data-height="'.$height.'" type="text/plain"></div>';
         } else {
             //LAYEDIT  Ckeditor
-            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
+            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-path="'.$path.'" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
         }
         $str .= '</div></div>';
         return $str;

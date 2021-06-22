@@ -67,91 +67,182 @@ class UploadService extends AbstractService
         $files = request()->file();
         $ossService = OssService::instance();
         foreach ($files as $k => $file) {
-            $this->checkFile($file);
-            $file_size = $file->getSize();
-            $original_name = $file->getOriginalName();
-            $md5 = $file->md5();$sha1 = $file->sha1();;
-            $file_mime = $file->getMime();
-            $attach = AttachModel::where('md5', $md5)->find();
-            if (!$attach) {
-                try {
-                    $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
-                    $path = DS . 'storage' . DS . $savename;
-                    $paths = trim($path, '/');
-//                    整合上传接口 获取视频音频长度
-                    $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
-                    $duration=0;
-                    if($analyzeFileInfo) {
-                        $analyzeFileInfo = json_decode($analyzeFileInfo,true);
-                        $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
-                    }
-                    if ($this->driver != 'local') {
+            if(is_array($file)){
+                foreach($file as $kk=>$vv){
+                    $this->checkFile($vv);
+                    $file_size = $vv->getSize();
+                    $original_name = $vv->getOriginalName();
+                    $md5 = $vv->md5();$sha1 = $vv->sha1();;
+                    $file_mime = $vv->getMime();
+                    $attach = AttachModel::where('md5', $md5)->find();
+                    if (!$attach) {
                         try {
-                            $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
-                        }catch (\Exception $e) {
-                            throw new Exception($e->getMessage());
+                            $savename = \think\facade\Filesystem::disk('public')->putFile($path, $vv);
+                            $path = DS . 'storage' . DS . $savename;
+                            $paths = trim($path, '/');
+                            // 整合上传接口 获取视频音频长度
+                            $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                            $duration=0;
+                            if($analyzeFileInfo) {
+                                $analyzeFileInfo = json_decode($analyzeFileInfo,true);
+                                $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
+                            }
+                            if ($this->driver != 'local') {
+                                try {
+                                    $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                                }catch (\Exception $e) {
+                                    throw new Exception($e->getMessage());
+                                }
+                            }
+                        }catch (Exception $e){
+                            $path = '';
+                            $error = $e->getMessage();
                         }
+                        $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
+                        $file_name = basename($savename);
+                        $width = $height = 0;
+                        if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+                            $imgInfo = getimagesize($vv->getPathname());;
+                            if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
+                                throw new Exception(lang('Uploaded file is not a valid image'));
+                            }
+                            $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
+                            $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
+                        }
+                        if (!empty($path)) {
+                            $data = [
+                                'admin_id'      => $adminid,
+                                'member_id'     => $uid,
+                                'original_name' => $original_name,
+                                'name'          => $file_name,
+                                'path'          => $path,
+                                'thumb'         => $path,
+                                'url'           => $this->driver == 'local' ? Request::domain() . $path : $path,
+                                'ext'           => $file_ext,
+                                'size'          => $file_size / 1024,
+                                'width'         => $width,
+                                'height'        => $height,
+                                'duration'      => $duration,
+                                'md5'           => $md5,
+                                'sha1'          => $sha1,
+                                'mime'          => $file_mime,
+                                'driver'        => $this->driver,
+                            ];
+                            $attach = AttachModel::create($data);
+                            $result['data'][$k][$kk] = $attach->path; //兼容wangeditor
+                            $result['id'][$k][$kk] = $attach->id;
+                            $result["url"][$k][$kk] = $path;
+                        } else {
+                            //上传失败获取错误信息
+                            $result['url'] = '';
+                            $result['msg'] = $error;
+                            $result['code'] = 0;
+                            $result['state'] = 'ERROR'; //兼容百度
+                            $result['errno'] = 'ERROR'; //兼容wangeditor
+                            $result['uploaded'] = false; //兼容ckeditorditor
+                            $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
+                            if($editor=='layedit'){
+                                $result['code'] = 1;
+                            }
+                            return ($result);
+                        }
+                    } else {
+                        $result['data'][$k][$kk] = $attach->path; //兼容wangeditor
+                        $result['uploaded'] = true; //兼容ckeditorditor
+                        $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
+                        $result['id'][$k][$kk] = $attach->id;
+                        $result['fileType'] = $type;
+                        $result["url"][$k][$kk] = $attach->path;
                     }
-                }catch (Exception $e){
-                    $path = '';
-                    $error = $e->getMessage();
                 }
-                $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
-                $file_name = basename($savename);
-                $width = $height = 0;
-                if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
-                    $imgInfo = getimagesize($file->getPathname());;
-                    if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
-                        throw new Exception(lang('Uploaded file is not a valid image'));
+            }else{
+                $this->checkFile($file);
+                $file_size = $file->getSize();
+                $original_name = $file->getOriginalName();
+                $md5 = $file->md5();$sha1 = $file->sha1();;
+                $file_mime = $file->getMime();
+                $attach = AttachModel::where('md5', $md5)->find();
+                if (!$attach) {
+                    try {
+                        $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
+                        $path = DS . 'storage' . DS . $savename;
+                        $paths = trim($path, '/');
+                        // 整合上传接口 获取视频音频长度
+                        $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                        $duration=0;
+                        if($analyzeFileInfo) {
+                            $analyzeFileInfo = json_decode($analyzeFileInfo,true);
+                            $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
+                        }
+                        if ($this->driver != 'local') {
+                            try {
+                                $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                            }catch (\Exception $e) {
+                                throw new Exception($e->getMessage());
+                            }
+                        }
+                    }catch (Exception $e){
+                        $path = '';
+                        $error = $e->getMessage();
                     }
-                    $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
-                    $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
-                }
-                if (!empty($path)) {
-                    $data = [
-                        'admin_id'      => $adminid,
-                        'member_id'     => $uid,
-                        'original_name' => $original_name,
-                        'name'          => $file_name,
-                        'path'          => $path,
-                        'thumb'         => $path,
-                        'url'           => $this->driver == 'local' ? Request::domain() . $path : $path,
-                        'ext'           => $file_ext,
-                        'size'          => $file_size / 1024,
-                        'width'         => $width,
-                        'height'        => $height,
-                        'duration'      => $duration,
-                        'md5'           => $md5,
-                        'sha1'          => $sha1,
-                        'mime'          => $file_mime,
-                        'driver'        => $this->driver,
-                    ];
-                    $attach = AttachModel::create($data);
-                    $result['data'][] = $attach->path; //兼容wangeditor
-                    $result['id'] = $attach->id;
-                    $result["url"] = $path;
+                    $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
+                    $file_name = basename($savename);
+                    $width = $height = 0;
+                    if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+                        $imgInfo = getimagesize($file->getPathname());;
+                        if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
+                            throw new Exception(lang('Uploaded file is not a valid image'));
+                        }
+                        $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
+                        $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
+                    }
+                    if (!empty($path)) {
+                        $data = [
+                            'admin_id'      => $adminid,
+                            'member_id'     => $uid,
+                            'original_name' => $original_name,
+                            'name'          => $file_name,
+                            'path'          => $path,
+                            'thumb'         => $path,
+                            'url'           => $this->driver == 'local' ? Request::domain() . $path : $path,
+                            'ext'           => $file_ext,
+                            'size'          => $file_size / 1024,
+                            'width'         => $width,
+                            'height'        => $height,
+                            'duration'      => $duration,
+                            'md5'           => $md5,
+                            'sha1'          => $sha1,
+                            'mime'          => $file_mime,
+                            'driver'        => $this->driver,
+                        ];
+                        $attach = AttachModel::create($data);
+                        $result['data'][] = $attach->path; //兼容wangeditor
+                        $result['id'] = $attach->id;
+                        $result["url"] = $path;
+                    } else {
+                        //上传失败获取错误信息
+                        $result['url'] = '';
+                        $result['msg'] = $error;
+                        $result['code'] = 0;
+                        $result['state'] = 'ERROR'; //兼容百度
+                        $result['errno'] = 'ERROR'; //兼容wangeditor
+                        $result['uploaded'] = false; //兼容ckeditorditor
+                        $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
+                        if($editor=='layedit'){
+                            $result['code'] = 1;
+                        }
+                        return ($result);
+                    }
                 } else {
-                    //上传失败获取错误信息
-                    $result['url'] = '';
-                    $result['msg'] = $error;
-                    $result['code'] = 0;
-                    $result['state'] = 'ERROR'; //兼容百度
-                    $result['errno'] = 'ERROR'; //兼容wangeditor
-                    $result['uploaded'] = false; //兼容ckeditorditor
-                    $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
-                    if($editor=='layedit'){
-                        $result['code'] = 1;
-                    }
-                    return ($result);
+                    $result['data'][] = $attach->path; //兼容wangeditor
+                    $result['uploaded'] = true; //兼容ckeditorditor
+                    $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
+                    $result['id'] = $attach->id;
+                    $result['fileType'] = $type;
+                    $result["url"] = $attach->path;
                 }
-            } else {
-                $result['data'][] = $attach->path; //兼容wangeditor
-                $result['uploaded'] = true; //兼容ckeditorditor
-                $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
-                $result['id'] = $attach->id;
-                $result['fileType'] = $type;
-                $result["url"] = $attach->path;
             }
+
         }
         $result['state'] = 'SUCCESS'; //兼容百度
         $result['errno'] = 0; //兼容wangeditor

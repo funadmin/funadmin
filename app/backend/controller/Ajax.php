@@ -123,7 +123,7 @@ class Ajax extends Backend
                 ->page($this->page, $this->pageSize)
                 ->select();
             $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
-            return json($result);
+            return ($result);
         }
     }
     /*
