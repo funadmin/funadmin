@@ -123,15 +123,11 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     Fun.api.open(options)
                 }
             })
-
-            /**
-             * 方法失效
-             */
             function openAll() {
                 var treedata=treeGrid.getDataTreeList(Table.init.tableId);
-                // if(treedata.length>0){
+                if(treedata.length>0){
                     treeGrid.treeOpenAll(Table.init.table_elem,!treedata[0][treeGrid.config.cols.isOpen]);
-                // }
+                }
             }
             treeGrid.on('edit(' + Table.init.table_elem + ')', function (obj) {
                 var value = obj.value,

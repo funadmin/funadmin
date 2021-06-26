@@ -534,6 +534,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {
+                            if( layui.treeGrid){
+                                layui.treeGrid.reload();
+                            }
                             Table.api.reload(tableId)
                         })
                     }, function (res) {
