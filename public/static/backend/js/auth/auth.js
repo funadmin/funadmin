@@ -120,7 +120,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                         title:__('add'),
                         url:Fun.url(Table.init.requests.add_url),
                     }
-                   Fun.api.open(options)
+                    Fun.api.open(options)
                 }
             })
 

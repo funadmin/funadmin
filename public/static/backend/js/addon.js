@@ -37,38 +37,48 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {checkbox: true,},
                     {
                         field: 'name',
-                        title: __('Name'),
-                        width: 100,
-                        sort: true,
+                        title: __('ADDONAME'),
+                        width: 150,
                         imageHeight: 40,
                         align: "center",
-                    },
-                    {
-                        field: 'thumb',
-                        title: __('Logo'),
-                        width: 100,
-                        sort: true,
-                        imageHeight: 40,
-                        align: "center",
-                        templet: Table.templet.image
+                        hide:true
                     },
                     {
                         field: 'title',
                         title: __('Title'),
-                        width: 120,
-                        sort: true,templet: function (d){
-                            if(d.url){
-                                return '<a target="_blank" href="'+d.url+'">'+d.title+'</a>';
+                        // width: 150,
+                        templet: function (d){
+                            if(d.website){
+                                return '<a class="layui-btn-xs layui-btn" target="_blank" href="'+d.website+'">'+d.title+'</a>';
                             }else{
                                 return d.title;
                             }
                         }
                     },
-                    {field: 'description', title: __('Description'), minWidth: 220, sort: true,},
-                    {field: 'version', title: __('Addon version'), width: 160, sort: true, search: false},
-                    {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
-                    {field: 'author', title: __('Author'), width: 120, sort: true},
-                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false},
+                    {
+                        field: 'thumb',
+                        title: __('Logo'),
+                        width: 100,
+                        imageHeight: 40,
+                        align: "center",
+                        templet: Table.templet.image
+                    },
+
+                    {field: 'description', title: __('Description'), minWidth: 220, },
+                    {field: 'version', title: __('Addon version'), width: 160,  search: false},
+                    // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
+                    {field: 'author', title: __('Author'), width: 120,},
+                    {field: 'general_price', title: __('Price'), width: 120,
+                        templet: function (d){
+                            if(d.general_price>0){
+                                return '<span class="layui-badge">￥'+d.general_price+'</span>';
+                            }else{
+                                return '<span class="layui-badge layui-bg-blue">免费</span>';
+                            }
+                        }
+                    },
+                    {field: 'download', title: __('download'), width: 120, },
+                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,templet:Table.templet.time},
                     {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
@@ -79,15 +89,17 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 } else {
                                     html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">已禁用</a>'
                                 }
-                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name + '&id=' + d.id + '">uninstall</a>'
-                            } else {
-                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name + '&id=' + d.id + '">install</a>'
-                            }
-                            if (d.install && d.install === 1 || d.install==='1') {
+                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">uninstall</a>'
                                 if (d.website !== '') {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
                                 html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                            } else {
+                                if(d.hasOwnProperty('kinds') && d.kinds==10){
+                                    html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
+                                }else{
+                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">install</a>'
+                                }
                             }
                             return html;
                         }
@@ -95,7 +107,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
-                page: true
+                page: false
             });
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url'),auth = $(this).data('auth');
@@ -108,16 +120,17 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             Fun.ajax({
                                 url: url,
                             }, function (res) {
-                                if(res.code>0){
-                                    Fun.toastr.success(res.msg, function () {
-                                        Fun.toastr.close(index)
-                                        Fun.refreshmenu();
-                                        Fun.toastr.close();
-                                        layui.table.reload(Table.init.tableId);
-                                    });
-                                }else{
+                                Fun.toastr.success(res.msg, function () {
                                     Fun.toastr.close(index)
-                                }
+                                    Fun.refreshmenu();
+                                    Fun.toastr.close();
+                                    layui.table.reload(Table.init.tableId);
+                                });
+                            },function (res) {
+                                Fun.toastr.error(res.msg, function () {
+                                    Fun.toastr.close(index)
+                                    layui.table.reload(Table.init.tableId);
+                                });
                             })
                         });
                     } else {

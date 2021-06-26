@@ -149,8 +149,7 @@ class Ajax extends Backend
         }catch(Exception $e){
             $this->error($e->getMessage());
         }
-
-        Cache::clear() ? $this->success('清除成功') : $this->success('清除成功');
+        Cache::clear() ? $this->success('清除成功') : $this->error('清除失败');
     }
 
 }

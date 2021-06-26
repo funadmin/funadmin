@@ -1,18 +1,11 @@
-<!--<div class="layui-tab layui-tab-card" lay-filter="tab">-->
-<!--    <ul class="layui-tab-title" data-field="type">-->
-<!--        <li class="layui-this" data-value="" lay-event="tabswitch">全部</li>-->
-<!--        <li data-value="1" lay-event="tabswitch">应用</li>-->
-<!--        <li data-value="2" lay-event="tabswitch">小程序</li>-->
-<!--        <li data-value="3" lay-event="tabswitch">编辑器</li>-->
-<!--        <li data-value="4" lay-event="tabswitch">云存储</li>-->
-<!--        <li data-value="5" lay-event="tabswitch">短信</li>-->
-<!--        <li data-value="6" lay-event="tabswitch">接口</li>-->
-<!--        <li data-value="7" lay-event="tabswitch">辅助</li>-->
-<!--        <li data-value="8" lay-event="tabswitch">最新</li>-->
-<!--        <li data-value="9" lay-event="tabswitch">主题</li>-->
-<!--        <li data-value="9" lay-event="tabswitch">其他</li>-->
-<!--    </ul>-->
-<!--</div>-->
+<div class="layui-tab layui-tab-card" lay-filter="tab">
+    <ul class="layui-tab-title" data-field="cateid">
+        <li class="layui-this" data-value="" lay-event="tabswitch">全部</li>
+        {volist name='$cateList' id="vo"}
+        <li data-value="{$vo.id}" lay-event="tabswitch">{$vo.title}</li>
+        {/volist}
+    </ul>
+</div>
 <table class="layui-table" id="list" lay-filter="list"></table>
 <!--<table  id="list" lay-filter="list"></table>-->
 <!--登陆页面-->

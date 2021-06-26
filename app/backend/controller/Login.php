@@ -38,13 +38,13 @@ class Login extends Backend {
             $username = $this->request->post('username', '', ['strip_tags','trim','htmlspecialchars']);
             $password = $this->request->post('password', '',['strip_tags','trim','htmlspecialchars']);
             $rememberMe = $this->request->post('rememberMe');
-            if(config('captcha.check')){
-                $rule["captcha|验证码"] = 'require|captcha';
-            }
             $rule = [
                 "username|用户名" => 'require',
                 "password|密码" => 'require',
             ];
+            if(config('captcha.check')){
+                $rule["captcha|验证码"] = 'require|captcha';
+            }
             $this->validate($post, $rule);
             // 用户信息验证
             try {

@@ -17,4 +17,7 @@ return [
     'publishtime'=>'发布时间',
     'localinstall'=>'离线安装',
     'local install'=>'离线安装',
+    'price'=>'价格',
+    'download'=>'下载量',
+    'Logo'=>'图标',
 ];

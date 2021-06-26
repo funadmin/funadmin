@@ -23,7 +23,7 @@ return [
             // 用户名
             'username'          => Env::get('database.username', 'testfunadmin'),
             // 密码
-            'password'          => Env::get('database.password', 'NpFJkMeDR4PHjdTW'),
+            'password'          => Env::get('database.password', 'LRYja3kMzdrhhsZr'),
             // 端口
             'hostport'          => Env::get('database.hostport', '3306'),
             // 数据库连接参数

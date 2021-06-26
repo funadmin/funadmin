@@ -129,7 +129,7 @@ class AuthCloudService extends AbstractService
      */
     public function getmethod()
     {
-        return $this->api_url;
+        return $this->method;
     }
 
     public function setMethod($method = 'post')
