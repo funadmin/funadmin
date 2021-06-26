@@ -124,6 +124,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
             })
             Form.api.bindEvent($('form'), function () {
             }, function () {
+
             }, function (e) {
                 var dataRule = tree.getChecked('treebox');
                 Fun.ajax({
@@ -131,7 +132,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     data: {rules: dataRule},
                 }, function (res) {
                     Fun.toastr.success(res.msg, function () {
-                        Form.api.closeCurrentOpen()
+                        Form.api.closeCurrentOpen({refreshTable:true});
                     })
                 })
             })

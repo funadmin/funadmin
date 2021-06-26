@@ -15,4 +15,5 @@ return [
     '_parent'=>'上级',
     '_top'=>'顶级',
     'IsMenu'=>'是否菜单',
+    'title'=>'菜单名',
     ];

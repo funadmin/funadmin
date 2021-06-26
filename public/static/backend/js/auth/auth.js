@@ -115,6 +115,11 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 var event = $(this).attr('lay-event');
                 if(event=='openAll'){
                     openAll();
+                    if($(this).html()=='展开全部'){
+                        $(this).html('折叠全部')
+                    }else{
+                        $(this).html('展开全部')
+                    }
                 }else if(event=='add'){
                     options = {
                         title:__('add'),

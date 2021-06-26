@@ -202,12 +202,8 @@ class AuthGroup extends Backend
                 $rules = $this->modelClass->where('id', $group_id)
                     ->where('status',1)
                     ->value('rules');
-                $list = cache('authCheckedList_'.session('admin.id'));
-                if(!$list){
-                    $rules = $rules?$rules:'';
-                    $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
-                    cache('authCheckedList_'.session('admin.id'),$list);
-                }
+                $rules = $rules?$rules:'';
+                $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
                 $view = [
                     'code'=>1,
                     'msg'=>'ok',
