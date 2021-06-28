@@ -25,4 +25,10 @@
     <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
 </head>
-
+<script>
+    window.Config = {:json_encode($config)};
+    window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
+    window.STATIC ='__STATIC__'
+    window.ADDONS = '__ADDONS__'
+    window.PLUGINS = '__PLUGINS__';
+</script>

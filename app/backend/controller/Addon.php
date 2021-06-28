@@ -72,14 +72,17 @@ class Addon extends Backend
                     $res = $auth->run();
                 }
                 $list = $res['data'];
-                list($addons,$localNameArr) = $this->getLocalAddons();
+                list($localAddons,$localNameArr) = $this->getLocalAddons();
                 $addonNameArr = $list?array_keys($list):[];
                 $where = [];
                 if(isset($param['cateid']) && $param['cateid']){
                     $where[] = ['name','in',$addonNameArr];
                 }
+                if(empty($addonNameArr)){
+                    $where[] = ['name','not in',$addonNameArr];
+                }
                 $addons =  $this->modelClass->where($where)->column('*', 'name');
-                $list = array_merge($addons,$list?$list:[]);
+                $list = array_merge($localAddons,$addons,$list?$list:[]);
                 foreach ($list as $key => &$value) {
                     $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                     unset($value['id']);
