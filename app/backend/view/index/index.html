@@ -18,6 +18,13 @@
     <style id="fun-bg-color">
     </style>
 </head>
+<script>
+    window.Config = {:json_encode($config)};
+    window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
+    window.STATIC ='__STATIC__'
+    window.ADDONS = '__ADDONS__'
+    window.PLUGINS = '__PLUGINS__';
+</script>
 <body class="layui-layout-body">
 <div id="fun-app" class="fun-app">
     <!--        加载层-->
@@ -177,4 +184,7 @@
 </div>
 </body>
 </html>
-{include file="layout/footer" /}
+
+<script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
+<script defer src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
+
