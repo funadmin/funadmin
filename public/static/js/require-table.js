@@ -534,7 +534,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            console.log(layui.treeGrid)
                             if(layui.treeGrid){
                                 layui.treeGrid.reload(tableId);
                             }else {
@@ -609,7 +608,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, closeOpen: function (othis) {
                 Fun.api.closeCurrentOpen()
             },common:function (othis){
-                console.log(othis.data('callback'))
                 return othis.data('callback')?eval(othis.data('callback')):true;
             }
         },

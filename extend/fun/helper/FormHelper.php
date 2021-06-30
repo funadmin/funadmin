@@ -634,7 +634,6 @@ class FormHelper
             </div>';
         return $str;
     }
-
     /**
      * @param bool $reset
      * @param array $options
