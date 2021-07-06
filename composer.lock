@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0a4f5ca0fab6f309331e626cc97041eb",
+    "content-hash": "10b9fd50f810a97394b3f8983806bcaf",
     "packages": [
         {
             "name": "brick/math",
@@ -18,7 +18,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/brick/math/zipball/dff976c2f3487d42c1db75a3b180e2b9f0e72ce0",
                 "reference": "dff976c2f3487d42c1db75a3b180e2b9f0e72ce0",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-json": "*",
@@ -74,7 +80,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/doctrine/annotations/zipball/e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f",
                 "reference": "e6e7b7d5b45a2f2abc5460cc6396480b2b1d321f",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "doctrine/lexer": "1.*",
@@ -128,10 +140,6 @@
                 "docblock",
                 "parser"
             ],
-            "support": {
-                "issues": "https://github.com/doctrine/annotations/issues",
-                "source": "https://github.com/doctrine/annotations/tree/1.13.1"
-            },
             "time": "2021-05-16T18:07:53+00:00"
         },
         {
@@ -146,7 +154,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/doctrine/lexer/zipball/e864bbf5904cb8f5bb334f99209b48018522f042",
                 "reference": "e864bbf5904cb8f5bb334f99209b48018522f042",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": "^7.2 || ^8.0"
@@ -226,7 +240,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/ergebnis/classy/zipball/72840bda3ce8b7bdc9362e8646141eb3c5ca9947",
                 "reference": "72840bda3ce8b7bdc9362e8646141eb3c5ca9947",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-tokenizer": "*",
@@ -293,17 +313,23 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.50",
+            "version": "v1.53",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "b982edb263f8c90742362f44afcca7d865d09726"
+                "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/b982edb263f8c90742362f44afcca7d865d09726",
-                "reference": "b982edb263f8c90742362f44afcca7d865d09726",
-                "shasum": ""
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7c1075febbe54d92509aa23f1deb2b32e8369cad",
+                "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0",
@@ -340,25 +366,27 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "support": {
-                "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v1.50"
-            },
-            "time": "2021-05-21T01:41:56+00:00"
+            "time": "2021-07-03T03:37:51+00:00"
         },
         {
             "name": "league/flysystem",
-            "version": "1.1.3",
+            "version": "1.1.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "9be3b16c877d477357c015cec057548cf9b2a14a"
+                "reference": "f3ad69181b8afed2c9edf7be5a2918144ff4ea32"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/9be3b16c877d477357c015cec057548cf9b2a14a",
-                "reference": "9be3b16c877d477357c015cec057548cf9b2a14a",
-                "shasum": ""
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/f3ad69181b8afed2c9edf7be5a2918144ff4ea32",
+                "reference": "f3ad69181b8afed2c9edf7be5a2918144ff4ea32",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-fileinfo": "*",
@@ -373,7 +401,6 @@
                 "phpunit/phpunit": "^8.5.8"
             },
             "suggest": {
-                "ext-fileinfo": "Required for MimeType",
                 "ext-ftp": "Allows you to use FTP server storage",
                 "ext-openssl": "Allows you to use FTPS server storage",
                 "league/flysystem-aws-s3-v2": "Allows you to use S3 storage with AWS SDK v2",
@@ -429,17 +456,13 @@
                 "sftp",
                 "storage"
             ],
-            "support": {
-                "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/1.x"
-            },
             "funding": [
                 {
                     "url": "https://offset.earth/frankdejonge",
                     "type": "other"
                 }
             ],
-            "time": "2020-08-23T07:39:11+00:00"
+            "time": "2021-06-23T21:56:05+00:00"
         },
         {
             "name": "league/flysystem-cached-adapter",
@@ -453,7 +476,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/thephpleague/flysystem-cached-adapter/zipball/d1925efb2207ac4be3ad0c40b8277175f99ffaff",
                 "reference": "d1925efb2207ac4be3ad0c40b8277175f99ffaff",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "league/flysystem": "~1.0",
@@ -504,7 +533,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/thephpleague/mime-type-detection/zipball/3b9dff8aaf7323590c1d2e443db701eb1f9aa0d3",
                 "reference": "3b9dff8aaf7323590c1d2e443db701eb1f9aa0d3",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-fileinfo": "*",
@@ -550,17 +585,23 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "2.48.1",
+            "version": "2.50.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/briannesbitt/Carbon.git",
-                "reference": "8d1f50f1436fb4b05e7127360483dd9c6e73da16"
+                "reference": "f47f17d17602b2243414a44ad53d9f8b9ada5fdb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/8d1f50f1436fb4b05e7127360483dd9c6e73da16",
-                "reference": "8d1f50f1436fb4b05e7127360483dd9c6e73da16",
-                "shasum": ""
+                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/f47f17d17602b2243414a44ad53d9f8b9ada5fdb",
+                "reference": "f47f17d17602b2243414a44ad53d9f8b9ada5fdb",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-json": "*",
@@ -611,24 +652,20 @@
                 {
                     "name": "Brian Nesbitt",
                     "email": "brian@nesbot.com",
-                    "homepage": "http://nesbot.com"
+                    "homepage": "https://markido.com"
                 },
                 {
                     "name": "kylekatarnls",
-                    "homepage": "http://github.com/kylekatarnls"
+                    "homepage": "https://github.com/kylekatarnls"
                 }
             ],
             "description": "An API extension for DateTime that supports 281 different languages.",
-            "homepage": "http://carbon.nesbot.com",
+            "homepage": "https://carbon.nesbot.com",
             "keywords": [
                 "date",
                 "datetime",
                 "time"
             ],
-            "support": {
-                "issues": "https://github.com/briannesbitt/Carbon/issues",
-                "source": "https://github.com/briannesbitt/Carbon"
-            },
             "funding": [
                 {
                     "url": "https://opencollective.com/Carbon",
@@ -639,7 +676,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-05-26T22:08:38+00:00"
+            "time": "2021-06-28T22:38:45+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -653,7 +690,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/phpDocumentor/ReflectionCommon/zipball/1d01c49d4ed62f25aa84a747ad35d5a16924662b",
                 "reference": "1d01c49d4ed62f25aa84a747ad35d5a16924662b",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": "^7.2 || ^8.0"
@@ -706,7 +749,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/phpDocumentor/ReflectionDocBlock/zipball/069a785b2141f5bcf49f3e353548dc1cce6df556",
                 "reference": "069a785b2141f5bcf49f3e353548dc1cce6df556",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-filter": "*",
@@ -762,7 +811,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/phpDocumentor/TypeResolver/zipball/6a467b8989322d92aa1c8bf2bebcc6e5c2ba55c0",
                 "reference": "6a467b8989322d92aa1c8bf2bebcc6e5c2ba55c0",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": "^7.2 || ^8.0",
@@ -811,7 +866,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/php-fig/cache/zipball/d11b50ad223250cf17b86e38383413f5a6764bf8",
                 "reference": "d11b50ad223250cf17b86e38383413f5a6764bf8",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=5.3.0"
@@ -860,7 +921,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/php-fig/container/zipball/8622567409010282b7aeebe4bb841fe98b58dcaf",
                 "reference": "8622567409010282b7aeebe4bb841fe98b58dcaf",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.2.0"
@@ -908,7 +975,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/php-fig/log/zipball/d49695b909c3b7628b6289db5479a1c204601f11",
                 "reference": "d49695b909c3b7628b6289db5479a1c204601f11",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=5.3.0"
@@ -958,7 +1031,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/php-fig/simple-cache/zipball/408d5eafb83c57f6365a3ca330ff23aa4a5fa39b",
                 "reference": "408d5eafb83c57f6365a3ca330ff23aa4a5fa39b",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=5.3.0"
@@ -1009,7 +1088,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/ramsey/collection/zipball/28a5c4ab2f5111db6a60b2b4ec84057e0f43b9c1",
                 "reference": "28a5c4ab2f5111db6a60b2b4ec84057e0f43b9c1",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": "^7.2 || ^8"
@@ -1086,7 +1171,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/ramsey/uuid/zipball/cd4032040a750077205918c86049aa0f43d22947",
                 "reference": "cd4032040a750077205918c86049aa0f43d22947",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "brick/math": "^0.8 || ^0.9",
@@ -1167,6 +1258,76 @@
             "time": "2020-08-18T17:17:46+00:00"
         },
         {
+            "name": "symfony/deprecation-contracts",
+            "version": "v2.4.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/deprecation-contracts.git",
+                "reference": "5f38c8804a9e97d23e0c8d63341088cd8a22d627"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/deprecation-contracts/zipball/5f38c8804a9e97d23e0c8d63341088cd8a22d627",
+                "reference": "5f38c8804a9e97d23e0c8d63341088cd8a22d627",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "2.4-dev"
+                },
+                "thanks": {
+                    "name": "symfony/contracts",
+                    "url": "https://github.com/symfony/contracts"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "function.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "A generic function and convention to trigger deprecation notices",
+            "homepage": "https://symfony.com",
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2021-03-23T23:28:01+00:00"
+        },
+        {
             "name": "symfony/polyfill-ctype",
             "version": "v1.23.0",
             "source": {
@@ -1178,7 +1339,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/polyfill-ctype/zipball/46cd95797e9df938fdd2b03693b5fca5e64b01ce",
                 "reference": "46cd95797e9df938fdd2b03693b5fca5e64b01ce",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1"
@@ -1257,7 +1424,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/polyfill-mbstring/zipball/2df51500adbaebdc4c38dea4c89a2e131c45c8a1",
                 "reference": "2df51500adbaebdc4c38dea4c89a2e131c45c8a1",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1"
@@ -1337,7 +1510,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/polyfill-php80/zipball/eca0bf41ed421bed1b57c4958bab16aa86b757d0",
                 "reference": "eca0bf41ed421bed1b57c4958bab16aa86b757d0",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1"
@@ -1410,17 +1589,23 @@
         },
         {
             "name": "symfony/process",
-            "version": "v4.4.22",
+            "version": "v4.4.26",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/process.git",
-                "reference": "f5481b22729d465acb1cea3455fc04ce84b0148b"
+                "reference": "7e812c84c3f2dba173d311de6e510edf701685a8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/process/zipball/f5481b22729d465acb1cea3455fc04ce84b0148b",
-                "reference": "f5481b22729d465acb1cea3455fc04ce84b0148b",
-                "shasum": ""
+                "url": "https://api.github.com/repos/symfony/process/zipball/7e812c84c3f2dba173d311de6e510edf701685a8",
+                "reference": "7e812c84c3f2dba173d311de6e510edf701685a8",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.3"
@@ -1450,9 +1635,6 @@
             ],
             "description": "Executes commands in sub-processes",
             "homepage": "https://symfony.com",
-            "support": {
-                "source": "https://github.com/symfony/process/tree/v4.4.22"
-            },
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -1467,24 +1649,31 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-04-07T16:22:29+00:00"
+            "time": "2021-06-09T14:57:04+00:00"
         },
         {
             "name": "symfony/translation",
-            "version": "v5.2.9",
+            "version": "v5.3.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/translation.git",
-                "reference": "61af68dba333e2d376a325a29c2a3f2a605b4876"
+                "reference": "380b8c9e944d0e364b25f28e8e555241eb49c01c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/translation/zipball/61af68dba333e2d376a325a29c2a3f2a605b4876",
-                "reference": "61af68dba333e2d376a325a29c2a3f2a605b4876",
-                "shasum": ""
+                "url": "https://api.github.com/repos/symfony/translation/zipball/380b8c9e944d0e364b25f28e8e555241eb49c01c",
+                "reference": "380b8c9e944d0e364b25f28e8e555241eb49c01c",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.2.5",
+                "symfony/deprecation-contracts": "^2.1",
                 "symfony/polyfill-mbstring": "~1.0",
                 "symfony/polyfill-php80": "^1.15",
                 "symfony/translation-contracts": "^2.3"
@@ -1507,6 +1696,7 @@
                 "symfony/finder": "^4.4|^5.0",
                 "symfony/http-kernel": "^5.0",
                 "symfony/intl": "^4.4|^5.0",
+                "symfony/polyfill-intl-icu": "^1.21",
                 "symfony/service-contracts": "^1.1.2|^2",
                 "symfony/yaml": "^4.4|^5.0"
             },
@@ -1543,9 +1733,6 @@
             ],
             "description": "Provides tools to internationalize your application",
             "homepage": "https://symfony.com",
-            "support": {
-                "source": "https://github.com/symfony/translation/tree/v5.2.9"
-            },
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -1560,7 +1747,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-05-16T13:07:46+00:00"
+            "time": "2021-06-27T12:22:47+00:00"
         },
         {
             "name": "symfony/translation-contracts",
@@ -1574,7 +1761,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/translation-contracts/zipball/95c812666f3e91db75385749fe219c5e494c7f95",
                 "reference": "95c812666f3e91db75385749fe219c5e494c7f95",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.2.5"
@@ -1646,13 +1839,19 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "c26dfea1397955a30ee0867eaca593482d6f61a0"
+                "reference": "5d503d680ab64c733b56188398f68901493241e3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/c26dfea1397955a30ee0867eaca593482d6f61a0",
-                "reference": "c26dfea1397955a30ee0867eaca593482d6f61a0",
-                "shasum": ""
+                "url": "https://api.github.com/repos/top-think/framework/zipball/5d503d680ab64c733b56188398f68901493241e3",
+                "reference": "5d503d680ab64c733b56188398f68901493241e3",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-json": "*",
@@ -1671,7 +1870,6 @@
                 "mockery/mockery": "^1.2",
                 "phpunit/phpunit": "^7.0"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "files": [],
@@ -1700,11 +1898,7 @@
                 "orm",
                 "thinkphp"
             ],
-            "support": {
-                "issues": "https://github.com/top-think/framework/issues",
-                "source": "https://github.com/top-think/framework/tree/6.0"
-            },
-            "time": "2021-05-04T12:53:37+00:00"
+            "time": "2021-07-04T13:15:51+00:00"
         },
         {
             "name": "topthink/think-captcha",
@@ -1718,7 +1912,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-captcha/zipball/1eef3717c1bcf4f5bbe2d1a1c704011d330a8b55",
                 "reference": "1eef3717c1bcf4f5bbe2d1a1c704011d330a8b55",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "topthink/framework": "^6.0.0"
@@ -1761,17 +1961,23 @@
         },
         {
             "name": "topthink/think-helper",
-            "version": "v3.1.4",
+            "version": "v3.1.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-helper.git",
-                "reference": "c28d37743bda4a0455286ca85b17b5791d626e10"
+                "reference": "f98e3ad44acd27ae85a4d923b1bdfd16c6d8d905"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-helper/zipball/c28d37743bda4a0455286ca85b17b5791d626e10",
-                "reference": "c28d37743bda4a0455286ca85b17b5791d626e10",
-                "shasum": ""
+                "url": "https://api.github.com/repos/top-think/think-helper/zipball/f98e3ad44acd27ae85a4d923b1bdfd16c6d8d905",
+                "reference": "f98e3ad44acd27ae85a4d923b1bdfd16c6d8d905",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0"
@@ -1796,11 +2002,7 @@
                 }
             ],
             "description": "The ThinkPHP6 Helper Package",
-            "support": {
-                "issues": "https://github.com/top-think/think-helper/issues",
-                "source": "https://github.com/top-think/think-helper/tree/3.0"
-            },
-            "time": "2019-11-08T08:01:10+00:00"
+            "time": "2021-06-21T06:17:31+00:00"
         },
         {
             "name": "topthink/think-ide-helper",
@@ -1814,7 +2016,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-ide-helper/zipball/a3d4aa62acdc3b9270b850b649275207d0462c4d",
                 "reference": "a3d4aa62acdc3b9270b850b649275207d0462c4d",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ergebnis/classy": "^1.1",
@@ -1862,7 +2070,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-image/zipball/8586cf47f117481c6d415b20f7dedf62e79d5512",
                 "reference": "8586cf47f117481c6d415b20f7dedf62e79d5512",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-gd": "*"
@@ -1906,7 +2120,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-multi-app/zipball/ccaad7c2d33f42cb1cc2a78d6610aaec02cea4c3",
                 "reference": "ccaad7c2d33f42cb1cc2a78d6610aaec02cea4c3",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0",
@@ -1954,7 +2174,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-orm/zipball/1119d979b850849f3725856460cf108eec1c3eb8",
                 "reference": "1119d979b850849f3725856460cf108eec1c3eb8",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-json": "*",
@@ -1991,25 +2217,27 @@
                 "database",
                 "orm"
             ],
-            "support": {
-                "issues": "https://github.com/top-think/think-orm/issues",
-                "source": "https://github.com/top-think/think-orm/tree/v2.0.40"
-            },
             "time": "2021-04-19T13:29:37+00:00"
         },
         {
             "name": "topthink/think-queue",
-            "version": "v3.0.5",
+            "version": "v3.0.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-queue.git",
-                "reference": "7bac4d76461f0508ab306e9118f59773ffdeb49a"
+                "reference": "a9f81126bdd52d036461e0c6556592dd478c8728"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-queue/zipball/7bac4d76461f0508ab306e9118f59773ffdeb49a",
-                "reference": "7bac4d76461f0508ab306e9118f59773ffdeb49a",
-                "shasum": ""
+                "url": "https://api.github.com/repos/top-think/think-queue/zipball/a9f81126bdd52d036461e0c6556592dd478c8728",
+                "reference": "a9f81126bdd52d036461e0c6556592dd478c8728",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "ext-json": "*",
@@ -2052,11 +2280,7 @@
                 }
             ],
             "description": "The ThinkPHP6 Queue Package",
-            "support": {
-                "issues": "https://github.com/top-think/think-queue/issues",
-                "source": "https://github.com/top-think/think-queue/tree/3.0"
-            },
-            "time": "2020-05-26T06:47:48+00:00"
+            "time": "2021-06-24T18:03:45+00:00"
         },
         {
             "name": "topthink/think-template",
@@ -2070,7 +2294,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-template/zipball/abfc293f74f9ef5127b5c416310a01fe42e59368",
                 "reference": "abfc293f74f9ef5127b5c416310a01fe42e59368",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0",
@@ -2101,17 +2331,23 @@
         },
         {
             "name": "topthink/think-throttle",
-            "version": "v1.2.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-throttle.git",
-                "reference": "f383fe3817480897470a4c0c9dcb3a4f4ada4df1"
+                "reference": "c63afa6a66ffdac03e37b1124b5120040ef7cea8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-throttle/zipball/f383fe3817480897470a4c0c9dcb3a4f4ada4df1",
-                "reference": "f383fe3817480897470a4c0c9dcb3a4f4ada4df1",
-                "shasum": ""
+                "url": "https://api.github.com/repos/top-think/think-throttle/zipball/c63afa6a66ffdac03e37b1124b5120040ef7cea8",
+                "reference": "c63afa6a66ffdac03e37b1124b5120040ef7cea8",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0",
@@ -2141,11 +2377,7 @@
                 }
             ],
             "description": "throttle middleware for thinkphp6",
-            "support": {
-                "issues": "https://github.com/top-think/think-throttle/issues",
-                "source": "https://github.com/top-think/think-throttle/tree/v1.2.0"
-            },
-            "time": "2021-02-05T03:38:41+00:00"
+            "time": "2021-06-18T03:47:00+00:00"
         },
         {
             "name": "topthink/think-view",
@@ -2159,7 +2391,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-view/zipball/edce0ae2c9551ab65f9e94a222604b0dead3576d",
                 "reference": "edce0ae2c9551ab65f9e94a222604b0dead3576d",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.0",
@@ -2200,7 +2438,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/webmozarts/assert/zipball/6964c76c7804814a842473e0c8fd15bab0f18e25",
                 "reference": "6964c76c7804814a842473e0c8fd15bab0f18e25",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": "^7.2 || ^8.0",
@@ -2326,17 +2570,23 @@
         },
         {
             "name": "symfony/var-dumper",
-            "version": "v4.4.22",
+            "version": "v4.4.26",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/var-dumper.git",
-                "reference": "c194bcedde6295f3ec3e9eba1f5d484ea97c41a7"
+                "reference": "a586efdf2aa832d05b9249e9115d24f6a2691160"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/c194bcedde6295f3ec3e9eba1f5d484ea97c41a7",
-                "reference": "c194bcedde6295f3ec3e9eba1f5d484ea97c41a7",
-                "shasum": ""
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/a586efdf2aa832d05b9249e9115d24f6a2691160",
+                "reference": "a586efdf2aa832d05b9249e9115d24f6a2691160",
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1.3",
@@ -2394,9 +2644,6 @@
                 "debug",
                 "dump"
             ],
-            "support": {
-                "source": "https://github.com/symfony/var-dumper/tree/v4.4.22"
-            },
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -2411,7 +2658,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-04-19T13:36:17+00:00"
+            "time": "2021-06-17T06:35:48+00:00"
         }
     ],
     "aliases": [],
@@ -2426,5 +2673,5 @@
         "ext-json": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "1.1.0"
 }

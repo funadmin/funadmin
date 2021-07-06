@@ -1,3 +1,6 @@
+### 作用
+通过本中间件可限定用户在一段时间内的访问次数，可用于保护接口防爬防爆破的目的。
+
 ### 安装
 ```
 composer require topthink/think-throttle
@@ -26,10 +29,10 @@ return [
     'visit_method' => ['GET'],
     // 设置访问频率，例如 '10/m' 指的是允许每分钟请求10次。值 null 表示不限制， eg: null 10/m  20/h  300/d 200/300
     'visit_rate' => '100/m',
-    // 访问受限时返回的http状态码
-    'visit_fail_code' => 429,
-    // 访问受限时访问的文本信息
-    'visit_fail_text' => '访问频率受到限制，请稍等__WAIT__秒再试',
+    // 访问受限时返回的响应
+    'visit_fail_response' => function (Throttle $throttle, Request $request, int $wait_seconds) {
+        return Response::create('Too many requests, try again after ' . $wait_seconds . ' seconds.')->code(429);
+    },
 ];
 ```
 
@@ -68,8 +71,31 @@ PS：此示例需要本中间件在路由中间件后启用，这样预设的替
 },
 ```
 
+示例四：允许在路由定义中独立配置(1.3.x 版本支持)
+```
+Route::group(function() {
+    //路由注册
+
+})->middleware(\think\middleware\Throttle::class, [
+    'visit_rate' => '20/m',
+    'key' => '__CONTROLLER__/__ACTION__/__IP__',
+]);
+```
+
 ## 更新日志
+版本 1.3.x 的配置形式完全兼容版本 1.2.x 内容，可以无缝升级，
+
 版本 1.2.x 的配置形式完全兼容版本 1.1.x 内容，可以无缝升级。
+
+### 1.3.x 更新
+- 可通过配置 `visit_fail_response` 自定义限流响应；
+- 速率限制信息对响应头状态码20x生效；
+- 强类型声明（有自行继承扩展的需注意）；
+- 默认配置文件中去除 `visit_fail_code` 与 `visit_fail_text` 配置项，但代码中依然保留这两项配置的兼容；
+- 新增响应体中设置速率限制的头部信息的开关；
+- 配置文件添加设置算法驱动；
+- 支持在路由定义中设置中间件配置；
+- 修复漏桶算法中计算等待时间的错误问题；
 
 ### 1.2.x 更新
 - 可对要限制的请求类型进行自定义设置

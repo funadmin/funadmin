@@ -4,8 +4,8 @@
  @ Author：YUEGE
  */
 /*** 后台总控制API*/
-define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Moment) {
-    var layer = layui.layer, element = layui.element;
+define(["jquery", "lang", 'toastr', 'moment','backend'], function ($, Lang, Toastr, Moment,Backend) {
+    var Backend =layui.Backend,layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
     layui.layer.config({
         skin: 'fun-layer-class'
@@ -33,7 +33,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 return url;
             }
             url = Fun.common.parseNodeStr(url);
-            console.log(url)
             if (!Config.addonname) {
                 if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
                     return Config.entrance + $.trim(url, '/');
@@ -66,7 +65,6 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
             }
             node = Fun.common.parseNodeStr(node);
             return Config.authNode[node] !== undefined;
-
         },
         parame: function (param, defaultParam) {
             return param !== undefined ? param : defaultParam;
@@ -344,6 +342,32 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                 };
                 Fun.api.open(options);
             },
+            iframe:function(othis){
+                var _that = othis
+                    , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
+                    , layId = _that.attr('data-id')
+                    , text =  _that.attr('title') || _that.data('text')
+                    , icon = _that.find('i').attr('class') || 'layui-icon layui-icon-radio'
+                    , iframe = _that.has('data-iframe') ? true : false,
+                    target = _that.prop('target') || '_self';
+                layId = layId ? layId : url;
+                url = Fun.url(url)
+                if (!layId) {
+                    return false;
+                } else {
+                    if (target === '_blank') {
+                        window.open(url, "_blank");
+                        return false;
+                    }
+                    layId = layId.replaceAll('.','-');
+                    layId = layId.replaceAll('/','-');
+                    let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
+                    Backend.addTab(options);
+                    if (Backend.checkScreen()) {
+                        $container.removeClass(SIDE_SHRINK).addClass('fun-app')
+                    }
+                }
+            },
         },
         //接口
         api: {
@@ -473,6 +497,29 @@ define(["jquery", "lang", 'toastr', 'moment',], function ($, Lang, Toastr, Momen
                     $(window).on("resize", function () {
                         layer.full(index);
                     })
+                }
+            },
+            //打开iframe
+            iframe:function(options){
+                var url = options.url
+                    , layId = options.layId || options.url
+                    , text = options.tips || options.title || options.text
+                    , icon = options.icon || 'layui-icon layui-icon-radio'
+                    , iframe =  options.iframe || false,
+                    target = options.target || '_self';
+                url = Fun.url(url);
+                if (!layId) {
+                    return false;
+                } else {
+                    if (target === '_blank') {
+                        window.open(url, "_blank");
+                        return false;
+                    }
+                    let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
+                    Backend.addTab(options);
+                    if (Backend.checkScreen()) {
+                        $container.removeClass(SIDE_SHRINK).addClass('fun-app')
+                    }
                 }
             },
             refreshiFrame: function () {

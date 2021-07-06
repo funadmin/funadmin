@@ -401,7 +401,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
             $('fun-tool').toggleClass(ICON_SPREAD);
             $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass("layui-nav-hover");
         },
-
         listenTabs: function (options) {
             var funTabInfo = layui.sessionData("funTabInfo");
             var tabLayId = layui.sessionData('tabLayId');
@@ -473,7 +472,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 ele.tabAdd('layui-layout-tabs', {
                     title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                     ,
-                    content: '<iframe width="100%" height="100%" frameborder="no"   src="' + options.url + '"></iframe>'
+                    content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no"   src="' + options.url + '"></iframe>'
                     ,
                     id: options.layId,
                 });
@@ -567,7 +566,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         listenSwitch: function (options) {
             options.filter = options.filter || null;
-
             element.on('tab(' + options.filter + ')', function () {
                 var layId = $(this).attr('lay-id');
                 Backend.changeSessioinTabId(layId);
@@ -735,7 +733,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         });
                     }
                 });
-
             },
             //伸缩
             flexible: function () {
@@ -795,9 +792,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, function (res) {
                     Fun.toastr.error(res.msg);
                     $(".layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-
                 })
-
             },
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
@@ -915,7 +910,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
                     }
-
                 });
                 //点击事件
                 $document.on('click', '*[lay-event]', function () {

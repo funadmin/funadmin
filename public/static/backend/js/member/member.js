@@ -165,7 +165,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },
-
         api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'))

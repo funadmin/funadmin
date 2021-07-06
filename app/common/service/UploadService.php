@@ -65,6 +65,7 @@ class UploadService extends AbstractService
         $editor = Request::param('editor', '');
         $save = Request::param('save', '');
         $files = request()->file();
+        $error='';
         $ossService = OssService::instance();
         foreach ($files as $k => $file) {
             if(is_array($file)){

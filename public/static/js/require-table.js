@@ -486,13 +486,19 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 });
                 length = ids.length
             }
-            return [ids, length]
+            return [ids, length];
         },
         events: {
-            open: function (othis, options = null) {
+            iframe: function (othis, options = null) {
+                if (options) {
+                    Fun.api.iframe(options);
+                    return;
+                }
+                Fun.events.iframe(othis)
+            }, open: function (othis, options = null) {
                 if (options) {
                     Fun.api.open(options);
-                    return
+                    return;
                 }
                 Fun.events.open(othis)
             }, photos: function (othis) {
@@ -508,7 +514,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 $where = {};
                 $where[field] = value;
                 Table.api.reload(Table.init.tableId, $where);
-                return false
+                return false;
             }, export: function (othis) {
                 window.open(Fun.url(othis.data('url')), '_blank')
             }, request: function (othis, options = null) {
@@ -706,6 +712,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             break;
                         case'request':
                             Table.events.request(othis);
+                            break;
+                        case'iframe':
+                            Table.events.iframe(othis);
                             break;
                         default:
                             Table.events.common(othis);

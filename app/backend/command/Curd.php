@@ -55,6 +55,7 @@ class Curd extends Command
             ->addOption('menu', 'u', Option::VALUE_OPTIONAL, '菜单', 0)
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
+            ->addOption('jump', '', Option::VALUE_OPTIONAL, '跳过重复文件', 1)
             ->setDescription('Curd Command');
     }
 
@@ -92,6 +93,7 @@ class Curd extends Command
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
         $param['menu'] = $input->getOption('menu');
+        $param['jump'] = $input->getOption('jump');
         if (empty($param['table'])) {
             $output->info("主表不能为空");
             return false;

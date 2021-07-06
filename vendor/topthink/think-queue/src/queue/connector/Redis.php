@@ -13,6 +13,7 @@ namespace think\queue\connector;
 
 use Closure;
 use Exception;
+use RedisException;
 use think\helper\Str;
 use think\queue\Connector;
 use think\queue\InteractsWithTime;
@@ -46,7 +47,7 @@ class Redis extends Connector
      */
     protected $blockFor = null;
 
-    public function __construct(\Redis $redis, $default = 'default', $retryAfter = 60, $blockFor = null)
+    public function __construct($redis, $default = 'default', $retryAfter = 60, $blockFor = null)
     {
         $this->redis      = $redis;
         $this->default    = $default;
@@ -60,23 +61,52 @@ class Redis extends Connector
             throw new Exception('redis扩展未安装');
         }
 
-        $func = $config['persistent'] ? 'pconnect' : 'connect';
+        $redis = new class($config) {
+            protected $config;
+            protected $client;
 
-        $redis = new \Redis;
-        $redis->$func($config['host'], $config['port'], $config['timeout']);
+            public function __construct($config)
+            {
+                $this->config = $config;
+                $this->client = $this->createClient();
+            }
 
-        if ('' != $config['password']) {
-            $redis->auth($config['password']);
-        }
+            protected function createClient()
+            {
+                $config = $this->config;
+                $func   = $config['persistent'] ? 'pconnect' : 'connect';
 
-        if (0 != $config['select']) {
-            $redis->select($config['select']);
-        }
+                $client = new \Redis;
+                $client->$func($config['host'], $config['port'], $config['timeout']);
+
+                if ('' != $config['password']) {
+                    $client->auth($config['password']);
+                }
+
+                if (0 != $config['select']) {
+                    $client->select($config['select']);
+                }
+                return $client;
+            }
+
+            public function __call($name, $arguments)
+            {
+                try {
+                    return call_user_func_array([$this->client, $name], $arguments);
+                } catch (RedisException $e) {
+                    if (Str::contains($e->getMessage(), 'went away')) {
+                        $this->client = $this->createClient();
+                    }
+
+                    throw $e;
+                }
+            }
+        };
 
         return new self($redis, $config['queue'], $config['retry_after'] ?? 60, $config['block_for'] ?? null);
     }
 
-    public function size($queue)
+    public function size($queue = null)
     {
         $queue = $this->getQueue($queue);
 
@@ -90,9 +120,9 @@ class Redis extends Connector
 
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        $this->redis->rPush($this->getQueue($queue), $payload);
-
-        return json_decode($payload, true)['id'] ?? null;
+        if ($this->redis->rPush($this->getQueue($queue), $payload)) {
+            return json_decode($payload, true)['id'] ?? null;
+        }
     }
 
     public function later($delay, $job, $data = '', $queue = null)
@@ -102,11 +132,13 @@ class Redis extends Connector
 
     protected function laterRaw($delay, $payload, $queue = null)
     {
-        $this->redis->zadd(
-            $this->getQueue($queue) . ':delayed', $this->availableAt($delay), $payload
-        );
-
-        return json_decode($payload, true)['id'] ?? null;
+        if ($this->redis->zadd(
+            $this->getQueue($queue) . ':delayed',
+            $this->availableAt($delay),
+            $payload
+        )) {
+            return json_decode($payload, true)['id'] ?? null;
+        }
     }
 
     public function pop($queue = null)

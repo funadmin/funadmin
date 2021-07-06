@@ -17,6 +17,8 @@ abstract class Addons
     protected $request;
     // 当前插件标识
     protected $name;
+    // 模板布局
+    protected $layout =false;
     // 插件路径
     protected $addon_path;
     // 视图模型
@@ -36,10 +38,12 @@ abstract class Addons
         $this->app = $app;
         $this->request = $app->request;
         $this->name = $this->getName();
+        $this->layout = false;
         $this->addon_path = $app->addons->getAddonsPath() . $this->name . DS;
         $this->addon_config = "addon_{$this->name}_config";
         $this->addon_info = "addon_{$this->name}_info";
         $this->view = clone View::engine('Think');
+        app()->view->engine()->layout($this->layout);
         $this->view->config([
             'view_path' => $this->addon_path . 'view' . DS
         ]);

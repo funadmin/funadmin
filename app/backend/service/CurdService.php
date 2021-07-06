@@ -54,6 +54,7 @@ class CurdService
      */
     protected $database = 'funadmin';
     protected $force = false;
+    protected $jump = true;//跳过文件
     protected $rootPath;
     protected $method = 'index,add,edit,destroy,delete,recycle,import,export,modify';
     protected $fileList;
@@ -121,8 +122,12 @@ class CurdService
                 unset($this->config[$k], $config[$k]);
             }
         }
+
         foreach ($config as $k=>&$v){
-            if( $v and strpos($v[0],',')!==false) $v = explode(',',$v[0]);
+
+            if(!empty($v)  && is_array($v) && strpos($v[0],',')!==false) {
+//                $v = explode(',',$v[0]);
+            }
         }
         unset($v);
         $this->config = array_merge($res, $this->config, $config);
@@ -138,6 +143,7 @@ class CurdService
         $this->addon = isset($this->config['addon']) && $this->config['addon'] ? $this->config['addon'] : '';
         $this->module = $this->config['module'] ?: 'backend';
         $this->force = $this->config['force'];
+        $this->jump = $this->config['jump'];
         $this->limit = $this->config['limit'] ?:15;
         $this->page = (empty($this->config['page']) || $this->config['page']=='true')? "true" : 'false';
         $this->joinTable = $this->config['joinTable'] ;
@@ -233,7 +239,6 @@ class CurdService
      */
     public function maker()
     {
-
         $this->getFieldList();
         if (!$this->config['delete']) {
             $this->makeModel();
@@ -383,10 +388,10 @@ class CurdService
     // 创建模型文件
     protected function makeModel()
     {
-        $modelTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'Curd' . DS . 'tpl' . DS . 'model.tpl';
-        $validateTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'Curd' . DS . 'tpl' . DS . 'validate.tpl';
-        $attrTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'Curd' . DS . 'tpl' . DS . 'attr.tpl';
-        $joinAttrTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'Curd' . DS . 'tpl' . DS . 'joinAttr.tpl';
+        $modelTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'model.tpl';
+        $validateTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'validate.tpl';
+        $attrTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'attr.tpl';
+        $joinAttrTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'joinAttr.tpl';
         //单模型
         $joinTplStr = '';
         if ($this->joinTable) {
@@ -396,7 +401,7 @@ class CurdService
                 }else{
                     $method = 'hasOne';
                 }
-                $joinTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'Curd' . DS . 'tpl' . DS . 'join.tpl';
+                $joinTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'join.tpl';
                 $joinTplStr .= str_replace(['{{$joinName}}','{{$joinMethod}}', '{{$joinModel}}', '{{$joinForeignKey}}', '{{$joinPrimaryKey}}'],
                         [lcfirst(Str::studly($v)),$method, ucfirst(Str::studly($this->joinModel[$k])), $this->joinForeignKey[$k], $this->joinPrimaryKey[$k]],
                         file_get_contents($joinTpl)).PHP_EOL;
@@ -563,7 +568,7 @@ class CurdService
      */
     public function makeFile($filename, $content)
     {
-        if (is_file($filename) && !$this->force) {
+        if (is_file($filename) && !$this->force && !$this->jump) {
             throw new \Exception($filename.'文件已经存在');
         }
         if (!is_dir(dirname($filename))) {

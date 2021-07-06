@@ -666,7 +666,7 @@ class FormHelper
         if (!isset($options['show'])) {
             $show = 'layui-hide';
         }
-        $str = '<input type="hidden" name="__token__" value="' . self::token() . '"><div class="layui-form-item layui-btn-center ' . $show . '" />
+        $str = '<input type="hidden" name="__token__" value="' . self::token() . '"><div class=" layui-btn-submit layui-form-item layui-btn-center ' . $show . '" />
             <button type="submit" class="layui-btn layui-btn-sm" lay-fitler="submit" lay-submit>' . lang('Submit') .
             '</button>';
         if ($reset) {
