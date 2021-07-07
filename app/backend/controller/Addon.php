@@ -64,8 +64,11 @@ class Addon extends Backend
                 }
             }else{
                 $param = $this->request->param();
+                list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+                if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
+                $map['cateid'] = $param['cateid']??0;
                 $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
-                    ->setParams($param);
+                    ->setParams($map);
                 if($this->authCloudService->getAuth()){
                     $res = $auth->setHeader()->run();
                 }else{

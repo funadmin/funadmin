@@ -20,4 +20,5 @@ return [
     'price'=>'价格',
     'download'=>'下载量',
     'Logo'=>'图标',
+    'ADDONAME'=>'插件名',
 ];

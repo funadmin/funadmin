@@ -24,7 +24,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         extend:"id='localinstall' data-callback='importFile()'",
                     },
                 },
-                searchInput:false,
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
@@ -32,7 +31,10 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh','localinstall'],
-                search: false,
+                searchInput:true,
+                searchName:'name',
+                search: true,
+                show:false,
                 cols: [[
                     {checkbox: true,},
                     {
@@ -60,15 +62,15 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         title: __('Logo'),
                         width: 100,
                         imageHeight: 40,
+                        search: false,
                         align: "center",
                         templet: Table.templet.image
                     },
-
                     {field: 'description', title: __('Description'), minWidth: 220, },
                     {field: 'version', title: __('Addon version'), width: 160,  search: false},
                     // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120,},
-                    {field: 'general_price', title: __('Price'), width: 120,
+                    {field: 'general_price', title: __('Price'), width: 120,search: false,
                         templet: function (d){
                             if(d.general_price>0){
                                 return '<span class="layui-badge">￥'+d.general_price+'</span>';
@@ -77,7 +79,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             }
                         }
                     },
-                    {field: 'download', title: __('download'), width: 120, },
+                    {field: 'download', title: __('download'), width: 120,search: false},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,templet:Table.templet.time},
                     {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
