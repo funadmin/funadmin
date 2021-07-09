@@ -67,6 +67,7 @@ class Addon extends Backend
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
                 $map['cateid'] = $param['cateid']??0;
+                unset($map['status']);
                 $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
                     ->setParams($map);
                 if($this->authCloudService->getAuth()){
@@ -419,7 +420,9 @@ class Addon extends Backend
         //模板引擎初始化
         $view = ['formData'=>$config,'title'=>$one->name];
         $configFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'config.html';
-        $viewFile = is_file($configFile) ? $configFile : '';
+        $viewFile = file_exists($configFile) ? $configFile : '';
+        //重新加载引擎
+        app()->view->engine()->layout($this->layout);
         return view($viewFile,$view);
     }
 

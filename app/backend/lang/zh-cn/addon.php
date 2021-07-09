@@ -12,6 +12,7 @@ return [
     'LOGO'=>'Logo',
     'title'=>'标题',
     'Addon version'=>'版本',
+    'Addon Config'=>'插件配置',
     'Addon require'=>'需求版本',
     'author'=>'作者',
     'publishtime'=>'发布时间',
@@ -21,4 +22,9 @@ return [
     'download'=>'下载量',
     'Logo'=>'图标',
     'ADDONAME'=>'插件名',
+    'config'=>'配置',
+    'install'=>'安装',
+    'uninstall'=>'卸载',
+    'enabled'=>'启用',
+    'disabled'=>'禁用',
 ];

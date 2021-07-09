@@ -346,27 +346,12 @@ define(["jquery", "lang", 'toastr', 'moment','backend'], function ($, Lang, Toas
                 var _that = othis
                     , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                     , layId = _that.attr('data-id')
-                    , text =  _that.attr('title') || _that.data('text')
+                    , text =  _that.attr('title') || _that.data('text') || _that.attr('lay-tips')
                     , icon = _that.find('i').attr('class') || 'layui-icon layui-icon-radio'
                     , iframe = _that.has('data-iframe') ? true : false,
                     target = _that.prop('target') || '_self';
-                layId = layId ? layId : url;
-                url = Fun.url(url)
-                if (!layId) {
-                    return false;
-                } else {
-                    if (target === '_blank') {
-                        window.open(url, "_blank");
-                        return false;
-                    }
-                    layId = layId.replaceAll('.','-');
-                    layId = layId.replaceAll('/','-');
-                    let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    Backend.addTab(options);
-                    if (Backend.checkScreen()) {
-                        $container.removeClass(SIDE_SHRINK).addClass('fun-app')
-                    }
-                }
+                options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
+                Fun.api.iframe(options)
             },
         },
         //接口
@@ -522,7 +507,7 @@ define(["jquery", "lang", 'toastr', 'moment','backend'], function ($, Lang, Toas
                     }
                 }
             },
-            refreshiFrame: function () {
+            refreshIframe: function () {
                 parent.location.reload();
                 return false;
             },

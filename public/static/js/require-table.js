@@ -172,14 +172,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.render();
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
-                        var timeList = document.querySelectorAll("*[lay-filter='timePicker']");
-                        if (timeList.length > 0) {
-                            $.each(timeList, function () {
-                                var id = $(this).prop('id');
-                                layui.timePicker.render({
-                                    elem: '#' + id,
-                                    options: {timeStamp: false, format: 'YYYY-MM-DD HH:ss:mm',},
-                                })
+                        var timeList = $("#filed_"+ncV.field);
+                        if (timeList.length > 0 && timeList.attr('lay-filter') =='timePicker') {
+                            layui.timePicker.render({
+                                elem: "#filed_"+ncV.field,
+                                options: {timeStamp: false, format: 'YYYY-MM-DD HH:ss:mm',},
                             })
                         }
                     }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "10b9fd50f810a97394b3f8983806bcaf",
+    "content-hash": "305506895fb967d387065fb7689e7486",
     "packages": [
         {
             "name": "brick/math",
@@ -313,16 +313,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v1.53",
+            "version": "v1.54",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad"
+                "reference": "70f413980e70697e5201a9a548c3fadf6e40daca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7c1075febbe54d92509aa23f1deb2b32e8369cad",
-                "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/70f413980e70697e5201a9a548c3fadf6e40daca",
+                "reference": "70f413980e70697e5201a9a548c3fadf6e40daca",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -366,7 +366,7 @@
                     "email": "fun@qq.com"
                 }
             ],
-            "time": "2021-07-03T03:37:51+00:00"
+            "time": "2021-07-09T00:31:57+00:00"
         },
         {
             "name": "league/flysystem",
@@ -2504,7 +2504,13 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/symfony/polyfill-php72/zipball/9a142215a36a3888e30d0a9eeea9766764e96976",
                 "reference": "9a142215a36a3888e30d0a9eeea9766764e96976",
-                "shasum": ""
+                "shasum": "",
+                "mirrors": [
+                    {
+                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                        "preferred": true
+                    }
+                ]
             },
             "require": {
                 "php": ">=7.1"

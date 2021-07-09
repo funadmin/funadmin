@@ -314,17 +314,17 @@
     },
     {
         "name": "funadmin/fun-addons",
-        "version": "v1.53",
-        "version_normalized": "1.53.0.0",
+        "version": "v1.54",
+        "version_normalized": "1.54.0.0",
         "source": {
             "type": "git",
             "url": "https://github.com/funadmin/fun-addons.git",
-            "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad"
+            "reference": "70f413980e70697e5201a9a548c3fadf6e40daca"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7c1075febbe54d92509aa23f1deb2b32e8369cad",
-            "reference": "7c1075febbe54d92509aa23f1deb2b32e8369cad",
+            "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/70f413980e70697e5201a9a548c3fadf6e40daca",
+            "reference": "70f413980e70697e5201a9a548c3fadf6e40daca",
             "shasum": "",
             "mirrors": [
                 {
@@ -339,7 +339,7 @@
             "topthink/think-helper": "^3.1",
             "topthink/think-view": "^1.0"
         },
-        "time": "2021-07-03T03:37:51+00:00",
+        "time": "2021-07-09T00:31:57+00:00",
         "type": "library",
         "extra": {
             "think": {
