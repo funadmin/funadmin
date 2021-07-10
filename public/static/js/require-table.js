@@ -172,10 +172,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.render();
                 $.each(newCols, function (ncI, ncV) {
                     if (ncV.search === 'range') {
-                        var timeList = $("#filed_"+ncV.field);
-                        if (timeList.length > 0 && timeList.attr('lay-filter') =='timePicker') {
+                        filter = $('[name="' + ncV.field + '"]').attr('lay-filter');
+                        if (filter && filter==='timePicker') {
                             layui.timePicker.render({
-                                elem: "#filed_"+ncV.field,
+                                elem: '[name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: 'YYYY-MM-DD HH:ss:mm',},
                             })
                         }
