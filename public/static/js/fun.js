@@ -4,8 +4,8 @@
  @ Author：YUEGE
  */
 /*** 后台总控制API*/
-define(["jquery", "lang", 'toastr', 'moment','backend'], function ($, Lang, Toastr, Moment,Backend) {
-    var Backend =layui.Backend,layer = layui.layer, element = layui.element;
+define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
+    var layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
     layui.layer.config({
         skin: 'fun-layer-class'
@@ -501,8 +501,8 @@ define(["jquery", "lang", 'toastr', 'moment','backend'], function ($, Lang, Toas
                         return false;
                     }
                     let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    Backend.addTab(options);
-                    if (Backend.checkScreen()) {
+                    layui.Backend.addTab(options);
+                    if (layui.Backend.checkScreen()) {
                         $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                     }
                 }
