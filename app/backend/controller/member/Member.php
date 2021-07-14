@@ -113,19 +113,16 @@ class Member extends Backend
         ];
         View::assign($view);
         return view('add');
-
     }
-
     public function recycle()
     {
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames('','',0);
-            $where[] = ['member.status','=',-1];
-            $count = $this->modelClass
+            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $count = $this->modelClass->onlyTrashed()
                 ->withJoin(['memberGroup','memberLevel'])
                 ->where($where)
                 ->count();
-            $list = $this->modelClass
+            $list = $this->modelClass->onlyTrashed()
                 ->withJoin(['memberGroup','memberLevel'])
                 ->where($where)
                 ->order($sort)

@@ -11,8 +11,8 @@
  * Date: 2017/8/2
  */
 
-
 namespace app\backend\model;
+
 class AuthRule extends BackendModel
 {
     public function __construct(array $data = [])

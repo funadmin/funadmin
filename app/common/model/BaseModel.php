@@ -5,17 +5,18 @@ namespace app\common\model;
 
 use think\facade\Config;
 use think\Model;
-
+use think\model\concern\SoftDelete;
 class BaseModel extends Model
 {
     /**
      * @var bool 自动写入2019年8月14日 12:32:24
      */
+    use SoftDelete;
     protected $autoWriteTimestamp = true;
     protected $createTime = 'create_time';
     protected $updateTime = 'update_time';
     protected $deleteTime = 'delete_time';
-
+    protected $defaultSoftDelete = 0;
     public function __construct(array $data = [])
     {
         parent::__construct($data);

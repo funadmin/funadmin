@@ -75,11 +75,13 @@ class Attach extends Backend
         $list = $this->modelClass->where('id','in', $ids)->select();
         if (empty($list)) $this->error('Data is not exist');
         try {
+            foreach ($list as $k=>$v){
+                $v->force()->delete();
+            }
             foreach ($list as $v) {
                 @unlink(app()->getRootPath() . 'public' . $v->path);
-                $save = $v->delete();
+                $save = $v->force->delete();
             }
-            $save = $list->delete();
         } catch (\Exception $e) {
             $this->error(lang("operation success"));
         }

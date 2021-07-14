@@ -13,6 +13,7 @@
  */
 namespace app\backend\model;
 
+
 class MemberGroup extends BackendModel {
 
     public function __construct(array $data = [])

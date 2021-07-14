@@ -15,6 +15,7 @@ use app\common\annotation\NodeAnnotation;
 use think\facade\Cache;
 use think\facade\Db;
 use think\helper\Str;
+use think\model\concern\SoftDelete;
 
 /**
  * Trait Curd
@@ -22,6 +23,7 @@ use think\helper\Str;
  */
 trait Curd
 {
+    use SoftDelete;
     /**
      * @NodeAnnotation(title="List")
      * @return \think\response\Json|\think\response\View
@@ -119,13 +121,14 @@ trait Curd
         }
         if(empty($list))$this->error('Data is not exist');
         try {
-            $save = $list->delete();
+            foreach ($list as $k=>$v){
+                $v->force()->delete();
+            }
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));
         }
-        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
+        $this->success(lang("Delete Success"));
     }
-
     /**
      * @NodeAnnotation(title="destroy")
      */
@@ -137,9 +140,7 @@ trait Curd
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
-                $v->status = -1;
-                $v->delete_time = time();
-                $v->save();
+                $v->delete();
             }
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));
@@ -194,13 +195,14 @@ trait Curd
     public function recycle()
     {
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames('','',false);
-            $where[] = ['status','=','-1'];
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass
                 ->where($where)
+                ->onlyTrashed()
                 ->count();
             $list = $this->modelClass
                 ->where($where)
+                ->onlyTrashed()
                 ->order($sort)
                 ->page($this->page,$this->pageSize)
                 ->select();
@@ -216,12 +218,11 @@ trait Curd
     public function restore(){
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
         if(empty($ids)) $this->error('id is not exist');
-        $list = $this->modelClass->whereIn('id', $ids)->select();
+        $list = $this->modelClass->onlyTrashed()->whereIn('id', $ids)->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
-                $v->status = 1;
-                $v->save();
+                $v->restore();
             }
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));

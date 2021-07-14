@@ -56,19 +56,20 @@ class MemberGroup extends Backend{
     public function delete()
     {
         $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-
         $list = $this->modelClass->where('id','in', $ids)->select();
         if($ids ==1 || is_array($ids) and in_array(1,$ids)){
             $this->error(lang("Default Group Cannot Delete"));
         }
         if(empty($list))$this->error('Data is not exist');
         try{
-            $save = $list->delete();
+            foreach ($list as $k=>$v){
+                $save = $v->force()->delete();
+            }
         } catch (\Exception $e) {
             $this->error(lang("operation failed"));
         }
 
-        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
+        $this->success(lang('operation success')) ;
     }
 
 

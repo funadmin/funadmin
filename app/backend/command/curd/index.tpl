@@ -5,7 +5,7 @@
     {
         {{$relationSearch}}
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames('','',{{$status}});
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass
                 ->where($where)
                 ->{{$joinIndexMethod}}->count();
@@ -28,7 +28,7 @@
     {
         {{$relationSearch}}
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames('','',false);
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $where[]  = ['{{$table}}status','=',-1];
             $count = $this->modelClass
                 ->where($where)

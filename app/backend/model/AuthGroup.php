@@ -14,6 +14,7 @@
 
 namespace app\backend\model;
 
+
 class AuthGroup extends BackendModel
 {
     public function __construct(array $data = [])

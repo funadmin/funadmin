@@ -13,6 +13,7 @@
  */
 namespace app\backend\model;
 
+
 class Member extends BackendModel {
 
     public function __construct(array $data = [])
@@ -20,8 +21,7 @@ class Member extends BackendModel {
         parent::__construct($data);
     }
     public function memberGroup(){
-
-        return  $this->belongsTo('memberGroup','group_id','id');
+        return  $this->belongsTo('MemberGroup','group_id','id');
     }
     public function memberLevel()
     {

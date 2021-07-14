@@ -11,15 +11,15 @@
  * Author: yuege
  * Date: 2017/8/2
  */
+
 namespace app\backend\model;
 
-class MemberLevel extends BackendModel {
-
-
-   public function __construct(array $data = [])
-   {
-       parent::__construct($data);
-   }
+class MemberLevel extends BackendModel
+{
+    public function __construct(array $data = [])
+    {
+        parent::__construct($data);
+    }
 
 
 }

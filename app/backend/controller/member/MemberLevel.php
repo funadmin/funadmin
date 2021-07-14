@@ -19,7 +19,6 @@ class MemberLevel extends Backend{
         parent::__construct($app);
         $this->modelClass = new MemberLevelModel();
     }
-
     /**
      * @NodeAnnotation (title="添加")
      * @return \think\response\View

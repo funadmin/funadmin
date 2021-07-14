@@ -112,7 +112,7 @@ abstract class BaseController
      * @param bool $withStatus
      * @return array
      */
-    protected function buildParames($searchFields=null,$relationSearch=null,$withStatus=true)
+    protected function buildParames($searchFields=null,$relationSearch=null)
     {
         header("content-type:text/html;charset=utf-8"); //设置编码
         $searchFields = is_null($searchFields) ? $this->searchFields : $searchFields;
@@ -233,7 +233,6 @@ abstract class BaseController
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
-        if($withStatus)$where[]=[$tableName.'status','<>',-1];
         return [$page, $limit,$sort,$where];
     }
 

@@ -74,12 +74,14 @@ class ConfigGroup extends Backend {
             if($config){
                 $this->error(lang('Group has config'));
             }else{
-                if ($list->delete()) {
-                    $this->success(lang('operation success'));
-                }else{
-                    $this->error(lang('delete fail'));
-
+                try {
+                    foreach ($list as $k=>$v){
+                        $v->force()->delete();
+                    }
+                } catch (\Exception $e) {
+                    $this->error(lang("operation success"));
                 }
+                $this->success(lang('operation success'));
             }
         }
 

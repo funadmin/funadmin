@@ -167,11 +167,13 @@ class AuthGroup extends Backend
         }else{
             $list = $this->modelClass->where('id','in', $ids)->select();
             try {
-                $save = $list->delete();
+                foreach ($list as $k=>$v){
+                    $v->force()->delete();
+                }
             } catch (\Exception $e) {
                 $this->error(lang("operation success"));
             }
-            $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
+            $this->success(lang('operation success'));
 
         }
     }

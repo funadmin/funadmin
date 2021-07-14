@@ -196,14 +196,18 @@ class Admin extends Backend
                 $this->error(lang('SupperAdmin can not delete'));
             }
             $list = $this->modelClass->where('id','in', $ids)->select();
-            $save = $list->delete();
-            $save ?  $this->success(lang('operation success')):$this->error(lang('SupperAdmin can not delete'));
+            try {
+                foreach ($list as $k=>$v){
+                    $v->force()->delete();
+                }
+            } catch (\Exception $e) {
+                $this->error(lang($e->getMessage()));
+            }
+            $this->success(lang('operation success'));
         } else {
             $this->error(lang('Ids can not empty'));
-
         }
     }
-
 
     /**
      * @NodeAnnotation(title="修改密码")

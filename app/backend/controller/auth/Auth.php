@@ -200,7 +200,7 @@ class Auth extends Backend
         if (!empty($child->toArray())) {
             $this->error(lang('delete child first'));
         } elseif (empty($child->toArray())) {
-            $list->delete();
+            $list->force(true)->delete();
             $this->success(lang('operation success'));
         } else {
             $this->error('id' . lang('not exist'));
@@ -228,11 +228,8 @@ class Auth extends Backend
             $save = $model->save();
             Cache::delete('ruleList_' . $uid);
             $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-
         }else{
             $this->error(lang('Invalid data'));
         }
     }
-
-
 }
