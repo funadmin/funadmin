@@ -798,7 +798,8 @@ CREATE TABLE `fun_provinces` (
                                  `lng` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '经度',
                                  `lat` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '纬度',
                                  `level` tinyint NOT NULL DEFAULT '1' COMMENT '级别',
-                                 `sort` tinyint UNSIGNED DEFAULT '0' COMMENT '排序'
+                                 `sort` tinyint UNSIGNED DEFAULT '0' COMMENT '排序',
+                                 `delete_time` int NOT NULL DEFAULT '0' COMMENT '删除时间'
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='公用_省市区记录表';
 
 --
