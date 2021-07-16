@@ -1,4 +1,3 @@
-
 /**
  * 作者: wujiawei0926@yeah.net
  * 原作者: https://github.com/hustcc/timeago.js

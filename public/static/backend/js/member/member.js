@@ -1,42 +1,42 @@
 define(['jquery','table','form'], function ($,Table,Form) {
+    Table.init = {
+        table_elem: 'list',
+        tableId: 'list',
+        requests: {
+            modify_url: 'member.member/modify',
+            index_url: 'member.member/index',
+            recycle_url: 'member.member/recycle',
+            delete_url: 'member.member/delete',
+            destroy_url: 'member.member/destroy',
+            export_url: 'member.member/export',
+            // add_url: 'member.member/add',
+            // edit_url: 'member.member/edit',
+            add_full:{
+                type: 'open',
+                class: 'layui-btn-sm layui-btn-green',
+                url: 'member.member/add',
+                icon: 'layui-icon layui-icon-add',
+                text: __('Add'),
+                title: __('Add'),
+                // full: 1,
+                width:'800',
+                height:'600',
+            },
+            edit_full:{
+                type: 'open',
+                class: 'layui-btn-xs layui-btn-green',
+                url: 'member.member/edit',
+                icon: 'layui-icon layui-icon-edit',
+                text: __('Edit'),
+                title: __('Edit'),
+                // full: 1,
+                width:'800',
+                height:'600',
+            },
+        },
+    };
     let Controller = {
         index: function () {
-            Table.init = {
-                table_elem: 'list',
-                tableId: 'list',
-                requests: {
-                    modify_url: 'member.member/modify',
-                    index_url: 'member.member/index',
-                    recycle_url: 'member.member/recycle',
-                    delete_url: 'member.member/delete',
-                    destroy_url: 'member.member/destroy',
-                    export_url: 'member.member/export',
-                    // add_url: 'member.member/add',
-                    // edit_url: 'member.member/edit',
-                    add_full:{
-                        type: 'open',
-                        class: 'layui-btn-sm layui-btn-green',
-                        url: 'member.member/add',
-                        icon: 'layui-icon layui-icon-add',
-                        text: __('Add'),
-                        title: __('Add'),
-                        // full: 1,
-                        width:'800',
-                        height:'600',
-                    },
-                    edit_full:{
-                        type: 'open',
-                        class: 'layui-btn-xs layui-btn-green',
-                        url: 'member.member/edit',
-                        icon: 'layui-icon layui-icon-edit',
-                        text: __('Edit'),
-                        title: __('Edit'),
-                        // full: 1,
-                        width:'800',
-                        height:'600',
-                    },
-                },
-            };
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
@@ -100,15 +100,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
             Controller.api.bindevent()
         },
         recycle: function () {
-            Table.init = {
-                table_elem: 'list',
-                tableId: 'list',
-                requests: {
-                    recycle_url: 'member.member/recycle',
-                    restore_url: 'member.member/restore',
-                    delete_url: 'member.member/delete',
-                },
-            };
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,

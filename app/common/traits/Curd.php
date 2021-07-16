@@ -196,13 +196,11 @@ trait Curd
     {
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $count = $this->modelClass
+            $count = $this->modelClass->onlyTrashed()
                 ->where($where)
-                ->onlyTrashed()
                 ->count();
-            $list = $this->modelClass
+            $list = $this->modelClass->onlyTrashed()
                 ->where($where)
-                ->onlyTrashed()
                 ->order($sort)
                 ->page($this->page,$this->pageSize)
                 ->select();

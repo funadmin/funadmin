@@ -70,82 +70,6 @@ if (!function_exists("_getMember")) {
         return [];
     }
 }
-/** 百度编辑器*/
-if (!function_exists('build_ueditor')) {
-    function build_ueditor($params = array())
-    {
-        $name = isset($params['name']) ? $params['name'] : null;
-        $theme = isset($params['theme']) ? $params['theme'] : 'normal';
-        $content = isset($params['content']) ? $params['content'] : null;
-        //http://fex.baidu.com/ueditor/#start-toolbar
-        /* 指定使用哪种主题 */
-        $themes = array(
-            'normal' => "[   
-           'fullscreen', 'source', '|', 'undo', 'redo', '|',
-            'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'superscript', 'subscript', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
-            'rowspacingtop', 'rowspacingbottom', 'lineheight', '|',
-            'customstyle', 'paragraph', 'fontfamily', 'fontsize', '|',
-            'directionalityltr', 'directionalityrtl', 'indent', '|',
-            'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
-            'link', 'unlink', 'anchor', '|', 'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
-            'simpleupload', 'insertimage', 'emotion', 'scrawl', 'insertvideo', 'music', 'attachment', 'map', 'gmap', 'insertframe', 'insertcode', 'webapp', 'pagebreak', 'template', 'background', '|',
-            'horizontal', 'date', 'time', 'spechars', 'snapscreen', 'wordimage', '|',
-            'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
-            'print', 'preview', 'searchreplace', 'drafts', 'help'
-       ]", 'simple' => " ['fullscreen', 'source', 'undo', 'redo', 'bold']",
-        );
-        switch ($theme) {
-            case 'simple':
-                $theme_config = $themes['simple'];
-                break;
-            default:
-                $theme_config = $themes['normal'];
-                break;
-        }
-        /* 配置界面语言 */
-        switch (config('think_var')) {
-            case 'en-us':
-                $lang = '__PLUGINS__/ueditor/lang/en/en.js';
-                break;
-            default:
-                $lang = '__PLUGINS__/ueditor/lang/zh-cn/zh-cn.js';
-                break;
-        }
-        $include_js = '<script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.config.js"></script> <script type="text/javascript" charset="utf-8" src="__PLUGINS__/ueditor/ueditor.all.min.js""> </script><script type="text/javascript" charset="utf-8" src="' . $lang . '"></script>';
-        $content = json_encode($content);
-        $imgeurl = __u('ajax/uploads');
-        $imgeurllist = __u('ajax/getList');
-        return <<<EOT
-$include_js
-<script type="text/javascript">
-let ue = UE.getEditor('{$name}',{
-    toolbars:[{$theme_config}],
-        })
-    if($content){
-ue.ready(function() {
-       this.setContent($content)	
-})
-   }
-   
-   UE.Editor.prototype._bkGetActionUrl = UE.Editor.prototype.getActionUrl;
-    UE.Editor.prototype.getActionUrl = function (action) {
-        if (action == 'uploadimage' || action == 'uploadscrawl' || action == 'uploadimage'
-         ||　action=="uploadvideo" || action=='uploadvoice') {
-            return "{$imgeurl}";
-
-        }else if (action == 'listimage') {
-            return "{$imgeurllist}";
-        } else {
-            return this._bkGetActionUrl.call(this, action);
-        }
-    };
-      
-</script>
-EOT;
-
-    }
-}
-
 /**
  * 打印
  */
@@ -305,3 +229,16 @@ if (!function_exists('timeAgo')) {
 
 }
 
+/**
+ * 动态永久修改 config 文件内容
+ * @param $key
+ * @param $value
+ * @return bool|int
+ */
+if (!function_exists('auth')) {
+    function auth($url)
+    {
+        $auth = new \app\backend\service\AuthService();
+        return $auth->authNode($url);
+    }
+}

@@ -10,10 +10,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.toolbar = options.toolbar || '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
-            options.rowDouble = Fun.parame(options.rowDouble, true);
-            options.searchShow = Fun.parame(options.searchShow, false);
-            options.searchInput = Fun.parame(Table.init.searchInput, true);
-            options.searchName = Fun.parame(Table.init.searchName, 'id');
+            options.searchShow = Fun.parame(options.searchShow||Table.init.searchShow, false);
+            options.rowDouble = Fun.parame(options.rowDouble||Table.init.rowDouble, true);
+            options.searchInput = Fun.parame(options.searchInput||Table.init.searchInput, true);
+            options.searchName = Fun.parame(options.searchName||Table.init.searchName, 'id');
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print',];
@@ -94,9 +94,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         v.height = v.height || 800;
                         v.extend = v.extend || '';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="'+v.text+'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="'+v.text+'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -192,9 +192,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         templet: {
             time: function (d) {
                 var ele = $(this)[0];
-                var time = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '-');
+                var time = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '');
+                var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
                 if (time) {
-                    return layui.util.toDateString(time * 1000, 'yyyy-MM-dd')
+                    return layui.util.toDateString(time * 1000, format)
                 } else {
                     return '-'
                 }
@@ -521,7 +522,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     url = options.url;
                     tableId = options.tableId || Table.init.tableId
                 } else {
-                    var title = data.text ? data.text : data.title, url = data.url ? data.url : data.href,
+                    var title = data.text || data.title || othis.prop('text') || othis.prop('title'), url = data.url ? data.url : data.href,
                         tableId = data.tableId;
                     title = title || __('Are you sure');
                     url = url !== undefined ? url : window.location.href;
@@ -530,10 +531,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 arr = Table.getIds(url, tableId);
                 ids = arr[0];
                 length = arr[1];
-                if (length <= 0) {
-                    Fun.toastr.error(__('Please check data'));
-                    return false
-                }
                 Fun.toastr.confirm(title, function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {

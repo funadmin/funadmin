@@ -53,7 +53,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_close','delete','de']
+                        operat: ['edit_close','delete']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],

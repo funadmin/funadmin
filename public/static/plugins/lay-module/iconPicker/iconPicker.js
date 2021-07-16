@@ -1,7 +1,5 @@
-
 layui.define(['laypage', 'form'], function (exports) {
     "use strict";
-
     var IconPicker =function () {
         this.v = '0.1.beta';
     }, _MOD = 'iconPicker',

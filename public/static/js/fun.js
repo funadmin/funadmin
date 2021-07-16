@@ -35,18 +35,19 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             url = Fun.common.parseNodeStr(url);
             if (!Config.addonname) {
                 if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
-                    return Config.entrance + $.trim(url, '/');
-                } else if (Config.entrance === '/') {
-                    //前台
-                    return $.trim(url, '/');
-                } else {
-                    //后台
-                    return $.trim(url, '/');
+                    url = url.indexOf('/')===0?url.replace('/',''):url;
+                    return Config.entrance + url;
+                } else  {
+                    return url;
                 }
-            } else if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
-                return Config.entrance + $.trim(url, '/');
             } else {
-                return '/' + $.trim(url, '/');
+                url = url.indexOf('/')===0?url.replace('/',''):url
+                if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
+                    return Config.entrance + url;
+                } else {
+                    url = url.indexOf('/')===0?url.replace('/',''):url
+                    return '/' + url;
+                }
             }
         },
         //替换ids
@@ -348,7 +349,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     , layId = _that.attr('data-id')
                     , text =  _that.attr('title') || _that.data('text') || _that.attr('lay-tips')
                     , icon = _that.find('i').attr('class') || 'layui-icon layui-icon-radio'
-                    , iframe = _that.has('data-iframe') ? true : false,
+                    , iframe = !!_that.has('data-iframe'),
                     target = _that.prop('target') || '_self';
                 options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
                 Fun.api.iframe(options)
@@ -393,10 +394,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 height = height || '600';
                 width = width + 'px';
                 height = height + 'px';
-                if (isFull) {
-                    width = '100%';
-                    height = '100%';
-                }
+                if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn === undefined) {
                     btns = ['submit', 'close'];
