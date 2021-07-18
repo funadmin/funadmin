@@ -43,10 +43,12 @@ class AddonService
                 $v['pid'] = $pid ;
                 $v['href'] = trim($v['href'],'/');
                 $v['module'] = 'addon';
-                if(AuthRule::where('href',$v['href'])->where('module','addon')->find()){
-                    continue;
+                $menu = AuthRule::withTrashed()->where('href',$v['href'])->where('module','addon')->find();
+                if($menu){
+                    $menu->restore();
+                }else{
+                    $menu = AuthRule::create($v);
                 }
-                $menu = AuthRule::create($v);
                 if ($hasChild) {
                     $this->addAddonMenu($v['menulist'], $menu->id);
                 }
@@ -62,7 +64,7 @@ class AddonService
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
                 $v['href'] = trim($v['href'],'/');
-                $menu_rule = AuthRule::where('href',$v['href'])->where('module','addon')->find();
+                $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module','addon')->find();
                 if($menu_rule){
                     $menu_rule->delete();
                     if ($hasChild) {
@@ -70,9 +72,9 @@ class AddonService
                     }
                 }
                 //删除主菜单；
-                $manager = AuthRule::where('href','addon/manager')->find();
+                $manager = AuthRule::withTrashed()->where('href','addon/manager')->find();
                 if($manager){
-                    $manager_child =  AuthRule::where('pid',$manager->id)->find();
+                    $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
                     if(!$manager_child){
                         $manager->delete();
                     }

@@ -583,36 +583,42 @@ class CurdService
             $v['pid'] = 0 ;
             $v['href'] = trim($v['href'],'/');
             $v['module'] =$module;
-            $menu = AuthRule::where('href',$v['href'])->where('module',$module)->find();
+            $menu = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
             if($type==1){
                 if(!$menu){
                     $menu = AuthRule::create($v);
+                }else{
+                    $menu->restore();
                 }
             }else{
-                $child = AuthRule::where('href','not in',$this->childMethod)
+                $child = AuthRule::withTrashed()->where('href','not in',$this->childMethod)
                     ->where('pid',$menu['id'])->where('module',$module)->find();
                 if(!$child){
                     $menu && $menu->delete();
                 }
             }
             foreach ($v['menulist'] as $kk=>$vv){
-                $menu2 = AuthRule::where('href',$vv['href'])->where('module',$module)->find();
+                $menu2 = AuthRule::withTrashed()->where('href',$vv['href'])->where('module',$module)->find();
                 if($type==1){
                     if(!$menu2){
                         $vv['pid'] = $menu['id'];
                         $vv['module'] = $module;
                         $menu2 = AuthRule::create($vv);
+                    }else{
+                        $menu2->restore();
                     }
                 }else{
                     $menu2 && $menu2->delete();
                 }
                 foreach ($vv['menulist'] as $kkk=>$vvv){
-                    $menu3 = AuthRule::where('href',$vvv['href'])->where('module',$module)->find();
+                    $menu3 = AuthRule::withTrashed()->where('href',$vvv['href'])->where('module',$module)->find();
                     if($type==1) {
                         if (!$menu3) {
                             $vvv['pid'] = $menu2['id'];
                             $vvv['module'] = $module;
                             $menu3 = AuthRule::create($vvv);
+                        }else{
+                            $menu3->restore();
                         }
                     }else{
                         $menu3 && $menu3->delete();
