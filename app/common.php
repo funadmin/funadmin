@@ -230,7 +230,7 @@ if (!function_exists('timeAgo')) {
 }
 
 /**
- * 动态永久修改 config 文件内容
+ * 权限 文件内容
  * @param $key
  * @param $value
  * @return bool|int
@@ -240,5 +240,27 @@ if (!function_exists('auth')) {
     {
         $auth = new \app\backend\service\AuthService();
         return $auth->authNode($url);
+    }
+}
+
+
+/**
+ * 是否登录
+ * @param $key
+ * @param $value
+ * @return bool|int
+ */
+if (!function_exists('isLogin')) {
+    function isLogin()
+    {
+        if (session('member.id')) {
+            return session('member');
+        } else if(cookie('mid')) {
+            $member = \app\common\model\Member::find(cookie('mid'));
+            session('member',$member);
+            return $member;
+        }else{
+            return false;
+        }
     }
 }
