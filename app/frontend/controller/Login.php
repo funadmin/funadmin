@@ -58,7 +58,7 @@ class Login extends Frontend
                 $this->error(lang($e->getMessage()));
             }
             $url = $this->callback?$this->callback:__u('index/index');
-            $this->success('Login Successful',$url);
+            $this->success(lang('Login Successful'),$url);
         }
         $view = [];
         return view('', $view);
@@ -192,5 +192,6 @@ class Login extends Frontend
             }
         }
     }
+
 
 }
