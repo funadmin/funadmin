@@ -193,5 +193,4 @@ class Login extends Frontend
         }
     }
 
-
 }
