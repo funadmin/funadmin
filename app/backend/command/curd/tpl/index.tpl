@@ -29,11 +29,10 @@
         {{$relationSearch}}
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $where[]  = ['{{$table}}status','=',-1];
-            $count = $this->modelClass
+            $count = $this->modelClass->onlyTrashed()
                 ->where($where)
                 ->{{$joinIndexMethod}}->count();
-            $list = $this->modelClass
+            $list = $this->modelClass->onlyTrashed()
                 ->where($where)
                 ->{{$joinIndexMethod}}
                 ->order($sort)
