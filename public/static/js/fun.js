@@ -148,7 +148,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
          */
         lang: function () {
             var obj = arguments, str = arguments[0];
-                str = str.toString();
+            str = str.toString();
             str = str.toLowerCase();
             if (typeof Lang !== 'undefined' && typeof Lang[str] !== 'undefined') {
                 str = Lang[str];
