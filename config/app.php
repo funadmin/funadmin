@@ -53,6 +53,5 @@ return [
     'show_error_msg'   => true,
     //版本
     'version' => '1.3.0',
-
-    'ip_check'=>true,
+    'ip_check'=>false,
 ];

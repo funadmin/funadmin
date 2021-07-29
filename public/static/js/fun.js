@@ -1,7 +1,7 @@
 /**
- @ WWW.FUNADMIN.COM
- @ Name：FUN
- @ Author：YUEGE
+ @ www.funadmin.com
+ @ Name：fun.js
+ @ Author：yuege
  */
 /*** 后台总控制API*/
 define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
@@ -358,6 +358,14 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         //接口
         api: {
             /**
+             * 关闭当前弹窗
+             */
+            close:function(index,type=0){
+                index =  index === undefined? parent.layer.getFrameIndex(window.name):index;
+                type === 1? parent.layer.closeAll(): parent.layer.close(index)
+                return true;
+            },
+            /**
              * 检测屏幕是否手机
              * @returns {boolean}
              */
@@ -465,11 +473,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         layer.close(layer.index);
                     }
                 }
-                if (parentiframe) {
-                    var index = parent.layer.open(options);
-                } else {
-                    var index = layer.open(options);
-                }
+                var index =  parentiframe? parent.layer.open(options): layer.open(options);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layer.full(index);
                 }

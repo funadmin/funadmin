@@ -1,4 +1,4 @@
-define(['jquery', 'timePicker'], function ($, timePicker) {
+define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'},},
         render: function (options) {
@@ -110,8 +110,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             tableId = options.id;
             cols = options.cols;
             show = Fun.parame(options.searchShow, false) ? '' : 'layui-hide';
-            console.log(options.searchShow)
-            console.log(Fun.parame(options.searchShow, false))
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
@@ -606,7 +604,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     })
                 }
             }, closeOpen: function (othis) {
-                Fun.api.closeCurrentOpen()
+                Form.api.closeCurrentOpen()
             },common:function (othis){
                 return othis.data('callback')?eval(othis.data('callback')):true;
             }
@@ -753,10 +751,16 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 $(document).on('blur', '#layui-input-search', function (event) {
                     var text = $(this).val();
                     $('#searchFieldList_' + Table.init.tableId).find('input[name="' + $(this).prop('name') + '"]').prop('value', text);
-                    $('[lay-filter="' + Table.init.tableId + '_filter' + '"]').trigger("click");
-                    return false
+                    var name = $(this).prop('name').split(',');
+                    if(name.length === 1){
+                        $('[lay-filter="' + Table.init.tableId + '_filter' + '"]').trigger("click");
+                        return false
+                    }else{
+                        Table.api.reload(tableId, {search: text,searchName:name});
+                        $('#layui-input-search').prop("value",$(this).val());
+                        return false
+                    }
                 }).unbind('blur', '#layui-input-search', function (event) {
-                    $(this).val($(this).val());
                     return false
                 })
             },

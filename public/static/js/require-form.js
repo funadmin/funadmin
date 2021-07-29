@@ -91,7 +91,6 @@ define(['jquery', 'tableSelect', 'upload', 'table', 'fu'], function($, tableSele
                         if (refresh === undefined) refresh = true;
                         if (refresh === 'false') refresh = false;
                         if (refresh === '') refresh = false;
-                        console.log(refresh)
                         // 自动添加layui事件过滤器
                         if (filter === undefined || filter === '') {
                             filter = 'form-' + (i + 1);

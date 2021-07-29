@@ -32,10 +32,8 @@ class Member extends Frontend {
      * 个人首页
      */
     public function index(){
-
         if(!session('member')) $this->redirect(__u('login/index'));
         return view();
-
     }
     /**
      * @return \think\Response
@@ -70,7 +68,9 @@ class Member extends Frontend {
         if(!$member) $this->redirect(__u('login/index'));
         if($this->request->isPost()){
             $data = $this->request->post();
-            if($member->email==$data['email']){
+            if(isset($data['avatar'])){
+                $save = $member->save($data);
+            }elseif($member->email==$data['email']){
                 $save = $member->save($data);
             }else{
                 $rule = [
@@ -97,7 +97,7 @@ class Member extends Frontend {
         if(!$this->isLogin()) $this->redirect(__u('login/index'));
         if($this->request->isPost()){
             $member = $this->isLogin();
-            $data = $this->request->param('post.','','trim');
+            $data = $this->request->post();
             $validate = new \app\frontend\validate\MemberValidate();
             $res = $validate->scene('setPass')->check($data);
             if(!$res){
@@ -117,6 +117,9 @@ class Member extends Frontend {
     public function getProvinces($pid=0){
         $pid = $this->request->param('pid')?$this->request->param('pid'):$pid;
         $list = Db::name('provinces')->where('pid',$pid)->cache(true)->select();
+        if($this->request->isAjax()){
+            $this->success('ok','',$list);
+        }
         return $list;
     }
 

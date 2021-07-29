@@ -126,6 +126,7 @@ class AddonsController extends Controller
         $searchFields = is_null($searchFields) ? $this->searchFields : $searchFields;
         $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
         $search = $this->request->get("search", '');
+        $searchName = $this->request->get("searchName", $searchFields);
         $page = $this->request->param('page/d',1);
         $limit = $this->request->param('limit/d',15) ;
         $filters = $this->request->get('filter','{}') ;
@@ -154,7 +155,7 @@ class AddonsController extends Controller
             $sort = ["$sort"=>$order];
         }
         if ($search) {
-            $searcharr = is_array($searchFields) ? $searchFields : explode(',', $searchFields);
+            $searcharr = is_array($searchName) ? $searchName : explode(',', $searchName);
             foreach ($searcharr as $k => &$v) {
                 $v = stripos($v, ".") === false ? $tableName . $v : $v;
             }

@@ -17,6 +17,7 @@ use app\backend\model\AdminLog as LogModel;
 use think\App;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
+use think\facade\Db;
 
 /**
  * @ControllerAnnotation(title="日志")
