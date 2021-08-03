@@ -1,4 +1,4 @@
-define(['jquery', 'tableSelect', 'upload', 'table', 'fu'], function($, tableSelect, Upload, Table, Fu) {
+define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tableSelect, Upload, Fu) {
     var Form = {
         init: {},
         //事件

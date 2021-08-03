@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'd2ecd8f534a77a2a125f7a0de82ea42fa2c7fd3b',
+    'reference' => '0515de14cd7cfcf6271848bf14f4ba6929b3a619',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -87,7 +87,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'd2ecd8f534a77a2a125f7a0de82ea42fa2c7fd3b',
+      'reference' => '0515de14cd7cfcf6271848bf14f4ba6929b3a619',
     ),
     'league/flysystem' => 
     array (

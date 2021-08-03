@@ -41,8 +41,8 @@
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',
-        'form'          : 'js/require-form',
         'table'         : 'js/require-table',
+        'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',
         'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
     },

@@ -13,7 +13,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     edit_url: 'member.memberGroup/edit',
                     recycle_url: 'member.member/recycle',
                     export_url: 'member.member/export',
-
                 },
             };
             Table.render({
