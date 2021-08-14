@@ -1,6 +1,6 @@
-define(['jquery', 'timePicker'], function ($, timePicker) {
+define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
     var Table = {
-        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'}},
+        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'},},
         render: function (options) {
             options.elem = options.elem || '#' + Table.init.table_elem;
             options.init = options.init || Table.init;
@@ -603,6 +603,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
                 }
+            }, closeOpen: function (othis) {
+                Form.api.closeCurrentOpen()
             },common:function (othis){
                 return othis.data('callback')?eval(othis.data('callback')):true;
             }

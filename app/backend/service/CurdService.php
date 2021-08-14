@@ -508,6 +508,16 @@ class CurdService
     {
         $title  =  $this->addon?'addons/'.$this->addon.ucfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
         $title = $this->tableComment?$this->tableComment:$title;
+        $childMenu =  [
+            'href' => $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)),
+            'title' => $title,
+            'status' => 1,
+            'menu_status' => 1,
+            'type' => 1,
+            'icon' => 'layui-icon layui-icon-app',
+            'menulist' => [
+            ]
+        ];
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
@@ -519,19 +529,14 @@ class CurdService
                 'menu_status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [
-                    [
-                        'href' => $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)),
-                        'title' => $title,
-                        'status' => 1,
-                        'menu_status' => 1,
-                        'type' => 1,
-                        'icon' => 'layui-icon layui-icon-app',
-                        'menulist' => [
-                        ]
-                    ],
+                    $childMenu
                 ]
             ]
         ];
+        $plugins = get_addons_instance($this->addon);
+        if($plugins){
+            $menu = $plugins->menu;
+        }
         foreach (explode(',', $this->method) as $k => $v) {
             if ($v == 'refresh') continue;
             if ($this->addon) {
@@ -556,7 +561,13 @@ class CurdService
         }
         $parentMethod = $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName));
         $this->childMethod  = array_merge($childMethod,[$parentMethod]);
-        $menu['menu']['menulist'][0]['menulist'] = $menuList;
+        if($plugins){
+            $childMenu['menulist'] = $menuList;
+            array_push($menu['menu']['menulist'],$childMenu);
+            $menu['menu']['menulist'] = array_unique($menu['menu']['menulist'],SORT_REGULAR);//去重
+        }else{
+            $menu['menu']['menulist'][0]['menulist'] = $menuList;
+        }
         $menuListArr[] = $menu['menu'];
         $this->menuListStr = $this->getMenuStr($menu);
         if(!$this->addon && $this->config['menu']){
@@ -941,10 +952,11 @@ class CurdService
                 $comment = explode('=', $v['comment']);
                 if (!in_array($v['name'], $this->config['ignoreFields'])) {
                     if (count($comment) != 2) {
-                        throw new \Exception('字段' . $v['name'] . '注释无效');
+                        $v['type'] = 'text';
+                    }else{
+                        $v['comment'] = $comment[0];
+                        list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
                     }
-                    $v['comment'] = $comment[0];
-                    list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
                 }else{
                     if($v['name']=='status'){
                         $assign[$v['name'] . 'List'] = '[0=>"enabled",1=>"disabled"]';
@@ -992,11 +1004,13 @@ class CurdService
         $comment = explode('=', $v['comment']);
         $optionsLangStr .= "'" . Str::studly($v['name']) . "'=>'" . $comment[0] . "',".PHP_EOL;
         if(isset($comment[1])){
-            if(strpos($comment[1],':')){ //判断是否是枚举等类型
+            if(strpos($comment[1],':') !== false){ //判断是否是枚举等类型
                 $op = trim(trim($comment[1], '('), ')');
                 $option = explode(',', (trim(trim($op, '['), ']')));
                 foreach($option as $kk=>$vv){
+                    $vv = str_replace("：",':',$vv);
                     $opArr = explode(':',$vv);
+//                    isset($opArr[1])?$optionsLangStr.="'" . Str::studly($v['name']). ' '. $opArr[0]. "'=>'" . $opArr[1] . "',".PHP_EOL:'';
                     $optionsLangStr.="'" . Str::studly($v['name']). ' '. $opArr[0]. "'=>'" . $opArr[1] . "',".PHP_EOL;
                 }
             }
@@ -1016,11 +1030,12 @@ class CurdService
             if(is_string($v) || is_int($v)){
                 $menuStr.="            '" .$k. "'=>'" .$v . "',".PHP_EOL;
             }else{
-                $menuStr.="            '".$k."'=>[[".PHP_EOL;
+                $menuStr.="            '".$k."'=>[".PHP_EOL;
                 foreach ($v as $kk=>$vv){
                     if(is_string($vv) || is_int($vv)){
                         $menuStr.="                " .$kk. "'=>'" .$vv . ",".PHP_EOL;
                     }else{
+                        $menuStr.="                [".PHP_EOL;
                         foreach ($vv as $kkk=>$vvv){
                             if(is_string($vvv) || is_int($vvv)){
                                 $menuStr.="                '" .$kkk. "'=>'" .$vvv . "',".PHP_EOL;
@@ -1042,9 +1057,10 @@ class CurdService
                                 $menuStr.="                ],".PHP_EOL;
                             }
                         }
+                        $menuStr.="                ],".PHP_EOL;
                     }
                 }
-                $menuStr.="            ]],".PHP_EOL;
+                $menuStr.="            ],".PHP_EOL;
             }
         }
         $menuStr .= "        ]]";
