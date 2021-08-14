@@ -126,6 +126,16 @@ class Menu extends Command
     {
         $title  =  $this->addon?'addons/'.$this->addon.ucfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
         $title = $this->tableComment??$title;
+        $childMenu =  [
+            'href' => $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)),
+            'title' => $title,
+            'status' => 1,
+            'menu_status' => 1,
+            'type' => 1,
+            'icon' => 'layui-icon layui-icon-app',
+            'menulist' => [
+            ]
+        ];
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
@@ -137,19 +147,14 @@ class Menu extends Command
                 'menu_status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [
-                    [
-                        'href' => $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)),
-                        'title'=>$title,
-                        'status' => 1,
-                        'menu_status' => 1,
-                        'type' => 1,
-                        'icon' => 'layui-icon layui-icon-app',
-                        'menulist' => [
-                        ]
-                    ],
+                    $childMenu
                 ]
             ]
         ];
+        $plugins = get_addons_instance($this->addon);
+        if($plugins){
+            $menu = $plugins->menu;
+        }
         foreach ($this->method as $k => $v) {
             $menuList[] = [
                 'href'=>$v['href'],
@@ -162,7 +167,13 @@ class Menu extends Command
         }
         $parentMethod = $this->addon?'addons/'.$this->addon.'/backend/'.lcfirst($this->controllerName):($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName));
         $this->childMethod  = array_merge($childMethod,[$parentMethod]);
-        $menu['menu']['menulist'][0]['menulist'] = $menuList;
+        if($plugins){
+            $childMenu['menulist'] = $menuList;
+            array_push($menu['menu']['menulist'],$childMenu);
+            $menu['menu']['menulist'] = array_unique($menu['menu']['menulist'],SORT_REGULAR);//去重
+        }else{
+            $menu['menu']['menulist'][0]['menulist'] = $menuList;
+        }
         $menuListArr[] = $menu['menu'];
         if(!$this->delete){
             $this->operateMenu($menuListArr,1);
@@ -170,43 +181,48 @@ class Menu extends Command
             $this->operateMenu($menuListArr,2);
         }
     }
-
     protected function operateMenu($menuListArr,$type=1){
         $module= $this->addon?'addon':'backend';
         foreach ($menuListArr as $k=>$v){
             $v['pid'] = 0 ;
             $v['href'] = trim($v['href'],'/');
             $v['module'] =$module;
-            $menu = AuthRule::where('href',$v['href'])->where('module',$module)->find();
+            $menu = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
             if($type==1){
                 if(!$menu){
                     $menu = AuthRule::create($v);
+                }else{
+                    $menu->restore();
                 }
             }else{
-                $child = AuthRule::where('href','not in',$this->childMethod)
+                $child = AuthRule::withTrashed()->where('href','not in',$this->childMethod)
                     ->where('pid',$menu['id'])->where('module',$module)->find();
                 if(!$child){
                     $menu && $menu->delete();
                 }
             }
             foreach ($v['menulist'] as $kk=>$vv){
-                $menu2 = AuthRule::where('href',$vv['href'])->where('module',$module)->find();
+                $menu2 = AuthRule::withTrashed()->where('href',$vv['href'])->where('module',$module)->find();
                 if($type==1){
                     if(!$menu2){
                         $vv['pid'] = $menu['id'];
                         $vv['module'] = $module;
                         $menu2 = AuthRule::create($vv);
+                    }else{
+                        $menu2->restore();
                     }
                 }else{
                     $menu2 && $menu2->delete();
                 }
                 foreach ($vv['menulist'] as $kkk=>$vvv){
-                    $menu3 = AuthRule::where('href',$vvv['href'])->where('module',$module)->find();
+                    $menu3 = AuthRule::withTrashed()->where('href',$vvv['href'])->where('module',$module)->find();
                     if($type==1) {
                         if (!$menu3) {
                             $vvv['pid'] = $menu2['id'];
                             $vvv['module'] = $module;
                             $menu3 = AuthRule::create($vvv);
+                        }else{
+                            $menu3->restore();
                         }
                     }else{
                         $menu3 && $menu3->delete();
