@@ -190,7 +190,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         templet: {
             time: function (d) {
                 var ele = $(this)[0];
-                var time = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '');
+                var time = eval('d.' + ele.field);
                 var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
                 if (time) {
                     return layui.util.toDateString(time * 1000, format)
@@ -200,13 +200,13 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, tags: function (d) {
                 var ele = $(this)[0];
                 var selectList = ele.selectList;
-                var content = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '');
+                var content = eval('d.' + ele.field);
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};
                 ops = {};
                 ops[ele.field] = op;
                 op = JSON.stringify(ops);
-                if (selectList.toString() !== "{}" && content != '') {
+                if (JSON.stringify(selectList) !== "{}" && content !== '' && content!==null) {
                     var reg = RegExp(/,/);
                     content = reg.test(content) ? content.split(',') : [content];
                     html = '';
@@ -219,7 +219,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     });
                     return html
                 }
-                filter[ele.field] = d[ele.field];
+                filter[ele.field] = content;
                 filter = JSON.stringify(filter);
                 content = content ? __(content) : '-';
                 return "<span lay-event='search'  data-filter='" + filter + "' data-op='" + op + "' data-tips='" + content + "' title='" + content + "' class='layui-btn layui-btn-xs layui-search layui-table-tags'>" + content + "</span>"
@@ -229,16 +229,18 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
                 ele.field = ele.filter || ele.field || null;
-                var src = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '/static/common/images/image.gif'),
-                    title = d[ele.title];
+                var src = eval('d.' + ele.field);
+                src = src? src : '/static/common/images/image.gif';
+                title = d[ele.title];
                 return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" title="' + title + '"  lay-event="photos" alt="">'
             }, images: function (d) {
                 var ele = $(this)[0];
                 ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
-                var src = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '/static/common/images/image.gif'),
-                    title = d[ele.title];
+                var src = eval('d.' + ele.field);
+                src = src? src : '/static/common/images/image.gif';
+                title = d[ele.title];
                 src = src.split(',');
                 var html = [];
                 $.each(src, function (i, v) {
@@ -248,7 +250,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 return html.join(' ')
             }, content: function (d) {
                 var ele = $(this)[0];
-                var content = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '-');
+                var content = eval('d.' + ele.field) ? eval('d.' + ele.field) : '-';
                 return "<div style='white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:80px;'>" + content + "</div>"
             }, text: function (d) {
                 var ele = $(this)[0];
@@ -257,7 +259,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, select: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || {};
-                var value = d[ele.field];
+                var value =eval('d.' + ele.field);
+                if(value === null) return '-';
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
                     return Table.getBadge(d, ele, value, __(value), 2)
                 } else {
@@ -265,11 +268,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 }
             }, url: function (d) {
                 var ele = $(this)[0];
-                var src = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '-');
+                var src = eval('d.' + ele.field) ? eval('d.' + ele.field) : '-';
                 return '<a class="layui-table-url layui-btn layui-btn-xs" href="' + src + '" target="_blank" class="label bg-green">' + src + '</a>'
             }, icon: function (d) {
                 var ele = $(this)[0];
-                var icon = d[ele.field] ? d[ele.field] : (eval('d.' + ele.field) ? eval('d.' + ele.field) : '-');
+                var icon = eval('d.' + ele.field) ? eval('d.' + ele.field) : '-';
                 return '<i class="' + icon + '"></i>'
             }, switch: function (d) {
                 var ele = $(this)[0];
@@ -280,7 +283,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, resolution: function (d) {
                 var ele = $(this)[0];
                 ele.field = ele.filter || ele.field || null;
-                return val = ele.field ? eval('d.' + ele.field) : '-'
+                return val = eval('d.' + ele.field)? eval('d.' + ele.field) : '-'
             }, operat: function (d) {
                 var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];
@@ -451,9 +454,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         },
         getBadge: function (d, ele, key = 0, value = '', type = 1) {
             op = d.search ? d.searchOp : '%*%';
-            var badge = ['<span class="layui-badge-dot" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-orange" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-cyan" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-blue" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-black" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-gray"title="' + value + '"></span> ' + value,];
+            var badge = ['<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-cyan" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-blue" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-black" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-gray"title="' + value + '"></span> ' + value,'<span class="layui-badge-dot" title="' + value + '"></span> ' + value, '<span class="layui-badge-dot layui-bg-orange" title="' + value + '"></span> ' + value, ];
             if (type === 2) {
-                var badge = ['<span class="layui-badge" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-orange" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-cyan" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-blue" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-black" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-gray" title="' + value + '">' + value + '</span>',]
+                var badge = ['<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-cyan" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-blue" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-black" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-gray" title="' + value + '">' + value + '</span>','<span class="layui-badge" title="' + value + '">' + value + '</span>', '<span class="layui-badge layui-bg-orange" title="' + value + '">' + value + '</span>']
             }
             var filter = {}, ops = {};
             filter[ele.field] = key;

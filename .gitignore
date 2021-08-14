@@ -3,3 +3,5 @@
 /.DS_Store
 *.log
 .env
+/addons
+/public/static/addons

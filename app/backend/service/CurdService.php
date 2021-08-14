@@ -757,7 +757,7 @@ class CurdService
                             if($this->joinTable and in_array($v['name'],$this->joinForeignKey)){ //
                                 $this->jsCols .= "                  {field:'{$v['name']}',search: true,title: __('{$name}'),selectList:{$listName}List,sort:true,templet: Table.templet.tags},".PHP_EOL;;
                             }else{
-                                $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:'sort'},".PHP_EOL;
+                                $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:true},".PHP_EOL;
                             }
                             break;
                         case 'image':
@@ -778,14 +778,14 @@ class CurdService
                             break;
                         case 'number':
                             if ($this->hasSuffix($v['name'], ['sort'])) {
-                                $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',edit:'text',sort:'sort'},".PHP_EOL;;
+                                $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',edit:'text',sort:true},".PHP_EOL;;
                                 break;
                             }else{
-                                $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',sort:'sort'},".PHP_EOL;;
+                                $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',sort:true},".PHP_EOL;;
                                 break;
                             }
                         default :
-                            $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:'sort'},".PHP_EOL;
+                            $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:true},".PHP_EOL;
                             break;
                     }
                 }
