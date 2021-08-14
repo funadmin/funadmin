@@ -1,4 +1,4 @@
-define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
+define(['jquery', 'timePicker'], function ($, timePicker) {
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'},},
         render: function (options) {
@@ -604,7 +604,7 @@ define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
                     })
                 }
             }, closeOpen: function (othis) {
-                Form.api.closeCurrentOpen()
+                Fun.api.closeCurrentOpen()
             },common:function (othis){
                 return othis.data('callback')?eval(othis.data('callback')):true;
             }
