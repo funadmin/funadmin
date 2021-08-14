@@ -197,14 +197,28 @@ class AuthGroup extends Backend
                         ->where('status',1)->column('id');
                     sort($idList);
                 }
-                $admin_rule = $AuthModel->field('id, pid, title')
+
+                $groupRule = $this->modelClass->where('id', $group_id)
                     ->where('status',1)
-                    ->order('sort asc')->cache(true)
-                    ->select()->toArray();
-                $rules = $this->modelClass->where('id', $group_id)
-                    ->where('status',1)
-                    ->value('rules');
-                $rules = $rules?$rules:'';
+                    ->field('id,rules,pid')
+                    ->find();
+                $rules = $groupRule && $groupRule['rules']?$groupRule['rules']:'';
+                if($groupRule->pid > 0){
+                    $prules =  $this->modelClass->where('id', $groupRule->pid)
+                        ->where('status',1)
+                        ->field('rules')
+                        ->value('rules');
+                    $admin_rule = $AuthModel->field('id, pid, title')
+                        ->where('status',1)
+                        ->where('id','in',trim($prules,','))
+                        ->order('sort asc')->cache(true)
+                        ->select()->toArray();
+                }else{
+                    $admin_rule = $AuthModel->field('id, pid, title')
+                        ->where('status',1)
+                        ->order('sort asc')->cache(true)
+                        ->select()->toArray();
+                }
                 $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
                 $view = [
                     'code'=>1,
