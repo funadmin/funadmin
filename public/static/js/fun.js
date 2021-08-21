@@ -59,13 +59,16 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             }
             return url;
         },
-        checkAuth: function (node) {
+        checkAuth: function (node,ele) {
             // 超管，全部权限
             if (Config.superAdmin === true) {
                 return true;
             }
-            node = Fun.common.parseNodeStr(node);
-            return Config.authNode[node] !== undefined;
+            if ($(ele).data('node-' + node.toLowerCase()) ==1) {
+                return true;
+            } else {
+                return false;
+            }
         },
         parame: function (param, defaultParam) {
             return param !== undefined ? param : defaultParam;
@@ -244,6 +247,10 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     str += arr[i]['name'] + ',';
                 }
                 return str.substring(0, str.length - 1);
+            },
+            //获取节点
+            getNode:function (url){
+                return url.substring(url.lastIndexOf('\/')+1,url.length);
             }
         },
         toastr: {

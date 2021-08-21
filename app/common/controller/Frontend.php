@@ -121,7 +121,6 @@ class Frontend extends BaseController
             'requesturl'          => parse_name("/{$modulename}/{$controllername}/{$actionname}"),
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
-            'authNode'           => [],
             'superAdmin'           => session('member.id')==1,
             'lang'           =>  strip_tags( Lang::getLangset()),
             'site'           =>  syscfg('site'),

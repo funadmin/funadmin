@@ -62,9 +62,9 @@ class AuthService
         // 初始化request
         $this->request = Request::instance();
         $this->controller = parse_name($this->request->controller(), 1);
+        $this->controller = strtolower($this->controller ? $this->controller : 'index');
         $this->action = parse_name($this->request->action(), 1);
         $this->action = $this->action ? $this->action : 'index';
-        $this->controller = strtolower($this->controller ? $this->controller : 'index');
         $url = $this->controller . '/' . $this->action;
         $pathurl = $this->request->url();
         $pathurl = explode('?', trim($pathurl, '/'))[0];
@@ -424,8 +424,7 @@ class AuthService
      * @return mixed
      * @throws \Exception
      */
-    public
-    function checkLogin($username, $password, $rememberMe)
+    public function checkLogin($username, $password, $rememberMe)
     {
         try {
             $where['username|email'] = strip_tags(trim($username));
@@ -484,14 +483,17 @@ class AuthService
      */
     public function authNode($url)
     {
+        $cfg = config('backend');
+        $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
+        $this->requesturl = trim($this->requesturl,'/');
         $urlArr = explode('/',$url);
         $this->controller =  parse_name($urlArr[0], 1);
-        $cfg = config('backend');
-        $this->requesturl = $url;
-        if ($this->requesturl === '/') {
-            return false;
-        }
+        if ($this->requesturl === '/') {return false;}
         $adminId = session('admin.id');
+        // 判断权限验证开关
+        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
+            return true;
+        }
         if (
             !in_array($this->controller, $cfg['noLoginController'])
             && !in_array($this->requesturl, $cfg['noLoginNode'])
@@ -520,6 +522,7 @@ class AuthService
                         if (!in_array($this->hrefId, $this->adminRules)) {
                             return false;
                         }
+                        return true;
                     } else {
                         if (!in_array($this->requesturl, $cfg['noRightNode'])) {
                             return false;

@@ -1,1 +1,12 @@
-<table class="layui-table layui-hide" id="list" lay-filter="list"></table>
+<table class="layui-table layui-hide" id="list" lay-filter="list"
+       data-node-add="{:auth(__u('add'))}"
+       data-node-edit="{:auth(__u('edit'))}"
+       data-node-delete="{:auth(__u('delete'))}"
+       data-node-destroy="{:auth(__u('destroy'))}"
+       data-node-modify="{:auth(__u('modify'))}"
+       data-node-recyle="{:auth(__u('recyle'))}"
+       data-node-restore="{:auth(__u('restore'))}"
+       data-node-import="{:auth(__u('import'))}"
+       data-node-export="{:auth(__u('export'))}"
+>
+</table>

@@ -103,6 +103,7 @@ trait Curd
             }
             $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
+        $list = $list->getData();
         $view = ['formData'=>$list,'title' => lang('Add'),];
         return view('add',$view);
     }
@@ -270,6 +271,8 @@ trait Curd
         $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
         $this->excelData($list,$headerArr,$headTitle,$fileName);
     }
+
+
     /**
      * 返回模型
      * @param $id

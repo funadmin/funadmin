@@ -25,7 +25,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add_full','destroy','export','recycle'],
+                toolbar: ['refresh','add','destroy','export','recycle'],
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('Id'), width: 80, sort: true},

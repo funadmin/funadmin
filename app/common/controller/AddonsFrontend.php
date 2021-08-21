@@ -122,7 +122,6 @@ class AddonsFrontend extends AddonsController
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS.'addons'.DS."{$this->addon}".DS."{$modulename}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="addons/{$this->addon}/{$modulename}/js/{$jsname}.js";
         $auth = new AuthService();
-        $authNode = $auth->nodeList();
         $config = [
             'entrance'    => $this->entrance,//入口
             'modulename'    => $modulename,
@@ -133,7 +132,6 @@ class AddonsFrontend extends AddonsController
             'requesturl'          => $requesturl,
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
-            'authNode'           => $authNode,
             'superAdmin'           => session('member.id')==1,
             'lang'           =>  strip_tags( Lang::getLangset()),
             'site'           =>  syscfg('site'),

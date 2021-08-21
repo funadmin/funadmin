@@ -6,7 +6,22 @@
         {/volist}
     </ul>
 </div>
-<table class="layui-table" id="list" lay-filter="list"></table>
+<table class="layui-table" id="list" lay-filter="list"
+      data-node-add="{:auth(__u('add'))}"
+      data-node-edit="{:auth(__u('edit'))}"
+      data-node-delete="{:auth(__u('delete'))}"
+      data-node-destroy="{:auth(__u('destroy'))}"
+      data-node-modify="{:auth(__u('modify'))}"
+      data-node-recyle="{:auth(__u('recyle'))}"
+      data-node-restore="{:auth(__u('restore'))}"
+      data-node-import="{:auth(__u('import'))}"
+      data-node-export="{:auth(__u('export'))}"
+      data-node-install="{:auth(__u('install'))}"
+      data-node-localinstall="{:auth(__u('localinstall'))}"
+      data-node-uninstall="{:auth(__u('uninstall'))}"
+      data-node-config="{:auth(__u('config'))}"
+>
+</table>
 <!--<table  id="list" lay-filter="list"></table>-->
 <!--登陆页面-->
 {include file="layout/logintpl"}
@@ -14,3 +29,4 @@
 <script>
     var auth = {$auth};
 </script>
+

@@ -25,7 +25,6 @@ class ViewNode
         $this->entrance = config('backend.backendEntrance');
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$modulename}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$modulename}/js/{$jsname}.js";
-        $authNode = (new AuthService())->nodeList();
         $config = [
             'entrance'    => $this->entrance,//入口
             'addonname'    => '',
@@ -36,7 +35,6 @@ class ViewNode
             'requesturl'          => $requesturl,
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
-            'authNode'           => $authNode,
             'superAdmin'           => session('admin.id')==1?true:false,
             'lang'           =>  strip_tags(Lang::getLangset()),
             'site'           =>   syscfg('site'),

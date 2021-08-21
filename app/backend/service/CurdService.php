@@ -62,6 +62,7 @@ class CurdService
     protected $table;
     protected $addon;
     protected $module;
+    protected $nodeType='__u';
     protected $baseController;
     protected $tableComment;
     protected $controllerNamespace;
@@ -141,6 +142,7 @@ class CurdService
         $this->table = $this->config['table'];
         $this->table = str_replace($this->tablePrefix, '', $this->table);
         $this->addon = isset($this->config['addon']) && $this->config['addon'] ? $this->config['addon'] : '';
+        $this->nodeType = $this->addon?'addons_url':'__u';
         $this->module = $this->config['module'] ?: 'backend';
         $this->force = $this->config['force'];
         $this->jump = $this->config['jump'];
@@ -459,7 +461,7 @@ class CurdService
         ;
         $formFieldData = $this->getFormData();
         $indexViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'index.tpl';
-        $indexViewTpl = str_replace(['{{$script}}'], [$this->script], file_get_contents($indexViewTpl));
+        $indexViewTpl = str_replace(['{{$nodeType}}','{{$script}}'],[$this->nodeType,$this->script], file_get_contents($indexViewTpl));
         $addViewTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'view' . DS . 'add.tpl';
         $addViewTpl = str_replace(['{{$formDataField}}'], [$formFieldData], file_get_contents($addViewTpl));
         $this->makeFile($this->fileList['indexFileName'], $indexViewTpl);
