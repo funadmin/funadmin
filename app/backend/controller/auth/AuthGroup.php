@@ -198,13 +198,13 @@ class AuthGroup extends Backend
                     sort($idList);
                 }
                 $groupRule = $this->modelClass->where('id', $group_id)
-                    ->where('status',1)
+//                    ->where('status',1)
                     ->field('id,rules,pid')
                     ->find();
                 $rules = $groupRule && $groupRule['rules']?$groupRule['rules']:'';
                 if($groupRule->pid > 0 and $groupRule->pid!=1){
                     $prules =  $this->modelClass->where('id', $groupRule->pid)
-                        ->where('status',1)
+//                        ->where('status',1)
                         ->field('rules')
                         ->value('rules');
                     $admin_rule = $AuthModel->field('id, pid, title')

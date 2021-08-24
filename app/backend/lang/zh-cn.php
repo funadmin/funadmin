@@ -196,6 +196,8 @@ return [
     'clear frontend'=>"清除前台缓存",
     'clear backend'=>"清除后台缓存",
     'Please Login First' => '请先登录',
+    'Login successful' => '登录成功',
+    'Are you sure todo this'=>'确定吗？',
 
     "Demo is not allow to change data"=>"演示站点不允许修改数据",
     'safe'=>'安全设置',
