@@ -13,7 +13,6 @@ return [
     'superAdminId'=>1,
     //是否演示站点
     'isDemo'=>0,
-
     'backendEntrance' => '/xxx.php/',
 
 ];

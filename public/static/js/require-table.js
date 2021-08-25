@@ -125,6 +125,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 d.searchOp = d.searchOp.toLowerCase();
                 d.timeType = d.timeType || 'datetime';
                 d.dateformat = d.dateformat || 'yyyy-MM-dd HH:mm:ss';
+                d.laydateformat = d.laydateformat || 'yyyy-MM-dd';
                 if (d.field !== false && d.search !== false) {
                     switch (d.search) {
                         case true:
@@ -184,19 +185,19 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             case 'between':
                                 layui.laydate.render({
                                     elem: '[id="field_' + ncV.field + '_min"]',
-                                    format:ncV.dateformat,
+                                    format:ncV.laydateformat,
                                     type: ncV.timeType
                                 });
                                 layui.laydate.render({
                                     elem: '[id="field_' + ncV.field + '_max"]',
-                                    format:ncV.dateformat,
+                                    format:ncV.laydateformat,
                                     type: ncV.timeType
                                 })
                                 break;
                             default:
                                 layui.timePicker.render({
                                     elem: '[name="' + ncV.field + '"]',
-                                    options: {timeStamp: false, format: ncV.dateformat,},
+                                    options: {timeStamp: false, format: ncV.laydateformat,},
                                 })
                         }
                     }
@@ -204,20 +205,20 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         if(ncV.searchOp==='between') {
                             layui.laydate.render({
                                 elem: '[name="' + ncV.field + '_min"]',
-                                format:ncV.dateformat,
+                                format:ncV.laydateformat,
                             });
                             layui.laydate.render({
                                 elem: '[name="' + ncV.field + '_max"]',
-                                format:ncV.dateformat,
+                                format:ncV.laydateformat,
                                 type: ncV.timeType
 
                             })
                         }else{
-                            layui.laydate.render({ elem: '[name="' + ncV.field + '"]',type: ncV.timeType,format:ncV.dateformat})
+                            layui.laydate.render({ elem: '[name="' + ncV.field + '"]',type: ncV.timeType,format:ncV.laydateformat})
                         }
                     }
                     if (ncV.search === 'timerange') {
-                        layui.laydate.render({ elem: '[name="' + ncV.field + '"]',range: true, type: ncV.timeType,format:ncV.dateformat})
+                        layui.laydate.render({ elem: '[name="' + ncV.field + '"]',range: true, type: ncV.timeType,format:ncV.laydateformat})
                     }
                     layui.laydate.render({elem:'#field_date_min'})
                     layui.laydate.render({elem:'#field_date_max'})
