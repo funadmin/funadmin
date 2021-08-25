@@ -10,7 +10,7 @@ return [
     // 不需要登陆
     'noLoginNode' => ['login/index', 'login/logout', 'ajax/lang', 'ajax/clearData','ajax/verify'],
     //超级管理员id
-    'superAdminId'=>'2',
+    'superAdminId'=>1,
     //是否演示站点
     'isDemo'=>0,
 
