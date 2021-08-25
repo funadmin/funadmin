@@ -237,8 +237,9 @@ trait Curd
     {
         return true;
     }
+
     /**
-     * @NodeAnotation(title="export")
+     * @NodeAnnotation(title="Export")
      */
     public function export()
     {

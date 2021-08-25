@@ -151,7 +151,7 @@ class Menu extends Command
                 ]
             ]
         ];
-        $plugins = get_addons_instance($this->addon);
+        $plugins =$this->addon? get_addons_instance($this->addon):'';
         if($plugins){
             $menu = $plugins->menu;
         }
@@ -183,7 +183,7 @@ class Menu extends Command
     }
     protected function operateMenu($menuListArr,$type=1){
         $module= $this->addon?'addon':'backend';
-        foreach ($menuListAr-r as $k=>$v){
+        foreach ($menuListArr as $k=>$v){
             $v['pid'] = 0 ;
             $v['href'] = trim($v['href'],'/');
             $v['module'] =$module;

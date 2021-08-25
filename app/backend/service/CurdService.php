@@ -535,7 +535,7 @@ class CurdService
                 ]
             ]
         ];
-        $plugins = get_addons_instance($this->addon);
+        $plugins =$this->addon? get_addons_instance($this->addon):'';
         if($plugins){
             $menu = $plugins->menu;
         }
