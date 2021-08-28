@@ -350,16 +350,16 @@ trait Curd
         $fields = input('selectFields');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
-        $pid = input('pid','pid');
+        $parentField = input('parentField','pid');
         if($tree){
-            $field = $field.','.$pid;
+            $field = $field.','.$parentField;
         }
         $list = $this->modelClass
             ->where($this->selectMap)
             ->field($field)
             ->select();
         if($tree){
-            $list = TreeHelper::getTree($list);
+            $list = TreeHelper::getTree($list,$fields['name'],0,$parentField);
         }
         $this->success('','',$list);
     }

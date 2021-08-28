@@ -9,7 +9,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         var id = $(this).prop('id'),
                             url = $(this).data('url'), lang = $(this).data('lang'), value = $(this).data('value'),
                             data = $(this).data('data')?$(this).data('data'):[],
-                            pid = $(this).data('pid')?$(this).data('pid'):'pid',
+                            parentfield = $(this).data('parentfield')?$(this).data('parentfield'):'pid',
                             tips = $(this).data('tips') ? $(this).data('tips') : '请选择',
                             searchTips = $(this).data('searchtips') ? $(this).data('searchtips') : '请选择',
                             empty = $(this).data('empty') ? $(this).data('empty') : '呀,没有数据',
@@ -127,7 +127,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             Fun.ajax({
                                 method:'GET',
                                 url:Fun.url(url),
-                                data:{selectFields:props,tree:tree||false,pid:pid}
+                                data:{selectFields:props,tree:tree||false,parentField:parentfield}
                             },function (res) {
                                 xmselect[i].update({
                                     data: res.data,
@@ -238,7 +238,6 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                 _that.prev('input[type="hidden"]').val(getAllChecked())
                             }
                         });
-
                         function getAllChecked() {
                             var all = '';
                             $("input:checkbox[name='" + name + "']:checked").each(function() {

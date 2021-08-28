@@ -30,19 +30,19 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'ef978689cc7d8ed035737a808c4d98178aee34dc',
+    'reference' => '73a80ed2f8b1890cf8f3368322c03cdb80f2d83c',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
   array (
     'brick/math' => 
     array (
-      'pretty_version' => '0.9.2',
-      'version' => '0.9.2.0',
+      'pretty_version' => '0.9.3',
+      'version' => '0.9.3.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'dff976c2f3487d42c1db75a3b180e2b9f0e72ce0',
+      'reference' => 'ca57d18f028f84f777b2168cd1911b0dee2343ae',
     ),
     'doctrine/annotations' => 
     array (
@@ -73,12 +73,12 @@ private static $installed = array (
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v1.54',
-      'version' => '1.54.0.0',
+      'pretty_version' => 'v1.55',
+      'version' => '1.55.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '70f413980e70697e5201a9a548c3fadf6e40daca',
+      'reference' => '983b1d96f10cb159afb177a36392c18e5bfed2c5',
     ),
     'funadmin/funadmin' => 
     array (
@@ -87,16 +87,16 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'ef978689cc7d8ed035737a808c4d98178aee34dc',
+      'reference' => '73a80ed2f8b1890cf8f3368322c03cdb80f2d83c',
     ),
     'league/flysystem' => 
     array (
-      'pretty_version' => '1.1.4',
-      'version' => '1.1.4.0',
+      'pretty_version' => '1.1.5',
+      'version' => '1.1.5.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'f3ad69181b8afed2c9edf7be5a2918144ff4ea32',
+      'reference' => '18634df356bfd4119fe3d6156bdb990c414c14ea',
     ),
     'league/flysystem-cached-adapter' => 
     array (
@@ -118,12 +118,12 @@ private static $installed = array (
     ),
     'nesbot/carbon' => 
     array (
-      'pretty_version' => '2.51.1',
-      'version' => '2.51.1.0',
+      'pretty_version' => '2.52.0',
+      'version' => '2.52.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '8619c299d1e0d4b344e1f98ca07a1ce2cfbf1922',
+      'reference' => '369c0e2737c56a0f39c946dd261855255a6fccbe',
     ),
     'phpdocumentor/reflection-common' => 
     array (
@@ -199,18 +199,18 @@ private static $installed = array (
     ),
     'ramsey/uuid' => 
     array (
-      'pretty_version' => '4.1.1',
-      'version' => '4.1.1.0',
+      'pretty_version' => '4.2.1',
+      'version' => '4.2.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'cd4032040a750077205918c86049aa0f43d22947',
+      'reference' => 'fe665a03df4f056aa65af552a96e1976df8c8dae',
     ),
     'rhumsaa/uuid' => 
     array (
       'replaced' => 
       array (
-        0 => '4.1.1',
+        0 => '4.2.1',
       ),
     ),
     'symfony/deprecation-contracts' => 

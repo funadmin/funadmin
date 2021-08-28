@@ -330,7 +330,7 @@ class FormHelper
         isset($options['url']) ?$op.=" data-url='".$options['url']."'":'';
         isset($options['tree']) ?$op.=" data-tree='".$options['tree']."'":'';
         isset($options['prop']) ?$op.=" data-prop='".$options['prop']."'":'';
-        isset($options['pid']) ?$op.=" data-pid='".$options['pid']."'":'pid';
+        isset($options['parentField']) ?$op.=" data-parentField='".$options['parentField']."'":'pid';
         isset($options['max']) ?$op.=" data-max='".$options['max']."'":'';
         isset($options['verify']) ?$op.=" data-verify='".$options['verify']."'":'';
         isset($options['disabled']) ?$op.=" data-disabled='".$options['disabled']."'":'';

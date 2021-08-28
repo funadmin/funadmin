@@ -9,12 +9,12 @@ class TreeHelper
      * @param int $pid
      * @return array
      */
-    public static function getTree($arr,$title='title',$pid=0){
+    public static function getTree($arr,$title='title',$pid=0,$parentField='pid'){
         $list =array();
         foreach ($arr as $k=>$v){
-            if ($v['pid'] == $pid){
+            if ($v[$parentField] == $pid){
                 $v[$title] = lang($v[$title]);
-                $v['children'] = self::getTree($arr,$title,$v['id']);
+                $v['children'] = self::getTree($arr,$title,$v['id'],$parentField='pid');
                 $list[] = $v;
             }
         }
