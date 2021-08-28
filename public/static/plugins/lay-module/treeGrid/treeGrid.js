@@ -1916,7 +1916,8 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
         hasRender.find("#" + id).remove();
         var styel = '<style id="' + id + '">' +
             function() {
-                var ret = ".layui-tree-head{cursor: pointer;}"; //树图标点击样式
+                // var ret = ".layui-tree-head{cursor: pointer;}"; //树图标点击样式
+                var ret = ".layui-table-cell{cursor: pointer}"; //树图标点击样式
                 ret += ".layui-table-view {margin:0;}";
 
                 if (options.model) {
@@ -2885,7 +2886,7 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
             othis.remove();
         });
         //树形节点点击事件（隐藏展开下级节点）
-        that.elem.on('click', 'i.layui-tree-head', function() {
+        that.elem.on('click', 'div.layui-table-cell,i.layui-tree-head', function() {
             var othis = $(this),
                 index = othis.parents('tr').eq(0).data('index'),
                 options = that.config,

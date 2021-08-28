@@ -338,13 +338,19 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 (94, 'backend', '_self', 'member.memberGroup/import', 'import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
 (95, 'backend', '_self', 'member.memberGroup/export', 'export', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 58, 50, 1567568357, 1599884251, 0),
 (96, 'backend', '_self', 'sys.config/setValue', 'setValue', 0, 1, 1, 0, 'layui-icon layui-icon-set-sm', 41, 0, 0, 1599888599, 0),
+(156, 'backend', '_self', 'sys.blacklist', 'blacklist', 1, 1, 1, 1, 'layui-icon layui-icon-rate', 1, 50, 1605321645, 1605321645, 0),
 (157, 'backend', '_self', 'sys.blacklist/index', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (158, 'backend', '_self', 'sys.blacklist/add', 'add', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (159, 'backend', '_self', 'sys.blacklist/delete', 'delete', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (160, 'backend', '_self', 'sys.blacklist/edit', 'edit', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (161, 'backend', '_self', 'sys.blacklist/destory', 'destory', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
 (162, 'backend', '_self', 'sys.blacklist/modify', 'modify', 0, 1, 1, 0, 'layui-icon layui-icon-rate', 156, 50, 1603427312, 1605321497, 0),
-(163, 'backend', '_self', 'sys.configGroup/destroy', 'destroy', 0, 1, 1, 0, 'layui-icon-rate', 42, 50, 1605321645, 1605321645, 0);
+(163, 'backend', '_self', 'sys.configGroup/destroy', 'destroy', 0, 1, 1, 0, 'layui-icon-rate', 42, 50, 1605321645, 1605321645, 0),
+(164, 'backend', '_self', 'sys.blacklist/export', 'export', 0, 1, 1, 0, '', 156, 50, 1567568357, 1599884254, 0),
+(165, 'backend', '_self', 'sys.blacklist/recycle', 'recycle', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
+(166, 'backend', '_self', 'sys.blacklist/restore', 'restore', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
+(167, 'backend', '_self', 'sys.blacklist/destroy', 'destroy', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
+(168, 'backend', '_self', 'sys.blacklist/import', 'import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0);
 
 -- --------------------------------------------------------
 
