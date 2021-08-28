@@ -4566,20 +4566,24 @@ ALTER TABLE `fun_addon`
 --
 ALTER TABLE `fun_admin`
     ADD PRIMARY KEY (`id`),
-    ADD KEY `admin_username` (`username`);
+    ADD KEY `name` (`name`),
+    ADD KEY `group_id` (`group_id`),
+    ADD KEY `username` (`username`);
 
 --
 -- 表的索引 `fun_admin_log`
 --
 ALTER TABLE `fun_admin_log`
     ADD PRIMARY KEY (`id`),
-    ADD UNIQUE KEY `id` (`id`) USING BTREE,
     ADD KEY `admin_id` (`admin_id`);
 
 --
 -- 表的索引 `fun_attach`
 --
 ALTER TABLE `fun_attach`
+    ADD KEY `admin_id` (`admin_id`),
+    ADD KEY `member_id` (`member_id`),
+    ADD KEY `md5` (`md5`),
     ADD PRIMARY KEY (`id`);
 
 --
@@ -4588,6 +4592,7 @@ ALTER TABLE `fun_attach`
 ALTER TABLE `fun_auth_group`
     ADD PRIMARY KEY (`id`),
     ADD UNIQUE KEY `id` (`id`) USING BTREE,
+    ADD KEY `pid` (`pid`),
     ADD UNIQUE KEY `title` (`title`);
 
 --
@@ -4596,6 +4601,7 @@ ALTER TABLE `fun_auth_group`
 ALTER TABLE `fun_auth_rule`
     ADD PRIMARY KEY (`id`),
     ADD UNIQUE KEY `id` (`id`),
+    ADD KEY `pid` (`pid`),
     ADD UNIQUE KEY `href` (`href`) USING BTREE;
 
 --
@@ -4616,12 +4622,14 @@ ALTER TABLE `fun_config`
 -- 表的索引 `fun_config_group`
 --
 ALTER TABLE `fun_config_group`
+    ADD KEY `name` (`name`),
     ADD PRIMARY KEY (`id`);
 
 --
 -- 表的索引 `fun_field_type`
 --
 ALTER TABLE `fun_field_type`
+    ADD KEY `name` (`name`),
     ADD PRIMARY KEY (`id`);
 
 --
@@ -4634,6 +4642,7 @@ ALTER TABLE `fun_field_verify`
 -- 表的索引 `fun_languages`
 --
 ALTER TABLE `fun_languages`
+    ADD UNIQUE KEY `name` (`name`),
     ADD PRIMARY KEY (`id`);
 
 --
@@ -4642,6 +4651,11 @@ ALTER TABLE `fun_languages`
 ALTER TABLE `fun_member`
     ADD PRIMARY KEY (`id`),
     ADD UNIQUE KEY `id` (`id`),
+    ADD KEY `merchant_id` (`merchant_id`),
+    ADD KEY `group_id` (`group_id`),
+    ADD KEY `username` (`username`),
+    ADD KEY `mobile` (`mobile`),
+    ADD KEY `level_id` (`level_id`),
     ADD KEY `email` (`email`);
 
 --
@@ -4649,6 +4663,7 @@ ALTER TABLE `fun_member`
 --
 ALTER TABLE `fun_member_account`
     ADD PRIMARY KEY (`id`),
+    ADD KEY `merchant_id` (`merchant_id`),
     ADD KEY `member_id` (`member_id`);
 
 --
@@ -4656,12 +4671,18 @@ ALTER TABLE `fun_member_account`
 --
 ALTER TABLE `fun_member_address`
     ADD PRIMARY KEY (`id`),
+    ADD KEY `merchant_id` (`merchant_id`),
+    ADD KEY `province_id` (`province_id`),
+    ADD KEY `city_id` (`city_id`),
+    ADD KEY `area_id` (`area_id`),
+    ADD KEY `district_id` (`district_id`),
     ADD KEY `member_id` (`member_id`);
 
 --
 -- 表的索引 `fun_member_group`
 --
 ALTER TABLE `fun_member_group`
+    ADD KEY `name` (`name`),
     ADD PRIMARY KEY (`id`);
 
 --
@@ -4686,6 +4707,9 @@ ALTER TABLE `fun_member_third`
 --
 ALTER TABLE `fun_oauth2_access_token`
     ADD PRIMARY KEY (`id`),
+    ADD KEY `merchant_id` (`merchant_id`),
+    ADD KEY `member_id` (`member_id`),
+    ADD KEY `openid` (`openid`),
     ADD UNIQUE KEY `access_token` (`access_token`),
     ADD UNIQUE KEY `refresh_token` (`refresh_token`);
 
@@ -4694,6 +4718,7 @@ ALTER TABLE `fun_oauth2_access_token`
 --
 ALTER TABLE `fun_oauth2_client`
     ADD PRIMARY KEY (`id`),
+    ADD KEY `merchant_id` (`merchant_id`),
     ADD KEY `client_id` (`appid`);
 
 --

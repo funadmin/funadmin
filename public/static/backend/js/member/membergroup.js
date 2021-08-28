@@ -7,9 +7,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 requests: {
                     modify_url: 'member.memberGroup/modify',
                     index_url: 'member.memberGroup/index',
+                    add_url: 'member.memberGroup/add',
                     delete_url: 'member.memberGroup/delete',
                     destroy_url: 'member.memberGroup/destroy',
-                    add_url: 'member.memberGroup/add',
                     edit_url: 'member.memberGroup/edit',
                     recycle_url: 'member.member/recycle',
                     export_url: 'member.member/export',
@@ -20,7 +20,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','add_full','destroy','export','recycle'],
+                toolbar: ['refresh','add','destroy','export','recycle'],
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},

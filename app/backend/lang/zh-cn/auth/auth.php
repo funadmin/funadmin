@@ -9,6 +9,8 @@ return [
     'Add Child' =>'添加下级',
     'Menu Target'=>'窗口目标',
     'MenuStatus'=>'菜单状态',
+    'Menu_Status'=>'菜单状态',
+    'Target'=>'窗口',
     'href'=>'链接',
     '_self'=>'当前',
     '_blank'=>'空窗口',
