@@ -3,29 +3,22 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
         init: {},
         events: {
             xmSelect: function() {
-                var list = document.querySelectorAll("*[lay-filter='xmSelect']");
+                var xmselect ={},list = document.querySelectorAll("*[lay-filter='xmSelect']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    $.each(list, function(i) {
                         var id = $(this).prop('id'),
-                            url = $(this).data('url'),
-                            lang = $(this).data('lang'),
-                            value = $(this).data('value'),
-                            data = $(this).data('data'),
+                            url = $(this).data('url'), lang = $(this).data('lang'), value = $(this).data('value'),
+                            data = $(this).data('data')?$(this).data('data'):[],
+                            pid = $(this).data('pid')?$(this).data('pid'):'pid',
                             tips = $(this).data('tips') ? $(this).data('tips') : '请选择',
                             searchTips = $(this).data('searchtips') ? $(this).data('searchtips') : '请选择',
                             empty = $(this).data('empty') ? $(this).data('empty') : '呀,没有数据',
                             height = $(this).data('height') ? $(this).data('height') : 'auto',
-                            paging = $(this).data('paging'),
-                            pageSize = $(this).data('pageSize'),
-                            remoteMethod = $(this).data('remotemethod'),
-                            content = $(this).data('content') ? $(this).data('content') : '',
-                            radio = $(this).data('radio'),
-                            disabled = $(this).data('disabled'),
-                            clickClose = $(this).data('clickClose'),
-                            prop = $(this).data('prop') ? $(this).data('prop') : $(this).data('attr'),
-                            max = $(this).data('max'),
-                            create = $(this).data('create'),
-                            repeat = !! $(this).data('repeat'),
+                            paging = $(this).data('paging'), pageSize = $(this).data('pageSize'),
+                            remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') ? $(this).data('content') : '',
+                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),
+                            clickClose = $(this).data('clickClose'), prop = $(this).data('prop') ? $(this).data('prop') : $(this).data('attr'),
+                            max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
                             theme = $(this).data('theme') ? $(this).data('theme') : '#6739b6',
                             name = $(this).data('name') ? $(this).data('name') : 'pid',
                             style = $(this).data('style') ? $(this).data('style') : {},
@@ -36,15 +29,16 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         var size = $(this).data('size') === undefined ? 'medium' : $(this).data('size');
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
-                        var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote')));
+                        var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote'))), props, propArr, options;
                         if (typeof value != 'object' && value) {
                             value = typeof value === "number" ? [value] : value.split(',')
                         }
                         props = {
-                            name: 'name',
-                            value: "value"
+                            name: 'title',
+                            value: "id"
                         };
                         if (prop) {
+                            console.log(prop)
                             propArr = prop.split(',');
                             props.name = propArr[0];
                             props.value = propArr[1]
@@ -109,8 +103,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             toolbar: {
                                 show: true,
                                 list: ['ALL', 'CLEAR', 'REVERSE']
-                            },
-                            theme: {
+                            }, theme: {
                                 color: theme,
                             },
                             radio: radio,
@@ -129,8 +122,21 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         if (style) options.style = style;
                         if (layReqText) options.layReqText = layReqText;
                         if (content) options.content = content;
-                        console.log(options)
-                        xmselect = xmSelect.render(options)
+                        xmselect[i] = xmSelect.render(options)
+                        if(data.toString()==='' && url){
+                            Fun.ajax({
+                                method:'GET',
+                                url:Fun.url(url),
+                                data:{selectFields:props,tree:tree||false,pid:pid}
+                            },function (res) {
+                                xmselect[i].update({
+                                    data: res.data,
+                                    autoRow: true,
+                                })
+                            },function(res){
+                                console.log(res);
+                            })
+                        }
                     })
                 }
             },
@@ -254,10 +260,8 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             cityId = $(this).data('cityid');
                         var province, city, district;
                         if (Config.formData[name]) {
-                            var cityValue = Config.formData[name],
-                                province = cityValue.split('/')[0],
-                                city = cityValue.split('/')[1],
-                                district = cityValue.split('/')[2]
+                            var cityValue = Config.formData[name];
+                            province = cityValue.split('/')[0]; city = cityValue.split('/')[1];district = cityValue.split('/')[2];
                         }
                         var districtId = $(this).data('districtid');
                         currentPicker = new cityPicker("#" + id, {
@@ -335,10 +339,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
             },
             addInput: function() {
                 $(document).on('click', ".addInput", function() {
-                    name = $(this).data('name');
-                    verify = $(this).data('verify');
-                    num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
-                    var str = '<div class="layui-form-item">' + '<label class="layui-form-label"></label>' + '<div class="layui-input-inline">' + '<input type="text" name="' + name + '[key][' + num + ']" placeholder="key" class="layui-input input-double-width">' + '</div>' + '<div class="layui-input-inline">\n' + '<input type="text" id="" name="' + name + '[value][' + num + ']" lay-verify="required" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' + '</div>' + '<div class="layui-input-inline">' + '<button data-name="' + name + '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' + '</div>' + '</div>';
+                    var name = $(this).data('name'), verify = $(this).data('verify'),
+                        num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
+                    var str = '<div class="layui-form-item">' + '<label class="layui-form-label"></label>' + '<div class="layui-input-inline">' + '<input type="text" name="' + name + '[key][' + num + ']" placeholder="key" class="layui-input input-double-width">' + '</div>' + '<div class="layui-input-inline">\n' + '<input type="text" id="" name="' + name + '[value][' + num + ']" lay-verify="'+verify+'" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' + '</div>' + '<div class="layui-input-inline">' + '<button data-name="' + name + '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' + '</div>' + '</div>';
                     $(this).parents('.layui-form-item').after(str)
                 })
             },

@@ -73,7 +73,11 @@ class Frontend extends BaseController
      * 快速搜索时执行查找的字段
      */
     protected $searchFields = 'id';
-
+    /**
+     * 下拉选项条件
+     * @var string
+     */
+    protected $selectMap =[];
     /**
      * 是否是关联查询
      */

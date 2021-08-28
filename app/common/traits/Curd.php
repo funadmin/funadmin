@@ -12,10 +12,12 @@
  */
 namespace app\common\traits;
 use app\common\annotation\NodeAnnotation;
+use fun\helper\TreeHelper;
 use think\facade\Cache;
 use think\facade\Db;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
+use const http\Client\Curl\Versions\ARES;
 
 /**
  * Trait Curd
@@ -31,6 +33,9 @@ trait Curd
     public function index()
     {
         if ($this->request->isAjax()) {
+            if ($this->request->param('selectFields')) {
+                $this->selectList();
+            }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass
                 ->where($where)
@@ -235,7 +240,14 @@ trait Curd
      */
     public function import()
     {
-        return true;
+        $param = $this->request->param();
+        $res = hook('importExcel',$param);
+        if($res){
+            $this->success(lang('Oprate success'));
+        }else{
+            $this->error(lang('Oprate failed'));
+
+        }
     }
 
     /**
@@ -243,6 +255,7 @@ trait Curd
      */
     public function export()
     {
+
         list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
         $tableName = $this->modelClass->getName();
         $tableName  = Str::snake($tableName);
@@ -270,6 +283,15 @@ trait Curd
         $headTitle = $tableChName.'-'.date('Y-m-d H:i:s');;
         $headTitle= "<tr style='height:50px;border-style:none;'><th border=\"0\" style='height:60px;font-size:22px;' colspan='".(count($headerArr))."' >{$headTitle}</th></tr>";
         $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
+        $param  = [
+            'headTitle'=>$headTitle,
+            'fileName'=>$fileName,
+            'list'=>$list,
+        ];
+        $res = hook('exportExcel',$param);
+        if($res){
+            $this->success(lang('export success'));
+        }
         $this->excelData($list,$headerArr,$headTitle,$fileName);
     }
 
@@ -315,6 +337,31 @@ trait Curd
         header( "Pragma: no-cache" );
         header( "Expires: 0" );
         exit( $str );
+    }
+
+    /**
+     * 下拉选择列表
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    protected function selectList()
+    {
+        $fields = input('selectFields');
+        $tree = input('tree');
+        $field = $fields['name'].','.$fields['value'];
+        $pid = input('pid','pid');
+        if($tree){
+            $field = $field.','.$pid;
+        }
+        $list = $this->modelClass
+            ->where($this->selectMap)
+            ->field($field)
+            ->select();
+        if($tree){
+            $list = TreeHelper::getTree($list);
+        }
+        $this->success('','',$list);
     }
 
 }

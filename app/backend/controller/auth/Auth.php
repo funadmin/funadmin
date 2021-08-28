@@ -52,6 +52,9 @@ class Auth extends Backend
     public function index()
     {
         if ($this->request->isAjax()) {
+            if ($this->request->param('selectFields')) {
+                $this->selectList();
+            }
             $uid = $this->uid;
             $list = Cache::get('ruleList_' . $uid);
             if (!$list) {

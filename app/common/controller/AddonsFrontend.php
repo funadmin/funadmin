@@ -63,6 +63,11 @@ class AddonsFrontend extends AddonsController
      */
     protected $searchFields = 'id';
     /**
+     * 下拉选项条件
+     * @var string
+     */
+    protected $selectMap =[];
+    /**
      * 允许修改的字段
      */
     protected $allowModifyFields = [
