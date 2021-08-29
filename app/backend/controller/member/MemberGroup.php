@@ -56,7 +56,7 @@ class MemberGroup extends Backend{
     public function delete()
     {
         $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-        $list = $this->modelClass->where('id','in', $ids)->select();
+        $list = $this->modelClass->withTrashed()->where('id','in', $ids)->select();
         if($ids ==1 || is_array($ids) and in_array(1,$ids)){
             $this->error(lang("Default Group Cannot Delete"));
         }

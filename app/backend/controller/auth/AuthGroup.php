@@ -168,7 +168,7 @@ class AuthGroup extends Backend
         if($ids==1 || is_array($ids) and in_array(1,$ids)){
             $this->error(lang('SuperGroup Cannot Edit'));
         }else{
-            $list = $this->modelClass->where('id','in', $ids)->select();
+            $list = $this->modelClass->withTrashed()->where('id','in', $ids)->select();
             try {
                 foreach ($list as $k=>$v){
                     $v->force()->delete();
