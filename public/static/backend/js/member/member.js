@@ -9,6 +9,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             delete_url: 'member.member/delete',
             destroy_url: 'member.member/destroy',
             export_url: 'member.member/export',
+            restore_url: 'member.member/restore',
             // add_url: 'member.member/add',
             // edit_url: 'member.member/edit',
             add_full:{
