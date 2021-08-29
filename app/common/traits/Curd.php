@@ -121,9 +121,9 @@ trait Curd
         $ids =  $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
         if(empty($ids)) $this->error('id is not exist');
         if($ids=='all'){
-            $list = $this->modelClass->select();
+            $list = $this->modelClass->withTrashed()->select();
         }else{
-            $list = $this->modelClass->where('id','in', $ids)->select();
+            $list = $this->modelClass->withTrashed()->where('id','in', $ids)->select();
         }
         if(empty($list))$this->error('Data is not exist');
         try {
