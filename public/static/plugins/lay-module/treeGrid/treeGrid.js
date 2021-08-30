@@ -1,7 +1,7 @@
 /**
  @Name：treeGrid树状表格
  @Author：beijiyi
- @version: 0.1
+ @version: 0.2
  码云地址：https://gitee.com/beijiyi/tree_table_treegrid_based_on_layui
  在线demo：http://beijiyi.com/
  */
@@ -306,7 +306,6 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
                     });
                     table.render(options);
                 });
-
                 return that;
             }
             /**
@@ -1916,8 +1915,8 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
         hasRender.find("#" + id).remove();
         var styel = '<style id="' + id + '">' +
             function() {
-                // var ret = ".layui-tree-head{cursor: pointer;}"; //树图标点击样式
-                var ret = ".layui-table-cell{cursor: pointer}"; //树图标点击样式
+                var ret = ".layui-tree-head{cursor: pointer;}"; //树图标点击样式
+                // var ret = ".layui-table-cell{cursor: pointer}"; //树图标点击样式
                 ret += ".layui-table-view {margin:0;}";
 
                 if (options.model) {
@@ -1932,7 +1931,6 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
             }() + '</style>';
         hasRender.append(styel);
     }
-
     /**
      * 生成单元格
      * @param obj       行数据
@@ -2886,14 +2884,16 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
             othis.remove();
         });
         //树形节点点击事件（隐藏展开下级节点）
-        that.elem.on('click', 'div.layui-table-cell,i.layui-tree-head', function() {
+        that.elem.on('click', '.layui-table-cell', function() {
             var othis = $(this),
                 index = othis.parents('tr').eq(0).data('index'),
                 options = that.config,
                 datas = table.getDataList(that.key); //数据
             var o = datas[index];
-            that.treeNodeOpen(o, !o[table.config.cols.isOpen]);
-            that.resize();
+            if(othis.find('i.layui-tree-head').length>0){
+                that.treeNodeOpen(o, !o[table.config.cols.isOpen]);
+                that.resize();
+            }
         });
         //复选框选择
         that.elem.on('click', 'input[name="' + TABLE_CHECKBOX_ID + '"]+', function() {
@@ -2935,7 +2935,6 @@ layui.config({}).extend({}).define(['laytpl', 'laypage', 'layer', 'form'], funct
                             if (temis) {
                                 that.setCheckData(o[table.config.indexName], checked);
                             }
-
                             var temuo = that.treeFindUpData(o);
                             if (temuo) {
                                 temf(temuo);
