@@ -27,7 +27,7 @@ class FormHelper
     {
         $label = isset($options['label']) ? $options['label'] : $name;
         $tips = isset($options['tips']) ? $options['tips'] : $label;
-        $placeholder = isset($options['ptips']) ? $options['ptips'] : $tips;
+        $placeholder = isset($options['placeholder']) ? $options['placeholder'] : $tips;
         $value = !is_null($value) ? 'value="' . $value . '"' : '';
         $disorread = self::readonlyOrdisabled($options)?self::readonlyOrdisabled($options):self::readonlyOrdisabled($options);
         $disorread  = $disorread?'layui-disabled':'';
@@ -38,7 +38,7 @@ class FormHelper
         <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
         <div class="layui-input-block">
          <input type="' . $type . '" name="' . $name . '"  ' . self::verify($options) . self::filter($options) . self::readonlyOrdisabled($options) . ' autocomplete="off"
-         placeholder="' . $placeholder . '" class="layui-input '.self::addClass($options). ' '.$disorread.'"' . $value . '/>
+         placeholder="' . lang($placeholder) . '" class="layui-input '.self::addClass($options). ' '.$disorread.'"' . $value . '/>
          ' . self::tips($options) . '
          </div></div>';
         return $str;
