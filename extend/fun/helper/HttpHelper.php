@@ -86,7 +86,7 @@ class HttpHelper
             $defaults[CURLOPT_SSL_VERIFYPEER] = false;
             $defaults[CURLOPT_SSL_VERIFYHOST] = false;
         }
-        curl_setopt_array($ch, (array)$options + $defaults);
+        curl_setopt_array($ch, empty($options) ? $defaults: (array)$options+$defaults);
         $ret = curl_exec($ch);
         $err = curl_error($ch);
 
