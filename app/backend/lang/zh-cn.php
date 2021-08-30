@@ -97,7 +97,8 @@ return [
     'Delete all Failed'  =>  '全部删除失败',
     'Asny Failed'  =>  '同步失败',
     'Empty Failed'  =>  '清除失败',
-
+    'enabled'=>'启用',
+    'disabled'=>'禁用',
 
     'Test Data Cannot Edit'  =>  '测试数据不能修改',
     'Test Data Cannot Delete'  =>  '测试数据不能删除',
