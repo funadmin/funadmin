@@ -665,7 +665,8 @@ class CurdService
                     $formFieldData .= "{:form_input('{$vo['name']}', 'number', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "switch":
-                    $formFieldData .= "{:form_switch('{$vo['name']}', [0 => 'Close', 1 => 'open'], ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
+                    $vo['name_list'] = lcfirst(Str::studly($vo['name']));
+                    $formFieldData .= "{:form_switch('{$vo['name']}', \${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
                     break;
                 case "array":
                     $formFieldData .= "{:form_textarea('{$vo['name']}', '{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
@@ -776,7 +777,7 @@ class CurdService
                             $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,sort:true,templet: Table.templet.select},".PHP_EOL;;
                             break;
                         case 'switch':
-                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}', selectList:{$listName}List,sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}', selectList:{$listName}List,tips:tips,sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'number':
                             if ($this->hasSuffix($v['name'], ['sort'])) {
