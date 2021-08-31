@@ -787,6 +787,19 @@ class CurdService
                                 $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',sort:true},".PHP_EOL;;
                                 break;
                             }
+                        case 'date':
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy-MM-dd',searchdateformat:'yyyy-MM-dd',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
+                            break;
+                        case 'timestamp':
+                        case 'datetime':
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
+                            break;
+                        case 'year':
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
+                            break;
+                        case 'time':
+                            $this->jsCols .= "                  {field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
+                            break;
                         default :
                             $this->jsCols .= "                  {field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:true},".PHP_EOL;
                             break;

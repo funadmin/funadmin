@@ -125,7 +125,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 d.searchOp = d.searchOp.toLowerCase();
                 d.timeType = d.timeType || 'datetime';
                 d.dateformat = d.dateformat || 'yyyy-MM-dd HH:mm:ss';
-                d.laydateformat = d.laydateformat || 'yyyy-MM-dd';
+                d.timepickerformat = d.timepickerformat || 'YYYY-MM-DD HH:mm:ss';
+                d.searchdateformat = d.searchdateformat || d.dateformat;
                 if (d.field !== false && d.search !== false) {
                     switch (d.search) {
                         case true:
@@ -152,24 +153,23 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_min" name="' + eval(d.fieldAlias + '[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + eval(d.fieldAlias + '[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                         case'range':
-                            if(d.searchOp && d.searchOp==='between'){//RANGE
-                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="timePicker"   data-searchop="range"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="range"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
+                            if(d.searchOp && d.searchOp==='between'){//between
+                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="timePicker"   data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
                             }else{
                                 d.searchOp = 'range';
-                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="timePicker" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
+                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="timePicker" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
                             }
                             break;
                         case'time':
-                            if(d.searchOp && d.searchOp==='between'){//RANGE
-                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="range"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="range"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
-                            }else {
-                                d.searchOp = 'time';
-                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
+                            if(d.searchOp && d.searchOp==='between'){//between
+                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="timePicker"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
+                            }else{
+                                formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '"  lay-filter="timePicker" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
                             }
                             break;
                         case'timerange':
                             d.searchOp = 'range';
-                            formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="timerange" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
+                            formHtml += '\t<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="timePicker" data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input">\n' + '</div>\n' + '</div>' + '</div>';
                             break
                     }
                     newCols.push(d)
@@ -185,40 +185,54 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             case 'between':
                                 layui.laydate.render({
                                     elem: '[id="field_' + ncV.field + '_min"]',
-                                    format:ncV.laydateformat,
+                                    format:ncV.searchdateformat,
                                     type: ncV.timeType
                                 });
                                 layui.laydate.render({
                                     elem: '[id="field_' + ncV.field + '_max"]',
-                                    format:ncV.laydateformat,
+                                    format:ncV.searchdateformat,
                                     type: ncV.timeType
                                 })
                                 break;
                             default:
                                 layui.timePicker.render({
                                     elem: '[name="' + ncV.field + '"]',
-                                    options: {timeStamp: false, format: ncV.laydateformat,},
+                                    options: {timeStamp: false, format: ncV.timepickerformat},
                                 })
+                                break;
                         }
                     }
                     if (ncV.search === 'time') {
-                        if(ncV.searchOp==='between') {
-                            layui.laydate.render({
-                                elem: '[name="' + ncV.field + '_min"]',
-                                format:ncV.laydateformat,
-                            });
-                            layui.laydate.render({
-                                elem: '[name="' + ncV.field + '_max"]',
-                                format:ncV.laydateformat,
-                                type: ncV.timeType
-
-                            })
-                        }else{
-                            layui.laydate.render({ elem: '[name="' + ncV.field + '"]',type: ncV.timeType,format:ncV.laydateformat})
+                        switch (ncV.searchOp) {
+                            case 'between':
+                                layui.laydate.render({
+                                    elem: '[id="field_' + ncV.field + '_min"]',
+                                    format: ncV.searchdateformat,
+                                    type: ncV.timeType
+                                });
+                                layui.laydate.render({
+                                    elem: '[id="field_' + ncV.field + '_max"]',
+                                    format: ncV.searchdateformat,
+                                    type: ncV.timeType
+                                })
+                                break;
+                            case 'range':
+                                layui.timePicker.render({
+                                    elem: '[name="' + ncV.field + '"]',
+                                    options: {timeStamp: false, format: ncV.timepickerformat,},
+                                })
+                                break;
+                            default:
+                                layui.laydate.render({
+                                    elem: '[name="' + ncV.field + '"]',
+                                    type: ncV.timeType,
+                                    format: ncV.searchdateformat
+                                })
+                                break;
                         }
                     }
                     if (ncV.search === 'timerange') {
-                        layui.laydate.render({ elem: '[name="' + ncV.field + '"]',range: true, type: ncV.timeType,format:ncV.laydateformat})
+                        layui.laydate.render({ elem: '[name="' + ncV.field + '"]',range: true, type: ncV.timeType,format:ncV.searchdateformat})
                     }
                     layui.laydate.render({elem:'#field_date_min'})
                     layui.laydate.render({elem:'#field_date_max'})
@@ -316,7 +330,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, switch: function (d) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
-                ele.selectListTips = ele.selectList? __(ele.selectList[0])+ '|' + __(ele.selectList[1]):'';
+                ele.selectListTips = ele.selectList? __(ele.selectList[1])+ '|' + __(ele.selectList[0]):'';
                 ele.tips = ele.tips || ele.selectListTips || __('open') + '|' + __('close');
                 var checked = d[ele.field] > 0 ? 'checked="checked"' : (eval('d.' + ele.field) > 0 ? 'checked="checked"' : '-');
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >'

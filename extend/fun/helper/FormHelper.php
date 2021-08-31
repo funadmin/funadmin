@@ -97,10 +97,7 @@ class FormHelper
         if (is_string($switch) && strpos($switch, '|')) {
             $switchArr = implode('|', $switch);
         }
-        $switchStr = '';
-        foreach ($switchArr as $k=>$v){
-            $switchStr.=lang($v).'|';
-        }
+        $switchStr = $switchArr ? lang($switchArr[1]).'|'.lang($switchArr[0]):lang('open').'|'.'close';
         $str = '<div class="layui-form-item">
         <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
         <div class="layui-input-block">
