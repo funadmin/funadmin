@@ -777,7 +777,7 @@ class CurdService
                             $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,sort:true,templet: Table.templet.select},".PHP_EOL;;
                             break;
                         case 'switch':
-                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}', selectList:{$listName}List,tips:tips,sort:true,templet: Table.templet.switch},".PHP_EOL;;
+                            $this->jsCols .= "                  {field:'{$v['name']}',search: 'select',title: __('{$name}'), filter: '{$v['name']}', selectList:{$listName}List,sort:true,templet: Table.templet.switch},".PHP_EOL;;
                             break;
                         case 'number':
                             if ($this->hasSuffix($v['name'], ['sort'])) {
