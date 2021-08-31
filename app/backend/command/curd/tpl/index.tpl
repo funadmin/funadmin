@@ -5,6 +5,9 @@
     {
         {{$relationSearch}}
         if ($this->request->isAjax()) {
+            if ($this->request->param('selectFields')) {
+                $this->selectList();
+            }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass
                 ->where($where)
@@ -28,6 +31,9 @@
     {
         {{$relationSearch}}
         if ($this->request->isAjax()) {
+            if ($this->request->param('selectFields')) {
+                $this->selectList();
+            }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $count = $this->modelClass->onlyTrashed()
                 ->where($where)
