@@ -101,6 +101,11 @@ trait Curd
             }catch (\ValidateException $e){
                 $this->error(lang($e->getMessage()));
             }
+            foreach ($post as $k=>$v){
+                if(is_array($v)){
+                    $post[$k] = implode(',',$v);
+                }
+            }
             try {
                 $save = $list->save($post);
             } catch (\Exception $e) {

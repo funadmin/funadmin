@@ -666,7 +666,8 @@ class CurdService
                     break;
                 case "switch":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                    $formFieldData .= "{:form_switch('{$vo['name']}', \${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
+//                    $formFieldData .= "{:form_switch('{$vo['name']}', \${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
+                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "array":
                     $formFieldData .= "{:form_textarea('{$vo['name']}', '{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
