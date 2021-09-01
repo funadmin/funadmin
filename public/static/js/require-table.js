@@ -267,7 +267,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
                         if (selectList[v]) {
-                            html += Table.getBadge(d, ele, i, __(selectList[v]))
+                            html += Table.getBadge(d, ele, v, __(selectList[v]))
                         }
                     });
                     return html
