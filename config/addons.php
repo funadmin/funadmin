@@ -5,7 +5,8 @@ return array (
   'hooks' => 
   array (
   ),
-  'route' => array(
+  'route' => 
+  array (
   ),
   'service' => 
   array (
