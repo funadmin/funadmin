@@ -6,7 +6,7 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','layui','treeGrid','tableSelect',
+        'css','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree','xmSelect',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
@@ -17,7 +17,7 @@
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
-        'layui'         : 'plugins/layui/layui', // jquery
+        // 'layui'         : 'plugins/layui/layui', // jquery
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -52,9 +52,17 @@
         }
     },
     shim: {
-        'layui': {
-            // deps: ['css!plugins/layui/css/layui.css'],
-            init: function () {return this.layui.config({dir: '/static/plugins/layui/'})},
+        // 'layui': {
+        //     // deps: ['css!plugins/layui/css/layui.css'],
+        //     init: function () {return this.layui.config({dir: '/static/plugins/layui/'})},
+        // },
+        'cityPicker':{
+            deps: [
+                'plugins/lay-module/cityPicker/city-picker-data',
+                'css!plugins/lay-module/cityPicker/city-picker.css'],
+        },
+        'inputTags':{
+            deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
         },
         'regionCheckBox':{
             deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],
@@ -62,9 +70,16 @@
         'multiSelect': {
             deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
         },
+        'timePicker':{
+            deps:['css!plugins/lay-module/timePicker/timePicker.css'],
+        },
+        'step': {
+            deps: ['css!plugins/lay-module/step/step.css'],
+        },
         'croppers': {
             deps: [
-                'plugins/lay-module/cropper/cropper'
+                'plugins/lay-module/cropper/cropper',
+                'css!plugins/lay-module/cropper/cropper.css'
             ],
             exports: "cropper"
         },
