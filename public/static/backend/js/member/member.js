@@ -44,6 +44,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
+                searchFormTpl:'searchFormTpl',
                 toolbar: ['refresh','add_full','destroy','export','recycle'],
                 cols: [[
                     {checkbox: true,},
