@@ -1,4 +1,5 @@
 define(['jquery','table','form'], function ($,Table,Form) {
+
     Table.init = {
         table_elem: 'list',
         tableId: 'list',
@@ -87,9 +88,12 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         operat: ['edit_full', 'destroy']
                     }
                 ]],
-                limits: [10, 15, 20, 25, 50, 100],
+                limits: [10, 15, 20, 25, 50, 100,500],
                 limit: 15,
                 page: true
+                ,done: function (res, curr, count) {
+                    this.limits.push(count) ;
+                }
             });
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
@@ -150,7 +154,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         operat: ['restore', 'delete']
                     }
                 ]],
-                limits: [10, 15, 20, 25, 50, 100],
+                limits: [10, 15, 20, 25, 50, 100,500,1000,5000],
                 limit: 15,
                 page: true
             });

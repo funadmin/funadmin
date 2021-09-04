@@ -20,9 +20,12 @@ define(['table','form'], function (Table,Form) {
                 done: function(res){
                 },
                 //
-                limits: [10, 15, 20, 25, 50, 100],
+                limits: [10, 15, 20, 25, 50, 100,500],
                 limit: {{$limit}},
-                page: {{$page}}
+                page: {{$page}},
+                done: function (res, curr, count) {
+{*                    this.limits.push(count) ;*}
+                }
             });
 
             let table = $('#'+Table.init.table_elem);
@@ -55,9 +58,12 @@ define(['table','form'], function (Table,Form) {
                 ]],
                 done: function(res){
                 },
-                limits: [10, 15, 20, 25, 50, 100],
+                limits: [10, 15, 20, 25, 50, 100,500],
                 limit: {{$limit}},
-                page: {{$page}}
+                page: {{$page}},
+                done: function (res, curr, count) {
+{*                    this.limits.push(count) ;*}
+                }
             });
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);

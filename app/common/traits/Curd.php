@@ -37,15 +37,23 @@ trait Curd
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $count = $this->modelClass
-                ->where($where)
-                ->count();
             $list = $this->modelClass
                 ->where($where)
                 ->order($sort)
-                ->page($this->page,$this->pageSize)
-                ->select();
-            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
+                ->paginate([
+                    'list_rows'=> $this->pageSize,
+                    'page' => $this->page,
+                ]);
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
+//            $count = $this->modelClass
+//                ->where($where)
+//                ->count();
+//            $list = $this->modelClass
+//                ->where($where)
+//                ->order($sort)
+//                ->page($this->page,$this->pageSize)
+//                ->select();
+//            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
         return view();
@@ -207,15 +215,14 @@ trait Curd
     {
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $count = $this->modelClass->onlyTrashed()
-                ->where($where)
-                ->count();
             $list = $this->modelClass->onlyTrashed()
                 ->where($where)
                 ->order($sort)
-                ->page($this->page,$this->pageSize)
-                ->select();
-            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
+                ->paginate([
+                    'list_rows'=> $this->pageSize,
+                    'page' => $this->page,
+                ]);
+            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
         return view('index');
