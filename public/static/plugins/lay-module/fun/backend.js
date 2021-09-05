@@ -413,6 +413,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     if (layId_this === layId) {
                         var text = $(this).data('tips') || $(this).attr('title'),
                             url = $(this).data('url'), icon = $(this).find('i').attr('class');
+                        $(this).parents('.layui-nav-item').addClass('active');
                         Backend.addTab({
                             layId: layId_this,
                             url: url,
@@ -869,19 +870,18 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         api: {
             bindEvent: function () {
-                /*菜单点击*/
-                $document.on('click', '*[lay-id]', function () {
-                    var _that = $(this)
+                //监听导航点击菜单点击*/
+                layui.element.on('nav(menulist)', function(elem){
+                    var _that = $(this),target = _that.prop('target')
                         , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
-                        , layId = _that.attr('data-id')
-                        , text = _that.data('tips') || $(this).attr('title')
-                        , icon = _that.find('i').attr('class')
-                        , iframe = _that.has('data-iframe') ? true : false,
-                        target = _that.prop('target');
+                        , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')
+                        , icon = _that.find('i').attr('class'), iframe = _that.has('data-iframe') ? true : false;
                     layId = layId ? layId : url;
-                    if (!$(this).data("url")) {
-                        var parent = _that.parent();
-                        var child = _that.next('.layui-nav-child');
+                    var parent = _that.parents('.layui-nav-item');
+                    var sp = parent.siblings('li');
+                    var c = parent.siblings('li.active').find('.layui-nav-child')
+                    if (!_that.data("url")) {
+                        var child = parent.find('.layui-nav-child');
                         var height = child.height();
                         // 检测屏幕是否是展开状态
                         if (!Fun.api.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
@@ -889,17 +889,32 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         }
                         child.css({display: "block"});
                         if (parent.hasClass("layui-nav-itemed")) {
+                            parent.addClass('active');
+                            parent.height('auto');
+                            if(sp.hasClass('active')){
+                                c.css('display','block');
+                                c.animate({height:0},function(){c.removeAttr('style')});
+                                parent.siblings('li.active').animate({height: 'auto'},function (){parent.siblings('li.active').removeClass('active')});
+                            }
                             child.height(0);
                             child.animate({height: height + "px"}, function () {
                                 child.css({height: "auto"});
                             });
-                            parent.siblings('li').children('.layui-nav-child').removeAttr("style");
                         } else {
+                            parent.removeClass('active');
                             child.animate({height: 0}, function () {
                                 child.removeAttr("style");
                             });
                         }
                     } else {
+                        parent.addClass('active');
+                        if(sp.hasClass('active')){
+                            c.css('display','block!important;');
+                            c.animate({height:0},function(){c.removeAttr('style')});
+                            parent.siblings('li.active').animate({height: '55px'},function (){
+                                parent.siblings('li.active').removeClass('active')});
+                            ;
+                        }
                         if (target === '_blank') {
                             window.open(url, "_blank");
                             return false;
