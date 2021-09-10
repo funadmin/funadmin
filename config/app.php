@@ -42,7 +42,7 @@ return [
     // 空控制器名
     'empty_controller'      => 'Error',
     // 默认异常页面的模板文件
-//    'exception_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/think_exception.tpl',
+    //    'exception_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/think_exception.tpl',
     // 默认跳转页面对应的模板文件
     'dispatch_success_tmpl' => \think\facade\App::getAppPath(). '/common/view/tpl/dispatch_jump.tpl',
     'dispatch_error_tmpl'   => \think\facade\App::getAppPath(). '/common/view/tpl/dispatch_jump.tpl',
@@ -52,7 +52,7 @@ return [
     // 显示错误信息
     'show_error_msg'   => true,
     //版本
-    'version' => '1.4.0',
+    'version' => '1.5.0',
 
     'ip_check'=>false,
 ];

@@ -351,6 +351,7 @@ class CurdService
                     '{{$baseController}}',
                     '{{$modelName}}',
                     '{{$modelNamespace}}',
+                    '{{$assign}}',
                     '{{$indexTpl}}',
                     '{{$limit}}'],
                 [
@@ -359,6 +360,7 @@ class CurdService
                     '\\app\\common\\controller\\AddonsFrontend',
                     $this->modelName,
                     $this->modelNamespace,
+                    $assignStr,
                     $indexTpl,
                     $this->limit,
                 ],
