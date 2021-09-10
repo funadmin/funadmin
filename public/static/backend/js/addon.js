@@ -67,7 +67,12 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         templet: Table.templet.image
                     },
                     {field: 'description', title: __('Description'), minWidth: 220, },
-                    {field: 'version', title: __('Addon version'), width: 160,  search: false},
+                    {
+                        field: 'version', title: __('Addon version'), width: 160, search: false,
+                        templet: function (d) {
+                            return d['pluginsVersion'] ? d['pluginsVersion'] ['0']['version'] : d.version;
+                        }
+                    },
                     // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120,},
                     {field: 'general_price', title: __('Price'), width: 120,search: false,
@@ -84,12 +89,12 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {
                         width: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
-                            if (d.install && d.install === 1 || d.install==='1') {
+                            if (d.install && d.install == 1 ) {
                                 html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</a>'
-                                if (d.status === 1 ||  d.status === '1') {
-                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('disabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
+                                if (d.status == 1 ) {
+                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
                                 } else {
-                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('enabled')+'" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
+                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
                                 }
                                 html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
                                 if (d.website !== '') {
@@ -100,7 +105,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
                                     html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
                                 }else{
-                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">install</a>'
+                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</a>'
                                 }
                             }
                             return html;

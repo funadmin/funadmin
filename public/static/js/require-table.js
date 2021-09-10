@@ -628,14 +628,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 } else {
                     var title = data.text || data.title || othis.prop('text') || othis.prop('title'), url = data.url ? data.url : data.href,
                         tableId = data.tableId;
-                    title = title || __('Are you sure');
+                    title = title || 'Are you sure';
                     url = url !== undefined ? url : window.location.href;
                     tableId = tableId || Table.init.tableId
                 }
                 arr = Table.getIds(url, tableId);
                 ids = arr[0];
                 length = arr[1];
-                Fun.toastr.confirm(title, function () {
+                Fun.toastr.confirm(__(title), function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {
                             if(layui.treeGrid){

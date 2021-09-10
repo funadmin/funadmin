@@ -17,14 +17,10 @@ define(['table','form'], function (Table,Form) {
                 cols: [[
                     {{$jsCols}}
                 ]],
-                done: function(res){
-                },
-                //
                 limits: [10, 15, 20, 25, 50, 100,500],
                 limit: {{$limit}},
                 page: {{$page}},
                 done: function (res, curr, count) {
-{*                    this.limits.push(count) ;*}
                 }
             });
 
@@ -56,13 +52,10 @@ define(['table','form'], function (Table,Form) {
                 cols: [[
                     {{$jsColsRecycle}}
                 ]],
-                done: function(res){
-                },
                 limits: [10, 15, 20, 25, 50, 100,500],
                 limit: {{$limit}},
                 page: {{$page}},
                 done: function (res, curr, count) {
-{*                    this.limits.push(count) ;*}
                 }
             });
             let table = $('#'+Table.init.table_elem);

@@ -976,8 +976,9 @@ class CurdService
                     }
                 }else{
                     if($v['name']=='status'){
-                        $assign[$v['name'] . 'List'] = '[0=>"enabled",1=>"disabled"]';
-                        $v['option'] = '{0:__("enabled"),1:__("disabled")}';
+                        $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
+                        $v['option'] = '{0:__("disabled"),1:__("enabled")}';
+                        if(isset($comment[1])) list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
                     }
                     $v['comment'] = $comment[0];
                 }
