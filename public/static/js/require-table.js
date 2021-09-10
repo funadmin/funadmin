@@ -356,7 +356,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, switch: function (d) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
-                ele.selectListTips = ele.selectList? __(ele.selectList[1])+ '|' + __(ele.selectList[0]):'';
+                console.log(ele.selectList)
+                ele.selectListTips = JSON.stringify(ele.selectList)!== '{}'? __(ele.selectList[1])+ '|' + __(ele.selectList[0]):'';
                 ele.tips = ele.tips || ele.selectListTips || __('open') + '|' + __('close');
                 var checked = d[ele.field] > 0 ? 'checked="checked"' : (eval('d.' + ele.field) > 0 ? 'checked="checked"' : '-');
                 return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
