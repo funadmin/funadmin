@@ -186,7 +186,7 @@ class CurdService
         foreach ($methodArr as $k => $v) {
             if ($v != 'refresh') {
                 $space = $k==0?'':'                    ';
-                if(!in_array($v,['restore','delete'])) {
+                if(!in_array($v,['restore'])) {
                     $controllerPrefix  = $this->addon?"addons/$this->addon/". ($this->module=='common'?'backend':$this->module) ."/":"";
                     $space = $k==0?'':'                    ';
                     $this->requests .=  $space. $v . '_url:' ."'{$controllerPrefix}{$this->controllerUrl}/{$v}'" . ','.PHP_EOL;

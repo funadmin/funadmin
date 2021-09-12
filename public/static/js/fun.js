@@ -250,7 +250,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             },
             //获取节点
             getNode:function (url){
-                return url.substring(url.lastIndexOf('\/')+1,url.length);
+                return url!==undefined && url!==''?url.substring(url.lastIndexOf('\/')+1,url.length):'';
             }
         },
         toastr: {

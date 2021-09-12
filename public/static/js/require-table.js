@@ -87,6 +87,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure to delete') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n'
                     }
                 } else if (v === 'destroy') {
+
                     url = Fun.replaceurl(Table.init.requests.destroy_url, d);
                     if (Fun.checkAuth('destroy',options.elem)) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure  to destroy') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n'
@@ -478,7 +479,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             vv.icon = vv.icon + vv.text
                         }
                         vv.text = 'data-text="' + vv.text + '"';
-                        if (Fun.checkAuth(vv.node,'#'+Table.init.tableId)) {
+                        if (vv.node && Fun.checkAuth(vv.node,'#'+Table.init.tableId)) {
                             html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>'
                         }
                     } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
@@ -522,7 +523,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             vv.icon = vv.icon + vv.text
                         }
                         vv.text = 'data-text="' + vv.text + '"';
-                        if (Fun.checkAuth(vv.node,'#'+Table.init.tableId)) {
+                        if (vv.node && Fun.checkAuth(vv.node,'#'+Table.init.tableId)) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                         }
                     }
