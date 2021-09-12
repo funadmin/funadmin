@@ -14,7 +14,7 @@ class TreeHelper
         foreach ($arr as $k=>$v){
             if ($v[$parentField] == $pid){
                 $v[$title] = lang($v[$title]);
-                $v['children'] = self::getTree($arr,$title,$v['id'],$parentField='pid');
+                $v['children'] = self::getTree($arr,$title,$v['id'],$parentField);
                 $list[] = $v;
             }
         }

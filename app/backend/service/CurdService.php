@@ -861,7 +861,7 @@ class CurdService
                 $v['type'] = 'number';
             }
             if (in_array($v['DATA_TYPE'], ['decimal', 'double', 'float'])) {
-                $v['type'] = 'text';
+                $v['type'] = 'number';
             }
             if (in_array($v['DATA_TYPE'], ['enum', 'set'])) {
                 $v['type'] = 'select';
@@ -901,11 +901,11 @@ class CurdService
                     $v['type'] = "images";
                 }
             }
-            // 指定后缀说明也是个时间字段
+            // 指定后缀说明也是个排序字段
             if ($this->hasSuffix($fieldsName, $this->config['sortSuffix'])) {
                 $v['type'] = "number";
             }
-            // 指定后缀说明也是个时间字段
+            // 指定后缀说明也是个tags字段
             if ($this->hasSuffix($fieldsName, $this->config['tagsSuffix'])) {
                 $v['type'] = "tags";
             }
@@ -973,6 +973,7 @@ class CurdService
                     if (count($comment) != 2) {
                         $v['type'] = 'text';
                     }else{
+                        if($v['DATA_TYPE']=='tinyint') $v['type'] = 'radio';
                         $v['comment'] = $comment[0];
                         list($assign[$v['name'] . 'List'],$v['option']) = $this->getOptionStr($v['name'],$comment[1]);
                     }
