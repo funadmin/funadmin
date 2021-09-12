@@ -35,12 +35,10 @@ define(['table','form'], function (Table,Form) {
         },
         recycle: function () {
             Table.init = {
-                    table_elem: 'list',
-                    tableId: 'list',
-                    requests: {
-                        recycle_url: '{{$controller}}/recycle',
-                        delete_url: '{{$controller}}/delete',
-                        restore_url: '{{$controller}}/restore',
+                table_elem: 'list',
+                tableId: 'list',
+                requests: {
+                    {{$requestsRecycle}}
                 },
             };
             Table.render({
