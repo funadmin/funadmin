@@ -278,7 +278,7 @@ class CurdService
         if ($this->joinTable) {
             $relationSearch ='$this->relationSearch = true;';
             $indexTpl = $this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'index.tpl';
-            $joinIndexMethod = "withJoin(";
+            $joinIndexMethod = "withJoin([";
             foreach ($this->joinTable as $k => $v) {
                 $joinName  = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
@@ -302,7 +302,7 @@ class CurdService
                 $this->makeFile($joinModelFile,$modelTplTemp);
             }
             $joinIndexMethod = substr($joinIndexMethod,0,strlen($joinIndexMethod)-1);
-            $joinIndexMethod.=")";
+            $joinIndexMethod.="])";
             $joinIndexMethod = trim($joinIndexMethod, ',');
             $indexTpl = str_replace(['{{$joinIndexMethod}}','{{$relationSearch}}','{{$table}}','{{$status}}'], [$joinIndexMethod,$relationSearch,$this->table.'.',$status], file_get_contents($indexTpl));
         }
@@ -310,18 +310,17 @@ class CurdService
         $scriptTpl = file_get_contents($this->rootPath . 'app' . DS . 'backend' . DS . 'command' . DS . 'curd' . DS . 'tpl' . DS . 'script.tpl');
         $assignStr = '';
         $scriptStr = '<script>';
-        $i=0;
         foreach ($this->assign as $k => $v) {
             $kk = Str::studly($k);
             if(!$this->hasSuffix($k,$this->config['priSuffix'])){
                 $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),lcfirst($kk)],$scriptTpl).PHP_EOL;
-            }elseif($this->hasSuffix($k,$this->config['priSuffix']) and $this->joinTable
-                and isset($this->joinForeignKey[$i])and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])){
+            }elseif($this->hasSuffix($k,$this->config['priSuffix'])
+                and $this->joinTable
+                and in_array(substr($k,0,strlen($k)-4),$this->joinForeignKey)
+            ){
                 $assignStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),'get'.$kk],$assignTpl).PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}','{{$method}}'],[lcfirst($kk),lcfirst($kk)],$scriptTpl).PHP_EOL;
-
-                $i++;
             }
         }
         $scriptStr.='</script>';
@@ -429,15 +428,15 @@ class CurdService
                             ['get'.$kk,$v],
                             file_get_contents($attrTpl)).PHP_EOL;
                 }elseif($this->hasSuffix($k,$this->config['priSuffix'])
-                    and $this->joinTable and isset($this->joinForeignKey[$i])
-                    and $this->hasSuffix($this->joinForeignKey[$i],$this->config['priSuffix'])
+                    and $this->joinTable   and $this->joinTable
+                    and in_array(substr($k,0,strlen($k)-4),$this->joinForeignKey)
                 ){
                     //关联模型搜索属性
                     $model = isset($this->joinModel[$i])?$this->joinModel[$i]:$this->joinModel[0];
                     if(count($this->joinTable)==1){
-                        $value = isset($this->selectFields[0])?$this->selectFields[0]:'name';
+                        $value = isset($this->selectFields[0])?$this->selectFields[0]:'title';
                     }else{
-                        $value = isset($this->selectFields[$i])?$this->selectFields[$i]:'name';
+                        $value = isset($this->selectFields[$i])?$this->selectFields[$i]:'title';
                     }
                     $k = str_replace(['_id','_ids'],['',''],$k);
                     $joinTplStr.=str_replace(['{{$method}}','{{$values}}','{{$joinModel}}'],
