@@ -871,7 +871,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         api: {
             bindEvent: function () {
                 //监听导航点击菜单点击*/
-                layui.element.on('nav(menulist)', function(elem){
+                $document.on('click', '*[lay-id]', function () {
                     var _that = $(this),target = _that.prop('target')
                         , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                         , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')

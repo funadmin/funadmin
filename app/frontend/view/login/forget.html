@@ -41,7 +41,7 @@
               <div class="layui-form-item">
                 <input type="hidden" name="id" value="{:cookie('forget_uid')}">
                 <input type="hidden" name="email" value="{:cookie('email')}">
-                <button class="layui-btn" lay-filter="*" lay-submit>提交</button>
+                <button class="layui-btn"  data-request="{:__u('repass')}" lay-filter="*" lay-submit>提交</button>
               </div>
             </form>
           </div>

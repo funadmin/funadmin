@@ -65,6 +65,9 @@ body .layui-site-mobile {display: none}
     padding: 0;
     text-align: left
 }
+.layui-nav .layui-nav-child dd:hover{
+cursor: pointer;
+}
 .layui-header .layui-nav .layui-nav-child dd.layui-this a {
     background-color: #18bc9c
 }

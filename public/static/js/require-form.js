@@ -82,7 +82,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                         var filter = $(this).attr('lay-filter'),
                             type = $(this).data('type'),
                             refresh = $(this).data('refresh'),
-                            url = $(this).data('request');
+                            url = $(this).data('request') ?$(this).data('request') : $(this).data('url') ;
                         // 表格搜索不做自动提交
                         if (type === 'tableSearch') {
                             return false;
