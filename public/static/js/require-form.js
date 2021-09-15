@@ -82,7 +82,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                         var filter = $(this).attr('lay-filter'),
                             type = $(this).data('type'),
                             refresh = $(this).data('refresh'),
-                            url = $(this).data('request') ?$(this).data('request') : $(this).data('url') ;
+                            url = $(this).data('request') || $(this).data('url') ;
                         // 表格搜索不做自动提交
                         if (type === 'tableSearch') {
                             return false;
@@ -280,7 +280,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                         var input = $(this).parents('.layui-upload').find('input[type="text"]');
                         var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                         var id = $(this).attr('id');
-                        tableSelect = layui.tableSelect ? layui.tableSelect : parent.layui.tableSelect;
+                        tableSelect = layui.tableSelect ||  parent.layui.tableSelect;
                         layui.tableSelect.render({
                             elem: '#' + id,
                             checkedKey: 'id',

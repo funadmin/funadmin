@@ -7,50 +7,36 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 if (list.length > 0) {
                     $.each(list, function(i) {
                         var id = $(this).prop('id'),
-                            url = $(this).data('url'), lang = $(this).data('lang'), value = $(this).data('value'),
-                            data = $(this).data('data')?$(this).data('data'):[],
-                            parentfield = $(this).data('parentfield')?$(this).data('parentfield'):'pid',
-                            tips = $(this).data('tips') ? $(this).data('tips') : '请选择',
-                            searchTips = $(this).data('searchtips') ? $(this).data('searchtips') : '请选择',
-                            empty = $(this).data('empty') ? $(this).data('empty') : '呀,没有数据',
-                            height = $(this).data('height') ? $(this).data('height') : 'auto',
+                            url = $(this).data('url')|| $(this).data('request'), lang = $(this).data('lang'), value = $(this).data('value'),
+                            data = $(this).data('data')||　[], parentfield = $(this).data('parentfield') || 'pid',
+                            tips = $(this).data('tips') ||  '请选择', searchTips = $(this).data('searchtips') || '请选择',
+                            empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
                             paging = $(this).data('paging'), pageSize = $(this).data('pageSize'),
-                            remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') ? $(this).data('content') : '',
+                            remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
                             radio = $(this).data('radio'), disabled = $(this).data('disabled'),
-                            clickClose = $(this).data('clickClose'), prop = $(this).data('prop') ? $(this).data('prop') : $(this).data('attr'),
+                            clickClose = $(this).data('clickClose'), prop = $(this).data('prop') || $(this).data('attr'),
                             max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
-                            theme = $(this).data('theme') ? $(this).data('theme') : '#6739b6',
-                            name = $(this).data('name') ? $(this).data('name') : 'pid',
-                            style = $(this).data('style') ? $(this).data('style') : {},
-                            cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
+                            theme = $(this).data('theme') || '#6739b6', name = $(this).data('name') || 'pid',
+                            style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                             tree = $(this).data('tree') ? {show: true, showFolderIcon: true, showLine: true, indent: 20, expandedKeys: [], strict: false, simple: false, clickExpand: true, clickCheck: true,} : false,
-                            layVerify = $(this).attr('lay-verify') ? $(this).attr('lay-verify') : '',
-                            layReqText = $(this).data('reqtext') ? $(this).data('reqtext') : '';
-                        var size = $(this).data('size') === undefined ? 'medium' : $(this).data('size');
+                            layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
+                        var size = $(this).data('size') || 'medium' ;
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
                         var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote'))), props, propArr, options;
                         if (typeof value != 'object' && value) {
                             value = typeof value === "number" ? [value] : value.split(',')
-                        }
-                        props = {
+                        };props = {
                             name: 'title',
                             value: "id"
-                        };
-                        if (prop) {
+                        };if (prop) {
                             console.log(prop)
                             propArr = prop.split(',');
                             props.name = propArr[0];
                             props.value = propArr[1]
-                        }
-                        lang = lang ? lang : 'zh';
-                        paging = paging === undefined || paging !== 'false';
-                        pageSize = pageSize ? pageSize : 10;
-                        radio = !! radio;
-                        disabled = !! disabled;
-                        max = max ? max : 0;
-                        clickClose = clickClose ? clickClose : false;
-                        create = !create ?
+                        };lang = lang ? lang : 'zh';paging = paging === undefined || paging !== 'false';
+                        pageSize = pageSize ? pageSize : 10;radio = !! radio;disabled = !! disabled;max = max ? max : 0;
+                        clickClose = clickClose ? clickClose : false;create = !create ?
                             function(val) {
                                 return {
                                     name: val,
@@ -59,18 +45,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             } : eval(create)?eval(create):false;
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                         options = {
-                            el: '#' + id,
-                            language: lang,
-                            data: data,
-                            initValue: value,
-                            name: name,
-                            tips: tips,
-                            empty: empty,
-                            filterable: filterable,
-                            searchTips: searchTips,
-                            prop: props,
-                            disabled: disabled,
-                            remoteSearch: remoteSearch,
+                            el: '#' + id, language: lang, data: data, initValue: value, name: name,
+                            tips: tips, empty: empty, filterable: filterable, searchTips: searchTips,
+                            prop: props, disabled: disabled, remoteSearch: remoteSearch,
                             remoteMethod: function(val, cb, show) {
                                 if (remoteMethod !== undefined) {
                                     eval(remoteMethod)
@@ -92,30 +69,19 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     })
                                 }
                             },
-                            paging: paging,
-                            pageSize: pageSize,
-                            autoRow: true,
-                            size: size,
-                            repeat: repeat,
-                            height: height,
-                            max: max,
-                            pageRemote: pageRemote,
-                            toolbar: {
+                            paging: paging, pageSize: pageSize, autoRow: true, size: size,
+                            repeat: repeat, height: height, max: max,
+                            pageRemote: pageRemote, toolbar: {
                                 show: true,
                                 list: ['ALL', 'CLEAR', 'REVERSE']
                             }, theme: {
                                 color: theme,
-                            },
-                            radio: radio,
-                            layVerify: layVerify,
-                            clickClose: clickClose,
+                            }, radio: radio, layVerify: layVerify, clickClose: clickClose,
                             maxMethod: function(val) {
                                 console.log(val)
-                            },
-                            on: function(data) {
+                            }, on: function(data) {
                                 console.log(data)
-                            },
-                            create: create,
+                            }, create: create,
                         }
                         if (tree) options.tree = tree;
                         if (cascader) options.cascader = cascader;

@@ -534,6 +534,7 @@ class FormHelper
         if (!isset($options['path'])) {
             $options['path'] = 'upload';
         }
+        $css = isset($options['css'])?$options['css']:'display:inline-block;';
         $label = isset($options['label']) ? $options['label'] : $name;
         $li = '';
         $croper_container = '';
@@ -551,6 +552,7 @@ class FormHelper
                 '</button>';
             $options['num'] = 1;
             $options['type'] = 'radio';
+            $css .='width:53%!important;';
         }
         $values = [];
         if ($formData) {
@@ -620,7 +622,7 @@ class FormHelper
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
                     <div class="layui-upload">
-                        <input value="' . $value . '" style="display: inline-block;width:65% " type="text" name="' . $name . '" class="layui-input attach '.self::addClass($options).'"' . self::verify($options) . '/>
+                        <input value="' . $value . '" style="'.$css.' ;width:65% " type="text" name="' . $name . '" class="layui-input attach '.self::addClass($options).'"' . self::verify($options) . '/>
                        ' . $croper_container . '
                         <button type="button" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>' . lang('Uploads') . '</button>
                         '. $select_container .'

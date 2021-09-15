@@ -217,5 +217,9 @@ return [
     'Request url can not empty'=>'请求网址不能为空',
     'Choose Success'=>'选择成功',
     'Return data is not right'=>'返回数据不正确',
-    'File type is limited'=>"不支持上传文件类型,请配置"
+    'File type is limited'=>"不支持上传文件类型,请配置",
+
+    'OriginalName'=>'原名',
+    'Path'=>'路径',
+    'MimeType'=>'Mime类型',
 ];
