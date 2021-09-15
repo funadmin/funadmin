@@ -693,46 +693,49 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     formType: 1,
                     success: function (layero, index) {
                         layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
+                    },yes:function(index, prompt) {
+                        var value=(prompt.find(".layui-layer-input").val())
+                        if (value.length < 1) {
+                            Fun.toastr.error(__('Input Password'));
+                            return false;
+                        } else {
+                            layui.data('BackendLock', {
+                                key: 'lock'
+                                , value: value
+                            });
+                            layer.close(index);
+                            layer.prompt({
+                                btn: [__('Unlock')],
+                                title: [__('Input Password'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
+                                closeBtn: 0,
+                                formType: 1,
+                                success: function (layero, index) {
+                                    layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
+                                }
+                            }, function (value, index) {
+                                if (value.length < 1) {
+                                    Fun.toastr.error(__('Input Password'));
+                                    return false;
+                                } else {
+                                    if (value === layui.data('BackendLock').lock) {
+                                        layer.close(index);
+                                        $(".yy").hide();
+                                        //清除密码
+                                        layui.data('BackendLock', {
+                                            key: 'lock'
+                                            , remove: true
+                                        });
+                                        Fun.toastr.success(__('Unlock Success'));
+                                    } else {
+                                        Fun.toastr.error(__('Password Error'));
+                                        return false;
+                                    }
+                                }
+                            });
+                        }
                     }
                 }, function (value, index) {
-                    if (value.length < 1) {
-                        Fun.toastr.error(__('Input Password'));
-                        return false;
-                    } else {
-                        layui.data('BackendLock', {
-                            key: 'lock'
-                            , value: value
-                        });
-                        layer.close(index);
-                        layer.prompt({
-                            btn: [__('Unlock')],
-                            title: [__('Input Password'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
-                            closeBtn: 0,
-                            formType: 1,
-                            success: function (layero, index) {
-                                layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
-                            }
-                        }, function (value, index) {
-                            if (value.length < 1) {
-                                Fun.toastr.error(__('Input Password'));
-                                return false;
-                            } else {
-                                if (value === layui.data('BackendLock').lock) {
-                                    layer.close(index);
-                                    $(".yy").hide();
-                                    //清除密码
-                                    layui.data('BackendLock', {
-                                        key: 'lock'
-                                        , remove: true
-                                    });
-                                    Fun.toastr.success(__('Unlock Success'));
-                                } else {
-                                    Fun.toastr.error(__('Password Error'));
-                                    return false;
-                                }
-                            }
-                        });
-                    }
+
                 });
             },
             //伸缩
@@ -909,7 +912,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     } else {
                         parent.addClass('active');
                         if(sp.hasClass('active')){
-                            c.css('display','block!important;');
                             c.animate({height:0},function(){c.removeAttr('style')});
                             parent.siblings('li.active').animate({height: '55px'},function (){
                                 parent.siblings('li.active').removeClass('active')});
@@ -924,6 +926,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         if (Backend.checkScreen()) {
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
+                        c.attr('style','display:block!important;');
                     }
                 });
                 //点击事件
