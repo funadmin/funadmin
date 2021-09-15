@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" media="all">
     <script src="__CDN____STATIC__/plugins/jquery/jquery-3.4.1.min.js"></script>
+    <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
     {:token_meta()}
 </head>
 <script>
@@ -38,5 +39,4 @@
 <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
 
-<script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
 <script src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8" ></script>
