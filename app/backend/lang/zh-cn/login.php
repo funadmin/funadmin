@@ -3,6 +3,7 @@
 return [
 
 //    登录
+    'Keep Login'=>"保持登录",
     'Captcha error' => '验证码错误',
     'Login Success' => '登录成功',
     'Login Failed' => '登录失败',
