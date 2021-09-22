@@ -717,12 +717,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }
         },
         api: {
-            reload: function (tableId, $where, $deep = true) {
+            reload: function (tableId, $where, $deep = true,$parent= true) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $where = $where || {};
                 $map = {where: $where}
                 layui.table.reload(tableId, $map, $deep);
-                parent.layui.table.reload(tableId, {}, $deep)
+                if($parent){parent.layui.table.reload(tableId, {}, $deep);}
             }, tableSearch: function (tableId) {
                 layui.form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
@@ -743,14 +743,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             formatOp[key] = op
                         }
                     });
-                    var text = '';
-                    if ($('#layui-input-search').length > 0) {
-                        text = $('#layui-input-search').val()
-                    }
-                    Table.api.reload(tableId, {filter: JSON.stringify(formatFilter), op: JSON.stringify(formatOp)});
-                    if ($('#layui-input-search').length > 0) {
-                        $('#layui-input-search').val(text)
-                    }
+                    Table.api.reload(tableId, {filter: JSON.stringify(formatFilter), op: JSON.stringify(formatOp)},true,false);
                     return false
                 })
             }, switch: function (cols, tableInit, tableId) {
@@ -862,13 +855,16 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 });
                 $(document).on('blur', '#layui-input-search', function (event) {
                     var text = $(this).val();
-                    $('#searchFieldList_' + Table.init.tableId).find('input[name="' + $(this).prop('name') + '"]').prop('value', text);
                     var name = $(this).prop('name').split(',');
                     if(name.length === 1){
-                        $('[lay-filter="' + Table.init.tableId + '_filter' + '"]').trigger("click");
+                        var formatFilter = {}, formatOp = {};
+                        formatFilter[name] = text;
+                        formatOp[name] = $(this).data('searchop') || '%*%';
+                        Table.api.reload(Table.init.tableId, {filter: JSON.stringify(formatFilter), op: JSON.stringify(formatOp)},true,false);
+                        $('#layui-input-search').prop("value",$(this).val());
                         return false
                     }else{
-                        Table.api.reload(tableId, {search: text,searchName:name});
+                        Table.api.reload(tableId, {search: text,searchName:name},true,true);
                         $('#layui-input-search').prop("value",$(this).val());
                         return false
                     }

@@ -57,7 +57,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'sex',
                         width: 120,
                         search: 'select',
-                        selectList: {0: __('Female'), 1: __('Male'), 2: __('Secret')},
+                        selectList: {0: __('Secret'), 1: __('Male'), 2: __('Female')},
                         templet: Table.templet.select,
                         tips: __('Female')+'|'+  __('Male')
                     },
@@ -123,7 +123,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'sex',
                         width: 120,
                         search: 'select',
-                        selectList: {0: __('Female'), 1: __('Male'), 2: __('Secret')},
+                        selectList: {0: __('Secret'), 1: __('Male'), 2: __('Female')},
                         templet: Table.templet.select,
                         tips: __('Female')+'|'+  __('Male')
                     },

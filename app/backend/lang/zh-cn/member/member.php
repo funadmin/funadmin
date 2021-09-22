@@ -17,6 +17,7 @@ return [
         'Sex'                                       => '性别',
         'Male'                                      => '男',
         'FeMale'                                    => '女',
+        'Secret'                                    => '保密',
         'Birthday'                                  => '生日',
         'Score'                                     => '积分',
         'Registertime'                              =>'注册时间',

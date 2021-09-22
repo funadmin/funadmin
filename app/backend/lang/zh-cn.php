@@ -16,6 +16,7 @@ return [
     'UserName or Email'  =>  '用户名或邮箱',
     'Login In'  =>  '登入',
     'Lang'  =>  '语言',
+    'language'  =>  '语言',
     'Input'  =>  '输入',
     'Top'  =>  "顶级",
     'Pid'  =>  '上级id',
