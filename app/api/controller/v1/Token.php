@@ -10,6 +10,7 @@ use think\facade\Request;
 class Token extends TokenApi
 {
 
+    public $appsecret = 123456;
     public $authapp = true;
     public function __construct(Request $request)
     {

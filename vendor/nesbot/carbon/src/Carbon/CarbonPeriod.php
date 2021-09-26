@@ -1310,6 +1310,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return bool
      */
+    #[ReturnTypeWillChange]
     public function valid()
     {
         return $this->validateCurrentDate() === true;
@@ -1320,6 +1321,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return int|null
      */
+    #[ReturnTypeWillChange]
     public function key()
     {
         return $this->valid()
@@ -1332,6 +1334,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return CarbonInterface|null
      */
+    #[ReturnTypeWillChange]
     public function current()
     {
         return $this->valid()
@@ -1346,6 +1349,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function next()
     {
         if ($this->current === null) {
@@ -1372,6 +1376,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function rewind()
     {
         $this->key = 0;
@@ -1545,6 +1550,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
      *
      * @return int
      */
+    #[ReturnTypeWillChange]
     public function count()
     {
         return \count($this->toArray());
@@ -2398,11 +2404,7 @@ class CarbonPeriod implements Iterator, Countable, JsonSerializable
         }
 
         // Check after the first rewind to avoid repeating the initial validation.
-        if ($this->validationResult !== null) {
-            return $this->validationResult;
-        }
-
-        return $this->validationResult = $this->checkFilters();
+        return $this->validationResult ?? ($this->validationResult = $this->checkFilters());
     }
 
     /**

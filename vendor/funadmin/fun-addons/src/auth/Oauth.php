@@ -13,6 +13,7 @@
 namespace fun\auth;
 
 use app\common\model\Oauth2AccessToken;
+use Firebase\JWT\JWT;
 use fun\auth\Send;
 use think\Exception;
 use think\facade\Db;
@@ -47,18 +48,45 @@ class Oauth
         //获取头部信息
         $authorization = config('api.authentication')?config('api.authentication'):'authentication';
         $authorizationHeader = Request::header($authorization); //获取请求中的authentication字段，值形式为USERID asdsajh..这种形式
+        if(!$authorizationHeader){
+            $this->error('Invalid authorization credentials','',401,'',$authorizationHeader?$authorizationHeader:[]);
+        }
         try {
+            //jwt
+            if(config('api.is_jwt')) {
+                $clientInfo = $this->jwtcheck($authorizationHeader);
+                return $clientInfo;
+            }
             $authorizationArr = explode(" ", $authorizationHeader);//explode分割，获取后面一窜base64加密数据
             $authorizationInfo  = explode(":", base64_decode($authorizationArr[1]));  //对base_64解密，获取到用:拼接的自字符串，然后分割，可获取appid、accesstoken、uid这三个参数
             $clientInfo['appid'] = $authorizationInfo[0];
             $clientInfo['access_token'] = $authorizationInfo[1];
             $clientInfo['uid'] = $authorizationInfo[2];
             return $clientInfo;
-        } catch (Exception $e) {
-            $this->error('Invalid authorization credentials','',401,'',$authorizationHeader?$authorizationHeader:[]);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage(),$authorizationHeader,401,'',[]);
         }
     }
+    public function jwtcheck($authorizationHeader){
+        try {
+            JWT::$leeway = 60;//当前时间减去60，把时间留点余地
+            $decoded = JWT::decode($authorizationHeader, md5(config('api.jwt_key')), ['HS256']); //HS256方式，这里要和签发的时候对应
+            $jwtAuth = (array)$decoded;
+            $clientInfo['access_token'] = $authorizationHeader;
+            $clientInfo['uid'] = $jwtAuth['uid'];
+            $clientInfo['appid'] = $jwtAuth['appid'];
+        } catch(\Firebase\JWT\SignatureInvalidException $e) {  //签名不正确
+            throw new \Exception ($e->getMessage());
+        }catch(\Firebase\JWT\BeforeValidException $e) {  // 签名在某个时间点之后才能用
+            throw new \Exception( $e->getMessage());
+        }catch(\Firebase\JWT\ExpiredException $e) {  // token过期
+            throw new \Exception( $e->getMessage());
+        }catch(Exception $e) {  //其他错误
+            throw new \Exception( $e->getMessage());
+        }
+        return $clientInfo;
 
+    }
     /**
      * 获取用户信息后 验证权限
      * @return mixed

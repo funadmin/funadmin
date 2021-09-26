@@ -75,11 +75,11 @@ class Token
         $validate = new \fun\auth\validate\Token;
         if ($this->authapp) {
             if (!$validate->scene('authapp')->check(Request::post())) {
-                $this->error($validate->getError());
+                $this->error($validate->getError(),'',500);
             }
         } else {
             if (!$validate->scene('noauthapp')->check(Request::post())) {
-                $this->error($validate->getError());
+                $this->error($validate->getError(),'',500);
             }
         }
         $this->checkParams(Request::post());  //参数校验
@@ -129,11 +129,9 @@ class Token
             
             $this->error('请求时间戳与服务器时间戳异常' . time(), '', 401);
         }
-        if ($this->authapp) {
+        if ($this->authapp && $params['appid'] !== $this->appid) {
             //appid检测，查找数据库或者redis进行验证
-            if ($params['appid'] !== $this->appid) {
-                $this->error('appid 错误', '', 401);
-            }
+            $this->error('appid 错误', '', 401);
         }
         //签名检测
         $Oauth = new Oauth();
@@ -233,10 +231,12 @@ class Token
             ->where('username', $membername)
             ->whereOr('mobile', $membername)
             ->whereOr('email', $membername)
+            ->field('id,password')
             ->find();
         if ($member) {
             if (password_verify($password, $member['password'])) {
                 $member['uid'] = $member['id'];
+                unset($member['password']);
                 return $member;
             } else {
                 $this->error(lang('Password is not right'), '', 401);

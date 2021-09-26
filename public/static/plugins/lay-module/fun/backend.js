@@ -861,12 +861,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         window.location.reload();
                     }, 1500))
-
                 }, function (res) {
                     Fun.toastr.error(res.msg)
                 })
             }
-
         },
         /**
          * 监听事件
@@ -880,11 +878,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')
                         , icon = _that.find('i').attr('class'), iframe = _that.has('data-iframe') ? true : false;
                     layId = layId ? layId : url;
-                    var parent = _that.parents('.layui-nav-item');
+                    var parent = _that.parent();
                     var sp = parent.siblings('li');
-                    var c = parent.siblings('li.active').find('.layui-nav-child')
+                    var c = parent.siblings('li.active').children('.layui-nav-child')
                     if (!_that.data("url")) {
-                        var child = parent.find('.layui-nav-child');
+                        var child = parent.children('.layui-nav-child');
                         var height = child.height();
                         // 检测屏幕是否是展开状态
                         if (!Fun.api.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
@@ -936,7 +934,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
                 });
                 //鼠标放上
-                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
+                $document.on("mouseenter", ".layui-side-shrink .layui-nav-tree>.layui-nav-item,.layui-side-shrink .layui-nav-itemed", function () {
                     var _that = $(this);
                     if (!Fun.api.checkScreen()) {
                         var top = _that.offset().top;
@@ -945,14 +943,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         _that.children('dl').addClass('layui-nav-child-drop');
                         _that.children('dl').css('top', top + 'px');
                     }
-                }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item", function () {
+                }).on("mouseleave", ".layui-side-shrink .layui-nav-tree>.layui-nav-item", function () {
                     var _that = $(this);
                     _that.removeClass('layui-nav-hover');
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                 });
                 //鼠标放上
-                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop dd", function () {
+                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover  dd", function () {
                     var _that = $(this);
                     if (!Fun.api.checkScreen()) {
                         if (_that.find('dl')) {
@@ -960,13 +958,15 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             var left = _that.offset().left + _that.width();
                             _that.children('dl').addClass('layui-nav-child-drop');
                             _that.children('dl').css('top', top + 'px');
-                            _that.children('dl').css('left', left + 'px');
+                            _that.children('dl').css('left', +left + 'px');
                         }
                     }
 
-                }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-item .layui-nav-child-drop", function () {
+                }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-child-drop," +
+                    ".layui-side-shrink .layui-side-menu .layui-nav-child-drop>dd", function () {
                     var _that = $(this);
                     _that.find('dl').removeClass('layui-nav-child-drop');
+                    _that.siblings('dd').children('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                 });
                 //鼠标右键盘

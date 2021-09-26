@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '25d330e11aaa275f6882e64d9eca6cb7487bb28f',
+    'reference' => 'd3789a6522ba26b6fae87995a585f83489e35140',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -47,14 +47,23 @@
       ),
       'reference' => '72840bda3ce8b7bdc9362e8646141eb3c5ca9947',
     ),
-    'funadmin/fun-addons' => 
+    'firebase/php-jwt' => 
     array (
-      'pretty_version' => 'v1.55',
-      'version' => '1.55.0.0',
+      'pretty_version' => 'v5.4.0',
+      'version' => '5.4.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '983b1d96f10cb159afb177a36392c18e5bfed2c5',
+      'reference' => 'd2113d9b2e0e349796e72d2a63cf9319100382d2',
+    ),
+    'funadmin/fun-addons' => 
+    array (
+      'pretty_version' => 'v1.60',
+      'version' => '1.60.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '1b4478aa5c9ecdf305bc6fe278af9be92cc2ef9b',
     ),
     'funadmin/funadmin' => 
     array (
@@ -63,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '25d330e11aaa275f6882e64d9eca6cb7487bb28f',
+      'reference' => 'd3789a6522ba26b6fae87995a585f83489e35140',
     ),
     'league/flysystem' => 
     array (
@@ -85,21 +94,21 @@
     ),
     'league/mime-type-detection' => 
     array (
-      'pretty_version' => '1.7.0',
-      'version' => '1.7.0.0',
+      'pretty_version' => '1.8.0',
+      'version' => '1.8.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '3b9dff8aaf7323590c1d2e443db701eb1f9aa0d3',
+      'reference' => 'b38b25d7b372e9fddb00335400467b223349fd7e',
     ),
     'nesbot/carbon' => 
     array (
-      'pretty_version' => '2.52.0',
-      'version' => '2.52.0.0',
+      'pretty_version' => '2.53.1',
+      'version' => '2.53.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => '369c0e2737c56a0f39c946dd261855255a6fccbe',
+      'reference' => 'f4655858a784988f880c1b8c7feabbf02dfdf045',
     ),
     'phpdocumentor/reflection-common' => 
     array (
@@ -121,12 +130,12 @@
     ),
     'phpdocumentor/type-resolver' => 
     array (
-      'pretty_version' => '1.4.0',
-      'version' => '1.4.0.0',
+      'pretty_version' => '1.5.0',
+      'version' => '1.5.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '6a467b8989322d92aa1c8bf2bebcc6e5c2ba55c0',
+      'reference' => '30f38bffc6f24293dadd1823936372dfa9e86e2f',
     ),
     'psr/cache' => 
     array (
@@ -175,18 +184,18 @@
     ),
     'ramsey/uuid' => 
     array (
-      'pretty_version' => '4.2.1',
-      'version' => '4.2.1.0',
+      'pretty_version' => '4.2.2',
+      'version' => '4.2.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'fe665a03df4f056aa65af552a96e1976df8c8dae',
+      'reference' => '445999c26a53aca1faa0b7b8f4f0d61fc9484c71',
     ),
     'rhumsaa/uuid' => 
     array (
       'replaced' => 
       array (
-        0 => '4.2.1',
+        0 => '4.2.2',
       ),
     ),
     'symfony/deprecation-contracts' => 
@@ -245,21 +254,21 @@
     ),
     'symfony/process' => 
     array (
-      'pretty_version' => 'v4.4.27',
-      'version' => '4.4.27.0',
+      'pretty_version' => 'v4.4.30',
+      'version' => '4.4.30.0',
       'aliases' => 
       array (
       ),
-      'reference' => '0b7dc5599ac4aa6d7b936c8f7d10abae64f6cf7f',
+      'reference' => '13d3161ef63a8ec21eeccaaf9a4d7f784a87a97d',
     ),
     'symfony/translation' => 
     array (
-      'pretty_version' => 'v5.3.4',
-      'version' => '5.3.4.0',
+      'pretty_version' => 'v5.3.7',
+      'version' => '5.3.7.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'd89ad7292932c2699cbe4af98d72c5c6bbc504c1',
+      'reference' => '4d595a6d15fd3a2c67f6f31d14d15d3b7356d7a6',
     ),
     'symfony/translation-contracts' => 
     array (
@@ -279,12 +288,12 @@
     ),
     'symfony/var-dumper' => 
     array (
-      'pretty_version' => 'v4.4.27',
-      'version' => '4.4.27.0',
+      'pretty_version' => 'v4.4.30',
+      'version' => '4.4.30.0',
       'aliases' => 
       array (
       ),
-      'reference' => '391d6d0e7a06ab54eb7c38fab29b8d174471b3ba',
+      'reference' => '7f65c44c2ce80d3a0fcdb6385ee0ad535e45660c',
     ),
     'topthink/framework' => 
     array (
@@ -294,7 +303,7 @@
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '109fedc6efb9b695c7263594b1e3262881e6b2f5',
+      'reference' => '03c23648582149e3ef3a8847689ed33e13d710e8',
     ),
     'topthink/think-captcha' => 
     array (
