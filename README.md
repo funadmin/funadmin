@@ -45,23 +45,22 @@ FunAdmin 基于thinkphp6.X +Layui2.6.*+requirejs开发权限(RBAC)管理框架�
  + 自适应前端，桌面和移动端访问界面友好简洁，模块清晰
  + 兼容ie11 + firefox + Chrome +360 等浏览器
  + 内置`CURD` 命令行模式，帮助助您快速开发系统
- + jwt接口验证等
  + 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
  + 强大的表单管理，只需要使用函数即可成就表单 
- + layui采用最新layui2.6.* 框架
+ + layui采用最新layui2.6.X 框架
  + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
  + require.js 模块化开发 一个命令即可打包js,css ; node r.js -o backend-build.js
- + restful api 接口
+ + restful api 接口,接口使用jwt接口验证等
  + ...更多功能尽请关注
 
 ## 环境要求:
-* PHP >= 7.2 支持php8.0
+* PHP >= 7.4 支持php8.0
 * PDO PHP Extension
 * MBstring PHP Extension
 * CURL PHP Extension
 * 开启静态重写
 * 要求环境支持pathinfo
-* Mysql 5.5及以上 建议5.7及以上
+* Mysql 5.7及以上
 * Apache 或 Nginx
 
 ### 功能特性
@@ -72,7 +71,13 @@ FunAdmin 基于thinkphp6.X +Layui2.6.*+requirejs开发权限(RBAC)管理框架�
 - **简单上手快：** 结构清晰、代码规范、在开发快速的同时还兼顾性能的极致追求。
 - **自身特色：** 权限管理、组件丰富、第三方应用多、分层解耦化设计和先进的设计思想。
 - **高级进阶：** 分布式、负载均衡、集群、Redis、分库分表。
-
+- 
+### 插件
+- ** CMS内容管理插件
+- ** BBS社区插件
+- ** 编辑器插件
+- ** 微信管理插件
+- ** 更多请查看 [插件列表](https://www.funadmin.com/plugins)
 
 ## 开发者信息
 * 系统名称：FunAdmin开发系统框架
