@@ -52,7 +52,7 @@ class ZipHelper
      * @param $zipFile 相对文件路劲
      * @param $folderPath 相对文件夹路劲
      */
-    public static function unzip($zipFile, $folderPath)
+    public static function unzip( $zipFile,$folderPath,$addon=0)
     {
         // Initialize archive object
         if (!class_exists('ZipArchive')) {
@@ -68,6 +68,7 @@ class ZipHelper
         if (!is_dir($folderPath)) {
             @mkdir($folderPath, 0755);
         }
+        $fileDir = trim($zip->getNameIndex(0), '/');
         //解压压缩包
         try {
             $zip->extractTo($folderPath);
@@ -76,7 +77,7 @@ class ZipHelper
         } finally {
             $zip->close();
         }
-        return $folderPath;
+        return $fileDir;
     }
 
 }

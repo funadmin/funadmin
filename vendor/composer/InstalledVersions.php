@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'd3789a6522ba26b6fae87995a585f83489e35140',
+    'reference' => '9e9c51104aab60b35d153a7e597e9e21aa21f96a',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -96,7 +96,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'd3789a6522ba26b6fae87995a585f83489e35140',
+      'reference' => '9e9c51104aab60b35d153a7e597e9e21aa21f96a',
     ),
     'league/flysystem' => 
     array (
@@ -208,18 +208,18 @@ private static $installed = array (
     ),
     'ramsey/uuid' => 
     array (
-      'pretty_version' => '4.2.2',
-      'version' => '4.2.2.0',
+      'pretty_version' => '4.2.3',
+      'version' => '4.2.3.0',
       'aliases' => 
       array (
       ),
-      'reference' => '445999c26a53aca1faa0b7b8f4f0d61fc9484c71',
+      'reference' => 'fc9bb7fb5388691fd7373cd44dcb4d63bbcf24df',
     ),
     'rhumsaa/uuid' => 
     array (
       'replaced' => 
       array (
-        0 => '4.2.2',
+        0 => '4.2.3',
       ),
     ),
     'symfony/deprecation-contracts' => 

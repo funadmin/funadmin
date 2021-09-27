@@ -251,16 +251,16 @@ class Addon extends Backend
             $urls = parse_url(input('url'));
             $file = $urls['path']??'';
             if($file && file_exists('.'.$file)){
-                $zip = zip_open('.'.$file);
-                $filename = zip_entry_name(zip_read($zip));
-                zip_close($zip);
-                $addon = explode('/',$filename)[0];
+//
                 try {
-                    ZipHelper::unzip('.'.$file,'../addons');
+                    $res = ZipHelper::unzip('.'.$file,'../addons');
                 }catch (\Exception $e){
                     $this->error($e->getMessage());
                 }
-                $this->install($addon);
+                if($res){
+                    $addon = substr($res,0,strpos($res, '/'));
+                    $this->install($addon);
+                }
                 $this->success('upload success');
             }
         }
