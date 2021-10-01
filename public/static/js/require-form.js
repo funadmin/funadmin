@@ -382,7 +382,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                 uploadNum = data.value.num,
                                 uploadMime = data.value.mime,
                                 url  = data.value.selecturl;
-                            uploadMime = uploadMime || '*';
+                            uploadMime = uploadMime || '';
                             uploadType = uploadType ? uploadType : 'radio';
                             uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
                             var input = $(this).parents('.layui-upload').find('input[type="text"]');
