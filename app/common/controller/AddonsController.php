@@ -83,6 +83,7 @@ class AddonsController extends Controller
         $this->request = Request::instance();
         //过滤参数
         $this->pageSize = input('limit/d', 15);
+        $this->page = input('page/d', 1);
         //加载语言包
         $this->loadlang(strtolower($this->controller));
         View::assign('addon',$this->addon);
@@ -106,7 +107,7 @@ class AddonsController extends Controller
     {
         $check = $this->request->checkToken('__token__', $this->request->param());
         if (false === $check) {
-            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
+            $this->error(lang('Token verify error'), '', ['__token__' => $this->request->buildToken()]);
         }
     }
     //自动加载语言
@@ -255,14 +256,8 @@ class AddonsController extends Controller
      */
     protected function token()
     {
-        $check = $this->request->checkToken('__token__', $this->request->param());
-        if (false === $check) {
-            $this->error(lang('Token verification error'), '', ['__token__' => $this->request->buildToken()]);
-        }
-        //刷新Token
-        $this->request->buildToken();
+        $this->success('ok','',['__token__'=>$this->request->buildToken()]);
     }
-
 
 
 

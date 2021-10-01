@@ -861,10 +861,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         window.location.reload();
                     }, 1500))
+
                 }, function (res) {
                     Fun.toastr.error(res.msg)
                 })
             }
+
         },
         /**
          * 监听事件
@@ -950,7 +952,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     _that.find('dl').removeAttr('style');
                 });
                 //鼠标放上
-                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover  dd", function () {
+                $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover dd", function () {
                     var _that = $(this);
                     if (!Fun.api.checkScreen()) {
                         if (_that.find('dl')) {

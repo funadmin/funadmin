@@ -65,7 +65,7 @@ trait Jump
             'url' => $url,
             'wait' => $wait,
         ];
-
+        $header['__token__'] = $this->request->buildToken();
         $type = $this->getResponseType();
         // 把跳转模板的渲染下沉，这样在 response_send 行为里通过getData()获得的数据是一致性的格式
         if ('html' == strtolower($type)) {
@@ -95,7 +95,6 @@ trait Jump
         } elseif ($url) {
             $url = (strpos($url, '://') || 0 === strpos($url, '/')) ? $url : (string)$this->app->route->buildUrl($url);
         }
-
         $result = [
             'code' => 0,
             'msg' => $msg,
@@ -103,9 +102,8 @@ trait Jump
             'url' => $url,
             'wait' => $wait,
         ];
-
         $type = $this->getResponseType();
-
+        $header['__token__'] = $this->request->buildToken();
         if ('html' == strtolower($type)) {
             $type = 'view';
             $response = Response::create(app('config')->get('app.dispatch_error_tmpl'), $type)->assign($result)->header($header);
@@ -134,7 +132,7 @@ trait Jump
             'time' => time(),
             'data' => $data,
         ];
-
+        $header['__token__'] = $this->request->buildToken();
         $type = $type ?: $this->getResponseType();
         $response = Response::create($result, $type)->header($header);
 

@@ -6,6 +6,16 @@
     <?php require_once ('step-base.html');?>
 </head>
 <body>
+<style>
+    .layui-icon-ok{
+        font-size:18px;
+        font-weight:bold;
+        color: #009688;
+    }
+    .layui-icon-close{
+        color: #FF5722;
+    }
+</style>
 <div class="layui-container">
     <h1 class="install-h1">环境检测</h1>
     <?php if(is_file($lockFile)):?>
@@ -27,18 +37,18 @@
             <td>操作系统</td>
             <td>不限</td>
             <td><?php echo php_uname('s'); ?></td>
-            <td class="yes">√</td>
+            <td><i class="layui-icon layui-icon-ok"></i></td>
         </tr>
         <tr>
             <td>php版本</td>
             <td>7.2+</td>
             <td><?php echo PHP_VERSION ?></td>
             <?php $php_version=explode('.', PHP_VERSION);?>
-            <td class="<?php if(version_compare(PHP_VERSION, '7.2.0', '>')) echo 'yes'; ?>">
+            <td>
                 <?php if(version_compare(PHP_VERSION, '7.2.0', '>')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -83,11 +93,11 @@
                         }
                     }
                 ?></td>
-            <td class="<?php if($pdo) echo 'yes'; ?>">
+            <td>
                 <?php if ($pdo): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -101,11 +111,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(extension_loaded('pdo')) echo 'yes'; ?>">
+            <td>
                 <?php if(extension_loaded('pdo')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -123,11 +133,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(function_exists('gd_info')) echo 'yes'; ?>">
+            <td>
                 <?php if(function_exists('gd_info')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -141,11 +151,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(function_exists('putenv')) echo 'yes'; ?>">
+            <td>
                 <?php if(function_exists('putenv')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -159,11 +169,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(function_exists('session_start')) echo 'yes'; ?>">
+            <td>
                 <?php if(function_exists('session_start')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -177,11 +187,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(extension_loaded('openssl')) echo 'yes'; ?>">
+            <td>
                 <?php if(extension_loaded('openssl')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -195,11 +205,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(function_exists('curl_exec')) echo 'yes'; ?>">
+            <td>
                 <?php if(function_exists('curl_exec')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -213,11 +223,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(function_exists('imageftbbox')) echo 'yes'; ?>">
+            <td>
                 <?php if(function_exists('imageftbbox')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -231,11 +241,11 @@
                 不支持
                 <?php endif ?>
             </td>
-            <td class="<?php if(extension_loaded('fileinfo')) echo 'yes'; ?>">
+            <td>
                 <?php if(extension_loaded('fileinfo')): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -243,11 +253,11 @@
             <td>上传限制</td>
             <td>10M+</td>
             <td><?php echo get_cfg_var('upload_max_filesize'); ?></td>
-            <td class="<?php if(get_cfg_var('upload_max_filesize') >= 10) echo 'yes'; ?>">
+            <td>
                 <?php if(get_cfg_var('upload_max_filesize') >= 10): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                <span class="layui-red">×</span>
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
@@ -272,18 +282,18 @@
                 不可写
                 <?php endif ?>
             </td>
-            <td class="<?php if(is_writable($config['runtimePath'])) echo 'yes'; ?>">
+            <td>
                 <?php if (is_writable($config['runtimePath'])): ?>
-                √
+                <i class="layui-icon layui-icon-ok"></i>
                 <?php else: ?>
-                ×
+                <i class="layui-icon layui-icon-close"></i>
                 <?php endif ?>
             </td>
         </tr>
     </table>
     <div class="btn-box">
-        <a class="layui-btn  layui-btn-normal" href="./install.php?s=step1">上一步</a>
-        <a class="layui-btn  next" href="javascript:;" data-href="./install.php?s=step3">下一步</a>
+        <a class="layui-btn layui-btn-normal layui-btn-radius" href="./install.php?s=step1">上一步</a>
+        <a class="layui-btn  layui-btn-radius next" href="javascript:;" data-href="./install.php?s=step3">下一步</a>
     </div>
 </div>
 <script>
@@ -292,7 +302,7 @@
         // 判断是否通过
         $(document).on("click",'.next',function(){
             // 判断检测是否达标
-            if($('.yes').length < 13 || msg){
+            if($('.layui-icon-ok').length < 13 || msg){
                 msg = msg?msg:'您的配置或权限未满足要求';
                 layer.msg(msg);
             }else{

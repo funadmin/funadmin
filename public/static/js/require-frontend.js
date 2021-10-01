@@ -39,8 +39,6 @@ require.config({
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
-        'Vue'           : 'plugins/vue/vue.global',        //自定义
-
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',

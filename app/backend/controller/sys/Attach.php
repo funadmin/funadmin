@@ -17,6 +17,8 @@ namespace app\backend\controller\sys;
 use app\common\controller\Backend;
 use app\common\traits\Curd;
 use app\common\model\Attach as AttachModel;
+use app\backend\model\AttachGroup ;
+use fun\helper\TreeHelper;
 use think\App;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
@@ -64,6 +66,58 @@ class Attach extends Backend
         }
         return view();
     }
+    /**
+     * @NodeAnnotation('选择文件')
+     * @return \think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function selectfiles()
+    {
+        $param = $this->request->param();
+        $group = AttachGroup::order('sort asc')->select()->toArray();
+        $allGroup = [['pid'=>0,'id'=>0,'title'=>'全部','sort'=>1, 'disabled'=> true,'radioDisabled'=>true ,  "children" => []]];
+        $groupList = array_merge($allGroup,TreeHelper::getTree($group));
+        list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+        if(input('group_id')){
+            $where[] = ['group_id','=',input('group_id')];
+        }
+        if(input('original_name')){
+            $where[] = ['original_name','like','%'.input('original_name').'%'];
+        }
+        $this->pageSize = $param['limit']??12;
+        $list = $this->modelClass
+            ->where($where)
+            ->order($sort)
+            ->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+        return view('',['param'=>$param,'groupList'=>$groupList, 'data' => $list->items(), 'count' =>$list->total()]);
+    }
+    /**
+     * @NodeAnnotation('移动文件')
+     * @return \think\response\Json|\think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function move()
+    {
+        $ids = $this->request->param('ids') ? $this->request->param('ids') : $this->request->param('id');
+        $list = $this->modelClass->where('id','in', $ids)->select();
+        if (empty($list)) $this->error('Data is not exist');
+        try {
+            foreach ($list as $v) {
+                $v->group_id= input('group_id');
+                $save = $v->save();
+            }
+        } catch (\Exception $e) {
+            $this->error(lang("operation success"));
+        }
+        $save ? $this->success(lang('move success')) : $this->error(lang("move fail"));
+    }
 
     /**
      * @NodeAnnotation(title="删除")
@@ -78,12 +132,13 @@ class Attach extends Backend
         $list = $this->modelClass->where('id','in', $ids)->select();
         if (empty($list)) $this->error('Data is not exist');
         try {
-            foreach ($list as $k=>$v){
-                $v->force()->delete();
-            }
             foreach ($list as $v) {
-                @unlink(app()->getRootPath() . 'public' . $v->path);
-                $save = $v->force->delete();
+                $path = str_replace('\\',DIRECTORY_SEPARATOR,$v->path);
+                $path = str_replace('/',DIRECTORY_SEPARATOR,$v->path);
+                if(file_exists(app()->getRootPath() . 'public' . $path)) {
+                    @unlink(app()->getRootPath() . 'public' .$path);
+                }
+                $save = $v->force(true)->delete();
             }
         } catch (\Exception $e) {
             $this->error(lang("operation success"));

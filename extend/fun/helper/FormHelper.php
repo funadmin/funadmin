@@ -532,7 +532,7 @@ class FormHelper
             $options['num'] = 1;
         }
         if (!isset($options['path'])) {
-            $options['path'] = 'upload';
+            $options['path'] = 'upload';//上传路劲
         }
         $css = isset($options['css'])?$options['css']:'display:inline-block;';
         $label = isset($options['label']) ? $options['label'] : $name;
@@ -612,11 +612,14 @@ class FormHelper
             'exts' => isset($options['exts']) ? $options['exts'] : '',
             'accept' => isset($options['accept']) ? $options['accept'] : '',
             'multiple' => isset($options['multiple']) ? $options['multiple'] : '',
+            'selecturl' => isset($options['selecturl']) ? $options['selecturl'] : '',
+            'tableurl' => isset($options['tableurl']) ? $options['tableurl'] : '',
         ];
         $op = "data-value='" . json_encode($op, true) . "'";
         $select_container= '';
         if ((isset($options['select']) and $options['select']) || !isset($options['select'])) {
-            $select_container =  '<button id="'.$name.'" type="button" class="layui-btn layui-btn-danger upload-select"  ' . $op . '  lay-filter="upload-select"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>';
+            $options['select'] = $options['select']??'upload-select'; //可选upload-choose
+            $select_container =  '<button id="'.$name.'" type="button" class="layui-btn layui-btn-danger ' .$options['select'].'" ' . $op . '  lay-filter="'.$options['select'].'"><i class="layui-icon layui-icon-align-center"></i>' . lang('Choose') . '</button>';
         }
         $str = ' <div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
@@ -624,7 +627,7 @@ class FormHelper
                     <div class="layui-upload">
                         <input value="' . $value . '" style="'.$css.' ;width:65% " type="text" name="' . $name . '" class="layui-input attach '.self::addClass($options).'"' . self::verify($options) . '/>
                        ' . $croper_container . '
-                        <button type="button" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>' . lang('Uploads') . '</button>
+                        <button type="button"  style="margin-left:0px" class="layui-btn"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-circle"></i>' . lang('Uploads') . '</button>
                         '. $select_container .'
                         <div class="layui-upload-list">'
             . $li . '

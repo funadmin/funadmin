@@ -6,6 +6,7 @@ define(["jquery", 'croppers'], function($, croppers) {
             requests: {
                 upload_url: '/ajax/uploads',
                 attach_url: '/ajax/getAttach',
+                select_url:'/sys.attach/selectfiles'
             },
             upload_exts: Config.upload.upload_exts,
             upload_size: Config.upload.upload_size,
@@ -191,7 +192,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;
-                        area = area || '900px';
+                        area = area || '850px';
                         layui.croppers.render({
                             elem: '#' + id,
                             saveW: saveW //保存宽度

@@ -17,7 +17,7 @@
         <p style="color: red;">请牢记后台登录地址：<a href="http://<?= $_SERVER['HTTP_HOST'].'/'.$_SESSION['backend']?>"><?= $_SERVER['HTTP_HOST'].'/'.$_SESSION['backend']?></a></p>
     </blockquote>
     <div class="btn-box">
-        <a href="/" class="layui-btn layui-btn-normal">前往前台浏览</a>
+        <a href="/" class="layui-btn layui-btn-normal layui-btn-radius">前往前台浏览</a>
         <a href="<?= $_SESSION['backend']?>" onclick="
 '<?php
 //清除session
@@ -25,7 +25,7 @@ $_SESSION['backend']=null;
 $_SESSION['admin']=null;
 $_SESSION['password']=null;
 ?>'
-" class="layui-btn layui-btn-danger">后台登录</a>
+" class="layui-btn layui-btn-danger layui-btn-radius">后台登录</a>
     </div>
     <?php else :?>
     <script>window.location.href='./install.php?s=step1';</script>

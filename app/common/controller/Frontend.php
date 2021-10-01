@@ -163,7 +163,7 @@ class Frontend extends BaseController
             parent::validate($data, $validate, $message, $batch);
             $this->checkToken();
         } catch (ValidateException $e) {
-            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
+            $this->error($e->getMessage(),'',['__token__'=>$this->request->buildToken()]);
         }
         return true;
     }
@@ -175,7 +175,7 @@ class Frontend extends BaseController
     {
         $check = $this->request->checkToken('__token__', $this->request->param());
         if (false === $check) {
-            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
+            $this->error(lang('Token verify error'), '', ['__token__' => $this->request->buildToken()]);
         }
     }
     /**

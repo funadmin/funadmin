@@ -62,6 +62,8 @@ class UploadService extends AbstractService
         //获取上传文件表单字段名
         $type = Request::param('type', 'file');
         $path = Request::param('path', 'uploads');
+        $group_id = Request::param('group_id', 1);
+        $path = $path =='undefined'?'uploads':$path;
         $editor = Request::param('editor', '');
         $save = Request::param('save', '');
         $files = request()->file();
@@ -114,6 +116,7 @@ class UploadService extends AbstractService
                             $data = [
                                 'admin_id'      => $adminid,
                                 'member_id'     => $uid,
+                                'group_id'     => $group_id,
                                 'original_name' => $original_name,
                                 'name'          => $file_name,
                                 'path'          => $path,

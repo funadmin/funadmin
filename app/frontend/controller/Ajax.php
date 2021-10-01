@@ -57,6 +57,10 @@ class Ajax extends Frontend
     {
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $where = [];
+            if(input('original_name')){
+                $where[] =['original_name|id','like','%'.input('original_name').'%'];
+            }
             $count = $this->modelClass
                 ->where($where)
                 ->order($sort)

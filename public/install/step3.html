@@ -111,9 +111,10 @@
                             </div>
                         </div>
                         <div class="layui-form-item submit">
-                            <a type="submit" class="layui-btn layui-btn-normal" href="./install.php?s=step2">上一步</a>
-                            <button type="submit" class="layui-btn" lay-submit="" lay-filter="submit" style="text-align:center;">立即安装</button>
+                            <a type="submit" class="layui-btn layui-btn-normal layui-btn-radius" href="./install.php?s=step2">上一步</a>
+                            <button type="submit" class="layui-btn layui-btn-radius" lay-submit="" lay-filter="submit" style="text-align:center;">立即安装</button>
                         </div>
+                    </div>
                 </form>
                 <br>
                 <div class="layui-footer footer">
@@ -132,6 +133,7 @@
         form.on('submit(submit)', function(data){
             var that = $(this);
             var load = layer.load();
+            $('.layui-btn-radius').addClass('layui-hide');
             that.text('安装中...').prop('disabled', true);
             $.post('', data.field)
                 .done(function (res) {
@@ -146,8 +148,8 @@
                             window.location.href='./install.php?s=step4';
                         });
                     } else {
+                        $('.layui-btn-radius').removeClass('layui-hide');
                         $('#layui-error').show().text(res);
-                        that.prop('disabled', false).text('点击安装');
                         $("html,body").animate({
                             scrollTop: 0
                         }, 500);
@@ -156,7 +158,8 @@
                 })
                 .fail(function (data) {
                     $('#layui-error').show().text('发生错误:\n\n' + data.responseText);
-                    that.prop('disabled', false).text('点击安装');
+                    $('.layui-btn-radius').removeClass('layui-hide');
+
                     $("html,body").animate({
                         scrollTop: 0
                     }, 500);

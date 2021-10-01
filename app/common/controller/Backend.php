@@ -78,6 +78,7 @@ class Backend extends BaseController
         }
         //过滤参数
         $this->pageSize = input('limit', 15);
+        $this->page = input('page', 1);
         //加载语言包
         $this->loadlang($controller,'');
     }
@@ -151,7 +152,7 @@ class Backend extends BaseController
      */
     protected function token()
     {
-        return $this->request->buildToken('__token__','sha1');
+        $this->success('ok','',['__token__'=>$this->request->buildToken()]);
     }
 
 

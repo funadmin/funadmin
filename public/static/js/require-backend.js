@@ -19,7 +19,7 @@ require.config({
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker','xmSelect',
+        'timeago','multiSelect','cityPicker','xmSelect','eleTree',
         'regionCheckBox','timePicker','croppers', 'moment',
         'backend','md5','fun','fu','form','table','upload','addons','Vue'],
     paths: {
@@ -35,6 +35,7 @@ require.config({
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
+        'eleTree'        : 'plugins/lay-module/eletree/eleTree',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
@@ -45,8 +46,6 @@ require.config({
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'     : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
-        'Vue'           : 'plugins/vue/vue.global',
-
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend'+(Config.site.app_debug?'':'.min'), // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
