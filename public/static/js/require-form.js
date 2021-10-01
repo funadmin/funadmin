@@ -376,72 +376,73 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                 var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-select\"]");
                 if (fileSelectList.length > 0) {
                     $.each(fileSelectList, function(i, v) {
-                        var data = $(this).data();
-                        var uploadType = data.value.type,
-                            uploadNum = data.value.num,
-                            uploadMime = data.value.mime,
-                            url  = data.value.selecturl;
-                        uploadMime = uploadMime || '*';
-                        uploadType = uploadType ? uploadType : 'radio';
-                        uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
-                        var input = $(this).parents('.layui-upload').find('input[type="text"]');
-                        var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
-                        var id = $(this).attr('id');
-                        url = url?url: Config.entrance+Upload.init.requests.select_url + '?' +
-                            '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
-                            '&path='+path+'&type='+uploadType;
-                        var parentiframe = Fun.api.checkLayerIframe()
-                        options = {
-                            url: url, width: '950', height: '600', method: 'get', yes:  function (index, layero) {
-                                try {
-                                    $(document).ready(function () {
-                                        // 父页面获取子页面的iframe
-                                        var body = layer.getChildFrame('body', index);
-                                        if (parentiframe) {
-                                            body = parent.layer.getChildFrame('body', index);
-                                        }
-                                        li = body.find('.box-body .file-list-item li.active');
-                                        if(li.length===0){
-                                            Fun.toastr.error(__('please choose file'));
-                                            return  false;
-                                        }
-                                        var fileArr=[],html='';
-                                        $.each(li, function(index, val) {
-                                            var type = $(this).data('type'), url =  $(this).data('url');
-                                            if (type.indexOf('image') !==false) {
-                                                html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                            } else if (type.indexOf('video') !==false) {
-                                                html += '<li><video controls class="layui-upload-img fl" width="150" src="' + url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                            } else if (type === 'audio') {
-                                                html += '<li><audio controls class="layui-upload-img fl"  src="' + url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                            } else if (type === 'zip') {
-                                                html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                            } else {
-                                                html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                            }
-                                            fileArr.push(url)
-                                        });
-                                        var fileurl = fileArr.join(',');
-                                        var inptVal = input.val();
-                                        if (uploadNum === 1) {
-                                            input.val(fileurl)
-                                            uploadList.html(html)
-                                        } else {
-                                            if (inptVal) {
-                                                input.val(inptVal + ',' + fileurl);
-                                            } else {
-                                                input.val(fileurl)
-                                            }
-                                            uploadList.append(html)
-                                        }
-                                    })
-                                } catch (err) {
-                                    Fun.toastr.error(err)
-                                }
-                                parent.layer.close(index)
-                            }
-                        }
                         $(this).click(function(e){
+                            var data = $(this).data();
+                            var uploadType = data.value.type,
+                                uploadNum = data.value.num,
+                                uploadMime = data.value.mime,
+                                url  = data.value.selecturl;
+                            uploadMime = uploadMime || '*';
+                            uploadType = uploadType ? uploadType : 'radio';
+                            uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
+                            var input = $(this).parents('.layui-upload').find('input[type="text"]');
+                            var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
+                            var id = $(this).attr('id');
+                            url = url?url: Config.entrance+Upload.init.requests.select_url + '?' +
+                                '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
+                                '&path='+path+'&type='+uploadType;
+                            var parentiframe = Fun.api.checkLayerIframe()
+                            options = {
+                                title:__('Filelist'),
+                                url: url, width: '950', height: '600', method: 'get', yes:  function (index, layero) {
+                                    try {
+                                        $(document).ready(function () {
+                                            // 父页面获取子页面的iframe
+                                            var body = layer.getChildFrame('body', index);
+                                            if (parentiframe) {
+                                                body = parent.layer.getChildFrame('body', index);
+                                            }
+                                            li = body.find('.box-body .file-list-item li.active');
+                                            if(li.length===0){
+                                                Fun.toastr.error(__('please choose file'));
+                                                return  false;
+                                            }
+                                            var fileArr=[],html='';
+                                            $.each(li, function(index, val) {
+                                                var type = $(this).data('type'), url =  $(this).data('url');
+                                                if (type.indexOf('image') !==false) {
+                                                    html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                } else if (type.indexOf('video') !==false) {
+                                                    html += '<li><video controls class="layui-upload-img fl" width="150" src="' + url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                } else if (type === 'audio') {
+                                                    html += '<li><audio controls class="layui-upload-img fl"  src="' + url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                } else if (type === 'zip') {
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                } else {
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                }
+                                                fileArr.push(url)
+                                            });
+                                            var fileurl = fileArr.join(',');
+                                            var inptVal = input.val();
+                                            if (uploadNum === 1) {
+                                                input.val(fileurl)
+                                                uploadList.html(html)
+                                            } else {
+                                                if (inptVal) {
+                                                    input.val(inptVal + ',' + fileurl);
+                                                } else {
+                                                    input.val(fileurl)
+                                                }
+                                                uploadList.append(html)
+                                            }
+                                        })
+                                    } catch (err) {
+                                        Fun.toastr.error(err)
+                                    }
+                                    parent.layer.close(index)
+                                }
+                            }
                             var index = Fun.api.open(options)
                         })
                     });

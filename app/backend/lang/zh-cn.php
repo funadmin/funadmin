@@ -136,6 +136,10 @@ return [
     'Please install the upload plugin first'=>'请先安装上传插件',
 
     //菜单
+    'FileList'=>'文件列表',
+    'groupadd'=>'分组添加',
+    'groupedit'=>'分组编辑',
+    'groupdelete'=>'分组删除',
     'Fullscreen'  =>  "全屏",
     'Lock'  =>  "锁屏",
     'zh-cn'  =>  "中文",
