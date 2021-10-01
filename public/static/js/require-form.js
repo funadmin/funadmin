@@ -393,7 +393,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                 '&path='+path+'&type='+uploadType;
                             var parentiframe = Fun.api.checkLayerIframe();
                             options = {
-                                title:__('Filelist'),
+                                title:__('Filelist'),type:2,
                                 url: url, width: '950', height: '600', method: 'get', yes:  function (index, layero) {
                                     try {
                                         $(document).ready(function () {
