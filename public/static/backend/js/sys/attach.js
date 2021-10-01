@@ -351,7 +351,13 @@ define(['jquery','table','upload','form','eleTree'], function (undefined,Table,U
                     }
                 }
             });
-
+            $(document).on('click','button[type="submit"]',function () {
+                var _this = $(this);
+                val = $.trim($('input.search').val());
+                var url = window.location.href;
+                url  = url.indexOf('?')!==-1?url+"&group_id="+group_id+'&original_name='+val :url+'?group_id='+group_id+'&original_name='+val
+                location.href = url;
+            })
             $(document).on('click','.file-delete',function () {
                 var _this = $(this);
                 var ids = fileSelect(_this);
