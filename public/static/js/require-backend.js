@@ -35,7 +35,7 @@ require.config({
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
-        'eleTree'        : 'plugins/lay-module/eletree/eleTree',//提示框
+        // 'eleTree'        : 'plugins/lay-module/eletree/eleTree',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',

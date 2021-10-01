@@ -1,3 +1,4 @@
+
 ### v1.5.0 
 - 增加require-table搜索表单模板，可以自行添加搜索框
 - 修复traits/curd

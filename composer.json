@@ -4,13 +4,9 @@
   "type": "project",
   "license": "Apache-2.0",
   "keywords": [
-    "FunAdmin",
-    "Requirejs",
-    "easywechat",
-    "framework",
-    "thinkphp",
-    "thinkphp6",
-    "ORM"
+    "FunAdmin","CMS","CMF","Layui",
+    "easywechat", "framework","TP6",
+    "thinkphp", "thinkphp6", "ORM"
   ],
   "homepage": "https://www.funadmin.com",
   "authors": [
