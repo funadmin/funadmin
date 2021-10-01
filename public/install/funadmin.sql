@@ -157,6 +157,7 @@ CREATE TABLE `fun_attach` (
                               `id` int NOT NULL,
                               `admin_id` int NOT NULL DEFAULT '0' COMMENT '管理员id',
                               `member_id` int NOT NULL DEFAULT '0' COMMENT '用户表id',
+                              `group_id` int NOT NULL DEFAULT '1' COMMENT '分组id',
                               `original_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件原名',
                               `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件名',
                               `thumb` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略图',
@@ -182,10 +183,55 @@ CREATE TABLE `fun_attach` (
 -- 转存表中的数据 `fun_attach`
 --
 
-INSERT INTO `fun_attach` (`id`, `admin_id`, `member_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `sha1`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`, `delete_time`) VALUES
-                                                                                                                                                                                                                                                            (34, 1, 0, 'favicon.ico.png', '7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', 'png', 13, '250', '250', 'af81d0a4bbb154e4e4a3468f28bd826f', 'e2392698f3a204a6656f8cd87834931cc62d0006', 'image/png', '0', NULL, 1606530748, 1606530748, 1, 50, 0),
-                                                                                                                                                                                                                                                            (35, 1, 0, 'banner-bg.png', 'e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', 'png', 1083, '1917', '615', '9a4c9af6693c0855682e030e80f4efe4', '9425b7055cd3aafcad504b5cb0435cfe4b53f5b4', 'image/png', '0', NULL, 1607333753, 1607333753, 1, 50, 0),
-                                                                                                                                                                                                                                                            (36, 1, 0, 'fun-avatar.png', 'f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', 'png', 66, '300', '300', 'eaf2ed79806161d42b31fa44dd25efaf', '70a3cdb2922f51ae2513ec0341f71098be60103f', 'image/png', '0', NULL, 1607769353, 1607769353, 1, 50, 0);
+INSERT INTO `fun_attach` (`id`, `admin_id`, `member_id`,`group_id`, `original_name`, `name`, `thumb`, `path`, `url`, `ext`, `size`, `width`, `height`, `md5`, `sha1`, `mime`, `duration`, `driver`, `create_time`, `update_time`, `status`, `sort`, `delete_time`) VALUES
+                                                                                                                                                                                                                                                            (34, 1, 0,1, 'favicon.ico.png', '7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', '\\storage\\upload/20201128\\7132934c7842a6d56d6b9523c83ad4c6.png', 'png', 13, '250', '250', 'af81d0a4bbb154e4e4a3468f28bd826f', 'e2392698f3a204a6656f8cd87834931cc62d0006', 'image/png', '0', NULL, 1606530748, 1606530748, 1, 50, 0),
+                                                                                                                                                                                                                                                            (35, 1, 0, 1,'banner-bg.png', 'e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', '\\storage\\uploads/20201207\\e38f967f5327953c9eedcdf616b37659.png', 'png', 1083, '1917', '615', '9a4c9af6693c0855682e030e80f4efe4', '9425b7055cd3aafcad504b5cb0435cfe4b53f5b4', 'image/png', '0', NULL, 1607333753, 1607333753, 1, 50, 0),
+                                                                                                                                                                                                                                                            (36, 1, 0, 1,'fun-avatar.png', 'f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', '\\storage\\undefined/20201212\\f60f20290183ec20dedbe440fb39827c.png', 'png', 66, '300', '300', 'eaf2ed79806161d42b31fa44dd25efaf', '70a3cdb2922f51ae2513ec0341f71098be60103f', 'image/png', '0', NULL, 1607769353, 1607769353, 1, 50, 0);
+--
+-- 表的结构 `fun_attach_group`
+--
+
+CREATE TABLE `fun_attach_group` (
+                                          `id` int(11) NOT NULL,
+                                          `pid` int(8) DEFAULT '0' COMMENT '上级ID',
+                                          `title` varchar(100) NOT NULL COMMENT '分组名',
+                                          `create_time` int(10) DEFAULT NULL COMMENT '添加时间',
+                                          `delete_time` int(10) DEFAULT '0' COMMENT '删除时间',
+                                          `update_time` int(10) DEFAULT NULL COMMENT '修改时间',
+                                          `thumb` varchar(255) DEFAULT '' COMMENT '分组图片',
+                                          `status` tinyint(1) DEFAULT '1' COMMENT '状态',
+                                          `sort` int(10) DEFAULT '999'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='附件分组';
+
+--
+-- 转存表中的数据 `fun_attach_group`
+--
+
+INSERT INTO `fun_attach_group` (`id`, `pid`, `title`, `create_time`, `delete_time`, `update_time`, `thumb`, `status`, `sort`) VALUES
+    (1, 0, '默认组别', 0, 0, 1632921412, '', 1, 999);
+
+--
+-- 转储表的索引
+--
+
+--
+-- 表的索引 `fun_attach_group`
+--
+ALTER TABLE `fun_attach_group`
+    ADD PRIMARY KEY (`id`),
+  ADD KEY `pid` (`create_time`),
+  ADD KEY `pid_2` (`pid`);
+
+--
+-- 在导出的表使用AUTO_INCREMENT
+--
+
+--
+-- 使用表AUTO_INCREMENT `fun_attach_group`
+--
+ALTER TABLE `fun_attach_group`
+    MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+COMMIT;
 
 -- --------------------------------------------------------
 
@@ -348,9 +394,13 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
                                                                                                                                                                                                 (165, 'backend', '_self', 'sys.blacklist/recycle', 'recycle', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
                                                                                                                                                                                                 (166, 'backend', '_self', 'sys.blacklist/restore', 'restore', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
                                                                                                                                                                                                 (167, 'backend', '_self', 'sys.blacklist/destroy', 'destroy', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
-                                                                                                                                                                                                (168, 'backend', '_self', 'sys.blacklist/import', 'import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0);
-
--- --------------------------------------------------------
+                                                                                                                                                                                                (168, 'backend', '_self', 'sys.blacklist/import', 'import', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 156, 50, 1567568357, 1599884251, 0),
+                                                                                                                                                                                                (169, 'backend', '_self', 'sys.attach/edit', 'Edit', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0'),
+                                                                                                                                                                                                (170, 'backend', '_self', 'sys.attach/move', 'Move', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0'),
+                                                                                                                                                                                                (171, 'backend', '_self', 'sys.attach/selectfiles', 'selectfiles', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0'),
+                                                                                                                                                                                                (172, 'backend', '_self', 'sys.attachGroup/add', 'Groupadd', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0'),
+                                                                                                                                                                                                (173, 'backend', '_self', 'sys.attachGroup/edit', 'Groupedit', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0'),
+                                                                                                                                                                                                (174, 'backend', '_self', 'sys.attachGroup/delete', 'Groupdelete', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0');
 
 --
 -- 表的结构 `fun_blacklist`
@@ -724,8 +774,8 @@ CREATE TABLE `fun_member_third` (
                                     `country` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '国家',
                                     `province` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '省',
                                     `city` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '市',
-                                    `access_token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'AccessToken',
-                                    `refresh_token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'RefreshToken' COMMENT '刷新TOKEN',
+                                    `access_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT 'AccessToken',
+                                    `refresh_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'RefreshToken' COMMENT '刷新TOKEN',
                                     `expires_in` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '有效期',
                                     `create_time` int UNSIGNED DEFAULT NULL COMMENT '创建时间',
                                     `update_time` int UNSIGNED DEFAULT NULL COMMENT '更新时间',
