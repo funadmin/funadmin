@@ -1,4 +1,4 @@
-define(['jquery','table','upload','form','eleTree'], function (undefined,Table,Upload,Form,eleTree) {
+define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form) {
     Table.init = {
         table_elem: 'list',
         tableId: 'list',
