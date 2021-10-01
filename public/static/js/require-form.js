@@ -386,6 +386,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                             uploadType = uploadType ? uploadType : 'radio';
                             uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
                             var input = $(this).parents('.layui-upload').find('input[type="text"]');
+                            var token = $(this).parents('form').find('input[name="__token__"]');
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
                             url = url?url: Config.entrance+Upload.init.requests.select_url + '?' +
@@ -403,6 +404,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                                 body = parent.layer.getChildFrame('body', index);
                                             }
                                             li = body.find('.box-body .file-list-item li.active');
+                                            __token__ = body.find('input[name="__token__"]').val();
                                             if(li.length===0){
                                                 Fun.toastr.error(__('please choose file'));
                                                 return false;
@@ -436,6 +438,8 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                                 }
                                                 uploadList.append(html)
                                             }
+                                            //token失效
+                                            token.val(__token__)
                                             parent.layer.close(index)
                                         })
                                     } catch (err) {
