@@ -41,7 +41,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     {
                         field: 'mime', title: __('FileTye'), width: 120, sort: true, templet: function (d) {
                             let html = '';
-                            if (d.mime === 'image/jpeg' || d.mime === 'image/gif' || d.mime === 'image/png' || d.mime === 'image/webp' || d.mime === 'image/bmp') {
+                            if (d.mime.indexOf('image') >=0) {
                                 html += '<img src="' + STATIC + '/backend/images/filetype/image.jpg" alt="' + __('Image') + '" width="50">'
                             } else if (d.mime === 'application/pdf') {
                                 html += '<img src="' + STATIC + '/backend/images/filetype/pdf.jpg" alt="' + __('Pdf') + '" width="50">'

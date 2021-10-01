@@ -439,7 +439,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     anim: 0,
                     shade: 0.1,
                     isOutAnim: true,
-                    // zIndex: layer.zIndex, //
                     maxmin: true,
                     moveOut: true,
                     resize: isResize,
@@ -449,7 +448,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     success: success === undefined ? function (layero) {
                         try {
                             // 置顶当前窗口
-                            layer.setTop(layero);
+                            top.layuilayer.setTop(layero);
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');

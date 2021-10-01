@@ -391,7 +391,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                             url = url?url: Config.entrance+Upload.init.requests.select_url + '?' +
                                 '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
                                 '&path='+path+'&type='+uploadType;
-                            var parentiframe = Fun.api.checkLayerIframe()
+                            var parentiframe = Fun.api.checkLayerIframe();
                             options = {
                                 title:__('Filelist'),
                                 url: url, width: '950', height: '600', method: 'get', yes:  function (index, layero) {
@@ -405,18 +405,18 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                             li = body.find('.box-body .file-list-item li.active');
                                             if(li.length===0){
                                                 Fun.toastr.error(__('please choose file'));
-                                                return  false;
+                                                return false;
                                             }
                                             var fileArr=[],html='';
                                             $.each(li, function(index, val) {
                                                 var type = $(this).data('type'), url =  $(this).data('url');
-                                                if (type.indexOf('image') !==false) {
+                                                if (type.indexOf('image') >=0)  {
                                                     html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                                } else if (type.indexOf('video') !==false) {
+                                                } else if (type.indexOf('video') >= 0) {
                                                     html += '<li><video controls class="layui-upload-img fl" width="150" src="' + url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                                } else if (type === 'audio') {
+                                                } else if (type.indexOf('audio') >= 0) {
                                                     html += '<li><audio controls class="layui-upload-img fl"  src="' + url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
-                                                } else if (type === 'zip') {
+                                                } else if (type.indexOf('zip') >= 0) {
                                                     html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else {
                                                     html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
@@ -436,11 +436,12 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                                 }
                                                 uploadList.append(html)
                                             }
+                                            parent.layer.close(index)
                                         })
                                     } catch (err) {
                                         Fun.toastr.error(err)
                                     }
-                                    parent.layer.close(index)
+                                    return false;
                                 }
                             }
                             var index = Fun.api.open(options)
