@@ -15,5 +15,6 @@ return [
     'Userid'=>'用户id',
     'Width'=>'宽',
     'Height'=>'高',
+    'ALL OR DEFAULT CAN NOT DELETE'=>"默认或全部不能删除",
 
 ];
