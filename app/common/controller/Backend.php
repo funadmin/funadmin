@@ -13,6 +13,7 @@
 
 namespace app\common\controller;
 use app\BaseController;
+use app\common\model\Languages;
 use app\common\traits\Jump;
 use app\common\traits\Curd;
 use think\App;
@@ -86,16 +87,12 @@ class Backend extends BaseController
     public function enlang()
     {
         $lang = $this->request->get('lang');
-        switch ($lang) {
-            case 'zh-cn':
-                Cookie::set('think_lang', 'zh-cn');
-                break;
-            case 'en-us':
-                Cookie::set('think_lang', 'en-us');
-                break;
-            default:
-                Cookie::set('think_lang', 'zh-cn');
-                break;
+        $language = Languages::where('name',$lang)->find();
+        if(!$language) $this->error(lang('please check language config'));
+        if(strtolower($lang)=='zh-cn' || !$lang){
+            Cookie::set('think_lang', 'zh-cn');
+        }else{
+            Cookie::set('think_lang', $lang);
         }
         $this->success(lang('Change Success'));
     }
@@ -130,7 +127,7 @@ class Backend extends BaseController
             parent::validate($data, $validate, $message, $batch);
             $this->checkToken();
         } catch (ValidateException $e) {
-            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
+            $this->error($e->getMessage());
         }
         return true;
     }

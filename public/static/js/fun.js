@@ -116,15 +116,9 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     request.url = Fun.url(request.url);
                 },
                 success: function (res) {
-                    // if(index){
-                    //     Fun.toastr.close(index);
-                    // }
                     if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
                     } else {
-                        if (res.hasOwnProperty('data') && res.data['token']) {
-                            $("input[name='__token__']").val(res.data.token);
-                        }
                         return error(res);
                     }
                 },
@@ -132,7 +126,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     console.log(xhr);
                     var message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
                     Fun.toastr.error('Status:' + xhr.status + '\n' + message, function () {
-                        $("input[name='__token__']").val(xhr.responseJson);
+                        xhr.getResponseHeader('__token__')
                         ex(this);
                     });
                     return false;
