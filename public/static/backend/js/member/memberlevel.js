@@ -26,10 +26,12 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh','add','destroy','export','recycle'],
+                size:'lg',
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('Id'), width: 80, sort: true},
                     {field: 'name', title: __('Levelname'), width: 120, sort: true},
+                    {field: 'thumb', title: __('缩略图'), width: 120, sort: true, templet: Table.templet.image},
                     {field: 'amount', title: __('Levelmoney'), width: 150, sort: true},
                     {field: 'discount', title: __('Leveldiscount'), width: 180, sort: true},
                     {field: 'description', title: __('Leveldesc'), width: 150, sort: true},

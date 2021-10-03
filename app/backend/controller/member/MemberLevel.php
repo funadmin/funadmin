@@ -27,6 +27,7 @@ class MemberLevel extends Backend{
      * @throws \think\db\exception\ModelNotFoundException
      */
     public function add(){
+
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $rule = [

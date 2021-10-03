@@ -556,11 +556,7 @@ class FormHelper
         }
         $values = [];
         if ($formData) {
-            if (isset($formData[$name])) {
-                $values = explode(',', $formData[$name]);
-            } else {
-                $values = explode(',', $formData);
-            }
+            $values = isset($formData[$name]) || $formData[$name] || is_null($formData[$name]) ?explode(',', $formData[$name]): explode(',', $formData);
             foreach ($values as $k => $v) {
                 if($k+1<=$options['num']){
                     switch ($options['mime']) {
