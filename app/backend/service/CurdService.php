@@ -661,7 +661,6 @@ class CurdService
         foreach ($this->fieldsList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name']!='status') continue;
-            if (in_array($vo['name'], $this->config['keepField'])) continue;
             $name = Str::studly($vo['name']);
             switch ($vo['type']) {
                 case "text":

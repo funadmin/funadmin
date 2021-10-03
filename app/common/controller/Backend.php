@@ -19,6 +19,7 @@ use app\common\traits\Curd;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\exception\ValidateException;
+use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Lang;
 
@@ -94,6 +95,7 @@ class Backend extends BaseController
         }else{
             Cookie::set('think_lang', $lang);
         }
+        Cache::clear();
         $this->success(lang('Change Success'));
     }
 
