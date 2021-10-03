@@ -125,8 +125,10 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 error: function (xhr) {
                     var message = typeof xhr.responseJSON !== 'undefined' ? __(xhr.responseJSON.message) : __('，Try again later!');
                     Fun.toastr.error('Status:' + xhr.status + '\n' + message, function () {
-                        token = xhr.getResponseHeader('__token__')
-                        $("input[name='__token__']").val(token);
+                        var token = xhr.getResponseHeader('__token__');
+                        if (token) {
+                            $("input[name='__token__']").val(token);
+                        }
                         ex(this);
                     });
                     return false;
