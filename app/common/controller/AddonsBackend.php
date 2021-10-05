@@ -71,6 +71,7 @@ class AddonsBackend extends AddonsController
      */
     protected $allowModifyFields = [
         'status',
+        'sort',
         'title',
         'auth_verify'
     ];

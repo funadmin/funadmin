@@ -72,6 +72,7 @@ class AddonsFrontend extends AddonsController
      */
     protected $allowModifyFields = [
         'status',
+        'sort',
         'title',
     ];
     public function __construct(App $app)
