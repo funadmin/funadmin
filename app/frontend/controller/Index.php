@@ -24,7 +24,7 @@ class Index extends Frontend {
         parent::__construct($app);
     }
     public function index(){
-       return view();
+        return view();
     }
     /**
      * @return \think\Response

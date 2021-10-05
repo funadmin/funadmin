@@ -470,7 +470,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         return false;
                     } : yes,
                     btn2: btn2 === undefined ? function (index) {
-                        alert(1)
                         layer.close(layer.index);
                     } : btn2,
                     cancel: function (index, layero) {
