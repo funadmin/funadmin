@@ -14,8 +14,6 @@
 namespace app\common\controller;
 use app\backend\service\AuthService;
 use app\common\service\AdminLogService;
-use app\common\traits\Jump;
-use app\common\traits\Curd;
 use think\App;
 use think\facade\Config;
 use think\facade\Lang;
@@ -27,7 +25,7 @@ class AddonsBackend extends AddonsController
      * @var
      * 后台入口
      */
-    protected $entrance;
+    protected  $entrance;
     /**
      * @var
      * 模型
@@ -37,13 +35,13 @@ class AddonsBackend extends AddonsController
      * @var
      * 页面大小
      */
-    protected $pageSize;
+    protected  $pageSize;
 
     /**
      * @var
      * 页数
      */
-    protected $page;
+    protected  $page;
     /**
      * 模板布局, false取消
      * @var string|bool

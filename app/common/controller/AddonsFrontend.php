@@ -13,16 +13,11 @@
 
 namespace app\common\controller;
 use app\backend\service\AuthService;
-use app\common\traits\Jump;
-use fun\addons\Controller;
 use think\App;
-use think\exception\ValidateException;
 use think\facade\Config;
-use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\Request;
 use think\facade\View;
-use think\helper\Str;
 
 class AddonsFrontend extends AddonsController
 {
@@ -124,7 +119,7 @@ class AddonsFrontend extends AddonsController
         }
         $controllername = strtolower(parse_name($controllername,1));
         $actionname = strtolower(parse_name($actionname));
-        $requesturl = "addons/{$modulename}/{$controllername}/{$actionname}";
+        $requesturl = "addons/$modulename/{$controllername}/{$actionname}";
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS.'addons'.DS."{$this->addon}".DS."{$modulename}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="addons/{$this->addon}/{$modulename}/js/{$jsname}.js";
         $auth = new AuthService();

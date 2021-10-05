@@ -489,7 +489,7 @@ class FormHelper
      * @return string
      * 编辑器
      */
-    public static function editor($name = 'container', $id = null, $type = 1, $options = [])
+    public static function editor($name = 'container', $id = null, $type = 1, $options = [],$value='')
     {
         if ($id == '') {
             $id = $name;
@@ -502,7 +502,7 @@ class FormHelper
          <div class="layui-input-block">';
         if ($type == 1) {
             //百度。quill wangeditor ckeditor
-            $str .= '<div id="' . $id . '" name="' . $name . '" 
+            $str .= '<div data-value="'.$value.'" id="' . $id . '" name="' . $name . '" 
             data-editor="' . $type . '" lay-filter="editor" data-path="'.$path.'" data-height="'.$height.'" type="text/plain"></div>';
         } else {
             //LAYEDIT  Ckeditor

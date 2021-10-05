@@ -163,7 +163,7 @@ class Frontend extends BaseController
             parent::validate($data, $validate, $message, $batch);
             $this->checkToken();
         } catch (ValidateException $e) {
-            $this->error($e->getMessage(),'',['__token__'=>$this->request->buildToken()]);
+            $this->error($e->getMessage());
         }
         return true;
     }

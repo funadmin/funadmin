@@ -440,7 +440,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                             }
                                             //token失效
                                             token.val(__token__)
-                                            parent.layer.close(index)
+                                            layer.close(index) || parent.layer.close(index)
                                         })
                                     } catch (err) {
                                         Fun.toastr.error(err)

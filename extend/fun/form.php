@@ -216,8 +216,8 @@ if (!function_exists('form_editor')) {
      * @param $name
      * @return string
      */
-    function form_editor($name='container',$id='container',$type=1,$options=[])
+    function form_editor($name='container',$id='container',$type=1,$options=[],$value='')
     {
-        return FormHelper::editor($name,$id,$type,$options);
+        return FormHelper::editor($name,$id,$type,$options,$value);
     }
 }

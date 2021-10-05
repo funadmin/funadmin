@@ -142,7 +142,7 @@ class Backend extends BaseController
     {
         $check = $this->request->checkToken('__token__', $this->request->param());
         if (false === $check) {
-            $this->error(lang('Token verify error'), '', ['token' => $this->request->buildToken()]);
+            $this->error(lang('Token verify error'));
         }
     }
 

@@ -31,7 +31,6 @@ class AddonsController extends Controller
      * 入口
      */
     protected $entrance;
-
     /**
      * @var
      * 模型
@@ -95,7 +94,7 @@ class AddonsController extends Controller
             parent::validate($data, $validate, $message, $batch);
             $this->checkToken();
         } catch (ValidateException $e) {
-            $this->error($e->getMessage(),'',['token'=>$this->request->buildToken()]);
+            $this->error($e->getMessage());
         }
         return true;
     }
