@@ -205,9 +205,9 @@ if (!function_exists('form_upload')) {
      * @param null $formdata
      * @return string
      */
-    function form_upload($name=null,$formdata=[],$options=[])
+    function form_upload($name=null,$formdata=[],$options=[],$value='')
     {
-        return FormHelper::upload($name,$formdata,$options);
+        return FormHelper::upload($name,$formdata,$options,$value);
     }
 }
 if (!function_exists('form_editor')) {

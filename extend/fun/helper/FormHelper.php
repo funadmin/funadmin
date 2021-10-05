@@ -520,7 +520,7 @@ class FormHelper
      * @param array $options
      * @return string
      */
-    public static function upload($name = 'avatar', $formData = '', $options = [])
+    public static function upload($name = 'avatar', $formData = '', $options = [],$value='')
     {
         if (!isset($options['type'])) {
             $options['type'] = 'radio';
@@ -555,8 +555,13 @@ class FormHelper
             $css .='width:53%!important;';
         }
         $values = [];
-        if ($formData) {
-            $values = isset($formData[$name]) || $formData[$name] || is_null($formData[$name]) ?explode(',', $formData[$name]): explode(',', $formData);
+        $formData = is_object($formData)?($formData->toArray()):$formData;
+        if($formData && array_key_exists($name,$formData)){
+            $values =explode(',', $formData[$name]);
+        }
+        $values = $value ?explode(',', $value) : $values;
+        if($value) $values = explode(',',$value);
+        if(!empty(array_filter($values))){
             foreach ($values as $k => $v) {
                 if($k+1<=$options['num']){
                     switch ($options['mime']) {
@@ -593,12 +598,8 @@ class FormHelper
                     }
                 }
             }
-        }
-        $value ='';
-        if($values){
             $value = implode(',',$values);
         }
-        $value = isset($formData[$name]) ? $formData[$name] : $value;
         $op = [
             'path' => isset($options['path']) ? $options['path'] : '',
             'mime' => isset($options['mime']) ? $options['mime'] : '',
