@@ -502,11 +502,11 @@ class FormHelper
          <div class="layui-input-block">';
         if ($type == 1) {
             //百度。quill wangeditor ckeditor
-            $str .= '<div data-value="'.$value.'" id="' . $id . '" name="' . $name . '" 
-            data-editor="' . $type . '" lay-filter="editor" data-path="'.$path.'" data-height="'.$height.'" type="text/plain"></div>';
+            $str .= '<div data-value="'.htmlentities($value).'" id="' . $id . '" name="' . $name . '" 
+            data-editor="' . $type . '" lay-filter="editor" data-path="'.$path.'" data-height="'.$height.'" type="text/plain" ></div>';
         } else {
             //LAYEDIT  Ckeditor
-            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-path="'.$path.'" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain"></textarea>';
+            $str .= '<textarea id="' . $id . '" name="' . $name . '" data-path="'.$path.'" data-editor="' . $type . '" lay-verify="layedit" lay-filter="editor" type="text/plain">'.$value.'</textarea>';
         }
         $str .= '</div></div>';
         return $str;
@@ -556,8 +556,10 @@ class FormHelper
         }
         $values = [];
         $formData = is_object($formData)?($formData->toArray()):$formData;
-        if($formData && array_key_exists($name,$formData)){
+        if($formData && is_array($formData) && array_key_exists($name,$formData)){
             $values =explode(',', $formData[$name]);
+        }elseif($formData && is_string($formData)){
+            $values = explode(',',$formData);
         }
         $values = $value ?explode(',', $value) : $values;
         if($value) $values = explode(',',$value);

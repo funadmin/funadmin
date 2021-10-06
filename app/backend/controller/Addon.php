@@ -336,16 +336,11 @@ class Addon extends Backend
      */
     public function modify()
     {
-        $id = $this->request->param("id");
         $name = $this->request->param("name");
-
-        if (!$id) {
-            $this->error(lang('addon %s can not be empty', [$id]));
-        }
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not right'));
         }
-        $info =  $this->modelClass->find($id);
+        $info =  $this->modelClass->where('name',$name)->find();
         $addoninfo = get_addons_info($name);
         $addoninfo['status'] = $addoninfo['status']?0:1;
         try {

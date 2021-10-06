@@ -364,7 +364,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, resolution: function (d) {
                 var ele = $(this)[0];
                 ele.field = ele.filter || ele.field || null;
-                return val = eval('d.' + ele.field)? eval('d.' + ele.field) : '-'
+                fieldArr = ele.field.split('.');
+                if(d[fieldArr[0]]){
+                    return val = eval('d.' + ele.field)? eval('d.' + ele.field) : '-'
+                }
+                return '-';
             }, operat: function (d) {
                 var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];

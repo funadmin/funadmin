@@ -9,13 +9,11 @@ layui.define(['jquery','cropper'],function (exports) {
         "    <div class=\"layui-form-item\">\n" +
         "        <div class=\"layui-input-inline layui-btn-container\" style=\"width: auto;\">\n" +
         "            <label for=\"cropper_avatarImgUpload\" class=\"layui-btn layui-btn-primary\">\n" +
-        "                <i class=\"layui-icon\">&#xe67c;</i>"+__('Upload')+"\n" +
+        "                <i class=\"layui-icon\">&#xe67c;</i>上传\n" +
         "            </label>\n" +
         "            <input class=\"layui-upload-file\" id=\"cropper_avatarImgUpload\" type=\"file\" value=\"选择图片\" name=\"file\">\n" +
         "        </div>\n" +
-        "        <div class=\"layui-form-mid layui-word-aux\">" +
-        __("IMAGE SIZE LIMITED 300x300px,MAXSIZE 2M") +
-        "</div>\n" +
+        "        <div class=\"layui-form-mid layui-word-aux\"> 300x300px,大小2M</div>\n" +
         "    </div>\n" +
         "    <div class=\"layui-row layui-col-space15\">\n" +
         "        <div class=\"layui-col-xs9\">\n" +
