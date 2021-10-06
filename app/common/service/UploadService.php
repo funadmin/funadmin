@@ -311,7 +311,7 @@ class UploadService extends AbstractService
                     break;
                 case 2:
                     // 添加水印
-                    $image->text($water_text_thumb,root_path().'/public/static/common/text/simhei.ttf',$water_text_size,$water_text_color)->save($file);  //添加文字水印
+                    $image->text($water_text_thumb,root_path().'/public/static/common/text/simhei.ttf',$water_text_size,$water_text_color)->save($path);  //添加文字水印
                     break;
                 default:
                     break;
