@@ -61,7 +61,7 @@ return [
     'Size'              => "文件大小",
     'File type'          => "文件类型",
     'Wateralpha'=>'水印深度',
-    'Water'=>'水印深度',
+    'Water'=>'开启水印',
     'WaterPosition'=>'水印位置',
     'Watersize'=>'水印大小',
     'watercolor'=>'水印颜色',
