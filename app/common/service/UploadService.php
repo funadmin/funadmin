@@ -5,7 +5,8 @@ use app\common\model\Attach as AttachModel;
 use think\App;
 use think\Exception;
 use think\facade\Request;
-use getID3;
+use think\Image;
+
 class UploadService extends AbstractService
 {
     /**
@@ -109,6 +110,7 @@ class UploadService extends AbstractService
                             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
                                 throw new Exception(lang('Uploaded file is not a valid image'));
                             }
+                            $this->createWater($path);
                             $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
                             $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
                         }
@@ -197,6 +199,7 @@ class UploadService extends AbstractService
                         if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
                             throw new Exception(lang('Uploaded file is not a valid image'));
                         }
+                        $this->createWater($path);
                         $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
                         $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
                     }
@@ -286,6 +289,35 @@ class UploadService extends AbstractService
         }
         return true;
     }
+    //建立水印
+    protected function createWater($file){
+        // 读取图片
+        $water = syscfg('upload');
+        if($water['upload_water']){
+            $domain = \request()->domain();
+            $path = './'.trim($file,DIRECTORY_SEPARATOR);
+            $image = Image::open($path);
+            // 添加水印
+            $watermark_pos   = $water['upload_water_position'] == '' ? config('upload_water_position'):  $water['upload_water_position'];
+            $watermark_pos = $watermark_pos?:9;
+            $watermark_alpha =  $water['upload_water_alpha'] == '' ? config('upload_water_alpha') :  $water['upload_water_alpha'];
+            $water_text_thumb  =  $water['upload_water_thumb'] == '' ? config('upload_water_thumb') :  $water['upload_water_thumb'];
+            $water_text_size =  $water['upload_water_size'] == '' ? config('upload_water_size') :  $water['upload_water_size'];
+            $water_text_color =  $water['upload_water_color'] == '' ? config('upload_water_color') :  $water['upload_water_color'];
+            $water_text_thumb =  './'.trim(trim($water_text_thumb,$domain),DIRECTORY_SEPARATOR);
+            switch ($water['upload_water']){
+                case 1:
+                    $image->water($water_text_thumb, $watermark_pos, $watermark_alpha)->save($path);
+                    break;
+                case 2:
+                    // 添加水印
+                    $image->text($water_text_thumb,root_path().'/public/static/common/text/simhei.ttf',$water_text_size,$water_text_color)->save($file);  //添加文字水印
+                    break;
+                default:
+                    break;
+            }
 
+        }
+    }
 
 }

@@ -5,86 +5,28 @@
     <ul class="layui-tab-title">
         <li class="layui-this">{:lang('site setting')}</li>
         <li class="">{:lang('upload setting')}</li>
+        <li class="">{:lang('water setting')}</li>
     </ul>
     <div class="layui-tab-content">
         <!--网站配置-->
         <div class="layui-tab-item layui-show">
             <form class="layui-form" action="{:__u('site')}" lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Site name')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="site_name" lay-verify="required"
-                               lay-reqtext="{:lang('site name can not empty')}"
-                               placeholder="{:lang('site name')}" value="" class="layui-input">
-                        <!--                                    <tip>填写自己部署网站的名称。</tip>-->
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Site Domain')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="site_domain" lay-verify="required|url"
-                               lay-reqtext="{:lang('Site Domain can not empty')}"
-                               placeholder="{:lang('Site Domain')}" value="" class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Site Email')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="site_email" lay-verify="email"
-                               lay-reqtext="{:lang('Site Email can not empty')}"
-                               placeholder="{:lang('Site Email')}" value="" class="layui-input">
-                    </div>
-                </div>
+                {:form_input('site_name','text',['label'=>"Site name",'verify'=>"required"])}
+                {:form_input('site_domain','text',['label'=>"Site Domain",'verify'=>"required|url"])}
+                {:form_input('site_email','text',['label'=>"Site Email"])}
                 {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
-                <div class="layui-form-item layui-form-text">
-                    <label class="layui-form-label">{:lang('Site title')}</label>
-                    <div class="layui-input-block">
-                        <textarea name="site_seo_title" lay-verify="required" placeholder="{:lang('Site title')}"
-                                  class="layui-textarea"></textarea>
-                    </div>
-                </div>
-                <div class="layui-form-item layui-form-text">
-                    <label class="layui-form-label">{:lang('Meta keywords')}</label>
-                    <div class="layui-input-block">
-                            <textarea name="site_seo_keywords" lay-verify="required" class="layui-textarea"
-                                      placeholder="多个关键词用英文状态 , 号分割"></textarea>
-                    </div>
-                </div>
-                <div class="layui-form-item layui-form-text">
-                    <label class="layui-form-label">{:lang('Meta description')}</label>
-                    <div class="layui-input-block">
-                            <textarea name="site_seo_desc" lay-verify="required" placeholder="建议200字以内"
-                                      class="layui-textarea"></textarea>
-                    </div>
-                </div>
-                <div class="layui-form-item layui-form-text">
-                    <label class="layui-form-label required">{:lang('All right')}</label>
-                    <div class="layui-input-block">
-                        <textarea name="site_copyright" lay-verify="required" class="layui-textarea">© 2021 www.FunAdmin.com Apache2 license</textarea>
-                    </div>
-                </div>
+                {:form_textarea('site_seo_title',['label'=>'Site title','verify'=>"required"])}
+                {:form_textarea('site_seo_keywords',['label'=>'Meta keywords','verify'=>"required"])}
+                {:form_textarea('site_seo_desc',['label'=>'Meta description','verify'=>"required"])}
+                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2021 www.FunAdmin.com Apache2 license')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
         <!--上传配置-->
         <div class="layui-tab-item">
             <form class="layui-form " lay-filter="form">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('File type')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="upload_file_type"
-                               value="bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4"
-                               class="layui-input">
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">{:lang('Maxfilesize')}</label>
-                    <div class="layui-input-block">
-                        <input type="text" name="upload_file_max" lay-verify="number" value="2048"
-                               class="layui-input">
-                        <div class="layui-form-mid layui-word-aux">M {:lang('Tips')}：1 M = 1024 KB</div>
-                    </div>
-                </div>
+                {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
+                {:form_input('upload_file_max','text',['label'=>"Maxfilesize",'verify'=>'number','tips'=>"M"],'50')}
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Upload Driver')}</label>
                     <div class="layui-input-block">
@@ -101,6 +43,20 @@
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
+        <div class="layui-tab-item">
+            <form class="layui-form " lay-filter="form">
+                {:form_radio('upload_water',[0=>'No',1=>'Image',2=>'text'],['label'=>"water"])}
+                {:form_radio('upload_water_position',
+                [1=>'左上角',2=>'左上角',3=>'右上角',4=>"左居中",5=>"居中",6=>"右居中",7=>"左下角",8=>"下居中",9=>"右下角"],
+                ['label'=>"waterposition"])}
+                {:form_input('upload_water_alpha','text',['label'=>"wateralpha",'verify'=>'number','tips'=>""],'50')}
+                {:form_input('upload_water_size','text',['label'=>"waterSize",'verify'=>'number','tips'=>""],'50')}
+                {:form_color('water_text_color','water_text_color',['label'=>"watercolor"])}
+                {:form_upload('upload_water_thumb',$formData,['label'=>'image/text'])}
+                {:form_submitbtn(true,['show'=>1])}
+            </form>
+        </div>
+
     </div>
 </div>
 

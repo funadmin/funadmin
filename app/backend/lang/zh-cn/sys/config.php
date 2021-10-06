@@ -60,5 +60,12 @@ return [
     'Maxfilesize'       => "最大文件大小",
     'Size'              => "文件大小",
     'File type'          => "文件类型",
+    'Wateralpha'=>'水印深度',
+    'Water'=>'水印深度',
+    'WaterPosition'=>'水印位置',
+    'Watersize'=>'水印大小',
+    'watercolor'=>'水印颜色',
+    'Image/Text'=>'图片或文字',
+    'water setting'=>'水印设置',
 
 ];

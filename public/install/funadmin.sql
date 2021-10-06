@@ -286,6 +286,38 @@ CREATE TABLE `fun_auth_rule` (
 -- 转存表中的数据 `fun_auth_rule`
 --
 
+INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
+                                                                                                                                                                       (1, 'site_name', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
+                                                                                                                                                                       (2, 'site_phone', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
+                                                                                                                                                                       (3, 'site_state', '', '1', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
+                                                                                                                                                                       (4, 'site_logo', '', '\\storage\\upload/20210507\\031682e36202437cd176d148e7c799ce.png', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
+                                                                                                                                                                       (5, 'site_mobile_logo', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
+                                                                                                                                                                       (6, 'site_logowx', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
+                                                                                                                                                                       (7, 'site_icp', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 1, 0, 1583583461, 0),
+                                                                                                                                                                       (8, 'site_tel400', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 1, 0, 0, 0),
+                                                                                                                                                                       (9, 'site_email', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 1, 0, 0, 0),
+                                                                                                                                                                       (10, 'site_copyright', '', '© 2018-2021 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 1, 0, 1603435866, 0),
+                                                                                                                                                                       (11, 'app_debug', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 1, 0, 1607071704, 0),
+                                                                                                                                                                       (25, 'site_licence', '', '', '营业执照', '0', 'text', 'site', 1, 1, 0, 1595419166, 0),
+                                                                                                                                                                       (26, 'site_domain', '', 'http://www.funadmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0, 0),
+                                                                                                                                                                       (27, 'site_seo_title', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 1, 0, 0, 0),
+                                                                                                                                                                       (28, 'site_seo_keywords', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 1, 0, 1603266121, 0),
+                                                                                                                                                                       (29, 'site_seo_desc', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 1, 0, 1601288743, 0),
+                                                                                                                                                                       (30, 'site_version', '', '1.0', '版本', '0', 'text', 'site', 1, 1, 0, 1600828560, 0),
+                                                                                                                                                                       (31, 'upload_file_type', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 1, 0, 1602723793, 0),
+                                                                                                                                                                       (32, 'upload_file_max', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
+                                                                                                                                                                       (33, 'upload_water', '', '', '水印开始关闭（0关闭，1图片 2 文字）', '0', 'radio', 'upload', 1, 0, 0, 1601287987, 0),
+                                                                                                                                                                       (34, 'upload_water_position', '1:左上角\n2:上居中\n3:右上角\n4:左居中\n5:居中\n6:右居中\n7:左下角\n8:下居中\n9:右下角', '9', '水印位置', '0', 'radio', 'upload', 1, 0, 0, 1633506544, 0),
+                                                                                                                                                                       (35, 'upload_water_alpha', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0, 0),
+                                                                                                                                                                       (36, 'upload_water_thumb', '', '', '水印图片', '0', 'image', 'upload', 1, 0, 0, 0, 0),
+                                                                                                                                                                       (37, 'upload_water_size', '', '', '水印大小', '0', 'text', 'upload', 1, 0, 0, 0, 0),
+                                                                                                                                                                       (38, 'upload_water_color', '', '', '水印颜色', '0', 'color', 'upload', 1, 0, 0, 0, 0),
+                                                                                                                                                                       (39, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 0, 1594213311, 1595419144, 0);
+
+--
+-- 表的结构 `fun_blacklist`
+--
+
 INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, `status`, `auth_verify`, `menu_status`, `icon`, `pid`, `sort`, `create_time`, `update_time`, `delete_time`) VALUES
                                                                                                                                                                                                 (1, 'backend', '_self', 'sys', 'Sys', 1, 1, 1, 1, 'layui-icon layui-icon-home', 0, 0, 1446535750, 1600398287, 0),
                                                                                                                                                                                                 (2, 'backend', '_self', 'auth', 'Auth', 1, 1, 1, 1, 'layui-icon layui-icon-auz', 0, 1, 0, 1599889603, 0),
@@ -403,7 +435,7 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
                                                                                                                                                                                                 (174, 'backend', '_self', 'sys.attachGroup/delete', 'Groupdelete', '0', '1', '1', '0', 'layui-icon layui-icon-diamond', '37', '50', '1581588934', '1599888349', '0');
 
 --
--- 表的结构 `fun_blacklist`
+-- 转存表中的数据 `fun_blacklist`
 --
 
 CREATE TABLE `fun_blacklist` (
@@ -416,17 +448,17 @@ CREATE TABLE `fun_blacklist` (
                                  `delete_time` int NOT NULL DEFAULT '0' COMMENT '删除时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- 转存表中的数据 `fun_blacklist`
+-- 表的结构 `fun_config`
 --
 
 INSERT INTO `fun_blacklist` (`id`, `ip`, `remark`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
     (1, '1111', '112', 1, 1626229660, 1626229868, 1626229868);
 
--- --------------------------------------------------------
-
 --
--- 表的结构 `fun_config`
+-- 转存表中的数据 `fun_config`
 --
 
 CREATE TABLE `fun_config` (
@@ -444,34 +476,6 @@ CREATE TABLE `fun_config` (
                               `update_time` int NOT NULL DEFAULT '0',
                               `delete_time` int NOT NULL DEFAULT '0' COMMENT '删除时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='配置参数表';
-
---
--- 转存表中的数据 `fun_config`
---
-
-INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
-                                                                                                                                                                       (1, 'site_name', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
-                                                                                                                                                                       (2, 'site_phone', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
-                                                                                                                                                                       (3, 'site_state', '', '1', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
-                                                                                                                                                                       (4, 'site_logo', '', '\\storage\\upload/20210507\\031682e36202437cd176d148e7c799ce.png', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
-                                                                                                                                                                       (5, 'site_mobile_logo', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
-                                                                                                                                                                       (6, 'site_logowx', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
-                                                                                                                                                                       (7, 'site_icp', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 1, 0, 1583583461, 0),
-                                                                                                                                                                       (8, 'site_tel400', '', '40002541852', '解释,备注', '0', 'text', 'site', 1, 1, 0, 0, 0),
-                                                                                                                                                                       (9, 'site_email', '', '15151711601@qq.com', '电子邮件', '0', 'text', 'site', 1, 1, 0, 0, 0),
-                                                                                                                                                                       (10, 'site_copyright', '', '© 2018-2021 FunAdmin.com - 版权所有FunAdmin', '底部版权信息', '0', 'text', 'site', 1, 1, 0, 1603435866, 0),
-                                                                                                                                                                       (11, 'app_debug', '0\n1', '1', '测试模式', '', 'radio', 'site', 1, 1, 0, 1607071704, 0),
-                                                                                                                                                                       (25, 'site_licence', '', '', '营业执照', '0', 'text', 'site', 1, 1, 0, 1595419166, 0),
-                                                                                                                                                                       (26, 'site_domain', '', 'http://www.funadmin.com', '网站地址', '0', 'text', 'site', 1, 0, 0, 0, 0),
-                                                                                                                                                                       (27, 'site_seo_title', '', 'FunAdmin', '首页标题', '0', 'textarea', 'site', 1, 1, 0, 0, 0),
-                                                                                                                                                                       (28, 'site_seo_keywords', '', 'FunAdmin,LAYUI,THINKPHP6', '首页关键词', '0', 'textarea', 'site', 1, 1, 0, 1603266121, 0),
-                                                                                                                                                                       (29, 'site_seo_desc', '', 'FunAdmin,LAYUI,THINKPHP6,Require', '首页描述', '', 'textarea', 'site', 1, 1, 0, 1601288743, 0),
-                                                                                                                                                                       (30, 'site_version', '', '1.0', '版本', '0', 'text', 'site', 1, 1, 0, 1600828560, 0),
-                                                                                                                                                                       (31, 'upload_file_type', '', 'mp4,mp3,png,gif,jpg,jpeg,webp', '图片上传保存方式', '0', 'text', 'upload', 1, 1, 0, 1602723793, 0),
-                                                                                                                                                                       (32, 'upload_file_max', '', '2048', '最大文件上传大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
-                                                                                                                                                                       (33, 'upload_water', '', '', '水印开始关闭', '0', 'image', 'upload', 1, 0, 0, 1601287987, 0),
-                                                                                                                                                                       (34, 'upload_water_position', '', '', '水印位置', '0', 'text', 'upload', 1, 0, 0, 0, 0),
-                                                                                                                                                                       (35, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 0, 1594213311, 1595419144, 0);
 
 -- --------------------------------------------------------
 

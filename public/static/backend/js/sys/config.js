@@ -30,10 +30,10 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
-                    {field: 'code', title: __('Config Code'), width: 120,sort: true},
-                    {field: 'value', title: __('Config Value'), width: 250,sort: true},
-                    {field: 'group', title: __('Config Group'), width: 250,sort: true},
-                    {field: 'type', title: __('Type'), width: 250,sort: true},
+                    {field: 'code', title: __('Config Code'), width: 200,sort: true},
+                    {field: 'value', title: __('Config Value'), sort: true},
+                    {field: 'group', title: __('Config Group'), width: 120,sort: true},
+                    {field: 'type', title: __('Type'), width: 80,sort: true},
                     {field: 'remark', title: __('Config Remark'), width: 220,sort:true},
                     {
                         field: 'status',
