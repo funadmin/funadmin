@@ -44,7 +44,7 @@ layui.define("form", function(exports) {
 		t.find('option').prop('selected', false);
 		dt.parents('dl').find('[type=checkbox]:checked').each(function() {
 			var val = o(this).parent().attr('lay-value');
-			t.find('option[value=' + val + ']').prop('selected', true);
+			t.find('option[value="' + val + '"]').prop('selected', true);
 			selected_vals[idx].push(o(this).attr('title'));
 		})
 		// 显示已选信息

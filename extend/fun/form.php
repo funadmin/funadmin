@@ -82,6 +82,7 @@ if (!function_exists('form_select')) {
     function form_select($name = null,$select=[], $options = [],$attr='',$value=null)
     {
         if(!empty($attr) and !is_array($attr)) $attr = explode(',',$attr);
+        if(!empty($value) and !is_array($value)) $value = explode(',',$value);
         return FormHelper::multiselect($name,$select,$options,$attr,$value);
     }
 }

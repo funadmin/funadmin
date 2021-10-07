@@ -281,7 +281,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
-                  <select class="layui-select'. self::addClass($options) .'" name="' . $name . '" ' . $multiple . self::filter($options) . self::verify($options) . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
+                  <select class="layui-select'. self::addClass($options) .'" name="' . $name . '" ' . $multiple .' '. self::filter($options).' ' . self::verify($options).' ' . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
                     <option value="">' . lang($default) . '</option>
                     ' . $op . '
                   </select>
@@ -512,7 +512,6 @@ class FormHelper
         return $str;
 
     }
-//1
     /**
      * 上传
      * @param string $name
