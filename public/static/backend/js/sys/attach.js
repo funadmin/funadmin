@@ -124,6 +124,11 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 indent:21,
                 radioType: "level", // all      // 单选范围（是同一级还是整体只能选择一个）
                 rightMenuList: [
+                    // "copy",
+                    // "paste",
+                    // "paste_before",
+                    // "paste_after",
+                    // "cut_paste",
                     "edit", "remove",
                     "add_child",
                     "add_before",
@@ -153,6 +158,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     radioDisabled: "radioDisabled"
                 },
             })
+            tree.setRadioChecked([group_id])
             var selectTree = layui.eleTree({
                 el: '#selectTree',data: treeData,//静态数据,
                 emptText:"",//当数据为空时显示的内容
@@ -244,10 +250,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 })
             }).on("remove", function(data) {
                 setTimeout(data.load, 100)
-                if(data.data.id<=1){
-                    Fun.toastr.error(__('ALL OR DEFAULT CAN NOT DELETE'));
-                    return '';
-                }
                 var confirm = Fun.toastr.confirm(__('Are you sure delete？'), function () {
                     Fun.ajax({url: Table.init.requests.group_delete_url, data: {ids: data.data.id}}
                         , function (res) {
