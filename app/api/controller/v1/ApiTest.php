@@ -24,7 +24,7 @@ class ApiTest extends Api
     /**
      * @title 方法1
      * @desc  类的方法1
-     * @url   url('index/demo/index',[],'',true)
+     * @url   __u('api.v1/index',[],'',true)
      *
      * @param int $page  0 999
      * @param int $limit 10
