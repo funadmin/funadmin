@@ -151,8 +151,7 @@ class Backend extends BaseController
      */
     protected function token()
     {
-        $this->success('ok','',['__token__'=>$this->request->buildToken()]);
+        return $this->request->buildToken();
     }
-
 
 }

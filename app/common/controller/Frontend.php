@@ -183,12 +183,7 @@ class Frontend extends BaseController
      */
     protected function token()
     {
-        $check = $this->request->checkToken('__token__', $this->request->param());
-        if (false === $check) {
-            $this->error(lang('Token verification error'), '', ['__token__' => $this->request->buildToken()]);
-        }
-        //刷新Token
-        $this->request->buildToken();
+        return $this->request->buildToken();
     }
 
 

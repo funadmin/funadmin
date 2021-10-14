@@ -225,14 +225,14 @@ class Admin extends Backend
             $oldpassword = $this->request->post('oldpassword');
             $one = $this->modelClass->find(session('admin.id'));
             if (!password_verify($oldpassword, $one['password'])) {
-                $this->error(lang('Old Password Error'),'',['token'=>$this->token()]);
+                $this->error(lang('Old Password Error'));
             }
             $password = $this->request->post('password', '',['strip_tags','trim','htmlspecialchars']);
             try {
                 $post['password'] = SignHelper::password($password);
                 $one->save($post);
             } catch (\Exception $e) {
-                $this->error($e->getMessage(),'',['token'=>$this->token()]);
+                $this->error($e->getMessage());
             }
             $this->success(lang('operation success'));
         }

@@ -51,7 +51,7 @@ class Login extends Backend {
                 $auth = new AuthService();
                 $auth->checkLogin($username, $password, $rememberMe);
             } catch (Exception $e) {
-                $this->error(lang('Login Failed')."：{$e->getMessage()}",'',['token'=>$this->token()]);
+                $this->error(lang('Login Failed')."：{$e->getMessage()}");
             }
             $this->success(lang('Login Success').'...',__u('index/index'));
         }
