@@ -150,6 +150,7 @@
                     } else {
                         $('.layui-btn-radius').removeClass('layui-hide');
                         $('#layui-error').show().text(res);
+                        that.text('立即安装').prop('disabled', false);
                         $("html,body").animate({
                             scrollTop: 0
                         }, 500);

@@ -1,9 +1,22 @@
 <?php
+/**
+ * FunAdmin
+ * ============================================================================
+ * 版权所有 2017-2028 FunAdmin，并保留所有权利。
+ * 网站地址: https://www.FunAdmin.com
+ * ----------------------------------------------------------------------------
+ * 采用最新Thinkphp6实现
+ * ============================================================================
+ * Author: yuege
+ * Date: 2019/10/3
+ */
 use fun\helper\FormHelper;
 if (!function_exists('form_input')) {
     /**
-     * @param $type
-     * @param $name
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param null $value
      * @return string
      */
     function form_input($name='',$type='text',$options=[],$value=null)
@@ -13,8 +26,10 @@ if (!function_exists('form_input')) {
 }
 if (!function_exists('form_radio')) {
     /**
-     * @param $id
-     * @param $name
+     * @param null $name
+     * @param null $radiolist
+     * @param array $options
+     * @param string $value
      * @return string
      */
     function form_radio($name=null, $radiolist = null, $options = [],$value='')

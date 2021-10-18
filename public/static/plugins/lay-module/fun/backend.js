@@ -1,6 +1,7 @@
 layui.define(['layer','element','dropdown'], function (exports) {
     var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
     element.init();
+
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
@@ -13,8 +14,48 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerBg: '#fff',
                 headerfontColor: '#595959',
                 headerBgThis: '#772c6a',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            },
+            {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#197971',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#20b598',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#722ed1',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#722ed1',
+                menuLeftBgHover: '#722ed1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            },
+            {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
                 headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#0c0c0c',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#23262e',
                 menuLeftBgThis: '#772c6a',
                 menuLeftBgHover: '#772c6a',
@@ -26,7 +67,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerfontColor: '#595959',
                 headerBgThis: '#197971',
                 headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#0c0c0c',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#23262e',
                 menuLeftBgThis: '#20b598',
                 menuLeftBgHover: '#20b598',
@@ -39,7 +80,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerfontColor: '#595959',
                 headerBgThis: '#722ed1',
                 headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#0c0c0c',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#23262e',
                 menuLeftBgThis: '#722ed1',
                 menuLeftBgHover: '#722ed1',
@@ -255,7 +296,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerfontColor: '#595959',
                 headerBgThis: '#772c6a',
                 headerBgLogo: '#1c2175',
-                headerLogofontColor: '#1c2175',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#1c2175',
                 menuLeftBgThis: '#772c6a',
                 menuLeftBgHover: '#772c6a',
@@ -267,7 +308,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerfontColor: '#595959',
                 headerBgThis: '#772c6a',
                 headerBgLogo: '#23287c',
-                headerLogofontColor: '#23287c',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#23287c',
                 menuLeftBgThis: '#772c6a',
                 menuLeftBgHover: '#772c6a',
@@ -279,7 +320,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 headerfontColor: '#595959',
                 headerBgThis: '#772c6a',
                 headerBgLogo: '#772c6a',
-                headerLogofontColor: '#772c6a',
+                headerLogofontColor: '#fff',
                 menuLeftBg: '#23287c',
                 menuLeftBgThis: '#772c6a',
                 menuLeftBgHover: '#23287c',
@@ -304,7 +345,20 @@ layui.define(['layer','element','dropdown'], function (exports) {
             });
             Backend.initBgColor();
             Backend.hideLoading(options.loadingTime);
+            Backend.initBodyTheme();
             Backend.api.bindEvent();
+        },
+        initBodyTheme:function (){
+            $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
+            $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop');
+            $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style');
+            if($('.layui-layout-admin .layui-nav-header').length>0){
+                height = $('.layui-nav-header ul').height();//横屏
+                $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;')
+                $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;')
+                return false ;
+            }
+            return false ;
         },
         //加载层,锁屏
         hideLoading: function (time) {
@@ -548,6 +602,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 '.layui-header .layui-nav .layui-nav-child dd.layui-this a{background-color:' + themeData.headerBg + '!important;}\n' +
                 '.layui-layout-admin .layui-logo {background-color:' + themeData.headerBgLogo + '!important;}\n' +
                 '.layui-layout-admin .layui-logo{color:' + themeData.headerfontColor + '!important;}\n' +
+                '.layui-layout-admin .layui-logo cite{color:' + themeData.headerLogofontColor + '!important;}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item a{color:' + themeData.menuLeftfontColor + '}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{color:' + themeData.menuLeftfontColorHover + '!important;}\n' +
                 '.layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
@@ -881,13 +936,17 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         , icon = _that.find('i').attr('class'), iframe = _that.has('data-iframe') ? true : false;
                     layId = layId ? layId : url;
                     var parent = _that.parent();
+                    var parents = _that.parents('.layui-nav-header')
                     var sp = parent.siblings('li');
                     var c = parent.siblings('li.active').children('.layui-nav-child')
+                    if(!_that.data("url") && parents.length>0){
+                        return false;
+                    }
                     if (!_that.data("url")) {
                         var child = parent.children('.layui-nav-child');
                         var height = child.height();
                         // 检测屏幕是否是展开状态
-                        if (!Fun.api.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
+                        if (!Backend.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
                             return false;
                         }
                         child.css({display: "block"});
@@ -938,7 +997,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-nav-tree>.layui-nav-item,.layui-side-shrink .layui-nav-itemed", function () {
                     var _that = $(this);
-                    if (!Fun.api.checkScreen()) {
+                    if (!Backend.checkScreen()) {
                         var top = _that.offset().top;
                         _that.removeClass('layui-nav-itemed');
                         _that.addClass('layui-nav-hover');
@@ -954,7 +1013,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover dd", function () {
                     var _that = $(this);
-                    if (!Fun.api.checkScreen()) {
+                    if (!Backend.checkScreen()) {
                         if (_that.find('dl')) {
                             var top = _that.offset().top;
                             var left = _that.offset().left + _that.width();
@@ -998,9 +1057,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     $('.layui-dropdown').remove();
                 });
                 $(window).on("resize", function () {
-                    $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
-                    $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop');
-                    $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style');
+                       Backend.initBodyTheme();
                 });
             },
         }

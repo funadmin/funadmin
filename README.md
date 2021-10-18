@@ -34,7 +34,6 @@
 ### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
 ### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 ### QQ群2：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
-### 安装前到目录先执行composer install 或者composer update
 
 ## 项目介绍
 FunAdmin 基于thinkphp6.X +Layui2.6.*+requirejs开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。

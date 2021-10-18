@@ -349,7 +349,7 @@ class AuthService
                 $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
             }
             if ($val['child'] and count($val['child']) > 0) {
-                $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '<span class="layui-nav-more"></span></a>';
+                $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
                 $html = $this->childmenuhtml($html, $val['child']);
             } else {
                 $target = $val['target'] ? $val['target'] : '_self';
@@ -357,7 +357,7 @@ class AuthService
             }
             $html .= '</li>';
         }
-        $html .= '<span class="layui-nav-bar" style="top: 22.5px; height: 0px; opacity: 0;"></span>';
+//        $html .= '<span class="layui-nav-bar" style="top: 22.5px; height: 0px; opacity: 0;"></span>';
         return $html;
 
     }

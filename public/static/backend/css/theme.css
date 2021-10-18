@@ -1,0 +1,47 @@
+#layui-app-body{
+    top:0;
+}
+.layui-layout-admin .layui-pagetabs{
+    left: 0;top: 110px!important;;
+}
+.layui-layout-admin .layui-side-menu{
+    height: 60px;
+}
+.layui-layout-admin .layui-logo{
+    background-color:#fff;
+}
+.layui-layout-admin .layui-logo{
+    box-shadow:0 0px 2px 0 rgb(0 0 0 / 15%);
+}
+.layui-layout-admin .layui-logo .cite{
+    color:#595959!important;
+}
+.layui-layout-admin .layui-nav-header{
+    background-color:#fff;
+    position: fixed; top:60px;width:100%;
+    z-index:999;
+}
+.layui-layout-admin .layui-tab-header{
+    display: none!important;
+}
+.layui-layout-admin .layui-body{
+    margin-bottom:30px;
+    padding-bottom: 70px;;
+}
+.layui-layout-admin .layui-footer{
+    left: 0!important;
+}
+.layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item{
+    line-height:50px;height:50px!important;
+}
+.layui-layout-admin .layui-nav .layui-nav-item a{
+    padding: 0 25px;
+}
+.layui-layout-admin .layui-nav-header .layui-nav {
+    background-color:#fff;
+}.layui-layout-admin .layui-nav-header .layui-nav li a {
+     color: #595959!important
+}
+.layui-layout-admin .layui-nav-header .layui-nav .layui-badge{
+    float: none!important;right: auto!important;
+}

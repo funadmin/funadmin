@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '817c432c1e54aff3f1f7ec420f19c3dc7ce83983',
+    'reference' => 'e9dbe24a134eae141058afb5023533dd735da54f',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v1.60',
-      'version' => '1.60.0.0',
+      'pretty_version' => 'v2.0',
+      'version' => '2.0.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '1b4478aa5c9ecdf305bc6fe278af9be92cc2ef9b',
+      'reference' => '20d81b690f82e5b0e44d4cc46bb2bd5680461440',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '817c432c1e54aff3f1f7ec420f19c3dc7ce83983',
+      'reference' => 'e9dbe24a134eae141058afb5023533dd735da54f',
     ),
     'league/flysystem' => 
     array (
@@ -130,12 +130,12 @@
     ),
     'phpdocumentor/type-resolver' => 
     array (
-      'pretty_version' => '1.5.0',
-      'version' => '1.5.0.0',
+      'pretty_version' => '1.5.1',
+      'version' => '1.5.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => '30f38bffc6f24293dadd1823936372dfa9e86e2f',
+      'reference' => 'a12f7e301eb7258bb68acd89d4aefa05c2906cae',
     ),
     'psr/cache' => 
     array (
@@ -175,12 +175,12 @@
     ),
     'ramsey/collection' => 
     array (
-      'pretty_version' => '1.2.1',
-      'version' => '1.2.1.0',
+      'pretty_version' => '1.2.2',
+      'version' => '1.2.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'eaca1dc1054ddd10cbd83c1461907bee6fb528fa',
+      'reference' => 'cccc74ee5e328031b15640b51056ee8d3bb66c0a',
     ),
     'ramsey/uuid' => 
     array (
