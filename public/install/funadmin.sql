@@ -460,7 +460,8 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `t
                                                                                                                                                                        (36, 'upload_water_thumb', '', '', '水印图片', '0', 'image', 'upload', 1, 1, 0, 0, 0),
                                                                                                                                                                        (37, 'upload_water_size', '', '', '水印大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
                                                                                                                                                                        (38, 'upload_water_color', '', '', '水印颜色', '0', 'color', 'upload', 1, 1, 0, 0, 0),
-                                                                                                                                                                       (39, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 1, 1594213311, 1595419144, 0);
+                                                                                                                                                                       (39, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 1, 1594213311, 1595419144, 0),
+                                                                                                                                                                       (40, 'site_theme', '1:竖屏\n2:横屏', '1', '主题配置', '0', 'radio', 'site', 1, 1, 0, 1633506544, 0);
 
 -- --------------------------------------------------------
 

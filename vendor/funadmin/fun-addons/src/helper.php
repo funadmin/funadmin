@@ -31,7 +31,8 @@ define('DS', DIRECTORY_SEPARATOR);
 \think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
         'addons:config' => '\\fun\\addons\\command\\SendConfig',
-        'auth:config' => '\\fun\\auth\\command\\SendConfig'
+        'auth:config' => '\\fun\\auth\\command\\SendConfig',
+        'curd:config' => '\\fun\\auth\\command\\SendConfig'
     ]);
 });
 

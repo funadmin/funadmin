@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ecde966bc89f4fc260c5fa47120c1294",
+    "content-hash": "b8bf4e89330132db973b5bf0c3e89745",
     "packages": [
         {
             "name": "brick/math",
@@ -354,16 +354,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v2.1",
+            "version": "v2.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28"
+                "reference": "a8e0e678c934e99d55bf7cf0f74d9058289201d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/ed605cd3723ee60a1969969ab010b2c67b345a28",
-                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/a8e0e678c934e99d55bf7cf0f74d9058289201d8",
+                "reference": "a8e0e678c934e99d55bf7cf0f74d9058289201d8",
                 "shasum": ""
             },
             "require": {
@@ -381,7 +381,8 @@
                     ],
                     "config": {
                         "addons": "src/config.php",
-                        "api": "src/api.php"
+                        "api": "src/api.php",
+                        "console": "src/console.php"
                     }
                 }
             },
@@ -406,9 +407,9 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v2.1"
+                "source": "https://github.com/funadmin/fun-addons/tree/v2.2"
             },
-            "time": "2021-10-19T02:49:16+00:00"
+            "time": "2021-10-19T13:07:09+00:00"
         },
         {
             "name": "league/flysystem",

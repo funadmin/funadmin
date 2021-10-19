@@ -31,7 +31,8 @@
       ],
       "config":{
         "addons": "src/config.php",
-        "api": "src/api.php"
+        "api": "src/api.php",
+        "console": "src/console.php"
       }
     }
   },
