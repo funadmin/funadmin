@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d8436bfb3e2f749c3169b68ba82bc533",
+    "content-hash": "ecde966bc89f4fc260c5fa47120c1294",
     "packages": [
         {
             "name": "brick/math",
@@ -354,16 +354,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v2.0",
+            "version": "v2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "20d81b690f82e5b0e44d4cc46bb2bd5680461440"
+                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/20d81b690f82e5b0e44d4cc46bb2bd5680461440",
-                "reference": "20d81b690f82e5b0e44d4cc46bb2bd5680461440",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/ed605cd3723ee60a1969969ab010b2c67b345a28",
+                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28",
                 "shasum": ""
             },
             "require": {
@@ -406,9 +406,9 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v2.0"
+                "source": "https://github.com/funadmin/fun-addons/tree/v2.1"
             },
-            "time": "2021-10-18T04:26:51+00:00"
+            "time": "2021-10-19T02:49:16+00:00"
         },
         {
             "name": "league/flysystem",

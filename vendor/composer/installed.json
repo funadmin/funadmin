@@ -375,17 +375,17 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v2.0",
-            "version_normalized": "2.0.0.0",
+            "version": "v2.1",
+            "version_normalized": "2.1.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "20d81b690f82e5b0e44d4cc46bb2bd5680461440"
+                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/20d81b690f82e5b0e44d4cc46bb2bd5680461440",
-                "reference": "20d81b690f82e5b0e44d4cc46bb2bd5680461440",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/ed605cd3723ee60a1969969ab010b2c67b345a28",
+                "reference": "ed605cd3723ee60a1969969ab010b2c67b345a28",
                 "shasum": ""
             },
             "require": {
@@ -395,7 +395,7 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
-            "time": "2021-10-18T04:26:51+00:00",
+            "time": "2021-10-19T02:49:16+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -430,7 +430,7 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v2.0"
+                "source": "https://github.com/funadmin/fun-addons/tree/v2.1"
             },
             "install-path": "../funadmin/fun-addons"
         },

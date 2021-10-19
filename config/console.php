@@ -15,7 +15,7 @@
 return [
     // 指令定义
     'commands' => [
-        'curd'=>'app\backend\command\Curd',
-        'menu'=>'app\backend\command\Menu',
+        'curd'=>'fun\curd\Curd',
+        'menu'=>'fun\curd\Menu',
     ],
 ];

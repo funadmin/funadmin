@@ -1,8 +1,8 @@
 <?php
 
-namespace app\backend\command;
+namespace fun\curd;
 
-use app\backend\service\CurdService;
+use fun\curd\service\CurdService;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;

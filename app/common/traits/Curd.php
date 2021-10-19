@@ -121,7 +121,6 @@ trait Curd
             }
             $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
-        $list = $list->getData();
         $view = ['formData'=>$list,'title' => lang('Add'),];
         return view('add',$view);
     }

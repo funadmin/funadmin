@@ -286,15 +286,17 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ops = {};
                 ops[ele.field] = op;
                 op = JSON.stringify(ops);
+                console.log(selectList)
                 if (JSON.stringify(selectList) !== "{}" && content !== '' && content!==null) {
                     var reg = RegExp(/,/);
-                    content = reg.test(content) ? content.split(',') : [content];
+                    content = typeof content== 'string' && reg.test(content) ? content.split(',') :
+                        typeof content== 'object'?content:[content];
                     html = '';
                     $.each(content, function (i, v) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
                         if (selectList[v]) {
-                            html += Table.getBadge(d, ele, v, __(selectList[v]))
+                            html += Table.getBadge(d, ele, v, __(selectList[v]))+' ';
                         }
                     });
                     return html

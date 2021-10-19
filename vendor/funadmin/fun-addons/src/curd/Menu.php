@@ -1,6 +1,6 @@
 <?php
 
-namespace app\backend\command;
+namespace fun\curd;
 
 use app\backend\model\AuthRule;
 use app\common\annotation\ControllerAnnotation;

@@ -1,14 +1,14 @@
 <?php
 declare (strict_types = 1);
 
-namespace {{$modelNamespace}};
+namespace app\backend\model;
 use app\common\model\BaseModel;
 use think\Model;
 use think\model\concern\SoftDelete;
 /**
  * @mixin \think\Model
  */
-class {{$modelName}} extends BaseModel
+class TestCate extends BaseModel
 {
     use SoftDelete;
     protected $defaultSoftDelete =0;
@@ -16,5 +16,7 @@ class {{$modelName}} extends BaseModel
     {
         parent::__construct($data);
     }
-    {{$joinTpl}}
+    
+
+    
 }
