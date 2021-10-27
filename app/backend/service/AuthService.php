@@ -342,22 +342,26 @@ class AuthService
         }
         $list = $this->authMenuNode($cate);
         $html = '';
-        foreach ($list as $key => $val) {
-            $html .= '<li class="layui-nav-item">';
-            $badge = '';
-            if (strtolower($val['title']) === 'addon') {
-                $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
+        $theme = syscfg('site', 'site_theme');
+        if ($theme == 1 || $theme == 2){
+            foreach ($list as $key => $val) {
+                $html .= '<li class="layui-nav-item">';
+                $badge = '';
+                if (strtolower($val['title']) === 'addon') {
+                    $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
+                }
+                if ($val['child'] and count($val['child']) > 0) {
+                    $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                    $html = $this->childmenuhtml($html, $val['child']);
+                } else {
+                    $target = $val['target'] ? $val['target'] : '_self';
+                    $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                }
+                $html .= '</li>';
             }
-            if ($val['child'] and count($val['child']) > 0) {
-                $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                $html = $this->childmenuhtml($html, $val['child']);
-            } else {
-                $target = $val['target'] ? $val['target'] : '_self';
-                $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-            }
-            $html .= '</li>';
+        }elseif($theme==3){
+
         }
-//        $html .= '<span class="layui-nav-bar" style="top: 22.5px; height: 0px; opacity: 0;"></span>';
         return $html;
 
     }
@@ -372,7 +376,7 @@ class AuthService
     {
         $html .= '<dl class="layui-nav-child">';
         foreach ($child as $k => $v) {
-            $html .= '<dd>';
+            $html .= '<dd >';
             if ($v['child'] and count($v['child']) > 0) {
                 $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '"  data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
                 $html = self::childmenuhtml($html, $v['child']);

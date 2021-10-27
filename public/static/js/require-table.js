@@ -95,7 +95,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 } else if (v === 'recycle') {
                     url = Fun.replaceurl(Table.init.requests.recycle_url, d);
                     if (Fun.checkAuth('recycle',options.elem)) {
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
                     }
                 } else if (v === 'restore') {
                     url = Fun.replaceurl(Table.init.requests.restore_url, d);

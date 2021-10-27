@@ -13,6 +13,7 @@
  */
 
 return [
+    'Home'=>'主页',
     'UserName or Email'  =>  '用户名或邮箱',
     'Login In'  =>  '登入',
     'Lang'  =>  '语言',

@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '0fc36b825b36a7b55b2bb940d57ec814da25c1a2',
+    'reference' => '2aa4f036b1436e94a345fa2f2e66c7f6b2f30f7d',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -82,12 +82,12 @@ private static $installed = array (
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v2.2',
-      'version' => '2.2.0.0',
+      'pretty_version' => 'v2.3',
+      'version' => '2.3.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'a8e0e678c934e99d55bf7cf0f74d9058289201d8',
+      'reference' => 'ce6beb6138c50754d3815eba3ad077118ef1b9fe',
     ),
     'funadmin/funadmin' => 
     array (
@@ -96,7 +96,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '0fc36b825b36a7b55b2bb940d57ec814da25c1a2',
+      'reference' => '2aa4f036b1436e94a345fa2f2e66c7f6b2f30f7d',
     ),
     'league/flysystem' => 
     array (
@@ -145,12 +145,12 @@ private static $installed = array (
     ),
     'phpdocumentor/reflection-docblock' => 
     array (
-      'pretty_version' => '5.2.2',
-      'version' => '5.2.2.0',
+      'pretty_version' => '5.3.0',
+      'version' => '5.3.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '069a785b2141f5bcf49f3e353548dc1cce6df556',
+      'reference' => '622548b623e81ca6d78b721c5e029f4ce664f170',
     ),
     'phpdocumentor/type-resolver' => 
     array (

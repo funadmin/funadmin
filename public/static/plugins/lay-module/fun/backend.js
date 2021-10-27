@@ -929,6 +929,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
         api: {
             bindEvent: function () {
                 //监听导航点击菜单点击*/
+                //水平导航栏监听事件
+                $('.layui-nav-header .layui-nav li>a').hover(function (){
+                    $(this).parent('li').siblings().children('.layui-nav-child').removeClass('layui-show');
+                })
                 $document.on('click', '*[lay-id]', function () {
                     var _that = $(this),target = _that.prop('target')
                         , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
@@ -1057,7 +1061,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     $('.layui-dropdown').remove();
                 });
                 $(window).on("resize", function () {
-                       Backend.initBodyTheme();
+                    Backend.initBodyTheme();
                 });
             },
         }

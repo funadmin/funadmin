@@ -13,6 +13,7 @@
 
 namespace fun\auth;
 
+use think\facade\Config;
 use think\facade\Request;
 use fun\auth\Send;
 use fun\auth\Oauth;
@@ -51,6 +52,13 @@ class Token
         header('Access-Control-Allow-Credentials:true');
         header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
         $this->request = Request::instance();
+        $this->timeDif = Config::get('api.timeDif')??$this->timeDif;
+        $this->refreshExpires =Config::get('api.timeDif')??$this->refreshExpires;
+        $this->expires =Config::get('api.timeDif')??$this->expires;
+        $this->responseType = Config::get('api.responseType')??$this->responseType;
+        $this->responseType = Config::get('api.responseType')??$this->responseType;
+        $this->authapp = Config::get('api.authapp')??$this->authapp;
+
         if ($this->authapp) {
             $appid = Request::post('appid');
             $appsecret = Request::post('appsecret');

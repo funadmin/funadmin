@@ -11,7 +11,6 @@ class JwtToken extends TokenApi
 {
 
     public $appsecret = 123456;
-    public $authapp = true;
     public function __construct(Request $request)
     {
         parent::__construct($request);

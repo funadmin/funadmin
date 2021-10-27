@@ -24,6 +24,7 @@ class Member extends Api
      */
     public function index()
     {
+        $this->success('ok',input());
         //通用参数验证
         $validate = new ValidataBase();
         $validate->validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证

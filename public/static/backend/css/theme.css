@@ -34,6 +34,53 @@
 .layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item{
     line-height:50px;height:50px!important;
 }
+.layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item:hover dl {
+    display: block!important;
+}
+.layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item:hover dl dl{
+    display: contents!important;
+}
+.layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item dl .layui-show{
+    display: contents!important;
+}
+.layui-nav-header .layui-nav .layui-nav-item a i {
+    padding-right: 5px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item a {
+    height: 45px;
+    line-height: 45px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item .layui-nav-child a {
+    padding-left: 20px;
+    padding-right: 25px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
+    padding-left: 35px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 45px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 55px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 65px
+}
+
+.layui-nav-header-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 75px
+}
+
+.layui-nav-header .layui-nav .layui-nav-itemed>.layui-nav-child {
+    padding: 5px 0
+}
+
 .layui-layout-admin .layui-nav .layui-nav-item a{
     padding: 0 25px;
 }
