@@ -1,5 +1,5 @@
 #layui-app-body{
-    top:0;
+    /*top:0;*/
 }
 .layui-layout-admin .layui-pagetabs{
     left: 0;top: 110px!important;;
@@ -30,6 +30,9 @@
 }
 .layui-layout-admin .layui-footer{
     left: 0!important;
+}
+.layui-nav .layui-this:after, .layui-nav-bar{
+    background: #fff;
 }
 .layui-layout-admin .layui-nav-header .layui-nav .layui-nav-item{
     line-height:50px;height:50px!important;

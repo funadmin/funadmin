@@ -269,20 +269,20 @@
 
         <div class="layui-nav-header">
             <ul class="layui-nav" lay-filter="menulist"  lay-shrink="all" id="">
-                <li lay-id="" lay-attr="console" class="layui-this layui-nav-item">
-                    <a href="javascript:;" lay-id="" data-id="" title="console"
-                       data-tips="console" data-url="{:__u('index/console')}" target="_self">
-                        <i class="layui-icon layui-icon-home"></i><cite> {:lang('Home')}</cite>
-                    </a>
-                </li>
+<!--                <li lay-id="" lay-attr="console" class="layui-this layui-nav-item">-->
+<!--                    <a href="javascript:;" lay-id="" data-id="" title="console"-->
+<!--                       data-tips="console" data-url="{:__u('index/console')}" target="_self">-->
+<!--                        <i class="layui-icon layui-icon-home"></i><cite> {:lang('Home')}</cite>-->
+<!--                    </a>-->
+<!--                </li>-->
                 {$menulist|raw}
             </ul>
         </div>
         <!--     导航按钮 +主题内容 -->
         <div class="layui-pagetabs" id="layui-app-tabs">
-            <div class="layui-icon layui-tabs-control layui-icon-next  layui-hide" lay-event="leftPage"></div>
-            <div class="layui-icon layui-tabs-control layui-icon-prev  layui-hide" lay-event="rightPage"></div>
-            <div class="layui-icon layui-tabs-control layui-icon-down  layui-hide">
+            <div class="layui-icon layui-tabs-control layui-icon-next  " lay-event="leftPage"></div>
+            <div class="layui-icon layui-tabs-control layui-icon-prev  " lay-event="rightPage"></div>
+            <div class="layui-icon layui-tabs-control layui-icon-down  ">
                 <ul class="layui-nav layui-tabs-select">
                     <li class="layui-nav-item">
                         <a href="javascript:;"><span class="layui-nav-more"></span></a>
@@ -295,7 +295,7 @@
                 </ul>
             </div>
             <div class="layui-tab layui-tab-card"  overflow lay-allowclose="true" lay-filter="layui-layout-tabs">
-                <ul class="layui-tab-title" id="layui-tab-header layui-hide" style="display: none;">
+                <ul class="layui-tab-title" id="layui-tab-header ">
                     <li lay-id="" lay-attr="console" class="layui-this">
                         <i class="layui-icon layui-icon-home"></i>
                     </li>
