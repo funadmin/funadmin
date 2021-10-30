@@ -17,6 +17,7 @@ use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
+use app\common\model\Config;
 use app\common\service\UploadService;
 use app\common\traits\Curd;
 use fun\helper\FileHelper;
@@ -154,6 +155,13 @@ class Ajax extends Backend
             $this->error($e->getMessage());
         }
         Cache::clear() ? $this->success('清除成功') : $this->error('清除失败');
+    }
+    public function setConfig()
+    {
+        $config = Config::where('code',input('code'))->find();
+        $result = $config?$config->save(['value'=>input('value')]):'';
+        Cache::clear();
+        $result?$this->success(lang('operation success')):$this->error(lang('operation failed'));
     }
 
 }

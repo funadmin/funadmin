@@ -79,8 +79,7 @@ return [
     'Fans'  =>  '粉丝',
     'Reply'  =>  '回复',
     'Supperman'  =>  '超级管理',
-
-
+    'Theme Color'=>'主题颜色',
     'Sort'  =>  '排序',
     'Field'  =>  '字段',
     'Name'  =>  '名字',

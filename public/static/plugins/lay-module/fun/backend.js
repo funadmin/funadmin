@@ -9,86 +9,82 @@ layui.define(['layer','element','dropdown'], function (exports) {
     var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
         THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
         //主题配置
-        THEME = [
+        THEME = [{
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#772c6a',
+            headerBgLogo: '#0c0c0c',
+            headerLogofontColor: '#fff',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#772c6a',
+            menuLeftBgHover: '#772c6a',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#197971',
+            headerBgLogo: '#0c0c0c',
+            headerLogofontColor: '#fff',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#20b598',
+            menuLeftBgHover: '#20b598',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#722ed1',
+            headerBgLogo: '#0c0c0c',
+            headerLogofontColor: '#fff',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#722ed1',
+            menuLeftBgHover: '#722ed1',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#772c6a',
+            headerBgLogo: '#fff',
+            headerLogofontColor: '#595959',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#772c6a',
+            menuLeftBgHover: '#772c6a',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#197971',
+            headerBgLogo: '#fff',
+            headerLogofontColor: '#595959',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#20b598',
+            menuLeftBgHover: '#20b598',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        }, {
+            headerBg: '#fff',
+            headerfontColor: '#595959',
+            headerBgThis: '#722ed1',
+            headerBgLogo: '#fff',
+            headerLogofontColor: '#595959',
+            menuLeftBg: '#23262e',
+            menuLeftBgThis: '#722ed1',
+            menuLeftBgHover: '#722ed1',
+            menuLeftDlBg: 'rgba(0,0,0,.3)',
+            menuLeftfontColor: 'rgba(255,255,255,.7)',
+            menuLeftfontColorHover: '#fff',
+        },
             {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#772c6a',
-                menuLeftBgHover: '#772c6a',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-            },
-            {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#197971',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#722ed1',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#722ed1',
-                menuLeftBgHover: '#722ed1',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-            },
-            {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#772c6a',
-                menuLeftBgHover: '#772c6a',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#197971',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#722ed1',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#722ed1',
-                menuLeftBgHover: '#722ed1',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-            }, {
                 headerBg: '#20b598',
                 headerfontColor: '#fff',
                 headerBgThis: '#197971',
@@ -100,8 +96,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
             }, {
                 headerBg: '#20b598',
                 headerfontColor: '#fff',
@@ -114,8 +108,17 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
+            }, {
+                headerBg: '#00a65a',
+                headerBgThis: '#197971',
+                headerBgLogo: '#00a65a',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#222d32',
+                menuLeftBgThis: '#00a65a',
+                menuLeftBgHover: '#00a65a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
             }, {
                 headerBg: '#722ed1',
                 headerfontColor: '#fff',
@@ -128,21 +131,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
-            }, {
-                headerBg: '#00a65a',
-                headerBgThis: '#197971',
-                headerBgLogo: '#00a65a',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#222d32',
-                menuLeftBgThis: '#00a65a',
-                menuLeftBgHover: '#00a65a',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-
             }, {
                 headerBg: '#23262e',
                 headerfontColor: '#fff',
@@ -155,8 +143,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
             }, {
                 headerBg: '#ffa4d1',
                 headerfontColor: '#fff',
@@ -169,7 +155,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
             }, {
                 headerBg: '#1e9fff',
                 headerfontColor: '#fff',
@@ -182,48 +167,30 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-            }, {
-                headerBg: '#ffb800',
-                headerfontColor: '#fff',
-                headerBgThis: '#d09600',
-                headerBgLogo: '#243346',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#2f4056',
-                menuLeftBgThis: '#ffb800',
-                menuLeftBgHover: '#ffb800',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
-
-            }, {
-                headerBg: '#e82121',
-                headerfontColor: '#fff',
-                headerBgThis: '#ae1919',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#e82121',
-                menuLeftBgHover: '#e82121',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
             }, {
                 headerBg: '#963885',
                 headerfontColor: '#fff',
                 headerBgThis: '#772c6a',
                 headerBgLogo: '#243346',
                 headerLogofontColor: '#fff',
-                menuLeftBg: '#2f4056',
+                menuLeftBg: '#191a23',
                 menuLeftBgThis: '#963885',
                 menuLeftBgHover: '#963885',
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
+            }, {
+                headerBg: '#963885',
+                headerfontColor: '#fff',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#772c6a',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#191a23',
+                menuLeftBgThis: '#963885',
+                menuLeftBgHover: '#963885',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
             }, {
                 headerBg: '#1e9fff',
                 headerfontColor: '#fff',
@@ -236,7 +203,18 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
+            }, {
+                headerBg: '#ffb800',
+                headerfontColor: '#fff',
+                headerBgThis: '#d09600',
+                headerBgLogo: '#243346',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#2f4056',
+                menuLeftBgThis: '#ffb800',
+                menuLeftBgHover: '#ffb800',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
             }, {
                 headerBg: '#ffb800',
                 headerfontColor: '#fff',
@@ -249,8 +227,18 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
+            }, {
+                headerBg: '#e82121',
+                headerfontColor: '#fff',
+                headerBgThis: '#ae1919',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#1f1f1f',
+                menuLeftBgThis: '#e82121',
+                menuLeftBgHover: '#e82121',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
             }, {
                 headerBg: '#e82121',
                 headerfontColor: '#fff',
@@ -263,8 +251,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-
             }, {
                 headerBg: '#e82121',
                 headerfontColor: '#fff',
@@ -277,20 +263,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-
-            }, {
-                headerBg: '#963885',
-                headerfontColor: '#fff',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#772c6a',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#2f4056',
-                menuLeftBgThis: '#963885',
-                menuLeftBgHover: '#963885',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-
             }, {
                 headerBg: '#fff',
                 headerfontColor: '#595959',
@@ -575,9 +547,9 @@ layui.define(['layer','element','dropdown'], function (exports) {
             }
             $.each(THEME, function (key, val) {
                 if (key === colorId) {
-                    html += '<li class="layui-this" lay-event="setTheme" data-color="' + key + '">\n';
+                    html += '<li class="layui-this" lay-event="setThemeColor" data-color="' + key + '">\n';
                 } else {
-                    html += '<li  lay-event="setTheme" data-color="' + key + '">\n';
+                    html += '<li  lay-event="setThemeColor" data-color="' + key + '">\n';
                 }
                 html += '<a href="javascript:;" data-skin="skin-blue" style="" class="clearfix full-opacity-hover">\n' +
                     '<div><span style="display:block; width: 20%; float: left; height: 12px; background: ' + val.headerBgLogo + ';"></span><span style="display:block; width: 80%; float: left; height: 12px; background: ' + val.headerBg + ';"></span></div>\n' +
@@ -704,9 +676,19 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '<span>' + __('Theme Color') + '</span>\n' +
                     '</div>\n' +
                     '<div class="color-content">\n' +
-                    '<ul>\n' + bgColorHtml + '</ul>\n' +
-                    '</div>\n' +
-                    '</div>';
+                    '<ul style="border-bottom: 1px solid #e8e8e8;">\n' + bgColorHtml + '</ul>\n' +
+                    '</div>'+
+                    '<form class="layui-form" action="">\n' +
+                    ' <div class="layui-form-item">\n' +
+                    '        <label class="layui-form-label" style="text-align: left;width: auto;">菜单导航：</label>\n' +
+                    '        <div class="layui-input-inline" style="width: auto;">\n' +
+                    '            <input lay-filter="setTheme" type="radio" value="1" title="侧边" name="site_theme">' +
+                    '            <input lay-filter="setTheme" type="radio" value="2" title="水平" name="site_theme">' +
+                    '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
+                    '        </div>\n' +
+                    '</div>'+
+                    '</form>'
+                ;
                 layer.open({
                     type: 1,
                     title: false,
@@ -716,18 +698,19 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     shadeClose: true,
                     isOutAnim: true,
                     id: 'layui-fun-color',
-                    area: ['340px', clientHeight + 'px'],
+                    area: ['360px', clientHeight + 'px'],
                     offset: 'rb',
                     content: html,
-
                 });
+                layui.form.render()
                 layer.close(loading);
             },
-
+            
+            
             /**
              * 设置颜色配置
              */
-            setTheme: function (othis) {
+            setThemeColor: function (othis) {
                 var colorId = othis.data('color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', 'layui-this');
@@ -927,6 +910,16 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         api: {
             bindEvent: function () {
+                layui.form.on('radio(setTheme)', function (data) {
+                    url = Fun.url('ajax/setConfig');
+                    Fun.ajax({url: url,data:{value:data.value,code:'site_theme'}}, function (res) {
+                        Fun.toastr.success(res.msg, function () {
+                            window.location.reload();
+                        });
+                    }, function (res) {
+                        Fun.toastr.error(res.msg);
+                    })
+                });
                 //监听导航点击菜单点击*/
                 // 主题三
                 $document.on('click','.layui-header .layui-layout-center li a',function (){
