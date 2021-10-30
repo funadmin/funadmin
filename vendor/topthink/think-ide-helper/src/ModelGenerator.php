@@ -251,7 +251,7 @@ class ModelGenerator
                             break;
                     }
                 }
-                $comment = $field['comment'];
+                $comment = $field['comment'] ?? null;
                 $this->addProperty($name, $type, true, true, $comment);
             }
         }

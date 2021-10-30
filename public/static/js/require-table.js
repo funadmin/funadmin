@@ -286,7 +286,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ops = {};
                 ops[ele.field] = op;
                 op = JSON.stringify(ops);
-                console.log(selectList)
                 if (JSON.stringify(selectList) !== "{}" && content !== '' && content!==null) {
                     var reg = RegExp(/,/);
                     content = typeof content== 'string' && reg.test(content) ? content.split(',') :

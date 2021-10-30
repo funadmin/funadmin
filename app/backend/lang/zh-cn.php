@@ -89,6 +89,7 @@ return [
 
     'Upload'  =>  "上传",
     'Refresh Success'    =>  '刷新成功',
+    'Refresh'    =>  '刷新页面',
     'Description'  =>  "描述",
     'Set Password To Lock Screen'  =>  '输入密码锁屏',
     'Lock now'    =>  '立即锁屏',

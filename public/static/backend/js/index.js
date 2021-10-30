@@ -14,7 +14,14 @@ define(['backend'], function (Backend) {
                 Fun.ajax({
                     url: Fun.url('ajax/refreshmenu'),
                 }, function (res) {
-                    _that.html(res.msg);
+                    console.log(typeof res.data =='object')
+                    if(typeof res.data =='object'){
+                        _that.html(res.data['menu']);
+                        $('#layui-header-nav-pc').html(res.data['nav']);
+                        $('#layui-header-nav-mobile').html(res.data['navm']);
+                    }else{
+                        _that.html(res.data);
+                    }
                     layui.element.render('nav');//重新渲染nav导航
                 }, function () {
                     return false;

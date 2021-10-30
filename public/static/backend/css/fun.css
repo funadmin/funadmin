@@ -51,6 +51,25 @@ body .layui-site-mobile {display: none}
     top: 0;
     left: 220px
 }
+.layui-header .layui-layout-center {
+    position:absolute; top:0;left:280px;
+}
+.layui-header .layui-layout-nav {
+    animation:nav .5s ;
+    -webkit-animation:nav .5s ; /* Safari 和 Chrome */
+    left: 120px;
+}
+@keyframes nav
+{
+    from {left:280px;}
+    to {left:120px}
+}
+
+@-webkit-keyframes nav /*Safari and Chrome*/
+{
+    from {left:280px;}
+    to {left:120px}
+}
 .layui-header .layui-nav .layui-nav-item,
 .layui-layout-admin .layui-header .layui-tool,
 .layui-layout-admin .layui-layout-left,
@@ -784,6 +803,16 @@ cursor: pointer;
     .layui-side-shrink .layui-header .layui-layout-left {
         left: 0!important;
     }
+    .layui-side-shrink .layui-header .layui-layout-center {
+        left: 60px!important;
+    }
+    #layui-header-nav-mobile{
+        display: block!important;
+        left:280px;
+    }
+    #layui-header-nav-pc{
+        display: none;
+    }
 }
 
 @media screen and (max-width:769px) {
@@ -871,6 +900,7 @@ cursor: pointer;
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 85px
     }
+    .
     .layui-site-mobile {
         display: block !important;
         position: fixed;
@@ -884,6 +914,16 @@ cursor: pointer;
         text-align: center;
         background-color: rgba(0, 0, 0, .7);
         color: #fff
+    }
+    .layui-side-shrink .layui-header .layui-layout-center {
+        left: 280px!important;
+    }
+    #layui-header-nav-mobile{
+        display: block!important;
+        left:60px;
+    }
+    #layui-header-nav-pc{
+        display: none;
     }
 }
 

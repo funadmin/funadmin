@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2358ed80bface4370459b51c89327ae2",
+    "content-hash": "c33efa601c79f52dd86da00bcb480413",
     "packages": [
         {
             "name": "brick/math",
@@ -354,16 +354,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v2.3",
+            "version": "v2.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "ce6beb6138c50754d3815eba3ad077118ef1b9fe"
+                "reference": "c5f9cd55cabe6ef67f09f33ac8f953ded5b47490"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/ce6beb6138c50754d3815eba3ad077118ef1b9fe",
-                "reference": "ce6beb6138c50754d3815eba3ad077118ef1b9fe",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/c5f9cd55cabe6ef67f09f33ac8f953ded5b47490",
+                "reference": "c5f9cd55cabe6ef67f09f33ac8f953ded5b47490",
                 "shasum": ""
             },
             "require": {
@@ -407,9 +407,9 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v2.3"
+                "source": "https://github.com/funadmin/fun-addons/tree/v2.4"
             },
-            "time": "2021-10-26T02:08:24+00:00"
+            "time": "2021-10-28T01:05:19+00:00"
         },
         {
             "name": "league/flysystem",
@@ -2028,16 +2028,16 @@
         },
         {
             "name": "topthink/think-ide-helper",
-            "version": "v1.0.2",
+            "version": "v1.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-ide-helper.git",
-                "reference": "a3d4aa62acdc3b9270b850b649275207d0462c4d"
+                "reference": "adc70e2f97dbad42a1fddfdf46cb74b59d3e7a32"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-ide-helper/zipball/a3d4aa62acdc3b9270b850b649275207d0462c4d",
-                "reference": "a3d4aa62acdc3b9270b850b649275207d0462c4d",
+                "url": "https://api.github.com/repos/top-think/think-ide-helper/zipball/adc70e2f97dbad42a1fddfdf46cb74b59d3e7a32",
+                "reference": "adc70e2f97dbad42a1fddfdf46cb74b59d3e7a32",
                 "shasum": ""
             },
             "require": {
@@ -2070,9 +2070,9 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/think-ide-helper/issues",
-                "source": "https://github.com/top-think/think-ide-helper/tree/v1.0.2"
+                "source": "https://github.com/top-think/think-ide-helper/tree/v1.0.3"
             },
-            "time": "2021-04-23T08:40:43+00:00"
+            "time": "2021-08-09T12:36:21+00:00"
         },
         {
             "name": "topthink/think-image",

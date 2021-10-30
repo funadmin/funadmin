@@ -631,6 +631,7 @@ class FormHelper
             . $li . '
                         </div>
                     </div>
+                    ' . self::tips($options) . '
                 </div>
             </div>';
         return $str;

@@ -62,7 +62,7 @@ class Ajax extends Backend
     {
         $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
         $menulsit = (new AuthService())->menuhtml($cate);
-        $this->success($menulsit);
+        $this->success('ok','',$menulsit);
     }
     /**
      * @return \think\response\Jsonp

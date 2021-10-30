@@ -438,7 +438,7 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `t
                                                                                                                                                                        (1, 'site_name', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
                                                                                                                                                                        (2, 'site_phone', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
                                                                                                                                                                        (3, 'site_state', '', '1', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
-                                                                                                                                                                       (4, 'site_logo', '', '\\storage\\upload/20210507\\031682e36202437cd176d148e7c799ce.png', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
+                                                                                                                                                                       (4, 'site_logo', '', '\favicon.ico', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
                                                                                                                                                                        (5, 'site_mobile_logo', '', 'site_mobile_logo.png', '默认网站手机端logo', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
                                                                                                                                                                        (6, 'site_logowx', '', 'site_logowx.jpg', '微信网站二维码', '0', 'image', 'site', 1, 1, 0, 1583583460, 0),
                                                                                                                                                                        (7, 'site_icp', '', '2', 'ICP备案号', '0', 'text', 'site', 1, 1, 0, 1583583461, 0),
@@ -461,9 +461,9 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `t
                                                                                                                                                                        (37, 'upload_water_size', '', '', '水印大小', '0', 'text', 'upload', 1, 1, 0, 0, 0),
                                                                                                                                                                        (38, 'upload_water_color', '', '', '水印颜色', '0', 'color', 'upload', 1, 1, 0, 0, 0),
                                                                                                                                                                        (39, 'upload_driver', '', 'local', '上传配置', '0', 'text', 'upload', 1, 1, 1594213311, 1595419144, 0),
-                                                                                                                                                                       (40, 'site_theme', '1:竖屏\n2:横屏', '1', '主题配置', '0', 'radio', 'site', 1, 1, 0, 1633506544, 0);
+                                                                                                                                                                       (40, 'site_theme', '1:竖屏\n2:横屏\n3:顶部导航', '1', '主题配置', '0', 'radio', 'site', 1, 1, 0, 1633506544, 0);
 
--- --------------------------------------------------------
+-- --------------------------------------------------------\n2:横屏
 
 --
 -- 表的结构 `fun_config_group`
