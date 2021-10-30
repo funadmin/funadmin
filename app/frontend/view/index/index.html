@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title>FunAdmin- FunAdmin敏捷开发后台管理框架-支持PHP8.0的系统- 基于thinkphp6,requirejs,layui 开发的后台管理系统</title>
-    <meta name="keywords" content="FunAdmin,支持PHP8.0的系统, 基于thinkphp6,thinkphp,layui,easywechat框架,框架,组件">
-    <meta name="description"
-          content="FunAdmin支持PHP8.0的系统, 是一款采用 layui开发的敏捷的后台管理框架 基于thinkphp6 ,easywechat,开发的cms后台管理系统,thinkphp,shop,cms,php后台管理系统,cms,cms系统,restful api,thinkphp后台管理系统">
+    <title>FunAdmin - 基于ThinkPHP6,layui开发的敏捷通用的后台管理框架</title>
+    <meta name="keywords" content="FunAdmin,TP6后台管理系统,ThinkPHP6通用后台,ThinkPHP框架,Layui后台,Thinkphp小程序,小程序,CMS,电商，微信,PHP插件应用市场,支持PHP8.0, ">
+    <meta name="description"，
+          content="FunAdmin支持PHP8.0的系统, 是一款采用 layui开发的敏捷的后台管理框架,基于thinkphp6 ,easywechat,开发的cms后台管理系统,thinkphp,shop,cms,php后台管理系统,cms,cms系统,restful api,thinkphp后台管理系统">
+    <meta name="author" content="FunAdmin">
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -21,11 +22,10 @@
     <![endif]-->
 </head>
 <body class="site-home" id="LAY_home">
-
 <section>
-    <div class="layui-header header header-index" autumn>
+    <div class="layui-header header header-index layui-bg-black" autumn>
         <div class="layui-main">
-            <a class="logo" style="font-size: 1.9em;line-height: 1em;" href="/">
+            <a title='cms' class="logo" style="font-size: 1.9em;line-height: 1em;" href="/">
                 FunAdmin
             </a>
             <div class="layui-form component" lay-filter="LAY-site-header-component"></div>
@@ -42,20 +42,24 @@
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
                     <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6" site-event="contactInfo" target="_blank">QQ
-                        群：775616363</a>
+                        群</a>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
-                    <a href="https://doc.funadmin.com" target="_blank">文档
+                    <a href="http://layui.funadmin.com/web" target="_blank">Layui
                         <!-- <span class="layui-badge-dot"></span> --></a>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
-                    <a href="{:__u('version/log')}"  target="_blank">更新历史
+                    <a href="http://doc.funadmin.com" target="_blank">文档
                         <!-- <span class="layui-badge-dot"></span> --></a>
                 </li>
                 <li class="layui-nav-item layui-hide-xs">
-                    <a href="https://gitee.com/funadmin/funadmin" target="_blank">下载
+                    <a href="https://www.funadmin.com/version/index"  target="_blank">版本
                         <!-- <span class="layui-badge-dot"></span> --></a>
                 </li>
+                <!--<li class="layui-nav-item layui-hide-xs">-->
+                <!--    <a href="https://gitee.com/funadmin/funadmin" target="_blank">下载-->
+                <!-- <span class="layui-badge-dot"></span> --></a>
+                <!--</li>-->
                 {if session('member')}
                 <li class="layui-nav-item layui-hide-xs">
                     <a href="{:__u('member/index')}" target="_blank" class="layui-tips">会员中心
@@ -91,7 +95,7 @@
             <div class="layui-anim site-desc site-desc-anim">
                 <p class="web-font-desc">FunAdmin</p>
                 <p class="web-font-desc " style="font-size: 26px;margin-bottom:25px; ">为梦想而创作：支持PHP8.0的系统</p>
-                <p class="web-font-desc layui-hide-xs" style="font-size: 16px;">框架主要使用ThinkPHP6.0* + layui +requirejs拥有完善的权限的管理模块以及插件的开发方式，让你开发起来更加简单。</p>
+                <p class="web-font-desc layui-hide-xs" style="font-size: 16px;">框架主要使用ThinkPHP6.X + layui + requirejs拥有完善的权限的管理模块以及插件的开发方式，让你开发起来更加简单。</p>
                 <!--                <cite></cite>-->
             </div>
             <div class="site-download">
@@ -102,8 +106,8 @@
                 </a>
             </div>
             <div class="site-version">
-                <span>当前版本：<cite class="site-showv">v{:config('app.version')}</cite></span>
-                <span><a href="{:__u('version/log')}" rel="nofollow" target="_blank">更新日志</a></span>
+                <span>当前版本：<cite class="site-showv">v1.6.0</cite></span>
+                <span><a href="{:__u('version/index')}" rel="nofollow" target="_blank">更新日志</a></span>
                 <!--<span>下载量：<em class="site-showdowns">1894161</em></span>-->
             </div>
             <div class="site-banner-other">
@@ -132,7 +136,7 @@
         <div class="layui-container">
             <div class="layui-row">
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-fonts-code"></i></div>
                         <legend>大道至简</legend>
                         <p>插件式开发，系统保留权限等基础功能，<br>
@@ -142,17 +146,17 @@
                     </fieldset>
                 </div>
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-fire"></i></div>
                         <legend>友好的二次开发</legend>
-                        <p>FunAdmin允许进行二次开发，<br>
+                        <p>FunAadmin允许进行二次开发，<br>
                             并用在企业或者个人项目中,<br>
                             集合layui，thinkphp6,
                             restful api</p>
                     </fieldset>
                 </div>
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-praise"></i></div>
                         <legend>权限控制</legend>
                         <p>基于完善的权限控制管理、<br>
@@ -161,19 +165,19 @@
                     </fieldset>
                 </div>
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-app"></i></div>
                         <legend>插件式开发</legend>
                         <p>
                             模块采用插件式开发<br>
                             一键安装卸载，<br>
                             省去大量工作<br>
-                            插件市场正在开发。。。
+                            插件市场大量免费插件
                         </p>
                     </fieldset>
                 </div>
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-rmb"></i></div>
                         <legend>低成本</legend>
                         <p>界面美观，免去设计工作<br>
@@ -183,7 +187,7 @@
                     </fieldset>
                 </div>
                 <div class="layui-col-md4 layui-col-sm6">
-                    <fieldset class="layui-elem-field layui-field-title" title="FunAdmin thinkphp后台管理系统">
+                    <fieldset class="layui-elem-field layui-field-title" title="FunAadmin thinkphp后台管理系统">
                         <div class="icon"><i class="layui-icon layui-icon-cellphone"></i></div>
                         <legend>丰富的表单组件</legend>
                         <p>支持超多表单组件，<br>
@@ -196,50 +200,11 @@
     </div>
 </section>
 <section>
-    <style>
-        .footer {
-            color: #aaa;
-            background: #393d49c2;
-            margin-top: 25px;
-        }
-        .footer ul {
-            margin: 60px 0 30px 0;
-            padding: 0;
-        }
-        .footer ul li.f-tit {
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #fff;
-        }
-        .footer ul li {
-            line-height: 26px;
-            white-space: nowrap;
-            list-style: none;
-            color: #aaa;
-            margin: 0;
-            padding: 0;
-        }
-        .footer ul li a{
-            color: #aaa;
-        }
-        .fly-footer{
-            text-align: center;
-            line-height: 30px;
-            border-top: none;
-            background: #393D49;
-            color: #fff;
-            padding: 0;
-            margin: 0;
-        }
-        .fly-footer a{
-            color: #aaa;
-        }
-    </style>
-    <div class="fly-footer">
+    <div class="fly-footer layui-footer">
         <p>
-            <a href="javascript:;" target="_blank">Powered by funadmin</a>  <a href="javascript:;" target="_blank">2018-2028 &copy;</a></p>
+            <a href="javascript:;" target="_blank">Powered by FunAdmin</a>  <a href="javascript:;" target="_blank">2018-2028 &copy;</a></p>
         <p>
-            <a href="javascript:;" >版权所有:funadmin版权所有</a>
+            <a href="javascript:;" >版权所有:FunAdmin版权所有</a>
             <a href="http://www.funadmin.com/" title="funadmin官网">funadmin官网</a>
             <a href="https://jq.qq.com/?_wv=1027&k=5wj2Wdy" title="获取源码">社区插件授权获取源码</a>
             <a href="http://www.Funadmin.com/" title="开源后台管理系统">开源后台管理系统</a>
@@ -247,15 +212,7 @@
             <a href="http://www.beian.miit.gov.cn">粤ICP备19106066号</a>
         </p>
     </div>
-<!--    <div class="layui-footer footer footer-index">-->
-<!--        <p>&copy; 2018-2021 <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6">FunAdmin版权所有</a> Apache license</p>-->
-<!--        <p>-->
-<!--            <a href="https://jq.qq.com/?_wv=1027&k=GOakxsp6" site-event="contactInfo">QQ 群：775616363</a>-->
-<!--            <a href="https://github.com/FunAdmin/FunAdmin" target="_blank" rel="nofollow">GitHub</a>-->
-<!--            <a target="_blank" href="http://beian.miit.gov.com" target="_blank" rel="nofollow">粤ICP备19106066号</a>-->
-<!--        </p>-->
 
-<!--    </div>-->
 </section>
 
 <script src="__PLUGINS__/layui/layui.js"></script>
