@@ -15,7 +15,10 @@
 return [
     'Home'=>'主页',
     'UserName or Email'  =>  '用户名或邮箱',
+    'password'  =>  '密码',
     'Login In'  =>  '登入',
+    'Login'  =>  '登入',
+    'Register'  =>  '注册',
     'Lang'  =>  '语言',
     'language'  =>  '语言',
     'Input'  =>  '输入',

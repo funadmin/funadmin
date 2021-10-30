@@ -13,10 +13,10 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         content: $("#login_tpl").html(),
                         zIndex: 9999,
                         area: ['450px', '350px'],
-                        title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
+                        title: [__('Login In') + 'FunAdmin', 'text-align:center'],
                         resize: false,
                         btnAlign: 'c',
-                        btn: ['login','register'],
+                        btn: [__('Login'),__('Register')],
                         yes: function (index, layero) {
                             var url = login;
                             var data = {

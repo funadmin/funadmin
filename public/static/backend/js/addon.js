@@ -150,7 +150,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
                             resize: false,
                             btnAlign: 'c',
-                            btn: ['login','register'],
+                            btn: [__('Login'),__('Register')],
                             yes: function (index, layero) {
                                 var url = Fun.url(Table.init.requests.index_url);
                                 var data = {
