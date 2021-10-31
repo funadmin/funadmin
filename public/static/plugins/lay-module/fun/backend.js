@@ -320,7 +320,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             Backend.initBodyTheme();
             Backend.api.bindEvent();
         },
-        initBodyTheme:function (){
+        initBodyTheme:function (name='setTab',type=1){
             $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
             $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop');
             $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style');
@@ -328,7 +328,22 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 height = $('.layui-nav-header ul').height();//横屏
                 $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;')
                 $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;')
-                return false ;
+            }
+            value = layui.data(name)
+            if(value && value[name]==1) {
+                $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
+                    'layui-hide'
+                )
+                $('#layui-app-body').animate({
+                    top: 40
+                }, 100);
+            }else if(value && value[name]==2){
+                $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
+                    'layui-hide'
+                )
+                $('#layui-app-body').animate({
+                    top: 0
+                }, 100);
             }
             return false ;
         },
@@ -687,6 +702,13 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
                     '        </div>\n' +
                     '</div>'+
+                    ' <div class="layui-form-item">\n' +
+                    '        <label class="layui-form-label" style="text-align: left;width: auto;">选项卡：</label>\n' +
+                    '        <div class="layui-input-inline" style="width: auto;">\n' +
+                    '            <input lay-filter="setTab" type="radio" value="1" title="显示" name="setTab">' +
+                    '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
+                    '        </div>\n' +
+                    '</div>'+
                     '</form>'
                 ;
                 layer.open({
@@ -903,7 +925,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     Fun.toastr.error(res.msg)
                 })
             }
-
         },
         /**
          * 监听事件
@@ -912,13 +933,25 @@ layui.define(['layer','element','dropdown'], function (exports) {
             bindEvent: function () {
                 layui.form.on('radio(setTheme)', function (data) {
                     url = Fun.url('ajax/setConfig');
-                    Fun.ajax({url: url,data:{value:data.value,code:'site_theme'}}, function (res) {
+                    code = $(data.elem).attr('name');
+                    Fun.ajax({url: url,data:{value:data.value,code:code}}, function (res) {
                         Fun.toastr.success(res.msg, function () {
                             window.location.reload();
                         });
                     }, function (res) {
                         Fun.toastr.error(res.msg);
                     })
+                });
+                layui.form.on('radio(setTab)', function (data) {
+                    name = $(data.elem).attr('name');
+                    arr = layui.data(name)
+                    console.log(arr)
+                    if(arr && arr[name]==data.value){
+                        return false;
+                    }else{
+                        layui.data(name, {key:name,value:data.value})
+                        Backend.initBodyTheme(name,value);
+                    }
                 });
                 //监听导航点击菜单点击*/
                 // 主题三
