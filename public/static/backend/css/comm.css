@@ -56,6 +56,8 @@ body{background:#f1f4f6;padding:10px}
 
 
 /*子页面主题*/
+body .layui-form-onswitch{border:none;}
+
 #theme0 .layui-btn,
 #theme0 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme0 .layui-laypage .layui-laypage-curr .layui-laypage-em,
