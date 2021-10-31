@@ -1,5 +1,87 @@
+{if $formData}
+<style>
+.layui-list-item{
+    padding-bottom: 8px;
+}
+</style>
+<div class="layui-fluid" style="background: #eee">
+    <div class="layui-row layui-col-space15">
+        <!-- 左 -->
+        <div class="layui-col-sm12 layui-col-md3">
+            <div class="layui-card">
+                <div class="layui-card-body" style="padding: 25px;">
+                    <div class="layui-text-center layui-text">
+                        <div class="user-info-head" id="avatar" lay-upload="" lay-images="avatar" >
+                            <img src="{$formData.avatar?$formData.avatar:'/favicon.ico'}" width="80" class="avatar">
+                        </div>
+                        <h2 style="padding-top: 20px;">{$formData.realname}</h2>
+                    </div>
+                    <div class="layui-text" style="padding-top: 30px;">
+                        <div class="layui-list-item">
+                            <p><i class="layui-icon layui-icon-username"></i>   {$formData.username}</p>
+                        </div>
+                        <div class="layui-list-item">
+                            <p>
+                                <i class="layui-icon layui-icon-release"></i>
+                                {volist name="authGroup" id="vo"}
+                                {if in_array($vo.id,$formData.group_id)}
+                                {$vo.title}
+                                {/if}
+                                {/volist}
+                            </p>
+                        </div>
+                        <div class="layui-list-item">
+                            <p><i class="layui-icon layui-icon-location"></i>   {$formData.ip}</p>
+                        </div>
+                        <div class="layui-list-item">
+                            <p><i class="layui-icon layui-icon-email"></i>  {$formData.email}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 右 -->
+        <div class="layui-col-sm12 layui-col-md9">
+            <div class="layui-card">
+                <div class="layui-card-body">
+
+                    <div class="layui-tab layui-tab-brief" lay-filter="userInfoTab">
+                        <ul class="layui-tab-title">
+                            <li class="layui-this">基本信息</li>
+                        </ul>
+                        <div class="layui-tab-content">
+                            <div class="layui-tab-item layui-show">
+                                <form class="layui-form" lay-filter="form">
+                                    {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
+                                    {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
+                                    {if !$formData}
+                                    {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
+                                    {/if}
+                                    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formData) and isset($formData['group_id']) ?$formData['group_id']:''))}
+                                    {:form_upload('avatar',$formData,['mime'=>'image'])}
+                                    {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
+                                    {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
+                                    {if(input('type'))}
+                                    {:form_submitbtn(true,['show'=>1])}
+                                    <!--    菜单个人信息编辑-->
+                                    {else/}
+                                    {:form_submitbtn()}
+                                    {/if}
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{else/}
+
 <form class="layui-form" lay-filter="form">
     {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
+    {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
     {if !$formData}
     {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
     {/if}
@@ -9,8 +91,9 @@
     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
     {if(input('type'))}
     {:form_submitbtn(true,['show'=>1])}
-<!--    菜单个人信息编辑-->
+    <!--    菜单个人信息编辑-->
     {else/}
     {:form_submitbtn()}
     {/if}
 </form>
+{/if}

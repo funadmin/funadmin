@@ -229,7 +229,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     url  = url.indexOf('?')!==-1?url+"&group_id="+data.data.id :url+'?group_id='+data.data.id
                     location.href = url;
                 }
-
             }).on("edit", function(data) {
                 setTimeout(function() {
                     data.load({

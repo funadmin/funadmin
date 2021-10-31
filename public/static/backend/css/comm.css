@@ -16,7 +16,7 @@ body{background:#f1f4f6;padding:10px}
 .layui-table-tool-temp{padding-right:120px}
 .layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;right:5px}
 .layui-input:focus, .layui-textarea:focus{border-color:#772c6a!important; }
-.layui-btn-center{text-align:center}
+.layui-text-center,.layui-btn-center{text-align:center}
 .layui-upload-list li{display:inline-block}
 .layui-upload-list li i{background:#f2f2f2;cursor:pointer}
 #searchFieldList_list form{padding:10px}
