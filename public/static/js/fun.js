@@ -308,6 +308,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 }
             }
         },
+
         //事件
         events: {
             photos: function (othis) {
@@ -360,6 +361,32 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         },
         //接口
         api: {
+            //设置子页面主题
+            setTheme:function(body=''){
+                var colorId = sessionStorage.getItem('funColorId');
+                if (colorId == null || colorId === '') {
+                    colorId = 0;
+                }
+                theme = 'theme'+colorId;
+                if(sessionStorage.getItem('frameTheme')){
+                    var iframe = $("#layui-tab .layui-tab-item").find("iframe");
+                    for (let i = 0; i < iframe.length; i++) {
+                        $(iframe[i]).on('load',function(){
+                            //此处加载时必须要
+                            $(this).contents().find('body').attr('id', theme);
+                        })
+                        $(iframe[i]).contents().find('body').attr('id', theme);
+                    }
+                    var layiframe = top.layui.$('.layui-layer-iframe').find('iframe');
+                    for (let i = 0; i < layiframe.length; i++) {
+                        $(layiframe[i]).contents().find('body').attr('id', theme);
+                    }
+                    if(body){
+                        body.attr('id', theme);
+                    }
+                }
+                top.layui.$('body').attr('id',theme);
+            },
             /**
              * 关闭当前弹窗
              */
@@ -449,6 +476,8 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
+                            body = layero.find('iframe').contents().find('body')
+                            Fun.api.setTheme(body);
                         } catch (err) {
                             //在此处理错误
                         }
@@ -488,6 +517,8 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         layer.full(index);
                     })
                 }
+
+
             },
             //打开iframe
             iframe:function(options){

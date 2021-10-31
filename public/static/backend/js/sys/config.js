@@ -51,7 +51,6 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         templet : function(d){
                             if(d.is_system){
                                 $html = '';
-                                console.log(d)
                                 var elem = '#'+d.LAY_COL.init.tableId;
                                 if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.edit_url),elem)) {
                                     $html += '<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="' + Table.init.tableId + '" data-width="800" data-height="600" data-url="' + Table.init.requests.edit_url + '?id=' + d.id + '" title="' + __('Edit') + '" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>';

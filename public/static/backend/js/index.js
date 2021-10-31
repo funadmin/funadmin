@@ -7,6 +7,7 @@ define(['backend'], function (Backend) {
                 themeid: '',
                 maxTabs: '',
                 loadingTime: '',
+                theme:''
             })
             //刷新菜单事件
             $(document).on('refresh', '#layui-side-left-menu', function () {
@@ -14,7 +15,6 @@ define(['backend'], function (Backend) {
                 Fun.ajax({
                     url: Fun.url('ajax/refreshmenu'),
                 }, function (res) {
-                    console.log(typeof res.data =='object')
                     if(typeof res.data =='object'){
                         _that.html(res.data['menu']);
                         $('#layui-header-nav-pc').html(res.data['nav']);

@@ -9,82 +9,82 @@ layui.define(['layer','element','dropdown'], function (exports) {
     var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
         THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
         //主题配置
-        THEME = [{
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#772c6a',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#197971',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#20b598',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#722ed1',
-            headerBgLogo: '#0c0c0c',
-            headerLogofontColor: '#fff',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#722ed1',
-            menuLeftBgHover: '#722ed1',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#772c6a',
-            headerBgLogo: '#fff',
-            headerLogofontColor: '#595959',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#772c6a',
-            menuLeftBgHover: '#772c6a',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#197971',
-            headerBgLogo: '#fff',
-            headerLogofontColor: '#595959',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#20b598',
-            menuLeftBgHover: '#20b598',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        }, {
-            headerBg: '#fff',
-            headerfontColor: '#595959',
-            headerBgThis: '#722ed1',
-            headerBgLogo: '#fff',
-            headerLogofontColor: '#595959',
-            menuLeftBg: '#23262e',
-            menuLeftBgThis: '#722ed1',
-            menuLeftBgHover: '#722ed1',
-            menuLeftDlBg: 'rgba(0,0,0,.3)',
-            menuLeftfontColor: 'rgba(255,255,255,.7)',
-            menuLeftfontColorHover: '#fff',
-        },
+        THEME = [
             {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#197971',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#20b598',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#722ed1',
+                headerBgLogo: '#0c0c0c',
+                headerLogofontColor: '#fff',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#722ed1',
+                menuLeftBgHover: '#722ed1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#772c6a',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#772c6a',
+                menuLeftBgHover: '#772c6a',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#197971',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#20b598',
+                menuLeftBgHover: '#20b598',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
+                headerBg: '#fff',
+                headerfontColor: '#595959',
+                headerBgThis: '#722ed1',
+                headerBgLogo: '#fff',
+                headerLogofontColor: '#595959',
+                menuLeftBg: '#23262e',
+                menuLeftBgThis: '#722ed1',
+                menuLeftBgHover: '#722ed1',
+                menuLeftDlBg: 'rgba(0,0,0,.3)',
+                menuLeftfontColor: 'rgba(255,255,255,.7)',
+                menuLeftfontColorHover: '#fff',
+            }, {
                 headerBg: '#20b598',
                 headerfontColor: '#fff',
                 headerBgThis: '#197971',
@@ -263,47 +263,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftDlBg: 'rgba(0,0,0,.3)',
                 menuLeftfontColor: 'rgba(255,255,255,.7)',
                 menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#1c2175',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1c2175',
-                menuLeftBgThis: '#772c6a',
-                menuLeftBgHover: '#772c6a',
-                menuLeftDlBg: '#272c91',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#23287c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23287c',
-                menuLeftBgThis: '#772c6a',
-                menuLeftBgHover: '#772c6a',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#772c6a',
-                headerBgLogo: '#772c6a',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23287c',
-                menuLeftBgThis: '#772c6a',
-                menuLeftBgHover: '#23287c',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: 'rgba(255,255,255,.7)',
-                menuLeftfontColorHover: '#fff',
             },
         ];
     var Backend = {
         /*** 版本*/
-        v: '1.6.0',
+        v: '2.0.0',
         /**
          * @param options
          */
@@ -311,13 +275,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
             options.refreshUrl = options.refreshUrl || Fun.url('ajax/clearcache');
             options.themeid = options.themeid || 0;
             options.maxTabs = options.maxTabs || 15;
+            THEME = options.theme ?options.theme:THEME;
             Backend.initTabs({
                 filter: 'layui-layout-tabs',
                 maxTabs: options.maxTabs,
             });
-            Backend.initBgColor();
             Backend.hideLoading(options.loadingTime);
             Backend.initBodyTheme();
+            Backend.initBgColor();
             Backend.api.bindEvent();
         },
         initBodyTheme:function (name='setTab',type=1){
@@ -400,6 +365,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
             Backend.listenSwitch(options);
             Backend.listenTabs(options);
             Backend.listenDeltab(options);
+            Backend.listenFrameTheme();
+
         },
         //全屏
         fullScreen: function () {
@@ -466,7 +433,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     }
                 });
             }
-
         },
         /**
          * 删除tab窗口
@@ -525,7 +491,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
             $('#layui-nav-righmenu').remove();
             layer.close(loadindex);
             ele.tabChange('layui-layout-tabs', options.layId);
-
         },
         //切换id
         changeSessioinTabId: function (layId) {
@@ -602,6 +567,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 '.layui-pagetabs .layui-tab-title li:hover,.layui-pagetabs .layui-tab-title li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
                 '.layui-layout-admin .layui-nav-tree .layui-nav-bar{background:' + themeData.menuLeftBgThis + '!important;}\n';
             $('#fun-bg-color').html(styleHtml);
+            Backend.listenFrameTheme();
         },
         /**
          * 监听tab切换
@@ -614,7 +580,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 Backend.changeSessioinTabId(layId);
                 Backend.listenSwitchIframe(layId);
                 Backend.scrollPostion();
+                Backend.listenFrameTheme();
             });
+        },
+        //监听主题
+        listenFrameTheme(){
+            Fun.api.setTheme()
         },
         /**
          * 监听tab删除
@@ -709,6 +680,13 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '        <div class="layui-input-inline" style="width: auto;">\n' +
                     '            <input lay-filter="setTab" type="radio" value="1" title="显示" name="setTab">' +
                     '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
+                    '        </div>\n' +
+                    '</div>'+
+                    ' <div class="layui-form-item">\n' +
+                    '        <label class="layui-form-label" style="text-align: left;width: auto;">子页面主题：</label>\n' +
+                    '        <div class="layui-input-inline" style="width: auto;">\n' +
+                    '            <input lay-filter="setFrameTheme" type="radio" value="1" title="开启" name="setFrameTheme">' +
+                    '            <input lay-filter="setFrameTheme" type="radio" value="" title="关闭" name="setFrameTheme">' +
                     '        </div>\n' +
                     '</div>'+
                     '</form>'+
@@ -873,8 +851,9 @@ layui.define(['layer','element','dropdown'], function (exports) {
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
                 Fun.toastr.loading('', setTimeout(function () {
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-                        Fun.toastr.close();
+                    $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                    Fun.toastr.close();
+                    Backend.listenFrameTheme();
                     }, 1200)
                 );
             }
@@ -957,13 +936,17 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 layui.form.on('radio(setTab)', function (data) {
                     name = $(data.elem).attr('name');
                     arr = layui.data(name)
-                    console.log(arr)
                     if(arr && arr[name]==data.value){
                         return false;
                     }else{
                         layui.data(name, {key:name,value:data.value})
                         Backend.initBodyTheme(name,value);
                     }
+                });
+                layui.form.on('radio(setFrameTheme)', function (data) {
+                    sessionStorage.setItem('frameTheme',data.value)
+                    sessionStorage.getItem('frameTheme');
+                    window.location.reload();
                 });
                 //监听导航点击菜单点击*/
                 // 主题三
@@ -1048,6 +1031,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
                         c.attr('style','display:block!important;');
+                        Backend.listenFrameTheme();
                     }
                 });
                 //点击事件
