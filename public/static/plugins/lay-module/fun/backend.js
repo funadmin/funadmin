@@ -683,7 +683,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '        </div>\n' +
                     '</div>'+
                     ' <div class="layui-form-item">\n' +
-                    '        <label class="layui-form-label" style="text-align: left;width: auto;">子页面主题：</label>\n' +
+                    '        <label class="layui-form-label" style="text-align: left;width: auto;">页面主题：</label>\n' +
                     '        <div class="layui-input-inline" style="width: auto;">\n' +
                     '            <input lay-filter="setFrameTheme" type="radio" value="1" title="开启" name="setFrameTheme">' +
                     '            <input lay-filter="setFrameTheme" type="radio" value="" title="关闭" name="setFrameTheme">' +
