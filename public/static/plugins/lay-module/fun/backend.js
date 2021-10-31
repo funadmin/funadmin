@@ -686,7 +686,9 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 var bgColorHtml = Backend.buildBgColorHtml();
                 var anims = [0, 1, 2, 3, 4, 5, 6];
                 var anim = anims[Math.floor(Math.random() * anims.length + 1) - 1];
-                var html = '<div class="layui-fun-color">\n' +
+                var html = '<style>.layui-text-left{text-align: left;padding:padding-right: 0px}' +
+                    '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #772c6a!important;}' +
+                    '</style><div class="layui-fun-color">\n' +
                     '<div class="color-title">\n' +
                     '<span>' + __('Theme Color') + '</span>\n' +
                     '</div>\n' +
@@ -709,7 +711,17 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
                     '        </div>\n' +
                     '</div>'+
-                    '</form>'
+                    '</form>'+
+                    '<fieldset class="layui-elem-field layui-field-title layui-text-left" >\n' +
+                    '              <legend class="">版权信息</legend>\n' +
+                    '            </fieldset><div class="layui-form-item" style="">\n' +
+                    '                <blockquote class="layui-elem-quote layui-text-left layui-quote-nm" >\n' +
+                    '                    <i class="layui-icon layui-icon-about"></i>\n' +
+                    '                    <font class="layui-font-12">&nbsp; 版权归FunAdmin所有<br>\n' +
+                    '                        如遇到问题，请点击 <a href="http://www.funadmin.com/" target="_blank" style="color: red">官方文档</a> 查看源码说明！\n' +
+                    '                    </font>\n' +
+                    '                </blockquote>\n' +
+                    '            </div>'
                 ;
                 layer.open({
                     type: 1,
