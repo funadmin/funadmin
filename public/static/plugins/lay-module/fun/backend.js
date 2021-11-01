@@ -294,15 +294,15 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;')
                 $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;')
             }
-            value = layui.data(name)
-            if(value && value[name]==1) {
+            value = Fun.api.getStorage(name)
+            if(value && value==1) {
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                     'layui-hide'
                 )
                 $('#layui-app-body').animate({
                     top: 40
                 }, 100);
-            }else if(value && value[name]==2){
+            }else if(value && value==2){
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
                     'layui-hide'
                 )
@@ -315,10 +315,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         //加载层,锁屏
         hideLoading: function (time) {
             time = time || 350;
-            var colorId = localStorage.getItem('funColorId');
-            if (colorId == null) {
-                colorId = 0;
-            }
+            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
             var bg = THEME[colorId]['menuLeftBgThis'];
             if (colorId) {
                 $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
@@ -326,7 +323,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             setTimeout(function () {
                 //判断是否锁定了界面
                 $(document).find('.fun-loading').fadeOut();
-                if (layui.data('BackendLock').lock) {
+                if (Fun.api.getStorage('BackendLock')) {
                     layer.prompt({
                         btn: [__('Unlock Now')],
                         title: [__('Input Password'), 'background:' + bg + ';color:' + THEME[colorId]['menuLeftfontColor']],
@@ -340,13 +337,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            if (value === layui.data('BackendLock').lock) {
+                            if (value === Fun.api.getStorage('BackendLock')) {
                                 Fun.toastr.close(index);
                                 //清除密码
-                                layui.data('BackendLock', {
-                                    key: 'lock'
-                                    , remove: true
-                                });
+                                Fun.api.setStorage('BackendLock', null);
                                 Fun.toastr.success(__('Unlock Success'))
                             } else {
                                 Fun.toastr.error(__('Password Error'));
@@ -521,10 +515,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         buildBgColorHtml: function () {
             var html = '';
-            var colorId = localStorage.getItem('funColorId');
-            if (colorId == null || colorId === '') {
-                colorId = 0;
-            }
+            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
             $.each(THEME, function (key, val) {
                 if (key === colorId) {
                     html += '<li class="layui-this" lay-event="setThemeColor" data-color="' + key + '">\n';
@@ -543,10 +534,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
          * 初始化背景色
          */
         initBgColor: function () {
-            var colorId = localStorage.getItem('funColorId');
-            if (colorId == null || colorId === '') {
-                colorId = 0;
-            }
+            var colorId = Fun.api.getStorage('funColorId');
+            colorId = colorId?colorId:0;
             var themeData = THEME[colorId];
             var styleHtml = '.layui-layout-admin .layui-header ul li a{color:' + themeData.headerfontColor + '!important;}' +
                 '.layui-layout-admin .layui-header{background-color:' + themeData.headerBg + '!important;}\n' +
@@ -580,7 +569,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 Backend.changeSessioinTabId(layId);
                 Backend.listenSwitchIframe(layId);
                 Backend.scrollPostion();
-                Backend.listenFrameTheme();
             });
         },
         //监听主题
@@ -666,7 +654,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '<div class="color-content">\n' +
                     '<ul style="border-bottom: 1px solid #e8e8e8;">\n' + bgColorHtml + '</ul>\n' +
                     '</div>'+
-                    '<form class="layui-form" action="">\n' +
+                    '<form class="layui-form" lay-filter="form" action="">\n' +
                     ' <div class="layui-form-item">\n' +
                     '        <label class="layui-form-label" style="text-align: left;width: auto;">菜单导航：</label>\n' +
                     '        <div class="layui-input-inline" style="width: auto;">\n' +
@@ -714,10 +702,16 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     offset: 'rb',
                     content: html,
                 });
+                data = {
+                    'site_theme':Fun.api.getStorage('siteTheme'),
+                    'setTab':Fun.api.getStorage('setTab'),
+                    'setFrameTheme':Fun.api.getStorage('setFrameTheme'),
+                }
+                data.site_theme?data.site_theme:1;
+                layui.form.val("form", data);
                 layui.form.render()
                 layer.close(loading);
             },
-
 
             /**
              * 设置颜色配置
@@ -726,17 +720,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 var colorId = othis.data('color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', 'layui-this');
-                localStorage.setItem('funColorId', colorId);
+                Fun.api.setStorage('funColorId', colorId);
                 Backend.initBgColor();
             },
             /**
              * 锁定屏幕
              */
             lockScreen: function () {
-                var colorId = localStorage.getItem('funColorId');
-                if (colorId == null) {
-                    colorId = 0;
-                }
+                var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
                 layer.prompt({
                     btn: [__('Lock Now')],
                     title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
@@ -749,10 +740,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            layui.data('BackendLock', {
-                                key: 'lock'
-                                , value: value
-                            });
+                            Fun.api.setStorage('BackendLock',value);
                             layer.close(index);
                             layer.prompt({
                                 btn: [__('Unlock')],
@@ -767,14 +755,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                                     Fun.toastr.error(__('Input Password'));
                                     return false;
                                 } else {
-                                    if (value === layui.data('BackendLock').lock) {
+                                    if (value === Fun.api.getStorage('BackendLock')) {
                                         layer.close(index);
                                         $(".yy").hide();
                                         //清除密码
-                                        layui.data('BackendLock', {
-                                            key: 'lock'
-                                            , remove: true
-                                        });
+                                        Fun.api.setStorage('BackendLock', null);
                                         Fun.toastr.success(__('Unlock Success'));
                                     } else {
                                         Fun.toastr.error(__('Password Error'));
@@ -814,7 +799,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 var SCREEN_FULL = 'layui-icon-screen-full'
                     , SCREEN_REST = 'layui-icon-screen-restore'
                     , iconElem = othis.children("i");
-
                 if (iconElem.hasClass(SCREEN_FULL)) {
                     Backend.fullScreen();
                     iconElem.addClass(SCREEN_REST).removeClass(SCREEN_FULL);
@@ -842,7 +826,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg);
                     $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-
                 }, function (res) {
                     Fun.toastr.error(res.msg);
                     $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
@@ -851,9 +834,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
                 Fun.toastr.loading('', setTimeout(function () {
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-                        Fun.toastr.close();
-                        Backend.listenFrameTheme();
+                    $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                    Fun.toastr.close();
                     }, 1200)
                 );
             }
@@ -875,7 +857,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             Backend.delTab(layId);
                         }
                     }
-
                 });
             }
             //关闭全部标签页
@@ -894,13 +875,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             Fun.toastr.success(res.msg, setTimeout(function () {
                                 window.location = res.url;
                             }, 2000))
-
                         } else {
                             Fun.toastr.error(res.msg)
                         }
                     })
                 })
-
             },
             /**
              * 语言设置
@@ -927,6 +906,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     code = $(data.elem).attr('name');
                     Fun.ajax({url: url,data:{value:data.value,code:code}}, function (res) {
                         Fun.toastr.success(res.msg, function () {
+                            Fun.api.setStorage('siteTheme', data.value)
                             window.location.reload();
                         });
                     }, function (res) {
@@ -935,17 +915,16 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 });
                 layui.form.on('radio(setTab)', function (data) {
                     name = $(data.elem).attr('name');
-                    arr = layui.data(name)
-                    if(arr && arr[name]==data.value){
+                    v = Fun.api.getStorage(name)
+                    if(v  && v ===data.value){
                         return false;
                     }else{
-                        layui.data(name, {key:name,value:data.value})
+                        Fun.api.setStorage(name, data.value)
                         Backend.initBodyTheme(name,value);
                     }
                 });
                 layui.form.on('radio(setFrameTheme)', function (data) {
-                    localStorage.setItem('frameTheme',data.value)
-                    localStorage.getItem('frameTheme');
+                    Fun.api.setStorage('setFrameTheme',data.value)
                     window.location.reload();
                 });
                 //监听导航点击菜单点击*/

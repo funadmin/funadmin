@@ -360,14 +360,33 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         },
         //接口
         api: {
+            setStorage: function(key,value) {
+                if (value != null && value !== "undefined") {
+                    layui.data(key,{
+                        key: key,
+                        value:value
+                    })
+                }else {
+                    layui.data(key,{
+                        key: key,
+                        remove:true
+                    })
+                }
+            },
+            getStorage: function(key) {
+                var array = layui.data(key);
+                if (array) {
+                    return array[key]
+                } else {
+                    return false
+                }
+            },
             //设置子页面主题
             setTheme:function(body=''){
-                var colorId = localStorage.getItem('funColorId');
-                if (colorId == null || colorId === '') {
-                    colorId = 0;
-                }
+                var colorId = Fun.api.getStorage('funColorId');
+                colorId = colorId?colorId:0
                 theme = 'theme'+colorId;
-                if(localStorage.getItem('frameTheme')){
+                if( Fun.api.getStorage('setFrameTheme')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
                     for (let i = 0; i < iframe.length; i++) {
                         $(iframe[i]).on('load',function(){
