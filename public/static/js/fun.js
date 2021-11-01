@@ -386,7 +386,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 var colorId = Fun.api.getStorage('funColorId');
                 colorId = colorId?colorId:0
                 theme = 'theme'+colorId;
-                if( Fun.api.getStorage('setFrameTheme')){
+                if(Fun.api.getStorage('setFrameTheme')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
                     for (let i = 0; i < iframe.length; i++) {
                         $(iframe[i]).on('load',function(){
@@ -395,8 +395,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         })
                         $(iframe[i]).contents().find('body').attr('id', theme);
                     }
-                    //LAYER弹出
-                    var layiframe = top.layui.$('.layui-layer-iframe').find('iframe');
+                    var layiframe = $("#layui-tab .layui-tab-item").find("iframe").contents().find('.layui-layer-iframe').find('iframe');
                     for (let i = 0; i < layiframe.length; i++) {
                         $(layiframe[i]).contents().find('body').attr('id', theme);
                     }
@@ -405,7 +404,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         body.attr('id', theme);
                     }
                 }
-                layui.$('body').attr('id',theme);
+                top.layui.$('body').attr('id',theme);
             },
             /**
              * 关闭当前弹窗
