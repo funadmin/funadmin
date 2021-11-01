@@ -315,7 +315,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         //加载层,锁屏
         hideLoading: function (time) {
             time = time || 350;
-            var colorId = sessionStorage.getItem('funColorId');
+            var colorId = localStorage.getItem('funColorId');
             if (colorId == null) {
                 colorId = 0;
             }
@@ -521,7 +521,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         buildBgColorHtml: function () {
             var html = '';
-            var colorId = sessionStorage.getItem('funColorId');
+            var colorId = localStorage.getItem('funColorId');
             if (colorId == null || colorId === '') {
                 colorId = 0;
             }
@@ -543,7 +543,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
          * 初始化背景色
          */
         initBgColor: function () {
-            var colorId = sessionStorage.getItem('funColorId');
+            var colorId = localStorage.getItem('funColorId');
             if (colorId == null || colorId === '') {
                 colorId = 0;
             }
@@ -717,8 +717,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 layui.form.render()
                 layer.close(loading);
             },
-            
-            
+
+
             /**
              * 设置颜色配置
              */
@@ -726,14 +726,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 var colorId = othis.data('color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', 'layui-this');
-                sessionStorage.setItem('funColorId', colorId);
+                localStorage.setItem('funColorId', colorId);
                 Backend.initBgColor();
             },
             /**
              * 锁定屏幕
              */
             lockScreen: function () {
-                var colorId = sessionStorage.getItem('funColorId');
+                var colorId = localStorage.getItem('funColorId');
                 if (colorId == null) {
                     colorId = 0;
                 }
@@ -851,9 +851,9 @@ layui.define(['layer','element','dropdown'], function (exports) {
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
                 Fun.toastr.loading('', setTimeout(function () {
-                    $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-                    Fun.toastr.close();
-                    Backend.listenFrameTheme();
+                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        Fun.toastr.close();
+                        Backend.listenFrameTheme();
                     }, 1200)
                 );
             }
@@ -944,8 +944,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     }
                 });
                 layui.form.on('radio(setFrameTheme)', function (data) {
-                    sessionStorage.setItem('frameTheme',data.value)
-                    sessionStorage.getItem('frameTheme');
+                    localStorage.setItem('frameTheme',data.value)
+                    localStorage.getItem('frameTheme');
                     window.location.reload();
                 });
                 //监听导航点击菜单点击*/

@@ -308,7 +308,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 }
             }
         },
-
         //事件
         events: {
             photos: function (othis) {
@@ -363,12 +362,12 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         api: {
             //设置子页面主题
             setTheme:function(body=''){
-                var colorId = sessionStorage.getItem('funColorId');
+                var colorId = localStorage.getItem('funColorId');
                 if (colorId == null || colorId === '') {
                     colorId = 0;
                 }
                 theme = 'theme'+colorId;
-                if(sessionStorage.getItem('frameTheme')){
+                if(localStorage.getItem('frameTheme')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
                     for (let i = 0; i < iframe.length; i++) {
                         $(iframe[i]).on('load',function(){
@@ -377,15 +376,17 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         })
                         $(iframe[i]).contents().find('body').attr('id', theme);
                     }
+                    //LAYER弹出
                     var layiframe = top.layui.$('.layui-layer-iframe').find('iframe');
                     for (let i = 0; i < layiframe.length; i++) {
                         $(layiframe[i]).contents().find('body').attr('id', theme);
                     }
+                    //打开弹窗
                     if(body){
                         body.attr('id', theme);
                     }
                 }
-                top.layui.$('body').attr('id',theme);
+                layui.$('body').attr('id',theme);
             },
             /**
              * 关闭当前弹窗
@@ -416,22 +417,15 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             },
             //打开新窗口
             open: function (options) {
-                var title = options.title,
-                    url = options.url, width = options.width,
-                    height = options.height,
-                    success = options.success,
-                    yes = options.yes,
-                    btn2 = options.btn2,
-                    type = options.type;
+                var title = options.title, url = options.url, width = options.width,
+                    height = options.height, success = options.success,
+                    yes = options.yes, btn2 = options.btn2, type = options.type;
                 type = type === undefined || type===2  ? 2 : 1;
                 isResize = options.isResize === undefined;
-                isFull = !!options.full;
-                url = type===2?Fun.url(url):url;
+                isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
-                width = width || '800';
-                height = height || '600';
-                width = width + 'px';
-                height = height + 'px';
+                width = width || '800';height = height || '600';
+                width = width + 'px';height = height + 'px';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn === undefined) {
@@ -454,31 +448,22 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 if (options.btn_lang === []) options.btn_lang = false;
                 var parentiframe = Fun.api.checkLayerIframe()
                 options = {
-                    title: title,
-                    type: type,
-                    area: [width, height],
-                    content: url,
-                    shadeClose: true,
-                    anim: 0,
-                    shade: 0.1,
-                    isOutAnim: true,
+                    title: title, type: type, area: [width, height], content: url,
+                    shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
                     // zIndex: layer.zIndex, //
-                    maxmin: true,
-                    moveOut: true,
-                    resize: isResize,
-                    scrollbar: true,
-                    btnAlign: options.btnAlign,
-                    btn: options.btn_lang,
+                    maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
+                    btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
                         try {
                             // 置顶当前窗口
-                            layer.setTop(layero);
+                            parent.layui.layer.setTop(layero);
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
                             body = layero.find('iframe').contents().find('body')
                             Fun.api.setTheme(body);
                         } catch (err) {
+                            console.log(err)
                             //在此处理错误
                         }
                     } : success,
@@ -517,8 +502,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         layer.full(index);
                     })
                 }
-
-
             },
             //打开iframe
             iframe:function(options){
