@@ -54,6 +54,9 @@ body .layui-site-mobile {display: none}
 .layui-header .layui-layout-center {
     position:absolute; top:0;left:280px;
 }
+.layui-header .layui-layout-center li.layui-this{
+    background: #eee;
+}
 .layui-header .layui-layout-nav {
     animation:nav .5s ;
     -webkit-animation:nav .5s ; /* Safari 和 Chrome */
