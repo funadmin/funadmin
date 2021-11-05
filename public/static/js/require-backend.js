@@ -21,7 +21,7 @@ require.config({
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker','xmSelect','eleTree',
         'regionCheckBox','timePicker','croppers', 'moment',
-        'backend','md5','fun','fu','form','table','upload','addons','Vue'],
+        'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery

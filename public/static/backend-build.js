@@ -13,7 +13,7 @@
         'toastr','step-lay','inputTags' ,
         'timeago','multiSelect','cityPicker','xmSelect',
         'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','fu', 'form','table','upload','Vue'],
+        'moment', 'backend','md5','fun','fu', 'form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -36,8 +36,6 @@
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
-        'Vue'           : 'plugins/vue/vue.global',
-
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend.min', // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
