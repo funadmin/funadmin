@@ -68,6 +68,12 @@ class Backend extends BaseController
      */
     protected $relationSearch = false;
 
+    /**
+     * 关联join搜索
+     * @var array
+     */
+    protected $joinSearch = [];
+
     public function __construct(App $app)
     {
         parent::__construct($app);

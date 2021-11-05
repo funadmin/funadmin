@@ -7,7 +7,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.id = options.id || Table.init.tableId;
             options.layFilter = options.id;
             options.url = options.url || window.location.href;
-            options.toolbar = options.toolbar || '#toolbar';
+            options.toolbar = options.toolbar|| '#toolbar';
             options.page = Fun.parame(options.page, true);
             options.search = Fun.parame(options.search, true);
             options.searchFormTpl = Fun.parame(options.searchFormTpl||Table.init.searchFormTpl, false);
@@ -55,7 +55,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             if (options.search === true &&　options.searchFormTpl===false) {
                 Table.renderSearch(options)
             }
-            options.toolbar = Table.renderToolbar(options);
+            //是否字符串自定义模板
+            options.toolbar = typeof options.toolbar==='string'?options.toolbar:Table.renderToolbar(options);
             var newTable = layui.table.render(options);
             Table.api.switch(options.cols, options.init, options.id);
             Table.api.toolbar(options.layFilter, options.id, options);

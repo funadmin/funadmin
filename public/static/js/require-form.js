@@ -415,9 +415,9 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                                                 if (type.indexOf('image') >=0)  {
                                                     html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('video') >= 0) {
-                                                    html += '<li><video controls class="layui-upload-img fl" width="150" src="' + url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('audio') >= 0) {
-                                                    html += '<li><audio controls class="layui-upload-img fl"  src="' + url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('zip') >= 0) {
                                                     html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else {

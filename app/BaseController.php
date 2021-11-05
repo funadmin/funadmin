@@ -155,6 +155,7 @@ abstract class BaseController
             $where[] = [implode("|", $searcharr), "LIKE", "%{$search}%"];
         }
         foreach ($filters as $key => $val) {
+            $key = $this->joinSearch[$key] ??$key;
             $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
             $key =stripos($key, ".") === false ? $tableName . $key :$key;
             switch (strtoupper($op)) {

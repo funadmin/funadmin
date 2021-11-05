@@ -64,11 +64,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             if (Config.superAdmin === true) {
                 return true;
             }
-            if ($(ele).data('node-' + node.toLowerCase()) ==1) {
-                return true;
-            } else {
-                return false;
-            }
+            return $(ele).data('node-' + node.toLowerCase()) === 1;
         },
         parame: function (param, defaultParam) {
             return param !== undefined ? param : defaultParam;
@@ -281,7 +277,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     Fun.toastr.close(index);
                 }, function () {
                     typeof error === 'function' && error.call(this);
-                    self.close(index);
                 });
                 return index;
             },
@@ -382,10 +377,9 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 }
             },
             //设置子页面主题
-            setTheme:function(body=''){
+            setFrameTheme:function(body=''){
                 var colorId = Fun.api.getStorage('funColorId');
-                colorId = colorId?colorId:0
-                theme = 'theme'+colorId;
+                colorId = colorId?colorId:0;theme = 'theme'+colorId;
                 if(Fun.api.getStorage('setFrameTheme')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
                     for (let i = 0; i < iframe.length; i++) {
@@ -395,14 +389,11 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         })
                         $(iframe[i]).contents().find('body').attr('id', theme);
                     }
-                    var layiframe = $("#layui-tab .layui-tab-item").find("iframe").contents().find('.layui-layer-iframe').find('iframe');
-                    for (let i = 0; i < layiframe.length; i++) {
-                        $(layiframe[i]).contents().find('body').attr('id', theme);
-                    }
                     //打开弹窗
                     if(body){
                         body.attr('id', theme);
                     }
+                    layui.$('iframe').contents().find('body').attr('id',theme);
                 }
                 top.layui.$('body').attr('id',theme);
             },
@@ -443,6 +434,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
+                winHeight = $(window).height();height = height>winHeight?winHeight:height;
                 width = width + 'px';height = height + 'px';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
@@ -479,7 +471,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
                             body = layero.find('iframe').contents().find('body')
-                            Fun.api.setTheme(body);
+                            Fun.api.setFrameTheme(body);
                         } catch (err) {
                             console.log(err)
                             //在此处理错误

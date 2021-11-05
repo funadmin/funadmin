@@ -1,13 +1,12 @@
 layui.define(['layer','element','dropdown'], function (exports) {
     var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
     element.init();
-
     if (!/http(s*):\/\//.test(location.href)) {
         let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
         return Fun.toastr.alert(tips);
     }
     var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
-        THIS = 'layui-this', ICON_SPREAD = 'layui-icon-spread-left', SIDE_SHRINK = 'layui-side-shrink',
+        THIS = 'layui-this', SIDE_SHRINK = 'layui-side-shrink',
         //主题配置
         THEME = [
             {
@@ -287,25 +286,22 @@ layui.define(['layer','element','dropdown'], function (exports) {
         },
         initBodyTheme:function (name='setTab',type=1){
             $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
-            $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop');
-            $('.layui-side-menu .layui-nav-item').find('dl').removeAttr('style');
+            $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop').removeAttr('style');
             if($('.layui-layout-admin .layui-nav-header').length>0){
                 height = $('.layui-nav-header ul').height();//横屏
-                $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;')
-                $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;')
+                $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;');
+                $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;');
             }
-            value = Fun.api.getStorage(name)
+            value = Fun.api.getStorage(name);
             if(value && value==1) {
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
-                    'layui-hide'
-                )
+                    'layui-hide');
                 $('#layui-app-body').animate({
                     top: 40
                 }, 100);
             }else if(value && value==2){
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
-                    'layui-hide'
-                )
+                    'layui-hide');
                 $('#layui-app-body').animate({
                     top: 0
                 }, 100);
@@ -315,7 +311,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         //加载层,锁屏
         hideLoading: function (time) {
             time = time || 350;
-            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
+            var colorId = Backend.getColorId();
             var bg = THEME[colorId]['menuLeftBgThis'];
             if (colorId) {
                 $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
@@ -360,7 +356,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
             Backend.listenTabs(options);
             Backend.listenDeltab(options);
             Backend.listenFrameTheme();
-
         },
         //全屏
         fullScreen: function () {
@@ -474,7 +469,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 ele.tabAdd('layui-layout-tabs', {
                     title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                     ,
-                    content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no"   src="' + options.url + '"></iframe>'
+                    content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no" src="' + options.url + '"></iframe>'
                     ,
                     id: options.layId,
                 });
@@ -508,14 +503,20 @@ layui.define(['layer','element','dropdown'], function (exports) {
             });
             return checkId !== false;
         },
-
+        /**
+         * 获取颜色缓存
+         */
+        getColorId:function(){
+            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
+            return colorId;
+        },
         /**
          * 构建背景颜色选择
          * @returns {string}
          */
         buildBgColorHtml: function () {
             var html = '';
-            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
+            var colorId = Backend.getColorId();
             $.each(THEME, function (key, val) {
                 if (key === colorId) {
                     html += '<li class="layui-this" lay-event="setThemeColor" data-color="' + key + '">\n';
@@ -530,17 +531,17 @@ layui.define(['layer','element','dropdown'], function (exports) {
             });
             return html;
         },
+
         /**
          * 初始化背景色
          */
         initBgColor: function () {
-            var colorId = Fun.api.getStorage('funColorId');
-            colorId = colorId?colorId:0;
+            var colorId = Backend.getColorId();
             var themeData = THEME[colorId];
             var styleHtml = '.layui-layout-admin .layui-header ul li a{color:' + themeData.headerfontColor + '!important;}' +
                 '.layui-layout-admin .layui-header{background-color:' + themeData.headerBg + '!important;}\n' +
                 '.layui-header>ul>.layui-nav-item.layui-this:hover{color:' + themeData.headerBgThis + '!important;}\n' +
-                '.layui-header .layui-nav .layui-nav-child dd.layui-this a{background-color:' + themeData.headerBg + '!important;}\n' +
+                // '.layui-header .layui-nav .layui-nav-child dd.layui-this a{background-color:' + themeData.headerBg + '!important;}\n' +
                 '.layui-layout-admin .layui-logo {background-color:' + themeData.headerBgLogo + '!important;}\n' +
                 '.layui-layout-admin .layui-logo{color:' + themeData.headerfontColor + '!important;}\n' +
                 '.layui-layout-admin .layui-logo cite{color:' + themeData.headerLogofontColor + '!important;}\n' +
@@ -573,7 +574,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         },
         //监听主题
         listenFrameTheme(){
-            Fun.api.setTheme()
+            Fun.api.setFrameTheme();
         },
         /**
          * 监听tab删除
@@ -683,12 +684,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '            </fieldset><div class="layui-form-item" style="">\n' +
                     '                <blockquote class="layui-elem-quote layui-text-left layui-quote-nm" >\n' +
                     '                    <i class="layui-icon layui-icon-about"></i>\n' +
-                    '                    <font class="layui-font-12">&nbsp; 版权归FunAdmin所有<br>\n' +
+                    '                    <span class="layui-font-12">&nbsp; 版权归FunAdmin所有<br>\n' +
                     '                        如遇到问题，请点击 <a href="http://www.funadmin.com/" target="_blank" style="color: red">官方文档</a> 查看源码说明！\n' +
-                    '                    </font>\n' +
+                    '                    </span>\n' +
                     '                </blockquote>\n' +
-                    '            </div>'
-                ;
+                    '            </div>';
                 layer.open({
                     type: 1,
                     title: false,
@@ -712,22 +712,21 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 layui.form.render()
                 layer.close(loading);
             },
-
             /**
              * 设置颜色配置
              */
             setThemeColor: function (othis) {
-                var colorId = othis.data('color');
+                var colorId = othis.attr('data-color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', 'layui-this');
-                Fun.api.setStorage('funColorId', colorId);
+                Fun.api.setStorage('funColorId',colorId);
                 Backend.initBgColor();
             },
             /**
              * 锁定屏幕
              */
             lockScreen: function () {
-                var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
+                var colorId = Backend.getColorId();
                 layer.prompt({
                     btn: [__('Lock Now')],
                     title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
@@ -834,8 +833,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'));
                 Fun.toastr.loading('', setTimeout(function () {
-                    $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
-                    Fun.toastr.close();
+                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        Fun.toastr.close();
                     }, 1200)
                 );
             }
@@ -955,7 +954,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     var _that = $(this),target = _that.prop('target')
                         , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                         , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')
-                        , icon = _that.find('i').attr('class'), iframe = _that.has('data-iframe') ? true : false;
+                        , icon = _that.find('i').attr('class'), iframe = !!_that.has('data-iframe');
                     layId = layId ? layId : url;
                     _that.siblings('li').removeClass('layui-this');
                     var parent = _that.parent();
@@ -998,7 +997,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
 
                             parent.siblings('li.active').not('[menu-id]').animate({height: '55px'},function (){
                                 parent.siblings('li.active').removeClass('active')});
-                            ;
+
                         }
                         if (target === '_blank') {
                             window.open(url, "_blank");
@@ -1036,7 +1035,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     _that.find('dl').removeClass('layui-nav-child-drop');
                     _that.find('dl').removeAttr('style');
                     Backend.events.showtips(_that,2)
-
                 });
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover dd", function () {
@@ -1050,7 +1048,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             _that.children('dl').css('left', +left + 'px');
                         }
                     }
-
                 }).on("mouseleave", ".layui-side-shrink .layui-side-menu .layui-nav-child-drop," +
                     ".layui-side-shrink .layui-side-menu .layui-nav-child-drop>dd", function () {
                     var _that = $(this);

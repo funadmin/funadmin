@@ -107,7 +107,8 @@ class Addon extends Backend
                         }
                         if(isset($config['domain']) && $config['domain']['value']){
                             $index = strpos($_SERVER['HTTP_HOST'],'.');
-                            $addons[$key]['web'] = httpType().$config['domain']['value'].substr($_SERVER['HTTP_HOST'],$index);
+                            $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+                            $addons[$key]['web'] = httpType().$config['domain']['value'].'.'.$url;
                         }else{
                             $addons[$key]['web'] = '/addons/'.$key;
                         }

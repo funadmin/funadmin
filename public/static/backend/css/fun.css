@@ -88,10 +88,7 @@ body .layui-site-mobile {display: none}
     text-align: left
 }
 .layui-nav .layui-nav-child dd:hover{
-cursor: pointer;
-}
-.layui-header .layui-nav .layui-nav-child dd.layui-this a {
-    background-color: #18bc9c
+    cursor: pointer;
 }
 .layui-header .layui-tool {
     height: 100%;
@@ -128,7 +125,6 @@ cursor: pointer;
 .layui-layout-admin .layui-logo img {
     height: 30px
 }
-
 .layui-layout-admin .layui-logo cite {
     font-style: normal;
     display: inline-block;
@@ -370,7 +366,7 @@ cursor: pointer;
     background: #fff
 }
 .layui-layout-admin .layui-tab-title i {
-   vertical-align: middle;
+    vertical-align: middle;
 }
 
 .layui-layout-admin .layui-tab-title li:hover,
@@ -446,7 +442,7 @@ cursor: pointer;
 }
 
 .layui-layout-admin .layui-body {
-    left: 0px;
+    left: 0;
     top: 40px;
     bottom: 40px;
     margin-bottom: 45px;
@@ -485,9 +481,9 @@ cursor: pointer;
 /*去掉省略号*/
 
 .layui-nav-tree.header li>a{
-     text-overflow: unset;
-     overflow: hidden;
-     white-space: normal;
+    text-overflow: unset;
+    overflow: hidden;
+    white-space: normal;
 }
 .layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
     line-height: 40px;
@@ -716,7 +712,7 @@ cursor: pointer;
 @-webkit-keyframes close {
     0% {
         opacity: 1;
-        left: 0px;
+        left: 0;
     }
     100% {
         opacity: 0
@@ -778,23 +774,9 @@ cursor: pointer;
     opacity: 0
 }
 
-.layui-fun-color .color-content li:after {
-    content: '';
-    position: absolute;
-    z-index: 20;
-    top: 50%;
-    left: 50%;
-    width: 1px;
-    height: 0;
-    border: 1px solid #f2f2f2;
-    transition: all .3s;
-    -webkit-transition: all .3s;
-    opacity: 0
-}
-
 @media screen and (max-width:1024px) {
     .layui-side-shrink .layui-side-menu {
-        width: 0px!important;
+        width: 0!important;
     }
     .layui-side-shrink .layui-pagetabs {
         left: 0!important;
@@ -821,7 +803,7 @@ cursor: pointer;
 
 @media screen and (max-width:769px) {
     .fun-app .layui-pagetabs {
-        left: 0px
+        left: 0
     }
     .layui-layout-admin .layui-layout-left,
     .layui-layout-admin .layui-body,
@@ -829,7 +811,7 @@ cursor: pointer;
         left: 0
     }
     .layui-side-shrink .layui-header .layui-layout-left {
-        left: 0px
+        left: 0
     }
     .layui-side-shrink .layui-layout-admin .layui-body {
         width: 100%;
@@ -904,7 +886,6 @@ cursor: pointer;
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 85px
     }
-    .
     .layui-site-mobile {
         display: block !important;
         position: fixed;

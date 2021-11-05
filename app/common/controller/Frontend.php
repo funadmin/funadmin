@@ -88,6 +88,11 @@ class Frontend extends BaseController
         'sort',
         'title',
     ];
+    /**
+     * 关联join搜索
+     * @var array
+     */
+    protected $joinSearch = [];
 
     public function __construct(App $app)
     {

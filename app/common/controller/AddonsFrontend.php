@@ -22,46 +22,11 @@ use think\facade\View;
 class AddonsFrontend extends AddonsController
 {
     /**
-     * @var
-     * 入口
-     */
-    protected $entrance;
-
-    /**
-     * @var
-     * 模型
-     */
-    protected $modelClass;
-    /**
-     * @var
-     * 页面大小
-     */
-    protected $pageSize;
-    /**
-     * @var
-     * 页数
-     */
-    protected $page;
-
-    /**
      * 模板布局, false取消
      * @var string|bool
      */
     protected $layout = false;
-    /**
-     * 主题
-     * @var
-     */
-    protected $theme;
-    /**
-     * 快速搜索时执行查找的字段
-     */
-    protected $searchFields = 'id';
-    /**
-     * 下拉选项条件
-     * @var string
-     */
-    protected $selectMap =[];
+
     /**
      * 允许修改的字段
      */

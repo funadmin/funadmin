@@ -113,12 +113,23 @@ define(["jquery", 'croppers'], function($, croppers) {
                             },
                             done: function(res) {
                                 if (res.code > 0) {
-                                    if (uploadAccept == 'image') {
+                                    var img ='jpg|jpeg|png|gif|svg|bmp|webp';
+                                    var video ='mp4|rmvb|avi|ts';
+                                    var zip ='jpg|jpeg|png|gif|';
+                                    var audio ='mp3|wma|wav';
+                                    var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
+                                    var start = res.url.lastIndexOf(".");
+                                    uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
+                                    if (img.indexOf(uploadAccept) !==-1) {
                                         html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (uploadAccept == 'video') {
-                                        html = '<li><video controls class="layui-upload-img fl" width="150" src="' + res.url + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (uploadAccept == 'audio') {
-                                        html = '<li><audio controls class="layui-upload-img fl"  src="' + res.url + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                    } else if (zip.indexOf(uploadAccept) !==-1) {
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                    } else if (video.indexOf(uploadAccept) !==-1) {
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                    } else if (audio.indexOf(uploadAccept) !==-1) {
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                    } else if (office.indexOf(uploadAccept) !==-1) {
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else {
                                         html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     }

@@ -75,6 +75,16 @@ class AddonsController extends Controller
         'title',
         'sort',
     ];
+    /**
+     * 是否是关联查询
+     */
+    protected $relationSearch = false;
+
+    /**
+     * 关联join搜索
+     * @var array
+     */
+    protected $joinSearch = [];
 
     public function __construct(App $app)
     {

@@ -75,16 +75,13 @@ class ConfigGroup extends Backend {
                 $this->error(lang('Group has config'));
             }else{
                 try {
-                    foreach ($list as $k=>$v){
-                        $v->force()->delete();
-                    }
+                    $list->force()->delete();
                 } catch (\Exception $e) {
-                    $this->error(lang("operation success"));
+                    $this->error(lang("operation failed"));
                 }
-                $this->success(lang('operation success'));
             }
         }
-
+        $this->success(lang('operation success'));
     }
 
 }
