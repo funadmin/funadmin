@@ -25,6 +25,7 @@ use think\Exception;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
+use think\facade\Console;
 
 /**
  * @ControllerAnnotation(title="插件管理")

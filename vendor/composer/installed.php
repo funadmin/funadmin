@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '73df5b9b2e0c035a8d108c3e37106792611eda39',
+    'reference' => '1ab487d2079a2e5661b4b0b74cc11ed2f8382f05',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '73df5b9b2e0c035a8d108c3e37106792611eda39',
+      'reference' => '1ab487d2079a2e5661b4b0b74cc11ed2f8382f05',
     ),
     'league/flysystem' => 
     array (
