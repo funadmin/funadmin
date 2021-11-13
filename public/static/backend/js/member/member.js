@@ -20,6 +20,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 icon: 'layui-icon layui-icon-add',
                 text: __('Add'),
                 title: __('Add'),
+                node:false,//不使用节点权限
                 // full: 1,
                 width:'800',
                 height:'600',

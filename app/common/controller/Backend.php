@@ -55,6 +55,7 @@ class Backend extends BaseController
      * 下拉选项条件
      * @var string
      */
+
     protected $selectMap =[];
 
     protected $allowModifyFields = [
@@ -74,6 +75,9 @@ class Backend extends BaseController
      */
     protected $joinSearch = [];
 
+    /**
+     * @param App $app
+     */
     public function __construct(App $app)
     {
         parent::__construct($app);

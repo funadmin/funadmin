@@ -761,10 +761,10 @@ class FormHelper
     protected static function readonlyOrdisabled($options)
     {
 
-        if (isset($options['readonly'])) {
+        if (isset($options['readonly'])  && $options['readonly']) {
             return 'readonly';
         }
-        if (isset($options['disabled'])) {
+        if (isset($options['disabled']) && $options['disabled']) {
             return 'disabled';
         }
         return '';
