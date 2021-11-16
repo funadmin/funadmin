@@ -235,12 +235,13 @@ class FormHelper
     {
         $label = isset($options['label']) ? $options['label'] : $name;
         $tips = isset($options['tips']) ? $options['tips'] : $name;
+        $placeholder = isset($options['placeholder']) ? $options['placeholder'] : $tips;
         $str = ' <div class="layui-form-item layui-form-text">
             <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
             <div class="layui-input-block">
-            <textarea placeholder="' . lang($tips) . '" class="layui-textarea '. self::addClass($options) .'" 
+            <textarea placeholder="' . lang($placeholder) . '" class="layui-textarea '. self::addClass($options) .'" 
             ' . self::filter($options) . self::verify($options) . ' name="' . $name . '"
-            value="' . $value . '"></textarea>
+            value="' . $value . '">'.$value.'</textarea>
             ' . self::tips($options) . '
             </div></div>';
         return $str;
