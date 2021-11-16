@@ -207,7 +207,7 @@ CREATE TABLE `fun_attach_group` (
                                     `thumb` varchar(255) DEFAULT '' COMMENT '分组图片',
                                     `status` tinyint(1) DEFAULT '1' COMMENT '状态',
                                     `sort` int(10) DEFAULT '999'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='附件分组';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='附件分组';
 
 --
 -- 转存表中的数据 `fun_attach_group`
