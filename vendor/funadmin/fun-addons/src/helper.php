@@ -275,7 +275,8 @@ if (!function_exists('addons_url')) {
         $url['path'] = $addons.'/'.$module.'/'.$controller.'/'.$action;
         $config = get_addons_config($addons);
         $domainprefix = $config && isset($config['domain']) && $config['domain']['value'] ? $config['domain']['value'] : '';
-        $domain = $domainprefix && Config::get('route.url_domain_deploy') ? $domainprefix : $domain;
+        $domainprefix = $domainprefix?explode(',',$domainprefix)[0]:'';
+        $domain = $domainprefix  && $domain==false && Config::get('route.url_domain_deploy') ? $domainprefix : $domain;
         $suffix = $config && isset($config['suffix']) && $config['suffix']['value'] ? $config['suffix']['value']:$suffix;
         $rewrite = $config && isset($config['rewrite']) && $config['rewrite']['value'] ? $config['rewrite']['value'] : [];
         if($module==='backend'){
@@ -294,9 +295,16 @@ if (!function_exists('addons_url')) {
                 });
                 $path=  preg_replace("/(\/\[:.*)/",'',$path);
                 if($domain){
+                    $path=  str_replace($domainprefix,$domain,$path);
                     $array = explode("/", $path);
-                    $path = implode("/", array_slice($array, 2));
-                    return '/'.trim($path,'/');
+                    $path = implode("/", array_slice($array, 1));
+                    //手否完整域名
+                    if (strpos($domain,'.')!==false) {
+                        return httpType() . $domain .'/' . $path;
+                    }
+                    $index = strpos($_SERVER['HTTP_HOST'],'.');
+                    $domain_suffix = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+                    return httpType() . $domain . '.' . $domain_suffix . '/' . $path;
                 }
                 return Route::buildUrl($path)->suffix($suffix)->domain($domain);
             }else{

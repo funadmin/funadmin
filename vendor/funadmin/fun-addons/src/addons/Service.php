@@ -84,16 +84,19 @@ class Service extends \think\Service
                                     '/' => ['module' => 'frontend','addon' => $val['addons'],'controller' => 'index', 'action' => 'index',
                                     ],
                                 ];
-                                $route->domain($domain, function () use ($rules, $route, $execute) {
-                                    // 动态注册域名的路由规则
-                                    foreach ($rules as $k => $rule) {
-                                        $k = explode('/',trim($k,'/'));
-                                        $k = implode('/',array_slice($k,1));
-                                        $route->rule($k, $execute)
-                                            ->completeMatch(true)
-                                            ->append($rule);
-                                    }
-                                });
+                                //多个域名
+                                foreach (explode(',',$domain) as $item) {
+                                    $route->domain($item, function () use ($rules, $route, $execute) {
+                                        // 动态注册域名的路由规则
+                                        foreach ($rules as $k => $rule) {
+                                            $k = explode('/',trim($k,'/'));
+                                            $k = implode('/',$k);
+                                            $route->rule($k, $execute)
+                                                ->completeMatch(true)
+                                                ->append($rule);
+                                        }
+                                    });
+                                }
                             }else{
                                 foreach ($rules as $k => $rule) {
                                     $k = '/'.trim($k,'/');
@@ -102,7 +105,6 @@ class Service extends \think\Service
                                         ->append($rule);
                                 }
                             }
-
                         }
                     } else {
                         $val = rtrim($val, '/');

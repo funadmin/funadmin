@@ -149,7 +149,7 @@ class Frontend extends BaseController
     //自动加载语言
     protected function loadlang($name)
     {
-        $lang = Cookie::get('think_lang');
+        $lang = cookie(config('lang.cookie_var'));
         Lang::load([
             app()->getAppPath(). 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php'
         ]);

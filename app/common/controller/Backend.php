@@ -120,7 +120,7 @@ class Backend extends BaseController
     //自动加载语言
     protected function loadlang($name,$addon)
     {
-        $lang = Cookie::get('think_lang');
+        $lang = cookie(config('lang.cookie_var'));
         if($addon){
             $res = Lang::load([
                 app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',

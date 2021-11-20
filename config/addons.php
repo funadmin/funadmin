@@ -4,11 +4,10 @@ return array (
   'autoload' => true,
   'hooks' => 
   array (
+
   ),
-  'route' => 
-  array (
-  ),
-  'service' => 
+  'route' => array(),
+  'service' =>
   array (
   ),
 );

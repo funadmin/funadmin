@@ -122,7 +122,7 @@ class AddonsController extends Controller
     //自动加载语言
     protected function loadlang($name)
     {
-        $lang = Cookie::get('think_lang');
+        $lang = cookie(config('lang.cookie_var'));
         return Lang::load([
             $this->addon_path.$this->module.DS . 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php',
             $this->addon_path.$this->module.DS . 'lang' . DS . $lang . '.php',

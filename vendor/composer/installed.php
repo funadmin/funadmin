@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '1ab487d2079a2e5661b4b0b74cc11ed2f8382f05',
+    'reference' => '511db28978cd70aa05da208b0031c22290a881a3',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v2.4',
-      'version' => '2.4.0.0',
+      'pretty_version' => 'v2.7',
+      'version' => '2.7.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'c5f9cd55cabe6ef67f09f33ac8f953ded5b47490',
+      'reference' => '073ed6ca0fc2874ed2a5607fe94a8bd29229c49e',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '1ab487d2079a2e5661b4b0b74cc11ed2f8382f05',
+      'reference' => '511db28978cd70aa05da208b0031c22290a881a3',
     ),
     'league/flysystem' => 
     array (
@@ -103,12 +103,12 @@
     ),
     'nesbot/carbon' => 
     array (
-      'pretty_version' => '2.53.1',
-      'version' => '2.53.1.0',
+      'pretty_version' => '2.54.0',
+      'version' => '2.54.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'f4655858a784988f880c1b8c7feabbf02dfdf045',
+      'reference' => 'eed83939f1aed3eee517d03a33f5ec587ac529b5',
     ),
     'phpdocumentor/reflection-common' => 
     array (
@@ -148,12 +148,12 @@
     ),
     'psr/container' => 
     array (
-      'pretty_version' => '1.1.1',
-      'version' => '1.1.1.0',
+      'pretty_version' => '1.1.2',
+      'version' => '1.1.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => '8622567409010282b7aeebe4bb841fe98b58dcaf',
+      'reference' => '513e0666f7216c7459170d56df27dfcefe1689ea',
     ),
     'psr/log' => 
     array (
@@ -263,12 +263,12 @@
     ),
     'symfony/translation' => 
     array (
-      'pretty_version' => 'v5.3.9',
-      'version' => '5.3.9.0',
+      'pretty_version' => 'v5.3.10',
+      'version' => '5.3.10.0',
       'aliases' => 
       array (
       ),
-      'reference' => '6e69f3551c1a3356cf6ea8d019bf039a0f8b6886',
+      'reference' => '6ef197aea2ac8b9cd63e0da7522b3771714035aa',
     ),
     'symfony/translation-contracts' => 
     array (
@@ -288,12 +288,12 @@
     ),
     'symfony/var-dumper' => 
     array (
-      'pretty_version' => 'v4.4.31',
-      'version' => '4.4.31.0',
+      'pretty_version' => 'v4.4.33',
+      'version' => '4.4.33.0',
       'aliases' => 
       array (
       ),
-      'reference' => '1f12cc0c2e880a5f39575c19af81438464717839',
+      'reference' => '50286e2b7189bfb4f419c0731e86632cddf7c5ee',
     ),
     'topthink/framework' => 
     array (
@@ -303,7 +303,7 @@
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '03c23648582149e3ef3a8847689ed33e13d710e8',
+      'reference' => 'd3acc3e379941f43b398d3492b6cb46bf4aa6e48',
     ),
     'topthink/think-captcha' => 
     array (
