@@ -277,6 +277,7 @@ if (!function_exists('addons_url')) {
         $domainprefix = $config && isset($config['domain']) && $config['domain']['value'] ? $config['domain']['value'] : '';
         $domainprefix = $domainprefix?explode(',',$domainprefix)[0]:'';
         $domain = $domainprefix  && $domain==false && Config::get('route.url_domain_deploy') ? $domainprefix : $domain;
+        $domain = str_replace(httpType(),'',$domain);
         $suffix = $config && isset($config['suffix']) && $config['suffix']['value'] ? $config['suffix']['value']:$suffix;
         $rewrite = $config && isset($config['rewrite']) && $config['rewrite']['value'] ? $config['rewrite']['value'] : [];
         if($module==='backend'){

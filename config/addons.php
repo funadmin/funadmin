@@ -4,9 +4,11 @@ return array (
   'autoload' => true,
   'hooks' => 
   array (
+  ),
+  'route' =>
+  array (
 
   ),
-  'route' => array(),
   'service' =>
   array (
   ),
