@@ -159,7 +159,13 @@ class CurdService
         $this->joinModel = $this->config['joinModel']?:$this->joinTable ;
         $this->joinMethod = $this->config['joinMethod'];
         $this->joinForeignKey = $this->config['joinForeignKey'] ;
+        if(count( $this->joinForeignKey)==1 && strpos($this->joinForeignKey[0],',')){
+            $this->joinForeignKey = array_filter(explode(',',( $this->joinForeignKey[0])));
+        }
         $this->joinPrimaryKey = $this->config['joinPrimaryKey'] ;
+        if(count( $this->joinPrimaryKey)==1 && strpos($this->joinPrimaryKey[0],',')){
+            $this->joinPrimaryKey = array_filter(explode(',',( $this->joinPrimaryKey[0])));
+        }
         $this->selectFields = $this->config['selectFields'];
         $controllerStr = $this->config['controller'] ?: Str::studly($this->table);
         $controllerArr = explode('/', $controllerStr);
@@ -416,13 +422,14 @@ class CurdService
             foreach ($this->joinTable as $k=>$v){
                 if(isset($this->joinMethod[$k])){
                     $method = $this->joinMethod[$k];
+                    list($joinPrimaryKey,$joinForeignKey)=array($this->joinPrimaryKey[$k],$this->joinForeignKey[$k]);
                 }else{
                     $method = 'hasOne';
-                    list($this->joinPrimaryKey[$k],$this->joinForeignKey[$k])=array($this->joinForeignKey[$k],$this->joinPrimaryKey[$k]);
+                    list($joinPrimaryKey,$joinForeignKey)=array($this->joinForeignKey[$k],$this->joinPrimaryKey[$k]);
                 }
                 $joinTpl = $this->tplPath . 'join.tpl';
                 $joinTplStr .= str_replace(['{{$joinName}}','{{$joinMethod}}', '{{$joinModel}}', '{{$joinForeignKey}}', '{{$joinPrimaryKey}}'],
-                        [lcfirst(Str::studly($v)),$method, ucfirst(Str::studly($this->joinModel[$k])), $this->joinForeignKey[$k], $this->joinPrimaryKey[$k]],
+                        [lcfirst(Str::studly($v)),$method, ucfirst(Str::studly($this->joinModel[$k])),$joinForeignKey, $joinPrimaryKey],
                         file_get_contents($joinTpl)).PHP_EOL;
             }
         }
@@ -479,7 +486,6 @@ class CurdService
     // 创建模板
     protected function makeView()
     {
-        ;
         $formFieldData = $this->getFormData();
         $indexViewTpl = $this->tplPath .'view' . DS . 'index.tpl';
         $indexViewTpl = str_replace(['{{$nodeType}}','{{$script}}'],[$this->nodeType,$this->script], file_get_contents($indexViewTpl));
