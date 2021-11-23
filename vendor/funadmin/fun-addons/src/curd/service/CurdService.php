@@ -418,6 +418,7 @@ class CurdService
                     $method = $this->joinMethod[$k];
                 }else{
                     $method = 'hasOne';
+                    list($this->joinPrimaryKey[$k],$this->joinForeignKey[$k])=array($this->joinForeignKey[$k],$this->joinPrimaryKey[$k]);
                 }
                 $joinTpl = $this->tplPath . 'join.tpl';
                 $joinTplStr .= str_replace(['{{$joinName}}','{{$joinMethod}}', '{{$joinModel}}', '{{$joinForeignKey}}', '{{$joinPrimaryKey}}'],
