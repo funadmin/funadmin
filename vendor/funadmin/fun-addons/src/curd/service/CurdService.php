@@ -357,30 +357,32 @@ class CurdService
         $this->makeFile($this->fileList['controllerFileName'],$controllerTplBack);
         if($this->addon){
             $controllerTplFront = str_replace(
-                    [
-                        '{{$controllerNamespace}}',
-                        '{{$controllerName}}',
-                        '{{$baseController}}',
-                        '{{$modelName}}',
-                        '{{$modelNamespace}}',
-                        '{{$assign}}',
-                        '{{$indexTpl}}',
-                        '{{$limit}}'],
-                    [
-                        str_replace('backend', $this->module, $this->controllerNamespace),
-                        $this->controllerName,
-                        '\\app\\common\\controller\\AddonsFrontend',
-                        $this->modelName,
-                        $this->modelNamespace,
-                        $assignStr,
-                        $indexTpl,
-                        $this->limit,
-                    ],
-                    file_get_contents($controllerTpl));
+                [
+                    '{{$controllerNamespace}}',
+                    '{{$controllerName}}',
+                    '{{$baseController}}',
+                    '{{$tableComment}}',
+                    '{{$modelName}}',
+                    '{{$modelNamespace}}',
+                    '{{$assign}}',
+                    '{{$indexTpl}}',
+                    '{{$limit}}'],
+                [
+                    str_replace('backend', $this->module, $this->controllerNamespace),
+                    $this->controllerName,
+                    '\\app\\common\\controller\\AddonsFrontend',
+                    $this->tableComment,
+                    $this->modelName,
+                    $this->modelNamespace,
+                    $assignStr,
+                    $indexTpl,
+                    $this->limit,
+                ],
+                file_get_contents($controllerTpl));
             $this->makeFile(
                 str_replace(
                     'backend',
-                    $this->module,
+                    $this->module=='backend'?"frontend":$this->module,
                     $this->fileList['controllerFileName'])
                 , $controllerTplFront
             );

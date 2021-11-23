@@ -5,11 +5,10 @@ return array (
   'hooks' => 
   array (
   ),
-  'route' =>
+  'route' => 
   array (
-
   ),
-  'service' =>
+  'service' => 
   array (
   ),
 );

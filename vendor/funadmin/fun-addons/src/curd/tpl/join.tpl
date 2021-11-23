@@ -1,4 +1,4 @@
 public function {{$joinName}}()
     {
-        return $this->{{$joinMethod}}('{{$joinModel}}', '{{$joinPrimaryKey}}','{{$joinForeignKey}}');
+        return $this->{{$joinMethod}}('{{$joinModel}}','{{$joinForeignKey}}','{{$joinPrimaryKey}}');
     }
