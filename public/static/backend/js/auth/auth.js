@@ -175,7 +175,15 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
         },
         api: {
             bindevent: function () {
-                Form.api.bindEvent($('form'))
+                Form.api.bindEvent($('form'), function (res) {
+                    Fun.toastr.success(res.msg, setTimeout(function () {
+                        Fun.refreshmenu();
+                        Fun.toastr.close();
+                    }, 0));
+                    }, function (res) {
+                        Fun.toastr.error(res.msg);
+                    }
+                );
             }
         }
 

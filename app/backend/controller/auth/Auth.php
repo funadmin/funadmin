@@ -97,6 +97,7 @@ class Auth extends Backend
             ];
             $this->validate($post, $rule);
             if ($this->modelClass->save($post)) {
+                Cache::clear();
                 $this->success(lang('operation success'));
             } else {
                 $this->error(lang('operation failed'));
@@ -129,12 +130,13 @@ class Auth extends Backend
             $post = $this->request->param();
             $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $model = $this->findModel($this->request->param('id'));
-            $model->save($post);
-            $this->success(lang('operation success'));
+            if ($model->save($post)) {
+                Cache::clear();
+                $this->success(lang('operation success'));
+            } else {
+                $this->error(lang('operation failed'));
+            }
         } else {
-            $list = $this->modelClass
-                ->order('sort asc')
-                ->select();
             $list = $this->modelClass
                 ->order('sort ASC')
                 ->field('id,title,pid')

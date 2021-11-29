@@ -37,24 +37,24 @@ class ValidataBase
         if(is_array($rule) && is_array($data)){
             foreach ($rule as $k => $v){
                 if(!in_array($v,$this->dataRule)){
-                    $this->error(401,'fail','验证规则只支持require，int');
+                    $this->error('验证规则只支持require，int',[],401);
                 }
                 if(!isset($data[$k]) || empty($data[$k])){
-                    $this->error(401,'fail',$k.'不能为空');
+                    $this->error($k.'不能为空',[],401);
                 }else{
                     if($v == 'int'){
                         if(!is_numeric($data[$k])){
-                            $this->error(401,'fail',$k.'类型必须为'.$v);
+                            $this->error($k.'类型必须为'.$v,[],401,);
                         }
                     }elseif ($v == 'mobile'){
                         if(!preg_match('/^1[3-9][0-9]\d{8}$/',$data[$k])){
-                            $this->error(401,'fail',$k.'手机号格式错误');
+                            $this->error($k.'手机号格式错误',[],401);
                         }
                     }
                 }
             }
         }else{
-            $this->error(401,'fail','验证数据格式为数组');
+            $this->error('验证数据格式为数组',[],401,);
         }
 
     }
