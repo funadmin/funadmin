@@ -452,7 +452,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             options.text = options.text || null;
             options.icon = options.icon || null;
             options.iframe = options.iframe || null;
-            if ($("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
+            if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
                 Fun.toastr.error(__('window is create by maxnum'));
                 return false;
             }
@@ -462,7 +462,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 value: options.layId,
             });
             var ele = element;
-            if (options.iframe) ele = parent.layui.element;
+            if (options.iframe) ele = top.layui.element;
             var checkLayId = Backend.checkLayId(options.layId), loadindex;
             if (!checkLayId) {
                 loadindex = layer.load();
@@ -475,7 +475,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 });
             } else {
                 loadindex = layer.load();
-                $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
             }
             $('#layui-nav-righmenu').remove();
             layer.close(loadindex);
@@ -495,7 +495,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         checkLayId: function (layId) {
             // 判断选项卡上是否有
             var checkId = false;
-            $("#layui-app-tabs .layui-tab .layui-tab-title li").each(function () {
+            top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").each(function () {
                 var checklayId = $(this).attr('lay-id');
                 if (checklayId != null && checklayId === layId) {
                     checkId = true;

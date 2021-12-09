@@ -779,7 +779,7 @@ class FormHelper
         }
         return '';
     }
-    protected static function addstyle(){
+    protected static function addstyle($options){
         if (isset($options['style']) and $options['style']) {
             return ' style="'.$options['style'].'" ';
         }

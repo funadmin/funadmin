@@ -94,6 +94,7 @@ class Addon extends Backend
                     //是否已经安装过
                     if($localNameArr and in_array($key,$localNameArr)){
                         $config = get_addons_config($key);
+                        $info = get_addons_info($key);
                         if ($addons && !isset($addons[$key]) || !$addons) {
                             $class = get_addons_instance($key);
                             $addons["$key"] = $class->getInfo();
@@ -106,6 +107,7 @@ class Addon extends Backend
                             $addons[$key] = array_merge($value,$addons[$key]);
                             $addons[$key]['install'] = 1;
                         }
+                        $addons[$key]['localVersion'] = $info['version'];
                         if(isset($config['domain']) && $config['domain']['value']){
                             $index = strpos($_SERVER['HTTP_HOST'],'.');
                             $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
@@ -116,12 +118,15 @@ class Addon extends Backend
                     }else{
                         $addons[$key]['insatll'] = 0;
                         $addons[$key]['status'] = 1;
+                        $addons[$key]['localVersion'] = $value['pluginsVersion'][0]['id'];
                         $addons[$key] = $value;
                     }
                     if(isset($addons[$key]['pluginsVersion'])){
                         $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
+                        $addons[$key]['lastVersion'] = $addons[$key]['pluginsVersion'][0]['version'];
                     }else{
                         $addons[$key]['version_id'] = 0;
+                        $addons[$key]['lastVersion'] = $addons[$key]['localVersion'];
                     }
                 }
                 unset($value);
@@ -151,7 +156,10 @@ class Addon extends Backend
         }
         //插件名是否符合规范
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
-            $this->error(lang('addon name inright'));
+            $this->error(lang('addon name is not right'));
+        }
+        if($this->request->param("type") =='upgrade'){
+            $this->upgrade();
         }
         //检查插件是否安装
         $list = $this->isInstall($name);
@@ -159,7 +167,8 @@ class Addon extends Backend
             $this->error(lang('addons %s is already installed', [$name]));
         }
         list($addons,$localNameArr) = $this->getLocalAddons();
-        if(!$localNameArr || !in_array($name,$localNameArr)){
+        if(!$localNameArr || !in_array($name,$localNameArr)
+            || isset($addons[$name]) && $addons[$name]['version']!= $version_id){
             $params = [
                 'plugins_id'=>$plugins_id,
                 'name'=>$name,
@@ -292,7 +301,7 @@ class Addon extends Backend
         if($info->status==1){
             $this->error(lang('Please disable addons %s first',[$name]));
         }
-        if (!$info->delete()) {
+        if (!$info->delete(true)) {
             $this->error(lang('addon uninstall fail'));
         }
         //卸载插件
@@ -348,6 +357,22 @@ class Addon extends Backend
         try {
             $info->status =$addoninfo['status'];
             Service::updateAddonsInfo($name,$addoninfo['status']);
+            // 安装菜单
+            $class = get_addons_instance($name);
+            $menu_config = $this->get_menu_config($class);
+            if(!empty($menu_config)){
+                if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+                    $pid = 0;
+                }else{
+                    $pid = $this->addonService->addAddonManager()->id;
+                }
+                $menu[] = $menu_config['menu'];
+                if( $addoninfo['status']){
+                    $this->addonService->addAddonMenu($menu,$pid);
+                }else{
+                    $this->addonService->delAddonMenu($menu);
+                }
+            }
             refreshaddons();
             $info->save();
             $class = get_addons_instance($name);
@@ -455,6 +480,61 @@ class Addon extends Backend
     protected function getLocalAddons(){
         $list = get_addons_list();
         return [$list,array_keys($list)];
+    }
+
+    /**
+     * 更新
+     * @return bool
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    protected function upgrade()
+    {
+        set_time_limit(0);
+        $name = $this->request->param("name");
+        //获取插件信息
+        $info =  $this->modelClass->where('name', $name)->find();
+        if($info && $info->status==1){
+            $this->error(lang('Please disable addons %s first',[$name]));
+        }
+        if ($info && !$info->delete(true)) {
+            $this->error(lang('addon uninstall fail'));
+        }
+        //卸载插件
+        $class = get_addons_instance($name);
+        $class->uninstall();
+        //删除菜单
+        $menu_config=$this->get_menu_config($class);
+        try {
+            if(!empty($menu_config)){
+                $menu[] = $menu_config['menu'];
+                $this->addonService->delAddonMenu($menu);
+            }
+            //为了防止文件误删，这里先不卸载sql
+//            uninstallsql($name);
+        }catch (Exception $e){
+            $this->error($e->getMessage());
+        }
+        //为了防止文件误删，这里先不删除文件
+//        // 移除插件基础资源目录
+//        $destAssetsDir = Service::getDestAssetsDir($name);
+//        if (is_dir($destAssetsDir)) {
+//            FileHelper::delDir($destAssetsDir);
+//        }
+//        //删除文件
+//        $list = Service::getGlobalAddonsFiles($name);
+//        foreach ($list as $k => $v) {
+//            @unlink(app()->getRootPath() . $v);
+//        }
+        Service::updateAddonsInfo($name,1,0);
+        try {
+            //刷新addon文件和配置
+            refreshaddons();
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
+        return true;
     }
 
 

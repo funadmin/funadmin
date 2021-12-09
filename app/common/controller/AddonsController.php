@@ -179,6 +179,8 @@ class AddonsController extends Controller
             $where[] = [implode("|", $searcharr), "LIKE", "%{$search}%"];
         }
         foreach ($filters as $key => $val) {
+            $val = str_replace(["\r\n","\n",'\r'],'',$val);
+            $key = $this->joinSearch[$key] ??$key;
             $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
             $key =stripos($key, ".") === false ? $tableName . $key :$key;
             switch (strtoupper($op)) {

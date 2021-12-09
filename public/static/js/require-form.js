@@ -3,6 +3,32 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
         init: {},
         //事件
         events: {
+            //事件
+            events:function (){
+                list = document.querySelectorAll("*[lay-event]");
+                if (list.length > 0) {
+                    $.each(list, function() {
+                        $(this).click(function(){
+                            if ($(this).attr('lay-event') === 'open') {
+                                Fun.events.open($(this));
+                                return true;
+                            }
+                            if ($(this).attr('lay-event') === 'request') {
+                                Fun.events.request($(this));
+                                return true;
+                            }
+                            if ($(this).attr('lay-event') === 'iframe') {
+                                Fun.events.iframe($(this));
+                                return true;
+                            }
+                            if ($(this).attr('lay-event') === 'dropdown') {
+                                Fun.events.dropdown($(this));
+                                return true;
+                            }
+                        })
+                    })
+                }
+            },
             fu: function() {
                 Fu.api.bindEvent()
             },
@@ -471,6 +497,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                 events.selectFiles() //选择文件页面类型
                 events.cropper() //上传
                 events.fu() //qita
+                events.events() //qita
                 events.bindevent(form);
                 //初始化数据
                 this.initForm();

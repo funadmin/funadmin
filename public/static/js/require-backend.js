@@ -43,7 +43,7 @@ require.config({
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
-        'xmSelect'     : 'plugins/lay-module/xm-select/xm-select',
+        'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'moment'        : 'plugins/moment/moment',
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend'+(Config.site.app_debug?'':'.min'), // fun后台扩展

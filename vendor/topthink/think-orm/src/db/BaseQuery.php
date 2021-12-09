@@ -260,19 +260,26 @@ abstract class BaseQuery
      */
     public function value(string $field, $default = null)
     {
-        return $this->connection->value($this, $field, $default);
+        $result = $this->connection->value($this, $field, $default);
+
+        $array[$field] = $result;
+        $this->result($array);
+
+        return $array[$field];
     }
 
     /**
      * 得到某个列的数组
      * @access public
      * @param string|array $field 字段名 多个字段用逗号分隔
-     * @param string $key   索引
+     * @param string       $key   索引
      * @return array
      */
     public function column($field, string $key = ''): array
     {
-        return $this->connection->column($this, $field, $key);
+        $result = $this->connection->column($this, $field, $key);
+        $this->resultSet($result, false);
+        return $result;
     }
 
     /**
@@ -619,9 +626,17 @@ abstract class BaseQuery
 
             unset($this->options['order'], $this->options['limit'], $this->options['page'], $this->options['field']);
 
-            $bind    = $this->bind;
-            $total   = $this->count();
-            $results = $total > 0 ? $this->options($options)->bind($bind)->page($page, $listRows)->select() : [];
+            $bind  = $this->bind;
+            $total = $this->count();
+            if ($total > 0) {
+                $results = $this->options($options)->bind($bind)->page($page, $listRows)->select();
+            } else {
+                if (!empty($this->model)) {
+                    $results = new \think\model\Collection([]);
+                } else {
+                    $results = new \think\Collection([]);
+                }
+            }
         } elseif ($simple) {
             $results = $this->limit(($page - 1) * $listRows, $listRows + 1)->select();
             $total   = null;
@@ -741,7 +756,7 @@ abstract class BaseQuery
 
         return [
             'data'   => $result,
-            'lastId' => $last[$key],
+            'lastId' => $last ? $last[$key] : null,
         ];
     }
 

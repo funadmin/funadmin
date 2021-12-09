@@ -36,4 +36,5 @@ return [
     'Login Tips'  =>  '登录提示：此处为FunAdmin官方账号',
     'Your Password'  =>  '您的密码',
     'UserName Or Email'  =>  '账号或密码',
+    'Please backup your data before upgrading!!!'=>'升级前请备份数据!!!',
 ];

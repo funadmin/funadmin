@@ -1,8 +1,5 @@
 define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md5,Upload) {
     //表格重载失效的问题解决方案
-    importFile=function (){
-        $('#importFile').click();
-    }
     let Controller = {
         index: function () {
             Table.init = {
@@ -24,6 +21,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         extend:"id='localinstall' data-callback='importFile()'",
                     },
                 },
+            }
+            importFile = function(){
+                $('#importFile').click();
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
@@ -87,14 +87,21 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {field: 'download', title: __('download'), width: 120,search: false},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,templet:Table.templet.time},
                     {
-                        width: 250, align: 'center', init: Table.init, templet: function (d) {
+                        minwidth: 250, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install == 1 ) {
+                                if(d.lastVersion > d.localVersion){
+                                    html += "<a data-auth='"+auth+"' href='javascript:;' " +
+                                        "class='layui-btn layui-btn-normal layui-btn-xs '"   +
+                                        "title='+__('upgrade')+'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
+                                        'data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
+                                        __('Upgrade')+"</a>";
+                                }
                                 html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</a>'
                                 if (d.status == 1 ) {
-                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="request"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
+                                    html += '<a '+d.lastVersion + d.localVersion+' data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
                                 } else {
-                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="request"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
+                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
                                 }
                                 html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
                                 if (d.website !== '') {
@@ -105,7 +112,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
                                     html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
                                 }else{
-                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'"  lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</a>'
+                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</a>'
                                 }
                             }
                             return html;
@@ -214,11 +221,85 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             url: url,
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
+                                Fun.refreshmenu();
                                 layui.table.reload(Table.init.tableId);
                                 Fun.toastr.close()
                             });
                         })
                     });
+                }
+                if(event === 'more') {
+                    if (auth) {
+                        //更多下拉菜单
+                        jsondata = $(this).data('value');
+                        for(i=0;i<jsondata.length;i++){
+                            jsondata[i]['title'] = __('Upgrade')+ jsondata[i]['version'];
+                        }
+                        layui.dropdown.render({
+                            elem: this
+                            ,show: true //外部事件触发即显示
+                            ,data: jsondata
+                            ,click: function(data, othis){
+                                Fun.toastr.confirm(__('Please backup your data before upgrading!!!'), function () {
+                                    Fun.ajax({
+                                        url: url+"&version_id="+data.id +'&type=upgrade',
+                                    }, function (res) {
+                                        Fun.toastr.success(res.msg, function () {
+                                            Fun.refreshmenu();
+                                            layui.table.reload(Table.init.tableId);
+                                            Fun.toastr.close()
+                                        });
+                                    })
+                                });
+                            }
+                            ,align: 'right' //右对齐弹出（v2.6.8 新增）
+                            ,style: 'box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);' //设置额外样式
+                        });                    } else {
+                        layer.open({
+                            type: 1,
+                            shadeClose: true,
+                            content: $("#login_tpl").html(),
+                            zIndex: 9999,
+                            area: ['450px', '350px'],
+                            title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
+                            resize: false,
+                            btnAlign: 'c',
+                            btn: [__('Login'),__('Register')],
+                            yes: function (index, layero) {
+                                var url = Fun.url(Table.init.requests.index_url);
+                                var data = {
+                                    username: $("#inputUsername", layero).val(),
+                                    password: $("#inputPassword", layero).val(),
+                                };
+                                if (!data.username || !data.password) {
+                                    Fun.toastr.error(__('Account Or Password Cannot Empty'));
+                                    return false;
+                                }
+                                $.ajax({
+                                    url: url, type: 'post', data: data, dataType: "json", success: function (res) {
+                                        if (res.code === 1) {
+                                            Fun.toastr.success(res.msg, layer.closeAll());
+                                            location.reload();
+                                        } else {
+                                            Fun.toastr.alert(res.msg);
+                                        }
+                                    }, error: function (res) {
+                                        Fun.toastr.error(res.msg)
+                                    }
+                                })
+                            },
+                            btn2: function () {
+                                Fun.api.closeCurrentOpen();
+                                return false;
+                            },
+                            success: function (layero, index) {
+                                $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
+                            },
+                            end: function () {
+                                $("#login").hide();
+                            },
+                        });
+                    }
                 }
                 return false;
             })
@@ -259,6 +340,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             bindevent: function () {
                 Form.api.bindEvent($('form'))
             },
+
         },
 
     };

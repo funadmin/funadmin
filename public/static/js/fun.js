@@ -352,6 +352,72 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
                 Fun.api.iframe(options)
             },
+            request: function (othis, options = null,Table='') {
+                var data = othis.data();
+                if (options) {
+                    title = options.title;
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId
+                } else {
+                    var title = data.text || data.title || othis.prop('text') || othis.prop('title'), url = data.url ? data.url : data.href,
+                        tableId = data.tableId;
+                    title = title || 'Are you sure';
+                    url = url !== undefined ? url : window.location.href;
+                    tableId = tableId || Table.init.tableId
+                }
+                arr = Table.getIds(url, tableId);
+                ids = arr[0];
+                length = arr[1];
+                Fun.toastr.confirm(__(title), function () {
+                    Fun.ajax({url: url, data: {ids: ids},}, function (res) {
+                        Fun.toastr.success(res.msg, function () {
+                            if(layui.treeGrid){
+                                layui.treeGrid.reload(tableId);
+                            }else {
+                                Table.api.reload(tableId)
+                            }
+                        })
+                    }, function (res) {
+                        Fun.toastr.error(res.msg, function () {
+                            Table.api.reload(tableId)
+                        })
+                    })
+                    Fun.toastr.close()
+                }, function (res) {
+                    if (res === undefined) {
+                        Fun.toastr.close();
+                        return false
+                    }
+                    Fun.toastr.success(res.msg, function () {
+                        Table.api.reload(tableId)
+                    })
+                });
+                return false
+            },
+            dropdown: function (othis) {
+                var extend = $(othis).attr('data-extend');
+                extend = JSON.parse(extend)
+                if (typeof extend === 'object') {
+                    $.each(extend, function (k, v) {
+                        v.class = v.class || 'layui-btn layui-btn-xs';
+                        v.title = v.title || v.text;
+                        v.event = v.event || v.type;
+                        extend[k].id = v.event
+                        extend[k].textTitle = v.title
+                        extend[k].url = $(othis).attr('data-url');
+                        extend[k].title = '<button lay-event="' + v.event + '" class="layui-btn ' + v.class + '" title="' + v.title + '"><i class="' + v.icon + '"></i>' + v.title + '</button>'
+                    })
+                    layui.dropdown.render({
+                        elem: othis, show: true, data: extend, click: function (data, _that) {
+                            attrEvent = data.id;
+                            data.title = data.textTitle;
+                            if (Table.events.hasOwnProperty(attrEvent)) {
+                                Table.events[attrEvent] && Table.events[attrEvent].call(this, _that, data)
+                            }
+                        }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
+                    })
+                }
+            },
         },
         //接口
         api: {
