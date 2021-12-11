@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9d7688455d8389747b24e13793d4a270",
+    "content-hash": "88db1008a124c6ee15415646b5d3f751",
     "packages": [
         {
             "name": "brick/math",
@@ -354,16 +354,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v2.8.3",
+            "version": "v3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "7c1cd3dad84dba20d5194ad81cebe7f71cae518b"
+                "reference": "7e426c39d2d2e4f0462da34f9a19c65e830921a8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7c1cd3dad84dba20d5194ad81cebe7f71cae518b",
-                "reference": "7c1cd3dad84dba20d5194ad81cebe7f71cae518b",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/7e426c39d2d2e4f0462da34f9a19c65e830921a8",
+                "reference": "7e426c39d2d2e4f0462da34f9a19c65e830921a8",
                 "shasum": ""
             },
             "require": {
@@ -407,22 +407,22 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v2.8.3"
+                "source": "https://github.com/funadmin/fun-addons/tree/v3.0"
             },
-            "time": "2021-12-08T02:15:11+00:00"
+            "time": "2021-12-11T06:42:12+00:00"
         },
         {
             "name": "league/flysystem",
-            "version": "1.1.8",
+            "version": "1.1.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/flysystem.git",
-                "reference": "c995bb0c23c58c9813d081f9523c9b7bb496698e"
+                "reference": "094defdb4a7001845300334e7c1ee2335925ef99"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/c995bb0c23c58c9813d081f9523c9b7bb496698e",
-                "reference": "c995bb0c23c58c9813d081f9523c9b7bb496698e",
+                "url": "https://api.github.com/repos/thephpleague/flysystem/zipball/094defdb4a7001845300334e7c1ee2335925ef99",
+                "reference": "094defdb4a7001845300334e7c1ee2335925ef99",
                 "shasum": ""
             },
             "require": {
@@ -495,7 +495,7 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/flysystem/issues",
-                "source": "https://github.com/thephpleague/flysystem/tree/1.1.8"
+                "source": "https://github.com/thephpleague/flysystem/tree/1.1.9"
             },
             "funding": [
                 {
@@ -503,7 +503,7 @@
                     "type": "other"
                 }
             ],
-            "time": "2021-11-28T21:50:23+00:00"
+            "time": "2021-12-09T09:40:50+00:00"
         },
         {
             "name": "league/flysystem-cached-adapter",
@@ -1748,16 +1748,16 @@
         },
         {
             "name": "symfony/translation",
-            "version": "v5.4.0",
+            "version": "v5.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/translation.git",
-                "reference": "6fe32b10e912a518805bc9eafc2a87145773cf13"
+                "reference": "8c82cd35ed861236138d5ae1c78c0c7ebcd62107"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/translation/zipball/6fe32b10e912a518805bc9eafc2a87145773cf13",
-                "reference": "6fe32b10e912a518805bc9eafc2a87145773cf13",
+                "url": "https://api.github.com/repos/symfony/translation/zipball/8c82cd35ed861236138d5ae1c78c0c7ebcd62107",
+                "reference": "8c82cd35ed861236138d5ae1c78c0c7ebcd62107",
                 "shasum": ""
             },
             "require": {
@@ -1825,7 +1825,7 @@
             "description": "Provides tools to internationalize your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/translation/tree/v5.4.0"
+                "source": "https://github.com/symfony/translation/tree/v5.4.1"
             },
             "funding": [
                 {
@@ -1841,7 +1841,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2021-11-29T15:30:56+00:00"
+            "time": "2021-12-05T20:33:52+00:00"
         },
         {
             "name": "symfony/translation-contracts",
@@ -1927,12 +1927,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "0c4689fad043b6d30361d62a13031652078cbcda"
+                "reference": "2069b0d46fa0eb56096fe25a498bf9f03f097157"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/0c4689fad043b6d30361d62a13031652078cbcda",
-                "reference": "0c4689fad043b6d30361d62a13031652078cbcda",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/2069b0d46fa0eb56096fe25a498bf9f03f097157",
+                "reference": "2069b0d46fa0eb56096fe25a498bf9f03f097157",
                 "shasum": ""
             },
             "require": {
@@ -1987,7 +1987,7 @@
                 "issues": "https://github.com/top-think/framework/issues",
                 "source": "https://github.com/top-think/framework/tree/6.0"
             },
-            "time": "2021-12-01T03:11:03+00:00"
+            "time": "2021-12-09T09:54:15+00:00"
         },
         {
             "name": "topthink/think-captcha",

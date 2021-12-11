@@ -10,8 +10,7 @@ use think\model\concern\SoftDelete;
  */
 class {{$modelName}} extends BaseModel
 {
-    use SoftDelete;
-    protected $defaultSoftDelete =0;
+    {{$softDelete}}
     public function __construct(array $data = [])
     {
         parent::__construct($data);

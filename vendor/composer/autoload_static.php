@@ -130,9 +130,9 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
             0 => __DIR__ . '/..' . '/topthink/framework/src/think',
             1 => __DIR__ . '/..' . '/topthink/think-helper/src',
             2 => __DIR__ . '/..' . '/topthink/think-image/src',
-            3 => __DIR__ . '/..' . '/topthink/think-queue/src',
-            4 => __DIR__ . '/..' . '/topthink/think-template/src',
-            5 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            3 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            4 => __DIR__ . '/..' . '/topthink/think-queue/src',
+            5 => __DIR__ . '/..' . '/topthink/think-template/src',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (

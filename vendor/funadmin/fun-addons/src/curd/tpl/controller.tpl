@@ -26,5 +26,7 @@ class {{$controllerName}} extends {{$baseController}}
 
     {{$indexTpl}}
 
+    {{$recycleTpl}}
+
 }
 

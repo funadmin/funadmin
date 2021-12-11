@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '7bb147f9e91b8048d73ff06653d1490a1c8128ca',
+    'reference' => 'cf1cabf43fdff51d6dd42b732a89104eecd517c8',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v2.8.3',
-      'version' => '2.8.3.0',
+      'pretty_version' => 'v3.0',
+      'version' => '3.0.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '7c1cd3dad84dba20d5194ad81cebe7f71cae518b',
+      'reference' => '7e426c39d2d2e4f0462da34f9a19c65e830921a8',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,16 +72,16 @@
       'aliases' => 
       array (
       ),
-      'reference' => '7bb147f9e91b8048d73ff06653d1490a1c8128ca',
+      'reference' => 'cf1cabf43fdff51d6dd42b732a89104eecd517c8',
     ),
     'league/flysystem' => 
     array (
-      'pretty_version' => '1.1.8',
-      'version' => '1.1.8.0',
+      'pretty_version' => '1.1.9',
+      'version' => '1.1.9.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'c995bb0c23c58c9813d081f9523c9b7bb496698e',
+      'reference' => '094defdb4a7001845300334e7c1ee2335925ef99',
     ),
     'league/flysystem-cached-adapter' => 
     array (
@@ -272,12 +272,12 @@
     ),
     'symfony/translation' => 
     array (
-      'pretty_version' => 'v5.4.0',
-      'version' => '5.4.0.0',
+      'pretty_version' => 'v5.4.1',
+      'version' => '5.4.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => '6fe32b10e912a518805bc9eafc2a87145773cf13',
+      'reference' => '8c82cd35ed861236138d5ae1c78c0c7ebcd62107',
     ),
     'symfony/translation-contracts' => 
     array (
@@ -312,7 +312,7 @@
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '0c4689fad043b6d30361d62a13031652078cbcda',
+      'reference' => '2069b0d46fa0eb56096fe25a498bf9f03f097157',
     ),
     'topthink/think-captcha' => 
     array (

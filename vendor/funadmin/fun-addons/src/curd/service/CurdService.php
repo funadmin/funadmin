@@ -93,6 +93,7 @@ class CurdService
     protected $controllerArr;
     protected $modelArr;
     protected $menuListStr;
+    protected $softDelete;
 
     public function __construct()
     {
@@ -279,12 +280,12 @@ class CurdService
         $controllerTpl = $this->tplPath . 'controller.tpl';
         $modelTpl =  $this->tplPath . 'model.tpl';
         $indexTpl = '';
+        $recycleTpl = '';
         $relationSearch = '';
         $statusResult = Db::query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name ='".$this->tablePrefix.$this->table."' AND column_name ='status'");
         $status= $statusResult[0]['COUNT(*)'];
         if ($this->joinTable) {
             $relationSearch ='$this->relationSearch = true;';
-            $indexTpl = $this->tplPath . 'index.tpl';
             $joinIndexMethod = "withJoin([";
             foreach ($this->joinTable as $k => $v) {
                 $joinName  = lcfirst(Str::studly($this->joinName[$k]));
@@ -294,11 +295,19 @@ class CurdService
                 }else{
                     $joinModelFile = $this->rootPath . "addons" . DS . "{$this->addon}" . DS . "{$this->module}" . DS . "model" . DS . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
                 }
+                $softDelete = '';
+                //判断是否有删除字段
+                $sql = "select COLUMN_NAME as name, COLUMN_DEFAULT as value from information_schema.columns where table_name = '" . $this->tablePrefix . $v . "' and table_schema = '" . $this->database . "' and column_name = 'delete_time'";
+                $delete = Db::query($sql);
+                if(!empty($delete)){
+                    $softDelete = $this->getSoftDelete($delete[0]);
+                }
                 //生成关联表的模型
                 $modelTplTemp = str_replace([
                     '{{$modelNamespace}}',
                     '{{$modelName}}',
                     '{{$modelTableName}}',
+                    '{{$softDelete}}',
                     '{{$joinTpl}}',
                     '{{$attrTpl}}',
                 ],
@@ -306,6 +315,7 @@ class CurdService
                         $this->modelNamespace,
                         ucfirst(Str::studly($this->joinName[$k])),
                         $this->joinName[$k],
+                        $softDelete,
                         '',
                         '',
                     ],
@@ -315,7 +325,27 @@ class CurdService
             $joinIndexMethod = substr($joinIndexMethod,0,strlen($joinIndexMethod)-1);
             $joinIndexMethod.="])";
             $joinIndexMethod = trim($joinIndexMethod, ',');
-            $indexTpl = str_replace(['{{$joinIndexMethod}}','{{$relationSearch}}','{{$table}}','{{$status}}'], [$joinIndexMethod,$relationSearch,$this->table.'.',$status], file_get_contents($indexTpl));
+            $indexTpl = $this->tplPath . 'index.tpl';
+            $indexTpl = str_replace(
+                [
+                    '{{$joinIndexMethod}}',
+                    '{{$relationSearch}}',
+                    '{{$table}}',
+                    '{{$status}}',
+                ],
+                [$joinIndexMethod,$relationSearch,$this->table.'.',$status], file_get_contents($indexTpl));
+            if($this->softDelete){
+                $recycleTpl = $this->tplPath . 'indexrecycle.tpl';
+                $recycleTpl = str_replace(
+                    [
+                        '{{$joinIndexMethod}}',
+                        '{{$relationSearch}}',
+                        '{{$table}}',
+                        '{{$status}}',
+                    ],
+                    [$joinIndexMethod,$relationSearch,$this->table.'.',$status], file_get_contents($recycleTpl));
+            }
+       
         }
         $assignTpl = file_get_contents($this->tplPath . 'assign.tpl');
         $scriptTpl = file_get_contents($this->tplPath . 'script.tpl');
@@ -347,6 +377,7 @@ class CurdService
                 '{{$modelNamespace}}',
                 '{{$assign}}',
                 '{{$indexTpl}}',
+                '{{$recycleTpl}}',
                 '{{$limit}}'],
             [
                 $this->controllerNamespace,
@@ -357,6 +388,7 @@ class CurdService
                 $this->modelNamespace,
                 $assignStr,
                 $indexTpl,
+                $recycleTpl,
                 $this->limit
             ],
             file_get_contents($controllerTpl));
@@ -372,6 +404,7 @@ class CurdService
                     '{{$modelNamespace}}',
                     '{{$assign}}',
                     '{{$indexTpl}}',
+                    '{{$recycleTpl}}',
                     '{{$limit}}'],
                 [
                     str_replace('backend', $this->module, $this->controllerNamespace),
@@ -382,6 +415,7 @@ class CurdService
                     $this->modelNamespace,
                     $assignStr,
                     $indexTpl,
+                    $recycleTpl,
                     $this->limit,
                 ],
                 file_get_contents($controllerTpl));
@@ -468,12 +502,14 @@ class CurdService
             '{{$modelTableName}}',
             '{{$joinTpl}}',
             '{{$attrTpl}}',
+            '{{$softDelete}}',
         ],
             [$this->modelNamespace,
                 ucfirst($this->modelName),
                 $this->modelTableName,
                 $joinTplStr,
                 $attrStr,
+                $this->softDelete,
             ],
             file_get_contents($modelTpl));
         $validateTpl = str_replace(
@@ -500,8 +536,22 @@ class CurdService
     {
         $this->getCols();
         $jsTpl = $this->tplPath . 'js.tpl';
-        $jsTpl = str_replace(['{{$requests}}','{{$requestsRecycle}}', '{{$jsCols}}','{{$jsColsRecycle}}', '{{$limit}}', '{{$page}}'],
-            [$this->requests,$this->requestsRecycle, $this->jsCols,$this->jsColsRecycle, $this->limit, $this->page],
+        $jsrecycleTpl = '';
+        if($this->softDelete){
+            $jsrecycleTpl = $this->tplPath . 'jsrecycle.tpl';
+            $jsrecycleTpl = str_replace(['{{$requestsRecycle}}','{{$jsColsRecycle}}',
+                '{{$limit}}', '{{$page}}'
+            ],
+                [$this->requestsRecycle,$this->jsColsRecycle, $this->limit, $this->page,
+                ],
+                file_get_contents($jsrecycleTpl));
+        }
+        $jsTpl = str_replace(['{{$requests}}', '{{$jsCols}}',
+            '{{$limit}}', '{{$page}}','{{$jsrecycleTpl}}'
+        ],
+            [$this->requests, $this->jsCols, $this->limit, $this->page,
+            $jsrecycleTpl,
+        ],
             file_get_contents($jsTpl));
         $this->makeFile($this->fileList['jsFileName'], $jsTpl);
     }
@@ -824,7 +874,10 @@ class CurdService
                             break;
                         case 'timestamp':
                         case 'datetime':
-                            $this->jsCols .= "                    {field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
+                                if(in_array($v['name'],['update_time','delete_time'])){
+                                    break;
+                                }
+                                $this->jsCols .= "                    {field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
                             break;
                         case 'year':
                             $this->jsCols .= "                    {field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'time',templet: Table.templet.time,sort:true},".PHP_EOL;;
@@ -847,13 +900,18 @@ class CurdService
                         templet: Table.templet.operat,
                         operat: ["restore","delete"]
                     },';
+        $operat = ' ["edit", "destroy","delete"]';
+        if(!$this->softDelete){
+            $this->jsColsRecycle = '';
+            $operat = '["edit","delete"]';
+        }
         $this->jsCols .= '                    {
                         minWidth: 250,
                         align: "center",
                         title: __("Operat"),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ["edit", "destroy","delete"]
+                        operat:' .$operat.'
                     },';
         return [$this->jsCols,$this->jsColsRecycle];
     }
@@ -866,6 +924,7 @@ class CurdService
     {
         $assign = [];
         $lang = '';
+        $softDelete = '';
         $sql = "show tables like '{$this->tablePrefix}{$this->table}'";
         $table = Db::query($sql);
         if(!$table){
@@ -883,7 +942,7 @@ class CurdService
             $v['name'] = $v['COLUMN_NAME'];
             $v['value'] = $v['COLUMN_DEFAULT'];
             if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
-                throw new \Exception('字段' . $v['name'] . '注释无效');
+                $v['comment'] = $v['name'];
             }
             $v['type'] = 'text';
             if (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'int', 'mediumint', 'bigint'])) {
@@ -1015,13 +1074,31 @@ class CurdService
                     $v['comment'] = $comment[0];
                 }
             }
+            if($v['name']=='delete_time'){
+
+                $softDelete = $this->getSoftDelete($v);
+            }
+
         }
         unset($v);
         $this->fieldsList = $tableField;
         $this->assign = $assign;
         $this->lang = $lang;
+        $this->softDelete = $softDelete;
         return $this;
     }
+
+    /**
+     * 获取软删除
+     */
+    protected function getSoftDelete($value){
+        $default =  $value['value']==''?'null':$value['value'];
+        $str = 'use SoftDelete;'.PHP_EOL;
+        $str .= '    protected $defaultSoftDelete = '.$default.';'.PHP_EOL;
+        return $str;
+
+    }
+
 
     /**
      * 设置属性

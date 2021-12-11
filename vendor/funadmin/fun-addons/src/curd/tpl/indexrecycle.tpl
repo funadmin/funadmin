@@ -1,7 +1,7 @@
-    /**
-    * @NodeAnnotation(title="List")
+/**
+    * @NodeAnnotation(title="Recycle")
     */
-    public function index()
+    public function recycle()
     {
         {{$relationSearch}}
         if ($this->request->isAjax()) {
@@ -9,7 +9,7 @@
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $list = $this->modelClass
+            $list = $this->modelClass->onlyTrashed()
                 ->where($where)
                 ->{{$joinIndexMethod}}
                 ->order($sort)
@@ -20,6 +20,8 @@
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
-        return view();
+        return view('index');
     }
+
+
 
