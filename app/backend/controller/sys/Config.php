@@ -18,6 +18,7 @@ use app\common\model\FieldType;
 use app\common\model\FieldVerify;
 use app\common\traits\Curd;
 use think\App;
+use think\facade\Cache;
 use think\facade\Db;
 use think\facade\View;
 use app\common\annotation\ControllerAnnotation;
@@ -48,6 +49,7 @@ class Config extends Backend {
             foreach ($post as $k=>$v){
                 $res = $this->modelClass->where('code',$k)->update(['value'=>$v]);
             }
+            Cache::clear();
             $this->success(lang('Save Success'));
         }
 
