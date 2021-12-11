@@ -8,15 +8,6 @@ use think\Model;
 use think\model\concern\SoftDelete;
 class BaseModel extends Model
 {
-    /**
-     * @var bool
-     */
-    use SoftDelete;
-    protected $autoWriteTimestamp = true;
-    protected $createTime = 'create_time';
-    protected $updateTime = 'update_time';
-    protected $deleteTime = 'delete_time';
-    protected $defaultSoftDelete = 0;
 
     public function __construct(array $data = [])
     {
