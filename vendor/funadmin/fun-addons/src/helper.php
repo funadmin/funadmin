@@ -256,6 +256,7 @@ if (!function_exists('addons_url')) {
             // 生成 url 模板变量
             $addons = $request->addon;
             $controller = $request->controller();
+            var_dump($controller);die;
             $module = explode('.',$controller)[0];
             $controller = explode('.',$controller)[1];
             $action = $request->action();
@@ -265,7 +266,7 @@ if (!function_exists('addons_url')) {
             $addons = count($route) == 3 ? strtolower($route[0]) : $request->addon;
             $controller = (array_pop($route)) ?: $request->param('controller');
             $module = (array_pop($route)) ?: $request->param('module', 'frontend');
-            $controller = Str::snake((string)$controller);
+            $controller = Str::studly((string)$controller);
             /* 解析URL带的参数 */
             if (isset($url['query'])) {
                 parse_str($url['query'], $query);

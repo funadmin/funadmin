@@ -23,7 +23,6 @@ timePicker.prototype.render = function (opt) {
     //默认设置
     var timeStamp = opt.options.timeStamp || false;
     var format = opt.options.format || 'YYYY-MM-DD HH:mm:ss';
-
     elem.on('click',function (e) {
         e.stopPropagation();
 

@@ -303,10 +303,11 @@ class FormHelper
             $op.=" data-data='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
         }
         if(is_object($select)){
-            $op.=" data-value='".$select."'";
+            $op.=" data-data='".json_encode((array)$select,JSON_UNESCAPED_UNICODE)."'";
         }
         $attr? $op.=' data-attr="'.$attr.'"':"";
-        $value? $op.=' data-value="'.json_encode($value,true).'"':"";
+        $value = is_array($value)?implode($value):$value;
+        $value? $op.=' data-value="'.$value.'"':"";
         isset($options['lang'])?$op.=' data-lang="'.$options['lang'].'"':'';
         isset($options['tips'])?$op.=' data-tips="'.$options['tips'].'"':'';
         isset($options['empty'])?$op.=' data-empty="'.$options['empty'].'"':'';

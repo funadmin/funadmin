@@ -17,6 +17,7 @@ use fun\helper\StringHelper;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Cache;
+use think\facade\Cookie;
 use think\facade\Db;
 use think\facade\Session;
 use think\facade\View;
@@ -215,6 +216,7 @@ class Member extends Frontend {
         session('member',null);
         Session::clear();
         Cache::clear();
+        Cookie::delete('mid');
         $this->success('退成成功！',__u('login/index'));
 
     }

@@ -237,6 +237,7 @@ class AuthGroup extends Backend
                 if (empty($rules)) {
                     $this->error(lang('please choose rule'));
                 }
+                $rules = json_decode($rules,true);
                 $rules = (new AuthService())->authNormal($rules);
                 $rules = array_column($rules, 'id');
                 $rls = '';
@@ -256,14 +257,15 @@ class AuthGroup extends Backend
                 $rls = $childIndexId.$rls;
                 $list = $this->modelClass->find($group_id);
                 $list->rules = $rls;
-                if ($list->save()) {
-                    $admin = session('admin');
-                    $admin['rules'] = $rls;
-                    Session::set('admin', $admin);
-                    $this->success(lang('rule assign success'),__u('sys.Auth/group'));
-                } else {
+                try {
+                    $list->save();
+                }catch(\Exception $e){
                     $this->error(lang('rule assign fail'));
                 }
+                $admin = session('admin');
+                $admin['rules'] = $rls;
+                Session::set('admin', $admin);
+                $this->success(lang('rule assign success'),__u('sys.Auth/group'));
             }
         }
         return view();
