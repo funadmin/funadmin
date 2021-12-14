@@ -256,7 +256,6 @@ if (!function_exists('addons_url')) {
             // 生成 url 模板变量
             $addons = $request->addon;
             $controller = $request->controller();
-            var_dump($controller);die;
             $module = explode('.',$controller)[0];
             $controller = explode('.',$controller)[1];
             $action = $request->action();
@@ -278,7 +277,7 @@ if (!function_exists('addons_url')) {
         $domainprefix = $config && isset($config['domain']) && $config['domain']['value'] ? $config['domain']['value'] : '';
         $domainprefix = $domainprefix?explode(',',$domainprefix)[0]:'';
         $domain = $domainprefix  && $domain==false && Config::get('route.url_domain_deploy') ? $domainprefix : $domain;
-        $domain = str_replace(httpType(),'',$domain);
+        $domain = is_bool($domain)?$domain :str_replace(httpType(),'',$domain);
         $suffix = $config && isset($config['suffix']) && $config['suffix']['value'] ? $config['suffix']['value']:$suffix;
         $rewrite = $config && isset($config['rewrite']) && $config['rewrite']['value'] ? $config['rewrite']['value'] : [];
         if($module==='backend'){
@@ -288,7 +287,7 @@ if (!function_exists('addons_url')) {
         if ($rewrite) {
             $rewrite_val = array_values($rewrite);
             $rewrite_key = array_keys($rewrite);
-            $key = array_search($url['path'],$rewrite_val);
+            $key = array_search(strtolower($url['path']), array_map('strtolower', $rewrite_val));
             if ($key!==false) {
                 $path = $rewrite_key[$key];
                 $path = '/'.trim($path,'/');
@@ -301,11 +300,15 @@ if (!function_exists('addons_url')) {
                     $array = explode("/", $path);
                     $path = implode("/", array_slice($array, 1));
                     //手否完整域名
-                    if (strpos($domain,'.')!==false) {
+                    if (!is_bool($domain) &&  strpos($domain,'.')!==false) {
                         return httpType() . $domain .'/' . $path;
                     }
                     $index = strpos($_SERVER['HTTP_HOST'],'.');
                     $domain_suffix = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+                    if(is_bool($domain)){
+                        $domain = $domainprefix?$domainprefix . '.' . $domain_suffix:$_SERVER['HTTP_HOST'];
+                        return httpType() . $domain . '/' . $path;
+                    }
                     return httpType() . $domain . '.' . $domain_suffix . '/' . $path;
                 }
                 return Route::buildUrl($path)->suffix($suffix)->domain($domain);

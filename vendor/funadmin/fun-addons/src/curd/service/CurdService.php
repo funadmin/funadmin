@@ -454,12 +454,12 @@ class CurdService
         $joinTplStr = '';
         if ($this->joinTable) {
             foreach ($this->joinTable as $k=>$v){
-                if(isset($this->joinMethod[$k])){
-                    $method = $this->joinMethod[$k];
+                $method = 'hasOne';
+                if(isset($this->joinMethod[$k])) $method = $this->joinMethod[$k];
+                if ($method == 'hasOne') {
+                    list($joinPrimaryKey, $joinForeignKey) = array($this->joinPrimaryKey[$k], $this->joinForeignKey[$k]);
+                } else {
                     list($joinPrimaryKey,$joinForeignKey)=array($this->joinPrimaryKey[$k],$this->joinForeignKey[$k]);
-                }else{
-                    $method = 'hasOne';
-                    list($joinPrimaryKey,$joinForeignKey)=array($this->joinForeignKey[$k],$this->joinPrimaryKey[$k]);
                 }
                 $joinTpl = $this->tplPath . 'join.tpl';
                 $joinTplStr .= str_replace(['{{$joinName}}','{{$joinMethod}}', '{{$joinModel}}', '{{$joinForeignKey}}', '{{$joinPrimaryKey}}'],
@@ -620,6 +620,9 @@ class CurdService
         $plugins =$this->addon? get_addons_instance($this->addon):'';
         if($plugins){
             $menu = $plugins->menu;
+        }
+        if(!$this->softDelete){
+            $this->method =  'index,add,edit,delete,import,export,modify';
         }
         foreach (explode(',', $this->method) as $k => $v) {
             if ($v == 'refresh') continue;

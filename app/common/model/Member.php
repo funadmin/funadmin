@@ -76,7 +76,7 @@ class  Member extends BaseModel{
         $member->save = time();
         if (!$member->save())  throw new \Exception('login failed');
         session('member', $member);
-        cookie('mid', $member->id);
+        $_COOKIE['mid']= $member->id;
     }
 
     /**

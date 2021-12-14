@@ -29,7 +29,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
-            if (url.indexOf(domain) !== -1) {
+            if (url &&　url.indexOf(domain) !== -1) {
                 return url;
             }
             url = Fun.common.parseNodeStr(url);
@@ -201,23 +201,26 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         },
         common: {
             parseNodeStr: function (node) {
-                if (node.indexOf('/') === -1) {
+                if (node && node.indexOf('/') === -1) {
                     node = Config.controllername + '/' + node;
                 }
-                var arrayNode = node.split('/');
-                $.each(arrayNode, function (key, val) {
-                    if (key === 0) {
-                        val = val.split('.');
-                        $.each(val, function (i, v) {
-                            v = Fun.common.lower(Fun.common.snake(v));
-                            val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
-                        });
-                        val = val.join(".");
-                        arrayNode[key] = val;
-                    }
-                });
-                node = arrayNode.join("/");
-                return node;
+                if(node!==undefined){
+                    var arrayNode = node.split('/');
+                    $.each(arrayNode, function (key, val) {
+                        if (key === 0) {
+                            val = val.split('.');
+                            $.each(val, function (i, v) {
+                                v = Fun.common.lower(Fun.common.snake(v));
+                                val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
+                            });
+                            val = val.join(".");
+                            arrayNode[key] = val;
+                        }
+                    });
+                    node = arrayNode.join("/");
+                    return node;
+                }
+                return '';
             },
             //下划线变驼峰
             camel: function (name) {
@@ -365,21 +368,24 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     url = url !== undefined ? url : window.location.href;
                     tableId = tableId || Table.init.tableId
                 }
-                arr = Table.getIds(url, tableId);
-                ids = arr[0];
-                length = arr[1];
+                ids = '';
+                if(Table){
+                    arr = Table.getIds(url, tableId);
+                    ids = arr[0];
+                    length = arr[1];
+                }
                 Fun.toastr.confirm(__(title), function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {
                             if(layui.treeGrid){
-                                layui.treeGrid.reload(tableId);
+                                Table && layui.treeGrid.reload(tableId);
                             }else {
-                                Table.api.reload(tableId)
+                                Table && Table.api.reload(tableId)
                             }
                         })
                     }, function (res) {
                         Fun.toastr.error(res.msg, function () {
-                            Table.api.reload(tableId)
+                            Table && Table.api.reload(tableId)
                         })
                     })
                     Fun.toastr.close()
@@ -389,12 +395,12 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         return false
                     }
                     Fun.toastr.success(res.msg, function () {
-                        Table.api.reload(tableId)
+                        Table && Table.api.reload(tableId)
                     })
                 });
                 return false
             },
-            dropdown: function (othis) {
+            dropdown: function (othis,Table='') {
                 var extend = $(othis).attr('data-extend');
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
@@ -402,17 +408,29 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                         v.class = v.class || 'layui-btn layui-btn-xs';
                         v.title = v.title || v.text;
                         v.event = v.event || v.type;
-                        extend[k].id = v.event
-                        extend[k].textTitle = v.title
-                        extend[k].url = $(othis).attr('data-url');
-                        extend[k].title = '<button lay-event="' + v.event + '" class="layui-btn ' + v.class + '" title="' + v.title + '"><i class="' + v.icon + '"></i>' + v.title + '</button>'
+                        url =v.url?v.url:$(othis).attr('data-url');
+                        if(Fun.checkAuth(url)){
+                            extend[k].url =url;
+                            extend[k].class =v.class || 'layui-btn-xs layui-btn-nomarl';
+                            extend[k].id = v.event
+                            extend[k].callback = v.callback || '';
+                            extend[k].extend = v.extend || '';
+                            extend[k].textTitle = v.title
+                            extend[k].icon = v.icon || '';
+                            icon = extend[k].icon ? '<i class="{{d.icon}}"></i>':'';
+                            extend[k].templet = v.templet ||  "<button lay-event='{{d.event}}'"+ 'data-url="{{d.url}}" class="layui-btn {{d.class}}" title="{{d.title}}">' +icon+' {{d.title}}  </button>';
+                            extend[k].title =v.title ;
+                        }
                     })
                     layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
-                            attrEvent = data.id;
+                            attrEvent = data.event;
                             data.title = data.textTitle;
-                            if (Table.events.hasOwnProperty(attrEvent)) {
-                                Table.events[attrEvent] && Table.events[attrEvent].call(this, _that, data)
+                            if (Table && Table.events.hasOwnProperty(attrEvent)) {
+                            }else if(data.callback){
+                                data.callback.indexOf('(')!==-1 ?eval( data.callback):eval( data.callback+'()')
+                            }else{
+                                data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
                             }
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })

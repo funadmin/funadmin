@@ -212,11 +212,11 @@ class Member extends Frontend {
      * 退出
      */
     public function logout(){
-
         session('member',null);
-        Session::clear();
+        Session::delete('member');
         Cache::clear();
-        Cookie::delete('mid');
+        cookie('mid',null);
+        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
         $this->success('退成成功！',__u('login/index'));
 
     }

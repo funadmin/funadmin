@@ -24,6 +24,7 @@ use think\facade\Config;
 use think\facade\Cookie;
 use think\facade\Request;
 use think\facade\Session;
+use think\helper\Str;
 
 class AuthService
 {
@@ -87,7 +88,10 @@ class AuthService
         $list = array();
         foreach ($menu as $k => $v) {
             if ($v['menu_status'] == 1) {
-                $v['href'] = trim($v['href'], '/') . '/index';
+                $v['href'] =  trim($v['href'], '/' );
+                if(!Str::endsWith($v['href'],'/index')){
+                    $v['href'] = $v['href']. '/index';
+                }
             }
             if ($v['module'] !== 'addon') {
                 $v['href'] = (parse_name(__u(trim($v['href'], ' ')), 1));
@@ -100,19 +104,19 @@ class AuthService
                         //假如pid 在数组内，且
                         $allchildids = $this->getallIdsBypid($v['id']);
                         //把下级没有list 的菜单全部删除
-                        if ($allchildids) {
-                            $allchildids = trim($allchildids, ',');
-                            $allIndexChild = AuthRule::field('href,id')
-//                                ->where('href', 'like', '%/index')
-                                ->where('id', 'in', $authrules)
-                                ->where('id', 'in', $allchildids)
-                                ->where('status', 1)
-                                ->find();
-                            if (!$allIndexChild) {
-                                unset($menu[$k]);
-                                continue;
-                            }
-                        }
+//                        if ($allchildids) {
+//                            $allchildids = trim($allchildids, ',');
+//                            $allIndexChild = AuthRule::field('href,id')
+////                                ->where('href', 'like', '%/index')
+//                                ->where('id', 'in', $authrules)
+//                                ->where('id', 'in', $allchildids)
+//                                ->where('status', 1)
+//                                ->find();
+////                            if (!$allIndexChild) {
+////                                unset($menu[$k]);
+////                                continue;
+////                            }
+//                        }
                         $child = AuthRule::field('href,id')
 //                            ->where('href', 'like', '%/index')
                             ->where('status', 1)
@@ -120,8 +124,9 @@ class AuthService
                         //删除下级没有list的菜单权限
 //                        if ($child && !in_array($child['id'], $authrules)) {
                         if (!$child) {
-                            unset($menu[$k]);
-                            continue;
+//                            unset($menu[$k]);
+                            $v['child'] = [];
+                            $list[] = $v;
                         } else {
                             $v['child'] = self::authMenuNode($menu, $v['id']);
                             $list[] = $v;
@@ -293,6 +298,13 @@ class AuthService
                     $this->hrefId = AuthRule::where('href', $this->requesturl)
                         ->where('status', 1)
                         ->value('id');
+                    $hrefTemp = trim($this->requesturl,'/');
+                    $menuid = 0;
+                    if(Str::endsWith($hrefTemp,'/index')){
+                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
+                            ->where('status', 1)
+                            ->value('id');
+                    }
                     //当前管理员权限
                     $rules = AuthGroupModel::where('id', 'in', session('admin.group_id'))
                         ->where('status', 1)->value('rules');
@@ -305,9 +317,13 @@ class AuthService
                         if (!in_array($this->hrefId, $this->adminRules)) {
                             $this->error(lang('Permission Denied'));
                         }
-                    } else {
+                    } else if($menuid){
+                        if (!in_array($menuid, $this->adminRules)) {
+                            $this->error(lang('Permission Denied'));
+                        }
+                    }else{
                         if (!in_array($this->requesturl, $cfg['noRightNode'])) {
-                            $this->error(lang('Permission Denied2'));
+                            $this->error(lang('Permission Denied'));
                         }
                     }
                 }

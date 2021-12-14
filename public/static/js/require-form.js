@@ -3,7 +3,6 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
         init: {},
         //事件
         events: {
-            //事件
             events:function (){
                 list = document.querySelectorAll("*[lay-event]");
                 if (list.length > 0) {
@@ -28,6 +27,7 @@ define(['jquery', 'table','tableSelect', 'upload',  'fu'], function($,Table, tab
                         })
                     })
                 }
+
             },
             fu: function() {
                 Fu.api.bindEvent()

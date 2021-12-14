@@ -673,11 +673,17 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 });
                 return false
             }, dropdown: function (othis) {
-                Fun.event.dropdown(othis)
+                Fun.events.dropdown(othis,Table)
             }, closeOpen: function (othis) {
                 Fun.api.close()
             }, common: function (othis) {
-                return othis.data('callback') ? eval(othis.data('callback')) : true
+                callback = othis.data('callback');
+                if(callback){
+                    callback = callback.indexOf('(')!==-1?callback:callback+'()';
+                    eval(callback);
+                    return true;
+                }
+                return true;
             }
         },
         api: {

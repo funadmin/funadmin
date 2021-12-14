@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => 'cfe32cfdc0bc3ea4a1a7e40c7ee9454d92e3924e',
+    'reference' => 'b499249da03ff54ca79006736096eb790028912c',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v3.1',
-      'version' => '3.1.0.0',
+      'pretty_version' => 'v3.0',
+      'version' => '3.0.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '0223f1ace1a7404b1f4dcb22eb805d9edd2091aa',
+      'reference' => '005b94da02885fc722fbed2444edc005f6cca046',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => 'cfe32cfdc0bc3ea4a1a7e40c7ee9454d92e3924e',
+      'reference' => 'b499249da03ff54ca79006736096eb790028912c',
     ),
     'league/flysystem' => 
     array (

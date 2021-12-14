@@ -11,6 +11,7 @@
 
 use think\App;
 use think\facade\Route;
+use think\facade\Session;
 use think\facade\Db;
 
 if (!function_exists('syscfg')) {
@@ -253,10 +254,11 @@ if (!function_exists('auth')) {
 if (!function_exists('isLogin')) {
     function isLogin()
     {
-        if (session('member.id')) {
+        if (session('member')) {
+            $_COOKIE['mid'] = session('member.id');
             return session('member');
-        } else if(cookie('mid')) {
-            $member = \app\common\model\Member::find(cookie('mid'));
+        } else if($_COOKIE['mid']) {
+            $member = \app\common\model\Member::find($_COOKIE['mid']);
             session('member',$member);
             return $member;
         }else{

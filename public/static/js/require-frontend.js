@@ -15,7 +15,7 @@ require.config({
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,'xmSelect',
         'timeago','multiSelect','cityPicker',
-        'regionCheckBox','timePicker','croppers', 'dayjs',
+        'regionCheckBox','timePicker','croppers', 'moment',
         'md5','fun','fu','form','table','upload','addons','Vue'],
     paths: {
         'lang'          : 'empty:',
