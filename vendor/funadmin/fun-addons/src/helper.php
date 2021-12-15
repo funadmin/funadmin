@@ -296,9 +296,9 @@ if (!function_exists('addons_url')) {
                 });
                 $path=  preg_replace("/(\/\[:.*)/",'',$path);
                 if($domain){
-                    $path=  str_replace($domainprefix,$domain,$path);
-                    $array = explode("/", $path);
-                    $path = implode("/", array_slice($array, 1));
+//                     $path=  str_replace($domainprefix,$domain,$path);
+//                     $array = explode("/", $path);
+//                     $path = implode("/", array_slice($array, 1));
                     //手否完整域名
                     if (!is_bool($domain) &&  strpos($domain,'.')!==false) {
                         return httpType() . $domain .'/' . $path;
