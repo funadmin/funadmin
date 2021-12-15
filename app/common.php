@@ -257,7 +257,7 @@ if (!function_exists('isLogin')) {
         if (session('member')) {
             $_COOKIE['mid'] = session('member.id');
             return session('member');
-        } else if($_COOKIE['mid']) {
+        } else if(!empty($_COOKIE['mid'])) {
             $member = \app\common\model\Member::find($_COOKIE['mid']);
             session('member',$member);
             return $member;
