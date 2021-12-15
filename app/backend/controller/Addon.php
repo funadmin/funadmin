@@ -86,52 +86,56 @@ class Addon extends Backend
                 if(empty($addonNameArr)){
                     $where[] = ['name','not in',$addonNameArr];
                 }
-                $addons =  $this->modelClass->where($where)->column('*', 'name');
-                $list = array_merge($localAddons,$addons,$list?$list:[]);
-                foreach ($list as $key => &$value) {
-                    $value['plugins_id'] = isset($value['id'])?$value['id']:0;
-                    unset($value['id']);
-                    //是否已经安装过
-                    if($localNameArr and in_array($key,$localNameArr)){
-                        $config = get_addons_config($key);
-                        $info = get_addons_info($key);
-                        if ($addons && !isset($addons[$key]) || !$addons) {
-                            $class = get_addons_instance($key);
-                            $addons["$key"] = $class->getInfo();
-                            if ($addons[$key]) {
-                                $addons[$key]['install'] = 0;
-                                $addons[$key]['status'] = 0;
+                try {
+                    $addons =  $this->modelClass->where($where)->column('*', 'name');
+                    $list = array_merge($localAddons,$addons,$list?$list:[]);
+                    foreach ($list as $key => &$value) {
+                        $value['plugins_id'] = isset($value['id'])?$value['id']:0;
+                        unset($value['id']);
+                        //是否已经安装过
+                        if($localNameArr and in_array($key,$localNameArr)){
+                            $config = get_addons_config($key);
+                            $info = get_addons_info($key);
+                            if ($addons && !isset($addons[$key]) || !$addons) {
+                                $class = get_addons_instance($key);
+                                $addons["$key"] = $class->getInfo();
+                                if ($addons[$key]) {
+                                    $addons[$key]['install'] = 0;
+                                    $addons[$key]['status'] = 0;
+                                }
+                                $addons[$key] = $value;
+                            } else {
+                                $addons[$key] = array_merge($value,$addons[$key]);
+                                $addons[$key]['install'] = 1;
                             }
-                            $addons[$key] = $value;
-                        } else {
-                            $addons[$key] = array_merge($value,$addons[$key]);
-                            $addons[$key]['install'] = 1;
-                        }
-                        $addons[$key]['localVersion'] = $info['version'];
-                        if(isset($config['domain']) && $config['domain']['value']){
-                            $index = strpos($_SERVER['HTTP_HOST'],'.');
-                            $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
-                            $addons[$key]['web'] = httpType().$config['domain']['value'].'.'.$url;
+                            $addons[$key]['localVersion'] = $info['version'];
+                            if(isset($config['domain']) && $config['domain']['value']){
+                                $index = strpos($_SERVER['HTTP_HOST'],'.');
+                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+                                $addons[$key]['web'] = httpType().$config['domain']['value'].'.'.$url;
+                            }else{
+                                $addons[$key]['web'] = '/addons/'.$key;
+                            }
                         }else{
-                            $addons[$key]['web'] = '/addons/'.$key;
+                            $addons[$key] = $value;
+                            $addons[$key]['insatll'] = 0;
+                            $addons[$key]['status'] = 1;
+                            $addons[$key]['localVersion'] = $value['pluginsVersion'][0]['id'];
                         }
-                    }else{
-                        $addons[$key]['insatll'] = 0;
-                        $addons[$key]['status'] = 1;
-                        $addons[$key]['localVersion'] = $value['pluginsVersion'][0]['id'];
-                        $addons[$key] = $value;
+                        if(isset($addons[$key]['pluginsVersion'])){
+                            $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
+                            $addons[$key]['lastVersion'] = $addons[$key]['pluginsVersion'][0]['version'];
+                        }else{
+                            $addons[$key]['version_id'] = 0;
+                            $addons[$key]['lastVersion'] = $addons[$key]['localVersion'];
+                        }
                     }
-                    if(isset($addons[$key]['pluginsVersion'])){
-                        $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
-                        $addons[$key]['lastVersion'] = $addons[$key]['pluginsVersion'][0]['version'];
-                    }else{
-                        $addons[$key]['version_id'] = 0;
-                        $addons[$key]['lastVersion'] = $addons[$key]['localVersion'];
-                    }
+                    unset($value);
+                    $result = ['code' => 0, 'msg' => lang('Get Data Success'),
+                        'data' => $addons, 'count' => count($addons)];
+                }catch (\Exception $e){
+                    $this->error($e->getMessage());
                 }
-                unset($value);
-                $result = ['code' => 0, 'msg' => lang('Get Data Success'),
-                    'data' => $addons, 'count' => count($addons)];
                 return json($result);
             }
         }
@@ -144,7 +148,7 @@ class Addon extends Backend
      * @NodeAnnotation(title="安装")
      * @throws Exception
      */
-    public function install($name='')
+    public function install($name='',$type='')
     {
         set_time_limit(0);
         $name = $this->request->param("name")??$name;
@@ -167,31 +171,33 @@ class Addon extends Backend
             $this->error(lang('addons %s is already installed', [$name]));
         }
         list($addons,$localNameArr) = $this->getLocalAddons();
-        if(!$localNameArr || !in_array($name,$localNameArr)
-            || isset($addons[$name]) && $addons[$name]['version']!= $version_id){
-            $params = [
-                'plugins_id'=>$plugins_id,
-                'name'=>$name,
-                'version_id'=>$version_id,
-                'version'=>'',
-                "ip" => request()->ip(),
-                "domain" => request()->domain(),
-            ];
-            $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
-                ->setParams($params)->setHeader()->setOptions()->run();
-            if($res['code']!=200){
-                $this->error($res['msg']);
+        if(empty($type)){
+            if(!$localNameArr || !in_array($name,$localNameArr)
+                || isset($addons[$name]) && version_compare($addons[$name]['version'],$version_id,'!=')){
+                $params = [
+                    'plugins_id'=>$plugins_id,
+                    'name'=>$name,
+                    'version_id'=>$version_id,
+                    'version'=>'',
+                    "ip" => request()->ip(),
+                    "domain" => request()->domain(),
+                ];
+                $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
+                    ->setParams($params)->setHeader()->setOptions()->run();
+                if($res['code']!=200){
+                    $this->error($res['msg']);
+                }
+                $fileDir = '../runtime/addons/';
+                if (!is_dir($fileDir)) {
+                    FileHelper::mkdirs($fileDir);
+                }
+                $content = file_get_contents($res['data']['file_url']);
+                $fileName = $fileDir . $name . '.zip';
+                @touch($fileName);
+                file_put_contents($fileName, $content);
+                ZipHelper::unzip($fileName, $file =  '../addons');
+                @unlink($fileName);
             }
-            $fileDir = '../runtime/addons/';
-            if (!is_dir($fileDir)) {
-                FileHelper::mkdirs($fileDir);
-            }
-            $content = file_get_contents($res['data']['file_url']);
-            $fileName = $fileDir . $name . '.zip';
-            @touch($fileName);
-            file_put_contents($fileName, $content);
-            ZipHelper::unzip($fileName, $file =  '../addons');
-            @unlink($fileName);
         }
         $class = get_addons_instance($name);
         if (empty($class)) {
@@ -262,7 +268,6 @@ class Addon extends Backend
             $urls = parse_url(input('url'));
             $file = $urls['path']??'';
             if($file && file_exists('.'.$file)){
-//
                 try {
                     $res = ZipHelper::unzip('.'.$file,'../addons');
                 }catch (\Exception $e){
@@ -270,7 +275,7 @@ class Addon extends Backend
                 }
                 if($res){
                     $addon = substr($res,0,strpos($res, '/'));
-                    $this->install($addon);
+                    $this->install($addon,'local');
                 }
                 $this->success('upload success');
             }
@@ -478,6 +483,7 @@ class Addon extends Backend
      * @return array
      */
     protected function getLocalAddons(){
+        Cache::clear();
         $list = get_addons_list();
         return [$list,array_keys($list)];
     }
