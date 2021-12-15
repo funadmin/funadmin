@@ -154,6 +154,7 @@ class Addon extends Backend
         $name = $this->request->param("name")??$name;
         $plugins_id = $this->request->param("plugins_id");
         $version_id = $this->request->param("version_id");
+        $type = $this->request->param("type")??$type;
 //        插件名是否为空
         if (!$name) {
             $this->error(lang('addon  %s can not be empty', [$name]));
@@ -162,7 +163,7 @@ class Addon extends Backend
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not right'));
         }
-        if($this->request->param("type") =='upgrade'){
+        if($type =='upgrade'){
             $this->upgrade();
         }
         //检查插件是否安装
@@ -171,32 +172,23 @@ class Addon extends Backend
             $this->error(lang('addons %s is already installed', [$name]));
         }
         list($addons,$localNameArr) = $this->getLocalAddons();
-        if(empty($type)){
-            if(!$localNameArr || !in_array($name,$localNameArr)
-                || isset($addons[$name]) && version_compare($addons[$name]['version'],$version_id,'!=')){
-                $params = [
-                    'plugins_id'=>$plugins_id,
-                    'name'=>$name,
-                    'version_id'=>$version_id,
-                    'version'=>'',
-                    "ip" => request()->ip(),
-                    "domain" => request()->domain(),
-                ];
-                $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
-                    ->setParams($params)->setHeader()->setOptions()->run();
-                if($res['code']!=200){
-                    $this->error($res['msg']);
-                }
-                $fileDir = '../runtime/addons/';
-                if (!is_dir($fileDir)) {
-                    FileHelper::mkdirs($fileDir);
-                }
-                $content = file_get_contents($res['data']['file_url']);
-                $fileName = $fileDir . $name . '.zip';
-                @touch($fileName);
-                file_put_contents($fileName, $content);
-                ZipHelper::unzip($fileName, $file =  '../addons');
-                @unlink($fileName);
+        //本地存在空和更新则请求后端
+        if(empty($type) || $type=='upgrade'){
+            //不存在或者
+            $params = [
+                'plugins_id'=>$plugins_id,
+                'name'=>$name,
+                'version_id'=>$version_id,
+                'version'=>'',
+                "ip" => request()->ip(),
+                "domain" => request()->domain(),
+            ];
+            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
+            ){
+                $this->getCloundAddons($params);
+            }
+            if($type =='upgrade'){
+                $this->getCloundAddons($params);
             }
         }
         $class = get_addons_instance($name);
@@ -274,7 +266,8 @@ class Addon extends Backend
                     $this->error($e->getMessage());
                 }
                 if($res){
-                    $addon = substr($res,0,strpos($res, '/'));
+                    $index = strpos($res, '/');
+                    $addon = $index ? substr($res,0,$index):$res;
                     $this->install($addon,'local');
                 }
                 $this->success('upload success');
@@ -543,5 +536,29 @@ class Addon extends Backend
         return true;
     }
 
+    /**
+     * 获取远程安装包
+     * @param $params
+     * @return void
+     * @throws \Exception
+     */
+    protected function getCloundAddons($params){
+        $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
+            ->setParams($params)->setHeader()->setOptions()->run();
+        if($res['code']!=200){
+            $this->error($res['msg']);
+        }
+        $fileDir = '../runtime/addons/';
+        if (!is_dir($fileDir)) {
+            FileHelper::mkdirs($fileDir);
+        }
+        $content = file_get_contents($res['data']['file_url']);
+        $fileName = $fileDir . $params['name'] . '.zip';
+        @touch($fileName);
+        file_put_contents($fileName, $content);
+        ZipHelper::unzip($fileName, $file =  '../addons');
+        @unlink($fileName);
+
+    }
 
 }
