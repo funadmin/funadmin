@@ -239,23 +239,30 @@ class Service extends \think\Service
                 if (in_array($childname, ['.', '..', 'public', 'view'])) {
                     continue;
                 }
-                $module_dir = $this->addons_path . $name . DS . $childname;
-                if (is_dir($module_dir)) {
-                    foreach (scandir($module_dir) as $mdir) {
-                        if (in_array($mdir, ['.', '..'])) {
-                            continue;
-                        }
-                        $commands = [];
-                        //配置文件
-                        $addons_config_dir = $this->addons_path . $name . DS . $childname . DS . 'config' . DS;
-                        if (is_dir($addons_config_dir)) {
-                            $files = glob($addons_config_dir . '*.php');
-                            foreach ($files as $file) {
-                                if (file_exists($file)) {
-                                    if (substr($file, -11) == 'console.php') {
-                                        $commands_config = include_once $file;
-                                        isset($commands_config['commands']) && $commands = array_merge($commands, $commands_config['commands']);
-                                        !empty($commands) && $this->commands($commands);
+                if (in_array($childname, ['vendor'])) {
+                    $autoload_file = $this->addons_path . $name . DS . $childname.DS.'autoload.php';
+                    if (file_exists($autoload_file)){
+                        require_once $autoload_file;
+                    }
+                }else{
+                    $module_dir = $this->addons_path . $name . DS . $childname;
+                    if (is_dir($module_dir)) {
+                        foreach (scandir($module_dir) as $mdir) {
+                            if (in_array($mdir, ['.', '..'])) {
+                                continue;
+                            }
+                            $commands = [];
+                            //配置文件
+                            $addons_config_dir = $this->addons_path . $name . DS . $childname . DS . 'config' . DS;
+                            if (is_dir($addons_config_dir)) {
+                                $files = glob($addons_config_dir . '*.php');
+                                foreach ($files as $file) {
+                                    if (file_exists($file)) {
+                                        if (substr($file, -11) == 'console.php') {
+                                            $commands_config = include_once $file;
+                                            isset($commands_config['commands']) && $commands = array_merge($commands, $commands_config['commands']);
+                                            !empty($commands) && $this->commands($commands);
+                                        }
                                     }
                                 }
                             }

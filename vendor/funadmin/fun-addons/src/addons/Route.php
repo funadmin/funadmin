@@ -9,6 +9,7 @@ use think\helper\Str;
 use think\facade\Event;
 use think\facade\Config;
 use think\exception\HttpException;
+use fun\addons\AddonException;
 use think\validate\ValidateRule;
 
 class Route
@@ -79,6 +80,13 @@ class Route
         $config = Config::get('view');
         $config['view_path'] = $app->addons->getAddonsPath() . $addon . DS.$module .DS. 'view' . DS;
         Config::set($config, 'view');
+        if (is_file(self::$addons_path . 'app.php')) {
+            $addonAppConfig = (require_once (self::$addons_path . 'app.php'));
+            $deny =  !empty($addonAppConfig['deny_app_list'])?$addonAppConfig['deny_app_list']:Config::get('app.deny_app_list');
+            if($module && $deny && in_array($module,$deny)){
+                throw new HttpException(404, lang('addon app %s is ', []));
+            }
+        }
         // 生成控制器对象
         $instance = new $class($app);
         $vars = [];
@@ -104,7 +112,6 @@ class Route
     private static function loadApp($addon = null,$module=null)
     {
         $results = scandir(self::$addons_path.$module);
-
         foreach ($results as $childname){
             if (in_array($childname, ['.', '..','public','view'])) {
                 continue;
@@ -128,7 +135,6 @@ class Route
                     if (in_array($mdir, ['.', '..'])) {
                         continue;
                     }
-
                     if (is_file(self::$addons_path .$module .DS. 'middleware.php')) {
                         self::$app->middleware->import(include self::$addons_path .$module .DS . 'middleware.php', 'app');
                     }

@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => 'c49a0a2529c48b3745504cda0e431c491fb05792',
+    'reference' => 'c2142338037456dafef47289f0c22a88ebcad3d9',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -82,12 +82,12 @@ private static $installed = array (
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v3.0',
-      'version' => '3.0.0.0',
+      'pretty_version' => 'v3.1',
+      'version' => '3.1.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '9c003f2ffb066758900c7d55684641db6e275594',
+      'reference' => 'aff36b8b91c44aa1c323a3d88465a0aa74f5b68b',
     ),
     'funadmin/funadmin' => 
     array (
@@ -96,7 +96,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => 'c49a0a2529c48b3745504cda0e431c491fb05792',
+      'reference' => 'c2142338037456dafef47289f0c22a88ebcad3d9',
     ),
     'league/flysystem' => 
     array (
