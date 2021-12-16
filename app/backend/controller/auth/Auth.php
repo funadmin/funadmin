@@ -165,7 +165,7 @@ class Auth extends Backend
     {
         if (request()->isAjax()) {
             $post = $this->request->post();
-            $post['icon'] = $post['icon'] ? $post['icon'] : 'layui-iconpicker-icon layui-unselect';
+            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $rule = [
                 'href'=>'require|unique:auth_rule',
                 'title'=>'require'

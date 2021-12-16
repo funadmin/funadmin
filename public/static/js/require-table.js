@@ -360,7 +360,8 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             }, select: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || {};
-                value = Table.templet.resolution(d, ele)
+                var value = Table.templet.resolution(d, ele)
+                if(value === '-' ) return value;
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
                     return Table.getBadge(d, ele, value, __(value), 2)
                 } else {
@@ -369,11 +370,11 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             }, url: function (d) {
                 var ele = $(this)[0];
                 var value = Table.templet.resolution(d, ele);
-                return '<a class="layui-table-url layui-btn layui-btn-xs" href="' + value + '" target="_blank" class="label bg-green">' + value + '</a>'
+                return value==='-'?value:'<a class="layui-table-url layui-btn layui-btn-xs" href="' + value + '" target="_blank" class="label bg-green">' + value + '</a>'
             }, icon: function (d) {
                 var ele = $(this)[0];
                 var icon = Table.templet.resolution(d, ele);
-                return '<i class="' + icon + '"></i>'
+                return icon ==='-'?icon :'<i class="' + icon + '"></i>';
             }, switch: function (d) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;

@@ -17,8 +17,14 @@
     {case value="radio"}
     {:form_radio($name,$vo.content,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
+    {case value="checkbox"}
+    {:form_checkbox($name, $vo.content,['label'=>$vo.title, 'verify' =>$vo.rule,'tips'=>$vo.tips,], $vo['value'])};
+    {/case}
     {case value="select"}
     {:form_select($name,$vo.content,['label'=>$vo.title,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
+    {/case}
+    {case value="selects"}
+    {:form_select($name,$vo.content,['label'=>$vo.title,'multiple'=>1.,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
     {/case}
     {case value="image"}
     {:form_upload($name,$vo.value,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>'1','mime'=>'image'])}
