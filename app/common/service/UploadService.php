@@ -117,7 +117,7 @@ class UploadService extends AbstractService
                         if (!empty($path)) {
                             $data = [
                                 'admin_id'      => $adminid,
-                                'member_id'     => $uid,
+                                'member_id'     => $uid?:0,
                                 'group_id'     => $group_id,
                                 'original_name' => $original_name,
                                 'name'          => $file_name,

@@ -15,10 +15,12 @@
     <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" type="text/css" href="__PLUGINS__/layui/css/layui.css"/>
     <link rel="stylesheet" href="__STATIC__/frontend/css/index.css?t={:time()}" media="all">
+    <script src="__PLUGINS__/layui/layui.js"></script>
     <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
     <!--[if lt IE 9]>
     <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
     <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+
     <![endif]-->
 </head>
 <body class="site-home" id="LAY_home">
@@ -215,7 +217,6 @@
 
 </section>
 
-<script src="__PLUGINS__/layui/layui.js"></script>
 <script>
     layui.use(['layer', 'jquery'], function () {
         var $ = layui.jquery,

@@ -3,7 +3,7 @@
 return array(
     'autoload' => true,
     'hooks' =>
-        array(),
+        array (),
     'route' =>
         array(),
     'service' =>

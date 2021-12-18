@@ -380,12 +380,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "aff36b8b91c44aa1c323a3d88465a0aa74f5b68b"
+                "reference": "6cf97f3a30509570cb4a072a172f38dc440b34bb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/aff36b8b91c44aa1c323a3d88465a0aa74f5b68b",
-                "reference": "aff36b8b91c44aa1c323a3d88465a0aa74f5b68b",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/6cf97f3a30509570cb4a072a172f38dc440b34bb",
+                "reference": "6cf97f3a30509570cb4a072a172f38dc440b34bb",
                 "shasum": ""
             },
             "require": {
@@ -395,7 +395,7 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
-            "time": "2021-12-16T05:59:57+00:00",
+            "time": "2021-12-18T07:47:34+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -2231,12 +2231,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "250bc4bee92c4fb204308ab54322981f7e9acaa0"
+                "reference": "4e04cf7e5226377cf8810b15f52e208d56a1a9e9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/250bc4bee92c4fb204308ab54322981f7e9acaa0",
-                "reference": "250bc4bee92c4fb204308ab54322981f7e9acaa0",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/4e04cf7e5226377cf8810b15f52e208d56a1a9e9",
+                "reference": "4e04cf7e5226377cf8810b15f52e208d56a1a9e9",
                 "shasum": ""
             },
             "require": {
@@ -2258,7 +2258,7 @@
                 "mockery/mockery": "^1.2",
                 "phpunit/phpunit": "^7.0"
             },
-            "time": "2021-12-15T04:14:03+00:00",
+            "time": "2021-12-16T13:06:14+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
