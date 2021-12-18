@@ -5,3 +5,4 @@
 .env
 /addons
 /public/static/addons
+/public/static/storage
