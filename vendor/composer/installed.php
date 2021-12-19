@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '9039537ee652c1787f47ed4e707b358e4c4d1258',
+    'reference' => '9986fb8a1dc9c0ea73d4abc3ff129044c025fac8',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -63,7 +63,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '6cf97f3a30509570cb4a072a172f38dc440b34bb',
+      'reference' => '6e3c29089d0164477f8f2d309f2d4d687cede991',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '9039537ee652c1787f47ed4e707b358e4c4d1258',
+      'reference' => '9986fb8a1dc9c0ea73d4abc3ff129044c025fac8',
     ),
     'league/flysystem' => 
     array (

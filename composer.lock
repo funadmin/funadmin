@@ -358,12 +358,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "6cf97f3a30509570cb4a072a172f38dc440b34bb"
+                "reference": "6e3c29089d0164477f8f2d309f2d4d687cede991"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/6cf97f3a30509570cb4a072a172f38dc440b34bb",
-                "reference": "6cf97f3a30509570cb4a072a172f38dc440b34bb",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/6e3c29089d0164477f8f2d309f2d4d687cede991",
+                "reference": "6e3c29089d0164477f8f2d309f2d4d687cede991",
                 "shasum": ""
             },
             "require": {
@@ -409,7 +409,7 @@
                 "issues": "https://github.com/funadmin/fun-addons/issues",
                 "source": "https://github.com/funadmin/fun-addons/tree/v3.1"
             },
-            "time": "2021-12-18T07:47:34+00:00"
+            "time": "2021-12-18T14:02:26+00:00"
         },
         {
             "name": "league/flysystem",

@@ -55,9 +55,8 @@ class JwtToken
         $this->request = Request::instance();
         $this->key = md5(Config::get('api.jwt_key'));
         $this->timeDif = Config::get('api.timeDif')??$this->timeDif;
-        $this->refreshExpires =Config::get('api.timeDif')??$this->refreshExpires;
-        $this->expires =Config::get('api.timeDif')??$this->expires;
-        $this->responseType = Config::get('api.responseType')??$this->responseType;
+        $this->refreshExpires =Config::get('api.refreshExpires')??$this->refreshExpires;
+        $this->expires =Config::get('api.expires')??$this->expires;
         $this->responseType = Config::get('api.responseType')??$this->responseType;
         $this->authapp = Config::get('api.authapp')??$this->authapp;
     }
