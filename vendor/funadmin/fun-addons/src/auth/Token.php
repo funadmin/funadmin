@@ -198,11 +198,9 @@ class Token
      * 生成AccessToken
      * @return string
      */
-    protected function buildAccessToken($lenght = 32)
+    protected function buildAccessToken(string $name = '__token__', string $type = 'md5')
     {
-        //生成AccessToken
-        $str_pol = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789abcdefghijklmnopqrstuvwxyz";
-        return substr(str_shuffle($str_pol), 0, $lenght);
+        return Request::buildToken($name,$type);
     }
 
     /**
