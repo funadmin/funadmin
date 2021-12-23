@@ -75,6 +75,9 @@ class AuthService
         }else{
             $this->requesturl = str_replace(Config::get('backend.backendEntrance'),'',$this->requesturl);
         }
+        if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
+            $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
+        }
     }
     //获取左侧主菜单
     public function authMenuNode($menu, $pid = 0, $rules = [])

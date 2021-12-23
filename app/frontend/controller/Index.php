@@ -11,7 +11,7 @@
  * Date: 2017/8/2
  */
 namespace app\frontend\controller;
-
+use addons\translate\common\Translate;
 use app\common\controller\Frontend;
 use think\App;
 use think\captcha\facade\Captcha;
@@ -24,6 +24,7 @@ class Index extends Frontend {
         parent::__construct($app);
     }
     public function index(){
+
         return view();
     }
     /**
