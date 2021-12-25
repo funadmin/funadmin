@@ -154,6 +154,7 @@ class Ajax extends Backend
         }catch(Exception $e){
             $this->error($e->getMessage());
         }
+        FileHelper::delDir(root_path() . 'runtime' . DIRECTORY_SEPARATOR . 'temp');
         Cache::clear() ? $this->success('清除成功') : $this->error('清除失败');
     }
     public function setConfig()
