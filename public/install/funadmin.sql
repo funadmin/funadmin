@@ -790,6 +790,7 @@ CREATE TABLE `fun_oauth2_access_token` (
                                            `refresh_expires_time` int(11) NOT NULL COMMENT '刷新过期时间',
                                            `member_id` int(10) UNSIGNED DEFAULT '0' COMMENT '用户id',
                                            `openid` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权对象openid',
+                                           `tablename` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'member' COMMENT '授权用户表',
                                            `group` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
                                            `status` tinyint(4) DEFAULT '1' COMMENT '状态=[-1:删除,0:禁用,1启用]',
                                            `create_time` int(10) UNSIGNED DEFAULT '0' COMMENT '创建时间',

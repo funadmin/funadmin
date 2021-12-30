@@ -249,8 +249,84 @@ class FormHelper
 
     /**
      * @param $name
-     * @param $value
+     * @param $select
      * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public static function selectn($name, $select, $options, $attr, $value)
+    {
+        $url = isset($options['url'])?$options['url']:'';
+        $label = isset($options['label'])?$options['label']: $name;
+        $delimiter =   isset($options['delimiter'])?$options['delimiter']: '';
+        $search =   isset($options['search'])?true: '';
+        $num =   isset($options['num'])?$options['num']: 3;
+        $last =   isset($options['last'])?$options['last']: '';
+        if($attr){
+            $attr = is_array($attr)?implode(',',$attr):$attr;
+        }
+        $op = 'data-num="'.$num.'" data-search="'.$search.'" data-last="'.$last.'" data-delimiter="'.$delimiter.'"  data-url="'.$url.'" data-value="'.$value.'" data-attr="'.$attr.'"';
+        if(is_array($select)){
+            $op.=" data-data='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
+        }
+        if(is_object($select)){
+            $op.=" data-data='".json_encode((array)$select,JSON_UNESCAPED_UNICODE)."'";
+        }
+        $str = '<div class="layui-form-item">
+                <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
+                <div class="layui-input-block">
+                  <div id="'.$name.'"'. $op .'" lay-filter="selectN" '. self::addClass($options) .'" name="' . $name . '" '   . self::verify($options).' ' . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
+                  
+                  </div>
+                  ' . self::tips($options) . '
+                </div>
+                </div>';
+        return $str;
+    }
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public static function selectplus($name, $select, $options, $attr, $value)
+    {
+        $url = isset($options['url'])?$options['url']:'';
+        $label = isset($options['label'])?$options['label']: $name;
+        $delimiter =   isset($options['delimiter'])?$options['delimiter']: '';
+        $fielddelimiter =   isset($options['fielddelimiter'])?$options['fielddelimiter']: '';
+        $multiple = isset($options['multiple']) ?'multiple="multiple"':'';
+        if($attr){
+            $attr = is_array($attr)?implode(',',$attr):$attr;
+        }
+        $op = 'data-fielddelimiter="'.$fielddelimiter.'"  data-delimiter="'.$delimiter.'"  data-url="'.$url.'" data-value="'.$value.'" data-attr="'.$attr.'"';
+        if(is_array($select)){
+            $op.=" data-data='".json_encode($select,JSON_UNESCAPED_UNICODE)."'";
+        }
+        if(is_object($select)){
+            $op.=" data-data='".json_encode((array)$select,JSON_UNESCAPED_UNICODE)."'";
+        }
+        $str = '<div class="layui-form-item">
+                <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
+                <div class="layui-input-block">
+                  <div id="'.$name.'"'. $op .'" lay-filter="selectPlus" '. self::addClass($options) .'" name="' . $name . '" ' . $multiple .  self::verify($options).' ' . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
+                  
+                  </div>
+                  ' . self::tips($options) . '
+                </div>
+                </div>';
+        return $str;
+    }
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
      */
     public static function multiselect($name, $select, $options, $attr, $value)
     {
@@ -293,8 +369,11 @@ class FormHelper
     }
     /**
      * @param $name
-     * @param $value
+     * @param $select
      * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
      */
     public static function xmselect($name, $select, $options, $attr, $value)
     {

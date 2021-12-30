@@ -32,6 +32,7 @@ class JwtToken
      * 是否需要验证数据库账号
      */
     public $authapp = false;
+    
     /**
      * 测试appid，正式请数据库进行相关验证
      */
@@ -91,25 +92,28 @@ class JwtToken
     }
     /**
      * 设置AccessToken
-     * @param $clientInfo
+     * @param $memberInfo
      * @return int
      */
-    protected function setAccessToken($clientInfo,$refresh_token='')
+    protected function setAccessToken($memberInfo,$refresh_token='')
     {
         $accessTokenInfo = [
             'expires_time'=>$this->expires,
             'refresh_token'=>$this->refreshExpires,
-            'client' => $clientInfo,//用户信息
+            'client' => $memberInfo,//用户信息
         ];
-        $token =  Db::name('oauth2_access_token')->where('member_id',$clientInfo['id'])->order('id desc')->limit(1)->find();
+        $token =  Db::name('oauth2_access_token')->where('member_id',$memberInfo['id'])
+            ->where('tablename',$this->tableName)
+            ->order('id desc')->limit(1)
+            ->find();
         if($token and $token['expires_time']>time()) {
             $accessTokenInfo['access_token'] = $token['access_token'];
             $accessTokenInfo['refresh_token'] = $token['refresh_token'];
             $accessTokenInfo['expires_time'] = $token['expires_time'];
             $accessTokenInfo['refresh_expires_time'] = $token['refresh_expires_time'];
         }else{
-            $accessTokenInfo['access_token'] = $this->buildAccessToken($clientInfo,$this->expires);
-            $accessTokenInfo['refresh_token'] = $this->getRefreshToken($clientInfo,$refresh_token,$this->refreshExpires);
+            $accessTokenInfo['access_token'] = $this->buildAccessToken($memberInfo,$this->expires);
+            $accessTokenInfo['refresh_token'] = $this->getRefreshToken($memberInfo,$refresh_token,$this->refreshExpires);
         }
         $this->saveToken($accessTokenInfo);  //保存本次token
         return $accessTokenInfo;
@@ -122,18 +126,20 @@ class JwtToken
     {
         $refresh_token = Request::post('refresh_token')?Request::post('refresh_token'):Request::get('refresh_token');
         $refresh_token_info = Db::name('oauth2_access_token')
-            ->where('refresh_token',$refresh_token)->order('id desc')->find();
+            ->where('refresh_token',$refresh_token)
+            ->where('tablename',$this->tableName)
+            ->order('id desc')->find();
         if (!$refresh_token_info) {
             $this->error('refresh_token is error', '', 401);
         } else {
             if ($refresh_token_info['refresh_expires_time'] <time()) {
                 $this->error('refresh_token is expired', '', 401);
             } else {    //重新给用户生成调用token
-                $member =  Db::name('member')->where('status',1)->find($refresh_token_info['member_id']);
+                $member =  Db::name($this->tableName)->where('status',1)->find($refresh_token_info['member_id']);
                 $client =  Db::name('oauth2_client')
                     ->field('appid')->find($refresh_token_info['client_id']);
-                $clientInfo = array_merge($member,$client);
-                $accessToken = $this->setAccessToken($clientInfo,$refresh_token);
+                $memberInfo = array_merge($member,$client);
+                $accessToken = $this->setAccessToken($memberInfo,$refresh_token);
                 $this->success('success', $accessToken);
             }
         }
@@ -158,14 +164,14 @@ class JwtToken
      * 生成AccessToken
      * @return string
      */
-    protected function buildAccessToken($clientInfo,$expires)
+    protected function buildAccessToken($memberInfo,$expires)
     {
         $time = time(); //签发时间
         $expire = $time + $expires; //过期时间
         $token = array(
             'appid'=>$this->appid,
             'appsecret'=>$this->appsecret,
-            "uid" => $clientInfo['id'],
+            "uid" => $memberInfo['id'],
             "iss" => "https://www.funadmin.com",//签发组织
             "aud" => "https://www.funadmin.com", //签发作者
             "iat" => $time,
@@ -177,13 +183,14 @@ class JwtToken
     /**
      * 获取刷新用的token检测是否还有效
      */
-    public function getRefreshToken($clientInfo,$refresh_token,$expires)
+    public function getRefreshToken($memberInfo,$refresh_token,$expires)
     {
         if(!$refresh_token){
-            return $this->buildAccessToken($clientInfo,$expires);
+            return $this->buildAccessToken($memberInfo,$expires);
         }
-        $accessToken =Db::name('oauth2_access_token')->where('member_id',$clientInfo['id'])
+        $accessToken =Db::name('oauth2_access_token')->where('member_id',$memberInfo['id'])
             ->where('refresh_token',$refresh_token)
+            ->where('tablename',$this->tableName)
             ->field('refresh_token')
             ->find();
         return $accessToken?$refresh_token:$this->buildAccessToken();
@@ -197,12 +204,14 @@ class JwtToken
         $client = Db::name('oauth2_client')->where('appid',$this->appid)
             ->where('appsecret',$this->appsecret)->find();
         $accessToken =Db::name('oauth2_access_token')->where('member_id',$accessTokenInfo['client']['id'])
+            ->where('tablename',$this->tableName)
             ->where('access_token',$accessTokenInfo['access_token'])
             ->find();
         if(!$accessToken){
             $data = [
                 'client_id'=>$client['id'],
                 'member_id'=>$accessTokenInfo['client']['id'],
+                'tablename'=>$this->tableName,
                 'group'=>isset($accessTokenInfo['client']['group'])?$accessTokenInfo['client']['group']:'api',
                 'openid'=>isset($accessTokenInfo['client']['openid'])?$accessTokenInfo['client']['openid']:'',
                 'access_token'=>$accessTokenInfo['access_token'],
@@ -217,12 +226,13 @@ class JwtToken
 
     protected function getMember($membername, $password)
     {
-        $member = Db::name('member')
+        $member = Db::name($this->tableName)
             ->where('status',1)
             ->where('username', $membername)
             ->whereOr('mobile', $membername)
             ->whereOr('email', $membername)
             ->field('id,password')
+            ->cache(3600)
             ->find();
         if ($member) {
             if (password_verify($password, $member['password'])) {

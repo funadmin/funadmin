@@ -1,4 +1,4 @@
-##🔥🔥🔥多语言站群插件授权活动倒计时  [点击查看详情](https://www.funadmin.com/frontend/plugins/detail.html?id=34)
+##  🔥🔥🔥多语言站群插件授权活动倒计时  [点击查看详情](https://www.funadmin.com/frontend/plugins/detail.html?id=34)
 
 <h1 align="center">🔥🔥🔥🔥🔥🔥 </h1>
 <h1 align="center">为梦想而创作：FunAdmin开发框架系统<br>支持PHP8.0</h1>

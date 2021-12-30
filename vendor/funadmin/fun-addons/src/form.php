@@ -103,14 +103,47 @@ if (!function_exists('form_select')) {
 }
 if (!function_exists('form_multiselect')) {
     /**
-     * @param null $name
-     * @param array $options
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
      * @return string
      */
     function form_multiselect($name = null,$select=[], $options = [],$attr='',$value='')
     {
         if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
         return FormHelper::multiselect($name,$select,$options,$attr,$value);
+    }
+}
+if (!function_exists('form_selectplus')) {
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    function form_selectplus($name = null,$select=[], $options = [],$attr='',$value='')
+    {
+        if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
+        return FormHelper::selectplus($name,$select,$options,$attr,$value);
+    }
+}
+if (!function_exists('form_selectn')) {
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    function form_selectn($name = null,$select=[], $options = [],$attr='',$value='')
+    {
+        if(!empty($attr) and !is_array($attr))$attr = explode(',',$attr);
+        return FormHelper::selectn($name,$select,$options,$attr,$value);
     }
 }
 if (!function_exists('form_xmselect')) {

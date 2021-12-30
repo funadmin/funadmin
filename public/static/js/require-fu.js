@@ -1,7 +1,55 @@
-define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox', 'multiSelect', 'upload'], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload) {
+define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags',
+    'timePicker', 'regionCheckBox','multiSelect', 'upload'
+], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload) {
     var Fu = {
         init: {},
         events: {
+            selectplus:function() {
+                var selectplus ={},list = document.querySelectorAll("*[lay-filter='selectPlus']");
+                if (list.length > 0) {
+                    selectPlus = layui.selectPlus ||  parent.layui.xmSelect;
+                    $.each(list, function(i) {
+                        var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
+                            url = $(this).data('url')|| $(this).data('request'),
+                            data = $(this).data('data')||　[], type = $(this).attr('multiple')?'checkbox':'radio',
+                            method = $(this).data('method')?$(this).data('method'):'get',
+                            values = $(this).data('value')?$(this).data('value'):'',
+                            attr = $(this).data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
+                            where = $(this).data('where'), delimiter = $(this).data('delimiter') || ',',
+                            fielddelimiter = $(this).data('fielddelimiter') || '、',
+                            options = {
+                                el: '#' + id, data:data, url: url, type: type,  name: name,
+                                field: attr, values: values, method: method, where: where,
+                                delimiter: delimiter, fielddelimiter: fielddelimiter,
+                            }
+                        selectplus[i] = selectPlus.render(options);
+                    })
+                }
+            },
+            selectn:function() {
+                var selectn ={},list = document.querySelectorAll("*[lay-filter='selectN']");
+                if (list.length > 0) {
+                    selectN = layui.selectN || parent.layui.selectN;
+                    $.each(list, function(i) {
+                        var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
+                            url = $(this).data('url')|| $(this).data('request'),
+                            data = $(this).data('data')||　'',
+                            method = $(this).data('method')?$(this).data('method'):'get',
+                            last = $(this).data('last')?$(this).data('last'):'',
+                            values = $(this).data('value')?$(this).data('value'):'',
+                            search = $(this).data('search')?$(this).data('search'):'',
+                            attr = $(this).data('attr'), attr= typeof attr ==='string' ?attr.split(','):['id','title'],
+                            num = $(this).data('num')?$(this).data('num'):3,
+                            delimiter = $(this).data('delimiter') || ',',
+                            options = {
+                                elem: '#' + id, data: data, url: url, name: name,
+                                field: attr, selected: values, method: method,search:search,num:num,
+                                delimiter: delimiter,last:last
+                            };
+                        selectn[i] =  selectN(options);
+                    })
+                }
+            },
             xmSelect: function() {
                 var xmselect ={},list = document.querySelectorAll("*[lay-filter='xmSelect']");
                 if (list.length > 0) {
@@ -335,6 +383,8 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 events.editor();
                 events.regionCheck();
                 events.addInput();
+                events.selectplus();
+                events.selectn();
                 events.removeInupt();
                 events.bindevent()
             }

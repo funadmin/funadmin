@@ -8,6 +8,7 @@ layui.define("form", function(exports) {
 	multiSelect.prototype.init = function() {
 		var ts = this;
 		o('select[multiple]').each(function(idx, item) {
+			selected_vals[idx] && o(this).find('input').val(selected_vals[idx].join(','));
 			var t = o(this),
 				selds = [];
 			t.find('option:selected').each(function() {
@@ -52,7 +53,7 @@ layui.define("form", function(exports) {
 	}
 
 	multiSelect.prototype.render = function(type, filter) {
-		form.render(type, filter);
+		// form.render(type, filter);
 		this.init();
 	}
 

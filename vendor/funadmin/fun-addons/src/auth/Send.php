@@ -21,6 +21,7 @@ trait Send
     public  $refreshExpires = 3600 * 24 * 30;   //刷新token过期时间
     public  $expires = 7200*12;
     public  $responseType = 'json';
+    public  $tableName = 'member';
 
     /**
      * 操作成功返回的数据

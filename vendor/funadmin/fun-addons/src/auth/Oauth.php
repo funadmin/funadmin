@@ -94,6 +94,7 @@ class Oauth
     public  function certification($data = []){
 
         $AccessToken = Db::name('oauth2_access_token')->where('member_id',$data['uid'])
+            ->where('tablename',$this->tableName)
             ->where('access_token',$data['access_token'])->order('id desc')->find();
         if(!$AccessToken){
             $this->error('access_token不存在或为空','',401);

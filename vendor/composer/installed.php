@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '7f05e4c8e73a9c78f25d348b98b737154d01f2b2',
+    'reference' => '5ef3c59a78e218999b8f252f4541c3bcc151bbbd',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v3.2',
-      'version' => '3.2.0.0',
+      'pretty_version' => 'v3.3',
+      'version' => '3.3.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '9d2499e4714e064d742ab8d82fb70b1831dabba5',
+      'reference' => '57fb767f8dc6fcaa292e2d771177a7bd1a717891',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '7f05e4c8e73a9c78f25d348b98b737154d01f2b2',
+      'reference' => '5ef3c59a78e218999b8f252f4541c3bcc151bbbd',
     ),
     'league/flysystem' => 
     array (
@@ -263,21 +263,21 @@
     ),
     'symfony/process' => 
     array (
-      'pretty_version' => 'v4.4.35',
-      'version' => '4.4.35.0',
+      'pretty_version' => 'v4.4.36',
+      'version' => '4.4.36.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'c2098705326addae6e6742151dfade47ac71da1b',
+      'reference' => 'a35d6b8f82e2272504f23a267de49b8717ca0028',
     ),
     'symfony/translation' => 
     array (
-      'pretty_version' => 'v5.4.1',
-      'version' => '5.4.1.0',
+      'pretty_version' => 'v5.4.2',
+      'version' => '5.4.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => '8c82cd35ed861236138d5ae1c78c0c7ebcd62107',
+      'reference' => 'ff8bb2107b6a549dc3c5dd9c498dcc82c9c098ca',
     ),
     'symfony/translation-contracts' => 
     array (
@@ -297,12 +297,12 @@
     ),
     'symfony/var-dumper' => 
     array (
-      'pretty_version' => 'v4.4.34',
-      'version' => '4.4.34.0',
+      'pretty_version' => 'v4.4.36',
+      'version' => '4.4.36.0',
       'aliases' => 
       array (
       ),
-      'reference' => '2d0c056b2faaa3d785bdbd5adecc593a5be9c16e',
+      'reference' => '02685c62fcbc4262235cc72a54fbd45ab719ce3c',
     ),
     'topthink/framework' => 
     array (
@@ -312,7 +312,7 @@
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '4e04cf7e5226377cf8810b15f52e208d56a1a9e9',
+      'reference' => '04403e8ac96e9fe1f50a6aa292503a4d189d64ba',
     ),
     'topthink/think-captcha' => 
     array (

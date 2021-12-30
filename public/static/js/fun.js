@@ -425,6 +425,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
+                            console.log(data)
                             data.title = data.textTitle;
                             if (Table && Table.events.hasOwnProperty(attrEvent)) {
                             }else if(data.callback){
@@ -432,9 +433,11 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                             }else{
                                 data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
                             }
+                            return false;
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
                 }
+                return false;
             },
         },
         //接口

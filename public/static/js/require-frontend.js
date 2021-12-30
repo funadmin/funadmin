@@ -14,7 +14,7 @@ require.config({
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,'xmSelect',
-        'timeago','multiSelect','cityPicker',
+        'timeago','multiSelect','selectPlus','selectN','cityPicker',
         'regionCheckBox','timePicker','croppers', 'moment',
         'md5','fun','fu','form','table','upload','addons','Vue'],
     paths: {
@@ -33,6 +33,8 @@ require.config({
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
+        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
+        'selectN'       : 'plugins/lay-module/selectPlus/selectN',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
