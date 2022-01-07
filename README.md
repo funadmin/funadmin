@@ -1,5 +1,5 @@
 <h1 align="center">🔥🔥🔥🔥🔥🔥 </h1>
-<h1 align="center">为梦想而创作：FunAdmin开发框架系统<br>支持PHP8.0</h1>
+<h1 align="center">为梦想而创作：FunAdmin开发框架系统<br>支持PHP8.0+8.1</h1>
 
 <p align="center">
     <a href="http://www.funadmin.com/">
