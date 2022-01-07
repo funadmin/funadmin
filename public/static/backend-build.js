@@ -11,7 +11,7 @@
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker','xmSelect',
+        'timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
         'moment', 'backend','md5','fun','fu', 'form','table','upload'],
     paths: {
@@ -30,6 +30,8 @@
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
+        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
+        'selectN'       : 'plugins/lay-module/selectPlus/selectN',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',

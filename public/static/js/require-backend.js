@@ -19,8 +19,9 @@ require.config({
         'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','selectN','multiSelect',
-        'selectPlus','cityPicker','xmSelect','eleTree',
+        'timeago','multiSelect',
+        'selectPlus','selectN',
+        'cityPicker','xmSelect','eleTree',
         'regionCheckBox','timePicker','croppers', 'moment',
         'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {

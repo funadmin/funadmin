@@ -1,7 +1,8 @@
 {
   "name": "ergebnis/classy",
-  "type": "library",
   "description": "Provides a finder for classy constructs (classes, interfaces, and traits).",
+  "license": "MIT",
+  "type": "library",
   "keywords": [
     "finder",
     "classy",
@@ -10,45 +11,31 @@
     "interfaces",
     "traits"
   ],
-  "homepage": "https://github.com/ergebnis/classy",
-  "license": "MIT",
   "authors": [
     {
       "name": "Andreas Möller",
       "email": "am@localheinz.com"
     }
   ],
+  "homepage": "https://github.com/ergebnis/classy",
+  "support": {
+    "issues": "https://github.com/ergebnis/classy/issues",
+    "source": "https://github.com/ergebnis/classy"
+  },
   "require": {
-    "php": "^7.2 || ^8.0",
+    "php": "^7.4 || ^8.0",
     "ext-tokenizer": "*"
   },
   "require-dev": {
-    "ergebnis/composer-normalize": "^2.13.2",
+    "ergebnis/composer-normalize": "^2.22.0",
     "ergebnis/license": "^1.1.0",
-    "ergebnis/php-cs-fixer-config": "^2.13.0",
-    "ergebnis/phpstan-rules": "~0.15.3",
-    "ergebnis/test-util": "^1.0.0",
-    "infection/infection": "~0.15.3",
-    "phpstan/extension-installer": "^1.1.0",
-    "phpstan/phpstan": "~0.12.70",
-    "phpstan/phpstan-deprecation-rules": "~0.12.6",
-    "phpstan/phpstan-strict-rules": "~0.12.9",
-    "phpunit/phpunit": "^8.5.14",
-    "psalm/plugin-phpunit": "~0.15.0",
-    "vimeo/psalm": "^4.4.1",
+    "ergebnis/php-cs-fixer-config": "^3.4.0",
+    "fakerphp/faker": "^1.17.0",
+    "infection/infection": "~0.25.5",
+    "phpunit/phpunit": "^9.5.11",
+    "psalm/plugin-phpunit": "~0.16.1",
+    "vimeo/psalm": "^4.16.1",
     "zendframework/zend-file": "^2.8.3"
-  },
-  "config": {
-    "platform": {
-      "php": "7.2.33"
-    },
-    "preferred-install": "dist",
-    "sort-packages": true
-  },
-  "extra": {
-    "branch-alias": {
-      "dev-main": "1.0-dev"
-    }
   },
   "autoload": {
     "psr-4": {
@@ -63,8 +50,21 @@
       "test/Fixture"
     ]
   },
-  "support": {
-    "issues": "https://github.com/ergebnis/classy/issues",
-    "source": "https://github.com/ergebnis/classy"
+  "config": {
+    "allow-plugins": {
+      "composer/package-versions-deprecated": true,
+      "ergebnis/composer-normalize": true,
+      "infection/extension-installer": true
+    },
+    "platform": {
+      "php": "7.4.26"
+    },
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0-dev"
+    }
   }
 }

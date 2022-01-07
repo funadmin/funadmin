@@ -32,7 +32,13 @@ class Member extends Backend
         parent::__construct($app);
         $this->modelClass = new MemberModel();
     }
+    public function getgroup(){
+        if($this->request->isAjax()) {}{
+            $memberGroup = MemberGroup::where('status', 1)->select()->toArray();
 
+            $this->success('','',$memberGroup);
+        }
+    }
     public function index()
     {
         if ($this->request->isAjax()) {

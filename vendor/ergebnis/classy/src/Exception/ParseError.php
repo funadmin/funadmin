@@ -20,20 +20,22 @@ final class ParseError extends \ParseError implements ExceptionInterface
         return new self(
             $exception->getMessage(),
             0,
-            $exception
+            $exception,
         );
     }
 
-    public static function fromFileNameAndParseError(string $fileName, \ParseError $exception): self
-    {
+    public static function fromFileNameAndParseError(
+        string $fileName,
+        \ParseError $exception
+    ): self {
         return new self(
             \sprintf(
                 'A parse error occurred when parsing "%s": "%s".',
                 $fileName,
-                $exception->getMessage()
+                $exception->getMessage(),
             ),
             0,
-            $exception
+            $exception,
         );
     }
 }

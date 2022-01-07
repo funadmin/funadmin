@@ -17,5 +17,7 @@ return [
     'commands' => [
         'curd'=>'fun\curd\Curd',
         'menu'=>'fun\curd\Menu',
+        'install'=>'fun\curd\Install',
+
     ],
 ];

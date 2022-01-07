@@ -20,7 +20,7 @@ final class Constructs
      *
      * @throws Exception\ParseError
      *
-     * @return Construct[]
+     * @return array<int, Construct>
      */
     public static function fromSource(string $source): array
     {
@@ -29,7 +29,7 @@ final class Constructs
         try {
             $sequence = \token_get_all(
                 $source,
-                \TOKEN_PARSE
+                \TOKEN_PARSE,
             );
         } catch (\ParseError $exception) {
             throw Exception\ParseError::fromParseError($exception);
@@ -48,6 +48,22 @@ final class Constructs
             $namespaceSegmentOrNamespaceTokens = [
                 \T_STRING,
                 \T_NAME_QUALIFIED,
+            ];
+        }
+
+        $classyTokens = [
+            \T_CLASS,
+            \T_INTERFACE,
+            \T_TRAIT,
+        ];
+
+        // https://wiki.php.net/rfc/enumerations
+        if (\PHP_VERSION_ID >= 80100 && \defined('T_ENUM')) {
+            $classyTokens = [
+                \T_CLASS,
+                \T_ENUM,
+                \T_INTERFACE,
+                \T_TRAIT,
             ];
         }
 
@@ -80,7 +96,7 @@ final class Constructs
             }
 
             // skip non-classy tokens
-            if (!\is_array($token) || !\in_array($token[0], [\T_CLASS, \T_INTERFACE, \T_TRAIT], true)) {
+            if (!\is_array($token) || !\in_array($token[0], $classyTokens, true)) {
                 continue;
             }
 
@@ -104,7 +120,7 @@ final class Constructs
         \usort($constructs, static function (Construct $a, Construct $b): int {
             return \strcmp(
                 $a->name(),
-                $b->name()
+                $b->name(),
             );
         });
 
@@ -117,7 +133,7 @@ final class Constructs
      * @throws Exception\DirectoryDoesNotExist
      * @throws Exception\MultipleDefinitionsFound
      *
-     * @return Construct[]
+     * @return array<int, Construct>
      */
     public static function fromDirectory(string $directory): array
     {
@@ -127,7 +143,7 @@ final class Constructs
 
         $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(
             $directory,
-            \RecursiveDirectoryIterator::FOLLOW_SYMLINKS
+            \RecursiveDirectoryIterator::FOLLOW_SYMLINKS,
         ));
 
         $constructs = [];
@@ -153,7 +169,7 @@ final class Constructs
             } catch (Exception\ParseError $exception) {
                 throw Exception\ParseError::fromFileNameAndParseError(
                     $fileName,
-                    $exception
+                    $exception,
                 );
             }
 
@@ -175,7 +191,7 @@ final class Constructs
         \usort($constructs, static function (Construct $a, Construct $b): int {
             return \strcmp(
                 $a->name(),
-                $b->name()
+                $b->name(),
             );
         });
 
@@ -215,8 +231,10 @@ final class Constructs
      *
      * @param array<int, array{0: int, 1: string, 2: int}|string> $sequence
      */
-    private static function significantBefore(int $index, array $sequence): int
-    {
+    private static function significantBefore(
+        int $index,
+        array $sequence
+    ): int {
         for ($current = $index - 1; -1 < $current; --$current) {
             $token = $sequence[$current];
 

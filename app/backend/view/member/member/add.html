@@ -3,9 +3,9 @@
     {:form_input('mobile','text',['verify'=>'phone'])}
     {:form_upload('avatar',$formData,['cropper'=>1])}
     {:form_input('email','text',['verify'=>'email'])}
-    {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
-    {:form_select('group_id',$memberGroup,['search'=>1,'verify'=>'required'] ,'id,title')}
+    {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level','multiple'=>1] ,'id,name')}
+    {:form_selectn('city_ids',[],['url'=>__u('member.member/getgroup'),'multiple'=>1,'verify'=>'required']
+    ,'id,title',$formData?$formData['city_ids']:'')}
     {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex'],1)}
-
     {:form_submitbtn()}
 </form>

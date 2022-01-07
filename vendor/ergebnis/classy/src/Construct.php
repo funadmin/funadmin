@@ -13,17 +13,17 @@ declare(strict_types=1);
 
 namespace Ergebnis\Classy;
 
+/**
+ * @psalm-immutable
+ */
 final class Construct
 {
-    /**
-     * @var string
-     */
-    private $name;
+    private string $name;
 
     /**
-     * @var string[]
+     * @var array<int, string>
      */
-    private $fileNames = [];
+    private array $fileNames = [];
 
     private function __construct(string $name)
     {
@@ -31,6 +31,8 @@ final class Construct
     }
 
     /**
+     * @deprecated Will be removed in the next major release.
+     *
      * Returns a string representation of the construct.
      */
     public function __toString(): string
@@ -57,7 +59,7 @@ final class Construct
     /**
      * Returns an array of file names in which the construct is defined.
      *
-     * @return string[]
+     * @return array<int, string>
      */
     public function fileNames(): array
     {

@@ -7,10 +7,10 @@
     optimizeCss:'standard',
     include: [
         'css','treeGrid','tableSelect',
-        'treeTable','tableEdit','tableTree','xmSelect',
+        'treeTable','tableEdit','tableTree',
         'iconPicker','iconFonts',
         'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker',
+        'timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
         'moment','md5','fun','form','fu', 'table','upload'],
     paths: {
@@ -30,13 +30,14 @@
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
+        'selectN'       : 'plugins/lay-module/selectPlus/selectN',
+        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'moment'        : 'plugins/moment/moment',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
-
         //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展

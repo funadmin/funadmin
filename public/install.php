@@ -47,8 +47,8 @@ if (@!isset($_GET['s']) || @$_GET['s'] === 'step1') {
 }
 // 检测环境页面
 if (@$_GET['s'] === 'step2') {
-    if (version_compare(PHP_VERSION, '7.2.0', '<')) {
-        $msg = "当前版本(" . PHP_VERSION . ")过低，请使用PHP7.2.0以上版本";
+    if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+        $msg = "当前版本(" . PHP_VERSION . ")过低，请使用PHP7.4.0以上版本";
     } else {
         if (!extension_loaded("PDO")) {
             $msg = "当前未开启PDO，无法进行安装";
@@ -94,8 +94,8 @@ if (@$_GET['s'] === 'step3') {
         $rePassword = isset($_POST['rePassword']) ? $_POST['rePassword'] : '123456';
         $email = isset($_POST['email']) ? $_POST['email'] : 'admin@admin.com';
         //php 版本
-        if (version_compare(PHP_VERSION, '7.2.0', '<')) {
-            die("当前版本(" . PHP_VERSION . ")过低，请使用PHP7.2.0以上版本");
+        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+            die("当前版本(" . PHP_VERSION . ")过低，请使用PHP7.4.0以上版本");
         }
         if (!extension_loaded("PDO")) {
             die ("当前未开启PDO，无法进行安装");
@@ -233,9 +233,9 @@ Fun;
 <?php
 // [ 应用入口文件 ]
 namespace think;
-if (version_compare(PHP_VERSION, '7.2.0', '<')) {
+if (version_compare(PHP_VERSION, '7.4.0', '<')) {
     header("Content-type: text/html; charset=utf-8");
-    exit('PHP 7.2.0 及以上版本系统才可运行~ ');
+    exit('PHP 7.4.0 及以上版本系统才可运行~ ');
 }
 if (!is_file(\$_SERVER['DOCUMENT_ROOT'].'/install.lock'))
 {

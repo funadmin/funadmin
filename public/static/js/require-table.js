@@ -2,12 +2,9 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'},},
         render: function (options) {
-            options.elem = options.elem || '#' + Table.init.table_elem;
-            options.init = options.init || Table.init;
-            options.id = options.id || Table.init.tableId;
-            options.layFilter = options.id;
-            options.url = options.url || window.location.href;
-            options.toolbar = options.toolbar || '#toolbar';
+            options.elem = options.elem || '#' + Table.init.table_elem;options.init = options.init || Table.init;
+            options.id = options.id || Table.init.tableId;options.layFilter = options.id;
+            options.url = options.url || window.location.href;options.toolbar = options.toolbar || '#toolbar';
             options.search = Fun.parame(options.search, true);
             options.searchFormTpl = Fun.parame(options.searchFormTpl || Table.init.searchFormTpl, false);
             options.searchShow = Fun.parame(options.searchShow || Table.init.searchShow, false);
@@ -60,6 +57,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             options.toolbar = typeof options.toolbar==='string'?options.toolbar:Table.renderToolbar(options);
             var newTable = layui.table.render(options);
             Table.api.switch(options.cols, options.init, options.id);
+            Table.api.selects(options.cols, options.init, options.id);
             Table.api.toolbar(options.layFilter, options.id, options);
             if (options.rowDouble) {
                 Table.api.rowDouble(options)
@@ -142,7 +140,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 d.field = d.field || false;
                 d.fieldAlias = Fun.parame(d.fieldAlias, d.field);
                 d.title = d.title || d.field || '';
-                d.selectList = d.selectList || {};
+                d.selectList = d.selectList ;
                 d.search = Fun.parame(d.search, true);
                 d.searchTip = d.searchTip || __('Input') + d.title || '';
                 d.searchValue = d.searchValue || '';
@@ -160,6 +158,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                         case'select':
                             d.searchOp = '=';
                             var selectHtml = '';
+                            d.selectList = d.selectList || Fun.api.getData(d.url) || {};
                             $.each(d.selectList, function (i, v) {
                                 var selected = '';
                                 if (i === d.searchValue) {
@@ -201,7 +200,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 }
             });
             if (formHtml !== '') {
-                $('#' + tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-green" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
+                $('#' + tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
                 Table.api.tableSearch(tableId);
                 layui.form.render();
                 Table.timeRender(newCols)
@@ -271,6 +270,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             var newclos = cols[0];
             $.each(newclos, function (i, d) {
                 if (d.align === undefined) {newclos[i]['align'] = 'center'}
+                if (!d.filter) {newclos[i]['filter'] = d.field}
                 if (d.operat === undefined && d.templet === Table.templet.operat) {
                     newclos[i]['operat'] = ['edit','delete']}
                 sortFields = ['id','sort'];
@@ -301,7 +301,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 }
             }, tags: function (d) {
                 var ele = $(this)[0];
-                var selectList = ele.selectList;
+                var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field);
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};
@@ -357,9 +357,21 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             }, text: function (d) {
                 var ele = $(this)[0];
                 return Table.templet.resolution(d, ele)
+            },selects: function (d) {
+                var ele = $(this)[0];
+                ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
+                value = Table.templet.resolution(d, ele)
+                $html = ' <select name="'+ele.field+'" lay-filter="'+ele.field+'"  lay-search="">\n' +
+                    '<option value="">'+__('Select')+'</option>\n'
+                $.each(ele.selectList, function (i, v) {
+                    selected = value=== i?'selected="selected"' :'';
+                    $html += '<option '+ selected+' value="'+i+'">'+ele.selectList[i]+'</option>'
+                })
+                $html +='</select>';
+                return $html;
             }, select: function (d) {
                 var ele = $(this)[0];
-                ele.selectList = ele.selectList || {};
+                ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
                 if (ele.selectList[value] === undefined || ele.selectList[value] === '' || ele.selectList[value] == null) {
                     return Table.getBadge(d, ele, value, __(value), 2)
@@ -684,7 +696,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                     return true;
                 }
                 return true;
-            }
+            },
         },
         api: {
             reload: function (tableId, $where, $deep = true, $parent = true) {
@@ -733,23 +745,42 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                                 var checked = obj.elem.checked ? 1 : 0;
                                 var data = {id: obj.value, field: v.field, value: checked,};
                                 Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
-                                    Fun.toastr.success(res.msg, function () {
-                                        Table.api.reload(tableId)
-                                    })
+                                    Fun.toastr.success(res.msg)
                                 }, function (res) {
                                     obj.elem.checked = !checked;
                                     layui.form.render();
-                                    Fun.toastr.error(res.msg, function () {
-                                        Table.api.reload(tableId)
-                                    })
+                                    Fun.toastr.error(res.msg)
                                 }, function () {
-                                    Table.api.reload(tableId)
                                 })
+                                Table.api.reload(tableId)
                             })
                         }
                     })
                 }
-            }, toolbar: function (layFilter, tableId) {
+            },selects: function (cols, tableInit, tableId) {
+                url = tableInit.requests.modify_url ? tableInit.requests.modify_url : false;
+                cols = cols[0] || {};
+                tableId = tableId || Table.init.tableId;
+                if (cols.length > 0) {
+                    $.each(cols, function (i, v) {
+                        v.filter = v.filter || false;
+                        if (v.filter !== false && tableInit.requests.modify_url !== false) {
+                            layui.form.on('select(' + v.filter + ')', function (obj) {
+                                var data = {id: obj.value, field: v.field, value: obj.value,};
+                                Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
+                                    Fun.toastr.success(res.msg)
+                                }, function (res) {
+                                    layui.form.render();
+                                    Fun.toastr.error(res.msg);
+                                }, function () {
+                                })
+                                Table.api.reload(tableId);
+                            })
+                        }
+                    })
+                }
+            },
+            toolbar: function (layFilter, tableId) {
                 layui.table.on('toolbar(' + layFilter + ')', function (obj) {
                     var othis = $(this)
                     switch (obj.event) {
@@ -824,7 +855,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     }
                 });
-                //重置按钮，从新刷新表格
+                //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
                     Table.api.reload($(this).data('tableid'), {}, false)
                 });

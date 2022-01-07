@@ -97,6 +97,8 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 Fun.toastr.error(__('Request url can not empty'));
                 return false;
             }
+            //false 同步 true 异步
+            option.async = option.async===false ?option.async : true;
             // var index = Fun.toastr.loading(option.tips)
             $.ajax({
                 url: option.url,
@@ -104,6 +106,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 contentType: "application/x-www-form-urlencoded; charset=UTF-8",
                 dataType: "json",
                 data: option.data,
+                async:option.async,
                 timeout: 0,
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')
@@ -251,23 +254,21 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
         toastr: {
             // 成功消息
             success: function (msg, callback) {
-                if (callback === undefined) {
-                    callback = function () {
-                    }
-                }
-                return Toastr.success(msg, callback);
+                if (typeof callback === "function") {callback.call(this)}
+                title =  typeof callback === "string" ?callback:''
+                return Toastr.success(msg,title);
             },
             // 失败消息
             error: function (msg, callback) {
-                if (callback === undefined) {
-                    callback = function () {
-                    }
-                }
-                return Toastr.error(msg, callback);
+                if (typeof callback === "function") {callback.call(this)}
+                title =  typeof callback === "string" ?callback:''
+                return Toastr.error(msg,title);
             },
             // 警告消息框
             alert: function (msg, callback) {
-                return Toastr.warning(msg, callback);
+                if (typeof callback === "function") {callback.call(this)}
+                title =  typeof callback === "string" ?callback:''
+                return Toastr.warning(msg,title);
             },
             // 对话框
             confirm: function (msg, success, error) {
@@ -285,7 +286,9 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
             },
             // 消息提示
             tips: function (msg, callback) {
-                return Toastr.info(msg, callback);
+                if (typeof callback === "function") {callback.call(this)}
+                title =  typeof callback === "string" ?callback:''
+                return Toastr.info(msg,title);
             },
             // 加载中提示
             loading: function (msg, callback) {
@@ -425,7 +428,6 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
-                            console.log(data)
                             data.title = data.textTitle;
                             if (Table && Table.events.hasOwnProperty(attrEvent)) {
                             }else if(data.callback){
@@ -433,11 +435,9 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                             }else{
                                 data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
                             }
-                            return false;
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
                 }
-                return false;
             },
         },
         //接口
@@ -631,6 +631,17 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 tableName = tableName | 'list';
                 layui.table.reload(tableName,{},true);
             },
+            //获取同步数据
+            getData: function (url,data={},method='get',async=false) {
+                if(!url) return false;
+                var returnData;
+                Fun.ajax({url:Fun.url(url),data:data,method:method,async:async},function(res){
+                    returnData = res.data;
+                },function(res){
+                    return false;
+                })
+                return returnData;
+            }
         },
     };
     //初始化

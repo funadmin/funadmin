@@ -1,13 +1,12 @@
-define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags',
-    'timePicker', 'regionCheckBox','multiSelect', 'upload'
-], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload) {
+define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect', 'upload','selectN','selectPlus'
+], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload, selectN,selectPlus) {
     var Fu = {
         init: {},
         events: {
             selectplus:function() {
                 var selectplus ={},list = document.querySelectorAll("*[lay-filter='selectPlus']");
                 if (list.length > 0) {
-                    selectPlus = layui.selectPlus ||  parent.layui.xmSelect;
+                    selectPlus = layui.selectPlus || parent.layui.xmSelect;
                     $.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
                             url = $(this).data('url')|| $(this).data('request'),
@@ -32,7 +31,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags',
                     selectN = layui.selectN || parent.layui.selectN;
                     $.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
-                            url = $(this).data('url')|| $(this).data('request'),
+                            url = $(this).data('url') || $(this).data('request'),
                             data = $(this).data('data')||　'',
                             method = $(this).data('method')?$(this).data('method'):'get',
                             last = $(this).data('last')?$(this).data('last'):'',
@@ -40,9 +39,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags',
                             search = $(this).data('search')?$(this).data('search'):'',
                             attr = $(this).data('attr'), attr= typeof attr ==='string' ?attr.split(','):['id','title'],
                             num = $(this).data('num')?$(this).data('num'):3,
+                            pid = $(this).data('pid') ||　'pid',
                             delimiter = $(this).data('delimiter') || ',',
                             options = {
-                                elem: '#' + id, data: data, url: url, name: name,
+                                elem: '#' + id, data: data, url: url, name: name,pid:pid,formFilter:id,
                                 field: attr, selected: values, method: method,search:search,num:num,
                                 delimiter: delimiter,last:last
                             };
