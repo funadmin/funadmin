@@ -67,7 +67,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             theme = $(this).data('theme') || '#6739b6', name = $(this).attr('name') || $(this).data('name') || 'pid',
                             style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                             layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
-                        var size = $(this).data('size') || 'medium' ;
+                        var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar') || {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
                         var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote'))), props, propArr, options;
@@ -123,10 +123,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             },
                             paging: paging, pageSize: pageSize, autoRow: true, size: size,
                             repeat: repeat, height: height, max: max,
-                            pageRemote: pageRemote, toolbar: {
-                                show: true,
-                                list: ['ALL', 'CLEAR', 'REVERSE']
-                            }, theme: {
+                            pageRemote: pageRemote, toolbar: toolbar, theme: {
                                 color: theme,
                             }, radio: radio, layVerify: layVerify, clickClose: clickClose,
                             maxMethod: function(val) {
