@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "88db1008a124c6ee15415646b5d3f751",
+    "content-hash": "8900d6d20ddd04618ccddbc1c5b9e0ab",
     "packages": [
         {
             "name": "brick/math",
@@ -1928,12 +1928,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "c2a6053ca91997a127d5e81ec6dc8c593f947147"
+                "reference": "4611cbe7c21e2e7e456828a20228f4e61ca03f5d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/c2a6053ca91997a127d5e81ec6dc8c593f947147",
-                "reference": "c2a6053ca91997a127d5e81ec6dc8c593f947147",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/4611cbe7c21e2e7e456828a20228f4e61ca03f5d",
+                "reference": "4611cbe7c21e2e7e456828a20228f4e61ca03f5d",
                 "shasum": ""
             },
             "require": {
@@ -1988,7 +1988,7 @@
                 "issues": "https://github.com/top-think/framework/issues",
                 "source": "https://github.com/top-think/framework/tree/6.0"
             },
-            "time": "2022-01-07T06:57:53+00:00"
+            "time": "2022-01-07T14:23:20+00:00"
         },
         {
             "name": "topthink/think-captcha",
