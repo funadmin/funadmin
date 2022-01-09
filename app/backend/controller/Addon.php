@@ -120,7 +120,7 @@ class Addon extends Backend
                             $addons[$key] = $value;
                             $addons[$key]['insatll'] = 0;
                             $addons[$key]['status'] = 1;
-                            $addons[$key]['localVersion'] = $value['pluginsVersion'][0]['id'];
+                            $addons[$key]['localVersion'] = empty($value['pluginsVersion'])?1:$value['pluginsVersion'][0]['id'];
                         }
                         if(isset($addons[$key]['pluginsVersion'])){
                             $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
