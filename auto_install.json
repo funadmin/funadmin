@@ -3,11 +3,11 @@
   "chmod":[
     {"mode":755,"path":"/"}
   ],
-  "success_url":"/admin.php",
+  "success_url":"/index.php",
   "php_versions":"74,80,81",
   "db_config":"",
-  "admin_username":"admin",
-  "admin_password":"123456",
+  "admin_username":"",
+  "admin_password":"",
   "run_path":"/public",
   "remove_file":["/temp","/.user.ini"],
   "enable_functions":["system","exec","putenv"]

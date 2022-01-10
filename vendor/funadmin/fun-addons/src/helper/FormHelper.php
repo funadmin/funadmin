@@ -341,21 +341,24 @@ class FormHelper
     public static function multiselect($name, $select, $options, $attr, $value)
     {
         $op = '';
-        foreach ($select as $k => $v) {
-            $selected = '';
-            if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
-                $selected = 'selected';
-            }
-            if ($value!=null && $value &&  in_array($k, $value) && !$attr){
-                $selected = 'selected';
-            }
-            if (!empty($attr)) {
-                $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
-            } else {
-                $op .= '<option ' . $selected . ' value="' . $k . '">' . lang($v) . '</option>';
+        if($select){
+            foreach ($select as $k => $v) {
+                $selected = '';
+                if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
+                    $selected = 'selected';
+                }
+                if ($value!=null && $value &&  in_array($k, $value) && !$attr){
+                    $selected = 'selected';
+                }
+                if (!empty($attr)) {
+                    $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
+                } else {
+                    $op .= '<option ' . $selected . ' value="' . $k . '">' . lang($v) . '</option>';
+                }
             }
         }
         $label = isset($options['label']) ? $options['label'] : $name;
+        $url = isset($options['url']) ? $options['url'] : '';
         $multiple = '';
         if (isset($options['multiple'])) {
             $multiple = 'multiple="multiple"';
@@ -368,7 +371,7 @@ class FormHelper
         $str = '<div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">
-                  <select "'.self::addextend($options) .' " '.self::addstyle($options). '  class="layui-select'. self::addClass($options) .'" name="' . $name . '" ' . $multiple .' '. self::filter($options).' ' . self::verify($options).' ' . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
+                  <select data-attr="'.$attr.'" data-url="'.$url.'" "'.self::addextend($options) .' " '.self::addstyle($options). '  class="layui-select-url layui-select'. self::addClass($options) .'" name="' . $name . '" ' . $multiple .' '. self::filter($options).' ' . self::verify($options).' ' . self::search($options).' ' . self::readonlyOrdisabled($options). ' >
                     <option value="">' . lang($default) . '</option>
                     ' . $op . '
                   </select>
