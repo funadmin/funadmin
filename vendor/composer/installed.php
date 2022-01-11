@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => 'd1f03cd75df12639314c7fdc040f37b53132144d',
+    'reference' => '487c8cab340bcff9f92fe7218beeb0dd7faf92db',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -58,12 +58,12 @@
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v3.4',
-      'version' => '3.4.0.0',
+      'pretty_version' => 'v3.4.1',
+      'version' => '3.4.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'f7b06d3b33e9051fb33bd5b3224859018287c90a',
+      'reference' => '12e680b3c406fcdfb6c91b4daf3bfb6b97a627d1',
     ),
     'funadmin/funadmin' => 
     array (
@@ -72,7 +72,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => 'd1f03cd75df12639314c7fdc040f37b53132144d',
+      'reference' => '487c8cab340bcff9f92fe7218beeb0dd7faf92db',
     ),
     'league/flysystem' => 
     array (
@@ -312,7 +312,7 @@
       array (
         0 => '9999999-dev',
       ),
-      'reference' => '4611cbe7c21e2e7e456828a20228f4e61ca03f5d',
+      'reference' => 'e69792293c7aebbf8918512cb214932aaac2e577',
     ),
     'topthink/think-captcha' => 
     array (

@@ -368,6 +368,7 @@ class FormHelper
         } else {
             $default = lang('Default');
         }
+        $attr = is_array($attr)?implode(',',$attr):$attr;        
         $str = '<div class="layui-form-item">
                 <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang(Str::title($label)) . '</label>
                 <div class="layui-input-block">

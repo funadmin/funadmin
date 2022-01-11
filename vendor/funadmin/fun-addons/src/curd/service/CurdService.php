@@ -209,7 +209,7 @@ class CurdService
         //普通模式
         if (!$this->addon) {
             $this->controllerNamespace = 'app\\'.$this->module.'\\controller' . $nameSpace;
-            $this->baseController = '\\app\\common\\controller\\'.$this->module;
+            $this->baseController = '\\app\\common\\controller\\'.ucfirst($this->module);
             $this->modelNamespace = "app\\{$this->module}\\model".($modelArr?'\\'.$modelArr[0]:'');
             $this->validateNamespace = "app\\{$this->module}\\validate".($modelArr?'\\'.$modelArr[0]:'');
             $this->fileList = [

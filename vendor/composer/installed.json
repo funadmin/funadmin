@@ -364,17 +364,17 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v3.4",
-            "version_normalized": "3.4.0.0",
+            "version": "v3.4.1",
+            "version_normalized": "3.4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "f7b06d3b33e9051fb33bd5b3224859018287c90a"
+                "reference": "12e680b3c406fcdfb6c91b4daf3bfb6b97a627d1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/f7b06d3b33e9051fb33bd5b3224859018287c90a",
-                "reference": "f7b06d3b33e9051fb33bd5b3224859018287c90a",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/12e680b3c406fcdfb6c91b4daf3bfb6b97a627d1",
+                "reference": "12e680b3c406fcdfb6c91b4daf3bfb6b97a627d1",
                 "shasum": ""
             },
             "require": {
@@ -384,7 +384,7 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
-            "time": "2022-01-10T07:55:51+00:00",
+            "time": "2022-01-11T09:33:40+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -420,7 +420,7 @@
             ],
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v3.4"
+                "source": "https://github.com/funadmin/fun-addons/tree/v3.4.1"
             },
             "install-path": "../funadmin/fun-addons"
         },
@@ -2214,12 +2214,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "4611cbe7c21e2e7e456828a20228f4e61ca03f5d"
+                "reference": "e69792293c7aebbf8918512cb214932aaac2e577"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/4611cbe7c21e2e7e456828a20228f4e61ca03f5d",
-                "reference": "4611cbe7c21e2e7e456828a20228f4e61ca03f5d",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/e69792293c7aebbf8918512cb214932aaac2e577",
+                "reference": "e69792293c7aebbf8918512cb214932aaac2e577",
                 "shasum": ""
             },
             "require": {
@@ -2241,7 +2241,7 @@
                 "mockery/mockery": "^1.2",
                 "phpunit/phpunit": "^7.0"
             },
-            "time": "2022-01-07T14:23:20+00:00",
+            "time": "2022-01-11T06:24:26+00:00",
             "default-branch": true,
             "type": "library",
             "installation-source": "dist",
