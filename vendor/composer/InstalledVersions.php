@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '487c8cab340bcff9f92fe7218beeb0dd7faf92db',
+    'reference' => '35d86366f4c83397fd24234502885cae387df8ec',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -55,12 +55,12 @@ private static $installed = array (
     ),
     'doctrine/lexer' => 
     array (
-      'pretty_version' => '1.2.1',
-      'version' => '1.2.1.0',
+      'pretty_version' => '1.2.2',
+      'version' => '1.2.2.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'e864bbf5904cb8f5bb334f99209b48018522f042',
+      'reference' => '9c50f840f257bbb941e6f4a0e94ccf5db5c3f76c',
     ),
     'ergebnis/classy' => 
     array (
@@ -96,7 +96,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '487c8cab340bcff9f92fe7218beeb0dd7faf92db',
+      'reference' => '35d86366f4c83397fd24234502885cae387df8ec',
     ),
     'league/flysystem' => 
     array (

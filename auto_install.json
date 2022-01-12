@@ -1,9 +1,9 @@
 {
-  "php_ext":"opcache,ioncube",
+  "php_ext":"opcache,ioncube,fileinfo",
   "chmod":[
     {"mode":755,"path":"/"}
   ],
-  "success_url":"/index.php",
+  "success_url":"/install.php",
   "php_versions":"74,80,81",
   "db_config":"",
   "admin_username":"",
