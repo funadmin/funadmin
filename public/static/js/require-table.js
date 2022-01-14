@@ -361,13 +361,13 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
-                $html = ' <select name="'+ele.field+'" lay-filter="'+ele.field+'"  lay-search="">\n' +
+                $html = '<div class="layui-table-select"><select name="'+ele.field+'" lay-filter="'+ele.field+'"  lay-search="">\n' +
                     '<option value="">'+__('Select')+'</option>\n'
                 $.each(ele.selectList, function (i, v) {
                     selected = value=== i?'selected="selected"' :'';
                     $html += '<option '+ selected+' value="'+i+'">'+ele.selectList[i]+'</option>'
                 })
-                $html +='</select>';
+                $html +='</select></div><script>$(".layui-table-select").parent("div").css("overflow","visible")</script>';
                 return $html;
             }, select: function (d) {
                 var ele = $(this)[0];
@@ -389,7 +389,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
             }, switch: function (d) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
-                ele.selectListTips = JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
+                ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}'  ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.tips = ele.tips || ele.selectListTips || __('open') + '|' + __('close');
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
