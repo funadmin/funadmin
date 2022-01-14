@@ -157,18 +157,18 @@ Github：https://github.com/funadmin/funadmin
 www  WEB部署目录（或者子目录）
 ├─addons           插件目录
 ├─app           目录
-│  ├─backend      应用目录
+│  ├─backend      默认后台应用目录
 │  ├───controller      控制器目录
 │  ├───model      model目录
 │  ├───config      config目录
 │  ├───route      route目录
 │  ├───view      视图目录
-│  ├─api      应用目录
+│  ├─api      默认Api应用目录
 │  ├───controller      控制器目录
 │  ├───model      model目录
 │  ├─ ...            更多类库目录
 │  │
-│  ├─frontend      应用目录
+│  ├─frontend      默认前台应用目录
 │  ├───controller      控制器目录
 │  ├───model      model目录
 │  ├─ ...            更多类库目录
