@@ -294,10 +294,12 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 var ele = $(this)[0];
                 var time = eval('d.' + ele.field);
                 var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
-                if (time) {
+                if (time && isNaN(Date.parse(time))) {
                     return layui.util.toDateString(time * 1000, format)
-                } else {
-                    return '-'
+                } else if(time && !isNaN(Date.parse(time))){
+                    return layui.util.toDateString(Date.parse(time), format)
+                }else{
+                    return '-';
                 }
             }, tags: function (d) {
                 var ele = $(this)[0];

@@ -78,7 +78,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('Registertime'), width: 180,search:'range'},
+                    {field: 'create_time', title: __('Registertime'),dateformat:'yyyy-MM-dd', width: 180,search:'range'},
                     {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
                         minwidth: 250,
