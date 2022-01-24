@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.funadmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp6 + layui 实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/9/22
@@ -622,18 +622,11 @@ class FormHelper
      */
     public static function upload($name = 'avatar', $formData = '', $options = [],$value='')
     {
-        if (!isset($options['type'])) {
-            $options['type'] = 'radio';
-        }
-        if (!isset($options['mime'])) {
-            $options['mime'] = 'image';
-        }
-        if (!isset($options['num'])) {
-            $options['num'] = 1;
-        }
-        if (!isset($options['path'])) {
-            $options['path'] = 'upload';//上传路劲
-        }
+        if (!isset($options['type'])) $options['type'] = 'radio';
+        if (!isset($options['mime'])) $options['mime'] = 'image';
+        if (!isset($options['num'])) $options['num'] = 1;
+        if (isset($options['num']) && $options['num'] == '*') $options['num'] = 100;
+        if (!isset($options['path'])) $options['path'] = 'upload';//上传路劲
         $css = isset($options['css'])?$options['css']:'display:inline-block;';
         $label = isset($options['label']) ? $options['label'] : $name;
         $li = '';
@@ -643,7 +636,7 @@ class FormHelper
             $height = isset($options['height']) ? $options['height'] : '300';
             $mark = isset($options['mark']) ? $options['mark'] : '1';
             $area = isset($options['area']) ? $options['area'] : '900px';
-            $cops = ['width' => $width, 'height' => $height, 'mark' => $mark, 'area' => $area];
+            $cops = ['path'=>$options['path'],'width' => $width, 'height' => $height, 'mark' => $mark, 'area' => $area];
             $crpperops = 'data-value="' . json_encode($cops, true) . '"';
             $croper_container = '<button type="button" 
                ' . $crpperops . '

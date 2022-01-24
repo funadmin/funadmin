@@ -12,7 +12,7 @@
     "topthink/framework": "6.0.*",
     "topthink/think-view": "^1.0",
     "topthink/think-helper": "^3.1",
-    "firebase/php-jwt":"v5.4.0"
+    "firebase/php-jwt":"^5.5.1"
 
   },
   "autoload": {

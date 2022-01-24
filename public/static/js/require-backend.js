@@ -1,7 +1,7 @@
 /**
- @ WWW.FUNADMIN.COM
- @ Name：REQUIRE-BACKEND
- @ Author：YUEGE
+ @ www.funadmin.com
+ @ Name：require-backend
+ @ Author：yuege
  */
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
@@ -15,13 +15,9 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect',
-        'treeTable','tableEdit','tableTree',
-        'iconPicker','iconFonts',
-        'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect',
-        'selectPlus','selectN',
-        'cityPicker','xmSelect','eleTree',
+        'css','treeGrid','tableSelect','treeTable','tableEdit',
+        'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags',
+        'timeago','multiSelect','cityPicker', 'selectPlus','selectN', 'xmSelect',
         'regionCheckBox','timePicker','croppers', 'moment',
         'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {

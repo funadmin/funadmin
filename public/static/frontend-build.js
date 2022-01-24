@@ -6,11 +6,9 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','treeGrid','tableSelect',
-        'treeTable','tableEdit','tableTree',
-        'iconPicker','iconFonts',
-        'toastr','step-lay','inputTags' ,
-        'timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
+        'css','treeGrid','tableSelect', 'treeTable','tableEdit',
+        'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
+        'timeago','multiSelect','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
         'moment','md5','fun','form','fu', 'table','upload'],
     paths: {

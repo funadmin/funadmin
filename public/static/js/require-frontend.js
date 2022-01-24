@@ -1,3 +1,8 @@
+/**
+ @ www.funadmin.com
+ @ Name：require-backend
+ @ Author：yuege
+ */
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
     urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),

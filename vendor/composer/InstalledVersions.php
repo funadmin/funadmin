@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '52883e11b109a8267453a69043180c6b63765234',
+    'reference' => '46c2381f517aa4ed15f4f5bd4f7148aaffbbb078',
     'name' => 'funadmin/funadmin',
   ),
   'versions' => 
@@ -73,21 +73,21 @@ private static $installed = array (
     ),
     'firebase/php-jwt' => 
     array (
-      'pretty_version' => 'v5.4.0',
-      'version' => '5.4.0.0',
+      'pretty_version' => 'v5.5.1',
+      'version' => '5.5.1.0',
       'aliases' => 
       array (
       ),
-      'reference' => 'd2113d9b2e0e349796e72d2a63cf9319100382d2',
+      'reference' => '83b609028194aa042ea33b5af2d41a7427de80e6',
     ),
     'funadmin/fun-addons' => 
     array (
-      'pretty_version' => 'v3.4.1',
-      'version' => '3.4.1.0',
+      'pretty_version' => 'v3.4.4',
+      'version' => '3.4.4.0',
       'aliases' => 
       array (
       ),
-      'reference' => '12e680b3c406fcdfb6c91b4daf3bfb6b97a627d1',
+      'reference' => '7c9ed679a129c8c8d940a8fdb4757a45a2bfc942',
     ),
     'funadmin/funadmin' => 
     array (
@@ -96,7 +96,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '52883e11b109a8267453a69043180c6b63765234',
+      'reference' => '46c2381f517aa4ed15f4f5bd4f7148aaffbbb078',
     ),
     'league/flysystem' => 
     array (
@@ -127,12 +127,12 @@ private static $installed = array (
     ),
     'nesbot/carbon' => 
     array (
-      'pretty_version' => '2.55.2',
-      'version' => '2.55.2.0',
+      'pretty_version' => '2.56.0',
+      'version' => '2.56.0.0',
       'aliases' => 
       array (
       ),
-      'reference' => '8c2a18ce3e67c34efc1b29f64fe61304368259a2',
+      'reference' => '626ec8cbb724cd3c3400c3ed8f730545b744e3f4',
     ),
     'phpdocumentor/reflection-common' => 
     array (
@@ -336,7 +336,7 @@ private static $installed = array (
       array (
         0 => '9999999-dev',
       ),
-      'reference' => 'ef81c5fe4859707a15d7e2869a60b8fcb8b49deb',
+      'reference' => 'e478316ac843c1a884a3b3a7a94db17c4001ff5c',
     ),
     'topthink/think-captcha' => 
     array (
@@ -385,12 +385,12 @@ private static $installed = array (
     ),
     'topthink/think-orm' => 
     array (
-      'pretty_version' => 'v2.0.50',
-      'version' => '2.0.50.0',
+      'pretty_version' => 'v2.0.51',
+      'version' => '2.0.51.0',
       'aliases' => 
       array (
       ),
-      'reference' => '091ad5e023c15fcce4ceaea2f3814bdf71045cde',
+      'reference' => '149d266acdc4b2f07c6a94f1733b6b97d340e0e2',
     ),
     'topthink/think-queue' => 
     array (
@@ -428,6 +428,15 @@ private static $installed = array (
       ),
       'reference' => 'edce0ae2c9551ab65f9e94a222604b0dead3576d',
     ),
+    'topthink/think-worker' => 
+    array (
+      'pretty_version' => 'v3.0.6',
+      'version' => '3.0.6.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '21dc442aaa50594466ed3ed767af0a68b8b75364',
+    ),
     'webmozart/assert' => 
     array (
       'pretty_version' => '1.10.0',
@@ -436,6 +445,33 @@ private static $installed = array (
       array (
       ),
       'reference' => '6964c76c7804814a842473e0c8fd15bab0f18e25',
+    ),
+    'workerman/crontab' => 
+    array (
+      'pretty_version' => 'v1.0.2',
+      'version' => '1.0.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '28106241415049ee340a8a7cd9b640165240a2fa',
+    ),
+    'workerman/gateway-worker' => 
+    array (
+      'pretty_version' => 'v3.0.22',
+      'version' => '3.0.22.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'a615036c482d11f68b693998575e804752ef9068',
+    ),
+    'workerman/workerman' => 
+    array (
+      'pretty_version' => 'v3.5.31',
+      'version' => '3.5.31.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'b73ddc45b3c7299f330923a2bde23ca6e974fd96',
     ),
   ),
 );

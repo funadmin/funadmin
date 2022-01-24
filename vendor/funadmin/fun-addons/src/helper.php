@@ -40,10 +40,9 @@ define('DS', DIRECTORY_SEPARATOR);
 spl_autoload_register(function ($class) {
 
     $class = ltrim($class, '\\');
-    $dir = app()->getRootPath();
     $namespace = 'addons';
-
     if (strpos($class, $namespace) === 0) {
+        $dir = app()->getRootPath();
         $class = substr($class, strlen($namespace));
         $path = '';
         if (($pos = strripos($class, '\\')) !== false) {
@@ -499,34 +498,28 @@ function is_really_writable($file)
  */
 if (!function_exists('importsql')) {
 
-    function importsql($name)
-    {
+    function importsql($name){
         $service = new Service(App::instance()); // 获取service 服务
         $addons_path = $service->getAddonsPath(); // 插件列表
         $sqlFile = $addons_path . $name . DS . 'install.sql';
         if (is_file($sqlFile)) {
-            $lines = file($sqlFile);
-            $tempLine = '';
-            foreach ($lines as $line) {
-                if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
-                    continue;
-                $tempLine .= $line;
-                if (substr(trim($line), -1, 1) == ';' and $line != 'COMMIT;') {
-                    $tempLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $tempLine);
-                    $tempLine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $tempLine);
-                    try {
-                        preg_match('/CREATE\s+TABLE\s+\`?(\w+)`/i', $tempLine, $tables);
-                        if(isset($table[1])){
-                            $sql = "show tables like '".$tables[1]."'";
-                            $table = Db::query($sql);
-                            if($table) continue;
+            $gz = fopen($sqlFile, 'r');
+            $sql = '';
+            while(1) {
+                $sql .= fgets($gz);
+                if(preg_match('/.*;$/', trim($sql))) {
+                    $sql = preg_replace('/(\/\*(\s|.)*?\*\/);/','',$sql);
+                    $sql = str_replace('__PREFIX__', config('database.connections.mysql.prefix'),$sql);
+                    if(strpos($sql,'CREATE TABLE')!==false || strpos($sql,'INSERT INTO')!==false || strpos($sql,'ALTER TABLE')!==false || strpos($sql,'DROP TABLE')!==false){
+                        try {
+                            Db::execute($sql);
+                        } catch (\Exception $e) {
+                            throw new Exception($e->getMessage());
                         }
-                        Db::execute($tempLine);
-                    } catch (\PDOException $e) {
-                        throw new PDOException($e->getMessage());
                     }
-                    $tempLine = '';
+                    $sql = '';
                 }
+                if(feof($gz)) break;
             }
         }
         return true;
@@ -541,27 +534,24 @@ if (!function_exists('importsql')) {
  * @return  boolean
  */
 if (!function_exists('uninstallsql')) {
-    function uninstallsql($name)
+     function uninstallsql($name)
     {
         $service = new Service(App::instance()); // 获取service 服务
         $addons_path = $service->getAddonsPath(); // 插件列表
         $sqlFile = $addons_path . $name . DS . 'uninstall.sql';
         if (is_file($sqlFile)) {
-            $lines = file($sqlFile);
-            $tempLine = '';
-            foreach ($lines as $line) {
-                if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
-                    continue;
-                $tempLine .= $line;
-                if (substr(trim($line), -1, 1) == ';') {
-                    $tempLine = str_ireplace('__PREFIX__', config('database.connections.mysql.prefix'), $tempLine);
+            $sql = file_get_contents($sqlFile);
+            $sql = str_replace('__PREFIX__', config('database.connections.mysql.prefix'),$sql);
+            $sql = explode("\r\n",$sql);
+            foreach ($sql as $k=>$v){
+                if(strpos(strtolower($v),'drop table')!==false){
                     try {
-                        Db::execute($tempLine);
-                    } catch (\PDOException $e) {
-                        throw new PDOException($e->getMessage());
+                        Db::execute($v);
+                    } catch (\Exception $e) {
+                        throw new Exception($e->getMessage());
                     }
-                    $tempLine = '';
                 }
+               
             }
         }
         return true;

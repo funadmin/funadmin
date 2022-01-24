@@ -27,6 +27,7 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
     public static $prefixLengthsPsr4 = array (
         't' => 
         array (
+            'think\\worker\\' => 13,
             'think\\view\\driver\\' => 18,
             'think\\middleware\\' => 17,
             'think\\ide\\' => 10,
@@ -48,6 +49,8 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
         ),
         'W' => 
         array (
+            'Workerman\\Crontab\\' => 18,
+            'Workerman\\' => 10,
             'Webmozart\\Assert\\' => 17,
         ),
         'S' => 
@@ -81,6 +84,10 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
             'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
         ),
+        'G' => 
+        array (
+            'GatewayWorker\\' => 14,
+        ),
         'F' => 
         array (
             'Firebase\\JWT\\' => 13,
@@ -105,6 +112,10 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
     );
 
     public static $prefixDirsPsr4 = array (
+        'think\\worker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/topthink/think-worker/src',
+        ),
         'think\\view\\driver\\' => 
         array (
             0 => __DIR__ . '/..' . '/topthink/think-view/src',
@@ -147,6 +158,14 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
         'app\\' => 
         array (
             0 => __DIR__ . '/../..' . '/app',
+        ),
+        'Workerman\\Crontab\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/workerman/crontab/src',
+        ),
+        'Workerman\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/workerman/workerman',
         ),
         'Webmozart\\Assert\\' => 
         array (
@@ -227,6 +246,10 @@ class ComposerStaticInit9c4ee589dc449ba441b8f4321edbe142
         'League\\Flysystem\\' => 
         array (
             0 => __DIR__ . '/..' . '/league/flysystem/src',
+        ),
+        'GatewayWorker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/workerman/gateway-worker/src',
         ),
         'Firebase\\JWT\\' => 
         array (

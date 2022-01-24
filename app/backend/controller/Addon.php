@@ -111,8 +111,9 @@ class Addon extends Backend
                             $addons[$key]['localVersion'] = $info['version'];
                             if(isset($config['domain']) && $config['domain']['value']){
                                 $index = strpos($_SERVER['HTTP_HOST'],'.');
+                                $domain = explode(',', $config['domain']['value'])[0];
                                 $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
-                                $addons[$key]['web'] = httpType().$config['domain']['value'].'.'.$url;
+                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
                             }else{
                                 $addons[$key]['web'] = '/addons/'.$key;
                             }
@@ -122,7 +123,7 @@ class Addon extends Backend
                             $addons[$key]['status'] = 1;
                             $addons[$key]['localVersion'] = empty($value['pluginsVersion'])?1:$value['pluginsVersion'][0]['id'];
                         }
-                        if(isset($addons[$key]['pluginsVersion'])){
+                        if(!empty($addons[$key]['pluginsVersion'])){
                             $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
                             $addons[$key]['lastVersion'] = $addons[$key]['pluginsVersion'][0]['version'];
                         }else{
