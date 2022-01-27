@@ -304,7 +304,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                         var uploadType = data.value.type,
                             uploadNum = data.value.num,
                             uploadMime = data.value.mime,
-                            url = data.value.tableurl;
+                            url = data.value.tableurl,
+                            path = data.value.path;
                         uploadMime = uploadMime || '*';
                         uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
@@ -407,7 +408,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             var uploadType = data.value.type,
                                 uploadNum = data.value.num,
                                 uploadMime = data.value.mime,
-                                url  = data.value.selecturl;
+                                url  = data.value.selecturl,
+                                path = data.value.path;
                             uploadMime = uploadMime || '';
                             uploadType = uploadType ? uploadType : 'radio';
                             uploadNum = uploadType === 'checkbox' ? uploadNum : 1;

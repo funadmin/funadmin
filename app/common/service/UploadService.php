@@ -85,15 +85,27 @@ class UploadService extends AbstractService
                             $path = DS . 'storage' . DS . $savename;
                             $paths = trim($path, '/');
                             // 整合上传接口 获取视频音频长度
-                            $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                            $analyzeFileInfo = hook('getID3Hook',['path'=>'.' . DS . $path]);
                             $duration=0;
                             if($analyzeFileInfo) {
                                 $analyzeFileInfo = json_decode($analyzeFileInfo,true);
                                 $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                             }
+                            $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
+                            $file_name = basename($savename);
+                            $width = $height = 0;
+                            if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+                                $imgInfo = getimagesize($vv->getPathname());;
+                                if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
+                                    throw new Exception(lang('Uploaded file is not a valid image'));
+                                }
+                                $this->createWater($path);
+                                $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
+                                $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
+                            }
                             if ($this->driver != 'local') {
                                 try {
-                                    $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                                    $path = $ossService->uploads($this->driver,$paths, '.' . DS . $paths,$save);
                                 }catch (\Exception $e) {
                                     throw new Exception($e->getMessage());
                                 }
@@ -101,18 +113,6 @@ class UploadService extends AbstractService
                         }catch (Exception $e){
                             $path = '';
                             $error = $e->getMessage();
-                        }
-                        $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
-                        $file_name = basename($savename);
-                        $width = $height = 0;
-                        if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
-                            $imgInfo = getimagesize($vv->getPathname());;
-                            if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
-                                throw new Exception(lang('Uploaded file is not a valid image'));
-                            }
-                            $this->createWater($path);
-                            $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
-                            $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
                         }
                         if (!empty($path)) {
                             $data = [
@@ -172,17 +172,29 @@ class UploadService extends AbstractService
                     try {
                         $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
                         $path = DS . 'storage' . DS . $savename;
-                        $paths = trim($path, '/');
+                        $paths = trim($path, DS);
                         // 整合上传接口 获取视频音频长度
-                        $analyzeFileInfo = hook('getID3Hook',['path'=>'./'.$path]);
+                        $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. DS .$path]);
                         $duration=0;
                         if($analyzeFileInfo) {
                             $analyzeFileInfo = json_decode($analyzeFileInfo,true);
                             $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                         }
+                        $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
+                        $file_name = basename($savename);
+                        $width = $height = 0;
+                        if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+                            $imgInfo = getimagesize($file->getPathname());;
+                            if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
+                                throw new Exception(lang('Uploaded file is not a valid image'));
+                            }
+                            $this->createWater($path);
+                            $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
+                            $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
+                        }
                         if ($this->driver != 'local') {
                             try {
-                                $path = $ossService->uploads($this->driver,$paths, './' . $paths,$save);
+                                $path = $ossService->uploads($this->driver,$paths, '.'.DS . $paths,$save);
                             }catch (\Exception $e) {
                                 throw new Exception($e->getMessage());
                             }
@@ -190,18 +202,6 @@ class UploadService extends AbstractService
                     }catch (Exception $e){
                         $path = '';
                         $error = $e->getMessage();
-                    }
-                    $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
-                    $file_name = basename($savename);
-                    $width = $height = 0;
-                    if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
-                        $imgInfo = getimagesize($file->getPathname());;
-                        if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
-                            throw new Exception(lang('Uploaded file is not a valid image'));
-                        }
-                        $this->createWater($path);
-                        $width = isset($imgInfo[0]) ? $imgInfo[0] : $width;
-                        $height = isset($imgInfo[1]) ? $imgInfo[1] : $height;
                     }
                     if (!empty($path)) {
                         $data = [
@@ -295,7 +295,7 @@ class UploadService extends AbstractService
         $water = syscfg('upload');
         if($water['upload_water']){
             $domain = \request()->domain();
-            $path = './'.trim($file,DIRECTORY_SEPARATOR);
+            $path = '.'. DS .trim($file,DS);
             $image = Image::open($path);
             // 添加水印
             $watermark_pos   = $water['upload_water_position'] == '' ? config('upload_water_position'):  $water['upload_water_position'];
@@ -304,14 +304,14 @@ class UploadService extends AbstractService
             $water_text_thumb  =  $water['upload_water_thumb'] == '' ? config('upload_water_thumb') :  $water['upload_water_thumb'];
             $water_text_size =  $water['upload_water_size'] == '' ? config('upload_water_size') :  $water['upload_water_size'];
             $water_text_color =  $water['upload_water_color'] == '' ? config('upload_water_color') :  $water['upload_water_color'];
-            $water_text_thumb =  './'.trim(trim($water_text_thumb,$domain),DIRECTORY_SEPARATOR);
             switch ($water['upload_water']){
                 case 1:
+                    $water_text_thumb =  '.' . DS .trim(str_replace($domain,'',$water_text_thumb),DS );
                     $image->water($water_text_thumb, $watermark_pos, $watermark_alpha)->save($path);
                     break;
                 case 2:
-                    // 添加水印
-                    $image->text($water_text_thumb,root_path().'/public/static/common/text/simhei.ttf',$water_text_size,$water_text_color)->save($path);  //添加文字水印
+                    // 添加文字水印
+                    $image->text($water_text_thumb,'./static/common/fonts/text/simhei.ttf',$water_text_size,$water_text_color)->save($path);  //添加文字水印
                     break;
                 default:
                     break;
