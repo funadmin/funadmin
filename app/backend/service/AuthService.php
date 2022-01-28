@@ -89,7 +89,8 @@ class AuthService
             $authrules = array_unique(array_merge($authrules, $authopen));
         }
         $list = array();
-        foreach ($menu as $k => $v) {
+        foreach ($menu as $v) {
+            $href = $v['href'];
             if ($v['menu_status'] == 1) {
                 $v['href'] =  trim($v['href'], '/' );
                 if(!Str::endsWith($v['href'],'/index')){
@@ -101,33 +102,17 @@ class AuthService
             } else {
                 $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
             }
+            if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
+                $v['href'] = $href;
+            }
             if ($v['pid'] == $pid) {
                 if (session('admin.id') != 1) {
                     if (in_array($v['id'], $authrules)) {
-                        //假如pid 在数组内，且
-                        $allchildids = $this->getallIdsBypid($v['id']);
-                        //把下级没有list 的菜单全部删除
-//                        if ($allchildids) {
-//                            $allchildids = trim($allchildids, ',');
-//                            $allIndexChild = AuthRule::field('href,id')
-////                                ->where('href', 'like', '%/index')
-//                                ->where('id', 'in', $authrules)
-//                                ->where('id', 'in', $allchildids)
-//                                ->where('status', 1)
-//                                ->find();
-////                            if (!$allIndexChild) {
-////                                unset($menu[$k]);
-////                                continue;
-////                            }
-//                        }
                         $child = AuthRule::field('href,id')
-//                            ->where('href', 'like', '%/index')
                             ->where('status', 1)
                             ->where('pid', $v['id'])->find();
                         //删除下级没有list的菜单权限
-//                        if ($child && !in_array($child['id'], $authrules)) {
                         if (!$child) {
-//                            unset($menu[$k]);
                             $v['child'] = [];
                             $list[] = $v;
                         } else {
