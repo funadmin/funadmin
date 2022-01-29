@@ -239,8 +239,8 @@ class Admin extends Backend
             }
             $this->success(lang('operation success'));
         }
-        $data = ['id'=>$id];
-        return view('password',$data);
+        $view = ['id'=>$id];
+        return view('password',$view);
     }
 
     /**
