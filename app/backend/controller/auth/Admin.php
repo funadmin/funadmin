@@ -221,13 +221,16 @@ class Admin extends Backend
      */
     public function password()
     {
+        $id = input('id');
         if ($this->request->isAjax()) {
             $oldpassword = $this->request->post('oldpassword');
-            $one = $this->modelClass->find(session('admin.id'));
-            if (!password_verify($oldpassword, $one['password'])) {
-                $this->error(lang('Old Password Error'));
-            }
             $password = $this->request->post('password', '',['strip_tags','trim','htmlspecialchars']);
+            $one = $this->modelClass->find($id?:session('admin.id'));
+            if (!$id && !password_verify($oldpassword, $one['password'])) {
+                $this->error(lang('Old Password Error'));
+            }else if($oldpassword!=$password){
+                $this->error(lang('Password Is not Same'));
+            }
             try {
                 $post['password'] = SignHelper::password($password);
                 $one->save($post);
@@ -236,7 +239,8 @@ class Admin extends Backend
             }
             $this->success(lang('operation success'));
         }
-        return view();
+        $data = ['id'=>$id];
+        return view('password',$data);
     }
 
     /**

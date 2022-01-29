@@ -4,11 +4,11 @@
 </blockquote>
 <form class="layui-form" lay-filter="form">
     {:form_xmselect('pid',$ruleList,['url'=>__u('index'),'verify'=>'required',"radio"=>1,'tree'=>true],['title','id'],$formData?$formData['id']:'')}
-    {:form_input('title','text',['verify'=>'required','lable'=>"Name"])}
+    {:form_input('title','text',['verify'=>'required','label'=>"Name"])}
     {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
     {:form_icon('icon',[],$formData?$formData.icon:'')}
     {:form_radio('type',['NO','YES'],['filter'=>'type','label'=>'IsMenu'],0)}
-    {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','lable'=>'Menu Status'],0)}
+    {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','label'=>'Menu Status'],0)}
     {:form_radio('target',['_self'=>'_self','_blank'=>'_blank','_top'=>'_top','_parent'=>'_parent'],['filter'=>'target'],'_self')}
     {:form_input('sort','text',['verify'=>'number'],999)}
     {:form_submitbtn()}
