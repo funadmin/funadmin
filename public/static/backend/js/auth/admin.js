@@ -30,16 +30,6 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                         title: __('Edit'),
                         full: 1,
                     },
-                    password: {
-                        type: 'open',
-                        class: 'layui-btn-xs layui-btn-green',
-                        url: 'auth.admin/password',
-                        icon: 'layui-icon layui-icon-password',
-                        text: __('Password'),
-                        title: __('Password'),
-                    },
-
-
                 },
             };
             Table.render({

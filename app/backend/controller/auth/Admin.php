@@ -137,6 +137,11 @@ class Admin extends Backend
             $rule = ['group_id'=>'require'];
             $this->validate($post, $rule);
             //添加
+            if($post['password']){
+                $post['password'] = password_hash($post['password'],PASSWORD_BCRYPT);
+            }else{
+                unset($post['password']);
+            }
             $list =  $this->modelClass->find($id);
             $result = $list->save($post);
             if ($result) {
@@ -146,6 +151,7 @@ class Admin extends Backend
             }
         }
         $list =  $this->modelClass->find($id);
+        $list->password = '';
         $auth_group = AuthGroupModel::where('status', 1)->select();
         if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
         $view = [
