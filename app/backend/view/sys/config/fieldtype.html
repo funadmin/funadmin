@@ -9,7 +9,7 @@
 {:form_input('value','text',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="tags"}
-{:form_input('value','text',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
+{:form_tags('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="number"}
 {:form_input('value','number',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
