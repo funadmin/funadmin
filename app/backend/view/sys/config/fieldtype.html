@@ -18,7 +18,7 @@
 {:form_switch('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
 {/case}
 {case value="array"}
-{:form_textarea('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value,)}
+{:form_textarea('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value)}
 {/case}
 {case value="checkbox"}
 {:form_checkbox('value',$formData.extra,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value,)}
@@ -32,7 +32,7 @@
 {:form_select('value',$select,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark,'search'=>1] ,[],(isset($formData)?$formData['value']:''))}
 {/case}
 {case value="color"}
-{:form_color('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],'value')}
+{:form_color('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value)}
 {/case}
 {case value="datetime"}
 {:form_date('value',['label'=>'value','verify'=>$formData.verify,'tips'=>$formData.remark])}
@@ -56,7 +56,7 @@
 {:form_upload('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mime'=>'file','num'=>'*'])}
 {/case}
 {case value="editor"}
-{:form_editor('value',$formData.value,2,['verify'=>$formData.verify])}
+{:form_editor('value',2,['verify'=>$formData.verify])}
 {/case}
 {/switch}
 {/if}
