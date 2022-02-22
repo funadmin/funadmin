@@ -54,9 +54,9 @@ body{background:#f1f4f6;padding:10px}
 .layui-form-item input[lay-filter=date] {padding-left:36px;}
 .layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 4px;font-size: 30px;color: #f44336;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #772c6a}
-.layui-table-box, .layui-table-body {
-    overflow: visible;
-}
+/*.layui-table-box, .layui-table-body {*/
+/*    overflow: visible;*/
+/*}*/
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
 table.layui-table td .layui-form-select {
     margin-top: -10px;
