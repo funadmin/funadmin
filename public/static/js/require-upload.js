@@ -97,7 +97,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
-                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replaceAll(',','|'):uploadExts
+                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replace('/,/g','|'):uploadExts
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || uploadMime;
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
