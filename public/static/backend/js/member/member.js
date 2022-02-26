@@ -26,7 +26,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 height:'600',
             },
             edit_full:{
-                type: 'open',
+                type: 'test',
                 class: 'layui-btn-xs layui-btn-green',
                 url: 'member.member/edit',
                 icon: 'layui-icon layui-icon-edit',
@@ -35,6 +35,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 // full: 1,
                 width:'800',
                 height:'600',
+                extend:"data-callback='test'"
             },
         },
     };
@@ -96,6 +97,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     this.limits.push(count) ;
                 }
             });
+            test=function(){
+                alert(1);
+            }
             let table = $('#'+Table.init.table_elem);
             Table.api.bindEvent(table);
         },

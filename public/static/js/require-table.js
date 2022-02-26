@@ -854,7 +854,9 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 $(document).on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                    }else{
+                        Table.events.common($(this))
                     }
                 });
                 //重置按钮，重新刷新表格

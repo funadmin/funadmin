@@ -22,7 +22,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                     {type: "checkbox"},
                     {field: 'id', title: 'ID', sort: true, width: 80, search: false},
                     {field: 'name', title: __('Name'),  sort: true,},
-                    {field: 'is_default', title: __('Defult'), width: 150, sort: true},
+                    {field: 'is_default', title: __('Default'), width: 150, sort: true},
                     {field: 'create_time', title: __('CreateTime'), width: 180, search: 'time'},
                     {
                         width: 250,
