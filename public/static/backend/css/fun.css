@@ -774,9 +774,15 @@ body .layui-site-mobile {display: none}
     opacity: 0
 }
 
-@media screen and (max-width:1024px) {
+@media screen and (min-width:1024px) {
     .layui-side-shrink .layui-layout-admin .layui-footer {
         left: 60px;
+    }
+}
+
+@media screen and (max-width:1024px) {
+    .layui-side-shrink .layui-layout-admin .layui-footer {
+        left: 0px;
     }
     .layui-side-shrink .layui-side-menu {
         width: 0!important;
@@ -916,9 +922,7 @@ body .layui-site-mobile {display: none}
 }
 
 @media screen and (min-width:769px) {
-    .layui-side-shrink .layui-layout-admin .layui-footer {
-        left: 60px;
-    }
+
     .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover .layui-nav-child-drop {
         position: fixed;
         top: 60px;
