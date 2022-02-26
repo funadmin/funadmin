@@ -1924,12 +1924,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "e478316ac843c1a884a3b3a7a94db17c4001ff5c"
+                "reference": "c911bbbbf42aaff96fb119d86d590ad7bce9e318"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/e478316ac843c1a884a3b3a7a94db17c4001ff5c",
-                "reference": "e478316ac843c1a884a3b3a7a94db17c4001ff5c",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/c911bbbbf42aaff96fb119d86d590ad7bce9e318",
+                "reference": "c911bbbbf42aaff96fb119d86d590ad7bce9e318",
                 "shasum": ""
             },
             "require": {
@@ -1982,9 +1982,9 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/framework/issues",
-                "source": "https://github.com/top-think/framework/tree/v6.0.12"
+                "source": "https://github.com/top-think/framework/tree/6.0"
             },
-            "time": "2022-01-21T06:31:07+00:00"
+            "time": "2022-02-20T15:36:08+00:00"
         },
         {
             "name": "topthink/think-captcha",
@@ -2317,12 +2317,12 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "think\\": "src"
-                },
                 "files": [
                     "src/common.php"
-                ]
+                ],
+                "psr-4": {
+                    "think\\": "src"
+                }
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [

@@ -64,7 +64,7 @@ class UploadService extends AbstractService
         $type = Request::param('type', 'file');
         $path = Request::param('path', 'uploads');
         $group_id = Request::param('group_id', 1);
-        $path = $path =='undefined'?'uploads':$path;
+        $pathSrc = $path =='undefined'?'uploads':$path;
         $editor = Request::param('editor', '');
         $save = Request::param('save', '');
         $files = request()->file();
@@ -81,7 +81,7 @@ class UploadService extends AbstractService
                     $attach = AttachModel::where('md5', $md5)->find();
                     if (!$attach) {
                         try {
-                            $savename = \think\facade\Filesystem::disk('public')->putFile($path, $vv);
+                            $savename = \think\facade\Filesystem::disk('public')->putFile($pathSrc, $vv);
                             $path = DS . 'storage' . DS . $savename;
                             $paths = trim($path, '/');
                             // 整合上传接口 获取视频音频长度

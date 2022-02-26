@@ -1,5 +1,5 @@
 @import url("../../common/css/iconfont.css");::-webkit-input-placeholder{color:#ccc;font-size:12px}
-::-webkit-scrollbar{width:8px !important;height:15px !important;background:#ffffff !important;cursor:pointer !important;overflow-y:auto}
+::-webkit-scrollbar{width:8px !important;height:10px !important;background:#ffffff !important;cursor:pointer !important;overflow-y:auto}
 ::-webkit-scrollbar-thumb{background-color:#9C9DA098;-webkit-border-radius:2em;-moz-border-radius:2em;border-radius:2em}
 ::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 5px rgba(240,240,240,.5) !important;border-radius:0 !important;background:rgba(240,240,240,0.5) !important;cursor:pointer !important}
 html{-ms-overflow-style:none;overflow:-moz-scrollbars-none}
@@ -54,9 +54,7 @@ body{background:#f1f4f6;padding:10px}
 .layui-form-item input[lay-filter=date] {padding-left:36px;}
 .layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 4px;font-size: 30px;color: #f44336;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #772c6a}
-/*.layui-table-box, .layui-table-body {*/
-/*    overflow: visible;*/
-/*}*/
+
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
 table.layui-table td .layui-form-select {
     margin-top: -10px;
