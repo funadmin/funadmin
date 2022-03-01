@@ -12,3 +12,4 @@
   "remove_file":["/temp","/.user.ini"],
   "enable_functions":["system","exec","putenv"]
 }
+
