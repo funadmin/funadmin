@@ -21,7 +21,7 @@ require.config({
         'toastr','step-lay','inputTags' ,'xmSelect',
         'timeago','multiSelect','selectPlus','selectN','cityPicker',
         'regionCheckBox','timePicker','croppers', 'moment',
-        'md5','fun','fu','form','table','upload','addons','Vue'],
+        'md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery

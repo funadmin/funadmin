@@ -706,7 +706,7 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 $where = $where || {};
                 $map = {where: $where}
                 layui.table.reload(tableId, $map, $deep);
-                if ($parent) {
+                if ($parent && parent.layer.getFrameIndex(window.name)) {
                     parent.layui.table.reload(tableId, {}, $deep)
                 }
             }, tableSearch: function (tableId) {
@@ -854,9 +854,9 @@ define(['jquery', 'timePicker',], function ($, timePicker) {
                 $(document).on('click', '[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     }else{
-                        Table.events.common($(this))
+                        Table.events.common(_that);
                     }
                 });
                 //重置按钮，重新刷新表格

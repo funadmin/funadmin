@@ -380,10 +380,16 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                 Fun.toastr.confirm(__(title), function () {
                     Fun.ajax({url: url, data: {ids: ids},}, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            if(layui.treeGrid){
-                                Table && layui.treeGrid.reload(tableId);
-                            }else {
+                            try {
+                                if(layui.treeGrid && layui.treeGrid.getDataList(tableId).length>0){
+                                    Table && layui.treeGrid.reload(tableId);
+                                }else {
+                                    Table && Table.api.reload(tableId)
+                                }
+                            } catch (err) {
+                                console.log(err)
                                 Table && Table.api.reload(tableId)
+                                //在此处理错误
                             }
                         })
                     }, function (res) {
