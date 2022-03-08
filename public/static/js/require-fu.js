@@ -351,6 +351,58 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                     })
                 }
             },
+            rate: function() {
+                var ratelist=[];
+                var list = document.querySelectorAll("*[lay-filter='rate']");
+                if (list.length > 0) {
+                    $.each(list, function(i) {
+                        var _that = $(this),id = _that.prop('id'),name=_that.data('name')
+                        options = _that.data('options');
+                        options.elem = '#' + id;
+                        options.value = _that.data('value');
+                        options.length = options.length?options.length:5;
+                        options.theme = options.theme==undefined?'#1E9FFF':options.length;
+                        options.readonly = options.readonly || options.disabled ? true:false;
+                        if(options.setText){
+                            options.setText = function(value){ //自定义文本的回调
+                                var arrs = options.setText;
+                                this.span.text(arrs[value] || ( value + __("Star")));
+                            }
+                        }
+                        options.choose = function(value){
+                            _that.parent('div').find('input[name="'+name+'"]').val(value)
+                        }
+                        ratelist[i] = layui.rate.render(options);
+                    })
+                }
+            },
+            slider: function() {
+                var sliderlist=[];
+                var list = document.querySelectorAll("*[lay-filter='slider']");
+                if (list.length > 0) {
+                    $.each(list, function(i) {
+                        var _that = $(this),id = _that.prop('id');
+                        var _that = $(this),id = _that.prop('id'),name=_that.data('name')
+                        options = _that.data('options');
+                        options.elem = '#' + id;
+                        options.value = _that.data('value');
+                        options.max = options.max?options.max:100;
+                        options.min = options.min?options.min:0;
+                        options.disabled = options.readonly || options.disabled ? true:false;
+                        options.input = options.input==undefined || options.input ?true:false;
+                        options.theme = options.theme==undefined?'#1E9FFF':options.theme;
+                        if(options.setTips){
+                            options.setTips = function(value){ //自定义文本的回调
+                                return value +  options.setTips;
+                            }
+                        }
+                        options.change = function(value){
+                            _that.parent('div').find('input[name="'+name+'"]').val(value)
+                        }
+                        sliderlist[i] = layui.slider.render(options)
+                    })
+                }
+            },
             addInput: function() {
                 $(document).on('click', ".addInput", function() {
                     var name = $(this).data('name'), verify = $(this).data('verify'),
@@ -376,6 +428,8 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 events.tags();
                 events.city();
                 events.date();
+                events.rate();
+                events.slider();
                 events.timepicker();
                 events.editor();
                 events.regionCheck();

@@ -499,7 +499,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 events.selectFiles() //选择文件页面类型
                 events.cropper() //上传
                 events.fu() //qita
-                events.events() //qita
+                events.events() //事件
                 events.bindevent(form);
                 //初始化数据
                 this.initForm();
