@@ -770,13 +770,13 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                 var data = {id: obj.value, field: v.field, value: checked,};
                                 Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                                     Fun.toastr.success(res.msg)
+                                    Table.api.reload(tableId)
                                 }, function (res) {
                                     obj.elem.checked = !checked;
                                     layui.form.render();
                                     Fun.toastr.error(res.msg)
                                 }, function () {
                                 })
-                                Table.api.reload(tableId)
                             })
                         }
                     })
