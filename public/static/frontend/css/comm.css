@@ -528,4 +528,4 @@ plugins
 .layui-form-item input[lay-filter=date] {padding-left:36px;}
 .layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 7px;font-size: 30px;color: #f44336;}
 .layui-upload-list li{display:inline-block}
-.layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;right:5px}
+.layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;}
