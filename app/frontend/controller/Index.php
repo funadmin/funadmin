@@ -13,6 +13,7 @@
 namespace app\frontend\controller;
 use addons\translate\common\Translate;
 use app\common\controller\Frontend;
+use app\common\service\PredisService;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\facade\Console;
