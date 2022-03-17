@@ -252,18 +252,17 @@
                     menuLeftfontColorHover: '#fff',
                 },  {
                     headerBg: '#fff',
-                    headerfontColor: '#000',
+                    headerfontColor: '#777',
                     headerBgThis: '#fff',
                     headerBgLogo: '#fff',
-                    headerLogofontColor: '#000',
+                    headerLogofontColor: '#777',
                     menuLeftBg: '#fff',
-                    menuLeftBgThis: '#fff',
-                    menuLeftBgHover: '#fff',
+                    menuLeftBgThis: '#eee',
+                    menuLeftBgHover: '#eee',
                     menuLeftDlBg: '#fff',
-                    menuLeftfontColor: 'rgb(0,0,0)',
-                    menuLeftfontColorHover: '#fff',
-                },
-
+                    menuLeftfontColor: '#777',
+                    menuLeftfontColorHover: '#000',
+                }
             ];
         var Backend = {
             /*** 版本*/
