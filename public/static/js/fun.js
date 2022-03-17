@@ -1,9 +1,13 @@
-/**
- @ www.funadmin.com
- @ Name：fun.js
- @ Author：yuege
- */
-/*** 后台总控制API*/
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
+// |  后台总控制API
+
 define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
     var layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
@@ -557,6 +561,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
+
                         try {
                             // 置顶当前窗口
                             parent.layui.layer.setTop(layero);
@@ -572,12 +577,10 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
                     } : success,
                     yes: yes === undefined ? function (index, layero) {
                         try {
-                            $(document).ready(function () {
-                                // 父页面获取子页面的iframe
+                            if(options.btn.length==1){layer.close(index);return false;}
+                            $(document).ready(function () {// 父页面获取子页面的iframe
                                 var body = layer.getChildFrame('body', index);
-                                if (parentiframe) {
-                                    body = parent.layer.getChildFrame('body', index);
-                                }
+                                if (parentiframe) {body = parent.layer.getChildFrame('body', index);}
                                 body.find('button[type="' + btns[0] + '"]').trigger('click');
                                 body.find('.layui-hide').hide();
                             })

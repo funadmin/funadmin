@@ -1,5 +1,5 @@
+/*index页面*/
 body .layui-form-onswitch{border:none;}
-
 #theme0 .layui-btn,
 #theme0 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme0 .layui-laypage .layui-laypage-curr .layui-laypage-em,
@@ -154,7 +154,24 @@ body .layui-form-onswitch{border:none;}
 #theme20 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme20 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme20 .layui-form-onswitch,
-#theme20 .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;}  #theme20 blockquote{border-left-color:#e82121 ;}
+#theme20 .fun-layer-class .layui-layer-title {background:#333  !important;color: #fff;}  #theme20 blockquote{border-left-color:#333 ;}
 #theme20 .layui-header .layui-layout-center li.layui-this{
-    background: #a22222;
+    background: #eee;
+}
+#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a {
+    color:#333;
+}
+#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{
+    color: #333!important;
+}
+#theme20 .layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover{
+    color: #333!important;
+}
+#theme20 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {
+    padding: 5px 0;
+    background-color: #fff!important;
+}
+#theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#0C0C0C!important}
+@media screen and (min-width:769px) {
+#theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#333!important}
 }

@@ -177,6 +177,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
             bindevent: function () {
                 Form.api.bindEvent($('form'), function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
+                        Form.api.close();
                         Fun.refreshmenu();
                         Fun.toastr.close();
                     }, 0));

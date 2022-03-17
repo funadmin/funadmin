@@ -6,7 +6,7 @@
     optimize: 'uglify', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','treeGrid','tableSelect', 'treeTable','tableEdit',
+        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
@@ -15,6 +15,7 @@
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
+        'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         // 'layui'         : 'plugins/layui/layui', // jquery
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',

@@ -12,7 +12,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     edit_url: 'auth.admin/edit',
                     add_full:{
                         type: 'open',
-                        class: 'layui-btn-sm layui-btn-green',
+                        class: 'layui-btn-sm',
                         url: 'auth.admin/add',
                         icon: 'layui-icon layui-icon-add-circle',
                         text: __('Add'),
@@ -23,7 +23,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     },
                     edit_full: {
                         type: 'open',
-                        class: 'layui-btn-xs layui-btn-green',
+                        class: 'layui-btn-xs layui-btn-primary layui-border-green',
                         url: 'auth.admin/edit',
                         icon: 'layui-icon layui-icon-edit',
                         text: __('Edit'),

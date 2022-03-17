@@ -7,7 +7,8 @@ use fun\auth\Api;
 use fun\auth\validate\ValidataBase;
 
 class Member extends Api
-{   
+{
+
     /**
      * 不需要鉴权方法
      * index、save不需要鉴权
@@ -24,7 +25,6 @@ class Member extends Api
      */
     public function index()
     {
-        $this->success('ok',input());
         //通用参数验证
         $validate = new ValidataBase();
         $validate->validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证

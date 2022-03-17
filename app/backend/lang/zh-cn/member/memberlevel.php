@@ -10,6 +10,7 @@ return [
         'Leveldiscount'                            =>"等级折扣 ",
         'Amount'                                   =>"金额 ",
         'Discount'                                 =>"折扣",
+        'Thumb'                                 =>"缩略图",
 
 
     ];

@@ -1,8 +1,12 @@
-/**
- @ www.funadmin.com
- @ Name：require-backend
- @ Author：yuege
- */
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
+
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
     urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
@@ -17,7 +21,7 @@ require.config({
     include: [
         'css','treeGrid','tableSelect',
         'treeTable','tableEdit','tableTree',
-        'iconPicker','iconFonts',
+        'iconPicker','iconFonts','tableFilter',
         'toastr','step-lay','inputTags' ,'xmSelect',
         'timeago','multiSelect','selectPlus','selectN','cityPicker',
         'regionCheckBox','timePicker','croppers', 'moment',
@@ -26,6 +30,7 @@ require.config({
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
+        'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',

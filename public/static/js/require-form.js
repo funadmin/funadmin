@@ -1,3 +1,12 @@
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
+
 define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tableSelect, Upload, Fu) {
     var Form = {
         init: {},
@@ -221,6 +230,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                     parent.layui.layer.close(index);
                 }
                 if (option.refreshTable !== false) {
+                    console.log(self !== top)
+                    console.log(parent.$('#' + option.refreshTable).length)
                     if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
                         if((parent.layui.treeGrid)){
                             parent.layui.treeGrid.reload(option.refreshTable, {}, true)

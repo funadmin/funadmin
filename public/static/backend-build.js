@@ -7,7 +7,7 @@
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
-        'css','treeGrid','tableSelect', 'treeTable','tableEdit',
+        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay',
         'inputTags','timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
@@ -17,6 +17,7 @@
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
+        'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',

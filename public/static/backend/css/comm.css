@@ -481,18 +481,19 @@ body .layui-form-onswitch{border:none;}
 #theme20 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme20 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme20 .layui-form-onswitch,
-#theme20 .fun-layer-class .layui-layer-title {background:#e82121!important;color: #fff;border:none;}  #theme20 blockquote{border-left-color:#e82121 ;}
-#theme20 .layui-input:focus, #theme20 .layui-textarea:focus {border-color: #e82121!important;}
-#theme20 .layui-laydate-main .layui-laydate-header{background: #e82121!important;}
-#theme20 .layui-laydate-main .layui-this{background: #e82121!important;}
-#theme20 .layui-laydate-footer span:hover{color: #e82121!important;}
-#theme20 .layui-form-radio>i:hover, #theme20 .layui-form-radioed>i, #theme20 .layui-form-checked i, #theme20 .layui-form-checked:hover i {color: #e82121;}
-#theme20 .layui-form-checked span,#theme20 .layui-form-checked:hover span{background: #e82121!important;}
-#theme20 .fun-layer-class .layui-layer-title {background:#e82121!important;color: #fff;}
-#theme20 .layui-form-select dl dd.layui-this{ background: #e82121!important;}
+#theme20 .fun-layer-class .layui-layer-title {background: #409EFF !important;color: #fff;border:none;}  #theme20 blockquote{border-left-color: #409EFF;}
+#theme20 .layui-input:focus, #theme20 .layui-textarea:focus {border-color: #409EFF!important;}
+#theme20 .layui-laydate-main .layui-laydate-header{background: #409EFF!important;}
+#theme20 .layui-laydate-main .layui-this{background: #409EFF!important;}
+#theme20 .layui-laydate-footer span:hover{color: #409EFF!important;}
+#theme20 .layui-form-radio>i:hover, #theme20 .layui-form-radioed>i, #theme20 .layui-form-checked i, #theme20 .layui-form-checked:hover i {color: #409EFF;}
+#theme20 .layui-form-checked span,#theme20 .layui-form-checked:hover span{background: #409EFF!important;}
+#theme20 .fun-layer-class .layui-layer-title {background:#409EFF!important;color: #fff;}
+#theme20 .layui-form-select dl dd.layui-this{ background: #409EFF!important;}
 #theme20 .multi  dl dd.layui-this{ background: none!important;}
 #theme20 .multi .layui-form-checked span, #theme20 .multi .layui-form-checked:hover span{background: none!important;}
-#theme20 .multi .layui-form-checked[lay-skin=primary] i{background: #e82121!important;}
+#theme20 .multi .layui-form-checked[lay-skin=primary] i{background: #409EFF!important;}
 #theme20 .multi .layui-form-radio>i:hover, #theme20 .multi .layui-form-radioed>i, #theme20 .multi .layui-form-checked i,
 #theme20 .multi .layui-form-checked:hover i{color: #fff}
+#theme20 .multi .layui-form-checked span,#theme20 .multi .layui-form-checked:hover span{background: #fff!important;}
 #theme20 .multi .layui-form-checked span,#theme20 .multi .layui-form-checked:hover span{background: #fff!important;}

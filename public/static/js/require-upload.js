@@ -1,3 +1,11 @@
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 define(["jquery", 'croppers'], function($, croppers) {
     var upload = layui.upload;
     var croppers = layui.croppers;

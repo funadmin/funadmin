@@ -1,3 +1,12 @@
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
+
 define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect', 'upload','selectN','selectPlus'
 ], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload, selectN,selectPlus) {
     var Fu = {
@@ -56,18 +65,18 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                     $.each(list, function(i) {
                         var id = $(this).prop('id'),
                             url = $(this).data('url')|| $(this).data('request'), lang = $(this).data('lang'), value = $(this).data('value'),
-                            data = $(this).data('data')||　[], parentfield = $(this).data('parentfield') || 'pid',
+                            data = $(this).data('data')||　[], parentfield =  $(this).data('parentfield') || 'pid',
                             tips = $(this).data('tips') ||  '请选择', searchTips = $(this).data('searchtips') || '请选择',
                             empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
                             paging = $(this).data('paging'), pageSize = $(this).data('pageSize'),
                             remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
-                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),
+                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow')==false ?false:true,
                             clickClose = $(this).data('clickClose'), prop = $(this).data('prop') || $(this).data('attr'),
                             max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
                             theme = $(this).data('theme') || '#6739b6', name = $(this).attr('name') || $(this).data('name') || 'pid',
                             style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                             layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
-                        var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar') || {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
+                        var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
                         var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote'))), props, propArr, options;
@@ -82,10 +91,15 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         };props = {
                             name: 'title',
                             value: "id"
+                        };selelectFields = {
+                            name: 'title',
+                            value: "id"
                         };if (prop) {
                             propArr = prop.split(',');
                             props.name = propArr[0];
-                            props.value = propArr[1]
+                            props.value = propArr[1];
+                            selelectFields = {name:props.name}
+                            selelectFields.value = propArr[1]== props.name  ?'id': propArr[1];
                         };lang = lang ? lang : 'zh';paging = paging === undefined || paging !== 'false';
                         pageSize = pageSize ? pageSize : 10;radio = !! radio;disabled = !! disabled;max = max ? max : 0;
                         clickClose = clickClose ? clickClose : false;create = !create ?
@@ -121,15 +135,13 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     })
                                 }
                             },
-                            paging: paging, pageSize: pageSize, autoRow: true, size: size,
+                            paging: paging, pageSize: pageSize, autoRow: autoRow, size: size,
                             repeat: repeat, height: height, max: max,
                             pageRemote: pageRemote, toolbar: toolbar, theme: {
                                 color: theme,
                             }, radio: radio, layVerify: layVerify, clickClose: clickClose,
                             maxMethod: function(val) {
-                                console.log(val)
                             }, on: function(data) {
-                                console.log(data)
                             }, create: create,
                         }
                         if (tree) options.tree = tree;
@@ -139,14 +151,15 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         if (content) options.content = content;
                         xmselect[i] = xmSelect.render(options)
                         if(data.toString()==='' && url){
+                            searchData = {selectFields:selelectFields,tree:tree||false,parentfield:parentfield}
                             Fun.ajax({
                                 method:'GET',
                                 url:Fun.url(url),
-                                data:{selectFields:props,tree:tree||false,parentField:parentfield}
+                                data:searchData
                             },function (res) {
                                 xmselect[i].update({
                                     data: res.data,
-                                    autoRow: true,
+                                    autoRow: autoRow,
                                 })
                             },function(res){
                                 console.log(res);

@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function ($,Table,Form) {
+define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilter) {
     let Controller = {
         /**
          * 会员等级
@@ -20,18 +20,32 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     export_url: 'member.member/export',
                 }
             };
+            //表格过滤示例
+            var tableFilterInit = layui.tableFilter.render({
+                elem: '#' + Table.init.table_elem,
+                'mode' : 'api',
+                'filters' : [
+                    {field: 'name', type:'checkbox'},
+                    {field: 'amount', type:'input'},
+                    {field: 'discount', type:'input'},
+                ],
+                'done': function(filters){
+
+                }
+            });
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
+                rowDouble:false,
                 toolbar: ['refresh','add','destroy','export','recycle'],
                 size:'lg',
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('Id'), width: 80, sort: true},
-                    {field: 'name', title: __('Levelname'), width: 120, sort: true},
-                    {field: 'thumb', title: __('缩略图'), width: 120, sort: true, templet: Table.templet.image},
+                    {field: 'name', title: __('Levelname'), width: 120, sort: true,filter:'xmSelect',extend:' data-url="member.memberLevel/index" data-tree="false" data-autorow="false" data-prop="name,name"'},
+                    {field: 'thumb', title: __('thumb'), width: 120, sort: true, templet: Table.templet.image},
                     {field: 'amount', title: __('Levelmoney'), width: 150, sort: true},
                     {field: 'discount', title: __('Leveldiscount'), width: 180, sort: true},
                     {field: 'description', title: __('Leveldesc'), width: 150, sort: true},
@@ -41,7 +55,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('Createtime'), width: 180,search: false},
+                    {field: 'create_time', title: __('Createtime'), width: 180,search: 'range'},
                     {field: 'update_time', title: __('Updatetime'), width: 180,search: false},
                     {
                         minwidth: 250,
@@ -52,6 +66,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         operat: ['edit', 'destroy',]
                     }
                 ]],
+                done: function(res, curr, count){
+                    tableFilterInit.reload()
+                },
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
                 page: true

@@ -9,8 +9,10 @@ use think\facade\Request;
  */
 class JwtToken extends TokenApi
 {
+    protected $appid = 'funadmin';
 
-    public $appsecret = 123456;
+    protected $appsecret = '692ffa52429dd7e2b1df280be0f8c83f';
+
     public function __construct(Request $request)
     {
         parent::__construct($request);

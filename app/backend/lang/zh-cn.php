@@ -53,6 +53,7 @@ return [
     'Ip'  =>  'ip地址',
     'Yes'  =>  '是',
     'No'  =>  '否',
+    'All'  =>  '全部',
     'MOVE'  =>  '移动',
     'SelectFiles'=>'选择文件',
     'Mobile'  =>  '手机号',

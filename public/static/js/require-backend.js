@@ -1,8 +1,13 @@
-/**
- @ www.funadmin.com
- @ Name：require-backend
- @ Author：yuege
- */
+// +----------------------------------------------------------------------
+// | FunAdmin极速开发框架后台模板 [基于layui开发]
+// +----------------------------------------------------------------------
+// | Copyright (c) 2020-2030 http://www.funadmin.com
+// +----------------------------------------------------------------------
+// | git://github.com/funadmin/funadmin.git 994927909
+// +----------------------------------------------------------------------
+// | Author: yuege <994927909@qq.com> Apache 2.0 License Code
+
+
 var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
 require.config({
     urlArgs: 'v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime())),
@@ -15,7 +20,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect','treeTable','tableEdit',
+        'css','treeGrid','tableSelect','treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags',
         'timeago','multiSelect','cityPicker', 'selectPlus','selectN', 'xmSelect',
         'regionCheckBox','timePicker','croppers', 'moment',
@@ -25,6 +30,7 @@ require.config({
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
         //layui等组件
         // 'cardTable'     : 'plugins/lay-module/cardTable/cardTable',
+        'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
@@ -65,6 +71,9 @@ require.config({
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data',
                 'css!plugins/lay-module/cityPicker/city-picker.css'],
+        },
+        'tableFilter':{
+            deps: ['css!plugins/lay-module/tableFilter/tableFilter.css'],
         },
         'inputTags':{
             deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
