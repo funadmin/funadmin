@@ -20,8 +20,8 @@ return [
     'expires' => 3600 * 24,//token有效期
     'responseType' => 'json',
     'authapp' => false,//是否启用appid;
-    'driver'        =>'mysql',//缓存或数据驱动;//redis//mysql
-    'redisTokenKey'        =>'AccessToken:',//缓存键名
+    'driver'        =>'redis',//缓存或数据驱动;//redis//mysql
+    'redisTokenKey'  =>'AccessToken:',//缓存键名
     'redisRefreshTokenKey'        =>'RefreshAccessToken:',//缓存键名
 
 ];
