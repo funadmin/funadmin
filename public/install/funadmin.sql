@@ -824,7 +824,7 @@ CREATE TABLE `fun_oauth2_client` (
 --
 
 INSERT INTO `fun_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-    (1, 0, 'FunAdmin', 'FunAdmin', '123456', '', '', '', 1, 0, 0, 0);
+    (1, 0, 'FunAdmin', 'funadmin', '692ffa52429dd7e2b1df280be0f8c83f', '', '', '', 1, 0, 0, 0);
 
 -- --------------------------------------------------------
 
