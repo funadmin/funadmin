@@ -12,9 +12,9 @@ require.config({
     urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
     packages: [
         {
-            name: 'moment',
-            location: 'plugins/moment',
-            main: 'moment'
+            name: 'dayjs',
+            location: 'plugins/dayjs',
+            main: 'dayjs.min'
         }
     ],
     baseUrl: BASE_URL,
@@ -24,7 +24,7 @@ require.config({
         'iconPicker','iconFonts','tableFilter',
         'toastr','step-lay','inputTags' ,'xmSelect',
         'timeago','multiSelect','selectPlus','selectN','cityPicker',
-        'regionCheckBox','timePicker','croppers', 'moment',
+        'regionCheckBox','timePicker','croppers',
         'md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
@@ -50,7 +50,6 @@ require.config({
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
-        'moment'        : 'plugins/moment/moment',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',

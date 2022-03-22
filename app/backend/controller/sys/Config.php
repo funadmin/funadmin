@@ -149,6 +149,7 @@ class Config extends Backend {
                 } catch (\Exception $e) {
                     $this->error(lang('Save Failed'));
                 }
+                Cache::clear();
                 $save ? $this->success(lang('Save Success')) : $this->error(lang('Save Failed'));
             }
         }

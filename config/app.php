@@ -52,7 +52,7 @@ return [
     // 显示错误信息
     'show_error_msg'   => true,
     //版本
-    'version' => '2.2.20220317',
+    'version' => '2.2.20220322',
 
     'ip_check'=>false,
 ];

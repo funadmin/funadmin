@@ -14,6 +14,7 @@
 namespace app\backend\controller\member;
 
 use app\common\controller\Backend;
+use app\common\model\Provinces;
 use app\common\traits\Curd;
 use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use think\facade\Request;
@@ -31,6 +32,15 @@ class Member extends Backend
     {
         parent::__construct($app);
         $this->modelClass = new MemberModel();
+    }
+
+    public function getcitys(){
+        if($this->request->isAjax()) {}{
+            $pid = $this->request->param('pid',0);
+            $citys = Provinces::where('pid',$pid)->order('id desc')->field('id,name,pid')
+                ->cache('provinces.'.$pid,3600*24)->select()->toArray();
+            $this->success('','',$citys);
+        }
     }
     public function getgroup(){
         if($this->request->isAjax()) {}{

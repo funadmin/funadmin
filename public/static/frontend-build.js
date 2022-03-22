@@ -9,8 +9,8 @@
         'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN',
-        'regionCheckBox','timePicker','croppers',
-        'moment','md5','fun','form','fu', 'table','upload'],
+        'regionCheckBox','timePicker','croppers', 'dayjs',
+        'md5','fun','form','fu', 'table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
@@ -35,8 +35,8 @@
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
-        'moment'        : 'plugins/moment/moment',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
+        'dayjs'         : 'plugins/dayjs/dayjs.min',
         //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展

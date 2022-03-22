@@ -55,7 +55,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                 field: attr, selected: values, method: method,search:search,num:num,
                                 delimiter: delimiter,last:last
                             };
-                        selectn[i] =  selectN(options);
+                        selectn[i] =  selectN(options).render();
                     })
                 }
             },

@@ -5,6 +5,9 @@
     {:form_input('email','text',['verify'=>'email'])}
     {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level','multiple'=>1] ,'id,name')}
     {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group',] ,'id,name')}
+    {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}
+<!--    示例-->
+    {:form_selectn('city_ids',[],['url'=>__u('member.member/getcitys'),'multiple'=>1,'verify'=>'required'],'id,name',$formData?$formData['city_ids']:'')}
     {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex'],1)}
     {:form_submitbtn()}
 </form>

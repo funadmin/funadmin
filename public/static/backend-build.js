@@ -11,7 +11,7 @@
         'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay',
         'inputTags','timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
-        'moment', 'backend','md5','fun','fu', 'form','table','upload'
+        'dayjs', 'backend','md5','fun','fu', 'form','table','upload'
     ],
     paths: {
         'lang'          : 'empty:',
@@ -37,7 +37,7 @@
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
-        'moment'        : 'plugins/moment/moment',
+        'dayjs'         : 'plugins/dayjs/dayjs.min',
         //自定义
         'backend'       : 'plugins/lay-module/fun/backend.min', // fun后台扩展
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展

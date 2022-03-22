@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment) {
+define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
     var layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
     layui.layer.config({
@@ -656,7 +656,7 @@ define(["jquery", "lang", 'toastr', 'moment'], function ($, Lang, Toastr, Moment
     //初始化
     window.__ = Fun.lang;
     window.Toastr = Toastr;
-    window.Moment = Moment;
+    window.Dayjs = Dayjs;
     window.Fun = Fun;
     window.Fun.init();
     return Fun;

@@ -169,10 +169,10 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 if (d.field !== false && d.search !== false) {
                     switch (d.search) {
                         case true:
-                            formHtml += '<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' ;
-                            if(d.filter && d.filter.toLowerCase() =='xmselect'){
-                                d.searchOp='in';
-                                formHtml += '<div ' +d.extend +' lay-filter="'+d.filter+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="'+d.class+'"></div>\n';
+                            formHtml += '<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
+                            if (d.filter && d.filter.toLowerCase() == 'xmselect') {
+                                d.searchOp = 'in';
+                                formHtml += '<div ' + d.extend + ' lay-filter="' + d.filter + '" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             }else{
                                 formHtml += '<input ' +d.extend +' lay-filter="'+d.filter+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
                             }
