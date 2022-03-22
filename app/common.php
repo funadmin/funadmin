@@ -56,6 +56,21 @@ if (!function_exists('__u')) {
     }
 }
 
+/**多语言函数*/
+if (!function_exists('__')) {
+    function __($str, $vars = [], $lang = '')
+    {
+        if (is_numeric($str) || empty($str)) {
+            return $str;
+        }
+        if (!is_array($vars)) {
+            $vars = func_get_args();
+            array_shift($vars);
+            $lang = '';
+        }
+        return \think\facade\Lang::get($str, $vars, $lang);
+    }
+}
 if (!function_exists("_getProvicesByPid")) {
     function _getProvicesByPid($pid = 0)
     {
