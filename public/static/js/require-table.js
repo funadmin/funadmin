@@ -832,7 +832,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 }
             },
             selects: function (options) {
-                console.log(options)
                 url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 cols = options.cols[0] || {};
                 tableId = options.id || Table.init.tableId;
