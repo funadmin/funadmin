@@ -59,7 +59,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         width: 120,
                         search: 'select',
                         selectList: {0: __('Secret'), 1: __('Male'), 2: __('Female')},
-                        templet: Table.templet.select,
+                        templet: Table.templet.selects,
                         tips: __('Female')+'|'+  __('Male')
                     },
                     {

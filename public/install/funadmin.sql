@@ -435,7 +435,7 @@ CREATE TABLE `fun_config` (
 --
 
 INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
-                                                                                                                                                                       (1, 'site_name', '', 'FUN管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
+                                                                                                                                                                       (1, 'site_name', '', 'FunAdmin管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
                                                                                                                                                                        (2, 'site_phone', '', '3', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
                                                                                                                                                                        (3, 'site_state', '', '1', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
                                                                                                                                                                        (4, 'site_logo', '', 'https://funcdn.funadmin.com/storage/uploads/20210728/ee2945775d13f6aff511307d689037d7.png', '网站logo图1', '0', 'image', 'site', 1, 1, 0, 1603438560, 0),
