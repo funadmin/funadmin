@@ -119,18 +119,19 @@ body .layui-site-mobile {display: none}
     height: 60px;
     overflow: hidden;
     background-color: #20222A;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15)
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
+    vertical-align: middle;
 }
-
 .layui-layout-admin .layui-logo img {
-    height: 30px
+    height: 50px;
 }
 .layui-layout-admin .layui-logo cite {
-    font-style: normal;
     display: inline-block;
     text-align: center;
     transition: all .3s !important;
-    color: #fff
+    color: #fff;
+    font-size:20px;
+    vertical-align: middle;
 }
 
 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {

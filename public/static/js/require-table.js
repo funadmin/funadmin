@@ -59,6 +59,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     })
                     Table.timeRender(cols)
                     layui.form.render()
+                    Fu.events.xmSelect();
                 });
                 layui.form.render()
             }
@@ -315,6 +316,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 }
                 if (d.imageHeight === undefined && (d.templet === Table.templet.image || d.templet === Table.templet.images)) {
                     newclos[i]['imageHeight'] = 40
+                    newclos[i]['templet'] = Table.templet.image;
                 }
                 if (d.selectList !== undefined && d.search === undefined) {
                     newclos[i]['search'] = 'select'
@@ -371,16 +373,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
                 ele.title = ele.title || ele.field;
-                ele.field = ele.filter || ele.field || null;
-                var src = eval('d.' + ele.field);
-                src = src ? src : '/static/common/images/image.gif';
-                title = d[ele.title];
-                return '<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + src + '" title="' + title + '"  lay-event="photos" alt="">'
-            }, images: function (d) {
-                var ele = $(this)[0];
-                ele.imageWidth = ele.imageWidth || 40;
-                ele.imageHeight = ele.imageHeight || 40;
-                ele.title = ele.title || ele.field;
                 var src = eval('d.' + ele.field);
                 src = src ? src : '/static/common/images/image.gif';
                 title = d[ele.title];
@@ -422,7 +414,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             }, url: function (d) {
                 var ele = $(this)[0];
                 var value = Table.templet.resolution(d, ele);
-                return '<a class="layui-table-url layui-btn-normal layui-btn layui-btn-xs" href="' + value + '" target="_blank" class="label bg-green"> <i class="layui-icon layui-icon-link"></i>  </a>'
+                html = '';
+                if(value){
+                    value = value.split(',');
+                    for(var i=0;i<value.length;i++){
+                        html+='<a class="layui-table-url layui-btn-normal layui-btn layui-btn-xs" href="' + value[i] + '" target="_blank" class="label bg-green"> <i class="layui-icon layui-icon-link"></i>  </a>'
+                    }
+                }
+                return html;
             }, icon: function (d) {
                 var ele = $(this)[0];
                 var icon = Table.templet.resolution(d, ele);
