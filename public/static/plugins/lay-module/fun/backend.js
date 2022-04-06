@@ -1008,7 +1008,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     $document.on('mouseover click','.layui-nav-header .layui-nav li>a',function (){
                         $(this).parent('li').siblings().children('.layui-nav-child').removeClass('layui-show');
                     })
-                    $("body").on("click", "a[lay-id]", function () {
+                    //打开窗口
+                    $("body").on("click", "*[lay-id]", function () {
                         var _that = $(this),target = _that.prop('target')
                             , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                             , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')
