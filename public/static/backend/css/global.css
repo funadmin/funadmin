@@ -1,7 +1,6 @@
-.layui-btn-primary:hover{border-color: #409EFF;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color:#409EFF}
 .layui-form-onswitch,.layui-laypage .layui-laypage-curr .layui-laypage-em{background-color:#409EFF;}
-.layui-elem-quote{border-left: 5px solid #772c6a}
+.layui-elem-quote{border-left: 5px solid #409EFF}
 .layui-bg-yellow{background-color:#E6A23C;}
 .layui-bg-pink{background-color:#FF69B4;}
 .layui-bg-purple{background-color:#A020F0;}

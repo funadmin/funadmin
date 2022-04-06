@@ -13,10 +13,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
         init: {},
         events: {
             selectplus:function() {
-                var selectplus ={},list = document.querySelectorAll("*[lay-filter='selectPlus']");
+                var selectplus ={},list = $("*[lay-filter='selectPlus']");
                 if (list.length > 0) {
                     selectPlus = layui.selectPlus || parent.layui.xmSelect;
-                    $.each(list, function(i) {
+                    layui.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
                             url = $(this).data('url')|| $(this).data('request'),
                             data = $(this).data('data')||　[], type = $(this).attr('multiple')?'checkbox':'radio',
@@ -35,10 +35,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             selectn:function() {
-                var selectn ={},list = document.querySelectorAll("*[lay-filter='selectN']");
+                var selectn ={},list = $("*[lay-filter='selectN']");
                 if (list.length > 0) {
                     selectN = layui.selectN || parent.layui.selectN;
-                    $.each(list, function(i) {
+                    layui.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
                             url = $(this).data('url') || $(this).data('request'),
                             data = $(this).data('data')||　'',
@@ -60,9 +60,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             xmSelect: function() {
-                var xmselect ={},list = document.querySelectorAll("*[lay-filter='xmSelect']");
+                var xmselect ={},list = $("*[lay-filter='xmSelect']");
                 if (list.length > 0) {
-                    $.each(list, function(i) {
+                    layui.each(list, function(i) {
                         var id = $(this).prop('id'),
                             url = $(this).data('url')|| $(this).data('request'), lang = $(this).data('lang'), value = $(this).data('value'),
                             data = $(this).data('data')||　[], parentfield =  $(this).data('parentfield') || 'pid',
@@ -73,7 +73,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow')==false ?false:true,
                             clickClose = $(this).data('clickClose'), prop = $(this).data('prop') || $(this).data('attr'),
                             max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
-                            theme = $(this).data('theme') || '#6739b6', name = $(this).attr('name') || $(this).data('name') || 'pid',
+                            theme = $(this).data('theme') || '#409EFF', name = $(this).attr('name') || $(this).data('name') || 'pid',
                             style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                             layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
                         var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
@@ -169,9 +169,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             editor: function() {
-                var list = document.querySelectorAll("*[lay-filter='editor']");
+                var list = $("*[lay-filter='editor']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                             var id = $(this).prop('id');
                             var name = $(this).prop('name');
@@ -188,9 +188,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             tags: function() {
-                var list = document.querySelectorAll("*[lay-filter='tags']");
+                var list = $("*[lay-filter='tags']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var _that = $(this),
                             content = [];
                         var tag = _that.parents('.tags').find('input[type="hidden"]').val();
@@ -206,9 +206,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             icon: function() {
-                var list = document.querySelectorAll("*[lay-filter='iconPickers']");
+                var list = $("*[lay-filter='iconPickers']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var _that = $(this);
                         var id = _that.prop('id');
                         layui.iconPicker.render({
@@ -226,9 +226,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             color: function() {
-                var list = document.querySelectorAll("*[lay-filter='colorPicker']");
+                var list = $("*[lay-filter='colorPicker']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var _that = $(this);
                         var id = _that.prop('id');
                         var color = _that.prev('input').val();
@@ -247,9 +247,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             regionCheck: function() {
-                var list = document.querySelectorAll("*[lay-filter='regionCheck']");
+                var list = $("*[lay-filter='regionCheck']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var _that = $(this);
                         var id = _that.prop('id'),
                             name = _that.prop('name');
@@ -277,10 +277,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             city: function() {
-                var list = document.querySelectorAll("*[lay-filter='cityPicker']");
+                var list = $("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
                     cityPicker = layui.cityPicker;
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var id = $(this).prop('id'),
                             name = $(this).prop('name');
                         var provinceId = $(this).data('provinceid'),
@@ -318,9 +318,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             timepicker: function() {
-                var list = document.querySelectorAll("*[lay-filter='timePicker']");
+                var list = $("*[lay-filter='timePicker']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var id = $(this).prop('id');
                         layui.timePicker.render({
                             elem: '#' + id,
@@ -334,9 +334,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             date: function() {
-                var list = document.querySelectorAll("*[lay-filter='date']");
+                var list = $("*[lay-filter='date']");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         var format = $(this).data('format'),
                             type = $(this).data('type'),
                             range = $(this).data('range');
@@ -366,9 +366,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
             },
             rate: function() {
                 var ratelist=[];
-                var list = document.querySelectorAll("*[lay-filter='rate']");
+                var list = $("*[lay-filter='rate']");
                 if (list.length > 0) {
-                    $.each(list, function(i) {
+                    layui.each(list, function(i) {
                         var _that = $(this),id = _that.prop('id'),name=_that.data('name')
                         options = _that.data('options');
                         options.elem = '#' + id;
@@ -391,9 +391,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
             },
             slider: function() {
                 var sliderlist=[];
-                var list = document.querySelectorAll("*[lay-filter='slider']");
+                var list = $("*[lay-filter='slider']");
                 if (list.length > 0) {
-                    $.each(list, function(i) {
+                    layui.each(list, function(i) {
                         var _that = $(this),id = _that.prop('id');
                         var _that = $(this),id = _that.prop('id'),name=_that.data('name')
                         options = _that.data('options');

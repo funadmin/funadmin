@@ -2,94 +2,115 @@ html {
     color: #666;
     font: 14px Helvetica Neue, Helvetica, PingFang SC, Tahoma, Arial, sans-serif
 }
-[lay-ajax], [lay-href], [lay-tips], [lay-url] {cursor: pointer}
-body .layui-layer-content,
-.layui-layer.layui-layer-dialog .layui-layer-btn {text-align: center}
+
+[lay-ajax], [lay-href], [lay-tips], [lay-url] {
+    cursor: pointer
+}
+
+body .layui-layer-content, .layui-layer.layui-layer-dialog .layui-layer-btn {
+    text-align: center
+}
+
 body .layui-blue {
-    color: #00c0ef!important
+    color: #00c0ef !important
 }
+
 body .layui-red {
-    color: #dd4b39!important
+    color: #dd4b39 !important
 }
+
 body .layui-yellow {
-    color: #f39c12!important
+    color: #f39c12 !important
 }
-body .fun-layer-class .layui-layer-title { background: #1aa094;color: #fff;border: none}
-body .fun-layer-class .layui-layer-btn a {background: #333}
-body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
-    background: #999
-}
-body .layui-site-mobile {display: none}
-.layui-layer.layui-layer-dialog .layui-layer-btn a {
-    background-color: #95a5a6;
+
+body .fun-layer-class .layui-layer-title {
+    background: radial-gradient(circle, rgba(247, 150, 192, 1) 0%, rgba(118, 174, 241, 1) 100%) !important;
     color: #fff !important;
-    height: 31px;
-    margin-top: 0;
-    border-color: #95a5a6;
-    border: 1px solid transparent;
+    border-bottom: none
 }
-.layui-layer.layui-layer-dialog .layui-layer-btn0 {
-    background-color: #1aa094!important
+
+body .fun-layer-class .layui-layer-btn a {
+    background: linear-gradient(0deg, rgba(0, 172, 238, 1) 0%, rgba(2, 126, 251, 1) 100%) !important;
+    border-radius: 3px;
+    border: none;
+    height: 32px;
+    line-height: 32px
 }
+
+body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
+    background: #ccccccab !important
+}
+
 .layui-layout-admin .layui-header {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%
 }
+
 .layui-header .layui-nav .layui-nav-item.layui-this {
     transition: all .3s
 }
+
 .layui-header .layui-nav {
     padding: 0 !important
 }
+
 .layui-header .layui-layout-left {
     left: 255px
 }
+
 .layui-header .layui-layout-left {
     position: absolute !important;
     top: 0;
     left: 220px
 }
+
 .layui-header .layui-layout-center {
-    position:absolute; top:0;left:280px;
-}
-.layui-header .layui-layout-center li.layui-this{
-    background: #eee;
-}
-.layui-header .layui-layout-nav {
-    animation:nav .5s ;
-    -webkit-animation:nav .5s ; /* Safari 和 Chrome */
-    left: 120px;
-}
-@keyframes nav
-{
-    from {left:280px;}
-    to {left:120px}
+    position: absolute;
+    top: 0;
+    left: 280px
 }
 
-@-webkit-keyframes nav /*Safari and Chrome*/
-{
-    from {left:280px;}
-    to {left:120px}
+.layui-header .layui-layout-center li.layui-this {
+    background: #eee
 }
-.layui-header .layui-nav .layui-nav-item,
-.layui-layout-admin .layui-header .layui-tool,
-.layui-layout-admin .layui-layout-left,
-.layui-pagetabs,
-.layui-layout-admin .layui-body,
-.layui-layout-admin .layui-footer,
-.layui-layout-admin .layui-side,
-.layui-layout-admin .layui-logo,
-.layui-layout-admin .layui-header .layui-layout-right {
+
+.layui-header .layui-layout-nav {
+    animation: nav .5s;
+    -webkit-animation: nav .5s;
+    left: 120px
+}
+
+@keyframes nav {
+    from {
+        left: 280px
+    }
+    to {
+        left: 120px
+    }
+}
+
+@-webkit-keyframes nav {
+    from {
+        left: 280px
+    }
+    to {
+        left: 120px
+    }
+}
+
+.layui-header .layui-nav .layui-nav-item, .layui-layout-admin .layui-header .layui-tool, .layui-layout-admin .layui-layout-left, .layui-pagetabs, .layui-layout-admin .layui-body, .layui-layout-admin .layui-footer, .layui-layout-admin .layui-side, .layui-layout-admin .layui-logo, .layui-layout-admin .layui-header .layui-layout-right {
     transition: all .3s;
     -webkit-transition: all .3s;
     padding: 0;
     text-align: left
 }
-.layui-nav .layui-nav-child dd:hover{
-    cursor: pointer;
+
+.layui-nav .layui-nav-child dd:hover {
+    cursor: pointer
 }
+
 .layui-header .layui-tool {
     height: 100%;
     line-height: 60px;
@@ -104,8 +125,9 @@ body .layui-site-mobile {display: none}
 .layui-header .layui-tool a {
     color: #fff
 }
+
 .layui-layout-admin .layui-header ul li dl dd a {
-    color: #595959!important
+    color: #595959 !important
 }
 
 .layui-layout-admin .layui-logo {
@@ -120,29 +142,31 @@ body .layui-site-mobile {display: none}
     overflow: hidden;
     background-color: #20222A;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
-    vertical-align: middle;
+    vertical-align: middle
 }
+
 .layui-layout-admin .layui-logo img {
-    height: 50px;
+    height: 50px
 }
+
 .layui-layout-admin .layui-logo cite {
     display: inline-block;
     text-align: center;
     transition: all .3s !important;
     color: #fff;
-    font-size:20px;
-    vertical-align: middle;
+    font-size: 20px;
+    vertical-align: middle
 }
 
-.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {
-    padding: 5px 0;
+.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
+    padding: 0px 0
 }
 
-.layui-nav-tree>.layui-nav-item:hover>a:before {
+.layui-nav-tree > .layui-nav-item:hover > a:before {
     bottom: 0
 }
 
-.layui-nav-tree>.layui-nav-item>a:before {
+.layui-nav-tree > .layui-nav-item > a:before {
     content: "";
     position: absolute;
     top: 0;
@@ -154,8 +178,8 @@ body .layui-site-mobile {display: none}
     transition: all .3s ease
 }
 
-.layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover {
-    color: #fff!important
+.layui-nav-itemed > a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover {
+    color: #fff !important
 }
 
 .layui-side-shrink .layui-layout-admin .layui-logo cite {
@@ -195,8 +219,7 @@ body .layui-site-mobile {display: none}
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
-    padding-left: 35px;
-    padding-right: 30px
+    padding: 5px 35px 5px 30px
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
@@ -219,20 +242,22 @@ body .layui-site-mobile {display: none}
     padding-left: 95px
 }
 
-.layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {
+.layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
     padding: 5px 0
 }
 
-.layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this>a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
+.layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this > a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
     background-color: #009688 !important
 }
-.layui-header .layui-nav .layui-this::after{
-    background-color:transparent !important;
+
+.layui-header .layui-nav .layui-this::after {
+    background-color: transparent !important
 }
+
 .layui-header .layui-nav-bar {
     background-color: #191a23;
     height: 2px;
-    top: 0!important
+    top: 0 !important
 }
 
 .layui-layout-admin .layui-pagetabs {
@@ -299,7 +324,7 @@ body .layui-site-mobile {display: none}
     line-height: 40px
 }
 
-.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-item>a {
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-item > a {
     height: 40px
 }
 
@@ -313,8 +338,7 @@ body .layui-site-mobile {display: none}
     right: 0
 }
 
-.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this,
-.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this a {
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this, .layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-child dd.layui-this a {
     background-color: #f2f2f2 !important;
     color: #333
 }
@@ -326,13 +350,12 @@ body .layui-site-mobile {display: none}
     top: -4px
 }
 
-.layui-nav-tree .layui-nav-itemed>a>.layui-nav-more {
+.layui-nav-tree .layui-nav-itemed > a > .layui-nav-more {
     -ms-transform: rotate(-180deg);
     -moz-transform: rotate(-180deg);
     -webkit-transform: rotate(-180deg);
     -o-transform: rotate(-180deg);
-    transform: rotate(-180deg);
-    /*margin-top: auto*/
+    transform: rotate(-180deg)
 }
 
 .layui-nav-tree .layui-nav-more {
@@ -355,8 +378,7 @@ body .layui-site-mobile {display: none}
     transition: all .3s ease
 }
 
-.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-more,
-.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-bar {
+.layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-more, .layui-layout-admin .layui-tabs-select.layui-nav .layui-nav-bar {
     display: none
 }
 
@@ -366,12 +388,12 @@ body .layui-site-mobile {display: none}
     right: 80px;
     background: #fff
 }
+
 .layui-layout-admin .layui-tab-title i {
-    vertical-align: middle;
+    vertical-align: middle
 }
 
-.layui-layout-admin .layui-tab-title li:hover,
-.layui-pagetabs .layui-tab-title li.layui-this {
+.layui-layout-admin .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
     background-color: #f6f6f6;
     border-top: 1px
 }
@@ -386,8 +408,7 @@ body .layui-site-mobile {display: none}
     vertical-align: top
 }
 
-.layui-pagetabs .layui-tab-title li:hover,
-.layui-pagetabs .layui-tab-title li.layui-this {
+.layui-pagetabs .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
     background-color: rgba(0, 0, 0, 0.02);
     color: #18bc9c !important
 }
@@ -479,19 +500,19 @@ body .layui-site-mobile {display: none}
     width: 60px !important;
     left: 0
 }
-/*去掉省略号*/
 
-.layui-nav-tree.header li>a{
+.layui-nav-tree.header li > a {
     text-overflow: unset;
     overflow: hidden;
-    white-space: normal;
+    white-space: normal
 }
+
 .layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
     line-height: 40px;
     height: 40px;
     text-overflow: unset;
     overflow: hidden;
-    white-space: normal;
+    white-space: normal
 }
 
 .layui-side-shrink .layui-layout-admin .layui-logo {
@@ -501,18 +522,15 @@ body .layui-site-mobile {display: none}
     overflow: hidden
 }
 
-.layui-side-shrink .layui-layout-admin .layui-layout-left,
-.layui-side-shrink .layui-layout-admin .layui-body,
-.layui-side-shrink .layui-layout-admin .layui-footer {
-    left: 0;
+.layui-side-shrink .layui-layout-admin .layui-layout-left, .layui-side-shrink .layui-layout-admin .layui-body, .layui-side-shrink .layui-layout-admin .layui-footer {
+    left: 0
 }
 
 .layui-side-shrink .layui-pagetabs {
     left: 60px
 }
 
-.layui-side-shrink .layui-side-menu .layui-nav-item cite,
-.layui-side-shrink .layui-header .layui-layout-left {
+.layui-side-shrink .layui-side-menu .layui-nav-item cite, .layui-side-shrink .layui-header .layui-layout-left {
     left: 60px
 }
 
@@ -531,11 +549,12 @@ body .layui-site-mobile {display: none}
     -webkit-transition: width .3s;
     transition: width .3s
 }
-/*---*/
-.layui-nav-tree .layui-nav-item>a .layui-nav-more{
-    padding:0;
+
+.layui-nav-tree .layui-nav-item > a .layui-nav-more {
+    padding: 0
 }
-.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item>a .layui-nav-more {
+
+.layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item > a .layui-nav-more {
     display: none !important
 }
 
@@ -569,9 +588,9 @@ body .layui-site-mobile {display: none}
     left: 60px;
     padding: 5px;
     min-width: 150px;
-    display: block!important;
-    background: transparent!important;
-    border-radius: 4px;
+    display: block !important;
+    background: transparent !important;
+    border-radius: 4px
 }
 
 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover .layui-nav-child-drop:before {
@@ -584,11 +603,11 @@ body .layui-site-mobile {display: none}
     top: 0;
     border-radius: 4px;
     background: #191a23;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1)
 }
 
 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite {
-    display: inline-block!important;
+    display: inline-block !important;
     color: #f0f0f0
 }
 
@@ -630,45 +649,32 @@ body .layui-site-mobile {display: none}
     -webkit-transform: translate(-50%, -50%)
 }
 
-.fun-loading .loading>span,
-.signal-loader>span {
+.fun-loading .loading > span, .signal-loader > span {
     background-color: #00a65a;
     display: inline-block
 }
 
-.fun-loading .loading>span:nth-child(1),
-.loading.sm>span:nth-child(1),
-.signal-loader>span:nth-child(1),
-.signal-loader.sm>span:nth-child(1) {
+.fun-loading .loading > span:nth-child(1), .loading.sm > span:nth-child(1), .signal-loader > span:nth-child(1), .signal-loader.sm > span:nth-child(1) {
     -webkit-animation-delay: 0s;
     animation-delay: 0s
 }
 
-.fun-loading .loading>span:nth-child(2),
-.loading.sm>span:nth-child(2),
-.signal-loader>span:nth-child(2),
-.signal-loader.sm>span:nth-child(2) {
+.fun-loading .loading > span:nth-child(2), .loading.sm > span:nth-child(2), .signal-loader > span:nth-child(2), .signal-loader.sm > span:nth-child(2) {
     -webkit-animation-delay: .1s;
     animation-delay: .1s
 }
 
-.fun-loading .loading>span:nth-child(3),
-.loading.sm>span:nth-child(3),
-.signal-loader>span:nth-child(3),
-.signal-loader.sm>span:nth-child(3) {
+.fun-loading .loading > span:nth-child(3), .loading.sm > span:nth-child(3), .signal-loader > span:nth-child(3), .signal-loader.sm > span:nth-child(3) {
     -webkit-animation-delay: .15s;
     animation-delay: .15s
 }
 
-.fun-loading .loading>span:nth-child(4),
-.loading.sm>span:nth-child(4),
-.signal-loader>span:nth-child(4),
-.signal-loader.sm>span:nth-child(4) {
+.fun-loading .loading > span:nth-child(4), .loading.sm > span:nth-child(4), .signal-loader > span:nth-child(4), .signal-loader.sm > span:nth-child(4) {
     -webkit-animation-delay: .2s;
     animation-delay: .2s
 }
 
-.fun-loading .loading>span {
+.fun-loading .loading > span {
     width: 15px;
     height: 15px;
     margin: 0 3px;
@@ -713,7 +719,7 @@ body .layui-site-mobile {display: none}
 @-webkit-keyframes close {
     0% {
         opacity: 1;
-        left: 0;
+        left: 0
     }
     100% {
         opacity: 0
@@ -722,7 +728,6 @@ body .layui-site-mobile {display: none}
 
 .layui-fun-color .color-title {
     padding: 10px 0 10px 20px;
-    /*border-bottom: 1px solid #d9dada;*/
     text-align: left;
     margin-bottom: 8px
 }
@@ -750,8 +755,7 @@ body .layui-site-mobile {display: none}
     color: #666
 }
 
-.layui-fun-color .color-content li.layui-this:after,
-.layui-fun-color .color-content li:hover:after {
+.layui-fun-color .color-content li.layui-this:after, .layui-fun-color .color-content li:hover:after {
     width: 100%;
     height: 100%;
     padding: 4px;
@@ -775,54 +779,61 @@ body .layui-site-mobile {display: none}
     opacity: 0
 }
 
-@media screen and (min-width:1024px) {
+@media screen and (min-width: 1024px) {
     .layui-side-shrink .layui-layout-admin .layui-footer {
-        left: 60px;
+        left: 60px
     }
 }
 
-@media screen and (max-width:1024px) {
+@media screen and (max-width: 1024px) {
     .layui-side-shrink .layui-layout-admin .layui-footer {
-        left: 0px;
+        left: 0px
     }
+
     .layui-side-shrink .layui-side-menu {
-        width: 0!important;
+        width: 0 !important
     }
+
     .layui-side-shrink .layui-pagetabs {
-        left: 0!important;
+        left: 0 !important
     }
+
     .layui-side-shrink .layui-logo {
-        width: 0!important;
-        left: 0!important;
+        width: 0 !important;
+        left: 0 !important
     }
-    .layui-side-shrink .layui-side-menu .layui-nav-item cite,
-    .layui-side-shrink .layui-header .layui-layout-left {
-        left: 0!important;
+
+    .layui-side-shrink .layui-side-menu .layui-nav-item cite, .layui-side-shrink .layui-header .layui-layout-left {
+        left: 0 !important
     }
+
     .layui-side-shrink .layui-header .layui-layout-center {
-        left: 60px!important;
+        left: 60px !important
     }
-    #layui-header-nav-mobile{
-        display: block!important;
-        left:280px;
+
+    #layui-header-nav-mobile {
+        display: block !important;
+        left: 280px
     }
-    #layui-header-nav-pc{
-        display: none;
+
+    #layui-header-nav-pc {
+        display: none
     }
 }
 
-@media screen and (max-width:769px) {
+@media screen and (max-width: 769px) {
     .fun-app .layui-pagetabs {
         left: 0
     }
-    .layui-layout-admin .layui-layout-left,
-    .layui-layout-admin .layui-body,
-    .layui-layout-admin .layui-footer {
+
+    .layui-layout-admin .layui-layout-left, .layui-layout-admin .layui-body, .layui-layout-admin .layui-footer {
         left: 0
     }
+
     .layui-side-shrink .layui-header .layui-layout-left {
         left: 0
     }
+
     .layui-side-shrink .layui-layout-admin .layui-body {
         width: 100%;
         height: 100%;
@@ -830,39 +841,46 @@ body .layui-site-mobile {display: none}
         left: 0;
         top: 40px
     }
+
     .layui-layout-admin .layui-side-menu {
         transform: translate3d(-220px, 0, 0);
         -webkit-transform: translate3d(-220px, 0, 0);
         width: 220px
     }
+
     .layui-side-shrink .layui-side-menu {
         transform: translate3d(0px, 0, 0);
         -webkit-transform: translate3d(0px, 0, 0);
         width: 220px !important
     }
+
     .layui-side-shrink .layui-layout-admin .layui-body-shade {
         display: block
     }
-    .layui-side-shrink .layui-pagetabs,
-    .layui-side-shrink .layui-layout-admin .layui-footer,
-    .layui-side-shrink .layui-layout-admin .layui-layout-left {
+
+    .layui-side-shrink .layui-pagetabs, .layui-side-shrink .layui-layout-admin .layui-footer, .layui-side-shrink .layui-layout-admin .layui-layout-left {
         left: 0;
         transform: translate3d(220px, 0, 0);
         -webkit-transform: translate3d(220px, 0, 0)
     }
+
     .layui-layout-admin .layui-layout-right {
         margin-right: 20px
     }
+
     .layui-side-shrink .layui-layout-admin .layui-layout-right {
         transform: translate3d(220px, 0, 0);
         -webkit-transform: translate3d(220px, 0, 0)
     }
+
     .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav {
         width: 220px
     }
+
     .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-logo {
         width: 220px !important
     }
+
     .layui-side-shrink .layui-layout-admin .layui-logo cite {
         display: inline-block;
         width: 150px;
@@ -870,32 +888,41 @@ body .layui-site-mobile {display: none}
         font-style: normal;
         transition: all .2s !important
     }
+
     .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav-tree li a cite {
         display: inline-block !important
     }
+
     .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav-tree li .layui-nav-child-drop {
         display: none !important;
         left: auto;
         top: auto
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
         padding-left: 35px
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
         padding-left: 45px
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 55px
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 65px
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 75px
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
         padding-left: 85px
     }
+
     .layui-site-mobile {
         display: block !important;
         position: fixed;
@@ -910,20 +937,22 @@ body .layui-site-mobile {display: none}
         background-color: rgba(0, 0, 0, .7);
         color: #fff
     }
+
     .layui-side-shrink .layui-header .layui-layout-center {
-        left: 280px!important;
+        left: 280px !important
     }
-    #layui-header-nav-mobile{
-        display: block!important;
-        left:60px;
+
+    #layui-header-nav-mobile {
+        display: block !important;
+        left: 60px
     }
-    #layui-header-nav-pc{
-        display: none;
+
+    #layui-header-nav-pc {
+        display: none
     }
 }
 
-@media screen and (min-width:769px) {
-
+@media screen and (min-width: 769px) {
     .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover .layui-nav-child-drop {
         position: fixed;
         top: 60px;
@@ -932,11 +961,13 @@ body .layui-site-mobile {display: none}
         min-width: 150px;
         display: block !important;
         background: transparent !important;
-        border-radius: 4px;
+        border-radius: 4px
     }
-    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav-tree .layui-nav-itemed>.layui-nav-child {
-        display: none!important;
+
+    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav-tree .layui-nav-itemed > .layui-nav-child {
+        display: none !important
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover .layui-nav-child-drop:before {
         content: '';
         position: absolute;
@@ -947,11 +978,11 @@ body .layui-site-mobile {display: none}
         top: 0;
         border-radius: 4px;
         background: #191a23;
-        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
+        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1)
     }
+
     .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite {
         display: inline-block !important;
         color: #f0f0f0
     }
 }
-

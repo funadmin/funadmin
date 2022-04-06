@@ -56,24 +56,24 @@
 }
 
 .layui-nav-header .layui-nav .layui-nav-item .layui-nav-child a {
-    padding-left: 20px;
+    padding-left: 10px;
     padding-right: 25px
 }
 
 .layui-nav-header .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
-    padding-left: 35px
+    padding-left: 15px
 }
 
 .layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
-    padding-left: 45px
+    padding-left: 20px
 }
 
 .layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
-    padding-left: 55px
+    padding-left: 30px
 }
 
 .layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
-    padding-left: 65px
+    padding-left: 40px
 }
 
 .layui-nav-header-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {

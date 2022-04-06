@@ -13,9 +13,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
         //事件
         events: {
             events:function (){
-                list = document.querySelectorAll("*[lay-event]");
+                list = $("*[lay-event]");
                 if (list.length > 0) {
-                    $.each(list, function() {
+                    layui.each(list, function() {
                         $(this).click(function(){
                             if ($(this).attr('lay-event') === 'open') {
                                 Fun.events.open($(this));
@@ -71,9 +71,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                     },
                     //layedit 编辑器同步
                     layedit: function(value) {
-                        var list = document.querySelectorAll("*[lay-filter='editor']");
+                        var list = $("*[lay-filter='editor']");
                         if (list.length > 0) {
-                            $.each(list, function() {
+                            layui.each(list, function() {
                                 if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
                                     var id = $(this).prop('id');
                                     return layui.layedit.sync(window['editor' + id])
@@ -93,9 +93,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
             },
             //必填项
             required: function() {
-                var vfList = document.querySelectorAll("[lay-verify]");
+                var vfList = $("[lay-verify]");
                 if (vfList.length > 0) {
-                    $.each(vfList, function() {
+                    layui.each(vfList, function() {
                         var verify = $(this).attr('lay-verify');
                         // todo 必填项处理
                         if (verify === 'required') {
@@ -114,10 +114,10 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 }
             },
             submit: function(formObj, success, error, submit) {
-                var formList = document.querySelectorAll("[lay-submit]");
+                var formList = $("[lay-submit]");
                 // 表单提交自动处理
                 if (formList.length > 0) {
-                    $.each(formList, function(i) {
+                    layui.each(formList, function(i) {
                         var filter = $(this).attr('lay-filter'),
                             type = $(this).data('type'),
                             refresh = $(this).data('refresh'),
@@ -140,8 +140,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                         }
                         layui.form.on('submit(' + filter + ')', function(data) {
                             if ($('select[multiple]').length > 0) {
-                                var $select = document.querySelectorAll("select[multiple]");
-                                $.each($select, function() {
+                                var $select = $("select[multiple]");
+                                layui.each($select, function() {
                                     var field = $(this).attr('name');
                                     var vals = [];
                                     $('select[multiple] option:selected').each(function() {
@@ -308,9 +308,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
              * 选择文件
              */
             chooseFiles: function() {
-                var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-choose\"]");
+                var fileSelectList = $("*[lay-filter=\"upload-choose\"]");
                 if (fileSelectList.length > 0) {
-                    $.each(fileSelectList, function(i, v) {
+                    layui.each(fileSelectList, function(i, v) {
                         var data = $(this).data();
                         var uploadType = data.value.type,
                             uploadNum = data.value.num,
@@ -372,7 +372,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             done: function(elem, data) {
                                 var fileArr = [];
                                 var html = '';
-                                $.each(data.data, function(index, val) {
+                                layui.each(data.data, function(index, val) {
                                     if (uploadMime === 'image') {
                                         html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else if (uploadMime === 'video') {
@@ -411,9 +411,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
              * 选择文件
              */
             selectFiles: function() {
-                var fileSelectList = document.querySelectorAll("*[lay-filter=\"upload-select\"]");
+                var fileSelectList = $("*[lay-filter=\"upload-select\"]");
                 if (fileSelectList.length > 0) {
-                    $.each(fileSelectList, function(i, v) {
+                    layui.each(fileSelectList, function(i, v) {
                         $(this).click(function(e){
                             var data = $(this).data();
                             var uploadType = data.value.type,
@@ -449,7 +449,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                                                 return false;
                                             }
                                             var fileArr=[],html='';
-                                            $.each(li, function(index, val) {
+                                            layui.each(li, function(index, val) {
                                                 var type = $(this).data('type'), url =  $(this).data('url');
                                                 if (type.indexOf('image') >=0)  {
                                                     html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';

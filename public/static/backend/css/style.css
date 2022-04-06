@@ -1,178 +1,186 @@
 /*index页面*/
 body .layui-form-onswitch{border:none;}
-#theme0 .layui-btn,
-#theme0 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme0 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme0 .layui-form-onswitch,
-#theme0 .fun-layer-class .layui-layer-title {background:#772c6a  !important;color: #fff;}
+#theme0.active .layui-btn,
+#theme0.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme0.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme0.active .layui-form-onswitch,
+#theme0.active .fun-layer-class .layui-layer-title {background:#772c6a  !important;color: #fff;}
+#theme0.active blockquote{border-left-color:#772c6a ;}
+#theme0.active .layui-form-radio:hover *,#theme0.active .layui-form-radioed,#theme0.active .layui-form-radioed>i{color: #772c6a}
 
-#theme1 .layui-btn,
-#theme1 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme1 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme1 .layui-form-onswitch,
-#theme1 .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme1 blockquote{border-left-color:#20b598 ;}
+#theme1.active .layui-btn,
+#theme1.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme1.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme1.active .layui-form-onswitch,
+#theme1.active .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}
+#theme1.active blockquote{border-left-color:#20b598 ;}
+#theme1.active .layui-form-radio:hover *, #theme1.active .layui-form-radioed,#theme1.active .layui-form-radioed>i{color: #20b598}
 
-#theme2 .layui-btn,
-#theme2 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme2 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme2 .layui-form-onswitch,
-#theme2 .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}  #theme2 blockquote{border-left-color:#722ed1 ;}
+#theme2.active .layui-btn,
+#theme2.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme2.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme2.active .layui-form-onswitch,
+#theme2.active .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}
+#theme2.active blockquote{border-left-color:#722ed1 ;}
+#theme2.active .layui-form-radio:hover *,#theme2.active .layui-form-radioed,#theme2.active .layui-form-radioed>i{color: #722ed1}
 
-#theme3 .layui-btn,
-#theme3 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme3 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme3 .layui-form-onswitch,
-#theme3 .fun-layer-class .layui-layer-title {background:#772c6a  !important;color: #fff;}  #theme3 blockquote{border-left-color:#772c6a ;}
+#theme3.active .layui-btn,
+#theme3.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme3.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme3.active .layui-form-onswitch,
+#theme3.active .fun-layer-class .layui-layer-title {background:#772c6a  !important;color: #fff;}
+#theme3.active blockquote{border-left-color:#772c6a ;}
+#theme3.active .layui-form-radio:hover *,#theme3.active .layui-form-radioed,#theme3.active .layui-form-radioed>i{color: #772c6a}
 
-#theme4 .layui-btn,
-#theme4 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme4 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme4 .layui-form-onswitch,
-#theme4 .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme4 blockquote{border-left-color:#20b598 ;}
+#theme4.active .layui-btn,
+#theme4.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme4.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme4.active .layui-form-onswitch,
+#theme4.active .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}
+#theme4.active blockquote{border-left-color:#20b598 ;}
+#theme4.active .layui-form-radio:hover *,#theme4.active .layui-form-radioed,#theme4.active .layui-form-radioed>i{color: #20b598}
 
-#theme5 .layui-btn,
-#theme5 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme5 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme5 .layui-form-onswitch,
-#theme5 .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}  #theme5 blockquote{border-left-color:#722ed1 ;}
+#theme5.active .layui-btn,
+#theme5.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme5.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme5.active .layui-form-onswitch,
+#theme5.active .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}
+#theme5.active blockquote{border-left-color:#722ed1 ;}
+#theme5.active .layui-form-radio:hover *,#theme5.active .layui-form-radioed,#theme5.active .layui-form-radioed>i{color: #722ed1}
 
-#theme6 .layui-btn,
-#theme6 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme6 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme6 .layui-form-onswitch,
-#theme6 .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme6 blockquote{border-left-color:#20b598 ;}
-#theme6 .layui-header .layui-layout-center li.layui-this{
-    background: #009688;
-}
-#theme7 .layui-btn,
-#theme7 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme7 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme7 .layui-form-onswitch,
-#theme7 .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme7 blockquote{border-left-color:#20b598 ;}
-#theme7 .layui-header .layui-layout-center li.layui-this{
-    background: #009688;
-}
+#theme6.active .layui-btn,
+#theme6.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme6.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme6.active .layui-form-onswitch,
+#theme6.active .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme6.active blockquote{border-left-color:#20b598 ;}
+#theme6 .layui-header .layui-layout-center li.layui-this{background: #009688;}
+#theme6.active .layui-form-radio:hover *,#theme6.active .layui-form-radioed,#theme6.active .layui-form-radioed>i{color: #20b598}
 
-#theme8 .layui-btn,
-#theme8 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme8 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme8 .layui-form-onswitch,
-#theme8 .fun-layer-class .layui-layer-title {background:#00a65a  !important;color: #fff;}  #theme8 blockquote{border-left-color:#00a65a ;}
-#theme8 .layui-header .layui-layout-center li.layui-this{
-    background: #5fb878;
-}
-#theme9 .layui-btn,
-#theme9 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme9 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme9 .layui-form-onswitch,
-#theme9 .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}  #theme9 blockquote{border-left-color:#722ed1 ;}
-#theme9 .layui-header .layui-layout-center li.layui-this{
-    background: #4f179e;
-}
-#theme10 .layui-btn,
-#theme10 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme10 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme10 .layui-form-onswitch,
-#theme10 .fun-layer-class .layui-layer-title {background:#00a65a  !important;color: #fff;}  #theme10 blockquote{border-left-color:#00a65a ;}
-#theme10 .layui-header .layui-layout-center li.layui-this{
-    background: #009688;
-}
-#theme11 .layui-btn,
-#theme11 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme11 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme11 .layui-form-onswitch,
-#theme11 .fun-layer-class .layui-layer-title {background:#ffa4d1  !important;color: #fff;}  #theme11 blockquote{border-left-color:#ffa4d1 ;}
-#theme11 .layui-header .layui-layout-center li.layui-this{
-    background: #dc6fa5;
-}
-#theme12 .layui-btn,
-#theme12 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme12 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme12 .layui-form-onswitch,
-#theme12 .fun-layer-class .layui-layer-title {background:#1e9fff  !important;color: #fff;}  #theme12 blockquote{border-left-color:#1e9fff ;}
-#theme12 .layui-header .layui-layout-center li.layui-this{
-    background: #0d73bf;
-}
-#theme13 .layui-btn,
-#theme13 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme13 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme13 .layui-form-onswitch,
-#theme13 .fun-layer-class .layui-layer-title {background:#963885  !important;color: #fff;}  #theme13 blockquote{border-left-color:#963885 ;}
-#theme13 .layui-header .layui-layout-center li.layui-this{
-    background: #772c6a;
-}
-#theme14 .layui-btn,
-#theme14 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme14 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme14 .layui-form-onswitch,
-#theme14 .fun-layer-class .layui-layer-title {background:#963885  !important;color: #fff;}  #theme14 blockquote{border-left-color:#963885 ;}
-#theme14 .layui-header .layui-layout-center li.layui-this{
-    background: #772c6a;
-}
+#theme7.active .layui-btn,
+#theme7.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme7.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme7.active .layui-form-onswitch,
+#theme7.active .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}  #theme7.active blockquote{border-left-color:#20b598 ;}
+#theme7 .layui-header .layui-layout-center li.layui-this{background: #009688;}
+#theme7.active .layui-form-radio:hover *,#theme7.active .layui-form-radioed,#theme7.active .layui-form-radioed>i{color: #009688}
 
-#theme15 .layui-btn,
-#theme15 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme15 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme15 .layui-form-onswitch,
-#theme15 .fun-layer-class .layui-layer-title {background:#1e9fff  !important;color: #fff;}  #theme15 blockquote{border-left-color:#1e9fff ;}
-#theme15 .layui-header .layui-layout-center li.layui-this{
-    background: #1877bd;
-}
-#theme16 .layui-btn,
-#theme16 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme16 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme16 .layui-form-onswitch,
-#theme16 .fun-layer-class .layui-layer-title {background:#ffb800  !important;color: #fff;}  #theme16 blockquote{border-left-color:#ffb800 ;}
-#theme16 .layui-header .layui-layout-center li.layui-this{
-    background: #c39316;
-}
-#theme17 .layui-btn,
-#theme17 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme17 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme17 .layui-form-onswitch,
-#theme17 .fun-layer-class .layui-layer-title {background:#ffb800  !important;color: #fff;}  #theme17 blockquote{border-left-color:#ffb800 ;}
-#theme17 .layui-header .layui-layout-center li.layui-this{
-    background: #b7880d;
-}
-#theme18 .layui-btn,
-#theme18 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme18 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme18 .layui-form-onswitch,
-#theme18 .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;}  #theme18 blockquote{border-left-color:#e82121 ;}
-#theme18 .layui-header .layui-layout-center li.layui-this{
-    background: #a22222;
-}
-#theme19 .layui-btn,
-#theme19 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme19 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme19 .layui-form-onswitch,
-#theme19 .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;}  #theme19 blockquote{border-left-color:#e82121 ;}
-#theme19 .layui-header .layui-layout-center li.layui-this{
-    background: #a22222;
-}
+
+#theme8.active .layui-btn,
+#theme8.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme8.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme8.active .layui-form-onswitch,
+#theme8.active .fun-layer-class .layui-layer-title {background:#00a65a  !important;color: #fff;}  #theme8.active blockquote{border-left-color:#00a65a ;}
+#theme8 .layui-header .layui-layout-center li.layui-this{background: #5fb878;}
+#theme8.active .layui-form-radio:hover *,#theme8.active .layui-form-radioed,#theme8.active .layui-form-radioed>i{color: #00a65a}
+
+#theme9.active .layui-btn,
+#theme9.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme9.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme9.active .layui-form-onswitch,
+#theme9.active .fun-layer-class .layui-layer-title {background:#722ed1  !important;color: #fff;}  #theme9.active blockquote{border-left-color:#722ed1 ;}
+#theme9 .layui-header .layui-layout-center li.layui-this{background: #4f179e;}
+#theme9.active .layui-form-radio:hover *,#theme9.active .layui-form-radioed,#theme9.active .layui-form-radioed>i{color: #722ed1}
+
+#theme10.active .layui-btn,
+#theme10.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme10.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme10.active .layui-form-onswitch,
+#theme10.active .fun-layer-class .layui-layer-title {background:#00a65a  !important;color: #fff;}  #theme10.active blockquote{border-left-color:#00a65a ;}
+#theme10 .layui-header .layui-layout-center li.layui-this{background: #009688;}
+#theme10.active .layui-form-radio:hover *,#theme10.active .layui-form-radioed,#theme10.active .layui-form-radioed>i{color: #00a65a}
+
+#theme11.active .layui-btn,
+#theme11.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme11.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme11.active .layui-form-onswitch,
+#theme11.active .fun-layer-class .layui-layer-title {background:#ffa4d1  !important;color: #fff;}  #theme11.active blockquote{border-left-color:#ffa4d1 ;}
+#theme11 .layui-header .layui-layout-center li.layui-this{background: #dc6fa5;}
+#theme11.active .layui-form-radio:hover *,#theme11.active .layui-form-radioed,#theme11.active .layui-form-radioed>i{color: #ffa4d1}
+
+#theme12.active .layui-btn,
+#theme12.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme12.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme12.active .layui-form-onswitch,
+#theme12.active .fun-layer-class .layui-layer-title {background:#1e9fff  !important;color: #fff;}  #theme12.active blockquote{border-left-color:#1e9fff ;}
+#theme12 .layui-header .layui-layout-center li.layui-this{background: #0d73bf;}
+#theme12.active .layui-form-radio:hover *,#theme12.active  .layui-form-radioed,#theme12.active .layui-form-radioed>i{color: #1e9fff}
+
+#theme13.active .layui-btn,
+#theme13.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme13.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme13.active .layui-form-onswitch,
+#theme13.active .fun-layer-class .layui-layer-title {background:#963885  !important;color: #fff;}  #theme13.active blockquote{border-left-color:#963885 ;}
+#theme13 .layui-header .layui-layout-center li.layui-this{background: #772c6a;}
+#theme13.active .layui-form-radio:hover *,#theme13.active .layui-form-radioed,#theme13.active .layui-form-radioed>i{color: #963885}
+
+#theme14.active .layui-btn,
+#theme14.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme14.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme14.active .layui-form-onswitch,
+#theme14.active .fun-layer-class .layui-layer-title {background:#963885  !important;color: #fff;}  #theme14.active blockquote{border-left-color:#963885 ;}
+#theme14 .layui-header .layui-layout-center li.layui-this{background: #772c6a;}
+#theme14.active .layui-form-radio:hover *,#theme14.active .layui-form-radioed,#theme14.active .layui-form-radioed>i{color: #963885}
+
+#theme15.active .layui-btn,
+#theme15.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme15.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme15.active .layui-form-onswitch,
+#theme15.active .fun-layer-class .layui-layer-title {background:#1e9fff  !important;color: #fff;}  #theme15.active blockquote{border-left-color:#1e9fff ;}
+#theme15 .layui-header .layui-layout-center li.layui-this{background: #1877bd;}
+#theme15.active .layui-form-radio:hover *,#theme15.active .layui-form-radioed,#theme15.active .layui-form-radioed>i{color: #1e9fff}
+
+#theme16.active .layui-btn,
+#theme16.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme16.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme16.active .layui-form-onswitch,
+#theme16.active .fun-layer-class .layui-layer-title {background:#ffb800  !important;color: #fff;}  #theme16.active blockquote{border-left-color:#ffb800 ;}
+#theme16 .layui-header .layui-layout-center li.layui-this{background: #c39316;}
+#theme16.active .layui-form-radio:hover *,#theme16.active .layui-form-radioed,#theme16.active .layui-form-radioed>i{color: #ffb800}
+
+#theme17.active .layui-btn,
+#theme17.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme17.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme17.active .layui-form-onswitch,
+#theme17.active .fun-layer-class .layui-layer-title {background:#ffb800  !important;color: #fff;}
+#theme17.active blockquote{border-left-color:#ffb800 ;}
+#theme17 .layui-header .layui-layout-center li.layui-this{background: #b7880d;}
+#theme17.active .layui-form-radio:hover *,#theme17.active .layui-form-radioed,#theme17.active .layui-form-radioed>i{color: #ffb800}
+
+#theme18.active .layui-btn,
+#theme18.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme18.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme18.active .layui-form-onswitch,
+#theme18.active .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;} 
+#theme18.active blockquote{border-left-color:#e82121 ;}
+#theme18 .layui-header .layui-layout-center li.layui-this{background: #a22222;}
+#theme18.active .layui-form-radio:hover *,#theme18.active  .layui-form-radioed,#theme18.active .layui-form-radioed>i{color: #e82121}
+
+#theme19.active .layui-btn,
+#theme19.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme19.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme19.active .layui-form-onswitch,
+#theme19.active .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;}
+#theme19.active blockquote{border-left-color:#e82121 ;}
+#theme19 .layui-header .layui-layout-center li.layui-this{background: #a22222;}
+#theme19.active .layui-form-radio:hover *,#theme19.active .layui-form-radioed,#theme19.active .layui-form-radioed>i{color: #e82121}
+
+#theme20.active .layui-btn,
+#theme20.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
+#theme20.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
+#theme20.active .layui-form-onswitch,
+#theme20.active .fun-layer-class .layui-layer-title {background:#409EFF  !important;color: #fff;}
+#theme20.active blockquote{border-left-color:#409EFF ;}
+#theme20.active .layui-form-radio:hover *,#theme20.active .layui-form-radioed,#theme20.active .layui-form-radioed>i{color: #409EFF}
+
 #theme20 .layui-nav{color: #333;}
-#theme20 .layui-btn,
-#theme20 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
-#theme20 .layui-laypage .layui-laypage-curr .layui-laypage-em,
-#theme20 .layui-form-onswitch,
-#theme20 .fun-layer-class .layui-layer-title {background:#333  !important;color: #fff;}  #theme20 blockquote{border-left-color:#333 ;}
-#theme20 .layui-header .layui-layout-center li.layui-this{
-    background: #eee;
-}
-#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a {
-    color:#333;
-}
-#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{
-    color: #333!important;
-}
-#theme20 .layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover{
-    color: #333!important;
-}
+#theme20 .layui-header .layui-layout-center li.layui-this{background: #eee;}
+#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a {color:#333;}
+#theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{color: #333!important;}
+#theme20 .layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover{color: #333!important;}
 #theme20 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {
-    padding: 5px 0;
-    background-color: #fff!important;
-}
-#theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#0C0C0C!important}
+    padding: 5px 0;background-color: #fff!important;}
+#theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#409EFF!important}
 @media screen and (min-width:769px) {
-#theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#333!important}
+#theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#409EFF!important}
 }
+

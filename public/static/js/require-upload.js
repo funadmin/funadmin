@@ -89,9 +89,9 @@ define(["jquery", 'croppers'], function($, croppers) {
                 });
             },
             uploads: function() {
-                var uploadList = document.querySelectorAll("[lay-filter=\"upload\"]");
+                var uploadList = $('*[lay-filter="upload"]');
                 if (uploadList.length > 0) {
-                    $.each(uploadList, function(i, v) {
+                    layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
                         var uploadType = data.value.type,
@@ -188,6 +188,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         }, 2000)
                                     })
                                 }
+                                Fun.toastr.close(index);
                             },
                             error: function() {
                                 Fun.toastr.error(__('Upload Failed'), function() {
@@ -195,16 +196,19 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         Fun.toastr.close();
                                     }, 2000)
                                 })
+                                Fun.toastr.close();
                             }
                         }
                         var uploadInt = layui.upload.render(options);
+                        Toastr.destroyAll();
+
                     })
                 }
             },
             cropper: function() {
-                var cropperlist = document.querySelectorAll("*[lay-filter='cropper']");
+                var cropperlist = $("*[lay-filter='cropper']");
                 if (cropperlist.length > 0) {
-                    $.each(cropperlist, function() {
+                    layui.each(cropperlist, function() {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload'),
                             id = $(this).prop('id'),

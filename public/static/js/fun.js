@@ -8,28 +8,13 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
+define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
     var layer = layui.layer, element = layui.element;
     layer = layer || parent.layer;
     layui.layer.config({
         skin: 'fun-layer-class'
     });
     Toastr = parent.Toastr || Toastr;
-    Toastr.options = {
-        closeButton: true,//显示关闭按钮
-        debug: false,//启用debug
-        positionClass: "toast-top-right",//弹出的位置,
-        showDuration: "300",//显示的时间
-        hideDuration: "1000",//消失的时间
-        timeOut: "3000",//停留的时间
-        extendedTimeOut: "1000",//控制时间
-        showEasing: "swing",//显示时的动画缓冲方式
-        hideEasing: "linear",//消失时的动画缓冲方式
-        iconClass: 'toast-info', // 自定义图标，有内置，如不需要则传空 支持layui内置图标/自定义iconfont类名
-        onclick: null, // 点击关闭回调
-        showMethod: "fadeIn",
-        hideMethod: "fadeOut",
-    };
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
@@ -94,9 +79,7 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                 Fun.toastr.error(msg);
                 return false;
             };
-            ex = ex || function (res) {
-
-            };
+            ex = ex || function (res) {};
             if (option.url === '') {
                 Fun.toastr.error(__('Request url can not empty'));
                 return false;
@@ -105,19 +88,12 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
             option.async = option.async===false ?option.async : true;
             // var index = Fun.toastr.loading(option.tips)
             $.ajax({
-                url: option.url,
-                type: option.method,
+                url: option.url, type: option.method,
                 contentType: "application/x-www-form-urlencoded; charset=UTF-8",
-                dataType: "json",
-                data: option.data,
-                async:option.async,
-                timeout: 0,
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')
-                },
-                beforeSend: function (xhr, request) {
-                    request.url = Fun.url(request.url);
-                },
+                dataType: "json", data: option.data,
+                async:option.async, timeout: 0,
+                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')},
+                beforeSend: function (xhr, request) {request.url = Fun.url(request.url);},
                 success: function (res) {
                     if (eval('res.' + option.statusName) >= option.statusCode) {
                         return success(res);
@@ -193,6 +169,10 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                             }
                         }
                     })
+                    //锁屏
+                    if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
+                        $('#lock-screen').remove();
+                    }
                 }
             });
         },
@@ -213,10 +193,10 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                 }
                 if(node!==undefined){
                     var arrayNode = node.split('/');
-                    $.each(arrayNode, function (key, val) {
+                    layui.each(arrayNode, function (key, val) {
                         if (key === 0) {
                             val = val.split('.');
-                            $.each(val, function (i, v) {
+                            layui.each(val, function (i, v) {
                                 v = Fun.common.lower(Fun.common.snake(v));
                                 val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
                             });
@@ -256,23 +236,35 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
             }
         },
         toastr: {
+            //callback 函数
+            // position: 'topCenter', // 弹出位置bottomRight, bottomLeft, topRight, topLeft, topCenter, bottomCenter, center
+            // duration: 2000, //默认2秒关闭
+            // showClose: true //显示关闭按钮
             // 成功消息
-            success: function (msg, callback) {
-                if (typeof callback === "function") {callback.call(this)}
-                title =  typeof callback === "string" ?callback:''
-                return Toastr.success(msg,title);
+            success: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.success(msg,callback,duration,position,showClose);
             },
             // 失败消息
-            error: function (msg, callback) {
-                if (typeof callback === "function") {callback.call(this)}
-                title =  typeof callback === "string" ?callback:''
-                return Toastr.error(msg,title);
+            error: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.error(msg,callback,duration,position,showClose);
+            },
+            info:function(msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.info(msg,callback,duration,position,showClose);
+            },
+            warning:function(msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.warning(msg,callback,duration,position,showClose);
             },
             // 警告消息框
-            alert: function (msg, callback) {
-                if (typeof callback === "function") {callback.call(this)}
-                title =  typeof callback === "string" ?callback:''
-                return Toastr.warning(msg,title);
+            alert: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.warning(msg,callback,duration,position,showClose);
+            },
+            // 消息提示
+            tips: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.info(msg,callback,duration,position,showClose);
+            },
+            // 加载中提示
+            loading: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+                return Toastr.loading(msg,callback,duration,position,showClose);
             },
             // 对话框
             confirm: function (msg, success, error) {
@@ -288,29 +280,11 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                 });
                 return index;
             },
-            // 消息提示
-            tips: function (msg, callback) {
-                if (typeof callback === "function") {callback.call(this)}
-                title =  typeof callback === "string" ?callback:''
-                return Toastr.info(msg,title);
-            },
-            // 加载中提示
-            loading: function (msg, callback) {
-                return msg ? layer.msg(msg, {
-                    icon: 16,
-                    scrollbar: false,
-                    shade: this.shade,
-                    time: 0,
-                    end: callback
-                }) : layer.load(0, {time: 0, scrollbar: false, shade: this.shade, end: callback});
-            },
             // 关闭消息框
             close: function (index) {
-                if (index) {
-                    return layer.close(index);
-                } else {
-                    return layer.closeAll();
-                }
+                if (index) {layer.close(index);} else {layer.closeAll();}
+                return Toastr.destroyAll(); //全部关闭
+
             }
         },
         //事件
@@ -417,7 +391,7 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                 var extend = $(othis).attr('data-extend');
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
-                    $.each(extend, function (k, v) {
+                    layui.each(extend, function (k, v) {
                         v.class = v.class || 'layui-btn layui-btn-xs';
                         v.title = v.title || v.text;
                         v.event = v.event || v.type;
@@ -492,6 +466,13 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                     }
                     layui.$('iframe').contents().find('body').attr('id',theme);
                 }
+                //测试
+                themeData = Fun.api.getStorage('setFrameTheme');
+                if(themeData){
+                    $('body').addClass('active');
+                }else{
+                    $('body').removeClass('active');
+                }
                 top.layui.$('body').attr('id',theme);
             },
             /**
@@ -544,7 +525,7 @@ define(["jquery", "lang", 'toastr','dayjs'], function ($, Lang, Toastr,Dayjs) {
                     btnsdata = options.btn;
                     btnsdata = (btnsdata.split(','));
                     options.btn_lang = [];
-                    $.each(btnsdata, function (k, v) {
+                    layui.each(btnsdata, function (k, v) {
                         options.btn_lang[k] = __(v);
                         btns.push(v);
                     })

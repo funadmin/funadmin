@@ -25,8 +25,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 width:'800',
                 height:'600',
             },
-            edit_full:{
+            edit_url:{
                 type: 'open',
+                event: 'open',
                 class: 'layui-btn-xs layui-btn-green',
                 url: 'member.member/edit',
                 icon: 'layui-icon layui-icon-edit',
@@ -86,7 +87,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_full', 'destroy']
+                        operat: ['edit_url', 'destroy']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],

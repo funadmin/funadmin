@@ -1,4 +1,4 @@
-    layui.define(['layer','element','dropdown'], function (exports) {
+layui.define(['layer','element','dropdown'], function (exports) {
         var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
         element.init();
         if (!/http(s*):\/\//.test(location.href)) {
@@ -7,6 +7,7 @@
         }
         var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
             THIS = 'layui-this', SIDE_SHRINK = 'layui-side-shrink',
+            LayerTitleBg='background: radial-gradient(circle, rgba(247, 150, 192, 1) 0%, rgba(118, 174, 241, 1) 100%) !important;color: #fff !important;',
             //主题配置
             THEME = [
                 {
@@ -266,7 +267,7 @@
             ];
         var Backend = {
             /*** 版本*/
-            v: '2.0.0',
+            v: '2.4.0',
             /**
              * @param options
              */
@@ -293,13 +294,13 @@
                     $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;');
                 }
                 value = Fun.api.getStorage(name);
-                if(value && value==1) {
+                if(value && value == 1) {
                     $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                         'layui-hide');
                     $('#layui-app-body').animate({
                         top: 40
                     }, 100);
-                }else if(value && value==2){
+                }else if(value && value == 2){
                     $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
                         'layui-hide');
                     $('#layui-app-body').animate({
@@ -320,14 +321,19 @@
                     //判断是否锁定了界面
                     $(document).find('.fun-loading').fadeOut();
                     if (Fun.api.getStorage('BackendLock')) {
+                        theme = Fun.api.getStorage('setFrameTheme');
+                        title = [__('Input Password'),LayerTitleBg];
+                        if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                         layer.prompt({
                             btn: [__('Unlock Now')],
-                            title: [__('Input Password'), 'background:' + bg + ';color:' + THEME[colorId]['menuLeftfontColor']],
+                            title: title,
                             closeBtn: 0,
                             formType: 1,
                             success: function (layero, index) {
-                                layero.find('.layui-layer-btn0').css('background', bg)
-                            }
+                                $('body').append(Backend.buildLockScreenHtml());
+                                layui.carousel.render({elem: '#lock-screen',width: '100%',height: $(window).height()+'px',interval: 5000});
+                                if(theme) layero.find('.layui-layer-btn0').css('background', bg);
+                            },
                         }, function (value, index) {
                             if (value.length < 1) {
                                 Fun.toastr.error(__('Input Password'));
@@ -338,6 +344,7 @@
                                     //清除密码
                                     Fun.api.setStorage('BackendLock', null);
                                     Fun.toastr.success(__('Unlock Success'))
+                                    $('#lock-screen').remove();
                                 } else {
                                     Fun.toastr.error(__('Password Error'));
                                     return false;
@@ -404,23 +411,20 @@
                 var layId = tabLayId.id;
                 if (layId === null || layId === undefined) return false;
                 if (funTabInfo) {
-                    $("#layui-side-left-menu [data-url]").each(function () {
-                        var layId_this = $(this).attr('lay-id');
-                        // if (funTabInfo[layId_this]){
-                        if (layId_this === layId) {
-                            var text = $(this).data('tips') || $(this).attr('title'),
-                                url = $(this).data('url'), icon = $(this).find('i').attr('class');
-                            $(this).parents('.layui-nav-item').addClass('active');
-                            Backend.addTab({
-                                layId: layId_this,
-                                url: url,
-                                text: text,
-                                icon: icon,
-                                maxTabs: options.maxTabs,
-                            });
-                            element.tabChange('layui-layout-tabs', layId);
-                        }
-                    });
+                    $menu = $("[lay-filter='menulist']").find("a[lay-id='"+layId+"']");
+                    if($menu.length>0){
+                        var text = $menu.attr('data-tips') || $menu.attr('title'),
+                            url = $menu.attr('data-url'), icon = $menu.find('i').attr('class');
+                        $menu.parents('.layui-nav-item').addClass('active');
+                        Backend.addTab({
+                            layId: layId,
+                            url: url,
+                            text: text,
+                            icon: icon,
+                            maxTabs: options.maxTabs,
+                        });
+                        element.tabChange('layui-layout-tabs', layId);
+                    }
                 }
             },
             /**
@@ -440,8 +444,24 @@
                     element.tabDelete('layui-layout-tabs', layId);
                 }
                 layId = $('#layui-app-tabs .layui-tab .layui-tab-title').find('.layui-this').attr('lay-id');
+                if(!layId){
+                    layId =  $('#layui-app-tabs .layui-tab .layui-tab-title').children('li:last').attr('lay-id');
+                }
+                element.tabChange('layui-layout-tabs', layId);
                 Backend.changeSessioinTabId(layId);
                 $('#layui-nav-righmenu').remove();
+            },
+            listenHeight:function(layId){
+                $item = $('#layui-side-left-menu a[lay-id="'+layId+'"]');
+                if($item.length>0){
+                    $item.parents('li').siblings('li').removeClass('layui-nav-itemed')
+                    $item.parents('li').siblings('li').find('dl').css({'display':'auto'});
+                    $item.parents('li').animate({'height':'auto'})
+                }else{
+                    $item.parents('li').removeAttr('style');
+                    $item.parents('li').removeClass('layui-nav-itemed');
+                    $item.parents('li').parents('ul').find('dl').css({'display':'auto'});
+                }
             },
             /**
              * 增加tab
@@ -511,6 +531,21 @@
                 return colorId;
             },
             /**
+             * @returns {string}
+             */
+            buildLockScreenHtml:function(){
+                $str = '<div style="z-index: 999999" class="layui-carousel" id="lock-screen">\n' +
+                    '  <div carousel-item="">\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/1.jpg"></div>\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/2.jpg"></div>\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/3.jpg"></div>\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/4.jpg"></div>\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/5.jpg"></div>\n' +
+                    '  </div>\n' +
+                    '</div>';
+                return $str;
+            },
+            /**
              * 构建背景颜色选择
              * @returns {string}
              */
@@ -558,6 +593,7 @@
                     '.layui-layout-admin .layui-nav-tree .layui-nav-bar{background:' + themeData.menuLeftBgThis + '!important;}\n';
                 $('#fun-bg-color').html(styleHtml);
                 Backend.listenFrameTheme();
+
             },
             /**
              * 监听tab切换
@@ -613,13 +649,24 @@
                  */
                 $("#layui-side-left-menu").find("li,dd").removeClass("layui-this").removeClass("layui-nav-itemed");//关闭所有展开的菜单
                 $("#layui-side-left-menu > li dl.layui-nav-child").removeAttr('style');
-                $("#layui-side-left-menu a[data-url]").each(function () {
-                    if ($(this).attr('lay-id') === layId) {
-                        $(this).parents("dd").addClass("layui-nav-itemed");
-                        $(this).parents("li").addClass("layui-nav-itemed");
-                        $(this).parent().removeClass("layui-nav-itemed").addClass("layui-this");
+                $menu = $("#layui-side-left-menu a[lay-id='"+layId+"']");
+                if($menu.length){
+                    $menu.parents("dd").addClass("layui-nav-itemed");
+                    $menu.parents("li").addClass("layui-nav-itemed");
+                    $menu.parents("li").removeAttr("style");
+                    $menu.parent().removeClass("layui-nav-itemed").addClass("layui-this");
+                    if($menu.parent('dd').length>0){
+                        $menu.parent('dd').addClass("active");
+                        $menu.parents('li').siblings('li').find("dd.active").removeClass("active");
                     }
-                })
+                    index = $menu.parents('ul').attr("menu-id");
+                    if(index){
+                        $('#layui-header-nav-pc li a[menu-id="'+index+'"]').trigger('click');
+                        $('#layui-header-nav-pc li a[menu-id="'+index+'"]').parent('li').addClass("layui-this")
+                            .siblings('li').removeClass("layui-this");
+                    }
+                }
+
             },
             /**
              * 自动定位
@@ -628,7 +675,7 @@
                 var tabNav = $('#layui-app-tabs .layui-tab .layui-tab-title');
                 var autoLeft = 0;
                 tabNav.children("li").each(function () {
-                    if ($(this).hasClass('layui-this')) {
+                    if ($(this).hasClass(THIS)) {
                         return false;
                     } else {
                         autoLeft += $(this).outerWidth();
@@ -646,49 +693,53 @@
                     var bgColorHtml = Backend.buildBgColorHtml();
                     var anims = [0, 1, 2, 3, 4, 5, 6];
                     var anim = anims[Math.floor(Math.random() * anims.length + 1) - 1];
-                    var html = '<style>.layui-text-left{text-align: left;padding:padding-right: 0px}' +
-                        '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #772c6a!important;}' +
-                        '</style><div class="layui-fun-color">\n' +
-                        '<div class="color-title">\n' +
-                        '<span>' + __('Theme Color') + '</span>\n' +
+                    var html = '<style>.layui-text-left{text-align: left;padding-right: 0px}' +
+                        '.layui-form-item{margin-bottom:5px;}'+
+                        '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #409EFF;}' +
+                        '</style><div class="layui-fun-color">' +
+                        '<div class="color-title">' +
+                        '<span>' + __('Theme Color') + '</span>' +
                         '</div>\n' +
-                        '<div class="color-content">\n' +
-                        '<ul style="border-bottom: 1px solid #e8e8e8;">\n' + bgColorHtml + '</ul>\n' +
+                        '<div class="color-content">' +
+                        '<ul>' + bgColorHtml + '</ul>' +
                         '</div>'+
                         '<form class="layui-form" lay-filter="form" action="">\n' +
-                        ' <div class="layui-form-item">\n' +
-                        '        <label class="layui-form-label" style="text-align: left;width: auto;">菜单导航：</label>\n' +
-                        '        <div class="layui-input-inline" style="width: auto;">\n' +
+                        '<fieldset class="layui-elem-field layui-field-title layui-text-left">\n' +
+                        '  <legend>其他设置</legend>' +
+                        '</fieldset>'+
+                        ' <div class="layui-form-item">' +
+                        '        <label class="layui-form-label required">导航模式：</label>\n' +
+                        '        <div class="layui-input-block layui-text-left" style="width:auto;">' +
                         '            <input lay-filter="setTheme" type="radio" value="1" title="侧边" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="2" title="水平" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
                         '        </div>\n' +
                         '</div>'+
                         ' <div class="layui-form-item">\n' +
-                        '        <label class="layui-form-label" style="text-align: left;width: auto;">选项卡：</label>\n' +
-                        '        <div class="layui-input-inline" style="width: auto;">\n' +
-                        '            <input lay-filter="setTab" type="radio" value="1" title="显示" name="setTab">' +
-                        '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
-                        '        </div>\n' +
-                        '</div>'+
-                        ' <div class="layui-form-item">\n' +
-                        '        <label class="layui-form-label" style="text-align: left;width: auto;">页面主题：</label>\n' +
-                        '        <div class="layui-input-inline" style="width: auto;">\n' +
+                        '        <label class="layui-form-label">页面主题：</label>' +
+                        '        <div class="layui-input-block layui-text-left">' +
                         '            <input lay-filter="setFrameTheme" type="radio" value="1" title="开启" name="setFrameTheme">' +
                         '            <input lay-filter="setFrameTheme" type="radio" value="" title="关闭" name="setFrameTheme">' +
+                        '        </div>\n' +
+                        '</div>'+
+                        '<div class="layui-form-item">\n' +
+                        '        <label class="layui-form-label" style="">选项卡：</label>\n' +
+                        '        <div class="layui-input-block layui-text-left">' +
+                        '            <input lay-filter="setTab" type="radio" value="1" title="显示" name="setTab">' +
+                        '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
                         '        </div>\n' +
                         '</div>'+
                         '</form>'+
                         '<fieldset class="layui-elem-field layui-field-title layui-text-left" >\n' +
                         '              <legend class="">版权信息</legend>\n' +
-                        '            </fieldset><div class="layui-form-item" style="">\n' +
-                        '                <blockquote class="layui-elem-quote layui-text-left layui-quote-nm" >\n' +
-                        '                    <i class="layui-icon layui-icon-about"></i>\n' +
-                        '                    <span class="layui-font-12">&nbsp; 版权归FunAdmin所有<br>\n' +
-                        '                        如遇到问题，请点击 <a href="http://www.funadmin.com/" target="_blank" style="color: red">官方文档</a> 查看源码说明！\n' +
-                        '                    </span>\n' +
-                        '                </blockquote>\n' +
-                        '            </div>';
+                        '</fieldset><div class="layui-form-item" style="">\n' +
+                        '<blockquote class="layui-elem-quote layui-text-left layui-quote-nm" >\n' +
+                        '   <i class="layui-icon layui-icon-about"></i>\n' +
+                        '   <span class="layui-font-12">&nbsp; 版权归FunAdmin所有<br>\n' +
+                        '    如遇到问题，请点击 <a href="http://doc.funadmin.com/" target="_blank" style="color: red">官方文档</a> 查看源码说明！\n' +
+                        '    </span>\n' +
+                        '    </blockquote>\n' +
+                        '</div>';
                     layer.open({
                         type: 1,
                         title: false,
@@ -718,7 +769,7 @@
                 setThemeColor: function (othis) {
                     var colorId = othis.attr('data-color');
                     $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
-                    $(this).attr('class', 'layui-this');
+                    $(this).attr('class', THIS);
                     Fun.api.setStorage('funColorId',colorId);
                     Backend.initBgColor();
                 },
@@ -727,12 +778,17 @@
                  */
                 lockScreen: function () {
                     var colorId = Backend.getColorId();
+                    theme = Fun.api.getStorage('setFrameTheme');
+                    title = [__('Set Password To Lock Screen'),LayerTitleBg];
+                    if(theme) title[1] =  'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                     layer.prompt({
-                        btn: [__('Lock Now')],
-                        title: [__('Set Password To Lock Screen'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
+                        btn: [__('Lock Now'),__('Cancel')],
+                        title:title,
                         formType: 1,
                         success: function (layero, index) {
-                            layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
+                            $('body').append(Backend.buildLockScreenHtml());
+                            layui.carousel.render({elem: '#lock-screen',width: '100%',height: $(window).height()+'px',interval: 5000});
+                            if(theme)layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis']);
                         },yes:function(index, prompt) {
                             var value=(prompt.find(".layui-layer-input").val())
                             if (value.length < 1) {
@@ -741,13 +797,15 @@
                             } else {
                                 Fun.api.setStorage('BackendLock',value);
                                 layer.close(index);
+                                title = [__('Input Password'),LayerTitleBg];
+                                if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                                 layer.prompt({
                                     btn: [__('Unlock')],
-                                    title: [__('Input Password'), 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor']],
+                                    title: title,
                                     closeBtn: 0,
                                     formType: 1,
                                     success: function (layero, index) {
-                                        layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis'])
+                                        if(theme)layero.find('.layui-layer-btn0').css('background', THEME[colorId]['menuLeftBgThis']);
                                     }
                                 }, function (value, index) {
                                     if (value.length < 1) {
@@ -767,9 +825,8 @@
                                     }
                                 });
                             }
-                        }
-                    }, function (value, index) {
-
+                        },btn2:function(){$('#lock-screen').remove();}
+                        ,cancel:function(){$('#lock-screen').remove();}
                     });
                 },
                 //伸缩
@@ -823,16 +880,17 @@
                         });
                     var url = othis.data('ajax') ? othis.data('ajax') : Backend.refreshUrl;
                     Fun.ajax({url: url}, function (res) {
-                        Fun.toastr.success(res.msg);
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        Fun.toastr.success(res.msg,function(){
+                            $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        });
                     }, function (res) {
-                        Fun.toastr.error(res.msg);
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        Fun.toastr.error(res.msg,function(){
+                            $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        });
                     })
                 },
                 refresh: function () {  //刷新
-                    Fun.toastr.success(__('Refresh Success'));
-                    Fun.toastr.loading('', setTimeout(function () {
+                    Fun.toastr.success(__('Refresh Success'), setTimeout(function () {
                             $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
                             Fun.toastr.close();
                         }, 1200)
@@ -915,7 +973,7 @@
                     layui.form.on('radio(setTab)', function (data) {
                         name = $(data.elem).attr('name');
                         v = Fun.api.getStorage(name)
-                        if(v  && v ===data.value){
+                        if(v  && v === data.value){
                             return false;
                         }else{
                             Fun.api.setStorage(name, data.value)
@@ -928,7 +986,7 @@
                     });
                     //监听导航点击菜单点击*/
                     // 主题三
-                    $document.on('click','.layui-header .layui-layout-center li a',function (){
+                    $('#layui-header-nav-pc,#layui-header-nav-mobile').on('click','li a',function (){
                         var id  = $(this).attr('menu-id');
                         if(id){
                             var index = layui.layer.load()
@@ -950,72 +1008,54 @@
                     $document.on('mouseover click','.layui-nav-header .layui-nav li>a',function (){
                         $(this).parent('li').siblings().children('.layui-nav-child').removeClass('layui-show');
                     })
-                    $document.on('click', '*[lay-id]', function () {
+                    $("body").on("click", "a[lay-id]", function () {
                         var _that = $(this),target = _that.prop('target')
                             , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
                             , layId = _that.attr('data-id'), text = _that.data('tips') || $(this).attr('title')
                             , icon = _that.find('i').attr('class'), iframe = !!_that.has('data-iframe');
                         layId = layId ? layId : url;
-                        _that.siblings('li').removeClass('layui-this');
-                        var parent = _that.parent();
-                        var parents = _that.parents('.layui-nav-header')
-                        var sp = parent.siblings('li');
-                        var c = parent.siblings('li.active').children('.layui-nav-child')
-                        if(!_that.data("url") && parents.length>0){
-                            return false;
-                        }
-                        if (!_that.data("url")) {
-                            var child = parent.children('.layui-nav-child');
-                            var height = child.height();
-                            // 检测屏幕是否是展开状态
-                            if (!Backend.checkScreen() && $('.' + SIDE_SHRINK).length > 0) {
-                                return false;
-                            }
-                            child.css({display: "block"});
-                            if (parent.hasClass("layui-nav-itemed")) {
-                                parent.addClass('active');
-                                parent.height('auto');
-                                if(sp.hasClass('active')){
-                                    c.css('display','block');
-                                    c.animate({height:0},function(){c.removeAttr('style')});
-                                    parent.siblings('li.active').animate({height: 'auto'},function (){parent.siblings('li.active').removeClass('active')});
-                                }
-                                child.height(0);
-                                child.animate({height: height + "px"}, function () {
-                                    child.css({height: "auto"});
-                                });
-                            } else {
-                                parent.removeClass('active');
-                                child.animate({height: 0}, function () {
-                                    child.removeAttr("style");
-                                });
-                            }
-                        } else {
-                            parent.addClass('active');
-                            if(sp.hasClass('active')){
-                                c.animate({height:0},function(){c.removeAttr('style')});
-
-                                parent.siblings('li.active').not('[menu-id]').animate({height: '55px'},function (){
-                                    parent.siblings('li.active').removeClass('active')});
-
-                            }
-                            if (target === '_blank') {
-                                window.open(url, "_blank");
-                                return false;
-                            }
+                        var parents = _that.parents('.layui-nav-header');
+                        // 如果不存在子级
+                        if (_that.siblings().length == 0) {
+                            if (target === '_blank') {window.open(url, "_blank");return false;}
                             let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                            Backend.addTab(options);
+                            if(_that.data('url')){
+                                Backend.addTab(options);
+                            }
                             if (Backend.checkScreen()) {
                                 $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                             }
-                            c.attr('style','display:block!important;');
                             Backend.listenFrameTheme();
+                        }// 关闭其他展开的二级标签
+                        _that.parent("li").siblings().removeClass("layui-nav-itemed");
+                    });
+                    $('#layui-side-left-menu,.layui-nav-header,#layui-side-left-menu').on('click', '*[lay-id]', function (e) {
+                        var _that = $(this);
+                        if (!_that.attr("data-url")) {
+                            var superEle = _that.parent(), ele = _that.next('.layui-nav-child'), height = ele.height();
+                            ele.css({"display": "block"});
+                            // 是否是展开状态
+                            if (superEle.is(".layui-nav-itemed")) {
+                                ele.height(0);ele.animate({height: height + "px"}, function () {
+                                    ele.css({height: "auto"});
+                                });
+                            } else {
+                                ele.animate({height: 0}, function () {ele.removeAttr("style");});
+                            }
+                            var topLevelEle = _that.parents("li.layui-nav-item");
+                            var childs = $("#layui-side-left-menu > li > dl.layui-nav-child").not(topLevelEle.children("dl.layui-nav-child"));
+                            childs.each(function(i){
+                                if($(childs[i]).css('display') == 'block'){
+                                    $(childs[i]).animate({height:0},function(){
+                                        childs.removeAttr('style')
+                                    })
+                                }
+                            })
                         }
                     });
                     //点击事件
                     $document.on('click', '*[lay-event]', function () {
-                        var _that = $(this)
-                            , attrEvent = _that.attr('lay-event');
+                        var _that = $(this), attrEvent = _that.attr('lay-event');
                         Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
                     });
                     //鼠标放上

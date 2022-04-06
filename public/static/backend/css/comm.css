@@ -4,19 +4,20 @@
 ::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 5px rgba(240,240,240,.5) !important;border-radius:0 !important;background:rgba(240,240,240,0.5) !important;cursor:pointer !important}
 html{-ms-overflow-style:none;overflow:-moz-scrollbars-none}
 body{background:#f1f4f6;padding:10px}
+/*子页面主题*/
+body .layui-form-onswitch{border:none;}
+/*去除border*/
+.layui-form-checked[lay-skin=primary] i{border:none;}
 .fun-container{background:#fff}
 .layui-table,.layui-table-view{margin:0 auto}
 .fl{float:left}.fr{float:right}.clearfix{clear:both}
 .layui-table-tool{z-index:80}
 .layui-table-tool-temp{padding-right:60px}
-.layui-layer.layui-layer-dialog .layui-layer-btn,.layui-layer-content{text-align:center}
-.layui-layer.layui-layer-dialog .layui-layer-btn a{background-color:#95a5a6;color:#fff !important;height:31px;margin-top:0;border-color:#95a5a6;border:1px solid transparent}
-.layui-layer.layui-layer-dialog .layui-layer-btn0{background-color:#772c6a !important}
 .layui-icon{}
 .layui-table-tool-temp{padding-right:120px}
 .layui-form-item .layui-form-mid.layui-word-aux{float: none;}
 .layui-form-item .required::after{content:"*";color:red;position:absolute;margin-left:4px;font-weight:bold;line-height:1.8em;top:6px;right:5px}
-.layui-input:focus, .layui-textarea:focus{border-color:#772c6a!important; }
+.layui-input:focus, .layui-textarea:focus{border-color:#409EFF!important; }
 .layui-text-center,.layui-btn-center{text-align:center}
 .layui-text-left{text-align:left}
 .layui-text-right{text-align:right}
@@ -29,7 +30,8 @@ body{background:#f1f4f6;padding:10px}
 #searchFieldList_list .layui-between .layui-input-inline{margin-right:3%;width:30%}
 #searchFieldList_list .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
 #searchFieldList_list .layui-form-select dl{top:31px;padding:0}
-.layui-form-select dl dd.layui-this{background:#772c6a;}
+.layui-form-select dl dd.layui-this{background:#409EFF;}
+.layui-form-checked span, .layui-form-checked:hover span{background-color:#409EFF}
 .fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
@@ -41,31 +43,26 @@ body{background:#f1f4f6;padding:10px}
 .fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:none!important;opacity:.7}
 .fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:none!important;opacity:.7}
 .fun-layer-class .layui-layer-setwin > a:focus{text-decoration:none !important}
-.layui-form-item.layui-btn-center button:first-child{background:#2c3e50;color:#fff;border:none}
-.layui-form-item.layui-btn-center button:last-child{background:#ccc}
-.fun-layer-class .layui-layer-title{background:#2c3e50 !important;color:#fff;border:none}
+.layui-form-item.layui-btn-center button.submit{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);color:#fff;border:none}
+.layui-form-item.layui-btn-center button.reset{background:#eee}
+.layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 
-.fun-layer-class .layui-layer-btn a{background:#2c3e50;border-radius:3px;border:none;}
-.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccc}
+.fun-layer-class .layui-layer-btn,.layui-layer-content{text-align:center}
+.fun-layer-class .layui-layer-title{background: radial-gradient(circle, rgba(247,150,192,1) 0%, rgba(118,174,241,1) 100%) !important;color: #fff !important;border-bottom: none;}
+.fun-layer-class .layui-layer-btn a{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);
+border-radius:3px;border:none;height:32px;line-height:32px;}
+.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccccccab}
 /* 偶数行背景色 */
 .layui-table tr:nth-child(even) {background-color: rgb(243 245 243);}
 /* 鼠标指向表格时,奇数行背景颜色 */
 .layui-table tbody tr:hover,.layui-table-hover {background-color: #eeeeee;}
 .layui-form-item input[lay-filter=date] {padding-left:36px;}
 .layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 4px;font-size: 30px;color: #f44336;}
-.layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #772c6a}
-
+.layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #409EFF}
+.layui-form-checked[lay-skin=primary] i{border-color: #409eff!important;background-color: #409eff;}
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
-table.layui-table td .layui-form-select {
-    margin-top: -10px;
-    margin-left: -15px;
-    margin-right: -15px;
-}
+table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;margin-right: -15px;}
 
-/*子页面主题*/
-body .layui-form-onswitch{border:none;}
-/*去除border*/
-.layui-form-checked[lay-skin=primary] i{border:none;}
 
 #theme0 .layui-btn,
 #theme0 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -86,6 +83,7 @@ body .layui-form-onswitch{border:none;}
 #theme0 .multi .layui-form-radio>i:hover, #theme0 .multi .layui-form-radioed>i, #theme0 .multi .layui-form-checked i,
 #theme0 .multi .layui-form-checked:hover i{color: #fff}
 #theme0 .multi .layui-form-checked span,#theme0 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme0 .layui-form-radio:hover *,#theme0 .layui-form-radioed,#theme0 .layui-form-radioed>i{color: #772c6a}
 
 #theme1 .layui-btn,
 #theme1 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -106,6 +104,7 @@ body .layui-form-onswitch{border:none;}
 #theme1 .multi .layui-form-radio>i:hover, #theme1 .multi .layui-form-radioed>i, #theme1 .multi .layui-form-checked i,
 #theme1 .multi .layui-form-checked:hover i{color: #fff}
 #theme1 .multi .layui-form-checked span,#theme1 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme1 .layui-form-radio:hover *,#theme1 .layui-form-radioed,#theme1 .layui-form-radioed>i{color: #20b598}
 
 
 #theme2 .layui-btn,
@@ -127,6 +126,7 @@ body .layui-form-onswitch{border:none;}
 #theme2 .multi .layui-form-radio>i:hover, #theme2 .multi .layui-form-radioed>i, #theme2 .multi .layui-form-checked i,
 #theme2 .multi .layui-form-checked:hover i{color: #fff}
 #theme2 .multi .layui-form-checked span,#theme2 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme2 .layui-form-radio:hover *,#theme2 .layui-form-radioed,#theme2 .layui-form-radioed>i{color: #722ed1}
 
 #theme3 .layui-btn,
 #theme3 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -147,6 +147,7 @@ body .layui-form-onswitch{border:none;}
 #theme3 .multi .layui-form-radio>i:hover, #theme3 .multi .layui-form-radioed>i, #theme3 .multi .layui-form-checked i,
 #theme3 .multi .layui-form-checked:hover i{color: #fff}
 #theme3 .multi .layui-form-checked span,#theme3 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme3 .layui-form-radio:hover *,#theme3 .layui-form-radioed,#theme3 .layui-form-radioed>i{color: #772c6a}
 
 #theme4 .layui-btn,
 #theme4 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -167,6 +168,7 @@ body .layui-form-onswitch{border:none;}
 #theme4 .multi .layui-form-radio>i:hover, #theme4 .multi .layui-form-radioed>i, #theme4 .multi .layui-form-checked i,
 #theme4 .multi .layui-form-checked:hover i{color: #fff}
 #theme4 .multi .layui-form-checked span,#theme4 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme4 .layui-form-radio:hover *,#theme4 .layui-form-radioed,#theme4 .layui-form-radioed>i{color: #20b598}
 
 #theme5 .layui-btn,
 #theme5 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -187,6 +189,7 @@ body .layui-form-onswitch{border:none;}
 #theme5 .multi .layui-form-radio>i:hover, #theme5 .multi .layui-form-radioed>i, #theme5 .multi .layui-form-checked i,
 #theme5 .multi .layui-form-checked:hover i{color: #fff}
 #theme5 .multi .layui-form-checked span,#theme5 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme5 .layui-form-radio:hover *,#theme5 .layui-form-radioed,#theme5 .layui-form-radioed>i{color: #722ed1}
 
 
 #theme6 .layui-btn,
@@ -208,6 +211,7 @@ body .layui-form-onswitch{border:none;}
 #theme6 .multi .layui-form-radio>i:hover, #theme6 .multi .layui-form-radioed>i, #theme6 .multi .layui-form-checked i,
 #theme6 .multi .layui-form-checked:hover i{color: #fff}
 #theme6 .multi .layui-form-checked span,#theme6 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme6 .layui-form-radio:hover *,#theme6 .layui-form-radioed,#theme6 .layui-form-radioed>i{color: #20b598}
 
 #theme7 .layui-btn,
 #theme7 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -228,6 +232,7 @@ body .layui-form-onswitch{border:none;}
 #theme7 .multi .layui-form-radio>i:hover, #theme7 .multi .layui-form-radioed>i, #theme7 .multi .layui-form-checked i,
 #theme7 .multi .layui-form-checked:hover i{color: #fff}
 #theme7 .multi .layui-form-checked span,#theme7 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme7 .layui-form-radio:hover *,#theme7 .layui-form-radioed,#theme7 .layui-form-radioed>i{color: #20b598}
 
 #theme8 .layui-btn,
 #theme8 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -248,6 +253,7 @@ body .layui-form-onswitch{border:none;}
 #theme8 .multi .layui-form-radio>i:hover, #theme8 .multi .layui-form-radioed>i, #theme8 .multi .layui-form-checked i,
 #theme8 .multi .layui-form-checked:hover i{color: #fff}
 #theme8 .multi .layui-form-checked span,#theme8 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme8 .layui-form-radio:hover *,#theme8 .layui-form-radioed,#theme8 .layui-form-radioed>i{color: #00a65a}
 
 #theme9 .layui-btn,
 #theme9 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -268,6 +274,7 @@ body .layui-form-onswitch{border:none;}
 #theme9 .multi .layui-form-radio>i:hover, #theme9 .multi .layui-form-radioed>i, #theme9 .multi .layui-form-checked i,
 #theme9 .multi .layui-form-checked:hover i{color: #fff}
 #theme9 .multi .layui-form-checked span,#theme9 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme9 .layui-form-radio:hover *,#theme9 .layui-form-radioed,#theme9 .layui-form-radioed>i{color: #722ed1}
 
 #theme10 .layui-btn,
 #theme10 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -288,6 +295,7 @@ body .layui-form-onswitch{border:none;}
 #theme10 .multi .layui-form-radio>i:hover, #theme10 .multi .layui-form-radioed>i, #theme10 .multi .layui-form-checked i,
 #theme10 .multi .layui-form-checked:hover i{color: #fff}
 #theme10 .multi .layui-form-checked span,#theme10 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme10 .layui-form-radio:hover *,#theme10 .layui-form-radioed,#theme10 .layui-form-radioed>i{color: #20b598}
 
 
 #theme11 .layui-btn,
@@ -309,6 +317,7 @@ body .layui-form-onswitch{border:none;}
 #theme11 .multi .layui-form-radio>i:hover, #theme11 .multi .layui-form-radioed>i, #theme11 .multi .layui-form-checked i,
 #theme11 .multi .layui-form-checked:hover i{color: #fff}
 #theme11 .multi .layui-form-checked span,#theme11 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme11 .layui-form-radio:hover *,#theme11 .layui-form-radioed,#theme11 .layui-form-radioed>i{color: #ffa4d1}
 
 #theme12 .layui-btn,
 #theme12 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -329,6 +338,7 @@ body .layui-form-onswitch{border:none;}
 #theme12 .multi .layui-form-radio>i:hover, #theme12 .multi .layui-form-radioed>i, #theme12 .multi .layui-form-checked i,
 #theme12 .multi .layui-form-checked:hover i{color: #fff}
 #theme12 .multi .layui-form-checked span,#theme12 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme12 .layui-form-radio:hover *,#theme12 .layui-form-radioed,#theme12 .layui-form-radioed>i{color: #1e9fff}
 
 
 #theme13 .layui-btn,
@@ -350,7 +360,7 @@ body .layui-form-onswitch{border:none;}
 #theme13 .multi .layui-form-radio>i:hover, #theme13 .multi .layui-form-radioed>i, #theme13 .multi .layui-form-checked i,
 #theme13 .multi .layui-form-checked:hover i{color: #fff}
 #theme13 .multi .layui-form-checked span,#theme13 .multi .layui-form-checked:hover span{background: #fff!important;}
-
+#theme13 .layui-form-radio:hover *,#theme13 .layui-form-radioed,#theme13 .layui-form-radioed>i{color: #963885}
 
 #theme14 .layui-btn,
 #theme14 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -371,6 +381,7 @@ body .layui-form-onswitch{border:none;}
 #theme14 .multi .layui-form-radio>i:hover, #theme14 .multi .layui-form-radioed>i, #theme14 .multi .layui-form-checked i,
 #theme14 .multi .layui-form-checked:hover i{color: #fff}
 #theme14 .multi .layui-form-checked span,#theme14 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme14 .layui-form-radio:hover *,#theme14 .layui-form-radioed,#theme14 .layui-form-radioed>i{color: #963885}
 
 
 #theme15 .layui-btn,
@@ -392,6 +403,7 @@ body .layui-form-onswitch{border:none;}
 #theme15 .multi .layui-form-radio>i:hover, #theme15 .multi .layui-form-radioed>i, #theme15 .multi .layui-form-checked i,
 #theme15 .multi .layui-form-checked:hover i{color: #fff}
 #theme15 .multi .layui-form-checked span,#theme15 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme15 .layui-form-radio:hover *,#theme15 .layui-form-radioed,#theme15 .layui-form-radioed>i{color: #1e9fff}
 
 #theme16 .layui-btn,
 #theme16 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -412,7 +424,7 @@ body .layui-form-onswitch{border:none;}
 #theme16 .multi .layui-form-radio>i:hover, #theme16 .multi .layui-form-radioed>i, #theme16 .multi .layui-form-checked i,
 #theme16 .multi .layui-form-checked:hover i{color: #fff}
 #theme16 .multi .layui-form-checked span,#theme16 .multi .layui-form-checked:hover span{background: #fff!important;}
-
+#theme16 .layui-form-radio:hover *,#theme16 .layui-form-radioed,#theme16 .layui-form-radioed>i{color: #ffb800}
 
 #theme17 .layui-btn,
 #theme17 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -433,6 +445,7 @@ body .layui-form-onswitch{border:none;}
 #theme17 .multi .layui-form-radio>i:hover, #theme17 .multi .layui-form-radioed>i, #theme17 .multi .layui-form-checked i,
 #theme17 .multi .layui-form-checked:hover i{color: #fff}
 #theme17 .multi .layui-form-checked span,#theme17 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme17 .layui-form-radio:hover *,#theme17 .layui-form-radioed,#theme17 .layui-form-radioed>i{color: #ffb800}
 
 
 #theme18 .layui-btn,
@@ -454,6 +467,7 @@ body .layui-form-onswitch{border:none;}
 #theme18 .multi .layui-form-radio>i:hover, #theme18 .multi .layui-form-radioed>i, #theme18 .multi .layui-form-checked i,
 #theme18 .multi .layui-form-checked:hover i{color: #fff}
 #theme18 .multi .layui-form-checked span,#theme18 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme18 .layui-form-radio:hover *,#theme18 .layui-form-radioed,#theme18 .layui-form-radioed>i{color: #e82121}
 
 
 #theme19 .layui-btn,
@@ -475,6 +489,7 @@ body .layui-form-onswitch{border:none;}
 #theme19 .multi .layui-form-radio>i:hover, #theme19 .multi .layui-form-radioed>i, #theme19 .multi .layui-form-checked i,
 #theme19 .multi .layui-form-checked:hover i{color: #fff}
 #theme19 .multi .layui-form-checked span,#theme19 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme19 .layui-form-radio:hover *,#theme19 .layui-form-radioed,#theme19 .layui-form-radioed>i{color: #e82121}
 
 
 #theme20 .layui-btn,
@@ -497,3 +512,4 @@ body .layui-form-onswitch{border:none;}
 #theme20 .multi .layui-form-checked:hover i{color: #fff}
 #theme20 .multi .layui-form-checked span,#theme20 .multi .layui-form-checked:hover span{background: #fff!important;}
 #theme20 .multi .layui-form-checked span,#theme20 .multi .layui-form-checked:hover span{background: #fff!important;}
+#theme20 .layui-form-radio:hover *,#theme20 .layui-form-radioed,#theme20 .layui-form-radioed>i{color: #409EFF!important}

@@ -45,7 +45,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     Table.api.tableSearch(options.id);
                     var formVal = $('#layui-form-' + options.id + ' [name]').serializeArray()
                     cols = [];
-                    $.each(formVal, function (i, v) {
+                    layui.each(formVal, function (i, v) {
                         var O = $('[name="' + v.name + '"]');
                         arr = {
                             field: v.name,
@@ -84,7 +84,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             d = d || [];
             var toolbarHtml = '';
             var nodeArr = ['refresh', 'export', 'add', 'delete', 'destroy', 'recycle', 'restore'];
-            $.each(d, function (i, v) {
+            layui.each(d, function (i, v) {
                 if ($.inArray(v, nodeArr) !== -1) {
                     if (v !== 'refresh') url = Fun.replaceurl(eval('Table.init.requests.' + v + '_url'), d);
                     if (v === 'refresh') {
@@ -150,7 +150,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
-            $.each(cols, function (i, d) {
+            layui.each(cols, function (i, d) {
                 d.field = d.field || false;
                 d.fieldAlias = Fun.parame(d.fieldAlias, d.field);
                 d.title = d.title || d.field || '';
@@ -183,7 +183,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             d.searchOp = '=';
                             var selectHtml = '';
                             d.selectList = d.selectList || Fun.api.getData(d.url) || {};
-                            $.each(d.selectList, function (i, v) {
+                            layui.each(d.selectList, function (i, v) {
                                 var selected = '';
                                 if (i === d.searchValue) {
                                     selected = 'selected=""'
@@ -232,7 +232,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             }
         },
         timeRender: function (newCols) {
-            $.each(newCols, function (ncI, ncV) {
+            layui.each(newCols, function (ncI, ncV) {
                 if (ncV.search === 'range') {
                     switch (ncV.searchOp) {
                         case 'between':
@@ -297,7 +297,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         //格式化列
         colsRender: function (cols) {
             var newclos = cols[0];
-            $.each(newclos, function (i, d) {
+            layui.each(newclos, function (i, d) {
                 if (d.align === undefined) {
                     newclos[i]['align'] = 'center'
                 }
@@ -314,8 +314,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 if (d.filter === undefined && d.templet === Table.templet.switch) {
                     newclos[i]['filter'] = d.field
                 }
-                if (d.imageHeight === undefined && (d.templet === Table.templet.image || d.templet === Table.templet.images)) {
-                    newclos[i]['imageHeight'] = 40
+                if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
+                    newclos[i]['imageHeight'] = 40;
                     newclos[i]['templet'] = Table.templet.image;
                 }
                 if (d.selectList !== undefined && d.search === undefined) {
@@ -355,7 +355,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     var reg = RegExp(/,/);
                     content = typeof content == 'string' && reg.test(content) ? content.split(',') : typeof content == 'object' ? content : [content];
                     html = '';
-                    $.each(content, function (i, v) {
+                    layui.each(content, function (i, v) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
                         if (selectList[v]) {
@@ -378,7 +378,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 title = d[ele.title];
                 src = src.split(',');
                 var html = [];
-                $.each(src, function (i, v) {
+                layui.each(src, function (i, v) {
                     v = v ? v : '/static/common/images/image.gif';
                     html.push('<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + v + '" title="' + title + '"  lay-event="photos" alt="">')
                 });
@@ -396,7 +396,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 value = Table.templet.resolution(d, ele)
                 $html = '<div class="layui-table-select"><select name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
-                $.each(ele.selectList, function (i, v) {
+                layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
                     $html += '<option ' + selected + ' value="' + i + '">' + ele.selectList[i] + '</option>'
                 })
@@ -448,7 +448,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ele.operat = ele.operat || ['edit', 'delete'];
                 var html = '';
                 var requests = Table.init.requests;
-                $.each(ele.operat, function (k, v) {
+                layui.each(ele.operat, function (k, v) {
                     var vv = {};
                     var va = {};
                     if (v === 'add' || v === 'edit' || v === 'delete' || v === 'destroy' || v === 'restore' || (typeof v !== "object" && typeof eval('requests.' + v + '_url') === 'string')) {
@@ -665,7 +665,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ids = [];
                 length = 1
             } else if (data.length > 0) {
-                $.each(data, function (k, v) {
+                layui.each(data, function (k, v) {
                     ids.push(v.id)
                 });
                 length = ids.length
@@ -703,7 +703,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var url = othis.data('url');
                 var dataField = $('#searchFieldList_' + Table.init.tableId + ' .layui-form [name]').serializeArray();
                 var formatFilter = {}, formatOp = {};
-                $.each(dataField, function () {
+                layui.each(dataField, function () {
                     var key = this.name, val = this.value;
                     if (val !== '') {
                         formatFilter[key] = val;
@@ -782,7 +782,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 layui.form.on('submit(' + tableId + '_filter)', function (data) {
                     var dataField = data.field;
                     var formatFilter = {}, formatOp = {};
-                    $.each(dataField, function (key, val) {
+                    layui.each(dataField, function (key, val) {
                         if (val !== '') {
                             formatFilter[key] = val;
                             var op = $('#field_' + key).attr('data-searchop');
@@ -810,7 +810,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 cols = options.cols[0] || {};
                 tableId = options.id || Table.init.tableId;
                 if (cols.length > 0) {
-                    $.each(cols, function (i, v) {
+                    layui.each(cols, function (i, v) {
                         v.filter = v.filter || false;
                         if (v.filter !== false && url !== false) {
                             layui.form.on('switch(' + v.filter + ')', function (obj) {
@@ -835,7 +835,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 cols = options.cols[0] || {};
                 tableId = options.id || Table.init.tableId;
                 if (cols.length > 0) {
-                    $.each(cols, function (i, v) {
+                    layui.each(cols, function (i, v) {
                         v.filter = v.filter || false;
                         if (v.filter !== false && url !== false) {
                             layui.form.on('select(' + v.filter + ')', function (obj) {
@@ -896,12 +896,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
             },
             rowDouble: function (options) {
-                var layFilter = options.layFilter, url = options.init.requests.edit_url;
+                var layFilter = options.layFilter, ops = options.init.requests.edit_url;
                 layui.table.on('rowDouble(' + layFilter + ')', function (obj) {
+                    url = typeof ops==="object"?ops.url:ops;
                     if (url && Fun.checkAuth(Fun.common.getNode(url), options.elem)) {
-                        url = url.indexOf('?') !== -1 ? url + '&id=' + obj.data.id : url + '?id=' + obj.data.id
-                        op = {url: url,}
-                        Fun.api.open(op)
+                        url = url.indexOf('?') !== -1 ? url + '&id=' + obj.data.id : url + '?id=' + obj.data.id;
+                        var opt = {};if(typeof ops==="object"){opt = ops;}
+                        opt.url = url;opt.type = opt.hasOwnProperty("type") && opt.type==1?1:2;
+                        Fun.api.open(opt)
                     }
                     return false
                 })
