@@ -135,7 +135,9 @@ trait Curd
         if($ids=='all'){
             $list = $this->modelClass->withTrashed(true)->select();
         }else{
-            $ids = strpos($ids,',')!==false?explode(',',$ids):[$ids];
+            if(is_string($ids)){
+                $ids = strpos($ids,',')!==false?explode(',',$ids):[$ids];
+            }
             $list = $this->modelClass->withTrashed(true)->where('id','in', $ids)->select();
         }
         if(empty($list))$this->error('Data is not exist');

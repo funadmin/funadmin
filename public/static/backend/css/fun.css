@@ -12,7 +12,7 @@ body .layui-layer-content, .layui-layer.layui-layer-dialog .layui-layer-btn {
 }
 
 body .layui-blue {
-    color: #00c0ef !important
+    color: #409EFF !important
 }
 
 body .layui-red {
@@ -650,7 +650,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .fun-loading .loading > span, .signal-loader > span {
-    background-color: #00a65a;
+    background-color: #409EFF;
     display: inline-block
 }
 

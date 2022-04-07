@@ -51,7 +51,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         // width: 150,
                         templet: function (d){
                             if(d.website){
-                                return '<a class="layui-btn-xs layui-btn" target="_blank" href="'+d.website+'">'+d.title+'</a>';
+                                return '<a class="layui-btn-xs layui-btn layui-btn-normal" target="_blank" href="'+d.website+'">'+d.title+'</a>';
                             }else{
                                 return d.title;
                             }

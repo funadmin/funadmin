@@ -13,12 +13,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 {
                     headerBg: '#fff',
                     headerfontColor: '#595959',
-                    headerBgThis: '#772c6a',
+                    headerBgThis: '#409EFF',
                     headerBgLogo: '#0c0c0c',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#23262e',
-                    menuLeftBgThis: '#772c6a',
-                    menuLeftBgHover: '#772c6a',
+                    menuLeftBgThis: '#409EFF',
+                    menuLeftBgHover: '#409EFF',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -38,12 +38,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, {
                     headerBg: '#fff',
                     headerfontColor: '#595959',
-                    headerBgThis: '#722ed1',
+                    headerBgThis: '#8e10b9',
                     headerBgLogo: '#0c0c0c',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#23262e',
-                    menuLeftBgThis: '#722ed1',
-                    menuLeftBgHover: '#722ed1',
+                    menuLeftBgThis: '#8e10b9',
+                    menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -51,12 +51,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, {
                     headerBg: '#fff',
                     headerfontColor: '#595959',
-                    headerBgThis: '#772c6a',
+                    headerBgThis: '#b8279f',
                     headerBgLogo: '#fff',
                     headerLogofontColor: '#595959',
                     menuLeftBg: '#23262e',
-                    menuLeftBgThis: '#772c6a',
-                    menuLeftBgHover: '#772c6a',
+                    menuLeftBgThis: '#b8279f',
+                    menuLeftBgHover: '#b8279f',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -75,12 +75,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, {
                     headerBg: '#fff',
                     headerfontColor: '#595959',
-                    headerBgThis: '#722ed1',
+                    headerBgThis: '#8e10b9',
                     headerBgLogo: '#fff',
                     headerLogofontColor: '#595959',
                     menuLeftBg: '#23262e',
-                    menuLeftBgThis: '#722ed1',
-                    menuLeftBgHover: '#722ed1',
+                    menuLeftBgThis: '#8e10b9',
+                    menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -120,14 +120,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
                 }, {
-                    headerBg: '#722ed1',
+                    headerBg: '#8e10b9',
                     headerfontColor: '#fff',
                     headerBgThis: '#197971',
-                    headerBgLogo: '#722ed1',
+                    headerBgLogo: '#8e10b9',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#2f4056',
-                    menuLeftBgThis: '#722ed1',
-                    menuLeftBgHover: '#722ed1',
+                    menuLeftBgThis: '#8e10b9',
+                    menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -170,7 +170,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, {
                     headerBg: '#963885',
                     headerfontColor: '#fff',
-                    headerBgThis: '#772c6a',
+                    headerBgThis: '#b8279f',
                     headerBgLogo: '#243346',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#191a23',
@@ -182,8 +182,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 }, {
                     headerBg: '#963885',
                     headerfontColor: '#fff',
-                    headerBgThis: '#772c6a',
-                    headerBgLogo: '#772c6a',
+                    headerBgThis: '#b8279f',
+                    headerBgLogo: '#b8279f',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#191a23',
                     menuLeftBgThis: '#963885',
@@ -313,15 +313,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
             hideLoading: function (time) {
                 time = time || 350;
                 var colorId = Backend.getColorId();
+                theme = Fun.api.getStorage('setFrameTheme');
                 var bg = THEME[colorId]['menuLeftBgThis'];
-                if (colorId) {
-                    $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
-                }
+                if (colorId  && theme) $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
                 setTimeout(function () {
                     //判断是否锁定了界面
                     $(document).find('.fun-loading').fadeOut();
                     if (Fun.api.getStorage('BackendLock')) {
-                        theme = Fun.api.getStorage('setFrameTheme');
+
                         title = [__('Input Password'),LayerTitleBg];
                         if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                         layer.prompt({

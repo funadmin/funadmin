@@ -68,22 +68,22 @@ table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;ma
 #theme0 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme0 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme0 .layui-form-onswitch,
-#theme0 .fun-layer-class .layui-layer-title {background:#772c6a!important;color: #fff;border:none;}  #theme0 blockquote{border-left-color:#772c6a ;}
-#theme0 .layui-input:focus, #theme0 .layui-textarea:focus {border-color: #772c6a!important;}
-#theme0 .layui-laydate-main .layui-laydate-header{background: #772c6a!important;}
-#theme0 .layui-laydate-main .layui-this{background: #772c6a!important;}
-#theme0 .layui-laydate-footer span:hover{color: #772c6a!important;}
-#theme0 .layui-form-radio>i:hover, #theme0 .layui-form-radioed>i, #theme0 .layui-form-checked i, #theme0 .layui-form-checked:hover i {color: #772c6a;}
-#theme0 .layui-form-select .layui-form-checked span,#theme0 .layui-form-select .layui-form-checked:hover span{background: #772c6a!important;}
-#theme0 .fun-layer-class .layui-layer-title {background:#772c6a!important;color: #fff;}
-#theme0 .layui-form-select dl dd.layui-this{ background: #772c6a!important;}
+#theme0 .fun-layer-class .layui-layer-title {background:#b8279f!important;color: #fff;border:none;}  #theme0 blockquote{border-left-color:#b8279f ;}
+#theme0 .layui-input:focus, #theme0 .layui-textarea:focus {border-color: #b8279f!important;}
+#theme0 .layui-laydate-main .layui-laydate-header{background: #b8279f!important;}
+#theme0 .layui-laydate-main .layui-this{background: #b8279f!important;}
+#theme0 .layui-laydate-footer span:hover{color: #b8279f!important;}
+#theme0 .layui-form-radio>i:hover, #theme0 .layui-form-radioed>i, #theme0 .layui-form-checked i, #theme0 .layui-form-checked:hover i {color: #b8279f;}
+#theme0 .layui-form-select .layui-form-checked span,#theme0 .layui-form-select .layui-form-checked:hover span{background: #b8279f!important;}
+#theme0 .fun-layer-class .layui-layer-title {background:#b8279f!important;color: #fff;}
+#theme0 .layui-form-select dl dd.layui-this{ background: #b8279f!important;}
 #theme0 .multi  dl dd.layui-this{ background: none!important;}
 #theme0 .multi .layui-form-checked span, #theme0 .multi .layui-form-checked:hover span{background: none!important;}
-#theme0 .multi .layui-form-checked[lay-skin=primary] i{background: #772c6a!important;}
+#theme0 .multi .layui-form-checked[lay-skin=primary] i{background: #b8279f!important;}
 #theme0 .multi .layui-form-radio>i:hover, #theme0 .multi .layui-form-radioed>i, #theme0 .multi .layui-form-checked i,
 #theme0 .multi .layui-form-checked:hover i{color: #fff}
 #theme0 .multi .layui-form-checked span,#theme0 .multi .layui-form-checked:hover span{background: #fff!important;}
-#theme0 .layui-form-radio:hover *,#theme0 .layui-form-radioed,#theme0 .layui-form-radioed>i{color: #772c6a}
+#theme0 .layui-form-radio:hover *,#theme0 .layui-form-radioed,#theme0 .layui-form-radioed>i{color: #b8279f}
 
 #theme1 .layui-btn,
 #theme1 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -111,43 +111,43 @@ table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;ma
 #theme2 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme2 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme2 .layui-form-onswitch,
-#theme2 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;border:none;}  #theme2 blockquote{border-left-color:#722ed1 ;}
-#theme2 .layui-input:focus, #theme2 .layui-textarea:focus {border-color: #722ed1!important;}
-#theme2 .layui-laydate-main .layui-laydate-header{background: #722ed1!important;}
-#theme2 .layui-laydate-main .layui-this{background: #722ed1!important;}
-#theme2 .layui-laydate-footer span:hover{color: #722ed1!important;}
-#theme2 .layui-form-radio>i:hover, #theme2 .layui-form-radioed>i, #theme2 .layui-form-checked i, #theme2 .layui-form-checked:hover i {color: #722ed1;}
-#theme2 .layui-form-checked span, #theme2 .layui-form-checked:hover span{background: #722ed1!important;}
-#theme2 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;}
-#theme2 .layui-form-select dl dd.layui-this{ background: #722ed1!important;}
+#theme2 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;border:none;}  #theme2 blockquote{border-left-color:#8e10b9 ;}
+#theme2 .layui-input:focus, #theme2 .layui-textarea:focus {border-color: #8e10b9!important;}
+#theme2 .layui-laydate-main .layui-laydate-header{background: #8e10b9!important;}
+#theme2 .layui-laydate-main .layui-this{background: #8e10b9!important;}
+#theme2 .layui-laydate-footer span:hover{color: #8e10b9!important;}
+#theme2 .layui-form-radio>i:hover, #theme2 .layui-form-radioed>i, #theme2 .layui-form-checked i, #theme2 .layui-form-checked:hover i {color: #8e10b9;}
+#theme2 .layui-form-checked span, #theme2 .layui-form-checked:hover span{background: #8e10b9!important;}
+#theme2 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;}
+#theme2 .layui-form-select dl dd.layui-this{ background: #8e10b9!important;}
 #theme2 .multi  dl dd.layui-this{ background: none!important;}
 #theme2 .multi .layui-form-checked span, #theme2 .multi .layui-form-checked:hover span{background: none!important;}
-#theme2 .multi .layui-form-checked[lay-skin=primary] i{background: #722ed1!important;}
+#theme2 .multi .layui-form-checked[lay-skin=primary] i{background: #8e10b9!important;}
 #theme2 .multi .layui-form-radio>i:hover, #theme2 .multi .layui-form-radioed>i, #theme2 .multi .layui-form-checked i,
 #theme2 .multi .layui-form-checked:hover i{color: #fff}
 #theme2 .multi .layui-form-checked span,#theme2 .multi .layui-form-checked:hover span{background: #fff!important;}
-#theme2 .layui-form-radio:hover *,#theme2 .layui-form-radioed,#theme2 .layui-form-radioed>i{color: #722ed1}
+#theme2 .layui-form-radio:hover *,#theme2 .layui-form-radioed,#theme2 .layui-form-radioed>i{color: #8e10b9}
 
 #theme3 .layui-btn,
 #theme3 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme3 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme3 .layui-form-onswitch,
-#theme3 .fun-layer-class .layui-layer-title {background:#772c6a!important;color: #fff;border:none;}  #theme3 blockquote{border-left-color:#772c6a ;}
-#theme3 .layui-input:focus, #theme3 .layui-textarea:focus {border-color: #772c6a!important;}
-#theme3 .layui-laydate-main .layui-laydate-header{background: #772c6a!important;}
-#theme3 .layui-laydate-main .layui-this{background: #772c6a!important;}
-#theme3 .layui-laydate-footer span:hover{color: #772c6a!important;}
-#theme3 .layui-form-radio>i:hover, #theme3 .layui-form-radioed>i, #theme3 .layui-form-checked i, #theme3 .layui-form-checked:hover i {color: #772c6a;}
-#theme3 .layui-form-checked span,#theme3 .layui-form-checked:hover span{background: #772c6a!important;}
-#theme3 .fun-layer-class .layui-layer-title {background:#772c6a!important;color: #fff;}
-#theme3 .layui-form-select dl dd.layui-this{ background: #772c6a!important;}
+#theme3 .fun-layer-class .layui-layer-title {background:#b8279f!important;color: #fff;border:none;}  #theme3 blockquote{border-left-color:#b8279f ;}
+#theme3 .layui-input:focus, #theme3 .layui-textarea:focus {border-color: #b8279f!important;}
+#theme3 .layui-laydate-main .layui-laydate-header{background: #b8279f!important;}
+#theme3 .layui-laydate-main .layui-this{background: #b8279f!important;}
+#theme3 .layui-laydate-footer span:hover{color: #b8279f!important;}
+#theme3 .layui-form-radio>i:hover, #theme3 .layui-form-radioed>i, #theme3 .layui-form-checked i, #theme3 .layui-form-checked:hover i {color: #b8279f;}
+#theme3 .layui-form-checked span,#theme3 .layui-form-checked:hover span{background: #b8279f!important;}
+#theme3 .fun-layer-class .layui-layer-title {background:#b8279f!important;color: #fff;}
+#theme3 .layui-form-select dl dd.layui-this{ background: #b8279f!important;}
 #theme3 .multi  dl dd.layui-this{ background: none!important;}
 #theme3 .multi .layui-form-checked span, #theme3 .multi .layui-form-checked:hover span{background: none!important;}
-#theme3 .multi .layui-form-checked[lay-skin=primary] i{background: #772c6a!important;}
+#theme3 .multi .layui-form-checked[lay-skin=primary] i{background: #b8279f!important;}
 #theme3 .multi .layui-form-radio>i:hover, #theme3 .multi .layui-form-radioed>i, #theme3 .multi .layui-form-checked i,
 #theme3 .multi .layui-form-checked:hover i{color: #fff}
 #theme3 .multi .layui-form-checked span,#theme3 .multi .layui-form-checked:hover span{background: #fff!important;}
-#theme3 .layui-form-radio:hover *,#theme3 .layui-form-radioed,#theme3 .layui-form-radioed>i{color: #772c6a}
+#theme3 .layui-form-radio:hover *,#theme3 .layui-form-radioed,#theme3 .layui-form-radioed>i{color: #b8279f}
 
 #theme4 .layui-btn,
 #theme4 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -174,22 +174,22 @@ table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;ma
 #theme5 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme5 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme5 .layui-form-onswitch,
-#theme5 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;border:none;}  #theme5 blockquote{border-left-color:#722ed1 ;}
-#theme5 .layui-input:focus, #theme5 .layui-textarea:focus {border-color: #722ed1!important;}
-#theme5 .layui-laydate-main .layui-laydate-header{background: #722ed1!important;}
-#theme5 .layui-laydate-main .layui-this{background: #722ed1!important;}
-#theme5 .layui-laydate-footer span:hover{color: #722ed1!important;}
-#theme5 .layui-form-radio>i:hover, #theme5 .layui-form-radioed>i, #theme5 .layui-form-checked i, #theme5 .layui-form-checked:hover i {color: #722ed1;}
-#theme5 .layui-form-checked span,#theme5 .layui-form-checked:hover span{background: #722ed1!important;}
-#theme5 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;}
-#theme5 .layui-form-select dl dd.layui-this{ background: #722ed1!important;}
+#theme5 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;border:none;}  #theme5 blockquote{border-left-color:#8e10b9 ;}
+#theme5 .layui-input:focus, #theme5 .layui-textarea:focus {border-color: #8e10b9!important;}
+#theme5 .layui-laydate-main .layui-laydate-header{background: #8e10b9!important;}
+#theme5 .layui-laydate-main .layui-this{background: #8e10b9!important;}
+#theme5 .layui-laydate-footer span:hover{color: #8e10b9!important;}
+#theme5 .layui-form-radio>i:hover, #theme5 .layui-form-radioed>i, #theme5 .layui-form-checked i, #theme5 .layui-form-checked:hover i {color: #8e10b9;}
+#theme5 .layui-form-checked span,#theme5 .layui-form-checked:hover span{background: #8e10b9!important;}
+#theme5 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;}
+#theme5 .layui-form-select dl dd.layui-this{ background: #8e10b9!important;}
 #theme5 .multi  dl dd.layui-this{ background: none!important;}
 #theme5 .multi .layui-form-checked span, #theme5 .multi .layui-form-checked:hover span{background: none!important;}
-#theme5 .multi .layui-form-checked[lay-skin=primary] i{background: #722ed1!important;}
+#theme5 .multi .layui-form-checked[lay-skin=primary] i{background: #8e10b9!important;}
 #theme5 .multi .layui-form-radio>i:hover, #theme5 .multi .layui-form-radioed>i, #theme5 .multi .layui-form-checked i,
 #theme5 .multi .layui-form-checked:hover i{color: #fff}
 #theme5 .multi .layui-form-checked span,#theme5 .multi .layui-form-checked:hover span{background: #fff!important;}
-#theme5 .layui-form-radio:hover *,#theme5 .layui-form-radioed,#theme5 .layui-form-radioed>i{color: #722ed1}
+#theme5 .layui-form-radio:hover *,#theme5 .layui-form-radioed,#theme5 .layui-form-radioed>i{color: #8e10b9}
 
 
 #theme6 .layui-btn,
@@ -259,22 +259,22 @@ table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;ma
 #theme9 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme9 .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme9 .layui-form-onswitch,
-#theme9 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;border:none;}  #theme9 blockquote{border-left-color:#722ed1 ;}
-#theme9 .layui-input:focus, #theme9 .layui-textarea:focus {border-color: #722ed1!important;}
-#theme9 .layui-laydate-main .layui-laydate-header{background: #722ed1!important;}
-#theme9 .layui-laydate-main .layui-this{background: #722ed1!important;}
-#theme9 .layui-laydate-footer span:hover{color: #722ed1!important;}
-#theme9 .layui-form-radio>i:hover, #theme9 .layui-form-radioed>i, #theme9 .layui-form-checked i, #theme9 .layui-form-checked:hover i {color: #722ed1;}
-#theme9 .layui-form-checked span,#theme9 .layui-form-checked:hover span{background: #722ed1!important;}
-#theme9 .fun-layer-class .layui-layer-title {background:#722ed1!important;color: #fff;}
-#theme9 .layui-form-select dl dd.layui-this{ background: #722ed1!important;}
+#theme9 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;border:none;}  #theme9 blockquote{border-left-color:#8e10b9 ;}
+#theme9 .layui-input:focus, #theme9 .layui-textarea:focus {border-color: #8e10b9!important;}
+#theme9 .layui-laydate-main .layui-laydate-header{background: #8e10b9!important;}
+#theme9 .layui-laydate-main .layui-this{background: #8e10b9!important;}
+#theme9 .layui-laydate-footer span:hover{color: #8e10b9!important;}
+#theme9 .layui-form-radio>i:hover, #theme9 .layui-form-radioed>i, #theme9 .layui-form-checked i, #theme9 .layui-form-checked:hover i {color: #8e10b9;}
+#theme9 .layui-form-checked span,#theme9 .layui-form-checked:hover span{background: #8e10b9!important;}
+#theme9 .fun-layer-class .layui-layer-title {background:#8e10b9!important;color: #fff;}
+#theme9 .layui-form-select dl dd.layui-this{ background: #8e10b9!important;}
 #theme9 .multi  dl dd.layui-this{ background: none!important;}
 #theme9 .multi .layui-form-checked span, #theme9 .multi .layui-form-checked:hover span{background: none!important;}
-#theme9 .multi .layui-form-checked[lay-skin=primary] i{background: #722ed1!important;}
+#theme9 .multi .layui-form-checked[lay-skin=primary] i{background: #8e10b9!important;}
 #theme9 .multi .layui-form-radio>i:hover, #theme9 .multi .layui-form-radioed>i, #theme9 .multi .layui-form-checked i,
 #theme9 .multi .layui-form-checked:hover i{color: #fff}
 #theme9 .multi .layui-form-checked span,#theme9 .multi .layui-form-checked:hover span{background: #fff!important;}
-#theme9 .layui-form-radio:hover *,#theme9 .layui-form-radioed,#theme9 .layui-form-radioed>i{color: #722ed1}
+#theme9 .layui-form-radio:hover *,#theme9 .layui-form-radioed,#theme9 .layui-form-radioed>i{color: #8e10b9}
 
 #theme10 .layui-btn,
 #theme10 .fun-layer-class .layui-layer-btn .layui-layer-btn0,
