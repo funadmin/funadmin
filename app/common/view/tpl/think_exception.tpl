@@ -49,7 +49,7 @@ $langSet == 'en' && $lang = array_combine(array_keys($lang), array_keys($lang));
         .error-page-wrapper .context p {margin:0;}
         .error-page-wrapper .context p:nth-child(n+2) {margin-top:16px;}
         .error-page-wrapper .buttons-container {margin-top:35px;overflow:hidden;}
-        .error-page-wrapper .buttons-container a {transition:text-indent .2s ease-out,color .2s linear,background-color .2s linear;text-indent:0px;font-size:14px;text-transform:uppercase;text-decoration:none;color:#fff;background-color:#2ecc71;border-radius:99px;padding:8px 0 8px;text-align:center;display:inline-block;overflow:hidden;position:relative;width:45%;}
+        .error-page-wrapper .buttons-container a {transition:text-indent .2s ease-out,color .2s linear,background-color .2s linear;text-indent:0px;font-size:14px;text-transform:uppercase;text-decoration:none;color:#fff;background-color:#f6929a;border-radius:99px;padding:8px 0 8px;text-align:center;display:inline-block;overflow:hidden;position:relative;width:45%;}
         .error-page-wrapper .buttons-container a:hover {text-indent:15px;}
         .error-page-wrapper .buttons-container a:nth-child(1) {float:left;}
         .error-page-wrapper .buttons-container a:nth-child(2) {float:right;}

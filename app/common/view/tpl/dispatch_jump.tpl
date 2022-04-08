@@ -16,7 +16,7 @@
         .system-message p{font-size:9pt;line-height:20px}
         .system-message .btn{display:inline-block;margin-right:10px;width:138px;height:2pc;border:1px solid #44a0e8;border-radius:30px;color:#44a0e8;text-align:center;font-size:1pc;line-height:2pc;margin-bottom:5px;}
         .success .btn{border-color:#69bf4e;color:#69bf4e}
-        .error .btn{border-color:#e02634;color:#e02634}
+        .error .btn{border-color:#e699c6;color:#e699c6}
         .info .btn{border-color:#3498db;color:#3498db}
         .copyright p{width:100%;color:#919191;text-align:center;font-size:10px}
         .system-message .btn-grey{border-color:#bbb;color:#bbb}
