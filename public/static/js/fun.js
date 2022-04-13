@@ -173,6 +173,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
                         $('#lock-screen').remove();
                     }
+
                 }
             });
         },
@@ -544,7 +545,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
-
                         try {
                             // 置顶当前窗口
                             parent.layui.layer.setTop(layero);

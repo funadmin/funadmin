@@ -98,7 +98,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             uploadNum = data.value.num,
                             uploadMime = data.value.mime;
                         var uploadAccept = data.value.accept,
-                            uploadPath = data.value.path,
+                            uploadPath = data.value.path || 'upload',
                             uploadSize = data.value.size,
                             uploadmultiple = data.value.multiple,
                             uploadExts = data.value.exts;
@@ -208,7 +208,8 @@ define(["jquery", 'croppers'], function($, croppers) {
             cropper: function() {
                 var cropperlist = $("*[lay-filter='cropper']");
                 if (cropperlist.length > 0) {
-                    layui.each(cropperlist, function() {
+                    cropperlistobj = {}
+                    layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload'),
                             id = $(this).prop('id'),
@@ -217,12 +218,12 @@ define(["jquery", 'croppers'], function($, croppers) {
                             saveH = data.value.height,
                             mark = data.value.mark,
                             area = data.value.area,
-                            uploadPath = data.value.path;
+                            uploadPath = data.value.path || 'upload';
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;
-                        area = area || '850px';
-                        layui.croppers.render({
+                        area = area || '860px';
+                        cropperlistobj[i] = layui.croppers.render({
                             elem: '#' + id,
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
@@ -234,6 +235,8 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 //上传完毕回调
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
+                                    console.log( _parent.find('input[type="text"]').length)
+                                    console.log( _parent.find('input[type="text"]'))
                                     _parent.find('input[type="text"]').val(res.url)
                                     var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
                                     _parent.find('.layui-upload-list').html(html)

@@ -43,7 +43,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                     {field: 'username', title: __('Admin Username'), width: 150, sort: true},
                     {field: 'method', title: __('Method'), width: 150, sort: true},
                     {field: 'url', title: __('Log Addr'), sort: true,},
-                    {field: 'content', title: __('Log Content'), width: 150, sort: true,},
+                    {field: 'post_data', title: __('Log Content'), width: 150, sort: true,},
                     {field: 'title', title: __('Log Title'), width: 150, sort: true,},
                     {field: 'agent', title: __('Log Agent'), width: 120, sort: true,},
                     {field: 'ip', title: 'Ip', width: 80},
