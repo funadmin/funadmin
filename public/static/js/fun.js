@@ -515,8 +515,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
-                winHeight = $(window).height();height = height>winHeight?winHeight:height;
+                winHeight = $(document).height()+110 ;height = height>winHeight?winHeight:height;
                 width = width + 'px';height = height + 'px';
+                console.log(height)
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn === undefined) {
