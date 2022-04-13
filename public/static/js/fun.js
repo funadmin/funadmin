@@ -398,7 +398,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         url =v.url?v.url:$(othis).attr('data-url');
                         if(Fun.checkAuth(url)){
                             extend[k].url =url;
-                            extend[k].class =v.class || 'layui-btn-xs layui-btn-nomarl';
+                            extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
                             extend[k].id = v.event
                             extend[k].callback = v.callback || '';
                             extend[k].extend = v.extend || '';
@@ -409,7 +409,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             extend[k].title =v.title ;
                         }
                     })
-                    layui.dropdown.render({
+                    var inst = layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
                             data.title = data.textTitle;
@@ -421,6 +421,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             }
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
+                    inst.reload();//点击后需要重载才不会隐藏
+                    return false;
                 }
             },
         },

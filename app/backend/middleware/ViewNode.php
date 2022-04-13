@@ -35,7 +35,7 @@ class ViewNode
             'requesturl'          => $requesturl,
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
-            'superAdmin'           => session('admin.id')==1?true:false,
+            'superAdmin'           => session('admin.id')==1 || in_array(1,explode(',',session('admin.group')))?true:false,
             'lang'           =>  strip_tags(Lang::getLangset()),
             'site'           =>   syscfg('site'),
             'upload'           =>  syscfg('upload'),

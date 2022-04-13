@@ -682,7 +682,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             }, open: function (othis, options = null) {
                 if (options) {
                     Fun.api.open(options);
-                    return
+                    return ;
                 }
                 Fun.events.open(othis)
             }, photos: function (othis) {
@@ -890,6 +890,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         case'iframe':
                             Table.events.iframe(othis);
                             break;
+                        case'dropdown':
+                            Table.events.dropdown(othis);
+                            break;
                         default:
                             Table.events.common(othis)
                     }
@@ -939,40 +942,40 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
             },
             bindEvent: function () {
-            $(document).on('click', '[lay-event]', function () {
-                var _that = $(this), attrEvent = _that.attr('lay-event');
-                if (Table.events.hasOwnProperty(attrEvent)) {
-                    Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
-                } else {
-                    Table.events.common(_that);
-                }
-            });
-            //重置按钮，重新刷新表格
-            $(document).on('click', 'button[type="reset"]', function () {
-                Table.api.reload($(this).data('tableid'), {}, false)
-            });
-            $(document).on('blur', '#layui-input-search', function (event) {
-                var text = $(this).val();
-                var name = $(this).prop('name').split(',');
-                if (name.length === 1) {
-                    var formatFilter = {}, formatOp = {};
-                    formatFilter[name] = text;
-                    formatOp[name] = $(this).data('searchop') || '%*%';
-                    Table.api.reload(Table.init.tableId, {
-                        filter: JSON.stringify(formatFilter),
-                        op: JSON.stringify(formatOp)
-                    }, true, false);
-                    $('#layui-input-search').prop("value", $(this).val());
+                $(document).on('click', '[lay-event]', function () {
+                    var _that = $(this), attrEvent = _that.attr('lay-event');
+                    if (Table.events.hasOwnProperty(attrEvent)) {
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                    } else {
+                        Table.events.common(_that);
+                    }
+                });
+                //重置按钮，重新刷新表格
+                $(document).on('click', 'button[type="reset"]', function () {
+                    Table.api.reload($(this).data('tableid'), {}, false)
+                });
+                $(document).on('blur', '#layui-input-search', function (event) {
+                    var text = $(this).val();
+                    var name = $(this).prop('name').split(',');
+                    if (name.length === 1) {
+                        var formatFilter = {}, formatOp = {};
+                        formatFilter[name] = text;
+                        formatOp[name] = $(this).data('searchop') || '%*%';
+                        Table.api.reload(Table.init.tableId, {
+                            filter: JSON.stringify(formatFilter),
+                            op: JSON.stringify(formatOp)
+                        }, true, false);
+                        $('#layui-input-search').prop("value", $(this).val());
+                        return false
+                    } else {
+                        Table.api.reload(tableId, {search: text, searchName: name}, true, true);
+                        $('#layui-input-search').prop("value", $(this).val());
+                        return false
+                    }
+                }).unbind('blur', '#layui-input-search', function (event) {
                     return false
-                } else {
-                    Table.api.reload(tableId, {search: text, searchName: name}, true, true);
-                    $('#layui-input-search').prop("value", $(this).val());
-                    return false
-                }
-            }).unbind('blur', '#layui-input-search', function (event) {
-                return false
-            })
-        },
+                })
+            },
         }
     };
     return Table;

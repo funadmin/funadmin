@@ -82,7 +82,7 @@ class AuthService
     //获取左侧主菜单
     public function authMenuNode($menu, $pid = 0, $rules = [])
     {
-        $authrules = explode(',', session('admin.rules'));
+        $authrules = array_filter(explode(',', session('admin.rules')));
         $authopen = AuthRule::where('auth_verify', 0)
             ->where('type', 1)->where('status', 1)->column('id');
         if ($authopen) {
@@ -294,8 +294,9 @@ class AuthService
                             ->value('id');
                     }
                     //当前管理员权限
-                    $rules = AuthGroupModel::where('id', 'in', session('admin.group_id'))
-                        ->where('status', 1)->value('rules');
+                    $rules =  $this->getRules(session('admin.group_id'));
+//                    AuthGroupModel::where('id', 'in', session('admin.group_id'))
+//                        ->where('status', 1)->value('rules');
                     //用户权限规则id
                     $adminRules = explode(',', $rules);
                     // 不需要权限的规则id;
@@ -509,8 +510,7 @@ class AuthService
             $admin->token = SignHelper::authSign($admin);
             $admin->save();
             $admin = $admin->toArray();
-            $rules = AuthGroupModel::where('id', 'in', $admin['group_id'])
-                ->value('rules');
+            $rules = $this->getRules($admin['group_id']);
             $admin['rules'] = $rules;
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
@@ -572,8 +572,9 @@ class AuthService
                         ->where('status', 1)
                         ->value('id');
                     //当前管理员权限
-                    $rules = AuthGroupModel::where('id', 'in', session('admin.group_id'))
-                        ->where('status', 1)->value('rules');
+                    $rules = $this->getRules(session('admin.group_id'));
+//                        AuthGroupModel::where('id', 'in', session('admin.group_id'))
+//                        ->where('status', 1)->value('rules');
                     //用户权限规则id
                     $adminRules = explode(',', $rules);
                     // 不需要权限的规则id;
@@ -608,5 +609,23 @@ class AuthService
         }
         return true;
     }
+
+    /**
+     * 获取rules
+     * @param $groups
+     * @return void
+     */
+    protected function getRules($groups){
+        if($groups && in_array(1,explode(",",$groups))){
+            $rules = AuthRule::where('status',1)->cache('superAdmin',24*3600)->column('id');
+            $rules = implode(',',$rules);
+        }else{
+            $rules = AuthGroupModel::where('id', 'in', $groups)
+                ->where('status',1)
+                ->value('rules');
+        }
+        return $rules;
+    }
+
 
 }
