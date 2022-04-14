@@ -15,7 +15,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
             selectplus:function() {
                 var selectplus ={},list = $("*[lay-filter='selectPlus']");
                 if (list.length > 0) {
-                    selectPlus = layui.selectPlus || parent.layui.xmSelect;
+                    selectPlus = layui.selectPlus || parent.layui.selectPlus;
                     layui.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
                             url = $(this).data('url')|| $(this).data('request'),
@@ -60,7 +60,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 }
             },
             xmSelect: function() {
-                var xmselect ={},list = $("*[lay-filter='xmSelect']");
+                var xmselectobj ={},list = $("*[lay-filter='xmSelect']");
                 if (list.length > 0) {
                     layui.each(list, function(i) {
                         var id = $(this).prop('id'),
@@ -123,7 +123,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     formatFilter[name] = val;
                                     formatOp[name] = '%*%';
                                     Fun.ajax({
-                                        url: Fun.url(url ? url : window.location.href),
+                                        url: url?Fun.url(url): window.location.href,
                                         data: {
                                             filter: JSON.stringify(formatFilter),
                                             op: JSON.stringify(formatOp)
@@ -149,15 +149,15 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         if (style) options.style = style;
                         if (layReqText) options.layReqText = layReqText;
                         if (content) options.content = content;
-                        xmselect[i] = xmSelect.render(options)
+                        xmselectobj[i] = xmSelect.render(options)
                         if(data.toString()==='' && url){
                             searchData = {selectFields:selelectFields,tree:tree||false,parentfield:parentfield}
                             Fun.ajax({
                                 method:'GET',
-                                url:Fun.url(url),
+                                url: url?Fun.url(url): window.location.href,
                                 data:searchData
                             },function (res) {
-                                xmselect[i].update({
+                                xmselectobj[i].update({
                                     data: res.data,
                                     autoRow: autoRow,
                                 })

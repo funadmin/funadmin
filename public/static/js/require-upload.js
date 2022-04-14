@@ -94,14 +94,14 @@ define(["jquery", 'croppers'], function($, croppers) {
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
-                        var uploadType = data.value.type,
-                            uploadNum = data.value.num,
-                            uploadMime = data.value.mime;
-                        var uploadAccept = data.value.accept,
-                            uploadPath = data.value.path || 'upload',
-                            uploadSize = data.value.size,
-                            uploadmultiple = data.value.multiple,
-                            uploadExts = data.value.exts;
+                        var uploadType = data.value.type || data.type,
+                            uploadNum = data.value.num || data.num,
+                            uploadMime = data.value.mime || data.mime;
+                        var uploadAccept = data.value.accept || data.accept,
+                            uploadPath = data.value.path || data.path || 'upload',
+                            uploadSize = data.value.size || data.size,
+                            uploadmultiple = data.value.multiple || data.multiple,
+                            uploadExts = data.value.exts || data.exts;
                         uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
@@ -214,11 +214,11 @@ define(["jquery", 'croppers'], function($, croppers) {
                         var _parent = $(this).parents('.layui-upload'),
                             id = $(this).prop('id'),
                             data = $(this).data(),
-                            saveW = data.value.width,
-                            saveH = data.value.height,
-                            mark = data.value.mark,
-                            area = data.value.area,
-                            uploadPath = data.value.path || 'upload';
+                            saveW = data.value.width || data.width,
+                            saveH = data.value.height || data.height,
+                            mark = data.value.mark || data.mark,
+                            area = data.value.area || data.area,
+                            uploadPath = data.value.path || data.path || 'upload';
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;
