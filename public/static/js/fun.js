@@ -537,7 +537,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     options.btnAlign = 'c';
                 }
                 if (options.btn_lang === []) options.btn_lang = false;
-                var parentiframe = Fun.api.checkLayerIframe()
+                var parentiframe = Fun.api.checkLayerIframe();
                 options = {
                     title: title, type: type, area: [width, height], content: url,
                     shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
@@ -576,6 +576,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         layer.close(layer.index);
                     } : btn2,
                     cancel: function (index, layero) {
+                        layer.close(layer.index);
+                    },end:function(index, layero){
                         layer.close(layer.index);
                     }
                 }

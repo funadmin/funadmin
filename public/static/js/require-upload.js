@@ -222,7 +222,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;
-                        area = area || '860px';
+                        area = area || '720px';
                         cropperlistobj[i] = layui.croppers.render({
                             elem: '#' + id,
                             saveW: saveW, //保存宽度
