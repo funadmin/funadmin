@@ -70,7 +70,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
                             paging = $(this).data('paging'), pageSize = $(this).data('pageSize'),
                             remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
-                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow')==false ?false:true,
+                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
                             clickClose = $(this).data('clickClose'), prop = $(this).data('prop') || $(this).data('attr'),
                             max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
                             theme = $(this).data('theme') || '#409EFF', name = $(this).attr('name') || $(this).data('name') || 'pid',
@@ -79,8 +79,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
-                        var pageRemote = (!($(this).data('pageremote') === undefined || $(this).data('pageremote'))), props, propArr, options;
+                        var pageRemote = !$(this).data('pageremote')?false:true, props, propArr, options;
                         var tree = $(this).data('tree');
+                        if(remoteSearch) toolbar.show=true;filterable=true;
                         if(typeof tree ==='object'){
                             tree = tree;
                         }else{
@@ -111,22 +112,24 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             } : eval(create)?eval(create):false;
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                         options = {
-                            el: '#' + id, language: lang, data: data, initValue: value, name: name,
-                            tips: tips, empty: empty, filterable: filterable, searchTips: searchTips,
-                            prop: props, disabled: disabled, remoteSearch: remoteSearch,
+                            el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
+                            tips: tips, empty: empty, searchTips: searchTips, disabled: disabled,
+                            filterable: filterable,remoteSearch: remoteSearch,
                             remoteMethod: function(val, cb, show) {
-                                if (remoteMethod !== undefined) {
+                                if (remoteMethod && remoteMethod !== undefined) {
                                     eval(remoteMethod)
                                 } else {
                                     var formatFilter = {},
                                         formatOp = {};
-                                    formatFilter[name] = val;
-                                    formatOp[name] = '%*%';
+                                    formatFilter[props.name] = val;
+                                    formatOp[props.name] = '%*%';
                                     Fun.ajax({
-                                        url: url?Fun.url(url): window.location.href,
+                                        method:'get',
+                                        url: Fun.url(url?url: window.location.href),
                                         data: {
                                             filter: JSON.stringify(formatFilter),
-                                            op: JSON.stringify(formatOp)
+                                            op: JSON.stringify(formatOp),
+                                            selectFields:selelectFields
                                         }
                                     }, function(res) {
                                         cb(res.data)
@@ -137,7 +140,8 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             },
                             paging: paging, pageSize: pageSize, autoRow: autoRow, size: size,
                             repeat: repeat, height: height, max: max,
-                            pageRemote: pageRemote, toolbar: toolbar, theme: {
+                            pageRemote: pageRemote,
+                            toolbar: toolbar, theme: {
                                 color: theme,
                             }, radio: radio, layVerify: layVerify, clickClose: clickClose,
                             maxMethod: function(val) {
@@ -151,10 +155,10 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         if (content) options.content = content;
                         xmselectobj[i] = xmSelect.render(options)
                         if(data.toString()==='' && url){
-                            searchData = {selectFields:selelectFields,tree:tree||false,parentfield:parentfield}
+                            searchData = {selectFields:selelectFields,tree:tree.show,parentfield:parentfield}
                             Fun.ajax({
                                 method:'GET',
-                                url: url?Fun.url(url): window.location.href,
+                                url: Fun.url(url?url: window.location.href),
                                 data:searchData
                             },function (res) {
                                 xmselectobj[i].update({

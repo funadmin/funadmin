@@ -37,56 +37,66 @@ define(["jquery", 'croppers'], function($, croppers) {
         api: {
             mutiUpload: function() {
                 //多文件列表示例
-                var uploadListView = $('.uploadList')
-                var upload = layui.upload ? layui.upload : parent.layui.upload;
-                uploadListIns = upload.render({
-                    elem: '#uploadListBtn',
-                    url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
-                    ,
-                    accept: 'file',
-                    drag: true,
-                    multiple: true,
-                    auto: false,
-                    bindAction: '.uploadSubBtn',
-                    choose: function(obj) {
-                        var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
-                        //读取本地文件
-                        obj.preview(function(index, file, result) {
-                            var tr = $(['<tr id="upload-' + index + '">', '<td>' + file.name + '</td>', '<td>' + (file.size / 1024).toFixed(1) + 'kb</td>', '<td class="progress"> 0 </td>', '<td>等待上传</td>', '<td>', '<button class="layui-btn layui-btn-xs fun-upload-reload layui-hide">重传</button>', '<button class="layui-btn layui-btn-xs layui-btn-danger fun-upload-delete">删除</button>', '</td>', '</tr>'].join(''));
-                            //单个重传
-                            tr.find('.fun-upload-reload').on('click', function() {
-                                obj.upload(index, file);
+                var uploadList = $('*[lay-filter="multipleupload"]');
+                layui.each(uploadList, function(i, v) {
+                    var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
+                    var id = $(this).attr('id');
+                    var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
+                    var upload = layui.upload ? layui.upload : parent.layui.upload;
+                    uploadListIns = upload.render({
+                        elem: '#'+uploadListBtn,
+                        url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
+                        , accept: 'file',
+                        drag: true,
+                        multiple: true,
+                        auto: false,
+                        bindAction: '#'+id,
+                        choose: function(obj) {
+                            var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                            //读取本地文件
+                            obj.preview(function(index, file, result) {
+                                var tr = $(['<tr id="upload-' + index + '">', '<td>' + file.name + '</td>', '<td>' + (file.size / 1024).toFixed(1) + 'kb</td>', '<td class="progress"> 0 </td>', '<td>等待上传</td>', '<td>', '<button class="layui-btn layui-btn-xs fun-upload-reload layui-hide">重传</button>', '<button class="layui-btn layui-btn-xs layui-btn-danger fun-upload-delete">删除</button>', '</td>', '</tr>'].join(''));
+                                //单个重传
+                                tr.find('.fun-upload-reload').on('click', function() {
+                                    obj.upload(index, file);
+                                });
+                                //删除
+                                tr.find('.fun-upload-delete').on('click', function() {
+                                    delete files[index]; //删除对应的文件
+                                    tr.remove();
+                                    uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
+                                });
+                                uploadListView.append(tr);
                             });
-                            //删除
-                            tr.find('.fun-upload-delete').on('click', function() {
-                                delete files[index]; //删除对应的文件
-                                tr.remove();
-                                uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
-                            });
-                            uploadListView.append(tr);
-                        });
-                    },
-                    progress: function(n, elem) {
-                        var percent = n + '%'; //获取进度百分比
-                        $('.progress').html(percent); //可配合 layui 进度条元素使用
-                    },
-                    done: function(res, index, upload) {
-                        if (res.code > 0) { //上传成功
+                        },
+                        progress: function(n, elem) {
+                            var percent = n + '%'; //获取进度百分比
+                            $('.progress').html(percent); //可配合 layui 进度条元素使用
+                        },
+                        done: function(res, index, upload) {
+                            if (res.code > 0) { //上传成功
+                                var tr = uploadListView.find('tr#upload-' + index),
+                                    tds = tr.children();
+                                tds.eq(3).html('<span style="color: #5FB878;">上传成功</span>');
+                                tds.eq(4).html(''); //清空操作
+                                var table = parent.$('body').find('table.layui-table[lay-filter');
+                                if(table.length > 0) {
+                                    var id = table.attr('id');
+                                    id && parent.layui.table && parent.layui.table.reload(id);
+                                }
+                                return delete this.files[index]; //删除文件队列已经上传成功的文件
+                            }
+                            this.error(index, upload, res);
+                        },
+                        error: function(index, upload, res) {
                             var tr = uploadListView.find('tr#upload-' + index),
                                 tds = tr.children();
-                            tds.eq(3).html('<span style="color: #5FB878;">上传成功</span>');
-                            tds.eq(4).html(''); //清空操作
-                            return delete this.files[index]; //删除文件队列已经上传成功的文件
+                            tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
+                            tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
                         }
-                        this.error(index, upload, res);
-                    },
-                    error: function(index, upload, res) {
-                        var tr = uploadListView.find('tr#upload-' + index),
-                            tds = tr.children();
-                        tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
-                        tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
-                    }
-                });
+                    });
+
+                })
             },
             uploads: function() {
                 var uploadList = $('*[lay-filter="upload"]');
@@ -94,14 +104,14 @@ define(["jquery", 'croppers'], function($, croppers) {
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
-                        var uploadType = data.value.type || data.type,
-                            uploadNum = data.value.num || data.num,
-                            uploadMime = data.value.mime || data.mime;
-                        var uploadAccept = data.value.accept || data.accept,
-                            uploadPath = data.value.path || data.path || 'upload',
-                            uploadSize = data.value.size || data.size,
-                            uploadmultiple = data.value.multiple || data.multiple,
-                            uploadExts = data.value.exts || data.exts;
+                        if(typeof data.value == 'object') data = data.value;
+                        var uploadNum = data.num,
+                            uploadMime = data.mime;
+                        var uploadAccept = data.accept,
+                            uploadPath = data.path || 'upload',
+                            uploadSize = data.size,
+                            uploadmultiple = data.multiple,
+                            uploadExts = data.exts;
                         uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
@@ -211,14 +221,11 @@ define(["jquery", 'croppers'], function($, croppers) {
                     cropperlistobj = {}
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
-                        var _parent = $(this).parents('.layui-upload'),
-                            id = $(this).prop('id'),
-                            data = $(this).data(),
-                            saveW = data.value.width || data.width,
-                            saveH = data.value.height || data.height,
-                            mark = data.value.mark || data.mark,
-                            area = data.value.area || data.area,
-                            uploadPath = data.value.path || data.path || 'upload';
+                        var _parent = $(this).parents('.layui-upload'), id = $(this).prop('id');
+                        var data = $(this).data();
+                        if(typeof data.value == 'object') data = data.value;
+                        var saveW = data.width, saveH = data.height, mark = data.mark,
+                            area = data.area, uploadPath = data.path || 'upload';
                         saveW = saveW || 300;
                         saveH = saveH || 300;
                         mark = mark || 1;

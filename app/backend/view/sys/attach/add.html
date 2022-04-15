@@ -1,6 +1,6 @@
 <form class="layui-form" lay-filter="form">
     <div class="layui-upload">
-        <button type="button" class="layui-btn layui-btn-normal" id="uploadListBtn">选择多文件</button>
+        <button type="button" class="layui-btn layui-btn-normal uploadListBtn" id="uploadListBtn">选择多文件</button>
         <div class="layui-upload-list">
             <table class="layui-table">
                 <thead>
@@ -13,7 +13,7 @@
                 <tbody class="uploadList"></tbody>
             </table>
         </div>
-        <button type="button" class="layui-btn uploadSubBtn">开始上传</button>
+        <button type="button" lay-filter="multipleupload" id="multipleupload" class="layui-btn uploadSubBtn">开始上传</button>
     </div>
     {:form_closebtn()}
 </form>

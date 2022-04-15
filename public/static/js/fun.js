@@ -22,21 +22,17 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 return url;
             }
             url = Fun.common.parseNodeStr(url);
+            url = url.indexOf(Config.entrance)===0?url.replace(Config.entrance,''):url;
             if (!Config.addonname) {
                 if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
-                    url = url.indexOf('/')===0?url.replace('/',''):url;
                     return Config.entrance + url;
-                } else  {
-                    return url;
                 }
+                return '/' + url;
             } else {
-                url = url.indexOf('/')===0?url.replace('/',''):url
-                if (Config.addonname && Config.modulename === 'backend' && url.indexOf('ajax') !== -1) {
+                if (Config.addonname && Config.modulename === 'backend') {
                     return Config.entrance + url;
-                } else {
-                    url = url.indexOf('/')===0?url.replace('/',''):url
-                    return '/' + url;
                 }
+                return '/' + url;
             }
         },
         //替换ids
@@ -55,7 +51,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             }
             return $(ele).data('node-' + node.toLowerCase()) === 1;
         },
-        parame: function (param, defaultParam) {
+        param: function (param, defaultParam) {
             return param !== undefined ? param : defaultParam;
         },
         refreshmenu: function () {

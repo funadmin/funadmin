@@ -17,14 +17,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             options.layFilter = options.id;
             options.url = options.url || window.location.href;
             options.toolbar = options.toolbar || '#toolbar';
-            options.search = Fun.parame(options.search, true);
-            options.searchFormTpl = Fun.parame(options.searchFormTpl || Table.init.searchFormTpl, false);
-            options.searchShow = Fun.parame(options.searchShow || Table.init.searchShow, false);
+            options.search = Fun.param(options.search, true);
+            options.searchFormTpl = Fun.param(options.searchFormTpl || Table.init.searchFormTpl, false);
+            options.searchShow = Fun.param(options.searchShow || Table.init.searchShow, false);
             options.rowDouble =  !(options.rowDouble != undefined && options.rowDouble == false && (Table.init.rowDouble == undefined || (Table.init.rowDouble == false)));
             options.searchInput = !(options.searchInput != undefined && options.searchInput == false && (Table.init.searchInput == undefined || (Table.init.searchInput == false)));
-            options.searchName = Fun.parame(options.searchName || Table.init.searchName, 'id');
+            options.searchName = Fun.param(options.searchName || Table.init.searchName, 'id');
             options.cols = Table.colsRender(options.cols);
-            options.page = Fun.parame(options.page, true);
+            options.page = Fun.param(options.page, true);
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print',];
@@ -51,9 +51,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             field: v.name,
                             search: O.data('search'),
                             searchOp: O.data('searchop'),
-                            timepickerformat: Fun.parame(O.data('timepickerformat'), 'YYYY-MM-DD HH:mm:ss'),
-                            searchdateformat: Fun.parame(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss'),
-                            timeType: Fun.parame(O.data('timetype'), 'datetime'),
+                            timepickerformat: Fun.param(O.data('timepickerformat'), 'YYYY-MM-DD HH:mm:ss'),
+                            searchdateformat: Fun.param(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss'),
+                            timeType: Fun.param(O.data('timetype'), 'datetime'),
                         }
                         cols.push(arr)
                     })
@@ -146,17 +146,17 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         renderSearch: function (options) {
             tableId = options.id;
             cols = options.cols;
-            show = Fun.parame(options.searchShow, false) ? '' : 'layui-hide';
+            show = Fun.param(options.searchShow, false) ? '' : 'layui-hide';
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '';
             layui.each(cols, function (i, d) {
                 d.field = d.field || false;
-                d.fieldAlias = Fun.parame(d.fieldAlias, d.field);
+                d.fieldAlias = Fun.param(d.fieldAlias, d.field);
                 d.title = d.title || d.field || '';
                 d.filter = d.filter || d.field || '';
                 d.class = d.class || '';
-                d.search = Fun.parame(d.search, true);
+                d.search = Fun.param(d.search, true);
                 d.searchTip = d.searchTip || __('Input') + d.title || '';
                 d.searchValue = d.searchValue || '';
                 d.searchOp = d.searchOp || '%*%';
@@ -168,15 +168,22 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 d.extend = d.extend || '';
                 d.extend = typeof d.extend === "object" ? "data-extend='" + JSON.stringify(d.extend) + "'" : d.extend;
                 if (d.field !== false && d.search !== false) {
+                    d.search = typeof d.search ==='string' ?d.search.toLowerCase():d.search;
                     switch (d.search) {
                         case true:
                             formHtml += '<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
                             if (d.filter && d.filter.toLowerCase() == 'xmselect') {
                                 d.searchOp = 'in';
-                                formHtml += '<div ' + d.extend + ' lay-filter="' + d.filter + '" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
+                                formHtml += '<div ' + d.extend + ' lay-filter="xmSelect" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             }else{
                                 formHtml += '<input ' +d.extend +' lay-filter="'+d.filter+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
                             }
+                            formHtml+= '</div>\n' + '</div>' + '</div>';
+                            break;
+                        case 'xmselect':
+                            formHtml += '<div class="layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
+                            d.searchOp = 'in';
+                            formHtml += '<div ' + d.extend + ' lay-filter="xmSelect" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             formHtml+= '</div>\n' + '</div>' + '</div>';
                             break;
                         case'select':

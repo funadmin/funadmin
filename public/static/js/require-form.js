@@ -312,11 +312,12 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 if (fileSelectList.length > 0) {
                     layui.each(fileSelectList, function(i, v) {
                         var data = $(this).data();
-                        var uploadType = data.value.type,
-                            uploadNum = data.value.num,
-                            uploadMime = data.value.mime,
-                            url = data.value.tableurl,
-                            path = data.value.path;
+                        if(typeof data.value == 'object') data = data.value;
+                        var uploadType = data.type,
+                            uploadNum = data.num,
+                            uploadMime = data.mime,
+                            url = data.tableurl,
+                            path = data.path;
                         uploadMime = uploadMime || '*';
                         uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
@@ -415,9 +416,12 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 if (fileSelectList.length > 0) {
                     layui.each(fileSelectList, function(i, v) {
                         $(this).click(function(e){
-                            var data = $(this).data(),uploadType = data.value.type,
-                                uploadNum = data.value.num, uploadMime = data.value.mime,
-                                url  = data.value.selecturl, path = data.value.path;
+
+                            var data = $(this).data();
+                            if(typeof data.value == 'object') data = data.value;
+                            uploadType = data.type,
+                                uploadNum = data.num, uploadMime = data.mime,
+                                url  = data.selecturl, path = data.path;
                             uploadMime = uploadMime || '';
                             uploadType = uploadType ? uploadType : 'radio';
                             uploadNum = uploadType === 'checkbox' ? uploadNum : 1;

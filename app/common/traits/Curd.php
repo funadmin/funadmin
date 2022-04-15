@@ -364,12 +364,15 @@ trait Curd
         $fields = input('selectFields');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
-        $parentField = input('parentField','pid');
+        $parentField = input('parentField');
+        list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
         if($tree!='false' and $tree){
+            $parentField = $parentField?:'pid';
             $field = $field.','.$parentField;
         }
         $list = $this->modelClass
             ->where($this->selectMap)
+            ->where($where)
             ->field($field)
             ->select();
         if($tree!='false' and $tree){
