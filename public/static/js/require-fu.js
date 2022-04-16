@@ -21,15 +21,20 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             url = $(this).data('url')|| $(this).data('request'),
                             data = $(this).data('data')||　[], type = $(this).attr('multiple') || $(this).data('multiple') ?'checkbox':'radio',
                             method = $(this).data('method')?$(this).data('method'):'get',
-                            values = $(this).data('value')?$(this).data('value').split(','):'',
+                            values = $(this).data('value')?$(this).data('value'):'',
                             attr = $(this).data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
                             where = $(this).data('where'), delimiter = $(this).data('delimiter') || ',',
-                            fielddelimiter = $(this).data('fielddelimiter') || '、',
+                            fielddelimiter = $(this).data('fielddelimiter') || '、';
+                        if(typeof values ==='string') {
+                            values = values.split(',')
+                        }else if(typeof values ==='number'){
+                            values = [values];
+                        }
                             options = {
                                 el: '#' + id, data:data, url: url, type: type,  name: name,
                                 field: attr, values: values, method: method, where: where,
                                 delimiter: delimiter, fielddelimiter: fielddelimiter,
-                            }
+                            };
                         selectplus[i] = selectPlus.render(options);
                     })
                 }
@@ -277,7 +282,6 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         });
                         function getAllChecked() {
                             var all = '';
-                            console.log( _that.find("input:checkbox[name='" + id + name + "']:checked"));
                             _that.find("input:checkbox[name='" + id + name + "']:checked").each(function() {
                                 all += $(this).val() + ','
                             });
