@@ -13,7 +13,7 @@
         'md5','fun','form','fu', 'table','upload'],
     paths: {
         'lang'          : 'empty:',
-        'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
+        'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         // 'layui'         : 'plugins/layui/layui', // jquery

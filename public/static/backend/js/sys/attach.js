@@ -138,7 +138,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     var s = data.title;s+=`<i style="" class="layui-icon layui-icon-ok tree-choose"></i>`;
                     return s;
                 },
-                imgUrl:PLUGINS+"/lay-module/eleTree/images/",
+                imgUrl:PLUGINS+"/lay-module/eletree/images/",
                 icon: {
                     fold: "fold.png",
                     leaf: "fold.png",

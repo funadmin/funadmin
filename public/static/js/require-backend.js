@@ -26,7 +26,7 @@ require.config({
         'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
-        'jquery'        : 'plugins/jquery/jquery-3.5.1.min', // jquery
+        'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
         // 'cardTable'     : 'plugins/lay-module/cardTable/cardTable',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
