@@ -433,7 +433,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             var parentiframe = Fun.api.checkLayerIframe();
                             options = {
                                 title:__('Filelist'),type:2,
-                                url: url, width: '950', height: '700', method: 'get', yes:  function (index, layero) {
+                                url: url, width: '970', height: '700', method: 'get', yes:  function (index, layero) {
                                     try {
                                         $(document).ready(function () {
                                             // 父页面获取子页面的iframe
