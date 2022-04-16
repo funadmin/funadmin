@@ -19,9 +19,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                     layui.each(list, function(i) {
                         var id = $(this).prop('id'), name = $(this).attr('name') || 'id',
                             url = $(this).data('url')|| $(this).data('request'),
-                            data = $(this).data('data')||　[], type = $(this).attr('multiple')?'checkbox':'radio',
+                            data = $(this).data('data')||　[], type = $(this).attr('multiple') || $(this).data('multiple') ?'checkbox':'radio',
                             method = $(this).data('method')?$(this).data('method'):'get',
-                            values = $(this).data('value')?$(this).data('value'):'',
+                            values = $(this).data('value')?$(this).data('value').split(','):'',
                             attr = $(this).data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
                             where = $(this).data('where'), delimiter = $(this).data('delimiter') || ',',
                             fielddelimiter = $(this).data('fielddelimiter') || '、',
@@ -255,24 +255,30 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 if (list.length > 0) {
                     layui.each(list, function() {
                         var _that = $(this);
-                        var id = _that.prop('id'),
-                            name = _that.prop('name');
+                        var id = _that.attr('id'),
+                            name = _that.attr('name');
+                            value = _that.data('value') || [];
+                            if(value && typeof value === 'string'){
+                                value = value.split(',');
+                            }
                         layui.regionCheckBox.render({
                             elem: '#' + id,
                             name: name,
-                            value: ['北京', '内蒙古', '江西-九江'],
+                            value: value,
                             width: '550px',
                             border: true,
                             ready: function() {
                                 _that.prev('input[type="hidden"]').val(getAllChecked())
                             },
                             change: function(result) {
-                                _that.prev('input[type="hidden"]').val(getAllChecked())
+                                console.log(getAllChecked());
+                                _that.prev('input[name="'+name+'"]').val(getAllChecked())
                             }
                         });
                         function getAllChecked() {
                             var all = '';
-                            $("input:checkbox[name='" + name + "']:checked").each(function() {
+                            console.log( _that.find("input:checkbox[name='" + id + name + "']:checked"));
+                            _that.find("input:checkbox[name='" + id + name + "']:checked").each(function() {
                                 all += $(this).val() + ','
                             });
                             return all.substring(0, all.length - 1)
@@ -374,7 +380,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 if (list.length > 0) {
                     layui.each(list, function(i) {
                         var _that = $(this),id = _that.prop('id'),name=_that.data('name')
-                        options = _that.data('options');
+                        options = _that.data('options') || {};
                         options.elem = '#' + id;
                         options.value = _that.data('value');
                         options.length = options.length?options.length:5;
@@ -400,7 +406,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                     layui.each(list, function(i) {
                         var _that = $(this),id = _that.prop('id');
                         var _that = $(this),id = _that.prop('id'),name=_that.data('name')
-                        options = _that.data('options');
+                        options = _that.data('options') || {};
                         options.elem = '#' + id;
                         options.value = _that.data('value');
                         options.max = options.max?options.max:100;

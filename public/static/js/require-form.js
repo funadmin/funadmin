@@ -230,8 +230,6 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                     parent.layui.layer.close(index);
                 }
                 if (option.refreshTable !== false) {
-                    console.log(self !== top)
-                    console.log(parent.$('#' + option.refreshTable).length)
                     if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
                         if((parent.layui.treeGrid)){
                             parent.layui.treeGrid.reload(option.refreshTable, {}, true)
