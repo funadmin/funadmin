@@ -470,7 +470,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     margin-bottom: 45px;
     position: absolute;
     z-index: auto;
-    overflow: auto;
+    /*overflow: auto;*/
     -webkit-transition: left .3s;
     transition: left .3s;
     -webkit-overflow-scrolling: touch
