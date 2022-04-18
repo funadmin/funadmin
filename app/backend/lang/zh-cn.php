@@ -212,7 +212,7 @@ return [
     'Uninstall'  =>  '卸载',
     'Install'  =>  '安装',
     'Languages'  =>  '语言',
-    'Sysset'  =>  '系统设置',
+    'Sysset'  =>  '设置',
     'clear all'=>"清除全部缓存",
     'clear frontend'=>"清除前台缓存",
     'clear backend'=>"清除后台缓存",
