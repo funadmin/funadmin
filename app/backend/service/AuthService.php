@@ -79,70 +79,6 @@ class AuthService
             $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
         }
     }
-    //获取左侧主菜单
-    public function authMenuNode($menu, $pid = 0, $rules = [])
-    {
-        $authrules = array_filter(explode(',', session('admin.rules')));
-        $authopen = AuthRule::where('auth_verify', 0)
-            ->where('type', 1)->where('status', 1)->column('id');
-        if ($authopen) {
-            $authrules = array_unique(array_merge($authrules, $authopen));
-        }
-        $list = array();
-        foreach ($menu as $v) {
-            $href = $v['href'];
-            if ($v['menu_status'] == 1) {
-                $v['href'] =  trim($v['href'], '/' );
-                if(!Str::endsWith($v['href'],'/index')){
-                    $v['href'] = $v['href']. '/index';
-                }
-            }
-            if ($v['module'] !== 'addon') {
-                $v['href'] = (parse_name(__u(trim($v['href'], ' ')), 1));
-            } else {
-                $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
-            }
-            if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
-                $v['href'] = $href;
-            }
-            if ($v['pid'] == $pid) {
-                if (session('admin.id') != 1) {
-                    if (in_array($v['id'], $authrules)) {
-                        $child = AuthRule::field('href,id')
-                            ->where('status', 1)
-                            ->where('pid', $v['id'])->find();
-                        //删除下级没有list的菜单权限
-                        if (!$child) {
-                            $v['child'] = [];
-                            $list[] = $v;
-                        } else {
-                            $v['child'] = self::authMenuNode($menu, $v['id']);
-                            $list[] = $v;
-                        }
-                    }
-                } else {
-                    $v['child'] = self::authMenuNode($menu, $v['id']);
-                    $list[] = $v;
-                }
-            }
-        }
-        return $list;
-    }
-    /**
-     * 获取所有子id
-     */
-    protected function getallIdsBypid($pid)
-    {
-        $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
-        $str = '';
-        if (!empty($res)) {
-            foreach ($res as $k => $v) {
-                $str .= "," . $v['id'];
-                $str .= $this->getallIdsBypid($v['id']);
-            }
-        }
-        return $str;
-    }
 
     /**
      * 权限节点
@@ -266,16 +202,12 @@ class AuthService
             $this->error(lang('Login again'), __u('login/index'));
         }
         $adminId = session('admin.id');
-        if (
-            !in_array($this->controller, $cfg['noLoginController'])
-            && !in_array($this->requesturl, $cfg['noLoginNode'])
-        ) {
-            empty($adminId) && $this->error(lang('Please Login First'), __u('login/index'));
+        if (!in_array($this->controller, $cfg['noLoginController']) && !in_array($this->requesturl, $cfg['noLoginNode'])) {
             if (!$this->isLogin()) {
-                $this->error(lang('Please Login Again'), __u('login/index'));
+                $this->error(lang('Please Login First'), __u('login/index'));
             }
             if ($adminId && $adminId != $cfg['superAdminId']) {
-                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
+                if (!in_array($this->controller, $cfg['noRightController']) &&  !in_array($this->requesturl, $cfg['noRightNode'])) {
                     if ($this->request->isPost() && $cfg['isDemo'] == 1) {
                         $this->error(lang('Demo is not allow to change data'));
                     }
@@ -286,16 +218,14 @@ class AuthService
                     $menuid = 0;
                     if(Str::endsWith($hrefTemp,'/index')){
                         $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
-                            ->where('status', 1)->value('id');
+                            ->where('status', 1)
+                            ->value('id');
                     }
-                    if($menuid)$this->hrefId = $menuid;
+                    if($menuid) $this->hrefId = $menuid;
                     //当前管理员权限
-                    $rules =  $this->getRules(session('admin.group_id'));
+                    $rules = $this->getRules(session('admin.group_id'));
                     //用户权限规则id
-                    $adminRules = explode(',', $rules);
-                    // 不需要权限的规则id;
-                    $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
-                    $this->adminRules = array_filter(array_merge($adminRules, $noruls));
+                    $this->adminRules = array_unique( array_filter(explode(',', $rules)));
                     if ($this->hrefId) {
                         if (!in_array($this->hrefId, $this->adminRules)) {
                             $this->error(lang('Permission Denied'));
@@ -334,49 +264,45 @@ class AuthService
         $cfg = config('backend');
         $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
         $this->requesturl = trim($this->requesturl,'/');
-        $urlArr = explode('/',$url);
-        $this->controller =  parse_name($urlArr[0], 1);
+        $urlArr = explode('/',$this->requesturl);
+        $this->controller =  parse_name($urlArr[0]);
         if ($this->requesturl === '/') {return false;}
         $adminId = session('admin.id');
         // 判断权限验证开关
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-            return false;
-        }
-        if (
-            !in_array($this->controller, $cfg['noLoginController'])
-            && !in_array($this->requesturl, $cfg['noLoginNode'])
-        ) {
+        if (!in_array($this->controller, $cfg['noLoginController']) && !in_array($this->requesturl, $cfg['noLoginNode'])) {
+            //不在权限内
             if (!$this->isLogin()) return false;
             if ($adminId && $adminId != $cfg['superAdminId']) {
                 if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
                     $hrefTemp = trim($this->requesturl,'/');
+                    $this->hrefId = AuthRule::where('href', $this->requesturl)
+                    ->where('status', 1)
+                    ->value('id');
                     $menuid = 0;
                     if(Str::endsWith($hrefTemp,'/index')){
                         $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
                             ->where('status', 1)->value('id');
                     }
                     if($menuid)  $this->hrefId = $menuid;
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
-                        ->where('status', 1)
-                        ->value('id');
                     //当前管理员权限
                     $rules = $this->getRules(session('admin.group_id'));
                     //用户权限规则id
-                    $adminRules = explode(',', $rules);
-                    // 不需要权限的规则id;
-                    $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
-                    $this->adminRules = array_merge($adminRules, $noruls);
+                    $this->adminRules = array_unique( array_filter(explode(',', $rules)));
                     if ($this->hrefId && in_array($this->hrefId, $this->adminRules))  return true;
                     if (in_array($this->requesturl, $cfg['noRightNode'])) return true;
+                }elseif(in_array($this->controller, $cfg['noRightController']) && in_array($this->requesturl, $cfg['noRightNode'])){
+                    return true;
                 }
             } else {//超管
                 return true;
             }
         } elseif (in_array($this->controller, $cfg['noLoginController'])
         && in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
+            return true;
+        } elseif (in_array($this->controller, $cfg['noRightController']) && in_array($this->requesturl, $cfg['noRightNode'])) {
             return true;
         }
         return false;
@@ -388,9 +314,9 @@ class AuthService
      */
     public function menuhtml($cate, $force = true)
     {
-        if ($force) {
+//        if ($force) {
             Cache::delete('adminmenushtml' . session('admin.id'));
-        }
+//        }
         $list = $this->authMenuNode($cate);
         $html = '';
         $theme = syscfg('site', 'site_theme');
@@ -604,6 +530,65 @@ class AuthService
         $norules = AuthRule::where('auth_verify',0)->column('id');
         $norules = $norules?implode(',',$norules):'';
         return $rules.','.$norules;
+    }
+    //获取左侧主菜单树形结构
+    protected function authMenuNode($menu, $pid = 0, $rules = [])
+    {
+        $authrules = array_unique(explode(',',$this->getRules(session('admin.group_id'))));
+        $list = array();
+        foreach ($menu as $v) {
+            $href = $v['href'];
+            if ($v['menu_status'] == 1) {
+                $v['href'] =  trim($v['href'], '/' );
+                if(!Str::endsWith($v['href'],'/index')){
+                    $v['href'] = $v['href']. '/index';
+                }
+            }
+            if ($v['module'] !== 'addon') {
+                $v['href'] = (parse_name(__u(trim($v['href'], ' ')), 1));
+            } else {
+                $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
+            }
+            if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
+                $v['href'] = $href;
+            }
+            if ($v['pid'] == $pid) {
+                if (session('admin.id') != 1) {
+                    if (in_array($v['id'], $authrules)) {
+                        $child = AuthRule::field('href,id')
+                            ->where('status', 1)
+                            ->where('pid', $v['id'])->find();
+                        //删除下级没有list的菜单权限
+                        if (!$child) {
+                            $v['child'] = [];
+                            $list[] = $v;
+                        } else {
+                            $v['child'] = self::authMenuNode($menu, $v['id']);
+                            $list[] = $v;
+                        }
+                    }
+                } else {
+                    $v['child'] = self::authMenuNode($menu, $v['id']);
+                    $list[] = $v;
+                }
+            }
+        }
+        return $list;
+    }
+    /**
+     * 获取所有子id
+     */
+    protected function getallIdsBypid($pid)
+    {
+        $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
+        $str = '';
+        if (!empty($res)) {
+            foreach ($res as $k => $v) {
+                $str .= "," . $v['id'];
+                $str .= $this->getallIdsBypid($v['id']);
+            }
+        }
+        return $str;
     }
 
 
