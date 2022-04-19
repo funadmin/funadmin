@@ -317,7 +317,7 @@ class AuthService
             //不需要鉴权
             in_array($this->controller, $cfg['noLoginController'])
             //不需要登录
-            && !in_array($this->requesturl, $cfg['noLoginNode'])
+            && in_array($this->requesturl, $cfg['noLoginNode'])
         ) {
             if ($this->isLogin()) {
                 $this->redirect(__u('index/index'));
@@ -375,11 +375,8 @@ class AuthService
             } else {//超管
                 return true;
             }
-        } elseif (in_array($this->controller, $cfg['noLoginController'])) {
-            //不需要鉴权但需登录
-            if (!$this->isLogin()) return false;
-            return true;
-        }elseif(in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
+        } elseif (in_array($this->controller, $cfg['noLoginController'])
+        && in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
             return true;
         }
         return false;
