@@ -71,6 +71,7 @@ if (!function_exists('__')) {
         return \think\facade\Lang::get($str, $vars, $lang);
     }
 }
+
 if (!function_exists("_getProvicesByPid")) {
     function _getProvicesByPid($pid = 0)
     {

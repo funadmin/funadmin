@@ -238,4 +238,5 @@ return [
     'OriginalName'=>'原名',
     'Path'=>'路径',
     'MimeType'=>'Mime类型',
+    'Permission Denied'=>'没有权限',
 ];

@@ -154,12 +154,8 @@ class AuthService
             $cacheKey = 'allAuthNode_' . session('admin.id');
             $allAuthNode = Cache::get($cacheKey);
             if (empty($allAuthNode)) {
-                $allAuthIds = session('admin.rules');
-                if (session('admin.id') == 1) {
-                    $allAuthNode = AuthRule::where('status', 1)->column('href', 'href');
-                } else {
-                    $allAuthNode = AuthRule::where('status', 1)->whereIn('id', ($allAuthIds))->cache($cacheKey)->column('href', 'href');
-                }
+                $allAuthIds = $this->getRules(session('admin.group_id'));
+                $allAuthNode = AuthRule::where('status', 1)->whereIn('id', $allAuthIds)->cache($cacheKey)->column('href', 'href');
                 foreach ($allAuthNode as $k => $v) {
                     $allAuthNode[$k] = (parse_name($v, 1));
                 }
@@ -290,18 +286,16 @@ class AuthService
                     $menuid = 0;
                     if(Str::endsWith($hrefTemp,'/index')){
                         $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
-                            ->where('status', 1)
-                            ->value('id');
+                            ->where('status', 1)->value('id');
                     }
+                    if($menuid)$this->hrefId = $menuid;
                     //当前管理员权限
                     $rules =  $this->getRules(session('admin.group_id'));
-//                    AuthGroupModel::where('id', 'in', session('admin.group_id'))
-//                        ->where('status', 1)->value('rules');
                     //用户权限规则id
                     $adminRules = explode(',', $rules);
                     // 不需要权限的规则id;
                     $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
-                    $this->adminRules = array_merge($adminRules, $noruls);
+                    $this->adminRules = array_filter(array_merge($adminRules, $noruls));
                     if ($this->hrefId) {
                         if (!in_array($this->hrefId, $this->adminRules)) {
                             $this->error(lang('Permission Denied'));
@@ -335,6 +329,66 @@ class AuthService
         }
     }
 
+
+    /**
+     * 前台权限节点
+     */
+    public function authNode($url)
+    {
+        $cfg = config('backend');
+        $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
+        $this->requesturl = trim($this->requesturl,'/');
+        $urlArr = explode('/',$url);
+        $this->controller =  parse_name($urlArr[0], 1);
+        if ($this->requesturl === '/') {return false;}
+        $adminId = session('admin.id');
+        // 判断权限验证开关
+        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
+            return true;
+        }
+        if ($this->request->isPost() && $cfg['isDemo'] == 1) {
+            return false;
+        }
+        if (
+            !in_array($this->controller, $cfg['noLoginController'])
+            && !in_array($this->requesturl, $cfg['noLoginNode'])
+        ) {
+            if (!$this->isLogin()) return false;
+            if ($adminId && $adminId != $cfg['superAdminId']) {
+                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
+                    $hrefTemp = trim($this->requesturl,'/');
+                    $menuid = 0;
+                    if(Str::endsWith($hrefTemp,'/index')){
+                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
+                            ->where('status', 1)->value('id');
+                    }
+                    $this->hrefId = AuthRule::where('href', $this->requesturl)
+                        ->where('status', 1)
+                        ->value('id');
+                    //当前管理员权限
+                    $rules = $this->getRules(session('admin.group_id'));
+                    //用户权限规则id
+                    $adminRules = explode(',', $rules);
+                    // 不需要权限的规则id;
+                    $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
+                    $this->adminRules = array_merge($adminRules, $noruls);
+                    if (!$menuid && $this->hrefId && in_array($this->hrefId, $this->adminRules))  return true;
+                    if($menuid && in_array($menuid, $this->adminRules)) return true;
+                    if (in_array($this->requesturl, $cfg['noRightNode'])) return true;
+                }
+            } else {//超管
+                return true;
+            }
+        } elseif (in_array($this->controller, $cfg['noLoginController'])) {
+            //不需要鉴权但需登录
+            if(empty($adminId)) return false;;
+            if (!$this->isLogin()) return false;
+            return true;
+        }elseif(in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
+            return true;
+        }
+        return false;
+    }
     /**
      * @param $cate
      * @return string
@@ -539,76 +593,7 @@ class AuthService
         return true;
     }
 
-    /**
-     * 前台权限节点
-     */
-    public function authNode($url)
-    {
-        $cfg = config('backend');
-        $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
-        $this->requesturl = trim($this->requesturl,'/');
-        $urlArr = explode('/',$url);
-        $this->controller =  parse_name($urlArr[0], 1);
-        if ($this->requesturl === '/') {return false;}
-        $adminId = session('admin.id');
-        // 判断权限验证开关
-        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
-            return true;
-        }
-        if (
-            !in_array($this->controller, $cfg['noLoginController'])
-            && !in_array($this->requesturl, $cfg['noLoginNode'])
-        ) {
-            if(empty($adminId)) return false;;
-            if (!$this->isLogin()) {
-                return false;
-            }
-            if ($adminId && $adminId != $cfg['superAdminId']) {
-                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-                        return false;
-                    }
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
-                        ->where('status', 1)
-                        ->value('id');
-                    //当前管理员权限
-                    $rules = $this->getRules(session('admin.group_id'));
-//                        AuthGroupModel::where('id', 'in', session('admin.group_id'))
-//                        ->where('status', 1)->value('rules');
-                    //用户权限规则id
-                    $adminRules = explode(',', $rules);
-                    // 不需要权限的规则id;
-                    $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
-                    $this->adminRules = array_merge($adminRules, $noruls);
-                    if ($this->hrefId) {
-                        if (!in_array($this->hrefId, $this->adminRules)) {
-                            return false;
-                        }
-                        return true;
-                    } else {
-                        if (!in_array($this->requesturl, $cfg['noRightNode'])) {
-                            return false;
-                        }
-                    }
-                }
-            } else {
-                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        } elseif (
-            //不需要登录
-            in_array($this->controller, $cfg['noLoginController'])
-            //不需要登录
-            && in_array($this->requesturl, $cfg['noLoginNode'])
-        ) {
-            return true;
-        }
-        return true;
-    }
+
 
     /**
      * 获取rules
@@ -624,7 +609,9 @@ class AuthService
                 ->where('status',1)
                 ->value('rules');
         }
-        return $rules;
+        $norules = AuthRule::where('auth_verify',0)->column('id');
+        $norules = $norules?implode(',',$norules):'';
+        return $rules.','.$norules;
     }
 
 
