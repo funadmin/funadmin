@@ -300,10 +300,6 @@ class AuthService
                         if (!in_array($this->hrefId, $this->adminRules)) {
                             $this->error(lang('Permission Denied'));
                         }
-                    } else if($menuid){
-                        if (!in_array($menuid, $this->adminRules)) {
-                            $this->error(lang('Permission Denied'));
-                        }
                     }else{
                         if (!in_array($this->requesturl, $cfg['noRightNode'])) {
                             $this->error(lang('Permission Denied'));
@@ -318,10 +314,10 @@ class AuthService
                 }
             }
         } elseif (
-            //不需要登录
+            //不需要鉴权
             in_array($this->controller, $cfg['noLoginController'])
             //不需要登录
-            && in_array($this->requesturl, $cfg['noLoginNode'])
+            && !in_array($this->requesturl, $cfg['noLoginNode'])
         ) {
             if ($this->isLogin()) {
                 $this->redirect(__u('index/index'));
@@ -362,6 +358,7 @@ class AuthService
                         $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
                             ->where('status', 1)->value('id');
                     }
+                    if($menuid)  $this->hrefId = $menuid;
                     $this->hrefId = AuthRule::where('href', $this->requesturl)
                         ->where('status', 1)
                         ->value('id');
@@ -372,8 +369,7 @@ class AuthService
                     // 不需要权限的规则id;
                     $noruls = AuthRule::where('auth_verify', 0)->where('status', 1)->column('id');
                     $this->adminRules = array_merge($adminRules, $noruls);
-                    if (!$menuid && $this->hrefId && in_array($this->hrefId, $this->adminRules))  return true;
-                    if($menuid && in_array($menuid, $this->adminRules)) return true;
+                    if ($this->hrefId && in_array($this->hrefId, $this->adminRules))  return true;
                     if (in_array($this->requesturl, $cfg['noRightNode'])) return true;
                 }
             } else {//超管
@@ -381,7 +377,6 @@ class AuthService
             }
         } elseif (in_array($this->controller, $cfg['noLoginController'])) {
             //不需要鉴权但需登录
-            if(empty($adminId)) return false;;
             if (!$this->isLogin()) return false;
             return true;
         }elseif(in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
