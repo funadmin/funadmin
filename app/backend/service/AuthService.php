@@ -169,7 +169,6 @@ class AuthService
         }
         return $list;
     }
-
     /**
      * 权限多维转化为二维
      * @param $cate  栏目
@@ -191,7 +190,6 @@ class AuthService
         }
         return $list;
     }
-
     /**
      * 验证权限
      */
@@ -254,7 +252,6 @@ class AuthService
             }
         }
     }
-
 
     /**
      * 前台权限节点
