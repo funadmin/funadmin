@@ -122,9 +122,6 @@ define(["jquery", 'croppers'], function($, croppers) {
                         var _parent = $(this).parents('.layui-upload')
                         var input = _parent.find('input[type="text"]');
                         var options = {}
-                        if(uploadExts!=="*" && uploadExts){
-                            options.exts = uploadExts
-                        }
                         options = {
                             elem: this,
                             accept: uploadAccept,
@@ -208,6 +205,9 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 })
                                 Fun.toastr.close();
                             }
+                        }
+                        if(uploadExts!=="*" && uploadExts){
+                            options.exts = uploadExts
                         }
                         var uploadInt = layui.upload.render(options);
                         Toastr.destroyAll();
