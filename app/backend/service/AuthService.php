@@ -262,10 +262,11 @@ class AuthService
     public function authNode($url)
     {
         $cfg = config('backend');
+        $url = (string)$url;
         $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
         $this->requesturl = trim($this->requesturl,'/');
         $urlArr = explode('/',$this->requesturl);
-        $this->controller =  parse_name($urlArr[0]);
+        $this->controller =  strpos($this->requesturl,'addons')===false?parse_name($urlArr[0]):$urlArr[1].'/'.$urlArr[2].'/'.$urlArr[3];
         if ($this->requesturl === '/') {return false;}
         $adminId = session('admin.id');
         // 判断权限验证开关
@@ -314,9 +315,9 @@ class AuthService
      */
     public function menuhtml($cate, $force = true)
     {
-//        if ($force) {
+        if ($force) {
             Cache::delete('adminmenushtml' . session('admin.id'));
-//        }
+        }
         $list = $this->authMenuNode($cate);
         $html = '';
         $theme = syscfg('site', 'site_theme');

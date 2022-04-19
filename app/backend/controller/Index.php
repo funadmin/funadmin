@@ -33,8 +33,6 @@ class Index extends Backend
      */
     public function index()
     {
-//        dump(auth(__u('index/index')));
-//        dump((addons_url('index/index')));die;
         $menulist = cache('adminmenushtml' . session('admin.id'));
         if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
