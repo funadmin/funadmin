@@ -540,6 +540,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '    <div><img src="/static/backend/images/lockscreen/3.jpg"></div>\n' +
                     '    <div><img src="/static/backend/images/lockscreen/4.jpg"></div>\n' +
                     '    <div><img src="/static/backend/images/lockscreen/5.jpg"></div>\n' +
+                    '    <div><img src="/static/backend/images/lockscreen/6.jpg"></div>\n' +
                     '  </div>\n' +
                     '</div>';
                 return $str;
