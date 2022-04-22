@@ -521,9 +521,7 @@ class AuthService
             $rules = AuthRule::where('status',1)->cache('superAdmin',24*3600)->column('id');
             $rules = implode(',',$rules);
         }else{
-            $rules = AuthGroupModel::where('id', 'in', $groups)
-                ->where('status',1)
-                ->value('rules');
+            $rules = AuthGroupModel::where('id', 'in', $groups)->where('status',1)->value('rules');
         }
         $norules = AuthRule::where('auth_verify',0)->column('id');
         $norules = $norules?implode(',',$norules):'';

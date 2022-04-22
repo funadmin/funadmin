@@ -13,12 +13,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 {
                     headerBg: '#fff',
                     headerfontColor: '#595959',
-                    headerBgThis: '#409EFF',
+                    headerBgThis: '#1890ff',
                     headerBgLogo: '#0c0c0c',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#23262e',
-                    menuLeftBgThis: '#409EFF',
-                    menuLeftBgHover: '#409EFF',
+                    menuLeftBgThis: '#1890ff',
+                    menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -156,14 +156,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
                 }, {
-                    headerBg: '#409eff',
+                    headerBg: '#1890ff',
                     headerfontColor: '#fff',
                     headerBgThis: '#0069b7',
                     headerBgLogo: '#0c0c0c',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#1f1f1f',
-                    menuLeftBgThis: '#409eff',
-                    menuLeftBgHover: '#409eff',
+                    menuLeftBgThis: '#1890ff',
+                    menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -192,14 +192,14 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
                 }, {
-                    headerBg: '#409eff',
+                    headerBg: '#1890ff',
                     headerfontColor: '#fff',
-                    headerBgThis: '#409eff',
-                    headerBgLogo: '#409eff',
+                    headerBgThis: '#1890ff',
+                    headerBgLogo: '#1890ff',
                     headerLogofontColor: '#fff',
                     menuLeftBg: '#1f1f1f',
-                    menuLeftBgThis: '#409eff',
-                    menuLeftBgHover: '#409eff',
+                    menuLeftBgThis: '#1890ff',
+                    menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
                     menuLeftfontColor: 'rgba(255,255,255,.7)',
                     menuLeftfontColorHover: '#fff',
@@ -694,7 +694,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     var anim = anims[Math.floor(Math.random() * anims.length + 1) - 1];
                     var html = '<style>.layui-text-left{text-align: left;padding-right: 0px}' +
                         '.layui-form-item{margin-bottom:5px;}'+
-                        '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #409EFF;}' +
+                        '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #1890ff;}' +
                         '</style><div class="layui-fun-color">' +
                         '<div class="color-title">' +
                         '<span>' + __('Theme Color') + '</span>' +

@@ -78,7 +78,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
                             clickClose = $(this).data('clickClose'), prop = $(this).data('prop') || $(this).data('attr'),
                             max = $(this).data('max'), create = $(this).data('create'), repeat = !! $(this).data('repeat'),
-                            theme = $(this).data('theme') || '#409EFF', name = $(this).attr('name') || $(this).data('name') || 'pid',
+                            theme = $(this).data('theme') || '#1890ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
                             style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                             layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
                         var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
