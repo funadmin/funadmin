@@ -241,7 +241,15 @@ class PredisService extends AbstractService
         if (!$re) return false;
         return $this->redisObj->smembers($key);
     }
-
+    /**
+     * 获取集合中元素的数量。
+     * @param  string $set 集合名称
+     * @return int  返回集合的成员数量
+     */
+    public  function scard($set)
+    {
+        return $this->redisObj->smembers($set);
+    }
     /**
      * 查，取集合对应交集元素
      * @param string $key 集合名字
