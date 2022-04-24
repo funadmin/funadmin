@@ -104,6 +104,16 @@ class PredisService extends AbstractService
     public function exec(){
         return $this->redisObj()->exec();
     }
+
+    /**
+     * 取消事务
+     */
+    public  function discard()
+    {
+        $this->redisObj()->discard();
+    }
+
+
     /*------------------------------------ end 事务快string结构----------------------------------------------------*/
 
     /**
@@ -159,7 +169,7 @@ class PredisService extends AbstractService
      * @param int $start 开始
      * @param int $end 结束
      */
-    public function lRanges($key, $start = 0, $end = -1)
+    public function lrange($key, $start = 0, $end = -1)
     {
         return $this->redisObj->lrange($key, $start, $end);
     }
@@ -178,7 +188,19 @@ class PredisService extends AbstractService
     {
         return $this->redisObj->lpop($key);
     }
-
+    /**
+     * 从列表中弹出最后一个值，将弹出的元素插入到另外一个列表开头并返回这个元素
+     * @param  string $list1  要弹出元素的列表名
+     * @param  string $list2  要接收元素的列表名
+     * @return string|bool  返回被弹出的元素,如果其中有一个列表不存在则返回false
+     */
+    public  function lpoppush($list1,$list2)
+    {
+        if($this->lrange($list1) && $this->lrange($list2)){
+            return $this->redisObj->brpoplpush($list1, $list2, 500);
+        }
+        return false;
+    }
     /**对一个列表进行修剪(trim)，就是说，让列表只保留指定区间内的元素
      * @param $key
      * @param int $start
@@ -201,6 +223,27 @@ class PredisService extends AbstractService
     {
         return $this->redisObj->lLen($key);
     }
+    /**
+     * 通过索引来设置元素的值
+     * @param  string $list  列表名
+     * @param  string $value 元素值
+     * @param  int $index 索引值
+     * @return bool  成功返回true,否则false.当索引参数超出范围，或列表不存在返回false。
+     */
+    public  function lset($list, $index, $value)
+    {
+        return $this->redisObj->lset($list, $index, $value);
+    }
+    /**
+     * 通过索引获取列表中的元素
+     * @param  string  $list  列表名
+     * @param  int  $index  索引位置，从0开始计,默认0表示第一个元素，-1表示最后一个元素索引
+     * @return string  返回指定索引位置的元素
+     */
+    public  function lindex($list, $index=0)
+    {
+        return$this->redisObj->lindex($list, $index);
+    }
 
     /**移除list 指定value
      * @param $key
@@ -211,6 +254,20 @@ class PredisService extends AbstractService
     public function lRem($key,$value,$count=0)
     {
         return $this->redisObj->lRem($key,$value, $count);
+    }
+
+
+    /**
+     * 用于在指定的列表元素前或者后插入元素。如果元素有重复则选择第一个出现的。当指定元素不存在于列表中时，不执行任何操作
+     * @param  string $list   列表名
+     * @param  string $element 指定的元素
+     * @param  string $value   要插入的元素
+     * @param  string $pop     要插入的位置，before前,after后。默认before
+     * @return int  返回列表的长度。 如果没有找到指定元素 ，返回 -1 。 如果列表不存在或为空列表，返回 0 。
+     */
+    public function linsert($list, $element, $value, $pop='before')
+    {
+        return $this->redisObj->linsert($list, $pop, $element, $value);
     }
     /*------------------------------------2.end list结构----------------------------------------------------*/
 
@@ -230,7 +287,15 @@ class PredisService extends AbstractService
         if ($timeOut > 0) $this->redisObj->expire($key, $timeOut);
         return $re;
     }
-
+    /**
+     * 移除并返回集合中的一个随机元素
+     * @param  string $set 集合名称
+     * @return string|bool  返回移除的元素,如果集合为空则返回false
+     */
+    public  function spop($set)
+    {
+        return $this->redisObj->spop($set);
+    }
     /**
      * 查，取集合对应元素
      * @param string $key 集合名字
@@ -248,63 +313,110 @@ class PredisService extends AbstractService
      */
     public  function scard($set)
     {
-        return $this->redisObj->smembers($set);
+        return $this->redisObj->scard($set);
     }
     /**
      * 查，取集合对应交集元素
      * @param string $key 集合名字
      */
-    public function sInter($set1,$set2)
+    public function sinter($key1,$key2)
     {
-        $re = $this->redisObj->exists($set1);
-        $re2 = $this->redisObj->exists($set2);
+        $re = $this->redisObj->exists($key1);
+        $re2 = $this->redisObj->exists($key2);
         //存在返回1，不存在返回0
         if (!$re) return false;
         if (!$re2) return false;
-        return $this->redisObj->sinter($set1,$set2);
+        return $this->redisObj->sinter($key1,$key2);
+    }
+
+    /**
+     * 将给定集合set1和set2之间的交集存储在指定的set集合中。如果指定的集合已存在，则会被覆盖。
+     * @param  string $key  指定存储的集合
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
+     * @return int  返回指定存储集合元素的数量
+     */
+    public  function sinterstore($key, $key1, $key2)
+    {
+        return $this->redisObj->sinterstore($key, $key1, $key2);
     }
     /**
      * 返回给定集合之间的差集(集合1对于集合2的差集)。不存在的集合将视为空集
-     * @param  string $set1 集合1名称
-     * @param  string $set2 集合2名称
+     * @param  string $key1 集合1名称
+     * @param  string $key2 集合2名称
      * @return array  返回差集（即筛选存在集合1中但不存在于集合2中的元素）
      */
-    public  function sDiff($set1, $set2)
+    public  function sdiff($key1, $key2)
     {
-        $re = $this->redisObj->exists($set1);
-        $re2 = $this->redisObj->exists($set2);
+        $re = $this->redisObj->exists($key1);
+        $re2 = $this->redisObj->exists($key2);
         //存在返回1，不存在返回0
         if (!$re) return false;
         if (!$re2) return false;
-        return $this->redisObj->sdiff($set1, $set2);
+        return $this->redisObj->sdiff($key1, $key2);
+    }
+
+    /**
+     * 将给定集合set1和set2之间的差集存储在指定的set集合中。如果指定的集合已存在，则会被覆盖。
+     * @param  string $key  指定存储的集合
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
+     * @return int  返回指定存储集合元素的数量
+     */
+    public  function sdiffstore($key, $key1, $key2)
+    {
+        return $this->redisObj->sdiffstore($key, $key1, $key2);
     }
     /**
      * 返回集合1和集合2的并集(即两个集合合并后去重的结果)。不存在的集合被视为空集。
-     * @param  string $set1 集合1
-     * @param  string $set2 集合2
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
      * @return array  返回并集数组
      */
-    public function sUnion($set1, $set2)
+    public function sunion($key1, $key2)
     {
-        $re = $this->redisObj->exists($set1);
-        $re2 = $this->redisObj->exists($set2);
+        $re = $this->redisObj->exists($key1);
+        $re2 = $this->redisObj->exists($key2);
         //存在返回1，不存在返回0
         if (!$re) return false;
         if (!$re2) return false;
-        return $this->redisObj->sunion($set1, $set2);
+        return $this->redisObj->sunion($key1, $key2);
     }
 
     /**
      * 将给定集合set1和set2之间的并集存储在指定的set集合中。如果指定的集合已存在，则会被覆盖。
      * @param  string $set  指定存储的集合
-     * @param  string $set1 集合1
-     * @param  string $set2 集合2
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
      * @return int  返回指定存储集合元素的数量
      */
-    public static function sunionstore($set, $set1, $set2)
+    public function sunionstore($set, $key1, $key2)
     {
-        return self::$redis->sunionstore($set, $set1, $set2);
+        return $this->redisObj->sunionstore($set, $key1, $key2);
     }
+
+    /**
+     * 将元素从集合1中移动到集合2中
+     * @param  string $set1 集合1
+     * @param  string $set2 集合2
+     * @param  string $member 要移动的元素成员
+     * @return bool  成功返回true,否则false
+     */
+    public  function smove($set1, $set2, $member)
+    {
+        return $this->redisObj->smove($set1, $set2, $member);
+    }
+    /**
+     * 判断成员元素是否是集合的成员
+     * @param  string $set   集合名称
+     * @param  string $member 要判断的元素
+     * @return bool 如果成员元素是集合的成员返回true,否则false
+     */
+    public  function sismember($set, $member)
+    {
+        return $this->redisObj->sismember($set, $member);
+    }
+
 
 
 
@@ -351,6 +463,26 @@ class PredisService extends AbstractService
         if (!$re) return false;//查询的范围值为空
         return $re;
     }
+    /**
+     * 计算有序集合中指定分数区间的成员数量
+     * @param  string $key 集合名称
+     * @param  int|float $min 最小分数值
+     * @param  int|float $max 最大分数值
+     * @return int  返回指定区间的成员数量
+     */
+    public  function zcount($key, $min, $max)
+    {
+        return $this->redisObj->zcount($key, $min, $max);
+    }
+    /**
+     * 返回有序集合中成员数量
+     * @param  string $key 集合名称
+     * @return int  返回成员的数量
+     */
+    public  function zcard($key)
+    {
+        return $this->redisObj->zcard($key);
+    }
 
     /**
      * 返回集合key中，成员member的排名
@@ -383,16 +515,69 @@ class PredisService extends AbstractService
     {
         return $this->redisObj->ZRANGEBYSCORE($key, $star, $end);
     }
+    /**
+     * 计算set1和set2有序集的交集，并将该交集(结果集)储存到新集合set中。
+     * @param  string $key  指定存储的集合名称
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
+     * @return int  返回保存到目标结果集的的成员数量
+     */
+    public  function zinterstore($key, $key1, $key2)
+    {
+        return $this->redisObj->zinterstore($key, 2, $key1, $key2);
+    }
+    /**
+     * 计算set1和set2有序集的并集，并将该并集(结果集)储存到新集合set中。
+     * @param  string $key  指定存储的集合名称
+     * @param  string $key1 集合1
+     * @param  string $key2 集合2
+     * @return int  返回保存到目标结果集的的成员数量
+     */
+    public function zunionstore($key, $key1, $key2)
+    {
+        return $this->redisObj->zunionstore($key, 2, $key1, $key2);
+    }
 
     /**
-     * 返回名称为key的zset中元素member的score
-     * @param $key
-     * @param $member
-     * @return string ,返回查询的member值
+     * 移除有序集中的一个或多个成员，不存在的成员将被忽略。
+     * @param  string $set     有序集合名称
+     * @param  string|array $members 要移除的成员，如果要移除多个请传入多个成员的数组
+     * @return int   返回被移除的成员数量，不存在的成员将被忽略
+     */
+    public function zrem($set, $members)
+    {
+        $num = 0;
+        if (is_array($members)) {
+            foreach ($members as $value) {
+                $num += $this->redisObj->zrem($set, $value);
+            }
+        } else {
+            $num += $this->redisObj->zrem($set, $members);
+        }
+        return $num;
+    }
+    /**
+     * 移除有序集中，指定排名(rank)区间内的所有成员（这个排名数字越大排名越高，最低排名0开始）
+     * @param  string $set   集合名称
+     * @param  int $min 最小排名，从0开始计
+     * @param  int $max 最大排名
+     * @return int  返回被移除的成员数量，如移除排名为倒数5名的成员：$redis::zremrank($set,0,4);
+     */
+    public  function zrembyrank($set, $min, $max)
+    {
+        return $this->redisObj->zremrangebyrank($set, $min, $max);
+    }
+
+
+    /**
+     * 返回有序集中，成员的分数值。
+     * @param  string $key    集合名称
+     * @param  string $member 成员
+     * @return float|bool   返回分数值(浮点型)，如果成员不存在返回false
      */
     function zScore($key, $member)
     {
-        return $this->redisObj->ZSCORE($key, $member);
+        return $this->redisObj->zscore($key, $member);
     }
     /*------------------------------------4.end sort set结构----------------------------------------------------*/
 
@@ -587,7 +772,16 @@ class PredisService extends AbstractService
         }
         return $re;
     }
-
+    /**
+     * 返回集合中的一个或多个随机元素
+     * @param  string $set   集合名称
+     * @param  int $count 要返回的元素个数，0表示返回单个元素，大于等于集合基数则返回整个元素数组。默认0
+     * @return string|array   返回随机元素，如果是返回多个则为数组返回
+     */
+    public function srand($set, $count=0)
+    {
+        return ((int)$count==0) ?$this->redisObj->srandmember($set) : $this->redisObj->srandmember($set, $count);
+    }
     /**
      * 删除缓存
      * @param string|array $key 键值
