@@ -221,11 +221,11 @@ class PredisService extends AbstractService
      * @param array $score_value key为scoll, value为该权的值
      * @return int 插入操作成功返回插入数量【,更新操作返回0】
      */
-    public function zadd($key, $score_value, $timeOut = 0)
+    public function zadd($key, $score_values, $timeOut = 0)
     {
-        if (!is_array($score_value)) return false;
+        if (!is_array($score_values)) return false;
         $a = 0;//存放插入的数量
-        foreach ($score_value as $score => $value) {
+        foreach ($score_values as $score => $value) {
             $re = $this->redisObj->zadd($key, $score, $value);//当修改时，可以修改，但不返回更新数量
             $re && $a += 1;
             if ($timeOut > 0) $this->redisObj->expire($key, $timeOut);
