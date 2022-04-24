@@ -31,7 +31,8 @@ class PredisService extends AbstractService
 
     public function initialize($options = [])
     {
-        $this->redisObj = Cache::store('redis')->handler();
+        $store = isset($options['store'])?$options['store']:'redis';
+        $this->redisObj = Cache::store($store)->handler();
     }
 
     public function getKeys($key = '*')
@@ -89,7 +90,37 @@ class PredisService extends AbstractService
     /*------------------------------------1.end string结构----------------------------------------------------*/
 
 
-    /*------------------------------------2.start list结构----------------------------------------------------*/
+    /*------------------------------------start 事务快string结构----------------------------------------------------*/
+
+    /**
+     * 事务快start
+     */
+    public function multi(){
+        return $this->redisObj()->multi();
+    }
+    /**
+     * 事务快 send
+     */
+    public function exec(){
+        return $this->redisObj()->exec();
+    }
+    /*------------------------------------ end 事务快string结构----------------------------------------------------*/
+
+    /**
+     * 条件形式设置缓存，如果 key 不存时就设置，存在时设置失败
+     *
+     * @param string $key 缓存KEY
+     * @param string $value 缓存值
+     * @return boolean
+     */
+    public function setnx($redis_key, $value,$timeOut = 0)
+    {
+        $res = $this->redisObj()->setnx($redis_key, $value);
+        if ($timeOut > 0) $this->redisObj->expire($redis_key, $timeOut);
+        return $res;
+
+    }
+        /*------------------------------------2.start list结构----------------------------------------------------*/
     /**
      * 增，构建一个列表(先进后去，类似栈)
      * @param String $key KEY名称
@@ -210,6 +241,65 @@ class PredisService extends AbstractService
         if (!$re) return false;
         return $this->redisObj->smembers($key);
     }
+
+    /**
+     * 查，取集合对应交集元素
+     * @param string $key 集合名字
+     */
+    public function sInter($set1,$set2)
+    {
+        $re = $this->redisObj->exists($set1);
+        $re2 = $this->redisObj->exists($set2);
+        //存在返回1，不存在返回0
+        if (!$re) return false;
+        if (!$re2) return false;
+        return $this->redisObj->sinter($set1,$set2);
+    }
+    /**
+     * 返回给定集合之间的差集(集合1对于集合2的差集)。不存在的集合将视为空集
+     * @param  string $set1 集合1名称
+     * @param  string $set2 集合2名称
+     * @return array  返回差集（即筛选存在集合1中但不存在于集合2中的元素）
+     */
+    public  function sDiff($set1, $set2)
+    {
+        $re = $this->redisObj->exists($set1);
+        $re2 = $this->redisObj->exists($set2);
+        //存在返回1，不存在返回0
+        if (!$re) return false;
+        if (!$re2) return false;
+        return $this->redisObj->sdiff($set1, $set2);
+    }
+    /**
+     * 返回集合1和集合2的并集(即两个集合合并后去重的结果)。不存在的集合被视为空集。
+     * @param  string $set1 集合1
+     * @param  string $set2 集合2
+     * @return array  返回并集数组
+     */
+    public function sUnion($set1, $set2)
+    {
+        $re = $this->redisObj->exists($set1);
+        $re2 = $this->redisObj->exists($set2);
+        //存在返回1，不存在返回0
+        if (!$re) return false;
+        if (!$re2) return false;
+        return $this->redisObj->sunion($set1, $set2);
+    }
+
+    /**
+     * 将给定集合set1和set2之间的并集存储在指定的set集合中。如果指定的集合已存在，则会被覆盖。
+     * @param  string $set  指定存储的集合
+     * @param  string $set1 集合1
+     * @param  string $set2 集合2
+     * @return int  返回指定存储集合元素的数量
+     */
+    public static function sunionstore($set, $set1, $set2)
+    {
+        return self::$redis->sunionstore($set, $set1, $set2);
+    }
+
+
+
 
     /*------------------------------------3.end  set结构----------------------------------------------------*/
 
