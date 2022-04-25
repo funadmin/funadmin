@@ -340,7 +340,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     url = options.url;
                     tableId = options.tableId || Table.init.tableId
                 } else {
-                    var title = data.text || data.title || othis.prop('text') || othis.prop('title'), url = data.url ? data.url : data.href,
+                    var title = data.confirm ||  othis.prop('confirm') ||  othis.prop('text') || data.text || othis.prop('title') || data.title  , url = data.url ? data.url : data.href,
                         tableId = data.tableId;
                     title = title || 'Are you sure';
                     url = url !== undefined ? url : window.location.href;

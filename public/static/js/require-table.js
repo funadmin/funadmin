@@ -131,9 +131,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         v.height = v.height || 800;
                         v.extend = v.extend || '';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.text + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.text + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -557,10 +557,10 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.icon = vv.icon !== '' ? '<i class="' + vv.icon + '"></i>' : '';
                         vv.class = vv.class !== '' ? 'class="layui-event-tips ' + vv.class + '" ' : '';
                         vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                        vv.title = vv.title !== '' ? 'title="' + vv.title + '"' : '';
+                        if (!vv.icon) vv.icon = vv.icon + vv.title;
+                        vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                        if (!vv.icon) vv.icon = vv.icon + vv.text;
                         vv.text = 'data-text="' + vv.text + '"';
                         if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
                             html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>'
@@ -594,15 +594,15 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
                         vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
                         vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
+                        vv.icon = vv.icon + vv.title;
                         vv.class = vv.class ? 'class="layui-event-tips ' + vv.class + '"' : vv.class;
                         vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                        vv.title = vv.title !== '' ? 'title="' + vv.title + '"' : '';
+                        vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
                         vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
                         vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
                         vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                        vv.icon = vv.icon + vv.text;
                         vv.text = 'data-text="' + vv.text + '"';
                         if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
                             html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
