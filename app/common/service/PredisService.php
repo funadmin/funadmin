@@ -96,13 +96,13 @@ class PredisService extends AbstractService
      * 事务快start
      */
     public function multi(){
-        return $this->redisObj()->multi();
+        return $this->redisObj->multi();
     }
     /**
      * 事务快 send
      */
     public function exec(){
-        return $this->redisObj()->exec();
+        return $this->redisObj->exec();
     }
 
     /**
@@ -110,7 +110,7 @@ class PredisService extends AbstractService
      */
     public  function discard()
     {
-        $this->redisObj()->discard();
+        $this->redisObj->discard();
     }
 
 
@@ -125,8 +125,7 @@ class PredisService extends AbstractService
      */
     public function setnx($redis_key, $value,$timeOut = 0)
     {
-        $res = $this->redisObj()->setnx($redis_key, $value);
-        if ($timeOut > 0) $this->redisObj->expire($redis_key, $timeOut);
+        $res = $this->redisObj->set($redis_key, $value,['NX','EX'=>$timeOut]);
         return $res;
 
     }

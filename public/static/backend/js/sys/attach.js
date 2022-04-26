@@ -305,8 +305,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 ,count: count //数据总数，从服务端得到,
                 ,curr:param.page?param.page:1
                 ,limit:param.limit?param.limit:12
-                ,limits: [12,24,72,108]
-                ,layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip']
+                ,limits: [12,24,72,108,1000]
+                ,layout: ['prev', 'page', 'next', 'limit', 'refresh','count' ,'skip']
                 //跳转页码时调用
                 , jump: function (data, first) { //obj为当前页的属性和方法，第一次加载first为true
                     //         do something
