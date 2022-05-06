@@ -767,8 +767,10 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 Fun.api.close()
             }, common: function (othis) {
                 callback = othis.data('callback');
-                if (callback) {
-                    callback = callback.indexOf('(') !== -1 ? callback : callback + '()';
+                 if (callback) {
+                    callback = callback.replace('obj','othis').replace('_that','othis');
+                    callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
+                    callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
                     eval(callback);
                     return true;
                 }
