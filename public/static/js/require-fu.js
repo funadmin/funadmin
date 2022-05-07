@@ -390,6 +390,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         options.length = options.length?options.length:5;
                         options.theme = options.theme==undefined?'#1E9FFF':options.length;
                         options.readonly = options.readonly || options.disabled ? true:false;
+                        if(_that.parent('div').find('input[name="'+name+'"]').length==0){
+                            _that.before('input[name="'+name+'"]');
+                        }
                         if(options.setText){
                             options.setText = function(value){ //自定义文本的回调
                                 var arrs = options.setText;
@@ -408,8 +411,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 var list = $("*[lay-filter='slider']");
                 if (list.length > 0) {
                     layui.each(list, function(i) {
-                        var _that = $(this),id = _that.prop('id');
-                        var _that = $(this),id = _that.prop('id'),name=_that.data('name')
+                        var _that = $(this),id = _that.prop('id'),name=_that.data('name');
                         options = _that.data('options') || {};
                         options.elem = '#' + id;
                         options.value = _that.data('value');
@@ -418,6 +420,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         options.disabled = options.readonly || options.disabled ? true:false;
                         options.input = options.input==undefined || options.input ?true:false;
                         options.theme = options.theme==undefined?'#1E9FFF':options.theme;
+                        if(_that.parent('div').find('input[name="'+name+'"]').length==0){
+                            _that.before('input[name="'+name+'"]');
+                        }
                         if(options.setTips){
                             options.setTips = function(value){ //自定义文本的回调
                                 return value +  options.setTips;
