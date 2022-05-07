@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "62d7d08e56dc076f265db4075d2e2f66",
+    "content-hash": "cbb7ca76abaa48baf36bfaba497fa819",
     "packages": [
         {
             "name": "brick/math",
@@ -345,16 +345,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.0.9",
+            "version": "v4.0.10",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "d9ac948a96918ec79162b59652e5bc1edf301a26"
+                "reference": "10724ad96f228e6e3dbb8a4b723c64660d449336"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/d9ac948a96918ec79162b59652e5bc1edf301a26",
-                "reference": "d9ac948a96918ec79162b59652e5bc1edf301a26",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/10724ad96f228e6e3dbb8a4b723c64660d449336",
+                "reference": "10724ad96f228e6e3dbb8a4b723c64660d449336",
                 "shasum": ""
             },
             "require": {
@@ -399,9 +399,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.9"
+                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.10"
             },
-            "time": "2022-04-28T00:00:57+00:00"
+            "time": "2022-05-07T10:31:18+00:00"
         },
         {
             "name": "league/flysystem",
@@ -606,16 +606,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "2.57.0",
+            "version": "2.58.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/briannesbitt/Carbon.git",
-                "reference": "4a54375c21eea4811dbd1149fe6b246517554e78"
+                "reference": "97a34af22bde8d0ac20ab34b29d7bfe360902055"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/4a54375c21eea4811dbd1149fe6b246517554e78",
-                "reference": "4a54375c21eea4811dbd1149fe6b246517554e78",
+                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/97a34af22bde8d0ac20ab34b29d7bfe360902055",
+                "reference": "97a34af22bde8d0ac20ab34b29d7bfe360902055",
                 "shasum": ""
             },
             "require": {
@@ -633,7 +633,8 @@
                 "phpmd/phpmd": "^2.9",
                 "phpstan/extension-installer": "^1.0",
                 "phpstan/phpstan": "^0.12.54 || ^1.0",
-                "phpunit/phpunit": "^7.5.20 || ^8.5.14",
+                "phpunit/php-file-iterator": "^2.0.5",
+                "phpunit/phpunit": "^7.5.20 || ^8.5.23",
                 "squizlabs/php_codesniffer": "^3.4"
             },
             "bin": [
@@ -698,7 +699,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-02-13T18:13:33+00:00"
+            "time": "2022-04-25T19:31:17+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -2282,16 +2283,16 @@
         },
         {
             "name": "topthink/think-queue",
-            "version": "v3.0.6",
+            "version": "v3.0.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-queue.git",
-                "reference": "a9f81126bdd52d036461e0c6556592dd478c8728"
+                "reference": "cded7616e313f9daa55c0ad0de5791f0d1fb3066"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-queue/zipball/a9f81126bdd52d036461e0c6556592dd478c8728",
-                "reference": "a9f81126bdd52d036461e0c6556592dd478c8728",
+                "url": "https://api.github.com/repos/top-think/think-queue/zipball/cded7616e313f9daa55c0ad0de5791f0d1fb3066",
+                "reference": "cded7616e313f9daa55c0ad0de5791f0d1fb3066",
                 "shasum": ""
             },
             "require": {
@@ -2337,9 +2338,9 @@
             "description": "The ThinkPHP6 Queue Package",
             "support": {
                 "issues": "https://github.com/top-think/think-queue/issues",
-                "source": "https://github.com/top-think/think-queue/tree/v3.0.6"
+                "source": "https://github.com/top-think/think-queue/tree/v3.0.7"
             },
-            "time": "2021-06-24T18:03:45+00:00"
+            "time": "2021-12-20T08:04:36+00:00"
         },
         {
             "name": "topthink/think-template",
