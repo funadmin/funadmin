@@ -3,7 +3,7 @@
     1、控制器/方法 例如 Wechat/index 或者多级 wechat.sys/index,注意大小写
 </blockquote>
 <form class="layui-form" lay-filter="form">
-    {:form_xmselect('pid',[],['url'=>__u('index'),'verify'=>'required',"radio"=>1,'tree'=>true],['title','id'],$formData?$formData['id']:'')}
+    {:form_xmselect('pid',[],['url'=>__u('index'),'verify'=>'required',"radio"=>1,'tree'=>true],['title','id'],$formData?$formData['pid']:'')}
     {:form_input('title','text',['verify'=>'required','label'=>"Name"])}
     {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
     {:form_icon('icon',[],$formData?$formData.icon:'')}

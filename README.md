@@ -41,9 +41,12 @@
 
 ### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
 
-### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
+
+### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6) 已满
 
 ### QQ群2：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
+
+### QQ群3：[455019756](https://jq.qq.com/?_wv=1027&k=T36aCrMR)
 
 ## 项目介绍
 

@@ -4,6 +4,7 @@ namespace app\common\service;
 use app\common\model\Attach as AttachModel;
 use think\App;
 use think\Exception;
+use think\facade\Cache;
 use think\facade\Request;
 use think\Image;
 
@@ -29,6 +30,12 @@ class UploadService extends AbstractService
      * @var
      */
     protected $fileMaxsize;
+
+    /**
+     * 文件对象
+     * @var
+     */
+    protected $file;
     /**
      * Service constructor.
      * @param App $app
@@ -73,7 +80,8 @@ class UploadService extends AbstractService
         foreach ($files as $k => $file) {
             if(is_array($file)){
                 foreach($file as $kk=>$vv){
-                    $this->checkFile($vv);
+                    $this->file = $vv;
+                    $this->checkFile();
                     $file_size = $vv->getSize();
                     $original_name = $vv->getOriginalName();
                     $md5 = $vv->md5();$sha1 = $vv->sha1();;
@@ -162,7 +170,8 @@ class UploadService extends AbstractService
                     }
                 }
             }else{
-                $this->checkFile($file);
+                $this->file = $file;
+                $this->checkFile();
                 $file_size = $file->getSize();
                 $original_name = $file->getOriginalName();
                 $md5 = $file->md5();$sha1 = $file->sha1();;
@@ -263,39 +272,40 @@ class UploadService extends AbstractService
         }
         return ($result);
     }
+
     /**
      * @param $file
      * @return bool
      * @throws Exception
      * 检测文件是否符合要求
      */
-    protected function checkFile($file)
+    protected function checkFile()
     {
         //禁止上传PHP和HTML.ssh等脚本文件
-        if (in_array($file->getMime(),
+        if (in_array($this->file->getMime(),
                 ['application/octet-stream', 'text/html','application/x-javascript','text/x-php','application/x-msdownload','application/java-archive'])
             ||
-            in_array($file->extension(),
+            in_array($this->file->extension(),
                 ['php', 'html', 'htm','xml','ssh','bat','jar','java'])) {
             throw new Exception(lang('File format is limited'));
         }
         //文件大小限制
-        if (($file->getSize() > $this->fileMaxsize*1024)) {
+        if (($this->file->getSize() > $this->fileMaxsize*1024)) {
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制
-        if ($this->fileExt !='*' && !in_array($file->extension(),explode(',',$this->fileExt))) {
+        if ($this->fileExt !='*' && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
             throw new Exception(lang('File type is limited'));
         }
         return true;
     }
     //建立水印
-    protected function createWater($file){
+    protected function createWater($path){
         // 读取图片
         $water = syscfg('upload');
         if($water['upload_water']){
             $domain = \request()->domain();
-            $path = '.'. DS .trim($file,DS);
+            $path = '.'. DS .trim($path,DS);
             $image = Image::open($path);
             // 添加水印
             $watermark_pos   = $water['upload_water_position'] == '' ? config('upload_water_position'):  $water['upload_water_position'];

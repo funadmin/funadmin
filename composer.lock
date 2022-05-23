@@ -288,23 +288,28 @@
         },
         {
             "name": "firebase/php-jwt",
-            "version": "v6.1.2",
+            "version": "v6.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/firebase/php-jwt.git",
-                "reference": "c297139da7c6873dbd67cbd1093f09ec0bbd0c50"
+                "reference": "d28e6df83830252650da4623c78aaaf98fb385f3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/c297139da7c6873dbd67cbd1093f09ec0bbd0c50",
-                "reference": "c297139da7c6873dbd67cbd1093f09ec0bbd0c50",
+                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/d28e6df83830252650da4623c78aaaf98fb385f3",
+                "reference": "d28e6df83830252650da4623c78aaaf98fb385f3",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.1||^8.0"
             },
             "require-dev": {
-                "phpunit/phpunit": "^7.5||9.5"
+                "guzzlehttp/guzzle": "^6.5||^7.4",
+                "phpspec/prophecy-phpunit": "^1.1",
+                "phpunit/phpunit": "^7.5||^9.5",
+                "psr/cache": "^1.0||^2.0",
+                "psr/http-client": "^1.0",
+                "psr/http-factory": "^1.0"
             },
             "suggest": {
                 "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
@@ -339,22 +344,22 @@
             ],
             "support": {
                 "issues": "https://github.com/firebase/php-jwt/issues",
-                "source": "https://github.com/firebase/php-jwt/tree/v6.1.2"
+                "source": "https://github.com/firebase/php-jwt/tree/v6.2.0"
             },
-            "time": "2022-04-21T14:37:18+00:00"
+            "time": "2022-05-13T20:54:50+00:00"
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.0.10",
+            "version": "v4.0.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "10724ad96f228e6e3dbb8a4b723c64660d449336"
+                "reference": "2f2d32ee9109e687bd06627c303068a035f4967b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/10724ad96f228e6e3dbb8a4b723c64660d449336",
-                "reference": "10724ad96f228e6e3dbb8a4b723c64660d449336",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/2f2d32ee9109e687bd06627c303068a035f4967b",
+                "reference": "2f2d32ee9109e687bd06627c303068a035f4967b",
                 "shasum": ""
             },
             "require": {
@@ -399,9 +404,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.10"
+                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.13"
             },
-            "time": "2022-05-07T10:31:18+00:00"
+            "time": "2022-05-23T04:44:15+00:00"
         },
         {
             "name": "league/flysystem",
@@ -1989,16 +1994,16 @@
         },
         {
             "name": "topthink/think-captcha",
-            "version": "v3.0.6",
+            "version": "v3.0.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-captcha.git",
-                "reference": "3b60feb4d484381ff7ddda4af7582a6b9be5dacf"
+                "reference": "a450602932a5d9ba183e288b79921ba3b9a92331"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-captcha/zipball/3b60feb4d484381ff7ddda4af7582a6b9be5dacf",
-                "reference": "3b60feb4d484381ff7ddda4af7582a6b9be5dacf",
+                "url": "https://api.github.com/repos/top-think/think-captcha/zipball/a450602932a5d9ba183e288b79921ba3b9a92331",
+                "reference": "a450602932a5d9ba183e288b79921ba3b9a92331",
                 "shasum": ""
             },
             "require": {
@@ -2036,9 +2041,9 @@
             "description": "captcha package for thinkphp",
             "support": {
                 "issues": "https://github.com/top-think/think-captcha/issues",
-                "source": "https://github.com/top-think/think-captcha/tree/v3.0.6"
+                "source": "https://github.com/top-think/think-captcha/tree/v3.0.7"
             },
-            "time": "2022-03-18T09:11:51+00:00"
+            "time": "2022-04-23T02:38:14+00:00"
         },
         {
             "name": "topthink/think-helper",

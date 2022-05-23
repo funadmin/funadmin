@@ -27,6 +27,8 @@
             <form class="layui-form " lay-filter="form">
                 {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
                 {:form_input('upload_file_max','text',['label'=>"Maxfilesize",'verify'=>'number','tips'=>"M"],'50')}
+                {:form_radio('upload_slice',[1=>'是',0=>'否'],['label'=>'是否分片'])}
+                {:form_input('upload_slicesize','text', ['label'=>"分片大小",'verify'=>'number'])}
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Upload Driver')}</label>
                     <div class="layui-input-block">

@@ -17,7 +17,9 @@ define(["jquery", 'croppers'], function($, croppers) {
                 select_url:'/sys.attach/selectfiles'
             },
             upload_exts: Config.upload.upload_file_type,
-            upload_size: Config.upload.upload_size,
+            upload_size: Config.upload.upload_file_max,
+            upload_slice: Config.upload.upload_slice,
+            upload_slicesize: Config.upload.upload_slicesize,
         },
         //事件
         events: {
@@ -115,7 +117,8 @@ define(["jquery", 'croppers'], function($, croppers) {
                         uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
-                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replace('/,/g','|'):uploadExts
+                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replace(/,/g,'|'):uploadExts
+                        console.log(uploadExts)
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || uploadMime;
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
