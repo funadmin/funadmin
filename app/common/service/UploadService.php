@@ -5,6 +5,7 @@ use app\common\model\Attach as AttachModel;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
+use think\facade\Config;
 use think\facade\Request;
 use think\Image;
 
@@ -74,6 +75,8 @@ class UploadService extends AbstractService
         $pathSrc = $path =='undefined'?'uploads':$path;
         $editor = Request::param('editor', '');
         $save = Request::param('save', '');
+        $disksdriver = Config::get('filesystem.default');
+        $disksurl = Config::get('filesystem.disks.'.$disksdriver.'.url','/storage');
         $files = request()->file();
         $error='';
         $ossService = OssService::instance();
@@ -89,8 +92,8 @@ class UploadService extends AbstractService
                     $attach = AttachModel::where('md5', $md5)->find();
                     if (!$attach) {
                         try {
-                            $savename = \think\facade\Filesystem::disk('public')->putFile($pathSrc, $vv);
-                            $path = "/" . 'storage' . "/" . $savename;
+                            $savename = \think\facade\Filesystem::disk($disksdriver)->putFile($pathSrc, $vv);
+                            $path = $disksurl . "/" . $savename;
                             $paths = trim($path, '/');
                             // 整合上传接口 获取视频音频长度
                             $analyzeFileInfo = hook('getID3Hook',['path'=>'.' . "/" . $path]);
@@ -180,7 +183,7 @@ class UploadService extends AbstractService
                 if (!$attach) {
                     try {
                         $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
-                        $path = "/" . 'storage' . "/" . $savename;
+                        $path = $disksurl . "/" . $savename;
                         $paths = trim($path, "/");
                         // 整合上传接口 获取视频音频长度
                         $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. "/" .$path]);
