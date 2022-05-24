@@ -90,10 +90,10 @@ class UploadService extends AbstractService
                     if (!$attach) {
                         try {
                             $savename = \think\facade\Filesystem::disk('public')->putFile($pathSrc, $vv);
-                            $path = DS . 'storage' . DS . $savename;
+                            $path = "/" . 'storage' . "/" . $savename;
                             $paths = trim($path, '/');
                             // 整合上传接口 获取视频音频长度
-                            $analyzeFileInfo = hook('getID3Hook',['path'=>'.' . DS . $path]);
+                            $analyzeFileInfo = hook('getID3Hook',['path'=>'.' . "/" . $path]);
                             $duration=0;
                             if($analyzeFileInfo) {
                                 $analyzeFileInfo = json_decode($analyzeFileInfo,true);
@@ -113,7 +113,7 @@ class UploadService extends AbstractService
                             }
                             if ($this->driver != 'local') {
                                 try {
-                                    $path = $ossService->uploads($this->driver,$paths, '.' . DS . $paths,$save);
+                                    $path = $ossService->uploads($this->driver,$paths, '.' . "/" . $paths,$save);
                                 }catch (\Exception $e) {
                                     throw new Exception($e->getMessage());
                                 }
@@ -180,10 +180,10 @@ class UploadService extends AbstractService
                 if (!$attach) {
                     try {
                         $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
-                        $path = DS . 'storage' . DS . $savename;
-                        $paths = trim($path, DS);
+                        $path = "/" . 'storage' . "/" . $savename;
+                        $paths = trim($path, "/");
                         // 整合上传接口 获取视频音频长度
-                        $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. DS .$path]);
+                        $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. "/" .$path]);
                         $duration=0;
                         if($analyzeFileInfo) {
                             $analyzeFileInfo = json_decode($analyzeFileInfo,true);
@@ -203,7 +203,7 @@ class UploadService extends AbstractService
                         }
                         if ($this->driver != 'local') {
                             try {
-                                $path = $ossService->uploads($this->driver,$paths, '.'.DS . $paths,$save);
+                                $path = $ossService->uploads($this->driver,$paths, '.'."/" . $paths,$save);
                             }catch (\Exception $e) {
                                 throw new Exception($e->getMessage());
                             }
@@ -305,7 +305,7 @@ class UploadService extends AbstractService
         $water = syscfg('upload');
         if($water['upload_water']){
             $domain = \request()->domain();
-            $path = '.'. DS .trim($path,DS);
+            $path = '.'. "/" .trim($path,"/");
             $image = Image::open($path);
             // 添加水印
             $watermark_pos   = $water['upload_water_position'] == '' ? config('upload_water_position'):  $water['upload_water_position'];
@@ -316,7 +316,7 @@ class UploadService extends AbstractService
             $water_text_color =  $water['upload_water_color'] == '' ? config('upload_water_color') :  $water['upload_water_color'];
             switch ($water['upload_water']){
                 case 1:
-                    $water_text_thumb =  '.' . DS .trim(str_replace($domain,'',$water_text_thumb),DS );
+                    $water_text_thumb =  '.' . "/" .trim(str_replace($domain,'',$water_text_thumb),"/" );
                     $image->water($water_text_thumb, $watermark_pos, $watermark_alpha)->save($path);
                     break;
                 case 2:
