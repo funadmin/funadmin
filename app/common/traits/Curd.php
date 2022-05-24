@@ -376,7 +376,9 @@ trait Curd
             ->field($field)
             ->select();
         if($tree!='false' and $tree){
+            $list = $list?$list->toArray():[];
             $list = TreeHelper::getTree($list,$fields['name'],0,$parentField);
+            rsort($list);
         }
         $this->success('','',$list);
     }

@@ -158,9 +158,9 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                         if (style) options.style = style;
                         if (layReqText) options.layReqText = layReqText;
                         if (content) options.content = content;
-                        xmselectobj[i] = xmSelect.render(options)
+                        xmselectobj[i] = xmSelect.render(options);
                         if(data.toString()==='' && url){
-                            searchData = {selectFields:selelectFields,tree:tree.show,parentfield:parentfield}
+                            searchData = {selectFields:selelectFields,tree:tree.show,parentField:parentfield}
                             Fun.ajax({
                                 method:'GET',
                                 url: Fun.url(url?url: window.location.href),
