@@ -26,7 +26,7 @@ use think\App;
 
 class Member extends Backend
 {
-
+    protected $allowModifyFields = ['*'];
     protected $relationSearch = true;
     public function __construct(App $app)
     {

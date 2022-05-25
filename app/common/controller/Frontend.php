@@ -25,7 +25,11 @@ use think\facade\View;
 class Frontend extends BaseController
 {
     use Jump;
-
+    /**
+     * 主键 id
+     * @var string
+     */
+    protected $primaryKey = 'id';
     /**
      * @var
      * 入口

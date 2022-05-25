@@ -12,6 +12,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: '/ajax/export'},},
         render: function (options) {
             options.elem = options.elem || '#' + Table.init.table_elem;
+            options.primaryKey = options.primaryKey || $('#'+options.id).data('primaryKey') || 'id';
             options.init = options.init || Table.init;
             options.id = options.id || Table.init.tableId;
             options.layFilter = options.id;
@@ -23,7 +24,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             options.rowDouble =  !(options.rowDouble != undefined && options.rowDouble == false && (Table.init.rowDouble == undefined || (Table.init.rowDouble == false)));
             options.searchInput = !(options.searchInput != undefined && options.searchInput == false && (Table.init.searchInput == undefined || (Table.init.searchInput == false)));
             options.searchName = Fun.param(options.searchName || Table.init.searchName, 'id');
-            options.cols = Table.colsRender(options.cols);
+            options.cols = Table.colsRender(options);
             options.page = Fun.param(options.page, true);
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
@@ -66,6 +67,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             if (options.search === true && options.searchFormTpl === false) {
                 Table.renderSearch(options)
             }
+            //修改或添加主键id
+            $('#'+options.id).attr('data-primaryKey',options.primaryKey);
             //是否字符串自定义模板
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var newTable = layui.table.render(options);
@@ -302,9 +305,10 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             })
         },
         //格式化列
-        colsRender: function (cols) {
-            var newclos = cols[0];
+        colsRender: function (options) {
+            var newclos = options.cols[0];
             layui.each(newclos, function (i, d) {
+                newclos[i]['primaryKey'] = options.primaryKey;
                 if (d.align === undefined) {
                     newclos[i]['align'] = 'center'
                 }
@@ -401,7 +405,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
-                $html = '<div class="layui-table-select"><select name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
+                $html = '<div class="layui-table-select"><select data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
@@ -440,7 +444,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ele.tips = ele.tips || ele.selectListTips || __('open') + '|' + __('close');
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input type="checkbox" name="' + ele.field + '" value="' + d.id + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
+                return '<input type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             }, resolution: function (d, ele = '') {
                 var ele = ele || $(this)[0];
                 ele.field = ele.field || ele.filter || null;
@@ -451,6 +455,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 value = Table.templet.resolution(d, ele)
                 return value === '-' ? value : parseFloat(value).toFixed(toFixed)
             }, operat: function (d) {
+                d.primaryKey = typeof d.LAY_COL!=='undefined'?d.LAY_COL.primaryKey:'id';
+                d.primaryKeyValue = d[d.primaryKey];
                 var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];
                 var html = '';
@@ -549,7 +555,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
                         vv.node = vv.node === false ? vv.node : Fun.common.getNode(va.url);
                         vv.class = vv.class ? vv.class + ' layui-btn-xs' : vv.class;
-                        vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.id : vv.url + '?id=' + d.id;
+                        vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.primaryKeyValue : vv.url + '?id=' + d.primaryKeyValue;
                         vv.url = Fun.replaceurl(vv.url, d);
                         vv.width = va.width !== '' ? 'data-width="' + va.width + '"' : '';
                         vv.height = va.height !== '' ? 'data-height="' + va.height + '"' : '';
@@ -588,7 +594,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.extend = va.extend || '';
                         vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
                         vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
-                        vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.id : va.url + '?id=' + d.id;
+                        vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.primaryKeyValue : va.url + '?id=' + d.primaryKeyValue;
                         vv.url = Fun.replaceurl(vv.url, d);
                         vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
                         vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
@@ -618,11 +624,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             op = d.search ? d.searchOp : '%*%';
             var badge = [
                 '<span class="layui-badge-dot" title="' + value + '"></span> ' + value,
-                '<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value,
-                '<span class="layui-badge-dot layui-bg-cyan" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-blue" title="' + value + '"></span> ' + value,
+                '<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-black" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-orange" title="' + value + '"></span> ' + value,
+                '<span class="layui-badge-dot layui-bg-cyan" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-plum"  title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-yellow"  title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-pink" title="' + value + '"></span> ' + value,
@@ -635,11 +641,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 badge = [
 
                     '<span class="layui-badge" title="' + value + '">' + value + '</span>',
-                    '<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>',
-                    '<span class="layui-badge layui-bg-cyan" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-blue" title="' + value + '">' + value + '</span>',
+                    '<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-black" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-orange" title="' + value + '">' + value + '</span>',
+                    '<span class="layui-badge layui-bg-cyan" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-plum" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-yellow" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-pink" title="' + value + '">' + value + '</span>',
@@ -673,7 +679,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 length = 1
             } else if (data.length > 0) {
                 layui.each(data, function (k, v) {
-                    ids.push(v.id)
+                    var  primaryKey = $('#'+tableId).data('primarykey');
+                    ids.push(v[primaryKey])
                 });
                 length = ids.length
             }
@@ -767,7 +774,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 Fun.api.close()
             }, common: function (othis) {
                 callback = othis.data('callback');
-                 if (callback) {
+                if (callback) {
                     callback = callback.replace('obj','othis').replace('_that','othis');
                     callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
                     callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
@@ -850,7 +857,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             layui.form.on('select(' + v.filter + ')', function (obj) {
                                 //兼容表单
                                 if($(obj.othis).parents('form').length>0){return false;}
-                                var data = {id: obj.value, field: v.field, value: obj.value};
+                                var id = $(obj.elem).attr('data-id');
+                                var data = {id: id, field: v.field, value: obj.value};
                                 Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                                     Fun.toastr.success(res.msg)
                                 }, function (res) {
@@ -912,7 +920,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 layui.table.on('rowDouble(' + layFilter + ')', function (obj) {
                     url = typeof ops==="object"?ops.url:ops;
                     if (url && Fun.checkAuth(Fun.common.getNode(url), options.elem)) {
-                        url = url.indexOf('?') !== -1 ? url + '&id=' + obj.data.id : url + '?id=' + obj.data.id;
+                        url = url.indexOf('?') !== -1 ? url + '&id=' + obj.data[options.primaryKey] : url + '?id=' + obj.data[options.primaryKey];
                         var opt = {};if(typeof ops==="object"){opt = ops;}
                         opt.url = url;opt.type = opt.hasOwnProperty("type") && opt.type==1?1:2;
                         Fun.api.open(opt)
@@ -925,7 +933,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 tableId = options.id || Table.init.tableId;
                 if (url !== false) {
                     layui.table.on('edit(' + options.layFilter + ')', function (obj) {
-                        var value = obj.value, data = obj.data, id = data.id, field = obj.field;
+                        var value = obj.value, data = obj.data, id = data[options.primaryKey], field = obj.field;
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
                             Fun.toastr.success(res.msg, function () {

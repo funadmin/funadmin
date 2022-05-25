@@ -28,6 +28,11 @@ class Backend extends BaseController
     use Jump;
     use Curd;
     /**
+     * 主键 id
+     * @var string
+     */
+    protected $primaryKey = 'id';
+    /**
     * @var
      * 模型
      */

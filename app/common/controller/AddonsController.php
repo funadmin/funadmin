@@ -26,6 +26,12 @@ class AddonsController extends Controller
 {
     use Jump;
     use Curd;
+
+    /**
+     * 主键 id
+     * @var string
+     */
+    protected $primaryKey = 'id';
     /**
      * @var
      * 入口

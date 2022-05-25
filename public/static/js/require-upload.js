@@ -118,7 +118,6 @@ define(["jquery", 'croppers'], function($, croppers) {
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
                         uploadExts = uploadExts.indexOf(',') ?uploadExts.replace(/,/g,'|'):uploadExts
-                        console.log(uploadExts)
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || uploadMime;
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
@@ -245,8 +244,6 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 //上传完毕回调
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
-                                    console.log( _parent.find('input[type="text"]').length)
-                                    console.log( _parent.find('input[type="text"]'))
                                     _parent.find('input[type="text"]').val(res.url)
                                     var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
                                     _parent.find('.layui-upload-list').html(html)
