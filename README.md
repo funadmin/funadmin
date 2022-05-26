@@ -37,7 +37,8 @@
 
 ### 插件市场 https://www.funadmin.com/frontend/plugins
 
-### 开发文档：https://doc.funadmin.com 正在持续更新中...
+### 开发文档 http://funadmin.gitee.io/docs ,https://doc.funadmin.com  正在持续更新中...
+
 
 ### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
 
