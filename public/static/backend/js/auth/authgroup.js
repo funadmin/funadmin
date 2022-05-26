@@ -101,6 +101,17 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     , isJump: false //是否允许点击节点时弹出新窗口跳转
 
                 });
+                var scripts = "<script>" +
+                    "$('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').css({\n" +
+                    "                    'display':'block','width':'100%'\n" +
+                    "                });\n" +
+                    "                $('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').children('.layui-tree-pack.layui-tree-lineExtend.layui-tree-showLine').css({\n" +
+                    "                    'display':'inline-flex','width':'100%'\n" +
+                    "                });\n" +
+                    "                $('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').children('.layui-tree-pack.layui-tree-lineExtend.layui-tree-showLine')\n" +
+                    "                    .children('.layui-tree-set.layui-tree-spread').css({\n" +
+                    "                    'width':'180px'\n" +
+                    "                });</script>"
                 // var stype = "<style>" +
                 //     ".layui-tree-entry{padding: 10px 15px} " +
                 //     ".layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex}" +
@@ -110,7 +121,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 //     ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
                 //     ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
                 //     "<\/style>"
-                // $('body').append(stype)
+                $('body').append(scripts)
             })
             // 按钮事件
             util.event('lay-event', {
