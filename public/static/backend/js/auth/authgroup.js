@@ -73,6 +73,10 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
             Controller.api.bindevent()
 
         },
+        upme: function () {
+            Controller.api.bindevent()
+
+        },
         access: function () {
             var $ = layui.jquery,
                 util = layui.util,

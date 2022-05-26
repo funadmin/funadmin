@@ -123,6 +123,48 @@ class Admin extends Backend
     }
 
     /**
+     * @NodeAnnotation (title="更新信息")
+     * @return \think\response\View
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public function upme()
+    {
+        $id = $this->request->param('id');
+        if ($this->request->isPost()) {
+            $post = $this->request->post();
+            $rule = ['group_id'=>'require'];
+            $this->validate($post, $rule);
+            if(session('admin.id'))
+                if($post['password']){
+                    $post['password'] = password_hash($post['password'],PASSWORD_BCRYPT);
+                }else{
+                    unset($post['password']);
+                }
+            $list =  $this->modelClass->find($id);
+            $result = $list->save($post);
+            if ($result) {
+                $this->success(lang('operation success'));
+            } else {
+                $this->error(lang('operation failed'));
+            }
+        }
+        $list =  $this->modelClass->find($id);
+        $list->password = '';
+        $auth_group = AuthGroupModel::where('status', 1)->select();
+        if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
+        $view = [
+            'formData'  =>$list,
+            'authGroup' => $auth_group,
+            'title' => lang('Add'),
+            'type' => $this->request->get('type'),
+        ];
+        View::assign($view);
+        return view('add');
+
+    }
+    /**
      * @NodeAnnotation (title="编辑")
      * @return \think\response\View
      * @throws \think\db\exception\DataNotFoundException
@@ -136,7 +178,7 @@ class Admin extends Backend
             $post = $this->request->post();
             $rule = ['group_id'=>'require'];
             $this->validate($post, $rule);
-            //添加
+            if(session('admin.id'))
             if($post['password']){
                 $post['password'] = password_hash($post['password'],PASSWORD_BCRYPT);
             }else{

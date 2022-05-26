@@ -53,6 +53,6 @@ return [
     'show_error_msg'   => true,
     //版本
     'version' => '2.5',
-    'version_data' => '20220418',
+    'version_data' => '20220526',
     'ip_check'=>false,
 ];
