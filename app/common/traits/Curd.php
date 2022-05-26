@@ -98,7 +98,7 @@ trait Curd
      */
     public function edit()
     {
-        $id = $this->request->param($this->primaryKey);
+        $id = $this->request->param('id');
         $list = $this->modelClass->find($id);
         if(empty($list)) $this->error(lang('Data is not exist'));
         if ($this->request->isPost()) {
