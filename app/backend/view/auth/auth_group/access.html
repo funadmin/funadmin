@@ -1,14 +1,40 @@
-    <fieldset class="layui-elem-field layui-field-title">
-        <legend>权限分配</legend>
-        <blockquote class="layui-elem-quote">
-            <button type="button" class="layui-btn layui-btn-sm" lay-event="setChecked">全选</button>
-            <button type="button" class="layui-btn layui-btn-sm layui-btn-warm"  lay-event="reload">取消</button>
-        </blockquote>
-    </fieldset>
-    <div class="layui-form-item">
-        <div id="tree" class="layui-tree-more"></div>
-    </div>
-    <form class="layui-form" lay-filter="form">
-        {:form_submitbtn()}
-    </form>
+<style>
+    .layui-tree-pack.layui-tree-lineExtend .layui-tree-set{
+        display: inline-flex;
+        flex-direction: column;
+        width:200px;
+    }
+    .layui-tree-pack.layui-tree-lineExtend .layui-tree-set.layui-tree-checkedFirst{
+        display: block;
+        /*flex-direction: column;*/
+        width:200px;
+    }
+    .layui-tree-pack.layui-tree-lineExtend .layui-tree-set{
+        display: inline-flex;
+        flex-direction: column;
+        width:200px;
+    }
+    .layui-tree-entry {
+        height:30px; line-height:30px;
+    }
+    /*.layui-tree-line .layui-tree-set::before {*/
+    /*    border:none;*/
+    /*}*/
+    /*.layui-tree-line .layui-tree-set .layui-tree-set::after {*/
+    /*    border:none;*/
+    /*}*/
+</style>
+<fieldset class="layui-elem-field layui-field-title">
+    <legend>权限分配</legend>
+    <blockquote class="layui-elem-quote">
+        <button type="button" class="layui-btn layui-btn-sm" lay-event="setChecked">全选</button>
+        <button type="button" class="layui-btn layui-btn-sm layui-btn-warm"  lay-event="reload">取消</button>
+    </blockquote>
+</fieldset>
+<div class="layui-form-item">
+    <div id="tree" class="layui-tree-more"></div>
+</div>
+<form class="layui-form" lay-filter="form">
+    {:form_submitbtn()}
+</form>
 

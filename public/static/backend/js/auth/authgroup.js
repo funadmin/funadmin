@@ -91,22 +91,22 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     , showCheckbox: true  //是否显示复选框
                     , id: 'treebox'
                     // ,edit: ['add','update']
-                    , showLine: true
+                    , showLine: false
                     ,onlyIconControl:true//是否仅允许节点左侧图标控制展开收缩
                     , accordion: false//是否开启手风琴模式，默认 false
                     , isJump: false //是否允许点击节点时弹出新窗口跳转
 
                 });
-                var stype = "<style>" +
-                    ".layui-tree-entry{padding: 10px 15px} " +
-                    ".layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex}" +
-                    ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst{display: inline-flex!important;}" +
-                    ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst.layui-tree-set{width: auto!important;}" +
-                    ".layui-tree-pack .layui-tree-spread .layui-tree-pack.layui-tree-lineExtend{display: inline-flex!important;}" +
-                    ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
-                    ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
-                    "<\/style>"
-                $('body').append(stype)
+                // var stype = "<style>" +
+                //     ".layui-tree-entry{padding: 10px 15px} " +
+                //     ".layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex}" +
+                //     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst{display: inline-flex!important;}" +
+                //     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst.layui-tree-set{width: auto!important;}" +
+                //     ".layui-tree-pack .layui-tree-spread .layui-tree-pack.layui-tree-lineExtend{display: inline-flex!important;}" +
+                //     ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
+                //     ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
+                //     "<\/style>"
+                // $('body').append(stype)
             })
             // 按钮事件
             util.event('lay-event', {
