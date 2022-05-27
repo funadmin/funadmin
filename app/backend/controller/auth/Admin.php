@@ -276,8 +276,8 @@ class Admin extends Backend
             $one = $this->modelClass->find($id?:session('admin.id'));
             if (!$id && !password_verify($oldpassword, $one['password'])) {
                 $this->error(lang('Old Password Error'));
-            }else if($oldpassword!=$password){
-                $this->error(lang('Password Is not Same'));
+            }else if($oldpassword == $password){
+                $this->error(lang('Password Cannot the Same'));
             }
             try {
                 $post['password'] = SignHelper::password($password);
