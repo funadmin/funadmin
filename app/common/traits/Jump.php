@@ -14,7 +14,7 @@
 namespace app\common\traits;
 use think\exception\HttpResponseException;
 use think\App;
-use think\Response;
+use think\facade\Request;
 trait Jump
 {
     /**
