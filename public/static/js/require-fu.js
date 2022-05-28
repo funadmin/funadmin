@@ -115,6 +115,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     value: val
                                 }
                             } : eval(create)?eval(create):false;
+                        console.log(value)
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                         options = {
                             el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
