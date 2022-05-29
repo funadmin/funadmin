@@ -5,7 +5,7 @@
 .env
 /addons
 /vendor
-/runtime/
+/runtime
 /public/static/addons
 /public/static/storage
 /auto_install.json
