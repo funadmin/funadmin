@@ -1,6 +1,6 @@
 <h1 align="center">🔥🔥🔥🔥🔥🔥 </h1>
 <h1 align="center">为梦想而创作：FunAdmin开发框架系统<br>支持PHP8.0</h1>
-
+<h3 align="center">开源不易，您可以点右上角 "Star" 支持一下 谢谢！</h3>
 <p align="center">
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
@@ -22,8 +22,7 @@
     </a>
 
 </p>
-
-### FunAdmin开发系统2.0版本即将在下周发布，
+，
 ### 如果对您有帮助，您可以点右上角 "Star" 支持一下 谢谢！
 ### 如果您想获悉项目实时更新信息，您可以点右上角"Watch"
 ### 如果您想参与项目的开发，您可以点右上角"Fork"！
