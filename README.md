@@ -1,8 +1,8 @@
 <BR>
 
-<h2 align="center">为梦想而创作：FunAdmin开发框架系统 系统支持支持PHP8.X</h2>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 系统支持支持PHP8.X</h3>
 
-<h3 align="center">开源不易，您可以点右上角 "Star" 支持一下 谢谢！</h3>
+<h4 align="center">开源不易，您可以点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
