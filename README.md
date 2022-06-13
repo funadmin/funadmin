@@ -11,7 +11,7 @@
         <img src="https://img.shields.io/badge/layui-2.6.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
-        <img src="https://img.shields.io/badge/php-%3E%3D7.2-8892BF.svg" alt="PHP Version">
+        <img src="https://img.shields.io/badge/php-%3E%3D7.4-8892BF.svg" alt="PHP Version">
     </a>
     <a href='https://gitee.com/funadmin/funadmin'>
         <img src='https://img.shields.io/badge/Mysql-%3E%3D5.7-green' alt='MYSQL'></img>
