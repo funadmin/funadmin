@@ -128,6 +128,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             elem: this,
                             accept: uploadAccept,
                             size: uploadSize,
+                            number:uploadNum,
                             multiple: uploadmultiple,
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath,
                             before: function(obj) {

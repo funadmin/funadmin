@@ -1,5 +1,4 @@
 define(['jquery','table','form'], function ($,Table,Form) {
-
     Table.init = {
         table_elem: 'list',
         tableId: 'list',
