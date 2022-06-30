@@ -68,7 +68,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 Table.renderSearch(options)
             }
             //修改或添加主键id
-            $('#'+options.id).attr('data-primaryKey',options.primaryKey);
+            $('#'+options.id).attr('data-primarykey',options.primaryKey);
             //是否字符串自定义模板
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var newTable = layui.table.render(options);
@@ -923,7 +923,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         url = url.indexOf('?') !== -1 ? url + '&id=' + obj.data[options.primaryKey] : url + '?id=' + obj.data[options.primaryKey];
                         var opt = {};if(typeof ops==="object"){opt = ops;}
                         opt.url = url;opt.type = opt.hasOwnProperty("type") && opt.type==1?1:2;
-                        Fun.api.open(opt)
+                        Fun.api.open(opt);
                     }
                     return false
                 })
@@ -959,8 +959,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
             },
             bindEvent: function () {
-                //原来的点击事件失效改为此处
-                layui.table.on('tool('+Table.init.tableId+')', function (obj) {
+            //原来的点击事件失效改为此处
+             	layui.table.on('tool('+Table.init.table_elem+')', function (obj) {
                     var _that = $(this);
                     var  data = obj.data; //获得当前行数据
                     var attrEvent = obj.event || _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
@@ -969,6 +969,17 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     } else {
                         Table.events.common(_that);
                     }
+                    return false;
+                });
+                $(document).on('click','*[lay-event]',function(){
+                    var _that = $(this);
+                    var attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    if (Table.events.hasOwnProperty(attrEvent)) {
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                    } else {
+                        Table.events.common(_that);
+                    }
+                    return false;
                 });
                 //单元格工具事件 - 双击触发 注：v2.7.0 新增
                 layui.table.on('toolDouble('+Table.init.tableId+')', function(obj){

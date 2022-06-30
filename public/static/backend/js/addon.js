@@ -99,11 +99,11 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 }
                                 html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</a>'
                                 if (d.status == 1 ) {
-                                    html += '<a '+d.lastVersion + d.localVersion+' data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
+                                    html += '<a lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
                                 } else {
                                     html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
                                 }
-                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
+                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
                                 if (d.website !== '') {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
@@ -123,10 +123,12 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 limit: 15,
                 page: false
             });
+            let table = $('#' + Table.init.table_elem);
+            Table.api.bindEvent(table);
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url'),auth = $(this).data('auth');
-                url = Fun.url(url);
-                var event = $(this).attr('lay-event');
+                url = Fun.url(url);var event = obj.event;
+                if(event ==='open'){ return  this.call();}
                 if (event === 'install') {
                     if (auth) {
                         Fun.toastr.confirm('Are you sure you want to install it', function () {
@@ -303,7 +305,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 }
                 return false;
             })
-            let table = $('#' + Table.init.table_elem);
             //指定允许上传的文件类型
             var uploadinit = layui.upload.render({
                 elem: '#importFile'
@@ -331,7 +332,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     })
                 }
             });
-            Table.api.bindEvent(table);
         },
         config: function () {
             Controller.api.bindevent()

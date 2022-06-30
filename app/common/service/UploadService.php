@@ -161,6 +161,10 @@ class UploadService extends AbstractService
                             if($editor=='layedit'){
                                 $result['code'] = 1;
                             }
+                            if($editor=='tinymce'){
+                                $result['code'] = 0;
+                                $result['location'] = "";
+                            }
                             return ($result);
                         }
                     } else {
@@ -250,6 +254,10 @@ class UploadService extends AbstractService
                         if($editor=='layedit'){
                             $result['code'] = 1;
                         }
+                        if($editor=='tinymce'){
+                            $result['code'] = 1;
+                            $result['location'] = '';
+                        }
                         return ($result);
                     }
                 } else {
@@ -272,6 +280,10 @@ class UploadService extends AbstractService
         if($editor=='layedit'){
             $result['code'] = 0;
             $result['data'] = ['src'=>$result['data'][0],'title'=>''];
+        }
+        if($editor=='tinymce'){
+            $result['code'] = 0;
+            $result['location'] = $result['data'][0];
         }
         return ($result);
     }

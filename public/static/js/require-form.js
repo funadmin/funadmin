@@ -74,7 +74,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                         var list = $("*[lay-filter='editor']");
                         if (list.length > 0) {
                             layui.each(list, function() {
-                                if ($(this).data('editor') === 2 || $(this).data('editor') === '2') {
+                                if ($(this).data('editor') ==3) {
                                     var id = $(this).prop('id');
                                     return layui.layedit.sync(window['editor' + id])
                                 }
