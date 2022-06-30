@@ -8,7 +8,7 @@
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
     </a>
     <a href="https://www.layui.com/">
-        <img src="https://img.shields.io/badge/layui-2.6.*-green.svg" alt="layui">
+        <img src="https://img.shields.io/badge/layui-2.7.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/php-%3E%3D7.4-8892BF.svg" alt="PHP Version">
