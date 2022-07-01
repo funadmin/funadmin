@@ -49,7 +49,7 @@ FunAdmin 基于thinkphp6.X +Layui2.7.*+requirejs开发权限(RBAC)管理框架�
  + 内置`CURD` 命令行模式，帮助助您快速开发系统
  + 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
  + 强大的表单管理，只需要使用函数即可成就表单 
- + layui采用最新layui2.6.X 框架
+ + layui采用最新layui2.7.X 框架
  + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
  + require.js 模块化开发 一个命令即可打包js,css ; node r.js -o backend-build.js
  + restful api 接口,接口使用jwt接口验证等
