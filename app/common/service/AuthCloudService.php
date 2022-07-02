@@ -87,7 +87,8 @@ class AuthCloudService extends AbstractService
      */
     public function getAuth()
     {
-        return unserialize(base64_decode((Cookie::get('auth_account'))));
+        $auth_account = Cookie::get('auth_account');
+        return $auth_account?unserialize(base64_decode(Cookie::get('auth_account'))):'';
     }
     public function getApiUrl()
     {
