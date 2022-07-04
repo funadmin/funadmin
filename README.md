@@ -1,6 +1,6 @@
 <BR>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
-funadmin docker 版本请移步 
+funadmin docker 版本请移步docker仓库
     </a></h3>
     
 <h3 align="center">为梦想而创作：FunAdmin开发框架系统 系统支持PHP8.X</h3>
