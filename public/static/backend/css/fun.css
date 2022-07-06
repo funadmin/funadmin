@@ -150,7 +150,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-layout-admin .layui-logo cite {
-    display: inline-block;
+    display: inline;
     text-align: center;
     transition: all .3s !important;
     color: #fff;
