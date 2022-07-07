@@ -789,9 +789,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $where = $where || {};
                 $map = {where: $where}
-                layui.table.reload(tableId, $map, $deep);
+                layui.table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layer && parent.layer.getFrameIndex(window.name)) {
-                    parent.layui.table.reload(tableId, {}, $deep);
+                    parent.layui.table.reloadData(tableId, {}, $deep);
                 }
             },
             tableSearch: function (tableId) {

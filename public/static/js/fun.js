@@ -579,14 +579,14 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
                 var index =  parentiframe? parent.layer.open(options): layer.open(options);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
-                    layer.full(index);
+                    layui.layer.full(index);
                 }
                 if (isFull) {
-                    layer.full(index);
+                    layui.layer.full(index);
                 }
                 if (isResize) {
                     $(window).on("resize", function () {
-                        layer.full(index);
+                        layui.layer.full(index);
                     })
                 }
             },
