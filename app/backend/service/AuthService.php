@@ -62,7 +62,7 @@ class AuthService
         }
         // 初始化request
         $this->request = Request::instance();
-        $this->controller = $this->request->controller();
+        $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
         $this->action = $this->action ? $this->action : 'index';
         $url = $this->controller . '/' . $this->action;
