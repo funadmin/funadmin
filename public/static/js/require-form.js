@@ -372,7 +372,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                                 var fileArr = [];
                                 var html = '';
                                 layui.each(data.data, function(index, val) {
-                                    if (uploadMime === 'image') {
+                                    if (uploadMime === 'images') {
                                         html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else if (uploadMime === 'video') {
                                         html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';

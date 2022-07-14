@@ -238,29 +238,29 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             // duration: 2000, //默认2秒关闭
             // showClose: true //显示关闭按钮
             // 成功消息
-            success: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+            success: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.success(msg,callback,duration,position,showClose);
             },
             // 失败消息
-            error: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+            error: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.error(msg,callback,duration,position,showClose);
             },
-            info:function(msg, callback,duration=2500,position='topCenter',showClose=true) {
+            info:function(msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.info(msg,callback,duration,position,showClose);
             },
-            warning:function(msg, callback,duration=2500,position='topCenter',showClose=true) {
+            warning:function(msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.warning(msg,callback,duration,position,showClose);
             },
             // 警告消息框
-            alert: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+            alert: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.warning(msg,callback,duration,position,showClose);
             },
             // 消息提示
-            tips: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+            tips: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.info(msg,callback,duration,position,showClose);
             },
             // 加载中提示
-            loading: function (msg, callback,duration=2500,position='topCenter',showClose=true) {
+            loading: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
                 return Toastr.loading(msg,callback,duration,position,showClose);
             },
             // 对话框

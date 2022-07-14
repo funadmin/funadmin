@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4a109b3766c4f585400ccc60b1fa3501",
+    "content-hash": "0851954bb46bcadb1480ace8b73f3fb1",
     "packages": [
         {
             "name": "brick/math",
@@ -351,16 +351,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.0.17",
+            "version": "v4.0.18",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "353f1eb0834a528b143dcd50f6c9ae8117958925"
+                "reference": "fdb36f312d6c710b20ac3c8462330d26ff2fed5c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/353f1eb0834a528b143dcd50f6c9ae8117958925",
-                "reference": "353f1eb0834a528b143dcd50f6c9ae8117958925",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/fdb36f312d6c710b20ac3c8462330d26ff2fed5c",
+                "reference": "fdb36f312d6c710b20ac3c8462330d26ff2fed5c",
                 "shasum": ""
             },
             "require": {
@@ -405,9 +405,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.17"
+                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.18"
             },
-            "time": "2022-06-25T08:25:41+00:00"
+            "time": "2022-07-14T09:33:30+00:00"
         },
         {
             "name": "league/flysystem",

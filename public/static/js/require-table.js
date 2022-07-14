@@ -131,7 +131,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         v.full = v.full || 0;
                         v.resize = v.resize || 0;
                         v.width = v.width || 800;
-                        v.height = v.height || 800;
+                        v.height = v.height || 600;
                         v.extend = v.extend || '';
                         if (v.type) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'

@@ -360,17 +360,17 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.0.17",
-            "version_normalized": "4.0.17.0",
+            "version": "v4.0.18",
+            "version_normalized": "4.0.18.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "353f1eb0834a528b143dcd50f6c9ae8117958925"
+                "reference": "fdb36f312d6c710b20ac3c8462330d26ff2fed5c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/353f1eb0834a528b143dcd50f6c9ae8117958925",
-                "reference": "353f1eb0834a528b143dcd50f6c9ae8117958925",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/fdb36f312d6c710b20ac3c8462330d26ff2fed5c",
+                "reference": "fdb36f312d6c710b20ac3c8462330d26ff2fed5c",
                 "shasum": ""
             },
             "require": {
@@ -380,7 +380,7 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
-            "time": "2022-06-25T08:25:41+00:00",
+            "time": "2022-07-14T09:33:30+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -417,7 +417,7 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.17"
+                "source": "https://github.com/funadmin/fun-addons/tree/v4.0.18"
             },
             "install-path": "../funadmin/fun-addons"
         },

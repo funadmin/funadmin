@@ -741,7 +741,7 @@ class FormHelper
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
-                        case 'image':
+                        case 'images':
                             $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="' . $v . '"></img>
                     <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
                     data-fileurl="' . $v . '"></i></li>';
