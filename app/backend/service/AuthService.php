@@ -62,14 +62,12 @@ class AuthService
         }
         // 初始化request
         $this->request = Request::instance();
-        $this->controller = parse_name($this->request->controller(), 1);
-        $this->controller = strtolower($this->controller ? $this->controller : 'index');
-        $this->action = parse_name($this->request->action(), 1);
+        $this->controller = $this->request->controller();
+        $this->action = $this->request->action();
         $this->action = $this->action ? $this->action : 'index';
         $url = $this->controller . '/' . $this->action;
-        $pathurl = $this->request->url();
-        $pathurl = explode('?', trim($pathurl, '/'))[0];
-        $this->requesturl = strtolower($url);
+        $pathurl = $this->request->baseUrl();
+        $this->requesturl = $url;
         if (substr($pathurl, 0,7) === 'addons/') {
             $this->requesturl = $pathurl;
         }else{
