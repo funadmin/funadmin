@@ -4,7 +4,6 @@
 *.log
 .env
 /addons
-/vendor
 /runtime
 /public/static/addons
 /public/static/storage

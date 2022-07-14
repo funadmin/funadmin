@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>安装使用协议 - FunAdmin管理系统安装</title>
+    {include file="index/step-base"}
+</head>
+<body>
+<div class="layui-container">
+    <h1 class="install-h1">FunAdmin 开始安装</h1>
+    {if(is_file($config['lockFile']))}
+    <div id="layui-error">
+        当前已经安装FunAdmin，如果需要重新安装，请手动移除FunAdmin/public/install.lock文件
+    </div>
+    {/if}
+    <blockquote class="layui-elem-quote">
+        <h1>安装协议</h1>
+        <p>感谢您使用 <a href="http://www.funadmin.com" target="_blank">{$config['siteName']}</a> 开发框架系统，以下简称【{$config['siteName']}】</p>
+        <p>此框架是基于THINKPHP6开发的模块化开发后台</p>
+        <p>接受本协议才可以继续安装使用【{$config['siteName']}】</p>
+        <p>您在使用中有任何问题都可以添加QQ群：<a href="https://jq.qq.com/?_wv=1027&k=lmP4FhIj">775616363</a> 进行意见反馈。</p>
+        <p>官网链接：<a href="http://www.funadmin.com" target="_blank">www.funadmin.com</a></p>
+        <p>社区地址：<a href="http://bbs.funadmin.com" target="_blank">bbs.funadmin.com</a></p>
+        <p style="margin-top: 20px;font-size: 18px;">协议细则：</p>
+        <div class="protocol">
+            <h3>{$config['siteName']} 系列产品许可协议</h3>
+            <p>欢迎使用{$config['siteName']}系列产品。以下条款和条件构成您与{$config['siteName']}就软件使用许可所达成的协议。</p>
+            <p>用户安装和使用此产品，即意味着同意以下条款和条件。</p>
+            <h4>1、知识产权声明</h4>
+            <p>1.1、受国家计算机软件著作权保护，不得恶意使用产品源代码、转售等，违者必究。</p>
+            <h4>2、用户使用许可授权范围</h4>
+            <p>2.1、我们允许用户对{$config['siteName']}系统进行二次开发为自己的产品。二次开发并再次发布的产品。有必要声明这是基于{$config['siteName']}系统开发的。</p>
+            <p>2.2、{$config['siteName']}遵循Apache2.0协议，您可以在完全遵守本授权协议的基础上，将本软件应用于商业用途。</p>
+            <p>2.3、保留权利：本《协议》未明示授权的其他一切权利仍归{$config['siteName']}所有，用户使用其他权利时须另外取得FunAdmin的同意。</p>
+            <p>2.4、除本《协议》有明确规定外，本《协议》并未对利用本"软件"访问的{$config['siteName']}的其他相关单独服务的服务条款予以列明，对于这些服务可能有单独的服务条款加以规范，请用户在使用有关服务时另行了解与确认。如用户使用该服务，视为对相关服务条款的接受。</p>
+            <h4>3、插件协议</h4>
+            <p>3.1、{$config['siteName']} 付费插件标准授权(基础授权)仅限用于个人或企业自营网站或应用，禁止用于外包或定制软件，禁止二次转售插件源码。</p>
+            <p>3.2、{$config['siteName']}付费插件高级授权可用于个人或企业自营网站或应用或为客户定制开发，禁止二次转售插件源码。</p>
+            <p>3.3、{$config['siteName']} 付费插件标准授权有效期内可通过补差价的形式升级至高级授权，高级授权不可以降至标准授权。</p>
+            <h4>4、权利与义务</h4>
+            <p>4.1、{$config['siteName']}提供用户免费使用,不得对本软件进行恶意分发、恶意出售、倒卖;也不得将本软件用于非法用途（包括但不限于赌博、色情、等或类似功能的网站）。</p>
+            <p>4.2、不能对{$config['siteName']}系统改了源码头部版权，改掉LOGO,就对外宣称是自己独立研发的产品。这样是绝对不允许的。</p>
+            <p>4.2、对于建站公司提供的有偿服务，有义务告知对方是基于{$config['siteName']}系统开发的。</p>
+            <p>4.3、用户将在享有上述条款授予的权力的同时，受到相关的约束和限制。协议许可范围以外的行为，将直接违反本授权协议并构成侵权，我们有权随时终止授权，责令停止损害，并保留追究相关责任的权力。</p>
+            <h4>5、{$config['siteName']}免责声明</h4>
+            <p>5.1、{$config['siteName']}仅为一款方便开发者构建各类应用的管理框架，本身不包含任何非法的功能，欢迎广大授权者进行监督。</p>
+            <p>5.2、用户利用本软件发生的商业行为均由用户自行负责，利用本软件进行商业行为所产生的一切纠纷均与{$config['siteName']}无关。</p>
+            <p>5.3、用户在软件升级前用户应自行备份数据，升级过程中造成的用户数据丢失的{$config['siteName']}不承担责任。</p>
+            <p>5.4、{$config['siteName']}不对因软件使用错误、软件错误等问题所引起的用户损失而承担任何责任，但{$config['siteName']}将尽量避免此类情况的发生。</p>
+            <p>5.6、使用{$config['siteName']}用户构建的任何项目和应用，其中包含的信息内容和服务内容（包括但不限于文字、图片、视频等文件以及源代码、平台规则、平台运营模式等）以及任何可能导致的法律风险，与{$config['siteName']}官方无关，即该风险全部由开发者负责承担。</p>
+            <p>5.7、用户出于自愿而使用本软件，您必须了解使用本软件的风险，软件完全免费且开源，我们不承诺提供任何形式的技术支持、使用担保，也不承担任何因使用本软件而产生问题的相关责任。</p>
+            <p>5.8、您一旦选择下载安装或使用{$config['siteName']}，即被视为完全理解并接受本协议的各项条款和告知，在享有上述条款授予权力的同时，也受到相关的约束和限制。</p>
+            <span>{$config['siteName']}遵循Apache2开源协议发布，并提供免费使用。</span>
+            <span>本项目包含的第三方源码和二进制文件之版权信息另行标注。</span>
+            <span>{$config['siteName']}拥有最终解释权，任何站点使用本软件则表示默认接受此协议。</span>
+        </div>
+    </blockquote>
+    <div class="btn-box">
+        <a class="layui-btn layui-btn-danger layui-btn-radius" href="javascript:;">拒绝</a>
+        <a class="layui-btn agree layui-btn-normal layui-btn-radius" data-href="/install.php/index/step2">同意</a>
+    </div>
+</div>
+</body>
+</html>
+<script>
+    layui.use('layer',function(){
+        layer = layui.layer;$ = layui.$;
+        $(document).on("click",'.agree',function() {
+            _that = $(this);
+            if ("{:file_exists($config['lockFile'])}")
+            {
+                layer.msg('已经安装了,如果需要重新安装请先删除public/install.lock');
+                return false;
+            }
+            window.location.href =  _that.data('href');
+        })
+    })
+</script>

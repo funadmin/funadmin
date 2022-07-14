@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>数据库配置 - FunAdmin开源系统安装</title>
+    {include file="index/step-base"}
+</head>
+<body>
+<div class="layui-container">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-panel">
+                <div class="layui-card">
+                    <h1 class="install-h1">开始安装</h1>
+                    <div class="layui-card-body">
+                        <div class="layui-tabs-control">
+                            <div class="layui-tab-item layui-show">
+                                <div class="layui-row" >
+                                    <form class="layui-form" action="{:url('index/step3')}" >
+                                        <div class="layui-notice">
+                                            <div id="layui-error" class=" {if !file_exists($config['lockFile'])} layui-hide {/if}">
+                                            {if file_exists($config['lockFile'])}
+                                                已经安装了,如果需要重新安装请先删除public/install.lock
+                                            {/if}
+                                            </div>
+                                            <div id="layui-success" class="layui-hide"></div>
+                                            <div id="layui-warmtips"class="layui-hide" ></div>
+                                        </div>
+                                        <div id="fun-box" style="">
+                                            <div class="layui-form-item form-main">
+                                                <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+                                                    <legend>数据库设置</legend>
+                                                </fieldset>
+                                                <div class="layui-form-item">
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">主机地址</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="hostname" class="layui-input" lay-verify="required" title="请输入主机地址、端口号可选，容器名，docker版本请填写容器名 mysql"
+                                                                   placeholder="请输入主机地址、端口号可选，容器名，docker版本请填写容器名 mysql" value="127.0.0.1">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">数据库名</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="database" value="funadmin" class="layui-input"
+                                                                   lay-verify="required" placeholder="请输入数据库名">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">数据表前缀</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="prefix" value="fun_" class="layui-input"
+                                                                   lay-verify="required" placeholder="请设置数据表前缀">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">用户名</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="username" value="root" class="layui-input" lay-verify="required"
+                                                                   placeholder="请输入MYSQL用户名">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">密码</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="password" name="password"  value="root" class="layui-input" lay-verify="required"
+                                                                   placeholder="请输入数据库密码" autocomplete="off">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">端口</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="port" name="port" class="layui-input" lay-verify="required"
+                                                                   placeholder="MYSQL端口" value="3306" autocomplete="off">
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                            <div class="layui-form-item form-main">
+                                                <fieldset class="layui-elem-field layui-field-title" style="margin-top: 20px;">
+                                                    <legend>账户设置</legend>
+                                                </fieldset>
+                                                <div class="layui-form-item">
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">用户名</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="adminUserName" value="admin" lay-verify="required"
+                                                                   class="layui-input" placeholder="请输入管理员账号">
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">密码</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="password" name="adminPassword" lay-verify="required|pass" class="layui-input"
+                                                                   placeholder="请输入密码">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label required">重复密码</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="password" name="rePassword" lay-verify="required|pass" class="layui-input"
+                                                                   placeholder="请再次输入密码">
+                                                        </div>
+                                                    </div>
+                                                    <div class="layui-form-item">
+                                                        <label class="layui-form-label">Email</label>
+                                                        <div class="layui-input-block">
+                                                            <input type="text" name="email" value="admin@admin.com" lay-verify="required|email"
+                                                                   class="layui-input" placeholder="请输入管理员邮箱">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="layui-form-item submit">
+                                                <a type="submit" class="layui-btn layui-btn-danger layui-btn-radius" href="/install.php/index/step2">上一步</a>
+                                                <button type="submit" class="layui-btn layui-btn-normal layui-btn-radius" lay-submit="" lay-filter="submit" style="text-align:center;">立即安装</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                    <br>
+                                    <div class="layui-footer footer">
+                                        <h5>Powered By <font>FunAdmin</font><font class="orange"></font></h5>
+                                        <h6>版权所有 2018-2022 © <a href="https://www.funadmin.com" target="_blank">FunAdmin</a></h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!--   -->
+</div>
+<script type="text/javascript">
+    layui.use(['layer','jquery','form'],function (res) {
+        var layer = layui.layer,$ = layui.$,form=layui.form;
+        //监听提交
+        form.on('submit(submit)', function(data){
+            if ("{:file_exists($config['lockFile'])}")
+            {
+                layer.msg('已经安装了,如果需要重新安装请先删除public/install.lock');
+                return false;
+            }
+            var that = $(this);
+            var load = layer.load();
+            $('#layui-error').addClass('layui-hide')
+            $('.layui-btn-radius').addClass('layui-hide');
+            that.text('安装中...').prop('disabled', true);
+            $.post('', data.field)
+                .done(function (res) {
+                    if (res.code>0) {
+                        $('#layui-error').addClass('layui-hide');
+                        $('#layui-success').removeClass('layui-hide').text(res.msg);
+                        $("#layui-fun-box").remove();
+                        that.remove();
+                        layer.msg('安装成功', {
+                            icon: 1,
+                            time: 2000 //2秒关闭（如果不配置，默认是3秒）
+                        }, function(){
+                            window.location.href='/install.php/index/step4';
+                        });
+                    } else {
+                        $('#layui-error').removeClass('layui-hide')
+                        $('#layui-error').text(res.msg);
+                        $('.layui-btn-radius').removeClass('layui-hide');
+                        that.text('立即安装').prop('disabled', false);
+                        $("html,body").animate({
+                            scrollTop: 0
+                        }, 500);
+                    }
+                    layer.close(load)
+                })
+                .fail(function (data) {
+                    $('#layui-error').show().text('发生错误:\n\n' + data.responseText);
+                    $('.layui-btn-radius').removeClass('layui-hide');
+
+                    $("html,body").animate({
+                        scrollTop: 0
+                    }, 500);
+                    layer.close(load)
+                });
+            return false;
+        });
+
+    })
+</script>
+</body>
+</html>
