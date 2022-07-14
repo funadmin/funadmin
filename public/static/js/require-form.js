@@ -414,10 +414,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 if (fileSelectList.length > 0) {
                     layui.each(fileSelectList, function(i, v) {
                         $(this).click(function(e){
-
                             var data = $(this).data();
                             if(typeof data.value == 'object') data = data.value;
-                            uploadType = data.type,
+                            uploadType = data.type,width = data.width||800,height = data.height||600
                                 uploadNum = data.num, uploadMime = data.mime,
                                 url  = data.selecturl, path = data.path;
                             uploadMime = uploadMime || '';
@@ -433,7 +432,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             var parentiframe = Fun.api.checkLayerIframe();
                             options = {
                                 title:__('Filelist'),type:2,
-                                url: url, width: '970', height: '700', method: 'get', yes:  function (index, layero) {
+                                url: url, width: width, height: height, method: 'get',
+                                yes:  function (index, layero) {
                                     try {
                                         $(document).ready(function () {
                                             // 父页面获取子页面的iframe

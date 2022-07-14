@@ -537,13 +537,14 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 options = {
                     title: title, type: type, area: [width, height], content: url,
                     shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
-                    // zIndex: layer.zIndex, //
+                    zIndex: parent.layui.layer.zIndex, //
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
                         try {
                             // 置顶当前窗口
                             parent.layui.layer.setTop(layero);
+                            parent.layui.layer.iframeAuto(index) //- 指定iframe层自适应
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');

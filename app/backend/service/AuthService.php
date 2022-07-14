@@ -539,7 +539,7 @@ class AuthService
                 }
             }
             if ($v['module'] !== 'addon') {
-                $v['href'] = (parse_name(__u(trim($v['href'], ' ')), 1));
+                $v['href'] = (parse_name(__u(trim($v['href'])), 1));
             } else {
                 $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
             }

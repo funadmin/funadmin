@@ -307,7 +307,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 ,limit:param.limit?param.limit:12
                 ,limits: [12,24,72,108,1000]
                 // ,layout: ['prev', 'page', 'next', 'limit', 'refresh','count' ,'skip']
-                ,layout: ['prev', 'page', 'next', 'limit','refresh','count']
+                ,layout: ['prev', 'page', 'next', 'limit','refresh']
                 //跳转页码时调用
                 , jump: function (data, first) { //obj为当前页的属性和方法，第一次加载first为true
                     //         do something
