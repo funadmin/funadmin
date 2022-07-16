@@ -311,7 +311,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             },
             //加载层,锁屏
             hideLoading: function (time) {
-                time = time || 350;
+                time = time || 250;
                 var colorId = Backend.getColorId();
                 theme = Fun.api.getStorage('setFrameTheme');
                 var bg = THEME[colorId]['menuLeftBgThis'];
