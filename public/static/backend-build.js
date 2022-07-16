@@ -38,8 +38,8 @@
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'dayjs'         : 'plugins/dayjs/dayjs.min',
-        //自定义
-        'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
+        'md5'           : 'plugins/lay-module/md5/md5.min',
+        //自定义 后台扩展
         'backend'       : 'js/backend.min', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
         'fu'            : 'js/require-fu',
