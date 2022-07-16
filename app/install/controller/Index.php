@@ -24,7 +24,7 @@ class Index extends BaseController
     protected $sqlFile = '';
     //mysql版本
     protected $mysqlVersion = '5.6';
-
+    //后台入口文件
     protected $backendConfigFile = '';
     //入口模板
     protected $backendTpl = '';
