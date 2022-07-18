@@ -99,7 +99,7 @@ FunAdmin 基于thinkphp6.X +Layui2.7.*+requirejs开发权限(RBAC)管理框架�
 ## 鸣谢以下开源项目以及项目中用到的其他开源项目 （排名不分先后，）
 - [Thinkphp](http://thinkphp.cn)
 - [JQuery](http://jquery.com)
-- [Layui](http://www.layui.com)
+- [Layui](http://www.layuion.com)
 - [Requirejs](https://requirejs.org)
 
 ## 版权信息
