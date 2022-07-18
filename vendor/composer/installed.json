@@ -295,17 +295,17 @@
         },
         {
             "name": "firebase/php-jwt",
-            "version": "v6.2.0",
-            "version_normalized": "6.2.0.0",
+            "version": "v6.3.0",
+            "version_normalized": "6.3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/firebase/php-jwt.git",
-                "reference": "d28e6df83830252650da4623c78aaaf98fb385f3"
+                "reference": "018dfc4e1da92ad8a1b90adc4893f476a3b41cb8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/d28e6df83830252650da4623c78aaaf98fb385f3",
-                "reference": "d28e6df83830252650da4623c78aaaf98fb385f3",
+                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/018dfc4e1da92ad8a1b90adc4893f476a3b41cb8",
+                "reference": "018dfc4e1da92ad8a1b90adc4893f476a3b41cb8",
                 "shasum": ""
             },
             "require": {
@@ -322,7 +322,7 @@
             "suggest": {
                 "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
             },
-            "time": "2022-05-13T20:54:50+00:00",
+            "time": "2022-07-15T16:48:45+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -354,7 +354,7 @@
             ],
             "support": {
                 "issues": "https://github.com/firebase/php-jwt/issues",
-                "source": "https://github.com/firebase/php-jwt/tree/v6.2.0"
+                "source": "https://github.com/firebase/php-jwt/tree/v6.3.0"
             },
             "install-path": "../firebase/php-jwt"
         },
@@ -2182,17 +2182,17 @@
         },
         {
             "name": "topthink/framework",
-            "version": "v6.0.12",
-            "version_normalized": "6.0.12.0",
+            "version": "v6.0.13",
+            "version_normalized": "6.0.13.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "e478316ac843c1a884a3b3a7a94db17c4001ff5c"
+                "reference": "126d5b2cbacb73d6e2a85cbc7a2c6ee59d0b3fa6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/e478316ac843c1a884a3b3a7a94db17c4001ff5c",
-                "reference": "e478316ac843c1a884a3b3a7a94db17c4001ff5c",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/126d5b2cbacb73d6e2a85cbc7a2c6ee59d0b3fa6",
+                "reference": "126d5b2cbacb73d6e2a85cbc7a2c6ee59d0b3fa6",
                 "shasum": ""
             },
             "require": {
@@ -2214,7 +2214,7 @@
                 "mockery/mockery": "^1.2",
                 "phpunit/phpunit": "^7.0"
             },
-            "time": "2022-01-21T06:31:07+00:00",
+            "time": "2022-07-15T02:52:08+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2246,7 +2246,7 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/framework/issues",
-                "source": "https://github.com/top-think/framework/tree/v6.0.12"
+                "source": "https://github.com/top-think/framework/tree/v6.0.13"
             },
             "install-path": "../topthink/framework"
         },
@@ -2506,31 +2506,31 @@
         },
         {
             "name": "topthink/think-orm",
-            "version": "v2.0.53",
-            "version_normalized": "2.0.53.0",
+            "version": "v2.0.54",
+            "version_normalized": "2.0.54.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-orm.git",
-                "reference": "06783eda65547a70ea686360a897759e1f873fff"
+                "reference": "97b061b47616301ff29fbd4c35ed9184e1162e4e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-orm/zipball/06783eda65547a70ea686360a897759e1f873fff",
-                "reference": "06783eda65547a70ea686360a897759e1f873fff",
+                "url": "https://api.github.com/repos/top-think/think-orm/zipball/97b061b47616301ff29fbd4c35ed9184e1162e4e",
+                "reference": "97b061b47616301ff29fbd4c35ed9184e1162e4e",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "ext-pdo": "*",
                 "php": ">=7.1.0",
-                "psr/log": "~1.0",
-                "psr/simple-cache": "^1.0",
+                "psr/log": "^1.0|^2.0",
+                "psr/simple-cache": "^1.0|^2.0",
                 "topthink/think-helper": "^3.1"
             },
             "require-dev": {
                 "phpunit/phpunit": "^7|^8|^9.5"
             },
-            "time": "2022-02-28T14:54:22+00:00",
+            "time": "2022-07-05T05:25:51+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2558,7 +2558,7 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/think-orm/issues",
-                "source": "https://github.com/top-think/think-orm/tree/v2.0.53"
+                "source": "https://github.com/top-think/think-orm/tree/v2.0.54"
             },
             "install-path": "../topthink/think-orm"
         },
