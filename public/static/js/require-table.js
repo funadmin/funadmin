@@ -690,7 +690,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             iframe: function (othis, options = null) {
                 if (options) {
                     Fun.api.iframe(options);
-                    return
+                    return;
                 }
                 Fun.events.iframe(othis)
             }, open: function (othis, options = null) {
