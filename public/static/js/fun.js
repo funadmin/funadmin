@@ -507,8 +507,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     height = options.height, success = options.success,
                     yes = options.yes, btn2 = options.btn2, type = options.type;
                 type = type === undefined || type===2  ? 2 : 1;
-                isResize = options.isResize === undefined;
-                isFull = !!options.full;url = type===2?Fun.url(url):url;
+                var isResize = options.isResize === undefined;
+                var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
                 winHeight = $(document).height()+110 ;height = height>winHeight?winHeight:height;

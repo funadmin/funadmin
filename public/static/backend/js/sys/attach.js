@@ -103,11 +103,10 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
             //选择文件
             function fileSelect(othis,type=1) {
                 var li = $('.box-body .file-list-item li.active');
+                var ids = [];
                 if(li.length ===0 && type===1){
-                    ids = [othis.parents('li').data('id')];
                     return ids;
                 }
-                var ids = [];
                 li.each(function () {
                     ids.push($(this).attr('data-id'));
                 });
