@@ -107,7 +107,7 @@ FunAdmin 方便二次开发，您可以方便的使用到自己或企业的项�
 
 本项目包含的第三方源码和二进制文件之版权信息另行标注。
 
-版权所有Copyright © 2018-2021 by FunAdmin [www.FunAdmin.com](http://www.funadmin.com)
+版权所有Copyright © 2018-2030 by FunAdmin [www.FunAdmin.com](http://www.funadmin.com)
 
 All rights reserved。
 
