@@ -92,8 +92,7 @@ FunAdmin 基于thinkphp6.X +Layui2.7.*+requirejs开发权限(RBAC)管理框架�
 * 系统名称：FunAdmin开发系统框架
 * 作者：FunAdmin
 * 官网网址：[http://www.funadmin.com/](http://www.funadmin.com/)
-
-[comment]: <> (* 文档网址：[http://docs.funadmin.com/]&#40;http://docs.funadmin.com/&#41;)
+* 文档网址：[http://doc.funadmin.com/](http://doc.funadmin.com)
 * 开源协议：Apache 2.0
 
 ## 鸣谢以下开源项目以及项目中用到的其他开源项目 （排名不分先后，）
