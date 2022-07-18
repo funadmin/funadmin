@@ -10,11 +10,7 @@
 
 define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
     var layer = layui.layer, element = layui.element;
-    layer = layer || parent.layer;
-    layui.layer.config({
-        skin: 'fun-layer-class'
-    });
-    Toastr = parent.Toastr || Toastr;
+    layer = layer || parent.layer;layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
