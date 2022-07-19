@@ -344,19 +344,18 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 var list = $("*[lay-filter='colorPicker']");
                 if (list.length > 0) {
                     layui.each(list, function() {
-                        var _that = $(this);
+                        var _that = $(this),name= _that.data('name'),format = _that.data('format') || 'hex';
                         var id = _that.prop('id');
                         var color = _that.prev('input').val();
                         layui.colorpicker.render({
                             elem: '#' + id,
                             color: color,
                             predefine: true,
-                            colors: ['#F00', '#0F0', '#00F', 'rgb(255, 69, 0)', 'rgba(255, 69, 0, 0.5)'],
-                            size: 'lg',
                             alpha: true,
+                            format:format,
                             change: function(color) {},
                             done: function(color) {
-                                _that.prev('input[type="hidden"]').val(color)
+                                _that.prev('input[name="' + name + '"]').val(color)
                             }
                         })
                     })

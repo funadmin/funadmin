@@ -187,9 +187,7 @@ class FormHelper
      */
     public static function checkbox($name = '', $list = [], $options = [], $value = '')
     {
-        if (empty($value)) {
-            $value = $name;
-        }
+        if (empty($value)) $value = $name;
         if (is_string($value) && strpos($value, "\n") !== false) $value = explode("\n", $value);
         if (is_string($value) && strpos($value, ",") !== false) $value = explode(",", $value);
         if (is_string($value) && strpos($value, "|") !== false) $value = explode("|", $value);
@@ -202,11 +200,8 @@ class FormHelper
             && strpos($value, ",") === false
             && strpos($value, "|") === false
         ) $value = explode(",", $value);
-        $input = '';
-        $skin = '';
-        if (isset($options['skin'])) {
-            $skin = 'lay-skin="' . $options['skin'] . '"';
-        }
+        $input = '';$skin = '';
+        if (isset($options['skin'])) $skin = 'lay-skin="' . $options['skin'] . '"';
         if (is_array($list) and $list) {
             foreach ($list as $k => $v) {
                 if (is_string($v) && strpos($v, ':') !== false) {
@@ -543,13 +538,12 @@ class FormHelper
     public static function color($name = '', $options = [], $value = '')
     {
 
-        $id = $options['id'] ?? $name;
-        $label = $options['label'] ?? $name;
+        $id = $options['id'] ?? $name;$label = $options['label'] ?? $name;$format = $options['format'] ?? 'hex';
         $str = '<div class="layui-form-item">
                     <label class="layui-form-label ' . self::labelRequire($options) . '">' . lang($label) . '</label>
                     <div class="layui-input-block">
-                        <input ' . self::addstyle($options) . '  class="' . self::addClass($options) . '" type="hidden" name="' . $name . '"  value="' . $value . '"' . self::filter($options) . self::readonlyOrdisabled($options) . '/>
-                        <div ' . self::addextend($options) . '  id="' . $id . '" lay-filter="colorPicker"></div>
+                        <input ' . self::addstyle($options) . '  class="layui-input layui-input-inline' . self::addClass($options) . '" type="text" name="' . $name . '"  value="' . $value . '"' . self::filter($options) . self::readonlyOrdisabled($options) . '/>
+                        <div ' . self::addextend($options) . '  id="' . $id . '" lay-filter="colorPicker" data-name="' . $name . '" data-format = "' . $format . '"   ></div>
                     </div>
                 </div>';
         return $str;
@@ -711,7 +705,7 @@ class FormHelper
                 $data_value .= ' data-'.$key.'="'.$val.'" ';
             }
             $croper_container = '<button type="button" '. $data_value  . $crpperops . '
-                class="layui-btn layui-btn-warm"  lay-filter="cropper" id="' .$id .'">'
+                class="layui-btn"  lay-filter="cropper" id="' .$id .'">'
                 . lang('Cropper') .
                 '</button>';
             $options['num'] = 1;

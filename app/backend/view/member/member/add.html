@@ -6,8 +6,9 @@
     {:form_upload('avatar',$formData,['cropper'=>1])}
 <!--    {:form_upload('attach_file', $formData, ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio','exts'=>'jpg,jpeg','mime' => 'images', 'path' =>'my', 'num' => '1'])}-->
     {:form_input('email','text',['verify'=>'email'])}
-{/*    {:form_editor('content',2)&cc;*/}
 <!--    示例-->
+{/*    {:form_editor('content',2)&cc;*/}
+{/*    {:form_color('color',['verify'=>'','format'=>'rgb'])&cc;*/}
 <!--    {:form_selectn('city_ids',[],['url'=>__u('member.member/getcitys'),'multiple'=>1,'verify'=>'required'],'id,name',$formData?$formData['city_ids']:'')}-->
 {/*     {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex'],1)&cc;*/}
     {:form_submitbtn()}
