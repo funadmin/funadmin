@@ -353,6 +353,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                             predefine: true,
                             colors: ['#F00', '#0F0', '#00F', 'rgb(255, 69, 0)', 'rgba(255, 69, 0, 0.5)'],
                             size: 'lg',
+                            alpha: true,
                             change: function(color) {},
                             done: function(color) {
                                 _that.prev('input[type="hidden"]').val(color)

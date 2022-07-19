@@ -141,8 +141,8 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     height: 60px;
     overflow: hidden;
     background-color: #20222A;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
-    vertical-align: middle
+    box-shadow: initial;
+    vertical-align: middle;
 }
 
 .layui-layout-admin .layui-logo img {
@@ -882,7 +882,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     }
 
     .layui-side-shrink .layui-layout-admin .layui-logo cite {
-        display: inline-block;
+        display: inline;
         width: 150px;
         text-align: center;
         font-style: normal;
