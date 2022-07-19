@@ -69,8 +69,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             return '用户名不能全为数字';
                         }
                     },
-                    //layedit 编辑器同步
-                    layedit: function(value) {
+                    //edit 编辑器同步
+                    editor: function(value) {
                         var list = $("*[lay-filter='editor']");
                         if (list.length > 0) {
                             layui.each(list, function() {
