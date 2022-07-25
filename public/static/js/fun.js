@@ -45,6 +45,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (Config.superAdmin === true) {
                 return true;
             }
+            if(node.indexOf('?')>=0) node = node.replace(/(\?|#)[^'"]*/, '');           //去除参数
             return $(ele).data('node-' + node.toLowerCase()) === 1;
         },
         param: function (param, defaultParam) {

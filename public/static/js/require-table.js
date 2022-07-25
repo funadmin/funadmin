@@ -926,7 +926,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         opt.url = url;opt.type = opt.hasOwnProperty("type") && opt.type==1?1:2;
                         Fun.api.open(opt);
                     }
-                    return false
                 })
             },
             edit: function (options) {
