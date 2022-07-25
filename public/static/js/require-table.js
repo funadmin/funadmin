@@ -465,7 +465,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 layui.each(ele.operat, function (k, v) {
                     var vv = {};
                     var va = {};
-                    if (v === 'add' || v === 'edit' || v === 'delete' || v === 'destroy' || v === 'restore' || (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string'))) {
+                    if (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string')) {
                         if (v === 'add') {
                             va = {
                                 type: 'open',
@@ -538,7 +538,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 class: 'layui-btn layui-btn-warm',
                                 text: __('Open'),
                                 title: __('Open'),
-                                url: eval('requests.' + v + '_url'),
+                                url: eval('requests.' + v + '_url') || eval('requests.' + v),
                                 icon: 'layui-icon layui-icon-rate',
                                 extend: "",
                                 width: '800',
