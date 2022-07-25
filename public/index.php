@@ -16,7 +16,7 @@ if (version_compare(PHP_VERSION, '7.4.0', '<')) {
     die('PHP 7.4.0 及以上版本系统才可运行~ ');
 }
 if (!is_file($_SERVER['DOCUMENT_ROOT'] . '/install.lock')) {
-    header('Location: /install.php/');exit();
+    header('Location: /install.php/index');exit();
 }
 require __DIR__ . '/../vendor/autoload.php';
 
