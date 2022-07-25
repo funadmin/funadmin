@@ -11,7 +11,7 @@
     <h1 class="install-h1">完成</h1>
     <blockquote class="layui-elem-quote" style="text-align:center">
         <h1>安装成功</h1>
-        <p>账号:&nbsp;{:session('admin_install.username')}&nbsp;密码:&nbsp;{:session('password_install.password')}&nbsp;</p>
+        <p>账号:&nbsp;{:session('admin_install.username')}&nbsp;密码:&nbsp;{:session('admin_install.password')}&nbsp;</p>
         <p style="color: red;">为了安全，请记得要删除 /app/install</p>
         <p style="color: red;">请牢记后台登录地址：<a href="http://{:request()->host()}/{:session('admin_install.backend')}" >{:request()->host()}/{:session('admin_install.backend')}</a></p>
     </blockquote>

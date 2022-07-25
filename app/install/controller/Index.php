@@ -215,7 +215,7 @@ class Index extends BaseController
             if (!$result) {
                 $this->error("安装失败、请确定install.lock是否有写入权限");
             }
-            $adminUser['admin'] = $admin['username'];
+            $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
             $adminUser['backend'] = $adminName;
             session('admin_install', $adminUser);
