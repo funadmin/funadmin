@@ -115,9 +115,10 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="request" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure restore') + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Restore') + '</a>\n'
                         }
                     }
-                } else if (typeof v === 'string' && typeof eval('Table.init.requests.' + v) === 'string') {
+                } else if (typeof v === 'string' && (typeof eval('Table.init.requests.' + v)=== 'string' || typeof eval('Table.init.requests.' + v+ '_url')=== 'string')) {
                     if (Fun.checkAuth(v, options.elem)) {
-                        url = Fun.replaceurl(eval(('Table.init.requests.' + v + '_url')), d);
+                        url = eval(('Table.init.requests.' + v + '_url'))  ||　eval(('Table.init.requests.' + v ))
+                        url = Fun.replaceurl(url, d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n'
                     }
                 } else if (typeof v === 'string' && typeof eval('Table.init.requests.' + v) === 'object' || typeof v === 'object') {
@@ -464,7 +465,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 layui.each(ele.operat, function (k, v) {
                     var vv = {};
                     var va = {};
-                    if (v === 'add' || v === 'edit' || v === 'delete' || v === 'destroy' || v === 'restore' || (typeof v !== "object" && typeof eval('requests.' + v + '_url') === 'string')) {
+                    if (v === 'add' || v === 'edit' || v === 'delete' || v === 'destroy' || v === 'restore' || (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string'))) {
                         if (v === 'add') {
                             va = {
                                 type: 'open',
