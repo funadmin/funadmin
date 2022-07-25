@@ -221,7 +221,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                 ],
                                 image_list: [
                                     {title: 'My page 1', value: 'https://www.tiny.cloud'},
-                                    {title: 'My page 2', value: 'http://www.funadmin.com'}
+                                    {title: 'my funadmin', value: 'http://www.funadmin.com'}
                                 ],
                                 image_class_list: [
                                     {title: 'None', value: ''},
@@ -384,7 +384,6 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                 _that.prev('input[type="hidden"]').val(getAllChecked())
                             },
                             change: function(result) {
-                                console.log(getAllChecked());
                                 _that.prev('input[name="'+name+'"]').val(getAllChecked())
                             }
                         });
