@@ -91,28 +91,28 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 if ($.inArray(v, nodeArr) !== -1) {
                     if (v !== 'refresh') url = Fun.replaceurl(eval('Table.init.requests.' + v + '_url'), d);
                     if (v === 'refresh') {
-                        toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
+                        toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
                     } else if (v === 'export') {
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="export"  lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
                     } else if (v === 'add') {
                         if (Fun.checkAuth('add', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm"   lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="export"   lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
                         }
                     } else if (v === 'delete') {
                         if (Fun.checkAuth('delete', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure to delete') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger" lay-tips="delete" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure to delete') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Delete') + '</a>\n'
                         }
                     } else if (v === 'destroy') {
                         if (Fun.checkAuth('destroy', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure  to destroy') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-tips="destroy" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure  to destroy') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n'
                         }
                     } else if (v === 'recycle') {
                         if (Fun.checkAuth('recycle', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="recycle" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
                         }
                     } else if (v === 'restore') {
                         if (Fun.checkAuth('restore', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="request" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure restore') + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Restore') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-tips="restore"  lay-event="request" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure restore') + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Restore') + '</a>\n'
                         }
                     }
                 } else if (typeof v === 'string' && (typeof eval('Table.init.requests.' + v)=== 'string' || typeof eval('Table.init.requests.' + v+ '_url')=== 'string')) {
@@ -134,10 +134,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         v.width = v.width || 800;
                         v.height = v.height || 600;
                         v.extend = v.extend || '';
+                        v.tips = v.tips || '';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -406,7 +407,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
-                $html = '<div class="layui-table-select"><select data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
+                $html = '<div class="layui-table-select"><select  data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
@@ -442,10 +443,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var ele = $(this)[0];
                 ele.filter = ele.filter || ele.field || null;
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
-                ele.tips = ele.tips || ele.selectListTips || __('open') + '|' + __('close');
+                ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
+                ele.tips = ele.tips || 'switch';
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.tips + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
+                return '<input lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             }, resolution: function (d, ele = '') {
                 var ele = ele || $(this)[0];
                 ele.field = ele.field || ele.filter || null;
@@ -478,6 +480,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 extend: "",
                                 width: '800',
                                 height: '600',
+                                tips: 'add',
                             }
                         } else if (v === 'edit') {
                             va = {
@@ -491,6 +494,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 extend: "",
                                 width: '800',
                                 height: '600',
+                                tips: 'edit',
                             }
                         } else if (v === 'delete') {
                             va = {
@@ -503,7 +507,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 icon: 'layui-icon layui-icon-delete',
                                 extend: "",
                                 width: '800',
-                                height: '600',
+                                height: '600',tips: 'delete',
                             }
                         } else if (v === 'destroy') {
                             va = {
@@ -516,7 +520,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 icon: 'layui-icon layui-icon-fonts-clear',
                                 extend: "",
                                 width: '800',
-                                height: '600',
+                                height: '600',tips: 'destroy',
                             }
                         } else if (v === 'restore') {
                             va = {
@@ -529,7 +533,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 icon: 'layui-icon layui-icon-refresh-1',
                                 extend: "",
                                 width: '800',
-                                height: '600',
+                                height: '600',tips: 'restore',
                             }
                         } else {
                             va = {
@@ -542,7 +546,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 icon: 'layui-icon layui-icon-rate',
                                 extend: "",
                                 width: '800',
-                                height: '600',
+                                height: '600',tips: '',
                             }
                         }
                         vv.type = va.type || '';
@@ -552,6 +556,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.url = va.url || '';
                         vv.text = va.text || '';
                         vv.title = va.title || va.text || '';
+                        vv.tips = va.tips || '';
                         vv.extend = va.extend || '';
                         vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
                         vv.node = vv.node === false ? vv.node : Fun.common.getNode(va.url);
@@ -569,8 +574,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                         vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
                         vv.text = 'data-text="' + vv.text + '"';
+                        vv.tips = 'lay-tips="' + vv.tips + '"';
                         if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
-                            html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>'
+                            html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.tips  + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>'
                         }
                     } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
                         if (typeof v === 'string') {
@@ -592,6 +598,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.url = va.url || '';
                         vv.text = va.text || '';
                         vv.title = va.title || vv.text || '';
+                        vv.tips = va.tips || '';
                         vv.extend = va.extend || '';
                         vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
                         vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
@@ -611,8 +618,9 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
                         vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
                         vv.text = 'data-text="' + vv.text + '"';
+                        vv.tips = 'lay-tips="' + vv.tips + '"';
                         if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
-                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
+                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                         }
                     }
                 });
@@ -989,6 +997,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
                     Table.api.reload($(this).data('tableid'), {}, false)
+                });
+                //tips
+                $(document).on('mouseenter', '*[lay-tips]', function () {
+                    var that = this;
+                    if($(this).attr('lay-tips')){layer.tips(__($(this).attr('lay-tips')),that,{tips: 1,time:1500,})}
                 });
                 $(document).on('blur', '#layui-input-search', function (event) {
                     var text = $(this).val();

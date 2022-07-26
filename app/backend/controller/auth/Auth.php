@@ -206,6 +206,7 @@ class Auth extends Backend
             $this->error(lang('delete child first'));
         } elseif (empty($child->toArray())) {
             $list->force(true)->delete();
+            Cache::clear();
             $this->success(lang('operation success'));
         } else {
             $this->error('id' . lang('not exist'));

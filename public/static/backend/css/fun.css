@@ -389,9 +389,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     background: #fff
 }
 
-.layui-layout-admin .layui-tab-title i {
-    vertical-align: middle
-}
+/*.layui-layout-admin .layui-tab-title i {*/
+/*    vertical-align: middle*/
+/*}*/
 
 .layui-layout-admin .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
     background-color: #f6f6f6;

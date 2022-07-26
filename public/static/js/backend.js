@@ -466,10 +466,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
              * 增加tab
              */
             addTab: function (options) {
-                options.layId = options.layId || null;
-                options.url = options.url || null;
-                options.text = options.text || null;
-                options.icon = options.icon || null;
+                options.layId = options.layId || '';
+                options.url = options.url || '';
+                options.text = options.text || '';
+                options.icon = Config.site.site_tabicon>0 ? options.icon : '';
                 options.iframe = options.iframe || null;
                 if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
                     Fun.toastr.error(__('window is create by maxnum'));
