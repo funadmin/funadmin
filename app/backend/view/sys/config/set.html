@@ -51,7 +51,7 @@
             <form class="layui-form " lay-filter="form">
                 {:form_radio('upload_water',[0=>'No',1=>'Image',2=>'text'],['label'=>"water"])}
                 {:form_radio('upload_water_position',
-                [1=>'左上角',2=>'左上角',3=>'右上角',4=>"左居中",5=>"居中",6=>"右居中",7=>"左下角",8=>"下居中",9=>"右下角"],
+                [1=>'左上角',2=>'上居中',3=>'右上角',4=>"左居中",5=>"居中",6=>"右居中",7=>"左下角",8=>"下居中",9=>"右下角"],
                 ['label'=>"waterposition"])}
                 {:form_input('upload_water_alpha','text',['label'=>"wateralpha",'verify'=>'number','tips'=>"0-100"],'50')}
                 {:form_input('upload_water_size','text',['label'=>"waterSize",'verify'=>'number','tips'=>""],'50')}
