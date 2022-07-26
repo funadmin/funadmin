@@ -96,7 +96,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="export"  lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
                     } else if (v === 'add') {
                         if (Fun.checkAuth('add', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="export"   lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add"   lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
                         }
                     } else if (v === 'delete') {
                         if (Fun.checkAuth('delete', options.elem)) {
@@ -118,6 +118,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 } else if (typeof v === 'string' && (typeof eval('Table.init.requests.' + v)=== 'string' || typeof eval('Table.init.requests.' + v+ '_url')=== 'string')) {
                     if (Fun.checkAuth(v, options.elem)) {
                         url = eval(('Table.init.requests.' + v + '_url'))  ||　eval(('Table.init.requests.' + v ))
+                        if(!url) return ;
                         url = Fun.replaceurl(url, d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n'
                     }
@@ -125,6 +126,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     if (typeof v === 'string') {
                         v = eval('Table.init.requests.' + v)
                     }
+                    if(!v) return ;
                     v.extend = typeof v.extend === "object" ? "data-extend='" + JSON.stringify(v.extend) + "'" : v.extend;
                     url = Fun.replaceurl(v.url, d);
                     v.node = v.node === false ? v.node : Fun.common.getNode(v.url);
@@ -360,8 +362,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field);
                 op = d.search ? d.searchOp : '%*%';
-                filter = {};
-                ops = {};
+                filter = {};ops = {};
                 ops[ele.field] = op;
                 op = JSON.stringify(ops);
                 if (JSON.stringify(selectList) !== "{}" && content !== '' && content !== null) {
@@ -477,10 +478,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Add'),
                                 url: requests.add_url,
                                 icon: 'layui-icon layui-icon-add-circle-fine',
-                                extend: "",
-                                width: '800',
-                                height: '600',
-                                tips: 'add',
+                                extend: "", width: '800', height: '600', tips: 'add',
                             }
                         } else if (v === 'edit') {
                             va = {
@@ -491,10 +489,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Edit'),
                                 url: requests.edit_url,
                                 icon: 'layui-icon layui-icon-edit',
-                                extend: "",
-                                width: '800',
-                                height: '600',
-                                tips: 'edit',
+                                extend: "", width: '800', height: '600', tips: 'edit',
                             }
                         } else if (v === 'delete') {
                             va = {
@@ -505,9 +500,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Delete'),
                                 url: requests.delete_url,
                                 icon: 'layui-icon layui-icon-delete',
-                                extend: "",
-                                width: '800',
-                                height: '600',tips: 'delete',
+                                extend: "", width: '800', height: '600',tips: 'delete',
                             }
                         } else if (v === 'destroy') {
                             va = {
@@ -518,9 +511,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Destroy'),
                                 url: requests.destroy_url,
                                 icon: 'layui-icon layui-icon-fonts-clear',
-                                extend: "",
-                                width: '800',
-                                height: '600',tips: 'destroy',
+                                extend: "", width: '800', height: '600',tips: 'destroy',
                             }
                         } else if (v === 'restore') {
                             va = {
@@ -531,9 +522,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Restore'),
                                 url: requests.restore_url,
                                 icon: 'layui-icon layui-icon-refresh-1',
-                                extend: "",
-                                width: '800',
-                                height: '600',tips: 'restore',
+                                extend: "", width: '800', height: '600',tips: 'restore',
                             }
                         } else {
                             va = {
@@ -544,39 +533,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 title: __('Open'),
                                 url: eval('requests.' + v + '_url') || eval('requests.' + v),
                                 icon: 'layui-icon layui-icon-rate',
-                                extend: "",
-                                width: '800',
-                                height: '600',tips: '',
+                                extend: "", width: '800', height: '600',tips: '',
                             }
-                        }
-                        vv.type = va.type || '';
-                        vv.class = va.class || '';
-                        vv.event = va.event || va.event || '';
-                        vv.icon = va.icon || '';
-                        vv.url = va.url || '';
-                        vv.text = va.text || '';
-                        vv.title = va.title || va.text || '';
-                        vv.tips = va.tips || '';
-                        vv.extend = va.extend || '';
-                        vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
-                        vv.node = vv.node === false ? vv.node : Fun.common.getNode(va.url);
-                        vv.class = vv.class ? vv.class + ' layui-btn-xs' : vv.class;
-                        vv.url = vv.url.indexOf("?") !== -1 ? vv.url + '&id=' + d.primaryKeyValue : vv.url + '?id=' + d.primaryKeyValue;
-                        vv.url = Fun.replaceurl(vv.url, d);
-                        vv.width = va.width !== '' ? 'data-width="' + va.width + '"' : '';
-                        vv.height = va.height !== '' ? 'data-height="' + va.height + '"' : '';
-                        vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
-                        vv.icon = vv.icon !== '' ? '<i class="' + vv.icon + '"></i>' : '';
-                        vv.class = vv.class !== '' ? 'class="layui-event-tips ' + vv.class + '" ' : '';
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                        if (!vv.icon) vv.icon = vv.icon + vv.title;
-                        vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
-                        vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
-                        vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                        vv.text = 'data-text="' + vv.text + '"';
-                        vv.tips = 'lay-tips="' + vv.tips + '"';
-                        if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
-                            html += '<button ' + vv.class + vv.tableid + vv.width + vv.height + vv.url + vv.event + vv.tips  + vv.type + vv.extend + vv.text + '>' + vv.icon + '</button>'
                         }
                     } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
                         if (typeof v === 'string') {
@@ -584,44 +542,44 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         } else {
                             va = v
                         }
-                        vv = {};
-                        vv.type = va.type || '';
-                        vv.class = va.class || '';
-                        vv.class = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;
-                        vv.full = va.full || '';
-                        vv.btn = va.btn || '';
-                        vv.align = va.align || '';
-                        vv.width = va.width || '';
-                        vv.height = va.height || '';
-                        vv.event = va.event || vv.type || '';
-                        vv.icon = va.icon || '';
-                        vv.url = va.url || '';
-                        vv.text = va.text || '';
-                        vv.title = va.title || vv.text || '';
-                        vv.tips = va.tips || '';
-                        vv.extend = va.extend || '';
-                        vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
-                        vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
-                        vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.primaryKeyValue : va.url + '?id=' + d.primaryKeyValue;
-                        vv.url = Fun.replaceurl(vv.url, d);
-                        vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
-                        vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
-                        vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
-                        vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                        vv.icon = vv.icon + vv.title;
-                        vv.class = vv.class ? 'class="layui-event-tips ' + vv.class + '"' : vv.class;
-                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                        vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
-                        vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
-                        vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
-                        vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
-                        vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
-                        vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
-                        vv.text = 'data-text="' + vv.text + '"';
-                        vv.tips = 'lay-tips="' + vv.tips + '"';
-                        if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
-                            html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
-                        }
+                    }
+                    if($.isEmptyObject(va)){ return ;}
+                    vv.type = va.type || '';
+                    vv.class = va.class || '';
+                    vv.class = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;
+                    vv.full = va.full || '';
+                    vv.btn = va.btn || '';
+                    vv.align = va.align || '';
+                    vv.width = va.width || '';
+                    vv.height = va.height || '';
+                    vv.event = va.event || vv.type || '';
+                    vv.icon = va.icon || '';
+                    vv.url = va.url || '';
+                    vv.text = va.text || '';
+                    vv.title = va.title || vv.text || '';
+                    vv.tips = va.tips || '';
+                    vv.extend = va.extend || '';
+                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
+                    vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
+                    vv.url = va.url.indexOf("?") !== -1 ? va.url + '&id=' + d.primaryKeyValue : va.url + '?id=' + d.primaryKeyValue;
+                    vv.url = Fun.replaceurl(vv.url, d);
+                    vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
+                    vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
+                    vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
+                    vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
+                    vv.icon = vv.icon + vv.title;
+                    vv.class = vv.class ? 'class="layui-event-tips ' + vv.class + '"' : vv.class;
+                    vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
+                    vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
+                    vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
+                    vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
+                    vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
+                    vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
+                    vv.tableid = 'data-tableid="' + Table.init.table_elem + '"';
+                    vv.text = 'data-text="' + vv.text + '"';
+                    vv.tips = 'lay-tips="' + vv.tips + '"';
+                    if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + Table.init.tableId))) {
+                        html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                     }
                 });
                 return html
