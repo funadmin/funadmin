@@ -11,15 +11,15 @@
  * Date: 2017/8/2
  */
 namespace app\frontend\controller;
-use addons\translate\common\Translate;
 use app\common\controller\Frontend;
-use app\common\service\PredisService;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\facade\Console;
 use think\facade\Db;
 class Index extends Frontend {
     protected $layout='';
+
+
     public function __construct(App $app)
     {
         parent::__construct($app);
