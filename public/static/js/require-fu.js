@@ -228,7 +228,6 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                     editor.on('change', (e) => {
                                         var val = editor.contentDocument.body.innerHTML;
                                         $('textarea[name="' + name + '"]').val(val);
-                                        console.log(  $('textarea[name="' + name + '"]').val())
                                     });
                                 },
                                 importcss_append: true,
