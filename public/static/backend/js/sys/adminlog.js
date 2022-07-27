@@ -61,8 +61,8 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 limit: 15,
                 page: true
             });
-            let table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+
+            Table.api.bindEvent(Table.init);
         },
         edit:function (){
             Controller.api.bindevent();

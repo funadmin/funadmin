@@ -218,12 +218,12 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
              * @param option
              * @returns {boolean}
              */
-            closeCurrentOpen: function(option) {
+            closeOpen: function(option) {
                 option = option || {};
                 option.refreshTable = option.refreshTable || false;
                 option.refreshFrame = option.refreshFrame || false;
                 if (option.refreshTable === true) {
-                    option.refreshTable = Table.init.tableId;
+                    option.refreshTable = option.tableid ||  Table.init.tableId;
                 }
                 var index = parent.layui.layer.getFrameIndex(window.name);
                 if (index) {
@@ -265,7 +265,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                         res.msg = res.msg || 'success';
                         Fun.toastr.success(res.msg, function() {
                             // 返回页面
-                            Form.api.closeCurrentOpen({
+                            Form.api.closeOpen({
                                 refreshTable: refresh,
                                 refreshFrame: refresh
                             });

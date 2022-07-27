@@ -90,8 +90,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 limit: 15,
                 page: true
             });
-            let table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+
+            Table.api.bindEvent(Table.init);
         },
         add: function () {
             Controller.api.bindevent()
@@ -339,7 +339,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     parent.layer.close(load);
                 }
                 , allDone: function (obj) { //当文件全部被提交后，才触发
-                    console.log(obj)
                     parent.layer.close(load);
                 }
                 , done: function (res) { //console.info(res);

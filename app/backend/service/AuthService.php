@@ -40,6 +40,8 @@ class AuthService
      */
     protected $request;
 
+    protected $app;
+
     protected $controller;
 
     protected $action;
@@ -62,6 +64,7 @@ class AuthService
         }
         // 初始化request
         $this->request = Request::instance();
+        $this->app = app('http')->getName();
         $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
         $this->action = $this->action ? $this->action : 'index';
@@ -154,7 +157,8 @@ class AuthService
         foreach ($cate as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
-                $v['title'] = lang($v['title']);
+                if(!in_array($v['module'],['addon','backend'])) $v['href'] = $v['module'].'/'.$v['href'];
+                $v['title'] = lang($v['title']).' @ '.$v['href'];
                 if (self::authChecked($cate, $v['id'], $rules, $group_id)) {
                     $v['children'] = self::authChecked($cate, $v['id'], $rules, $group_id);
                 } else {
@@ -204,16 +208,18 @@ class AuthService
             }
             if ($adminId && $adminId != $cfg['superAdminId']) {
                 if (!in_array($this->controller, $cfg['noRightController']) &&  !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-                        $this->error(lang('Demo is not allow to change data'));
-                    }
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
+                    if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
+                    $map[] = ['href','=',$this->requesturl];
+                    if($this->app!=='backend') {$map[] = ['module','=',$this->app];}
+                    $this->hrefId = AuthRule::where($map)
                         ->where('status', 1)
                         ->value('id');
                     $hrefTemp = trim($this->requesturl,'/');
                     $menuid = 0;
                     if(Str::endsWith($hrefTemp,'/index')){
-                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
+                        $where[] = ['href','=',substr($hrefTemp,0,strlen($hrefTemp)-6)];
+                        if($this->app!=='backend') {$where[] = ['module','=',$this->app];}
+                        $menuid =  AuthRule::where($where)
                             ->where('status', 1)
                             ->value('id');
                     }
@@ -223,13 +229,10 @@ class AuthService
                     //用户权限规则id
                     $this->adminRules = array_unique( array_filter(explode(',', $rules)));
                     if ($this->hrefId) {
-                        if (!in_array($this->hrefId, $this->adminRules)) {
-                            $this->error(lang('Permission Denied'));
-                        }
+                        if (!in_array($this->hrefId, $this->adminRules)) $this->error(lang('Permission Denied'));
+
                     }else{
-                        if (!in_array($this->requesturl, $cfg['noRightNode'])) {
-                            $this->error(lang('Permission Denied'));
-                        }
+                        if (!in_array($this->requesturl, $cfg['noRightNode'])) $this->error(lang('Permission Denied'));
                     }
                 }
             } else {
@@ -268,18 +271,25 @@ class AuthService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
+        if($this->app!=='backend' && Str::startsWith($this->requesturl,$this->app.'/')){
+            $this->requesturl = Str::substr($this->requesturl,strlen($this->app)+1,strlen($this->requesturl));
+        }
         if (!in_array($this->controller, $cfg['noLoginController']) && !in_array($this->requesturl, $cfg['noLoginNode'])) {
             //不在权限内
             if (!$this->isLogin()) return false;
             if ($adminId && $adminId != $cfg['superAdminId']) {
                 if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
                     $hrefTemp = trim($this->requesturl,'/');
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
+                    $map[] = ['href','=',$this->requesturl];
+                    if($this->app!=='backend') {$map[] = ['module','=',$this->app];}
+                    $this->hrefId = AuthRule::where($map)
                     ->where('status', 1)
                     ->value('id');
                     $menuid = 0;
                     if(Str::endsWith($hrefTemp,'/index')){
-                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
+                        $where[] = ['href','=',substr($hrefTemp,0,strlen($hrefTemp)-6)];
+                        if($this->app!=='backend') {$where[] = ['module','=',$this->app];}
+                        $menuid =  AuthRule::where($where)
                             ->where('status', 1)->value('id');
                     }
                     if($menuid)  $this->hrefId = $menuid;
@@ -538,10 +548,12 @@ class AuthService
                     $v['href'] = $v['href']. '/index';
                 }
             }
-            if ($v['module'] !== 'addon') {
-                $v['href'] = (parse_name(__u(trim($v['href'])), 1));
-            } else {
-                $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
+            if ($v['module'] === 'backend') {
+                $v['href'] = (__u(trim($v['href'])));
+            } elseif($v['module']=='addon') {
+                $v['href'] = ('/' . trim($v['href'], '/'));
+            }else{
+                $v['href'] = ('/' .$v['module'].'/'. trim($v['href'], '/'));
             }
             if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
                 $v['href'] = $href;

@@ -9,8 +9,8 @@
 // |  后台总控制API
 
 define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
-    var layer = layui.layer, element = layui.element;
-    layer = layer || parent.layer;layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
+    var layer = layui.layer, element = layui.element;layer = layer || parent.layer;
+    layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
@@ -21,7 +21,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             url = url.indexOf(Config.entrance)===0?url.replace(Config.entrance,''):url;
             if (!Config.addonname) {
                 if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
-                    return Config.entrance + url;
+                    return Config.modulename=='backend' ?Config.entrance + url:'/'+Config.modulename+'/'+url;
                 }
                 return '/' + url;
             } else {
@@ -195,7 +195,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 val[i] = v.slice(0, 1).toLowerCase() + v.slice(1);
                             });
                             val = val.join(".");
-                            arrayNode[key] = val;
+                            arrayNode[key] = Fun.common.camel(val);
                         }
                     });
                     node = arrayNode.join("/");
@@ -331,19 +331,18 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 Fun.api.iframe(options)
             },
             request: function (othis, options = null,Table='') {
-                var data = othis.data();
+                var data = othis.data(),value;
                 if (options) {
                     title = options.title;
                     url = options.url;
                     tableId = options.tableId || Table.init.tableId
                 } else {
                     var title = data.confirm ||  othis.prop('confirm') ||  othis.prop('text') || data.text || othis.prop('title') || data.title  , url = data.url ? data.url : data.href,
-                        tableId = data.tableId;
-                    title = title || 'Are you sure';
+                        tableId = data.tableid;
+                    title = title || 'Are you sure to do this';
                     url = url !== undefined ? url : window.location.href;
-                    tableId = tableId || Table.init.tableId
+                    tableId = tableId || Table.init.tableId, value = data.value;
                 }
-                value = data.value;
                 ids = '';
                 if(Table){
                     arr = Table.getIds(url, tableId);
@@ -410,7 +409,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             extend[k].title =v.title ;
                         }
                     })
-                    console.log(extend)
                     var inst = layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
