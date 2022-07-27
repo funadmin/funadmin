@@ -343,14 +343,16 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     url = url !== undefined ? url : window.location.href;
                     tableId = tableId || Table.init.tableId
                 }
+                value = data.value;
                 ids = '';
                 if(Table){
                     arr = Table.getIds(url, tableId);
                     ids = arr[0];
                     length = arr[1];
                 }
+                postdata = {ids:ids};if(value){postdata.value = value}
                 Fun.toastr.confirm(__(title), function () {
-                    Fun.ajax({url: url, data: {ids: ids},}, function (res) {
+                    Fun.ajax({url: url, data: postdata}, function (res) {
                         Fun.toastr.success(res.msg, function () {
                             try {
                                 if(layui.treeGrid && layui.treeGrid.getDataList(tableId).length>0){
@@ -393,16 +395,22 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         if(Fun.checkAuth(url)){
                             extend[k].url =url;
                             extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
-                            extend[k].id = v.event
+                            extend[k].id = v.id || v.event
                             extend[k].callback = v.callback || '';
                             extend[k].extend = v.extend || '';
+                            extend[k].type = v.type || 'normal';
+                            extend[k].target = v.target || '_self';
+                            extend[k].child = v.child || [];
                             extend[k].textTitle = v.title
                             extend[k].icon = v.icon || '';
+                            extend[k].field = v.field || '';
+                            extend[k].value = v.value || '';
                             icon = extend[k].icon ? '<i class="{{d.icon}}"></i>':'';
-                            extend[k].templet = v.templet ||  "<button lay-event='{{d.event}}'"+ 'data-url="{{d.url}}" class="layui-btn {{d.class}}" title="{{d.title}}">' +icon+' {{d.title}}  </button>';
+                            extend[k].templet = v.templet ||  "<button data-value='{{d.value}}' data-field='{{d.field}}' data-id='{{d.id}}' lay-event='{{d.event}}' data-url='{{d.url}}' class='layui-btn layui-btn-normal {{d.class}}' title='{{d.title}}'>" +icon+' {{d.title}}  </button>';
                             extend[k].title =v.title ;
                         }
                     })
+                    console.log(extend)
                     var inst = layui.dropdown.render({
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;

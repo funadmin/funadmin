@@ -96,7 +96,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="export"  lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
                     } else if (v === 'add') {
                         if (Fun.checkAuth('add', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add"   lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
                         }
                     } else if (v === 'delete') {
                         if (Fun.checkAuth('delete', options.elem)) {
@@ -404,7 +404,24 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             }, text: function (d) {
                 var ele = $(this)[0];
                 return Table.templet.resolution(d, ele)
-            }, selects: function (d) {
+            },dropdown: function (d) {
+                var ele = $(this)[0];ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
+                value = Table.templet.resolution(d, ele);extend = [];
+                layui.each(ele.selectList, function (i, v) {
+                    var url = ele.url || Table.init.requests.modify_url || v.url;
+                    if(url.indexOf('?')>=0){
+                        url = url+"&"+d.LAY_COL.primaryKey+'='+d[d.LAY_COL.primaryKey]+'&field='+ele.field;
+                    }else{
+                        url = url+"?"+d.LAY_COL.primaryKey+'='+d[d.LAY_COL.primaryKey]+'&field='+ele.field;
+                    }
+                    extend.push({
+                        field:ele.field,value:i,id:d[d.LAY_COL.primaryKey], url: url, title: ele.selectList[i] || v.title,
+                        event: ele.event || v.event || 'request', icon: ele.icon || v.icon || "",class:ele.class,
+                        callback: ele.callback || v.callback || '',templet:v.templet||ele.templets,
+                    })
+                })
+                return $html = "<a class= 'layui-btn layui-btn-xs layui-btn-normal' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
+            },  selects: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
