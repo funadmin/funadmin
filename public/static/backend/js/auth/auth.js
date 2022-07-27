@@ -40,7 +40,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,height:'100%'
                 ,isFilter:false
                 ,iconOpen:true//是否显示图标【默认显示】
-                ,isOpenDefault:false//节点默认是展开还是折叠【默认展开】
+                ,isOpenDefault:true//节点默认是展开还是折叠【默认展开】
                 ,loading:true
                 ,method:'get'
                 ,isPage:false
