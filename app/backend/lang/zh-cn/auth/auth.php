@@ -6,6 +6,7 @@ return [
     'Auth Verify' =>'权限验证',
     'Menu Status' =>'菜单状态',
     'Controller/Action' =>'控制器/方法',
+    'Module/Controller/Action' =>'模块/控制器/方法',
     'Add Child' =>'添加下级',
     'Menu Target'=>'窗口目标',
     'MenuStatus'=>'菜单状态',
