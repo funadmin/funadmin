@@ -552,7 +552,7 @@ INSERT INTO `fun_languages` (`id`, `name`, `create_time`, `update_time`, `is_def
 CREATE TABLE `fun_member` (
                               `id` mediumint(8) UNSIGNED NOT NULL COMMENT '表id',
                               `merchant_id` int(11) DEFAULT '0' COMMENT '商户id',
-                              `group_id` int(11) DEFAULT '1' COMMENT '分组',
+                              `group_id` varchar(50) DEFAULT '1' COMMENT '分组',
                               `email` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '邮件',
                               `realname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '真名',
                               `nickname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '第三方返回昵称',

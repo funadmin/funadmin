@@ -24,7 +24,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             options.rowDouble =  !(options.rowDouble != undefined && options.rowDouble == false && (options.init.rowDouble == undefined || (options.init.rowDouble == false)));
             options.searchInput = !(options.searchInput != undefined && options.searchInput == false && (options.init.searchInput == undefined || (options.init.searchInput == false)));
             options.searchName = Fun.param(options.searchName || options.init.searchName, 'id');
-            options.cols = Table.colsRender(options);
+            options.cols = this.colsRender(options);
             options.page = Fun.param(options.page, true);
             options.limit = options.limit || 15;
             options.limits = options.limits || [10, 15, 20, 25, 50, 100];
@@ -58,24 +58,26 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         }
                         cols.push(arr)
                     })
-                    Table.timeRender(cols)
+                    this.timeRender(cols)
                     layui.form.render()
                     Fu.events.xmSelect();
                 });
                 layui.form.render()
             }
             if (options.search === true && options.searchFormTpl === false) {
-                Table.renderSearch(options)
+                this.renderSearch(options)
             }
             //修改或添加主键id
             $('#'+options.id).attr('data-primarykey',options.primaryKey);
             //是否字符串自定义模板
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var newTable = layui.table.render(options);
-            Table.api.switch(options);
-            Table.api.selects(options);
+            Table.api.switch(options)
+            Table.api.selects(options)
             Table.api.toolbar(options);
             Table.api.sort(options);
+            Table.api.tool(options);
+            Table.api.toolDouble(options);
             if (options.rowDouble) {
                 Table.api.rowDouble(options)
             }
@@ -148,7 +150,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 }
             });
             if (searchInput) {
-                toolbarHtml += '<input id="layui-input-search"  name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n'
+                toolbarHtml += '<input id="layui-input-search-'+options.id+'"  name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n'
             }
             return '<div>' + toolbarHtml + '</div>'
         },
@@ -240,7 +242,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 }
             });
             if (formHtml !== '') {
-                $('#' + tableId).before('<fieldset id="searchFieldList_' + tableId + '" class="layui-elem-field table-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
+                $('#' + tableId).before('<fieldset id="search-form-field-' + tableId + '" class="layui-elem-field table-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
                 Table.api.tableSearch(tableId);
                 layui.form.render();
                 Table.timeRender(newCols)
@@ -314,6 +316,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         colsRender: function (options) {
             var newclos = options.cols[0];
             layui.each(newclos, function (i, d) {
+                d.init = options.init;
                 newclos[i]['primaryKey'] = options.primaryKey;
                 if (d.align === undefined) {
                     newclos[i]['align'] = 'center'
@@ -359,7 +362,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 } else {
                     return '-';
                 }
-            }, tags: function (d) {
+            },tags: function (d) {
                 var ele = $(this)[0];
                 var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field);
@@ -384,7 +387,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 filter = JSON.stringify(filter);
                 content = content ? __(content) : '-';
                 return "<span lay-event='search'  data-filter='" + filter + "' data-op='" + op + "' data-tips='" + content + "' title='" + content + "' class='layui-btn layui-btn-xs layui-search layui-table-tags'>" + content + "</span>"
-            }, image: function (d) {
+            },image: function (d) {
                 var ele = $(this)[0];
                 ele.imageWidth = ele.imageWidth || 40;
                 ele.imageHeight = ele.imageHeight || 40;
@@ -399,11 +402,11 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     html.push('<img style="max-width: ' + ele.imageWidth + 'px; max-height: ' + ele.imageHeight + 'px;" src="' + v + '" title="' + title + '"  lay-event="photos" alt="">')
                 });
                 return html.join(' ')
-            }, content: function (d) {
+            },content: function (d) {
                 var ele = $(this)[0];
                 var content = Table.templet.resolution(d, ele)
                 return "<div style='white-space: nowrap; text-overflow:ellipsis; overflow: hidden; max-width:80px;'>" + content + "</div>"
-            }, text: function (d) {
+            },text: function (d) {
                 var ele = $(this)[0];
                 return Table.templet.resolution(d, ele)
             },dropdown: function (d) {
@@ -424,11 +427,12 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     })
                 })
                 return $html = "<a class= 'layui-btn layui-btn-xs layui-btn-normal' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
-            },  selects: function (d) {
+            },selects: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
+                ele.saveurl = ele.saveurl || ele.init.requests.modify_url;
                 value = Table.templet.resolution(d, ele)
-                $html = '<div class="layui-table-select"><select  data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
+                $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
@@ -436,7 +440,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
                 $html += '</select></div><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script>';
                 return $html;
-            }, select: function (d) {
+            },select: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele)
@@ -461,14 +465,13 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var icon = Table.templet.resolution(d, ele);
                 return '<i class="' + icon + '"></i>'
             }, switch: function (d) {
-                var ele = $(this)[0];
-                ele.filter = ele.filter || ele.field || null;
+                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl || ele.init.requests.modify_url;
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
                 ele.tips = ele.tips || 'switch';
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
+                return '<input data-url="' + ele.saveurl  + '" lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             }, resolution: function (d, ele = '') {
                 var ele = ele || $(this)[0];
                 ele.field = ele.field || ele.filter || null;
@@ -697,7 +700,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 Table.api.reload(tableId)
             }, export: function (othis) {
                 var url = othis.data('url');tableId = othis.data('tableid');
-                var dataField = $('#searchFieldList_' + tableId + ' .layui-form [name]').serializeArray();
+                var dataField = $('#search-form-field-' + tableId + ' .layui-form [name]').serializeArray();
                 var formatFilter = {}, formatOp = {};
                 layui.each(dataField, function () {
                     var key = this.name, val = this.value;
@@ -767,6 +770,27 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             },
         },
         api: {
+            toolDouble:function (options){
+                //单元格工具事件 - 双击触发 注：v2.7.0 新增
+                layui.table.on('toolDouble('+options.id+')', function(obj){
+                    // 用法跟 tool 事件完全相同
+                    // 这里写你的逻辑
+                });
+            },
+            tool:function (options){
+                //原来的点击事件失效改为此处
+                layui.table.on('tool('+options.id+')', function (obj) {
+                    var _that = $(this);
+                    var  data = obj.data; //获得当前行数据
+                    var attrEvent = obj.event || _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    if (Table.events.hasOwnProperty(attrEvent)) {
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                    } else {
+                        Table.events.common(_that);
+                    }
+                    return false;
+                });
+            },
             reload: function (tableId, $where, $deep = true, $parent = true) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $where = $where || {};
@@ -803,64 +827,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     return false
                 })
             },
-            switch: function (options) {
-                url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
-                cols = options.cols[0] || {};
-                tableId = options.id || Table.init.tableId;
-                if (cols.length > 0) {
-                    layui.each(cols, function (i, v) {
-                        v.filter = v.filter || false;
-                        if (v.filter !== false && url !== false) {
-                            layui.form.on('switch(' + v.filter + ')', function (obj) {
-                                var checked = obj.elem.checked ? 1 : 0;
-                                var data = {id: obj.value, field: v.field, value: checked,};
-                                Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
-                                    Fun.toastr.success(res.msg)
-                                    Table.api.reload(tableId)
-                                }, function (res) {
-                                    obj.elem.checked = !checked;
-                                    layui.form.render();
-                                    Fun.toastr.error(res.msg)
-                                }, function () {
-                                })
-                            })
-                        }
-                    })
-                }
-            },
-            selects: function (options) {
-                url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
-                cols = options.cols[0] || {};
-                tableId = options.id || Table.init.tableId;
-                if (cols.length > 0) {
-                    layui.each(cols, function (i, v) {
-                        v.filter = v.filter || false;
-                        if (v.filter !== false && url !== false) {
-                            layui.form.on('select(' + v.filter + ')', function (obj) {
-                                //兼容表单
-                                if($(obj.othis).parents('form').length>0){return false;}
-                                var id = $(obj.elem).attr('data-id');
-                                var data = {id: id, field: v.field, value: obj.value};
-                                Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
-                                    Fun.toastr.success(res.msg)
-                                }, function (res) {
-                                    layui.form.render();
-                                    Fun.toastr.error(res.msg);
-                                }, function () {
-                                })
-                                Table.api.reload(tableId);
-                            })
-                        }
-                    })
-                }
-            },
             toolbar: function (options) {
                 tableId = options.id || Table.init.tableId;
                 layui.table.on('toolbar(' + options.layFilter + ')', function (obj) {
-                    var othis = $(this)
+                    var othis = $(this);
                     switch (obj.event) {
                         case'TABLE_SEARCH':
-                            var searchFieldsetId = 'searchFieldList_' + tableId;
+                            var id = othis.parents('div[lay-id]').attr('lay-id');
+                            var searchFieldsetId = 'search-form-field-' + id;
                             var _that = $("#" + searchFieldsetId);
                             if (_that.hasClass("layui-hide")) {
                                 _that.removeClass('layui-hide')
@@ -929,7 +903,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         })
                     })
                 }
-            }, sort: function (options) {
+            },
+            sort: function (options) {
                 tableId = options.id || Table.init.tableId;
                 layui.table.on('sort(' + tableId + ')', function (obj) {
                     $where ={
@@ -939,20 +914,53 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     Table.api.reload(tableId,$where)
                 })
             },
+            switch: function (options) {
+                layui.form.on('switch', function (obj) {
+                    //获取当前table id;
+                    url = $(this).attr('data-url') ||options.init.requests.modify_url || false;
+                    if (url === false) return;
+                        filter = $(this).attr('lay-filter');
+                        if(!filter) return ;
+                        var checked = obj.elem.checked ? 1 : 0;
+                        var data = {id: this.value, field: this.name, value: checked};
+                        Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
+                            Fun.toastr.success(res.msg);
+                        }, function (res) {
+                            obj.elem.checked = !checked;
+                            layui.form.render();
+                            Fun.toastr.error(res.msg)
+                        }, function () {
+                        })
+                    Table.api.reload();
+                    return ;
+                })
+
+            },
+            selects: function (options) {
+                layui.form.on('select', function (obj) {
+                    url = $(obj.elem).attr('data-url') ||options.init.requests.modify_url || false;
+                    if(url===false) return ;
+                    tableId = init.tableId || Table.init.tableId;
+                    filter = $(obj.elem).attr('lay-filter');
+                    if(!filter) return ;
+                    //兼容表单
+                    if($(obj.othis).parents('form').length>0){return false;}
+                    var id = $(obj.elem).attr('data-id');
+                    name = $(obj.elem).attr('name');
+                    var data = {id: id, field: name, value: obj.value};
+                    Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
+                        Fun.toastr.success(res.msg)
+                    }, function (res) {
+                        layui.form.render();
+                        Fun.toastr.error(res.msg);
+                    }, function () {
+                    })
+                    Table.api.reload();
+                    return ;
+                })
+            },
             bindEvent: function (init) {
                 var tableId = init.table_elem || Table.init.table_elem
-            //原来的点击事件失效改为此处
-             	layui.table.on('tool('+tableId+')', function (obj) {
-                    var _that = $(this);
-                    var  data = obj.data; //获得当前行数据
-                    var attrEvent = obj.event || _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
-                    if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
-                    } else {
-                        Table.events.common(_that);
-                    }
-                    return false;
-                });
                 $(document).on('click','*[lay-event]',function(){
                     var _that = $(this);
                     var attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
@@ -963,11 +971,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     }
                     return false;
                 });
-                //单元格工具事件 - 双击触发 注：v2.7.0 新增
-                layui.table.on('toolDouble('+tableId+')', function(obj){
-                    // 用法跟 tool 事件完全相同
-                    // 这里写你的逻辑
-                });
+
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
                     Table.api.reload($(this).data('tableid'), {}, false)
@@ -977,7 +981,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     var that = this;
                     if($(this).attr('lay-tips')){layer.tips(__($(this).attr('lay-tips')),that,{tips: 1,time:1500,})}
                 });
-                $(document).on('blur', '#layui-input-search', function (event) {
+                $(document).on('blur', '#layui-input-search-'+tableId, function (event) {
                     var text = $(this).val();
                     var name = $(this).prop('name').split(',');
                     if (name.length === 1) {
@@ -995,7 +999,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         $('#layui-input-search').prop("value", $(this).val());
                         return false
                     }
-                }).unbind('blur', '#layui-input-search', function (event) {
+                }).unbind('blur', '#layui-input-search-'+tableId, function (event) {
                     return false
                 })
             },

@@ -7,8 +7,8 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect', 'upload','selectN','selectPlus'
-], function($, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload, selectN,selectPlus) {
+define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect', 'upload','selectN','selectPlus'
+], function($,selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, Upload, selectN,selectPlus) {
     var Fu = {
         init: {},
         events: {
@@ -63,6 +63,47 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                                 delimiter: delimiter,last:last,verify:verify,
                             };
                         selectn[i] =  selectN(options).render();
+                    })
+                }
+            },
+            selectpage:function() {
+                var selectn ={},list = $("*[lay-filter='selectPage']");
+                if (list.length > 0) {
+                    selectPage = layui.selectPage || parent.layui.selectPage;
+                    layui.each(list, function(i) {
+                        var _that = $(this);
+                        var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
+                            url = _that.data('url') || _that.data('request'),
+                            data = _that.data('data'), field = _that.data('field') ||　'title',
+                            primaryKey = _that.data('primarkey') ||　'id', selectOnly = _that.data('selectonly') ||　false,
+                            pagination = _that.data('pagination') ||　true, listSize = _that.data('listsize') ||　'15',
+                            multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton ') ||　true,
+                            maxSelectLimit  = _that.data('maxselectlimit ') ||　1, searchField   = _that.data('searchfield  ') || '',
+                            searchKey =_that.data('searchkey ') ||　primaryKey,
+                            orderBy    = _that.data('orderby') ||　false, method    = _that.data('method') ||　'GET',
+                            dbTable    = _that.data('dbtable'),andOr =_that.data('andor'),formatItem = _that.data('formatitem')?_that.data('formatitem'):'',
+                            options = {
+                                showField : field, keyField :primaryKey,
+                                searchField:searchField,searchKey:searchKey,
+                                data : data, dbTable : dbTable, andOr : andOr, method:method,
+                                //仅选择模式，不允许输入查询关键字
+                                selectOnly : selectOnly,
+                                //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
+                                pagination : pagination, maxSelectLimit : maxSelectLimit,
+                                orderBy : orderBy,
+                                //关闭分页的状态下，列表显示的项目个数，其它的项目以滚动条滚动方式展现（默认10个）
+                                listSize : listSize, multiple : multiple, dropButton : dropButton,
+                                formatItem : function(data){
+                                    if(formatItem)  return eval(formatItem);
+                                },
+                                eSelect : function(data){  },
+                                eAjaxSuccess: function(data) {
+                                    data.list = typeof data.data !== 'undefined' ? data.data : [];
+                                    data.totalRow = typeof data.count !== 'undefined' ? data.count : data.data.length;
+                                    return data;
+                                }
+                            };
+                        _that.selectPage(options);
                     })
                 }
             },
@@ -579,6 +620,7 @@ define(['jquery', 'xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePick
                 events.addInput();
                 events.selectplus();
                 events.selectn();
+                events.selectpage();
                 events.removeInupt();
                 events.bindevent()
             }

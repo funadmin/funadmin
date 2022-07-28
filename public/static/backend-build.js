@@ -32,6 +32,7 @@
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
         'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
         'selectN'       : 'plugins/lay-module/selectPlus/selectN',
+        'selectPage'    : 'plugins/lay-module/selectPage/selectpage.min',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',

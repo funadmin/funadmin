@@ -56,7 +56,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                         field: 'auth_verify',
                         align: 'center',
                         title: __('Auth Verify'),
-                        width: 150,
+                        width: 100,
                         tips:__('YES')+'|'+__('NO'),
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         templet: Table.templet.switch,
@@ -64,7 +64,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'type',
                         title: __('IsMenu'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('No'), 1: __('Yes')},
                         filter: 'status',
@@ -73,7 +73,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'menu_status',
                         title: __('MenuStatus'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         filter: 'status',
@@ -82,13 +82,13 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'status',
                         title: __('Status'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         filter: 'status',
                         templet: Table.templet.switch,
                     },
-                    {field: 'sort',align: 'center', title: __("sort"), width: 80, edit: 'text'},
+                    {field: 'sort',align: 'center', title: __("sort"), width: 60, edit: 'text'},
                     {
                         width: 300,
                         align: 'center',
