@@ -361,6 +361,9 @@ trait Curd
      */
     protected function selectList()
     {
+        if(input('searchField')){
+            return $this->selectpage();
+        }
         $fields = input('selectFields');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
@@ -382,7 +385,94 @@ trait Curd
         }
         $this->success('','',$list);
     }
+    /**
+     *
+     * 当前方法只是一个比较通用的搜索匹配,请按需重载此方法来编写自己的搜索逻辑,$where按自己的需求写即可
+     * 这里示例了所有的参数，所以比较复杂，实现上自己实现只需简单的几行即可
+     *
+     */
+    protected function selectpage()
+    {
+        //设置过滤方法
+        request()->filter(['trim', 'strip_tags', 'htmlspecialchars']);
+        //搜索关键词,客户端输入以空格分开,这里接收为数组
+        $word = (array) request()->param("q_word/a");
+        $word        = array_filter(array_unique($word));
+        //当前页
+        $page = request()->param("pageNumber",1);
+        //分页大小
+        $pagesize = request()->param("pageSize",10);
+        //搜索条件
+        $andor = request()->param("andOr", 'AND', "strtoupper");
+        //排序方式
+        $orderby = (array) request()->param("orderBy/a");
+        //显示的字段
+        $field = request()->request("showField");
+        //主键
+        $primarykey = request()->param("keyField");
+        //主键值
+        $primaryvalue = request()->param("keyValue");
+        //搜索字段
+        $searchfield = (array) request()->param("searchField/a");
+        //是否返回树形结构
+        $istree = request()->param("isTree", 0);
 
+        $ishtml = request()->param("isHtml", 0);
+        if ($istree) {
+            $word     = [];$pagesize = 99999;
+        }
+        $order = [];
+        foreach ($orderby as $k => $v) {
+            $order[$v[0]] = $v[1];
+        }
+        $field = $field ?: 'name';
+        $where  = []; $whereOr  = [];
+        //如果有primaryvalue,说明当前是初始化传值
+        if ($primaryvalue !== null) {
+            $where[]    = [$primarykey ,'in', explode(',', $primaryvalue)];
+            $pagesize = 99999;
+        } else {
+            $logic       = $andor == 'AND' ? '&' : '|';
+            $searchfield = is_array($searchfield) ? implode($logic, $searchfield) : $searchfield;
+            $searchfield = str_replace(',', $logic, $searchfield);
+            if (count($word) == 1) {
+                $where[] = [$searchfield,'LIKE','%'.reset($word).'%'];
+            }else{
+                foreach ($word as $key => $val)  {
+                    $where[$key] = [$searchfield,'LIKE','%'.$val.'%'];
+                    $map[$key] = [$searchfield,'LIKE','%'.$val.'%'];
+                }
+                $whereOr = [$where,$map];
+            }
+        }
+        $list  = [];
+        $fields = is_array($this->selectpageFields) ? $this->selectpageFields : ($this->selectpageFields && $this->selectpageFields != '*' ? explode(',', $this->selectpageFields) : []);
+        if ($whereOr){
+            $list = $this->modelClass->whereOr($whereOr)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page,]);
+        }else{
+            $list = $this->modelClass->where($where)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page]);
+        }
+        if ($list->count() > 0) {
+            foreach ($list['data'] as $index => &$item) {
+                unset($item['password'], $item['token']);
+                $item[$primarykey] = isset($item[$primarykey]) ? $item[$primarykey] : '';
+                $item[$field]      = isset($item[$field]) ? $item[$field] : '';
+                $item['pid'] = isset($item['pid']) ? $item['pid'] : (isset($item['parent_id']) ? $item['parent_id'] : 0);
+            }
+            if ($istree && !$primaryvalue) {
+                $list =TreeHelper::getTree($list, $field);
+                if (!$ishtml) {
+                    foreach ($list as &$item) {
+                        $item = str_replace('&nbsp;', ' ', $item);
+                    }
+                    unset($item);
+                }
+            }
+        }
+        $result = ['data' => $list->items(), 'count' =>$list->total()];
+        //这里一定要返回有list这个字段,total是可选的,如果total<=list的数量,则会隐藏分页按钮
+        $this->success('','',$result);
+    }
 
     /**
      * 组合参数
