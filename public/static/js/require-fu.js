@@ -67,7 +67,7 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                 }
             },
             selectpage:function() {
-                var selectn ={},list = $("*[lay-filter='selectPage']");
+                var list = $("*[lay-filter='selectPage']");
                 if (list.length > 0) {
                     selectPage = layui.selectPage || parent.layui.selectPage;
                     layui.each(list, function(i) {

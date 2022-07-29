@@ -52,7 +52,7 @@ class Auth extends Backend
     public function index()
     {
         if ($this->request->isAjax()) {
-            if ($this->request->param('selectFields')) {
+            if ($this->request->param('selectField')) {
                 $this->selectList();
             }
             $uid = $this->uid;

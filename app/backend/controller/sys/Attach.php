@@ -49,7 +49,7 @@ class Attach extends Backend
     public function index()
     {
         if ($this->request->isAjax()) {
-            if ($this->request->param('selectFields')) {
+            if ($this->request->param('selectField')) {
                 $this->selectList();
             }
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
