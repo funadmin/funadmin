@@ -78,12 +78,12 @@
 {else/}
 
 <form class="layui-form" lay-filter="form">
+    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formData) and isset($formData['group_id']) ?$formData['group_id']:''))}
     {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
     {if !$formData}
     {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
     {/if}
-    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>0] ,'id,title',(isset($formData) and isset($formData['group_id']) ?$formData['group_id']:''))}
     {:form_upload('avatar',$formData,['mime'=>'image'])}
     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval, please fill in carefully.'] )}
     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}

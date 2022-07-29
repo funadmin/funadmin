@@ -52,6 +52,6 @@ return [
     //版本
     'version' => '2.5.2',
     'version_data' => '20220726',
-    'layui_version' => '2.7.5',
+    'layui_version' => '2.7.6',
     'ip_check'=>false,
 ];

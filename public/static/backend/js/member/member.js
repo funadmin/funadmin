@@ -68,9 +68,10 @@ define(['jquery','table','form'], function ($,Table,Form) {
     };
     let Controller = {
         index: function () {
-            var table1 = Table.render({
+            var table = Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
+                css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 primaryKey: 'id',
@@ -123,46 +124,47 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 page: true
                 ,done: function (res, curr, count) {
                     this.limits.push(count) ;
+
                 }
             });
-            var table2 = Table.render({
-                elem: '#' + Table.init2.table_elem,
-                id: Table.init2.tableId,
-                url: Fun.url(Table.init2.requests.index_url),
-                init: Table.init2,
-                toolbar: ['refresh','add','destroy','export','recycle'],
-                cols: [[
-                    {checkbox: true, },
-                    {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'name', title: __('GroupName'), minwidth: 120,},
-                    {field: 'rules', title: __('Rules'), minwidth: 120,},
-                    {
-                        field: 'status',
-                        title: __('Status'),
-                        width: 120,
-                        search: 'select',
-                        selectList: {0: __('Disabled'), 1: __('Enabled')},
-                        filter: 'status',
-                        templet: Table.templet.switch
-                    },
-                    {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
-                    {
-                        minwidth: 250,
-                        align: 'center',
-                        title: __('Operat'),
-                        init:  Table.init2,
-                        templet: Table.templet.operat,
-                        operat: ['edit', 'destroy',]
-                    }
-
-                ]],
-                limits: [10, 15, 20, 25, 50, 100],
-                limit: 15,
-                page: true
-
-            });
             Table.api.bindEvent(Table.init) ;
-          　Table.api.bindEvent(init2);
+            // var table2 = Table.render({
+            //     elem: '#' + Table.init2.table_elem,
+            //     id: Table.init2.tableId,
+            //     url: Fun.url(Table.init2.requests.index_url),
+            //     init: Table.init2,
+            //     toolbar: ['refresh','add','destroy','export','recycle'],
+            //     cols: [[
+            //         {checkbox: true, },
+            //         {field: 'id', title: 'ID', width: 80, sort: true},
+            //         {field: 'name', title: __('GroupName'), minwidth: 120,},
+            //         {field: 'rules', title: __('Rules'), minwidth: 120,},
+            //         {
+            //             field: 'status',
+            //             title: __('Status'),
+            //             width: 120,
+            //             search: 'select',
+            //             selectList: {0: __('Disabled'), 1: __('Enabled')},
+            //             filter: 'status',
+            //             templet: Table.templet.switch
+            //         },
+            //         {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
+            //         {
+            //             minwidth: 250,
+            //             align: 'center',
+            //             title: __('Operat'),
+            //             init:  Table.init2,
+            //             templet: Table.templet.operat,
+            //             operat: ['edit', 'destroy',]
+            //         }
+            //
+            //     ]],
+            //     limits: [10, 15, 20, 25, 50, 100],
+            //     limit: 15,
+            //     page: true
+            //
+            // });
+          // 　Table.api.bindEvent(init2);
         },
         add:function () {
             Controller.api.bindevent()
@@ -171,7 +173,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
             Controller.api.bindevent()
         },
         recycle: function () {
-            console.log(window.location.url)
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
@@ -210,8 +211,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('Registertime'), width: 180,search:'range'},
-                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
+                    {field: 'create_time', title: __('Registertime'), width: 180,search:'range',},
+                    // {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
                         minwidth: 250,
                         align: 'center',
