@@ -97,7 +97,7 @@ layui.define(['jquery'],function(exports) {
              * Actually used to search field
              * @type string
              */
-            searchField: undefined,
+            selectFields: undefined,
             /**
              * Search type ('AND' or 'OR')
              * @type string
@@ -200,7 +200,10 @@ layui.define(['jquery'],function(exports) {
              * @param self {object} plugin object
              */
             eClear: undefined,
+
             method :'GET',
+            //是否必须
+            required :'',
         }
 
         /**
@@ -237,13 +240,13 @@ layui.define(['jquery'],function(exports) {
          */
         SelectPage.prototype.setOption = function (option) {
             // use showField by default
-            option.searchField = option.searchField || option.showField
+            option.selectFields = option.selectFields || option.showField
 
             option.andOr = option.andOr.toUpperCase()
             if (option.andOr !== 'AND' && option.andOr !== 'OR') option.andOr = 'AND'
 
             // support multiple field set
-            var arr = ['searchField']
+            var arr = ['selectFields']
             for (var i = 0; i < arr.length; i++) {
                 option[arr[i]] = this.strToArray(option[arr[i]])
             }
@@ -831,7 +834,12 @@ layui.define(['jquery'],function(exports) {
                         data: {
                             searchTable: p.dbTable,
                             searchKey: p.keyField,
-                            searchValue: key
+                            searchValue: key,
+                            orderBy: p.orderBy,
+                            showField: p.showField,
+                            keyField: p.keyField,
+                            keyValue: key,
+                            selectFields: p.selectFields
                         },
                         success: function (json) {
                             var d = null
@@ -1429,7 +1437,7 @@ layui.define(['jquery'],function(exports) {
             if (!p.eAjaxSuccess || !$.isFunction(p.eAjaxSuccess)) self.hideResults(self)
             var _paramsFunc = p.params,
                 _params = {},
-                searchKey = p.searchField
+                searchKey = p.selectFields
             //when have new query keyword, then reset page number to 1.
             if (q_word.length && q_word[0] && q_word[0] !== self.prop.prev_value)
                 which_page_num = 1
@@ -1438,7 +1446,11 @@ layui.define(['jquery'],function(exports) {
                 pageNumber: which_page_num,
                 pageSize: p.pageSize,
                 andOr: p.andOr,
-                searchTable: p.dbTable
+                orderBy: p.orderBy,
+                searchTable: p.dbTable,
+                showField: self.option.showField,
+                keyField: self.option.keyField,
+                selectFields: self.option.selectFields
             }
             if (p.orderBy !== false) _orgParams.orderBy = p.orderBy
             _orgParams[searchKey] = q_word[0]
@@ -1532,7 +1544,7 @@ layui.define(['jquery'],function(exports) {
                     row = p.data[i],
                     itemText
                 for (var j = 0; j < arr_reg.length; j++) {
-                    itemText = row[p.searchField]
+                    itemText = row[p.selectFields]
                     if (p.formatItem && $.isFunction(p.formatItem))
                         itemText = p.formatItem(row)
                     if (itemText.match(arr_reg[j])) {
@@ -2330,14 +2342,14 @@ layui.define(['jquery'],function(exports) {
                 inputLi.removeClass('full_width')
                 var minimumWidth = self.elem.combo_input.val().length + 1,
                     width = minimumWidth * 0.75 + 'em'
-                self.elem.combo_input.css('width', width).removeAttr('placeholder')
+                self.elem.combo_input.css('width', width).removeAttr('placeholder').removeAttr('lay-verify')
             }
             if (self.elem.element_box.find('li.selected_tag').length === 0) {
                 if (self.elem.combo_input.attr('placeholder_bak')) {
                     if (!inputLi.hasClass('full_width')) inputLi.addClass('full_width')
                     self.elem.combo_input
                         .attr('placeholder', self.elem.combo_input.attr('placeholder_bak'))
-                        .removeAttr('style')
+                        .removeAttr('style').attr('lay-verify',self.option.verify);
                 } else setDefaultSize(self, inputLi)
             } else setDefaultSize(self, inputLi)
         }

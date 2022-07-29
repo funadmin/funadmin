@@ -316,6 +316,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         colsRender: function (options) {
             var newclos = options.cols[0];
             layui.each(newclos, function (i, d) {
+                console.log(d)
                 d.init = options.init;
                 newclos[i]['primaryKey'] = options.primaryKey;
                 if (d.align === undefined) {
@@ -430,7 +431,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             },selects: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
-                ele.saveurl = ele.saveurl || ele.init.requests.modify_url;
+                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
                 value = Table.templet.resolution(d, ele)
                 $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
@@ -440,6 +441,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
                 $html += '</select></div><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script>';
                 return $html;
+            }, switch: function (d) {
+                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
+                ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
+                ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
+                ele.tips = ele.tips || 'switch';
+                var value = Table.templet.resolution(d, ele);
+                var checked = value > 0 ? 'checked="checked"' : '';
+                return '<input data-url="' + ele.saveurl  + '" lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             },select: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
@@ -464,14 +473,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 var ele = $(this)[0];
                 var icon = Table.templet.resolution(d, ele);
                 return '<i class="' + icon + '"></i>'
-            }, switch: function (d) {
-                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl || ele.init.requests.modify_url;
-                ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
-                ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
-                ele.tips = ele.tips || 'switch';
-                var value = Table.templet.resolution(d, ele);
-                var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input data-url="' + ele.saveurl  + '" lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             }, resolution: function (d, ele = '') {
                 var ele = ele || $(this)[0];
                 ele.field = ele.field || ele.filter || null;

@@ -25,7 +25,7 @@ require.config({
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
-        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
+        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
         'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',

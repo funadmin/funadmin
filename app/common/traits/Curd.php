@@ -17,7 +17,7 @@ use think\facade\Cache;
 use think\facade\Db;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
-use const http\Client\Curl\Versions\ARES;
+use think\validate\ValidateRule;
 
 /**
  * Trait Curd
@@ -25,6 +25,9 @@ use const http\Client\Curl\Versions\ARES;
  */
 trait Curd
 {
+
+    protected $selectpageFields = ['*'];
+
     use SoftDelete;
     /**
      * @NodeAnnotation(title="List")
@@ -361,7 +364,7 @@ trait Curd
      */
     protected function selectList()
     {
-        if(input('searchField')){
+        if(input('selectFields') && input('showField')){
             return $this->selectpage();
         }
         $fields = input('selectFields');
@@ -398,6 +401,9 @@ trait Curd
         //搜索关键词,客户端输入以空格分开,这里接收为数组
         $word = (array) request()->param("q_word/a");
         $word        = array_filter(array_unique($word));
+        $searchTable        = request()->param("searchTable/s");
+        $class = "\\app\\common\\model\\".Str::studly($searchTable);
+        if($searchTable && class_exists($class)) $this->modelClass = new $class;
         //当前页
         $page = request()->param("pageNumber",1);
         //分页大小
@@ -413,19 +419,20 @@ trait Curd
         //主键值
         $primaryvalue = request()->param("keyValue");
         //搜索字段
-        $searchfield = (array) request()->param("searchField/a");
+        $searchfield = (array) request()->param("selectFields/a")  ;
         //是否返回树形结构
         $istree = request()->param("isTree", 0);
 
         $ishtml = request()->param("isHtml", 0);
         if ($istree) {
-            $word     = [];$pagesize = 99999;
+            $word     = [];
+            $pagesize = 999999;
         }
         $order = [];
         foreach ($orderby as $k => $v) {
+            if($v=='false');continue;
             $order[$v[0]] = $v[1];
         }
-        $field = $field ?: 'name';
         $where  = []; $whereOr  = [];
         //如果有primaryvalue,说明当前是初始化传值
         if ($primaryvalue !== null) {
@@ -435,24 +442,19 @@ trait Curd
             $logic       = $andor == 'AND' ? '&' : '|';
             $searchfield = is_array($searchfield) ? implode($logic, $searchfield) : $searchfield;
             $searchfield = str_replace(',', $logic, $searchfield);
-            if (count($word) == 1) {
-                $where[] = [$searchfield,'LIKE','%'.reset($word).'%'];
-            }else{
-                foreach ($word as $key => $val)  {
-                    $where[$key] = [$searchfield,'LIKE','%'.$val.'%'];
-                    $map[$key] = [$searchfield,'LIKE','%'.$val.'%'];
-                }
-                $whereOr = [$where,$map];
+            foreach ($word as $key => $val)  {
+                array_push($whereOr,[[$searchfield,'LIKE','%'.$val.'%']]);
             }
         }
-        $list  = [];
         $fields = is_array($this->selectpageFields) ? $this->selectpageFields : ($this->selectpageFields && $this->selectpageFields != '*' ? explode(',', $this->selectpageFields) : []);
-        if ($whereOr){
+        if (!empty($whereOr)){
             $list = $this->modelClass->whereOr($whereOr)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page,]);
         }else{
             $list = $this->modelClass->where($where)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page]);
         }
+        $field = $field ?: 'title';
         if ($list->count() > 0) {
+            $list = $list->toArray();
             foreach ($list['data'] as $index => &$item) {
                 unset($item['password'], $item['token']);
                 $item[$primarykey] = isset($item[$primarykey]) ? $item[$primarykey] : '';
@@ -463,15 +465,15 @@ trait Curd
                 $list =TreeHelper::getTree($list, $field);
                 if (!$ishtml) {
                     foreach ($list as &$item) {
-                        $item = str_replace('&nbsp;', ' ', $item);
+                        $item = str_replace('|--', ' ', $item);
                     }
                     unset($item);
                 }
             }
         }
-        $result = ['data' => $list->items(), 'count' =>$list->total()];
+        $result = ['data' => $list['data'], 'count' =>$list['total']];
         //这里一定要返回有list这个字段,total是可选的,如果total<=list的数量,则会隐藏分页按钮
-        $this->success('','',$result);
+        $this->success('ok','',$result);
     }
 
     /**

@@ -17,7 +17,7 @@
         //layui等组件
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         // 'layui'         : 'plugins/layui/layui', // jquery
-        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
+        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
         'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',

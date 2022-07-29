@@ -50,7 +50,7 @@ class Admin extends Backend
             if ($this->request->param('selectFields')) {
                 $this->selectList();
             }
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            list($this->page, $this->pageSize,$sort,$where) = $this->buildParams();
             $count = $this->modelClass
                 ->where($where)
                 ->order($sort)

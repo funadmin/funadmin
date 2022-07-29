@@ -67,7 +67,7 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                 }
             },
             selectpage:function() {
-                var selectn ={},list = $("*[lay-filter='selectPage']");
+                var list = $("*[lay-filter='selectPage']");
                 if (list.length > 0) {
                     selectPage = layui.selectPage || parent.layui.selectPage;
                     layui.each(list, function(i) {
@@ -76,34 +76,38 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                             url = _that.data('url') || _that.data('request'),
                             data = _that.data('data'), field = _that.data('field') ||　'title',
                             primaryKey = _that.data('primarkey') ||　'id', selectOnly = _that.data('selectonly') ||　false,
-                            pagination = _that.data('pagination') ||　true, listSize = _that.data('listsize') ||　'15',
-                            multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton ') ||　true,
-                            maxSelectLimit  = _that.data('maxselectlimit ') ||　1, searchField   = _that.data('searchfield  ') || '',
-                            searchKey =_that.data('searchkey ') ||　primaryKey,
-                            orderBy    = _that.data('orderby') ||　false, method    = _that.data('method') ||　'GET',
-                            dbTable    = _that.data('dbtable'),andOr =_that.data('andor'),formatItem = _that.data('formatitem')?_that.data('formatitem'):'',
+                            pagination = !(_that.data('pagination') == 'false' || _that.data('pagination') == 0), listSize = _that.data('listsize') ||　'15',
+                            multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton') ||　true,
+                            maxSelectLimit  = _that.data('maxselectlimit ') ||　0, searchField   = _that.data('searchfield') || field,
+                            searchKey =_that.data('searchkey') ||　primaryKey, orderBy    = _that.data('orderby') ||　false,
+                            method    = _that.data('method') ||　'GET', dbTable    = _that.data('dbtable'),
+                            selectToCloseList  =_that.data('selecttocloselist') ||　 false,disabled = _that.data('disabled') || false,
+                            andOr =_that.data('andor'),formatItem = _that.data('formatitem') || false,required = _that.data('required') || ''
+                            orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;
                             options = {
                                 showField : field, keyField :primaryKey,
-                                searchField:searchField,searchKey:searchKey,
-                                data : data, dbTable : dbTable, andOr : andOr, method:method,
+                                selectFileds:searchField,searchKey:searchKey,
+                                data : data || Fun.url(url), dbTable : dbTable, andOr : andOr, method:method,
                                 //仅选择模式，不允许输入查询关键字
-                                selectOnly : selectOnly,
+                                selectOnly : selectOnly,required : required, selectToCloseList:selectToCloseList,
                                 //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
-                                pagination : pagination, maxSelectLimit : maxSelectLimit,
-                                orderBy : orderBy,
+                                pagination : pagination, maxSelectLimit : maxSelectLimit, orderBy : orderBy,
                                 //关闭分页的状态下，列表显示的项目个数，其它的项目以滚动条滚动方式展现（默认10个）
                                 listSize : listSize, multiple : multiple, dropButton : dropButton,
-                                formatItem : function(data){
+                                formatItem : function(res){
                                     if(formatItem)  return eval(formatItem);
+                                    return res[this.showField];
                                 },
-                                eSelect : function(data){  },
-                                eAjaxSuccess: function(data) {
-                                    data.list = typeof data.data !== 'undefined' ? data.data : [];
-                                    data.totalRow = typeof data.count !== 'undefined' ? data.count : data.data.length;
+                                eSelect : function(res){},
+                                selectToCloseList:function(res){},
+                                eAjaxSuccess: function(res) {
+                                    row = res.data;data={};
+                                    data.list = typeof row.data !== 'undefined' ? row.data : [];
+                                    data.totalRow = typeof row.count !== 'undefined' ? row.count : row.data.length;
                                     return data;
                                 }
-                            };
-                        _that.selectPage(options);
+                            };_that.selectPage(options);
+                            if(disabled){_that.selectPageDisabled(true);}
                     })
                 }
             },
@@ -116,7 +120,7 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                             data = $(this).data('data')||　[], parentfield =  $(this).data('parentfield') || 'pid',
                             tips = $(this).data('tips') ||  '请选择', searchTips = $(this).data('searchtips') || '请选择',
                             empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
-                            paging = $(this).data('paging'), pageSize = $(this).data('pageSize'),
+                            paging = $(this).data('paging'), pageSize = $(this).data('pagesize'),
                             remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
                             radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
                             clickClose = $(this).data('clickclose'), prop = $(this).data('prop') || $(this).data('attr'),
@@ -158,7 +162,6 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                                     value: val
                                 }
                             } : eval(create)?eval(create):false;
-                        console.log(value)
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                         options = {
                             el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
