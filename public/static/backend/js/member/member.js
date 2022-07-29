@@ -71,6 +71,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             var table = Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
+                css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 primaryKey: 'id',
@@ -123,6 +124,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 page: true
                 ,done: function (res, curr, count) {
                     this.limits.push(count) ;
+
                 }
             });
             Table.api.bindEvent(Table.init) ;
@@ -209,8 +211,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('Registertime'), width: 180,search:'range'},
-                    {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
+                    {field: 'create_time', title: __('Registertime'), width: 180,search:'range',},
+                    // {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
                         minwidth: 250,
                         align: 'center',

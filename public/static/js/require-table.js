@@ -351,6 +351,13 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             return [newclos]
         },
         templet: {
+            // date:function (d) {
+            //     var ele = $(this)[0];
+            //     var value = eval('d.' + ele.field) || '';
+            //     ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
+            //     var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
+            //     return '<div lay-event="date"><input data-url="' +  ele.saveurl + '"  class="layui-input date"  data-dateformat="'+format+'" placeholder="'+__('select date')+'" value="'+ value+ '"></div'
+            // },
             time: function (d) {
                 var ele = $(this)[0];
                 var time = eval('d.' + ele.field);
@@ -914,6 +921,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     Table.api.reload(tableId,$where)
                 })
             },
+
             switch: function (options) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
@@ -934,7 +942,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         })
                     return ;
                 })
-
             },
             selects: function (options) {
                 layui.form.on('select', function (obj) {
@@ -971,7 +978,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     }
                     return false;
                 });
-
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
                     Table.api.reload($(this).data('tableid'), {}, false)

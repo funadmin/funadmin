@@ -61,7 +61,6 @@ border-radius:3px;border:none;height:32px;line-height:32px;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #1890ff}
 .layui-form-checked[lay-skin=primary] i{border-color: #1890ff!important;background-color: #1890ff;}
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
-table.layui-table td .layui-form-select {margin-top: -6px;margin-left: -15px;margin-right: -15px;}
 
 
 #theme0 .layui-btn,
