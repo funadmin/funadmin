@@ -316,7 +316,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
         colsRender: function (options) {
             var newclos = options.cols[0];
             layui.each(newclos, function (i, d) {
-                console.log(d)
                 d.init = options.init;
                 newclos[i]['primaryKey'] = options.primaryKey;
                 if (d.align === undefined) {
@@ -926,13 +925,13 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         var data = {id: this.value, field: this.name, value: checked};
                         Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                             Fun.toastr.success(res.msg);
+                            Table.api.reload(tableId);
                         }, function (res) {
                             obj.elem.checked = !checked;
                             layui.form.render();
                             Fun.toastr.error(res.msg)
                         }, function () {
                         })
-                    Table.api.reload();
                     return ;
                 })
 
@@ -951,12 +950,12 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     var data = {id: id, field: name, value: obj.value};
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg)
+                        Table.api.reload(tableId);
                     }, function (res) {
                         layui.form.render();
                         Fun.toastr.error(res.msg);
                     }, function () {
                     })
-                    Table.api.reload();
                     return ;
                 })
             },
