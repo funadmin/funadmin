@@ -47,7 +47,7 @@ class Admin extends Backend
     public function index()
     {
         if($this->request->isAjax()){
-            if ($this->request->param('selectField')) {
+            if ($this->request->param('selectFields')) {
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
