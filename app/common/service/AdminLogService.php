@@ -74,7 +74,7 @@ class AdminLogService extends AbstractService
         }else{
             //权限
             $auth = AuthRule::column('href','id');
-            $url = str_replace(config('view.view_suffix'),'',Request::pathinfo());
+            $url = str_replace('.'.config('view.view_suffix'),'',$url);
             if($this->module!=='backend'){
                 $url = str_replace('.'.config('view.view_suffix'),'',Request::pathinfo());
                 $this->title =  AuthRule::where('href',$url)->where('module',$this->module)->value('title');
