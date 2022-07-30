@@ -25,19 +25,19 @@ class AdminLogService extends AbstractService
      * @var string
      * title
      */
-    protected static $title = '';
+    protected  $title = '';
     //自定义日志内容
-    protected static $post_data = '';
-    protected static $get_data = '';
-    protected static $header_data = '';
-    protected static $method = '';
-    protected static $ip = '';
-    protected static $agent = '';
-    protected static $module = '';
-    protected static $controller = '';
-    protected static $action = '';
-    protected static $admin_id = '';
-    protected static $username = '';
+    protected  $post_data = '';
+    protected  $get_data = '';
+    protected  $header_data = '';
+    protected  $method = '';
+    protected  $ip = '';
+    protected  $agent = '';
+    protected  $module = '';
+    protected  $controller = '';
+    protected  $action = '';
+    protected  $admin_id = '';
+    protected  $username = '';
     /**
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
@@ -48,60 +48,62 @@ class AdminLogService extends AbstractService
     public function __construct(App $app)
     {
         parent::__construct($app);
-        self::$post_data = json_encode(Request::post(),JSON_UNESCAPED_UNICODE);
-        self::$get_data = json_encode(Request::get(),JSON_UNESCAPED_UNICODE);
-        self::$header_data = json_encode( Request::header(),JSON_UNESCAPED_UNICODE);
-        self::$method = Request::method();
-        self::$ip = Request::ip();
-        self::$agent =Request::server('HTTP_USER_AGENT');
-        self::$module =  app('http')->getName();
-        self::$admin_id   = Session::get('admin.id',0);
-        self::$username   = Session::get('admin.username','Unknown');
+        $this->post_data = json_encode(Request::post(),JSON_UNESCAPED_UNICODE);
+        $this->get_data = json_encode(Request::get(),JSON_UNESCAPED_UNICODE);
+        $this->header_data = json_encode( Request::header(),JSON_UNESCAPED_UNICODE);
+        $this->method = Request::method();
+        $this->ip = Request::ip();
+        $this->agent =Request::server('HTTP_USER_AGENT');
+        $this->module =  app('http')->getName();
+        $this->admin_id   = Session::get('admin.id',0);
+        $this->username   = Session::get('admin.username','Unknown');
     }
     public function save()
     {
-
         $url        = (Request::baseUrl());
         $content    = Request::param();
-        self::$controller = Request::controller();
-        self::$action = Request::action();
+        $this->controller = Request::controller();
+        $this->action = Request::action();
         if (strpos($url, 'enlang') !== false && Request::isAjax()) {
-            self::$title = '[切换语言]';
+            $this->title = '[切换语言]';
         }elseif (strpos($url, 'ajax/clearData') !== false && Request::isAjax()) {
-            self::$title = '[清楚缓存]';
+            $this->title = '[清楚缓存]';
         }elseif (strpos($url, 'login/index') !== false && Request::isAjax()) {
-            self::$title = '[登录成功]';
-            self::$username = json_decode(self::$post_data,true)['username'];
+            $this->title = '[登录成功]';
+            $this->username = json_decode($this->post_data,true)['username'];
         }else{
             //权限
             $auth = AuthRule::column('href','id');
-            foreach ($auth as $k=>&$v){
-                $v = __u($v);
+            $url = str_replace(config('view.view_suffix'),'',Request::pathinfo());
+            if($this->module!=='backend'){
+                $url = str_replace('.'.config('view.view_suffix'),'',Request::pathinfo());
+                $this->title =  AuthRule::where('href',$url)->where('module',$this->module)->value('title');
+            }else{
+                $key = array_search($url,$auth);
+                if($key>=0){
+                    $auth = AuthRule::where('id',$key)->find();
+                    if($auth) $this->title=$auth->title;
+                }
             }
-            $url = str_replace('.html','',$url).'.html';
-            $key = array_search($url,$auth);
-            if($key>=0){
-                $auth = AuthRule::where('id',$key)->find();
-                if($auth) self::$title=$auth->title;
-            }
+
         }
         //插入数据
-        if (!empty(self::$title) and $content) {
+        if (!empty($this->title) && !empty($content)) {
             AdminLog::create([
-                'title'       => self::$title ? self::$title : '',
-                'admin_id'    => self::$admin_id,
-                'username'    => self::$username,
+                'title'       => $this->title ? $this->title : '',
+                'admin_id'    => $this->admin_id,
+                'username'    => $this->username,
                 'url'         => $url,
                 'addons'      => 'app',
-                'module'      => self::$module,
-                'controller'      => self::$controller,
-                'action'      => self::$action,
-                'get_data'     => self::$get_data,
-                'post_data'     => self::$post_data,
-                'header_data'     => self::$header_data,
-                'agent'       => self::$agent,
-                'ip'          => self::$ip,
-                'method'      => self::$method,
+                'module'      => $this->module,
+                'controller'      => $this->controller,
+                'action'      => $this->action,
+                'get_data'     => $this->get_data,
+                'post_data'     => $this->post_data,
+                'header_data'     => $this->header_data,
+                'agent'       => $this->agent,
+                'ip'          => $this->ip,
+                'method'      => $this->method,
             ]);
         }
     }
@@ -112,14 +114,14 @@ class AdminLogService extends AbstractService
     {
         $datas = [
             'title' =>'',
-            'admin_id'    => self::$admin_id,
-            'username'    => self::$username,
-            'get_data'     => self::$get_data,
-            'post_data'     => self::$post_data,
-            'header_data'     => self::$header_data,
-            'agent'       => self::$agent,
-            'ip'          => self::$ip,
-            'method'      => self::$method,
+            'admin_id'    => $this->admin_id,
+            'username'    => $this->username,
+            'get_data'     => $this->get_data,
+            'post_data'     => $this->post_data,
+            'header_data'     => $this->header_data,
+            'agent'       => $this->agent,
+            'ip'          => $this->ip,
+            'method'      => $this->method,
 
         ];
         $data  = array_merge($data,$datas);
