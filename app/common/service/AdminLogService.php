@@ -76,7 +76,7 @@ class AdminLogService extends AbstractService
             //权限
             $auth = AuthRule::column('href','id');
             foreach ($auth as $k=>&$v){
-               $v = __u($v);
+                $v = __u($v);
             }
             $url = str_replace('.html','',$url).'.html';
             $key = array_search($url,$auth);
