@@ -980,7 +980,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 });
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
-                    Table.api.reload($(this).data('tableid'), {}, false)
+                    Table.api.reload($(this).data('tableid') || tableId, {}, false)
                 });
                 //tips
                 $(document).on('mouseenter', '*[lay-tips]', function () {
