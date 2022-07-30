@@ -31,7 +31,7 @@ class AuthCloudService extends AbstractService
     public $expire = 3600*24*7;
     // 请求类型
     public $method = 'post';
-    public $authentication = 'authentication';//不可更改
+    public $authorization = 'authentication';//不可更改
     public $token = '';
     public $params = [];
     public $userdata = [];
@@ -154,7 +154,7 @@ class AuthCloudService extends AbstractService
     {
         $data = $this->getAuth();
         $str= $data['client_id'] .' '.base64_encode($this->appid.':'.$data['access_token'].':'.$data['member_id']);
-        $header = array_merge([$this->authentication .":".$str],$header);
+        $header = array_merge([$this->authorization .":".$str],$header);
         $this->header = $header;
         return $this;
     }
