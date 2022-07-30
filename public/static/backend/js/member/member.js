@@ -52,20 +52,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
             export_url: 'member.memberGroup/export',
         },
     };
-    init2 = {
-        table_elem: 'list1',
-        tableId: 'list1',
-        requests: {
-            modify_url: 'member.memberGroup/modify',
-            index_url: 'member.memberGroup/index',
-            add_url: 'member.memberGroup/add',
-            delete_url: 'member.memberGroup/delete',
-            destroy_url: 'member.memberGroup/destroy',
-            edit_url: 'member.memberGroup/edit',
-            recycle_url: 'member.memberGroup/recycle',
-            export_url: 'member.memberGroup/export',
-        },
-    };
     let Controller = {
         index: function () {
             var table = Table.render({
@@ -128,43 +114,43 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 }
             });
             Table.api.bindEvent(Table.init) ;
-            var table2 = Table.render({
-                elem: '#' + Table.init2.table_elem,
-                id: Table.init2.tableId,
-                url: Fun.url(Table.init2.requests.index_url),
-                init: Table.init2,
-                toolbar: ['refresh','add','destroy','export','recycle'],
-                cols: [[
-                    {checkbox: true, },
-                    {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'name', title: __('GroupName'), minwidth: 120,},
-                    {field: 'rules', title: __('Rules'), minwidth: 120,},
-                    {
-                        field: 'status',
-                        title: __('Status'),
-                        width: 120,
-                        search: 'select',
-                        selectList: {0: __('Disabled'), 1: __('Enabled')},
-                        filter: 'status',
-                        templet: Table.templet.switch
-                    },
-                    {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
-                    {
-                        minwidth: 250,
-                        align: 'center',
-                        title: __('Operat'),
-                        init:  Table.init2,
-                        templet: Table.templet.operat,
-                        operat: ['edit', 'destroy',]
-                    }
-
-                ]],
-                limits: [10, 15, 20, 25, 50, 100],
-                limit: 15,
-                page: true
-
-            });
-          　Table.api.bindEvent(init2);
+          //   var table2 = Table.render({
+          //       elem: '#' + Table.init2.table_elem,
+          //       id: Table.init2.tableId,
+          //       url: Fun.url(Table.init2.requests.index_url),
+          //       init: Table.init2,
+          //       toolbar: ['refresh','add','destroy','export','recycle'],
+          //       cols: [[
+          //           {checkbox: true, },
+          //           {field: 'id', title: 'ID', width: 80, sort: true},
+          //           {field: 'name', title: __('GroupName'), minwidth: 120,},
+          //           {field: 'rules', title: __('Rules'), minwidth: 120,},
+          //           {
+          //               field: 'status',
+          //               title: __('Status'),
+          //               width: 120,
+          //               search: 'select',
+          //               selectList: {0: __('Disabled'), 1: __('Enabled')},
+          //               filter: 'status',
+          //               templet: Table.templet.switch
+          //           },
+          //           {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
+          //           {
+          //               minwidth: 250,
+          //               align: 'center',
+          //               title: __('Operat'),
+          //               init:  Table.init2,
+          //               templet: Table.templet.operat,
+          //               operat: ['edit', 'destroy',]
+          //           }
+          //
+          //       ]],
+          //       limits: [10, 15, 20, 25, 50, 100],
+          //       limit: 15,
+          //       page: true
+          //
+          //   });
+          // 　Table.api.bindEvent(init2);
         },
         add:function () {
             Controller.api.bindevent()
