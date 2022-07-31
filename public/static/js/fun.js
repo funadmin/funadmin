@@ -449,6 +449,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     return false
                 }
             },
+
             //设置子页面主题
             setFrameTheme:function(body=''){
                 var colorId = Fun.api.getStorage('funColorId');
@@ -635,7 +636,18 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     return false;
                 })
                 return returnData;
-            }
+            },
+            callback:function (othis){
+                callback = othis.data('callback');
+                if (callback) {
+                    callback = callback.replace('obj','othis').replace('_that','othis');
+                    callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
+                    callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
+                    eval(callback);
+                    return true;
+                }
+                return true;
+            },
         },
     };
     //初始化
