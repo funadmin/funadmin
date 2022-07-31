@@ -996,7 +996,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         return false
                     } else {
                         Table.api.reload(tableId, {search: text, searchName: name}, true, true);
-                        $('#layui-input-search').prop("value", $(this).val());
+                        $('#layui-input-search-'+tableId).prop("value", $(this).val());
                         return false
                     }
                 }).unbind('blur', '#layui-input-search-'+tableId, function (event) {
