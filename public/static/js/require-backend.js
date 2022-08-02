@@ -19,7 +19,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect','treeTable','tableEdit','tableFilter','tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN', 'xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','fu','form','table','upload','addons'],
+        'css','treeGrid','tableSelect','treeTable','tableEdit','tableFilter','tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','fu','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery

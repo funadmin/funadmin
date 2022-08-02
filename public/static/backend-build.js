@@ -8,7 +8,7 @@
     //下面的复制require-backend.js
     include: [
         'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
-        'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay',
+        'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay','selectPage',
         'inputTags','timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
         'dayjs', 'backend','md5','fun','fu', 'form','table','upload'

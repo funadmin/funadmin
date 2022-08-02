@@ -8,7 +8,7 @@
     include: [
         'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
-        'timeago','multiSelect','xmSelect','selectPlus','selectN',
+        'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers', 'dayjs',
         'md5','fun','form','fu', 'table','upload'],
     paths: {
