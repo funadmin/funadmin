@@ -340,15 +340,6 @@ define(['jquery', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTag
                             });
 
                         }
-                        if ($(this).data('editor') == 3) {
-                            window['editor' + id] = layui.layedit.build(id, {
-                                height: 350,
-                                uploadImage: {
-                                    url: Fun.url(Upload.init.requests.upload_url) + '?editor=layedit&path=' + path,
-                                    type: 'post'
-                                }
-                            })
-                        }
                     })
                 }
             },
