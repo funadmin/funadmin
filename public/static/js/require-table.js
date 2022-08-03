@@ -446,7 +446,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     selected = value === i ? 'selected="selected"' : '';
                     $html += '<option ' + selected + ' value="' + i + '">' + ele.selectList[i] + '</option>'
                 })
-                $html += '</select></div>';
+                $html += '</select><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script></div>';
                 return $html;
             }, switch: function (d) {
                 var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
