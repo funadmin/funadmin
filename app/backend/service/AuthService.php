@@ -74,7 +74,10 @@ class AuthService
         if (substr($pathurl, 0,7) === 'addons/') {
             $this->requesturl = $pathurl;
         }else{
-            $this->requesturl = str_replace(Config::get('backend.backendEntrance'),'',$this->requesturl);
+            $root = request()->root().'/';
+            if(Str::startsWith($this->requesturl,$root)) {
+                $this->requesturl = substr_replace($this->requesturl,$root,'',0,strlen($root));
+            }
         }
         if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
             $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
@@ -261,7 +264,13 @@ class AuthService
     {
         $cfg = config('backend');
         $url = (string)$url;
-        $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
+        $root = request()->root().'/';
+        if(Str::startsWith($url,$root)){
+            $url = explode('.'.config('view.view_suffix'),$url)[0];
+            $this->requesturl  = substr_replace($url,$root,0,strlen($root));
+        }else{
+            $this->requesturl = $url;
+        }
         $this->requesturl = trim($this->requesturl,'/');
         $urlArr = explode('/',$this->requesturl);
         $this->controller =  strpos($this->requesturl,'addons/')===false?Str::camel($urlArr[0]):$urlArr[1].'/'.$urlArr[2].'/'.$urlArr[3];

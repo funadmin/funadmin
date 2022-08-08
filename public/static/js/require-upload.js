@@ -12,9 +12,9 @@ define(["jquery", 'croppers'], function($, croppers) {
     var Upload = {
         init: {
             requests: {
-                upload_url: '/ajax/uploads',
-                attach_url: '/ajax/getAttach',
-                select_url:'/sys.attach/selectfiles'
+                upload_url: 'ajax/uploads',
+                attach_url: 'ajax/getAttach',
+                select_url:'sys.attach/selectfiles'
             },
             upload_exts: Config.upload.upload_file_type,
             upload_size: Config.upload.upload_file_max,
@@ -198,7 +198,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         }, 2000)
                                     })
                                 }
-                                Fun.toastr.close(index);
+                                Fun.toastr.close();
                             },
                             error: function() {
                                 Fun.toastr.error(__('Upload Failed'), function() {
