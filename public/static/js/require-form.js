@@ -291,7 +291,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                 multiSelect.render();
             },
             /**
-             * 表格选择文件
+             * 选择文件
              */
             chooseFiles: function() {
                 var fileSelectList = $("*[lay-filter=\"upload-choose\"]");

@@ -74,10 +74,11 @@ class AuthService
         if (substr($pathurl, 0,7) === 'addons/') {
             $this->requesturl = $pathurl;
         }else{
-            $root = request()->root().'/';
-            if(Str::startsWith($this->requesturl,$root)) {
-                $this->requesturl = substr_replace($this->requesturl,$root,'',0,strlen($root));
+            $entrance = Config::get('backend.backendEntrance');
+            if(Str::startsWith($this->requesturl,$entrance)){
+                $this->requesturl  = substr_replace($url,'',0,strlen($entrance));
             }
+            $this->requesturl  = trim($this->requesturl,'/');
         }
         if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
             $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
@@ -263,13 +264,13 @@ class AuthService
     public function authNode($url)
     {
         $cfg = config('backend');
-        $url = (string)$url;
-        $root = request()->root().'/';
-        if(Str::startsWith($url,$root)){
-            $url = explode('.'.config('view.view_suffix'),$url)[0];
-            $this->requesturl  = substr_replace($url,$root,0,strlen($root));
-        }else{
-            $this->requesturl = $url;
+        $entrance = $cfg['backendEntrance'];
+        $this->requesturl = (string)$url;
+        if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
+            $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
+        }
+        if(Str::startsWith($url, $entrance)){
+            $this->requesturl  = substr_replace($this->requesturl,'',0,strlen($entrance));
         }
         $this->requesturl = trim($this->requesturl,'/');
         $urlArr = explode('/',$this->requesturl);

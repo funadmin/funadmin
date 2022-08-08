@@ -114,7 +114,7 @@ class Frontend extends BaseController
         $this->module = app('http')->getName();
         $this->controller = request()->controller();
         $this->action = request()->action();
-        $this->entrance = '/';
+        $this->entrance = '';
         [$modulename, $controllername, $actionname] = [$this->module, $this->controller, $this->action];
         $controllername = str_replace('\\','.',$controllername);
         $controllers = explode('.', $controllername);

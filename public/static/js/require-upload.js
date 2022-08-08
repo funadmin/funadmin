@@ -198,7 +198,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         }, 2000)
                                     })
                                 }
-                                Fun.toastr.close();
+                                Fun.toastr.close(index);
                             },
                             error: function() {
                                 Fun.toastr.error(__('Upload Failed'), function() {

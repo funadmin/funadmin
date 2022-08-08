@@ -17,10 +17,27 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (url &&　url.indexOf(domain) !== -1) {
                 return url;
             }
+            // url = Fun.common.parseNodeStr(url);
+            // url = url.indexOf(Config.entrance)===0?url.replace(Config.entrance,''):url;
+            // if (!Config.addonname) {
+            //     if (Config.entrance !== '/' && url.indexOf(Config.entrance) === -1) {
+            //         return Config.modulename=='backend' ?Config.entrance + url:'/'+Config.modulename+'/'+url;
+            //     }
+            //     return '/' + url;
+            // } else {
+            //     if (Config.addonname && Config.modulename === 'backend') {
+            //         return Config.entrance + url;
+            //     }
+            //     return '/' + url;
+            // }
+
+
             if(Config.entrance && url.indexOf(Config.entrance)>=0) return url;
             url = Fun.common.parseNodeStr(url);
             url = url.indexOf('/')==0 ? url.replace('/',''):url;
-            return Config.entrance+ '/' + url;
+            if(Config.modulename ==='backend') return Config.entrance+ '/' + url;
+            return '/' +url;
+
         },
         //替换ids
         replaceurl: function (url, d) {
