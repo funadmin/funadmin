@@ -102,10 +102,17 @@ class Frontend extends BaseController
     {
         parent::__construct($app);
         //过滤参数
+        $this->layout && $this->app->view->engine()->layout($this->layout);
+        $controller = parse_name($this->request->controller(),1);
+        $controller = strtolower($controller);
+        if($controller!=='ajax'){
+            $this->loadlang($controller,'');
+        }
+        //过滤参数
         $this->pageSize = input('limit', 15);
+        $this->page = input('page', 1);
         //加载语言包
-        $this->loadlang(strtolower($this->controller));
-        $this->initialize();
+        $this->loadlang($controller,'');
     }
 
     public function initialize()
@@ -151,12 +158,20 @@ class Frontend extends BaseController
 
 
     //自动加载语言
-    protected function loadlang($name)
+    protected function loadlang($name,$addon)
     {
         $lang = cookie(config('lang.cookie_var'));
-        Lang::load([
-            app()->getAppPath(). 'lang' . DS . $lang . DS . str_replace('.', '/', $name) . '.php'
-        ]);
+        if($addon){
+            $res = Lang::load([
+                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
+                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang .'.php'
+            ]);
+        }else{
+            $res = Lang::load([
+                $this->app->getAppPath() . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php'
+            ]);
+        }
+        return $res;
     }
 
     /**

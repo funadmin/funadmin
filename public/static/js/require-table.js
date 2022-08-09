@@ -811,7 +811,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             var op = $('#field_' + key).attr('data-searchop');
                             var min, max;
                             if ($('#field_' + key + '_min').length > 0) {
-                                min = $('#field_' + key + '_min').val();f
+                                min = $('#field_' + key + '_min').val();
                                 max = $('#field_' + key + '_max').val()
                             }
                             if (max || min) {

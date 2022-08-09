@@ -23,7 +23,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if(Config.modulename ==='backend') return Config.entrance+ '/' + url;
             if(Config.modulename!=='backend' && !Config.addonname)  return '/'+Config.modulename+'/'+url;
             return '/' +url;
-
         },
         //替换ids
         replaceurl: function (url, d) {
