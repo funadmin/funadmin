@@ -58,14 +58,16 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index_url)+'?1=1',
                 init: Table.init,
                 primaryKey: 'id',
+                searchShow:true,
+                // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'username', title: __('memberName'), width: 120},
+                    {field: 'username', title: __('memberName'), width: 120,searchValue:'测试'},
                     {field: 'email', title: __('Email'), width: 120,},
                     {field: 'mobile', title: __('mobile'), width: 120,edit: 'text'},
                     {
@@ -115,7 +117,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 }
             });
             Table.api.bindEvent(Table.init) ;
-
             // var table2 = Table.render({
             //     elem: '#' + Table.init2.table_elem,
             //     id: Table.init2.tableId,
