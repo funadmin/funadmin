@@ -14,6 +14,7 @@
 namespace app\common\controller;
 use app\backend\service\AuthService;
 use app\BaseController;
+use app\common\traits\Curd;
 use app\common\traits\Jump;
 use fun\addons\Controller;
 use think\App;
@@ -24,7 +25,7 @@ use think\facade\View;
 
 class Frontend extends BaseController
 {
-    use Jump;
+    use Jump,Curd;
     /**
      * 主键 id
      * @var string
@@ -97,6 +98,12 @@ class Frontend extends BaseController
      * @var array
      */
     protected $joinSearch = [];
+
+    /**
+     * selectpage 字段
+     * @var string[]
+     */
+    protected $selectpageFields = ['*'];
 
     public function __construct(App $app)
     {

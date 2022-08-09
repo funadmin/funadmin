@@ -24,8 +24,7 @@ use think\facade\View;
 
 class AddonsController extends Controller
 {
-    use Jump;
-    use Curd;
+    use Jump,Curd;
 
     /**
      * 主键 id
@@ -91,6 +90,14 @@ class AddonsController extends Controller
      * @var array
      */
     protected $joinSearch = [];
+
+
+    /**
+     * selectpage 字段
+     * @var string[]
+     */
+    protected $selectpageFields = ['*'];
+
 
     public function __construct(App $app)
     {

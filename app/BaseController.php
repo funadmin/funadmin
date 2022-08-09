@@ -13,13 +13,9 @@ declare (strict_types = 1);
 namespace app;
 
 use think\App;
-use think\exception\HttpResponseException;
 use think\exception\ValidateException;
 use think\Validate;
-use think\response\Redirect;
-use HttpEncodingException;
-use think\Response;
-use function GuzzleHttp\Psr7\str;
+
 
 /**
  * 控制器基础类

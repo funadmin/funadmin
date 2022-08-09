@@ -25,8 +25,7 @@ use think\facade\Lang;
 
 class Backend extends BaseController
 {
-    use Jump;
-    use Curd;
+    use Jump,Curd;
     /**
      * 主键 id
      * @var string
@@ -79,6 +78,11 @@ class Backend extends BaseController
      * @var array
      */
     protected $joinSearch = [];
+    /**
+     * selectpage 字段
+     * @var string[]
+     */
+    protected $selectpageFields = ['*'];
 
     /**
      * @param App $app

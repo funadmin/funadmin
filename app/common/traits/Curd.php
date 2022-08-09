@@ -26,7 +26,6 @@ use think\validate\ValidateRule;
 trait Curd
 {
 
-    protected $selectpageFields = ['*'];
 
     use SoftDelete;
     /**

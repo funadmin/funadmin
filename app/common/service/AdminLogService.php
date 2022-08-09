@@ -85,8 +85,8 @@ class AdminLogService extends AbstractService
                     if($auth) $this->title=$auth->title;
                 }
             }
-
         }
+        if(isset($this->post_data['password'])) unset($this->post_data['password']);
         //插入数据
         if (!empty($this->title) && !empty($content)) {
             AdminLog::create([
