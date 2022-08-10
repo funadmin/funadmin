@@ -23,13 +23,13 @@ body .layui-form-onswitch{border:none;}
 .layui-text-right{text-align:right}
 .layui-upload-list li{display:inline-block}
 .layui-upload-list li i{background:#f2f2f2;cursor:pointer}
-#searchFieldList_list form{padding:10px}
-#searchFieldList_list .layui-btn{height:32px;line-height:28px;font-size:12px;padding:0 10px}
-#searchFieldList_list .layui-form-label{padding:0 8px;height:32px;line-height:30px}
-#searchFieldList_list .layui-input-inline input,#searchFieldList_list .layui-input-inline select{width:100%;height:32px;padding:2px 8px;line-height:1em}
-#searchFieldList_list .layui-between .layui-input-inline{margin-right:3%;width:30%}
-#searchFieldList_list .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
-#searchFieldList_list .layui-form-select dl{top:31px;padding:0}
+.layui-search-fieldset form{padding:10px}
+.layui-search-fieldset .layui-btn{height:32px;line-height:28px;font-size:12px;padding:0 10px}
+.layui-search-fieldset .layui-form-label{padding:0 8px;height:32px;line-height:30px}
+.layui-search-fieldset .layui-input-inline input,.layui-search-fieldset .layui-input-inline select{width:100%;height:32px;padding:2px 8px;line-height:1em}
+.layui-search-fieldset .layui-between .layui-input-inline{margin-right:3%;width:30%}
+.layui-search-fieldset .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
+.layui-search-fieldset .layui-form-select dl{top:31px;padding:0}
 .layui-form-select dl dd.layui-this{background:#1890ff;}
 .layui-form-checked span, .layui-form-checked:hover span{background-color:#1890ff}
 .fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}
