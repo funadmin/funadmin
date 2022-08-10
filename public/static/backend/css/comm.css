@@ -50,8 +50,8 @@ body .layui-form-onswitch{border:none;}
 .fun-layer-class .layui-layer-btn,.layui-layer-content{text-align:center}
 .fun-layer-class .layui-layer-title{background: radial-gradient(circle, rgba(247,150,192,1) 0%, rgba(118,174,241,1) 100%) !important;color: #fff !important;border-bottom: none;}
 .fun-layer-class .layui-layer-btn a{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);
-border-radius:3px;border:none;height:32px;line-height:32px;}
-.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccccccab}
+border-radius:3px;border:none;height:32px;line-height:32px;color: #fff;}
+.fun-layer-class .layui-layer-btn a:last-child{background:#ccccccab;color:#333}
 /* 偶数行背景色 */
 .layui-table tr:nth-child(even) {background-color: rgb(243 245 243);}
 /* 鼠标指向表格时,奇数行背景颜色 */

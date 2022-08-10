@@ -16,8 +16,8 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                         url: 'sys.adminlog/edit',
                         text: __('List'),
                         title: __('List'),
-                        // btn:['close'],
-                        extend:"data-btn='close'",
+                        btn:['close'],
+                        extend:"",
                     } ,
                     delall_url: {
                         type: 'delete',
@@ -64,6 +64,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
             });
 
             Table.api.bindEvent(Table.init);
+
         },
         edit:function (){
             Controller.api.bindevent();
