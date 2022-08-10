@@ -3,7 +3,7 @@
     {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
     {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
     {:form_input('mobile','text',['verify'=>'phone'])}
-    {:form_upload('avatar',$formData,['cropper'=>1,'verify'=>'required'])}
+    {:form_upload('avatar',$formData,['cropper'=>1,'width'=>150,'height'=>300,'mark'=>0.5,'verify'=>'required'])}
     {:form_input('email','text',['verify'=>'email'])}
 <!--    示例-->
 {/*    {:form_tel('mobile',['verify'=>''])&cc;*/}
