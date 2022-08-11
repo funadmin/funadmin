@@ -123,7 +123,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
                         var _parent = $(this).parents('.layui-upload')
                         var input = _parent.find('input[type="text"]');
-                        var options = {}
+                        var options = {},index;
                         options = {
                             elem: this,
                             accept: uploadAccept,
@@ -132,7 +132,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             multiple: uploadmultiple,
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath,
                             before: function(obj) {
-                                var index = Fun.toastr.loading(__('uploading...'))
+                                index = Fun.toastr.loading(__('uploading...'))
                             },
                             done: function(res) {
                                 if (res.code > 0) {
@@ -171,9 +171,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                     } else {
                                         if (_parent.find('li').length >= uploadNum) {
                                             Fun.toastr.error(__('File nums is limited'), function() {
-                                                setTimeout(function() {
                                                     Fun.toastr.close();
-                                                }, 2000)
                                             })
                                             return false;
                                         } else {
@@ -187,33 +185,25 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         }
                                     }
                                     Fun.toastr.success(__('Upload Success'), function() {
-                                        setTimeout(function() {
-                                            Fun.toastr.close();
-                                        }, 2000)
+                                        Fun.toastr.close();
                                     })
                                 } else {
                                     Fun.toastr.error(__('Upload Failed') + __(res.msg), function() {
-                                        setTimeout(function() {
                                             Fun.toastr.close();
-                                        }, 2000)
                                     })
                                 }
-                                Fun.toastr.close(index);
                             },
                             error: function() {
                                 Fun.toastr.error(__('Upload Failed'), function() {
-                                    setTimeout(function() {
                                         Fun.toastr.close();
-                                    }, 2000)
                                 })
-                                Fun.toastr.close();
                             }
                         }
                         if(uploadExts!=="*" && uploadExts){
                             options.exts = uploadExts
                         }
                         var uploadInt = layui.upload.render(options);
-                        Toastr.destroyAll();
+                        // Toastr.destroyAll();
 
                     })
                 }
