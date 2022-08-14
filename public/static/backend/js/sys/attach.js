@@ -102,6 +102,11 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
             showRadio = $('#tree').data('radio')
             //选择文件
             function fileSelect(othis,type=1) {
+                if(type==1 && othis.parent('li').length==1){
+                    var id = othis.parent('li').data('id')
+                    $ids = [id] ;
+                    return $ids;
+                }
                 var li = $('.box-body .file-list-item li.active');
                 var ids = [];
                 if(li.length ===0 && type===1){
@@ -386,8 +391,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
             //图片编辑
             $('.box-body').delegate('.file-edit,.file-name', 'click', function () {
                 var _this, id, name;_this = $(this).parent();id = _this.attr('data-id');name = _this.attr('title');
-                parent.layer.prompt({title: '修改图片名称', value: name, formType: 3}, function (value, index) {
-                    parent.layer.close(index);
+                layui.layer.prompt({title: '修改图片名称', value: name, formType: 3}, function (value, index) {
+                    layui.layer.close(index);
                     var Url = Fun.url(Table.init.requests.edit_url+ '?id=' + id) ;
                     var data = {
                         'original_name': value,
