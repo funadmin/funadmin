@@ -33,6 +33,8 @@ return [
         'Man'                                       => '男性',
         'Female'                                    => '女性',
         'Secrecy'                                   => '保密',
+        'Between 4 and 25 characters'              =>'4-25个字符',
+        '100 not discounted, 90% off'              =>'100 不打折，90% 折扣'
 
 
     ];

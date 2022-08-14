@@ -132,7 +132,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             multiple: uploadmultiple,
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath,
                             before: function(obj) {
-                                index = Fun.toastr.loading(__('uploading...'),setTimeout(function(){
+                                index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
                                     Fun.toastr.close();
                                 },1200))
                             },
