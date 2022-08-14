@@ -127,6 +127,37 @@ trait Curd
         return view('add',$view);
     }
 
+
+    public function copy(){
+        $id = request()->param('id');
+        $list = $this->modelClass->find($id);
+        if(empty($list)) $this->error(lang('Data is not exist'));
+        if (request()->isPost()) {
+            $post = request()->post();
+            $rule = [];
+            try {
+                $this->validate($post, $rule);
+            }catch (\ValidateException $e){
+                $this->error(lang($e->getMessage()));
+            }
+            try {
+                $data = $list->toArray();
+                if(isset($data['create_time'])){
+                    unset($data['create_time']);
+                }
+                if(isset($data['update_time'])){
+                    unset($data['update_time']);
+                }
+                unset($data['id']);
+                $this->modelClass->save($data);
+            } catch (\Exception $e) {
+                $this->error(lang($e->getMessage()));
+            }
+            $this->success(lang('operation success'));
+        }
+        $view = ['formData'=>$list,'title' => lang('Add'),];
+        return view('add',$view);
+    }
     /**
      * @NodeAnnotation(title="delete")
      */

@@ -113,7 +113,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         }
                     } else if (v === 'recycle') {
                         if (Fun.checkAuth('recycle', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="recycle" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="recycle" lay-event="open" data-btn="close" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n'
                         }
                     } else if (v === 'restore') {
                         if (Fun.checkAuth('restore', options.elem)) {
@@ -513,16 +513,17 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                 icon: 'layui-icon layui-icon-add-circle-fine',
                                 extend: "", width: '800', height: '600', tips: 'add',
                             }
-                        } else if (v === 'edit') {
+                        } else if (v === 'edit' || v==='copy') {
+                            icon = v==='edit'? 'layui-icon-edit': 'layui-icon-file-b';
                             va = {
                                 type: 'open',
                                 event: 'open',
                                 class: 'layui-btn layui-btn-xs',
-                                text: __('Edit'),
-                                title: __('Edit'),
-                                url: requests.edit_url,
-                                icon: 'layui-icon layui-icon-edit',
-                                extend: "", width: '800', height: '600', tips: 'edit',
+                                text: __(v),
+                                title: __(v),
+                                url: requests[v+'_url'],
+                                icon: 'layui-icon '+icon,
+                                extend: "", width: '800', height: '600', tips: v,
                             }
                         } else if (v === 'delete') {
                             va = {

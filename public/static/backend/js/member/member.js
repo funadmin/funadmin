@@ -10,6 +10,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             destroy_url: 'member.member/destroy',
             export_url: 'member.member/export',
             restore_url: 'member.member/restore',
+            copy_url: 'member.member/copy',
             // add_url: 'member.member/add',
             // edit_url: 'member.member/edit',
             add_full:{
@@ -104,7 +105,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_url', 'destroy']
+                        operat: ['edit_url','copy', 'destroy']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],
@@ -163,6 +164,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
         edit:function () {
             Controller.api.bindevent();
 
+        },
+        copy:function () {
+            Controller.api.bindevent();
         },
         recycle: function () {
             Table.render({
