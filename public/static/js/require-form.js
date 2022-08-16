@@ -132,7 +132,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                                 layui.each($select, function() {
                                     var field = $(this).attr('name');
                                     var vals = [];
-                                    $('select[multiple] option:selected').each(function() {
+                                    $(this).children('option:selected').each(function() {
                                         vals.push($(this).val());
                                     })
                                     data.field[field] = vals.join(',');

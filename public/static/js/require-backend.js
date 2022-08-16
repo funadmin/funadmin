@@ -70,20 +70,8 @@ require.config({
         'tableFilter':{
             deps: ['css!plugins/lay-module/tableFilter/tableFilter.css'],
         },
-        'inputTags':{
-            deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
-        },
-        'regionCheckBox':{
-            deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],
-        },
-        'multiSelect': {
-            deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
-        },
         'timePicker':{
             deps:['css!plugins/lay-module/timePicker/timePicker.css'],
-        },
-        'step': {
-            deps: ['css!plugins/lay-module/step/step.css'],
         },
         'croppers': {
             deps: ['plugins/lay-module/cropper/cropper', 'css!plugins/lay-module/cropper/cropper.css'], exports: "cropper"
