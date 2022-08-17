@@ -20,5 +20,7 @@ return [
     'IsMenu'=>'是否菜单',
     'title'=>'菜单名',
     'Module'=>'模块',
+    'Parent menu cannot be modified to submenu'=>'父菜单不能修改到子菜单',
+    'The superior cannot be set as himself'=>'父级不能为自己'
 
 ];

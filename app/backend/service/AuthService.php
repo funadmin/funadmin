@@ -594,14 +594,14 @@ class AuthService
     /**
      * 获取所有子id
      */
-    protected function getallIdsBypid($pid)
+    public function getAllIdsBypid($pid)
     {
         $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
         $str = '';
         if (!empty($res)) {
             foreach ($res as $k => $v) {
                 $str .= "," . $v['id'];
-                $str .= $this->getallIdsBypid($v['id']);
+                $str .= $this->getAllIdsBypid($v['id']);
             }
         }
         return $str;
