@@ -183,7 +183,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 })
                             },
                             btn2: function () {
-                                Fun.api.closeCurrentOpen();
+                                Fun.api.close();
                                 return false;
                             },
                             success: function (layero, index) {
@@ -290,7 +290,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 })
                             },
                             btn2: function () {
-                                Fun.api.closeCurrentOpen();
+                                Fun.api.close();
                                 return false;
                             },
                             success: function (layero, index) {

@@ -305,7 +305,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     url: data.url ? data.url : data.href,
                     width: data.width,
                     height: data.height,
-                    isResize: data.title,
+                    isResize: data.resize,
                     full: data.full,
                     btn: data.btn,
                     btnAlign: data.btnAlign,
@@ -471,14 +471,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
                 top.layui.$('body').attr('id',theme);
             },
-            /**
-             * 关闭当前弹窗
-             */
-            close:function(index,type=0){
-                index =  index === undefined? parent.layer.getFrameIndex(window.name):index;
-                type === 1? parent.layer.closeAll(): parent.layer.close(index)
-                return true;
-            },
+
             /**
              * 检测屏幕是否手机
              * @returns {boolean}
@@ -509,8 +502,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
-                winHeight = $(document).height()+110 ;height = height>winHeight?winHeight:height;
-                width = width + 'px';height = height + 'px';
+                width = $(window).width() > width ? width + 'px' :'98%';
+                height = $(window).height()>height?height + 'px' :'98%';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn === undefined) {
@@ -533,7 +526,10 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
                 if (options.btn_lang === []) options.btn_lang = false;
                 var parentiframe = Fun.api.checkLayerIframe();
-                options = {
+                options.callback = function (){
+                    console.log(1)
+                }
+                options = $.extend({
                     title: title, type: type, area: [width, height], content: url,
                     shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
                     zIndex: parent.layui.layer.zIndex, //
@@ -575,7 +571,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     end:end === undefined?function(index, layero){
                         layer.close(layer.index);
                     }:end
-                }
+                }, options ? options : {})
+                console.log(options)
                 //增加多个按钮
                 if(btns.length>1){
                     for (i=1;i<btns.length;i++) {
@@ -604,6 +601,28 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     $(window).on("resize", function () {
                         layui.layer.full(index);
                     })
+                }
+            },
+            /**
+             * 关闭当前弹窗
+             */
+            close:function(index,type=0){
+                index =  index === undefined? parent.layer.getFrameIndex(window.name):index;
+                type === 1? parent.layer.closeAll(): parent.layer.close(index)
+                return true;
+            },
+            /**
+             * 关闭窗口并回传数据
+             * @param data
+             */
+            closecallback: function(data) {
+                var index = parent.layui.layer.getFrameIndex(window.name);
+                var callback = parent.$("#layui-layer" + index).data("callback");
+                //再执行关闭
+                parent.layui.layer.close(index);
+                //再调用回传函数
+                if (typeof callback === 'function') {
+                    callback.call(undefined, data);
                 }
             },
             //打开iframe

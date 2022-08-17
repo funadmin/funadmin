@@ -41,7 +41,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                             })
                         },
                         btn2: function () {
-                            Fun.api.closeCurrentOpen();
+                            Fun.api.close();
                             return false;
                         },
                         success: function (layero, index) {

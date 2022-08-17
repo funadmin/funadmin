@@ -188,20 +188,6 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
         },
         api: {
             /**
-             * 关闭窗口并回传数据
-             * @param data
-             */
-            close: function(data) {
-                var index = parent.layui.layer.getFrameIndex(window.name);
-                var callback = parent.$("#layui-layer" + index).data("callback");
-                //再执行关闭
-                parent.layui.layer.close(index);
-                //再调用回传函数
-                if (typeof callback === 'function') {
-                    callback.call(undefined, data);
-                }
-            },
-            /**
              * 关闭窗口
              * @param option
              * @returns {boolean}

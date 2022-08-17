@@ -125,7 +125,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     data: {rules: JSON.stringify(dataRule)},
                 }, function (res) {
                     Fun.toastr.success(res.msg, function () {
-                        Form.api.closeCurrentOpen({refreshTable:true});
+                        Form.api.closeOpen({refreshTable:true});
                     })
                 })
             })
