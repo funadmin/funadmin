@@ -19,14 +19,10 @@ use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
 use app\common\model\Config;
 use app\common\service\UploadService;
-use app\common\traits\Curd;
 use fun\helper\FileHelper;
-use GuzzleHttp\Psr7\Request;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
-use think\facade\Cookie;
-use think\facade\Lang;
 
 class Ajax extends Backend
 {

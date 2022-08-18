@@ -9,7 +9,7 @@
 
 define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
     var Table = {
-        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export'},},
+        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
             options.elem = options.elem || '#' + options.init.table_elem;
             options.primaryKey = options.primaryKey || $('#'+options.id).data('primaryKey') || 'id';
@@ -38,12 +38,12 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 })
             }
             $(options.elem).attr('lay-filter', options.layFilter);
-            options.toolbar = options.toolbar || ['refresh', 'export', 'add', 'delete', 'recycle'];
+            options.toolbar = options.toolbar || ['refresh','add', 'delete', 'export', 'import' ,'recycle'];
             if (options.search === true && options.searchFormTpl !== false) {
                 data = options.tpldata || {}
                 layui.laytpl($('#' + options.searchFormTpl).html()).render(data, function (html) {
                     $('#' + options.id).before(html);
-                    Table.api.tableSearch(options.id);cols = [];
+                    Table.api.tableSearch(options);cols = [];
                     var formVal = $('#layui-form-' + options.id + ' [name]').serializeArray()
                     layui.each(formVal, function (i, v) {
                         var O = $('[name="' + v.name + '"]');
@@ -79,6 +79,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             Table.api.sort(options);
             Table.api.tool(options);
             Table.api.toolDouble(options);
+            Table.api.import(options);
             if (options.rowDouble) {
                 Table.api.rowDouble(options)
             }
@@ -89,16 +90,12 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             var d = options.toolbar, tableId = options.id, searchInput = options.searchInput;init = options.init;
             d = d || [];
             var toolbarHtml = '';
-            var nodeArr = ['refresh', 'export', 'add', 'delete', 'destroy', 'recycle', 'restore'];
+            var nodeArr = ['refresh','add', 'delete', 'destroy', 'export', 'import', 'recycle', 'restore'];
             layui.each(d, function (i, v) {
                 if ($.inArray(v, nodeArr) !== -1) {
                     if (v !== 'refresh') url = Fun.replaceurl(eval('init.requests.' + v + '_url'), d);
                     if (v === 'refresh') {
                         toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
-                    } else if (v === 'export') {
-                        if (Fun.checkAuth('export', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="export"  lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
-                        }
                     } else if (v === 'add') {
                         if (Fun.checkAuth('add', options.elem)) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
@@ -110,6 +107,14 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     } else if (v === 'destroy') {
                         if (Fun.checkAuth('destroy', options.elem)) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-tips="destroy" lay-event="delete" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure  to destroy') + '"><i class="layui-icon layui-icon-delete"></i>' + __('Destroy') + '</a>\n'
+                        }
+                    } else if (v === 'export') {
+                        if (Fun.checkAuth('export', options.elem)) {
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="export"  lay-event="export" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-export"></i>' + __('Export') + '</a>\n'
+                        }
+                    } else if (v === 'import') {
+                        if (Fun.checkAuth('import', options.elem)) {
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="import"  lay-event="import" data-exts="csv,xls,xlsx" data-accept="*" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-upload-drag"></i>' + __('Import') + '</a>\n'
                         }
                     } else if (v === 'recycle') {
                         if (Fun.checkAuth('recycle', options.elem)) {
@@ -729,7 +734,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     tableId = Table.init.tableId
                 }
                 Table.api.reload(tableId)
-            }, export: function (othis) {
+            },export: function (othis) {
                 var url = othis.data('url');tableId = othis.data('tableid');
                 var dataField = $('#layui-search-field-' + tableId + ' .layui-form [name]').serializeArray();
                 var formatFilter = {}, formatOp = {};
@@ -756,7 +761,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     where = "?filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)
                 }
                 window.open(Fun.url(url + where), '_blank')
-            }, request: function (othis, options = null) {
+            },request: function (othis, options = null) {
                 Fun.events.request(othis, options, Table)
             }, delete: function (othis, options = null) {
                 var tableId = othis.data('tableid');
@@ -794,6 +799,34 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             },
         },
         api: {
+            //必须先加载否则上传无效
+            import: function (options){
+                othis = $('[lay-event="import"]');
+                if(othis.length>0){
+                    require(['upload'], function (Upload) {
+                        Upload.api.uploads(othis,{},
+                            function (res) {
+                                if(res.code==0){
+                                    Fun.toastr.error(res.msg);
+                                    return false;
+                                }
+                                Fun.ajax({
+                                    url: options.init.requests.import_url ||　options.init.requests.import,
+                                    data: {file: res.url},
+                                }, function (res) {
+                                    if(res.code>0){
+                                        Fun.toastr.success(res.msg);
+                                    }else{
+                                        Fun.toastr.error(res.msg);
+                                    }
+                                    Table.api.reloadData();
+
+                                });
+                            }
+                        );
+                    });
+                }
+            },
             toolDouble:function (options){
                 //单元格工具事件 - 双击触发 注：v2.7.0 新增
                 layui.table.on('toolDouble('+options.id+')', function(obj){
@@ -824,8 +857,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     parent.layui.table.reloadData(tableId, {}, $deep);
                 }
             },
-            tableSearch: function (tableId) {
-                layui.form.on('submit(' + tableId + '_filter)', function (data) {
+            tableSearch: function (options) {
+                layui.form.on('submit(' + options.id + '_filter)', function (data) {
                     var dataField = data.field;
                     [formatFilter,formatOp] = Table.getSearchField(dataField);
                     Table.getSearchField(dataField);
@@ -967,8 +1000,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     return ;
                 })
             },
-            bindEvent: function (init) {
-                var tableId = init.table_elem || Table.init.table_elem
+            bindEvent: function (options) {
+                var tableId = options.tableId || Table.init.tableId
                 $(document).on('click','*[lay-event]',function(){
                     var _that = $(this);
                     var attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）

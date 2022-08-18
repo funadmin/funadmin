@@ -100,43 +100,35 @@ define(["jquery", 'croppers'], function($, croppers) {
 
                 })
             },
-            uploads: function() {
-                var uploadList = $('*[lay-filter="upload"]');
+            uploads: function(ele,options,success,error) {
+                var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
                         if(typeof data.value == 'object') data = data.value;
-                        var uploadNum = data.num,
-                            uploadMime = data.mime;
-                        var uploadAccept = data.accept,
-                            uploadPath = data.path || 'upload',
-                            uploadSize = data.size,
-                            uploadmultiple = data.multiple,
-                            uploadExts = data.exts;
-                        uploadNum = uploadNum || 1;
-                        uploadSize = uploadSize || Upload.init.upload_size;
-                        uploadExts = uploadExts || Upload.init.upload_exts;
+                        var uploadNum = data.num, uploadMime = data.mime,uploadAccept = data.accept,uploadPath = data.path || 'upload',
+                            uploadSize = data.size,save = data.save || 0,group = data.group || '', uploadmultiple = data.multiple,
+                            uploadExts = data.exts;uploadNum = uploadNum || 1;uploadSize = uploadSize || Upload.init.upload_size;
+                            uploadExts = uploadExts || Upload.init.upload_exts;
                         uploadExts = uploadExts.indexOf(',') ?uploadExts.replace(/,/g,'|'):uploadExts
                         uploadmultiple = uploadmultiple || false;
-                        uploadAccept = uploadAccept || uploadMime;
+                        uploadAccept = uploadAccept || uploadMime || "*";
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
-                        var _parent = $(this).parents('.layui-upload')
-                        var input = _parent.find('input[type="text"]');
-                        var options = {},index;
-                        options = {
-                            elem: this,
+                        var _parent = $(this).parents('.layui-upload'),input = _parent.find('input[type="text"]'),index;
+                        options = $.extend({
+                            elem: $(this),
                             accept: uploadAccept,
                             size: uploadSize,
                             number:uploadNum,
                             multiple: uploadmultiple,
-                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath,
+                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'$group_id='+group,
                             before: function(obj) {
                                 index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
                                     Fun.toastr.close();
                                 },1200))
                             },
-                            done: function(res) {
+                            done: success===undefined?function(res) {
                                 if (res.code > 0) {
                                     var img ='jpg|jpeg|png|gif|svg|bmp|webp';
                                     var video ='mp4|rmvb|avi|ts';
@@ -188,22 +180,23 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 } else {
                                     Fun.toastr.error(__('Upload Failed') + __(res.msg))
                                 }
-                            },
-                            error: function() {
+                            }:success,
+                            error:error===undefined? function() {
                                 Fun.toastr.error(__('Upload Failed'))
-                            }
-                        }
+                            }:error,
+                        },options==undefined?{}:options)
                         if(uploadExts!=="*" && uploadExts){
                             options.exts = uploadExts
                         }
-                        var uploadInt = layui.upload.render(options);
+                        uploadInt = [];
+                        uploadInt[i] = layui.upload.render(options);
                         // Toastr.destroyAll();
 
                     })
                 }
             },
-            cropper: function() {
-                var cropperlist = $("*[lay-filter='cropper']");
+            cropper: function(ele,options,success,error) {
+                var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
                 if (cropperlist.length > 0) {
                     cropperlistobj = {}
                     layui.each(cropperlist, function(i) {
@@ -217,7 +210,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         saveH = saveH || 300;
                         mark = mark || 1;
                         area = area || '720px';
-                        cropperlistobj[i] = layui.croppers.render({
+                        options = $.extend({
                             elem: '#' + id,
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
@@ -225,7 +218,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             area: area, //弹窗宽度
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
-                            done: function(res) {
+                            done:success=== undefined ? function(res) {
                                 //上传完毕回调
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
@@ -235,8 +228,12 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 } else if (res.code <= 0) {
                                     Fun.toastr.error(res.msg);
                                 }
-                            }
-                        });
+                            }:success,
+                            error: error === undefined ? function (index){
+
+                            }:error,
+                        },options===undefined?{}:options)
+                        cropperlistobj[i] = layui.croppers.render(options);
                     })
                 }
             },

@@ -9,6 +9,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             delete_url: 'member.member/delete',
             destroy_url: 'member.member/destroy',
             export_url: 'member.member/export',
+            import_url: 'member.member/import',
             restore_url: 'member.member/restore',
             copy_url: 'member.member/copy',
             // add_url: 'member.member/add',
@@ -55,7 +56,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
     // };
     let Controller = {
         index: function () {
-            var table = Table.render({
+            var options = {
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
@@ -64,7 +65,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 primaryKey: 'id',
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
-                toolbar: ['refresh','add_full','destroy','export','recycle'],
+                toolbar: ['refresh','add_full','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
@@ -116,7 +117,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
 
 
                 }
-            });
+            }
+            var table = Table.render(options);
             Table.api.bindEvent(Table.init) ;
             // var table2 = Table.render({
             //     elem: '#' + Table.init2.table_elem,

@@ -287,7 +287,8 @@ trait Curd
      */
     public function import()
     {
-        $param = request()->param();
+        $param = request()->param('file');
+        
         $res = hook('importExcel',$param);
         if($res){
             $this->success(lang('Oprate success'));
