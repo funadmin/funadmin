@@ -523,7 +523,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                             va = {
                                 type: 'open',
                                 event: 'open',
-                                class: 'layui-btn layui-btn-xs',
+                                class: 'layui-btn layui-btn-normal',
                                 text: __(v),
                                 title: __(v),
                                 url: requests[v+'_url'],
