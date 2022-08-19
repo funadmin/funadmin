@@ -114,7 +114,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         }
                     } else if (v === 'import') {
                         if (Fun.checkAuth('import', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-danger"  lay-tips="import"  lay-event="import" data-exts="csv,xls,xlsx" data-accept="*" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-upload-drag"></i>' + __('Import') + '</a>\n'
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal"  lay-tips="import"  lay-event="import" data-exts="csv,xls,xlsx" data-accept="*" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-upload-drag"></i>' + __('Import') + '</a>\n'
                         }
                     } else if (v === 'recycle') {
                         if (Fun.checkAuth('recycle', options.elem)) {
@@ -426,16 +426,16 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             },dropdown: function (d) {
                 var ele = $(this)[0];ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele);extend = [];
-                init = d.LAY_COL['init'];
+                init = ele.init;
                 layui.each(ele.selectList, function (i, v) {
                     var url = ele.url || init.requests.modify_url || v.url;
                     if(url.indexOf('?')>=0){
-                        url = url+"&"+d.LAY_COL.primaryKey+'='+d[d.LAY_COL.primaryKey]+'&field='+ele.field;
+                        url = url+"&"+ele.primaryKey+'='+d[ele.primaryKey]+'&field='+ele.field;
                     }else{
-                        url = url+"?"+d.LAY_COL.primaryKey+'='+d[d.LAY_COL.primaryKey]+'&field='+ele.field;
+                        url = url+"?"+ele.primaryKey+'='+d[ele.primaryKey]+'&field='+ele.field;
                     }
                     extend.push({
-                        field:ele.field,value:i,id:d[d.LAY_COL.primaryKey], url: url, title: ele.selectList[i] || v.title,
+                        field:ele.field,value:i,id:d[ele.primaryKey], url: url, title: ele.selectList[i] || v.title,
                         event: ele.event || v.event || 'request', icon: ele.icon || v.icon || "",class:ele.class,
                         callback: ele.callback || v.callback || '',templet:v.templet||ele.templets,
                     })
@@ -446,7 +446,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
                 value = Table.templet.resolution(d, ele)
-                $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[d.LAY_COL.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
+                $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
@@ -461,7 +461,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 ele.tips = ele.tips || 'switch';
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input data-url="' + ele.saveurl  + '" lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[d.LAY_COL.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
+                return '<input data-url="' + ele.saveurl  + '" lay-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[ele.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             },select: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
@@ -496,8 +496,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 value = Table.templet.resolution(d, ele)
                 return value === '-' ? value : parseFloat(value).toFixed(toFixed)
             }, operat: function (d) {
-                init = d.LAY_COL['init'];
-                d.primaryKey = typeof d.LAY_COL!=='undefined'?d.LAY_COL.primaryKey:'id';
+                var ele = $(this)[0];init = ele.init;
+                d.primaryKey = ele.primaryKey ||'id';
                 d.primaryKeyValue = d[d.primaryKey];
                 var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];
@@ -819,7 +819,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                                     }else{
                                         Fun.toastr.error(res.msg);
                                     }
-                                    Table.api.reloadData();
+                                    Table.api.reload();
 
                                 });
                             }

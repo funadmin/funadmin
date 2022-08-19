@@ -37,15 +37,15 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
         },
         api: {
-            mutiUpload: function() {
+            mutiUpload: function(ele,options,success,error,choose,progress) {
                 //多文件列表示例
-                var uploadList = $('*[lay-filter="multipleupload"]');
+                var uploadList = typeof ele === 'undefined' ?$('*[lay-filter="multipleupload"]'):ele;
                 layui.each(uploadList, function(i, v) {
                     var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
                     var id = $(this).attr('id');
                     var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
                     var upload = layui.upload ? layui.upload : parent.layui.upload;
-                    uploadListIns = upload.render({
+                    options = $.extend({
                         elem: '#'+uploadListBtn,
                         url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
                         , accept: 'file',
@@ -53,7 +53,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         multiple: true,
                         auto: false,
                         bindAction: '#'+id,
-                        choose: function(obj) {
+                        choose:choose===undefined? function(obj) {
                             var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
                             //读取本地文件
                             obj.preview(function(index, file, result) {
@@ -70,12 +70,12 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 });
                                 uploadListView.append(tr);
                             });
-                        },
-                        progress: function(n, elem) {
+                        }:change,
+                        progress: progress===undefined?function(n, elem) {
                             var percent = n + '%'; //获取进度百分比
                             $('.progress').html(percent); //可配合 layui 进度条元素使用
-                        },
-                        done: function(res, index, upload) {
+                        }:progress,
+                        done: success===undefined?function(res, index, upload) {
                             if (res.code > 0) { //上传成功
                                 var tr = uploadListView.find('tr#upload-' + index),
                                     tds = tr.children();
@@ -89,14 +89,15 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 return delete this.files[index]; //删除文件队列已经上传成功的文件
                             }
                             this.error(index, upload, res);
-                        },
-                        error: function(index, upload, res) {
+                        }:success,
+                        error: error===undefined?function(index, upload, res) {
                             var tr = uploadListView.find('tr#upload-' + index),
                                 tds = tr.children();
                             tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
                             tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
-                        }
-                    });
+                        }:error
+                    },options==undefined?{}:options)
+                    uploadListIns = upload.render(options);
 
                 })
             },

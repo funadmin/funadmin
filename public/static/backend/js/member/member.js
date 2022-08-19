@@ -60,7 +60,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
-                url: Fun.url(Table.init.requests.index_url)+'?1=1',
+                url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 primaryKey: 'id',
                 searchShow:true,

@@ -11,14 +11,29 @@
  * Date: 2017/8/2
  */
 namespace app\common\traits;
+use app\backend\model\Admin;
 use app\common\annotation\NodeAnnotation;
+use app\common\model\Member;
 use fun\helper\TreeHelper;
+use PhpOffice\PhpSpreadsheet\Reader\Csv;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use think\facade\Cache;
 use think\facade\Db;
+use think\facade\Config;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
-use think\validate\ValidateRule;
-
+use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
+use PhpOffice\PhpSpreadsheet\Reader\Xls;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 /**
  * Trait Curd
  * @package common\traits
@@ -287,15 +302,53 @@ trait Curd
      */
     public function import()
     {
-        $param = request()->param('file');
-        
-        $res = hook('importExcel',$param);
-        if($res){
-            $this->success(lang('Oprate success'));
-        }else{
-            $this->error(lang('Oprate failed'));
+        $file = request()->param('file');
+        $excelData = $this->getFileData($file);
+        $tableField = $this->getTableField();
+        try {
+            $excelData = array_filter($excelData);
+            $fieldTitle = array_filter($excelData[0]);
+            $data = [];
+            $tableComment =  array_values($tableField);
+            $tableFieldKey =  array_keys($tableField);
+            foreach ($excelData as $key => $value) {
+                if($key == 0) continue;
+                $one = [];
+                foreach ($value as $k=>$val) {
+                    if($k>count($fieldTitle)-1) unset($value[$k]);
+                }
+                $newValue = array_combine($fieldTitle,$value);
+                foreach ($newValue as $k=>$v){
+                    if ($k && in_array($k,$tableComment)) {
+                        $field = array_search($k,$tableField);
+                        if($field=='admin_id' && is_string($v)){
+                            $admin = Admin::where('username|realname',$v)->find();
+                            if($admin){
+                                $v = $admin->id;
+                            }else{
+                                $v = session('admin.id');
+                            }
+                        }
+                        if($field=='member_id' && is_string($v)){
+                            $admin = Member::where('username',$v)->find();
+                            if($admin){
+                                $v = $admin->id;
+                            }else{
+                                $v = session('member.id');
+                            }
+                        }
+                        $one[$field] = $v;
 
+                    }
+                }
+                if($one) $data[] = $one;
+            }
+            $this->modelClass->saveAll($data);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
         }
+        $this->success(lang('Import successful'));
+
     }
 
     /**
@@ -343,7 +396,6 @@ trait Curd
         $this->excelData($list,$headerArr,$headTitle,$fileName);
     }
 
-
     /**
      * 返回模型
      * @param $id
@@ -356,6 +408,64 @@ trait Curd
         return $model;
     }
 
+    /**
+     * 获取表格文件内容
+     * @param $file
+     * @return array|void
+     * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
+     */
+    protected function getFileData($file=''){
+
+        $file = $file?:$this->request->param('file');
+        if (!$file) {
+            $this->error(lang("Parameter error"));
+        }
+        $file = public_path(). $file;
+        //此处写导入逻辑
+        $file = iconv("utf-8", "gb2312", $file);
+        if (empty($file) || !file_exists($file)) {
+            $this->error(lang('file does not exist'));
+        }
+        $ext = pathinfo($file, PATHINFO_EXTENSION);
+        if (!in_array($ext, ['csv', 'xls', 'xlsx'])) {
+            $this->error(lang('file  format not right'));
+        }
+        //实例化reader
+        if ($ext === 'csv') {
+            $reader = IOFactory::createReader('Csv')->setInputEncoding('GB2312');
+        } elseif ($ext === 'xls') {
+            $reader = IOFactory::createReader('Xls');
+        } else {
+            $reader = IOFactory::createReader('Xlsx');
+        }
+        if (!$PHPExcel = $reader->load($file)) {
+            $this->error(lang('Unknown data format'));
+        }
+        $excelData = $PHPExcel->getSheet(0)->toArray();
+        $excelData = array_filter($excelData);
+        return $excelData;
+
+    }
+
+    /**
+     * @param $modelClass
+     * @return array
+     */
+    protected function getTableField($modelClass=''){
+        $driver = Config::get('database.default');
+        $this->modelClass = $modelClass?:$this->modelClass;
+        $database = $this->modelClass->get_databasename();
+        $table = $this->modelClass->getName();
+        $tablePrefix = $this->modelClass->get_table_prefix();
+        $field = 'COLUMN_NAME,COLUMN_COMMENT';
+        $sql = "select $field from information_schema . columns  where table_name = '" . $tablePrefix . $table . "' and table_schema = '" . $database . "'";
+        $tableField = Db::connect($driver)->query($sql);
+        $fieldArr = [];
+        foreach ($tableField as $field){
+            $fieldArr[$field['COLUMN_NAME']] = $field['COLUMN_COMMENT'];
+        }
+        return $fieldArr;
+    }
     /**
      * @param $data
      * @param $headerArr
