@@ -451,13 +451,12 @@ trait Curd
      * @param $modelClass
      * @return array
      */
-    protected function getTableField($modelClass=''){
+    protected function getTableField($modelClass='',$field='COLUMN_NAME,COLUMN_COMMENT'){
         $driver = Config::get('database.default');
         $this->modelClass = $modelClass?:$this->modelClass;
         $database = $this->modelClass->get_databasename();
         $table = $this->modelClass->getName();
         $tablePrefix = $this->modelClass->get_table_prefix();
-        $field = 'COLUMN_NAME,COLUMN_COMMENT';
         $sql = "select $field from information_schema . columns  where table_name = '" . $tablePrefix . $table . "' and table_schema = '" . $database . "'";
         $tableField = Db::connect($driver)->query($sql);
         $fieldArr = [];
