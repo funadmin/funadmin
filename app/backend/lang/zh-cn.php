@@ -39,6 +39,7 @@ return [
     'Operat'                    =>  '操作',
     'List'                      =>  '列表',
     'Modify'                    =>  '操作',
+    'Copy'                      =>  '复制',
     'Submit'                    =>  '提交',
     'Access'                    =>  '分配',
     'AddChild'                  =>  '添加子类',
