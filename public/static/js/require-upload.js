@@ -42,10 +42,10 @@ define(["jquery", 'croppers'], function($, croppers) {
                 var uploadList = typeof ele === 'undefined' ?$('*[lay-filter="multipleupload"]'):ele;
                 layui.each(uploadList, function(i, v) {
                     var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
-                    var id = $(this).attr('id');
+                    var id = $(this).attr('id');opt = [];
                     var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
                     var upload = layui.upload ? layui.upload : parent.layui.upload;
-                    options = $.extend({
+                    opt[i] = $.extend({
                         elem: '#'+uploadListBtn,
                         url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
                         , accept: 'file',
@@ -97,7 +97,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
                         }:error
                     },options==undefined?{}:options)
-                    uploadListIns = upload.render(options);
+                    uploadListIns = upload.render(opt[i]);
 
                 })
             },
@@ -106,7 +106,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                 if (uploadList.length > 0) {
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
-                        var data = $(this).data();
+                        var data = $(this).data(),opt = [];
                         if(typeof data.value == 'object') data = data.value;
                         var uploadNum = data.num, uploadMime = data.mime,uploadAccept = data.accept,uploadPath = data.path || 'upload',
                             uploadSize = data.size,save = data.save || 0,group = data.group || '', uploadmultiple = data.multiple,
@@ -117,7 +117,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         uploadAccept = uploadAccept || uploadMime || "*";
                         uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
                         var _parent = $(this).parents('.layui-upload'),input = _parent.find('input[type="text"]'),index;
-                        options = $.extend({
+                        opt[i] = $.extend({
                             elem: $(this),
                             accept: uploadAccept,
                             size: uploadSize,
@@ -190,7 +190,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             options.exts = uploadExts
                         }
                         uploadInt = [];
-                        uploadInt[i] = layui.upload.render(options);
+                        uploadInt[i] = layui.upload.render(opt[i]);
                         // Toastr.destroyAll();
 
                     })
