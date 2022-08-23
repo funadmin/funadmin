@@ -189,7 +189,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             }:error,
                         },options==undefined?{}:options)
                         if(uploadExts!=="*" && uploadExts){
-                            options.exts = uploadExts
+                            opt[i]['exts'] = uploadExts
                         }
                         uploadInt = [];
                         uploadInt[i] = layui.upload.render(opt[i]);

@@ -502,8 +502,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
-                width = $(window).width() >= width ? width + 'px' :'95%';
-                height = ($(window).height()+109)>=height?height + 'px' :'95%';
+                width = $(window).width()+20 >= width ? width + 'px' :'95%';
+                height = ($(window).height()+110)>=height?height + 'px' :'95%';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn === undefined) {
@@ -526,10 +526,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
                 if (options.btn_lang === []) options.btn_lang = false;
                 var parentiframe = Fun.api.checkLayerIframe();
-                options.callback = function (){
-                    console.log(1)
-                }
-                options = $.extend({
+                opt = $.extend({
                     title: title, type: type, area: [width, height], content: url,
                     shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
                     zIndex: parent.layui.layer.zIndex, //
@@ -551,8 +548,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         }
                     } : success,
                     yes: yes === undefined ? function (index, layero) {
-                        console.log(options.btn.length)
-                        console.log(btns[0])
                         try {
                             //此处必须是close才直接关闭
                             if(btns.length==1 && btns[0]=='close'){layer.close(index);return false;}
@@ -578,20 +573,20 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 if(btns.length>1){
                     for (i=1;i<btns.length;i++) {
                         if(i==btns.length-1){
-                            options['btn'+(i+1)] =  function (index, layero) {
+                            opt['btn'+(i+1)] =  function (index, layero) {
                                 layer.close(layer.index);
                             };
                         }else{
                             try {
                                 var func = btns[i];
-                                options['btn'+(i+1)] = options['btn'+(i+1)] || eval(func);
+                                opt['btn'+(i+1)] = opt['btn'+(i+1)] || eval(func);
                                 } catch(e) {
                                     console.log('function '+ func + ' not exists');
                                 }
                         }
                     }
                 }
-                var index =  parentiframe? parent.layer.open(options): layer.open(options);
+                var index =  parentiframe? parent.layer.open(opt): layer.open(opt);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layui.layer.full(index);
                 }
