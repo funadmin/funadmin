@@ -198,6 +198,7 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
             cropper: function(ele,options,success,error) {
                 var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
+                var opt = [];
                 if (cropperlist.length > 0) {
                     cropperlistobj = {}
                     layui.each(cropperlist, function(i) {
@@ -211,7 +212,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         saveH = saveH || 300;
                         mark = mark || 1;
                         area = area || '720px';
-                        options = $.extend({
+                        opt[i] = $.extend({
                             elem: '#' + id,
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
@@ -234,7 +235,7 @@ define(["jquery", 'croppers'], function($, croppers) {
 
                             }:error,
                         },options===undefined?{}:options)
-                        cropperlistobj[i] = layui.croppers.render(options);
+                        cropperlistobj[i] = layui.croppers.render(opt[i]);
                     })
                 }
             },
