@@ -106,7 +106,7 @@ class UploadService extends AbstractService
                             $file_name = basename($savename);
                             $width = $height = 0;
                             if (in_array($file_mime, ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
-                                $imgInfo = getimagesize($vv->getPathname());;
+                                $imgInfo = getimagesize($vv->getPathname());
                                 if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
                                     throw new Exception(lang('Uploaded file is not a valid image'));
                                 }

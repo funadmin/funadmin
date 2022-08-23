@@ -146,7 +146,7 @@ class Index extends BaseController
             $link->query("set global interactive_timeout=2147480");
             $link->query("set global max_allowed_packet=104857600");
             //版本
-            if ($link->server_info < $this->mysqlVersion) {
+            if (floatval($link->server_info) < $this->mysqlVersion) {
                 $this->error("MySQL数据库版本不能低于{$this->mysqlVersion},请将您的MySQL升级到{$this->mysqlVersion}及以上");
             }
             // 创建数据库并选中
