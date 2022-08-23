@@ -93,6 +93,7 @@ class UploadService extends AbstractService
                     if (!$attach) {
                         try {
                             $savename = \think\facade\Filesystem::disk($disksdriver)->putFile($pathSrc, $vv);
+                            $savename = str_replace('\\','/',$savename);
                             $path = $disksurl . "/" . $savename;
                             $paths = trim($path, '/');
                             // 整合上传接口 获取视频音频长度
@@ -187,6 +188,7 @@ class UploadService extends AbstractService
                 if (!$attach) {
                     try {
                         $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
+                        $savename = str_replace('\\','/',$savename);
                         $path = $disksurl . "/" . $savename;
                         $paths = trim($path, "/");
                         // 整合上传接口 获取视频音频长度
