@@ -40,9 +40,10 @@ define(["jquery", 'croppers'], function($, croppers) {
             mutiUpload: function(ele,options,success,error,choose,progress) {
                 //多文件列表示例
                 var uploadList = typeof ele === 'undefined' ?$('*[lay-filter="multipleupload"]'):ele;
+                var opt = [];
                 layui.each(uploadList, function(i, v) {
                     var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
-                    var id = $(this).attr('id');opt = [];
+                    var id = $(this).attr('id');
                     var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
                     var upload = layui.upload ? layui.upload : parent.layui.upload;
                     opt[i] = $.extend({
@@ -104,9 +105,10 @@ define(["jquery", 'croppers'], function($, croppers) {
             uploads: function(ele,options,success,error) {
                 var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
+                    var opt = [];
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
-                        var data = $(this).data(),opt = [];
+                        var data = $(this).data();
                         if(typeof data.value == 'object') data = data.value;
                         var uploadNum = data.num, uploadMime = data.mime,uploadAccept = data.accept,uploadPath = data.path || 'upload',
                             uploadSize = data.size,save = data.save || 0,group = data.group || '', uploadmultiple = data.multiple,
@@ -198,9 +200,8 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
             cropper: function(ele,options,success,error) {
                 var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
-                var opt = [];
                 if (cropperlist.length > 0) {
-                    cropperlistobj = {}
+                    var cropperlistobj = {},opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload'), id = $(this).prop('id');
