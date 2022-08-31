@@ -299,8 +299,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                         tableSelect = layui.tableSelect ||  parent.layui.tableSelect;
                         url = url?url: Fun.url(Upload.init.requests.attach_url + '?' +
                             '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+ '&path='+path+'&type='+uploadType);
-                        layui.tableSelect.render({
-                            elem: '#' + id,
+                        tableSelect.render({
+                            elem: '[lay-filter=\"upload-choose\"]',
                             checkedKey: 'id',
                             searchType: 2,
                             searchList: [{

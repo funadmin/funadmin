@@ -214,7 +214,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         mark = mark || 1;
                         area = area || '720px';
                         opt[i] = $.extend({
-                            elem: '#' + id,
+                            elem: this,
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
