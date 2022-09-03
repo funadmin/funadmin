@@ -119,9 +119,14 @@ class Member extends Frontend {
     }
     //获取地区
     public function getProvinces($pid=0){
+
         $pid = $this->request->param('pid')?$this->request->param('pid'):$pid;
         $list = Db::name('provinces')->where('pid',$pid)->cache(true)->select();
-        return $list;
+        if($this->request->isAjax()){
+            $this->success('','',$list);
+        }else{
+            return $list;
+        }
     }
 
     /**

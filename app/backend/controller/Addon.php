@@ -25,7 +25,6 @@ use think\Exception;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
-use think\facade\Console;
 
 /**
  * @ControllerAnnotation(title="插件管理")
@@ -93,7 +92,7 @@ class Addon extends Backend
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
                         //是否已经安装过
-                        if($localNameArr and in_array($key,$localNameArr)){
+                        if($localNameArr && in_array($key,$localNameArr)){
                             $config = get_addons_config($key);
                             $info = get_addons_info($key);
                             if ($addons && !isset($addons[$key]) || !$addons) {
@@ -169,7 +168,7 @@ class Addon extends Backend
         }
         //检查插件是否安装
         $list = $this->isInstall($name);
-        if ($list and $list->status==1) {
+        if ($list && $list->status==1) {
             $this->error(lang('addons %s is already installed', [$name]));
         }
         list($addons,$localNameArr) = $this->getLocalAddons();
@@ -198,6 +197,9 @@ class Addon extends Backend
         }
         //安装插件
         $class->install();
+        $addon_info = get_addons_info($name);
+        $addon_info['status'] = 1;
+        $module = isset($addon_info['app']) && $addon_info['app']==1?$name:'addon';
         // 安装菜单
         $menu_config=$this->get_menu_config($class);
         if(!empty($menu_config)){
@@ -207,10 +209,8 @@ class Addon extends Backend
                 $pid = $this->addonService->addAddonManager()->id;
             }
             $menu[] = $menu_config['menu'];
-            $this->addonService->addAddonMenu($menu,$pid);
+            $this->addonService->addAddonMenu($menu,$pid,$module);
         }
-        $addon_info = get_addons_info($name);
-        $addon_info['status'] = 1;
         if($list){
             $list->status=1;
             $res = $list->save();
@@ -230,6 +230,10 @@ class Addon extends Backend
         $destAssetsDir = Service::getDestAssetsDir($name);
         if (is_dir($sourceAssetsDir)) {
             FileHelper::copyDir($sourceAssetsDir, $destAssetsDir);
+        }
+        if($module!=='addon') {
+            //复制文件到app下面
+            Service::copyApp($name);
         }
         //复制文件到目录
         if(Service::getCheckDirs()){
@@ -308,10 +312,12 @@ class Addon extends Backend
         $class->uninstall();
         //删除菜单
         $menu_config=$this->get_menu_config($class);
+        $addon_info = get_addons_info($name);
+        $module = isset($addon_info['app']) && $addon_info['app']==1?$name:'addon';
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];
-                $this->addonService->delAddonMenu($menu);
+                $this->addonService->delAddonMenu($menu,$module);
             }
             //卸载sql;
             uninstallsql($name);
@@ -328,6 +334,10 @@ class Addon extends Backend
         foreach ($list as $k => $v) {
             @unlink(app()->getRootPath() . $v);
         }
+        if($module!=='addon'){
+//          //还原文件
+            Service::removeApp($name);
+        };
         Service::updateAddonsInfo($name,1,0);
         try {
             //刷洗addon文件和配置

@@ -50,11 +50,12 @@ return [
     // 显示错误信息
     'show_error_msg'   => true,
     //版本
-    'version' => '2.6.0',
+    'version' => '2.6.3',
 
-    'version_data' => '20220801',
+    'version_data' => '20220905',
 
     'layui_version' => '2.7.6',
+
 
     'ip_check'=>false,
 ];

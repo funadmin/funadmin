@@ -97,6 +97,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     if (v === 'refresh') {
                         toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
                     } else if (v === 'add') {
+                        console.log('add')
+                        console.log(Fun.checkAuth('add', options.elem))
                         if (Fun.checkAuth('add', options.elem)) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
                         }
@@ -136,6 +138,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     if (typeof v === 'string') {
                         v = eval('init.requests.' + v)
                     }
+                    console.log(v)
                     if(!v) return ;
                     v.extend = typeof v.extend === "object" ? "data-extend='" + JSON.stringify(v.extend) + "'" : v.extend;
                     url = Fun.replaceurl(v.url, d);
@@ -250,7 +253,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             });
             if (formHtml !== '') {
                 $('#' + tableId).before('<fieldset id="layui-search-field-' + tableId + '" class="layui-elem-field layui-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" lay-filter="layui-form-' + tableId + '" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
-                Table.api.tableSearch(tableId);
+                Table.api.tableSearch(options);
                 layui.form.render();
                 Table.timeRender(newCols)
                 Fu.events.xmSelect();
@@ -851,7 +854,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
             reload: function (tableId, $where, $deep = true, $parent = true) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $where = $where || {};
-                $map = {where: $where}
+                $map = {where: $where};
                 layui.table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layer && parent.layer.getFrameIndex(window.name)) {
                     parent.layui.table.reloadData(tableId, {}, $deep);
@@ -866,7 +869,7 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                         filter: JSON.stringify(formatFilter),
                         op: JSON.stringify(formatOp)
                     }, true, false);
-                    return false
+                    return false;
                 })
             },
             toolbar: function (options) {
@@ -1014,7 +1017,8 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                 });
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
-                    Table.api.reload($(this).data('tableid') || tableId, {}, false)
+                    Table.api.reload($(this).data('tableid') || tableId, {}, false);
+                    return false;
                 });
                 /**
                  * tips

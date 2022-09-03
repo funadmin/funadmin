@@ -67,16 +67,16 @@ class AuthService
         $this->app = app('http')->getName();
         $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
-        $this->action = $this->action ? $this->action : 'index';
-        $url = $this->controller . '/' . $this->action;
+        $this->action = $this->action ?: 'index';
         $pathurl = $this->request->baseUrl();
-        $this->requesturl = $url;
-        if (substr($pathurl, 0,7) === 'addons/') {
+        if (Str::startsWith($pathurl, '/addons/') !==false) {
             $this->requesturl = $pathurl;
         }else{
             $entrance = Config::get('backend.backendEntrance');
-            if(Str::startsWith($this->requesturl,$entrance)){
-                $this->requesturl  = substr_replace($url,'',0,strlen($entrance));
+            if(Str::startsWith($pathurl,$entrance)){
+                $this->requesturl  = substr_replace($pathurl,'',0,strlen($entrance));
+            }else{
+                $this->requesturl = $this->app .$pathurl;
             }
             $this->requesturl  = trim($this->requesturl,'/');
         }
@@ -274,7 +274,7 @@ class AuthService
         }
         $this->requesturl = trim($this->requesturl,'/');
         $urlArr = explode('/',$this->requesturl);
-        $this->controller =  strpos($this->requesturl,'addons/')===false?Str::camel($urlArr[0]):$urlArr[1].'/'.$urlArr[2].'/'.$urlArr[3];
+        $this->controller =  strpos($this->requesturl,'addons/')===false?$this->request->controller():$urlArr[1].'/'.$urlArr[2].'/'.$urlArr[3];
         if ($this->requesturl === '/') {return false;}
         $adminId = session('admin.id');
         // 判断权限验证开关
@@ -563,7 +563,7 @@ class AuthService
             } elseif($v['module']=='addon') {
                 $v['href'] = ('/' . trim($v['href'], '/'));
             }else{
-                $v['href'] = ('/' .$v['module'].'/'. trim($v['href'], '/'));
+                $v['href'] = '/'. trim($v['href'], '/');
             }
             if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
                 $v['href'] = $href;

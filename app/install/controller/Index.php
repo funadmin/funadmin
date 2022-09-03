@@ -141,10 +141,11 @@ class Index extends BaseController
             if (mysqli_connect_errno()) {
                 $this->error(mysqli_connect_error());
             }
-            $link->query("SET NAMES 'utf8mb4'");
-            $link->query('set global wait_timeout=2147480');
-            $link->query("set global interactive_timeout=2147480");
-            $link->query("set global max_allowed_packet=104857600");
+            $link->query("SET NAMES 'utf8mb4'");//
+//            需要超管
+//            $link->query('set global wait_timeout=2147480');
+//            $link->query("set global interactive_timeout=2147480");
+//            $link->query("set global max_allowed_packet=104857600");
             //版本
             if (version_compare($link->server_info, $this->mysqlVersion, '<')) {
                 $this->error("MySQL数据库版本不能低于{$this->mysqlVersion},请将您的MySQL升级到{$this->mysqlVersion}及以上");

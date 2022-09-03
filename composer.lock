@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ee4a603f243eb67195074533b81433f1",
+    "content-hash": "47c1ac03c4ac7b7fa354b206cca73582",
     "packages": [
         {
             "name": "brick/math",
@@ -402,16 +402,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.2.3",
+            "version": "v4.2.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "c583e2aa02c714795e7b7bd7075c130b17def01f"
+                "reference": "63af00512bd0927c534d629a7d0061a381a44738"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/c583e2aa02c714795e7b7bd7075c130b17def01f",
-                "reference": "c583e2aa02c714795e7b7bd7075c130b17def01f",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/63af00512bd0927c534d629a7d0061a381a44738",
+                "reference": "63af00512bd0927c534d629a7d0061a381a44738",
                 "shasum": ""
             },
             "require": {
@@ -455,9 +455,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.2.3"
+                "source": "https://github.com/funadmin/fun-addons/tree/v4.2.5"
             },
-            "time": "2022-08-17T00:26:15+00:00"
+            "time": "2022-09-03T05:09:01+00:00"
         },
         {
             "name": "league/flysystem",
@@ -905,16 +905,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "2.62.0",
+            "version": "2.62.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/briannesbitt/Carbon.git",
-                "reference": "7507aec3d626797ce2123cf6c6556683be22b5f8"
+                "reference": "01bc4cdefe98ef58d1f9cb31bdbbddddf2a88f7a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/7507aec3d626797ce2123cf6c6556683be22b5f8",
-                "reference": "7507aec3d626797ce2123cf6c6556683be22b5f8",
+                "url": "https://api.github.com/repos/briannesbitt/Carbon/zipball/01bc4cdefe98ef58d1f9cb31bdbbddddf2a88f7a",
+                "reference": "01bc4cdefe98ef58d1f9cb31bdbbddddf2a88f7a",
                 "shasum": ""
             },
             "require": {
@@ -1003,7 +1003,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-08-28T19:48:05+00:00"
+            "time": "2022-09-02T07:48:13+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -3223,5 +3223,5 @@
         "ext-json": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.0.0"
 }

@@ -36,21 +36,21 @@ class AddonService
 
     }
     //添加菜单
-    public function addAddonMenu(array $menu,int $pid = 0){
+    public function addAddonMenu(array $menu,int $pid = 0,string $module = 'addon'){
         foreach ($menu as $v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
                 $v['pid'] = $pid ;
                 $v['href'] = trim($v['href'],'/');
-                $v['module'] = 'addon';
-                $menu = AuthRule::withTrashed()->where('href',$v['href'])->where('module','addon')->find();
+                $v['module'] = $module;
+                $menu = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
                 if($menu){
                     $menu->restore();
                 }else{
                     $menu = AuthRule::create($v);
                 }
                 if ($hasChild) {
-                    $this->addAddonMenu($v['menulist'], $menu->id);
+                    $this->addAddonMenu($v['menulist'], $menu->id,$module);
                 }
             } catch (Exception $e) {
                 throw new Exception($e->getMessage());
@@ -59,12 +59,12 @@ class AddonService
         $this->delMenuCache();
     }
     //循环删除菜单
-    public function delAddonMenu(array $menu){
+    public function delAddonMenu(array $menu,string $module = 'addon'){
         foreach ($menu as $k=>$v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
                 $v['href'] = trim($v['href'],'/');
-                $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module','addon')->find();
+                $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
                 if($menu_rule){
                     $menu_rule->delete();
                     if ($hasChild) {

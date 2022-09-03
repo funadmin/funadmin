@@ -48,8 +48,8 @@ if (!function_exists('__u')) {
     function __u($url = '', array $vars = [], $suffix = true, $domain = false)
     {
         $url = (string)Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
-        $pos = strpos($url, '/backend');
-        if ($pos !== false) {
+        $pos =  strpos($url, '/backend');
+        if(app()->http->getName()==='backend' && strpos($url, '/backend')!==false){
             $url = substr_replace($url, '', $pos, strlen('/backend'));
         }
         return $url;

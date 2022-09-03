@@ -21,7 +21,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 icon: 'layui-icon layui-icon-add',
                 text: __('Add'),
                 title: __('Add'),
-                node:false,//不使用节点权限
+                // node:false,//不使用节点权限
                 // full: 1,
                 width:'800',
                 height:'600',
@@ -69,7 +69,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'username', title: __('memberName'), width: 120,searchValue:'测试'},
+                    {field: 'username', title: __('memberName'), width: 120,
+                        // searchValue:'测试'
+                    },
                     {field: 'email', title: __('Email'), width: 120,},
                     {field: 'mobile', title: __('mobile'), width: 120,edit: 'text'},
                     {

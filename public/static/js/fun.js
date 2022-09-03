@@ -21,7 +21,11 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             url = Fun.common.parseNodeStr(url);
             url = url.indexOf('/')==0 ? url.replace('/',''):url;
             if(Config.modulename ==='backend') return Config.entrance+ '/' + url;
-            if(Config.modulename!=='backend' && !Config.addonname)  return '/'+Config.modulename+'/'+url;
+            if(Config.modulename!=='backend' && !Config.addonname)  {
+                if(url.indexOf(Config.modulename)===-1){
+                    return '/'+Config.modulename+'/'+url;
+                }
+            };
             return '/' +url;
         },
         //替换ids
