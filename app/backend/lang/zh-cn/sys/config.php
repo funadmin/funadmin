@@ -28,7 +28,7 @@ return [
     'Identifier' => '识别码',
     'Code' => '识别码',
     'Remarks'=>'备注',
-    'English characters. Canot duplicate the current existing'=>'英文字符，不能重复',
+    'English characters Canot duplicate the current existing'=>'英文字符，不能重复',
     'default'=>'默认',
     'Sms appid' => '短信APPID',
     'Sms appsecret' => '短密钥',

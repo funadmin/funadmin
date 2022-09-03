@@ -138,7 +138,7 @@ return [
     'Are you sure you want to delete the %s selected item?'  =>  '确定删除选中的 %s 项?',
     'Are you sure you want to delete or empty?'  =>  '确定删除或清空?',
     'Are you sure you want to empty?'  =>  '确定清空?',
-    'English characters. Canot duplicate the current existing'  =>  '英文字符,不能重复',
+    'English characters Canot duplicate the current existing'  =>  '英文字符,不能重复',
     'Please install the upload plugin first'=>'请先安装上传插件',
 
     //菜单
