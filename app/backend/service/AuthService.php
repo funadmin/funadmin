@@ -65,7 +65,6 @@ class AuthService
         // 初始化request
         $this->request = Request::instance();
         $this->app = app('http')->getName();
-        $this->app  = $this->app== Config::get('app.default_app')?'addon':$this->app;
         $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
         $this->action = $this->action ?: 'index';
