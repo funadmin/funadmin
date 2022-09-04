@@ -69,7 +69,7 @@ class AuthService
         $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
         $this->action = $this->action ?: 'index';
-        $pathurl = $this->request->baseUrl();
+        $this->requesturl = $pathurl = $this->request->baseUrl();
         if (Str::startsWith($pathurl, '/addons/') !==false) {
             $this->requesturl = $pathurl;
         }else{
@@ -79,11 +79,11 @@ class AuthService
             }else{
                 $this->requesturl = $this->app .$pathurl;
             }
-            $this->requesturl  = trim($this->requesturl,'/');
         }
         if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
             $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
         }
+        $this->requesturl  = trim($this->requesturl,'/');
     }
 
     /**
