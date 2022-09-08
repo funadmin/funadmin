@@ -37,11 +37,6 @@ class Frontend extends BaseController
      * @var string
      */
     protected $primaryKey = 'id';
-    /**
-     * @var
-     * 入口
-     */
-    protected $entrance;
 
     /**
      * @var

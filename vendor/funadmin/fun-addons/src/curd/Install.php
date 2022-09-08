@@ -31,10 +31,6 @@ class Install extends Command
     protected $sqlFile = '';
     //mysql版本
     protected $mysqlVersion = '5.6';
-    //后台入口文件
-    protected $funadminFile = '';
-    //入口模板
-    protected $backendTpl = '';
     //database模板
     protected $databaseTpl = '';
 
@@ -66,9 +62,7 @@ class Install extends Command
 
         $this->databaseConfigFile = config_path() . "database.php";
         $this->sqlFile = app()->getBasePath() . "install/funadmin.sql";
-        $this->funadminFile = config_path() . "funadmin.php";
         $this->lockFile = public_path() . "install.lock";
-        $this->backendTpl = app()->getBasePath()  . "install/view/tpl/backend.tpl";
         $this->databaseTpl = app()->getBasePath()  . "install/view/tpl/database.tpl";
         $force = $input->getOption('force');
         $this->lockFile = public_path() . "install.lock";
@@ -278,34 +272,6 @@ class Install extends Command
             $putConfig = @file_put_contents($this->databaseConfigFile, $putDatabase);
             if (!$putConfig) {
                 $this->output->error('安装失败，请确认database.php有写权限！:' . $error);
-                exit();
-            }
-            $this->output->highlight('生成后台入口文件...');
-            //后台入口
-            $putAdmin = file_get_contents($this->backendTpl);
-            $number = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            $adminName = substr(str_shuffle($number), 0, 10) . '.php';
-            $backendFile = public_path(). $adminName;
-            if (!file_exists($backendFile)) {
-                @touch($backendFile);
-            }
-            @file_put_contents($backendFile, $putAdmin);
-            //后台配置文件
-            if (!file_exists($this->funadminFile)) {
-                $result = @touch($this->funadminFile);
-                if (!$result) {
-                    $this->output->error("👉 安装失败，请确认 public 有写权限！");
-                    exit();
-                }
-            }
-            $this->output->highlight('入口文件中创建成功');
-            $key = 'entrance';
-            $config = file_get_contents($this->funadminFile); //加载配置文件
-            $config = preg_replace("/'{$key}'.*?=>.*?'.*?'/", "'{$key}' => '/{$adminName}'", $config);
-            @file_put_contents($this->funadminFile, $config); // 写入配置文件
-            $result = @touch($this->lockFile);
-            if (!$result) {
-                $this->output->error("👉 安装失败，请确认 install.lock 有写权限！");
                 exit();
             }
             $adminUser['username'] = $admin['username'];

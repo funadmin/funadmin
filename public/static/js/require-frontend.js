@@ -80,8 +80,8 @@ require.config({
 require(["jquery"], function ($) {
     // 配置语言包的路径
     var paths = {};
-    paths["lang"] = Config.entrance + '/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
-    paths['frontend/'] = 'frontend/';
+    paths["lang"] = '/frontend/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
+    // paths['frontend/'] = 'frontend/';
     require.config({paths:paths});
     $(function () {
         require(['fun','addons'], function (Fun) {

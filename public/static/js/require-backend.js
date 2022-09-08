@@ -84,8 +84,8 @@ require.config({
 require(["jquery"], function ($) {
     // 配置语言包的路径
     var paths = {};
-    paths["lang"] = Config.entrance + '/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
-    paths['backend/'] = 'backend/';
+    paths["lang"] = '/backend/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
+    // paths['backend/'] = 'backend/';
     require.config({paths:paths});
     //直接使用$经常出现未定义
     $ = layui.jquery;

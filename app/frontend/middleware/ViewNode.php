@@ -22,13 +22,12 @@ class ViewNode
         $controllername = strtolower(Str::camel(parse_name($controllername)));
         $actionname = strtolower(Str::camel(parse_name($actionname)));
         $requesturl = "{$appname}/{$controllername}/{$actionname}";
-        $this->entrance = '';
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$appname}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$appname}/js/{$jsname}.js";
         $config = [
-            'entrance'    => $this->entrance,//入口
             'appname'    => $appname,
             'moduleurl'    => rtrim(__u("/{$appname}", [], false), '/'),
+            'module'    => '/frontend/',
             'controllername'       =>$controllername,
             'actionname'           => $actionname,
             'requesturl'          => $requesturl,

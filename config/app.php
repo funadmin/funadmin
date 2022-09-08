@@ -29,7 +29,7 @@ return [
     // 域名绑定（自动多应用模式有效）
     'domain_bind'      => [],
     // 禁止URL访问的应用列表（自动多应用模式有效）
-    'deny_app_list'    => ['common','backend'],
+    'deny_app_list'    => ['common'],
     // 开启应用快速访问 如果你完全不需要单应用模式，也可以设置使用严格的多应用模式
     'app_express'    =>    true,
     // 默认应用

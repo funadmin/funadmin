@@ -25,8 +25,6 @@ return [
     //是否演示站点
     'isDemo'=>0,
 
-    'entrance' => '/v3jLBFRMQ8.php',
-
     //版本
     'version' => '3.0',
 

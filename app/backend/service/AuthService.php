@@ -69,17 +69,7 @@ class AuthService extends AbstractService
         $this->controller = Str::camel($this->request->controller());
         $this->action = $this->request->action();
         $this->action = $this->action ?: 'index';
-        $this->requesturl = $pathurl = $this->request->baseUrl();
-        if (Str::startsWith($pathurl, '/addons/') !== false) {
-            $this->requesturl = $pathurl;
-        } else {
-            $entrance = Config::get('funadmin.entrance');
-            if (Str::startsWith($pathurl, $entrance)) {
-                $this->requesturl = substr_replace($pathurl, '', 0, strlen($entrance));
-            } else {
-                $this->requesturl = $this->app . $pathurl;
-            }
-        }
+        $this->requesturl = $this->request->pathinfo();
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
             $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
         }
@@ -217,18 +207,18 @@ class AuthService extends AbstractService
         $adminId = session('admin.id');
         if ($adminId != $cfg['superAdminId']) {
             if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
-            $map[] = ['href', '=', $this->requesturl];
-            if ($this->app !== 'backend') {
-                $map[] = ['module', '=', $this->app];
-            }
+            $map= [
+                ['href'=> $this->requesturl],
+                ['module'=> $this->app]
+            ];
             $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
             $hrefTemp = trim($this->requesturl, '/');
             $menuid = 0;
             if (Str::endsWith($hrefTemp, '/index')) {
-                $where[] = ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)];
-                if ($this->app !== 'backend') {
-                    $where[] = ['module', '=', $this->app];
-                }
+                $where =[
+                    ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
+                    ['module', '=', $this->app]
+                ];
                 $menuid = AuthRule::where($where)->where('status', 1)->value('id');
             }
             if ($menuid) $this->hrefId = $menuid;
@@ -252,34 +242,29 @@ class AuthService extends AbstractService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        $entrance = $cfg['entrance'];
         $this->requesturl = (string)$url;
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
             $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
         }
-        if (Str::startsWith($url, $entrance)) {
-            $this->requesturl = substr_replace($this->requesturl, '', 0, strlen($entrance));
-            $this->app = 'backend';
-        } else {
-            $this->app = array_shift(explode('/', trim($this->requesturl,'/')));
-        }
         $this->requesturl = trim($this->requesturl, '/');
+        $requesturlArr = explode('/', $this->requesturl);
+        $this->app = array_shift($requesturlArr);
+        $this->requesturl = implode('/', $requesturlArr);
         if ($this->requesturl === '/')  return false;
         if (!$this->isLogin()) return false;
         $adminId = session('admin.id');
         if ($adminId != $cfg['superAdminId']) {
-            $hrefTemp = trim($this->requesturl, '/');
-            $map[] = ['href', '=', $this->requesturl];
-            if ($this->app !== 'backend') {
-                $map[] = ['module', '=', $this->app];
-            }
+            $map = [
+                ['href', '=', $this->requesturl],
+                ['module', '=', $this->app]
+            ];
             $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
             $menuid = 0;
-            if (Str::endsWith($hrefTemp, '/index')) {
-                $where[] = ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)];
-                if ($this->app !== 'backend') {
-                    $where[] = ['module', '=', $this->app];
-                }
+            if (Str::endsWith($this->requesturl, '/index')) {
+                $where[] = [
+                    ['href', '=', substr($this->requesturl, 0, strlen($this->requesturl) - 6)],
+                    ['module', '=', $this->app]
+                ];
                 $menuid = AuthRule::where($where)->where('status', 1)->value('id');
             }
             if ($menuid) $this->hrefId = $menuid;
@@ -538,13 +523,10 @@ class AuthService extends AbstractService
                     $v['href'] = $v['href'] . '/index';
                 }
             }
-            if ($v['module'] === 'backend') {
-                $v['href'] = (__u(trim($v['href'])));
-            } else {
-                $v['href'] = '/' . trim($v['href'], '/');
-            }
             if (preg_match("/^http(s)?:\\/\\/.+/", $href)) {
                 $v['href'] = $href;
+            }else{
+                $v['href'] = "/" . $v['module']. '/' . trim($v['href'], '/');
             }
             if ($v['pid'] == $pid) {
                 if (session('admin.id') != 1) {

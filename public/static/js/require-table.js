@@ -136,7 +136,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     if (typeof v === 'string') {
                         v = eval('init.requests.' + v)
                     }
-                    console.log(v)
                     if(!v) return ;
                     v.extend = typeof v.extend === "object" ? "data-extend='" + JSON.stringify(v.extend) + "'" : v.extend;
                     url = Fun.replaceurl(v.url, d);

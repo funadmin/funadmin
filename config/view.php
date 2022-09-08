@@ -26,7 +26,7 @@ return [
     'taglib_end'   => '}',
 
     'tpl_replace_string' => [
-        '__STATIC__' => Env::get('FunAdmin.static', '/static'),
+        '__STATIC__' => Env::get('funadmin.static', '/static'),
         '__PLUGINS__'     => '/static/plugins',
         '__CDN__'     => '',
     ]

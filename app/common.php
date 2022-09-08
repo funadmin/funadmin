@@ -48,17 +48,6 @@ if (!function_exists('__u')) {
     function __u($url = '', array $vars = [], $suffix = true, $domain = false)
     {
         $url =(string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
-        $pos =  strpos($url, '/backend/');
-        $entrance = \think\facade\Config::get('funadmin.entrance');
-        if($pos!==false && \think\helper\Str::startsWith($url,$entrance)){
-            $url = substr_replace($url, '', $pos, strlen('/backend'));
-        }elseif(!\think\helper\Str::startsWith($url,$entrance)
-            &&
-            \think\helper\Str::startsWith($url,'/backend/')
-        ){
-            $url = substr_replace($url, '', $pos, strlen('/backend'));
-            $url = $entrance .$url;
-        }
         return $url;
     }
 }
