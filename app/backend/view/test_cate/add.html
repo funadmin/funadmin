@@ -1,7 +1,0 @@
-<form class="layui-form" lay-filter="form">
-    {:form_input('name', 'text', ['label' => 'Name', 'verify' => 'required'], '')}
-{:form_upload('thumb',$formData?$formData['thumb']:'' ,['label' => 'Thumb', 'verify' => 'required', 'type' => 'radio', 'mime' => 'image', 'path' => 'TestCate', 'num' => '1'])}
-
-    {:form_submitbtn()}
-</form>
-
