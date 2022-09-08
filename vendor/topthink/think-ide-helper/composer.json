@@ -1,0 +1,28 @@
+{
+    "name": "topthink/think-ide-helper",
+    "description": "",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "yunwuxin",
+            "email": "448901948@qq.com"
+        }
+    ],
+    "require": {
+        "topthink/framework": "^6.0",
+        "phpdocumentor/reflection-docblock": "^5.0",
+        "ergebnis/classy": "^1.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "think\\ide\\": "src"
+        }
+    },
+    "extra": {
+        "think": {
+            "services": [
+                "think\\ide\\Service"
+            ]
+        }
+    }
+}

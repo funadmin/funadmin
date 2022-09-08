@@ -195,13 +195,14 @@ class Addon extends Backend
         if (empty($class)) {
             $this->error(lang('addons %s is not ready', [$name]));
         }
-        //安装插件
-        $class->install();
-        $addon_info = get_addons_info($name);
-        $addon_info['status'] = 1;
-        $module = isset($addon_info['app']) && $addon_info['app']==1?$name:'addon';
+        //添加数据库
+        try{
+            importsql($name);
+        } catch (Exception $e){
+            $this->error($e->getMessage());
+        }
         // 安装菜单
-        $menu_config=$this->get_menu_config($class);
+        $menu_config=get_addons_menu($name);
         if(!empty($menu_config)){
             if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
                 $pid = 0;
@@ -209,38 +210,30 @@ class Addon extends Backend
                 $pid = $this->addonService->addAddonManager()->id;
             }
             $menu[] = $menu_config['menu'];
-            $this->addonService->addAddonMenu($menu,$pid,$module);
+            $this->addonService->addAddonMenu($menu,$pid,$name);
         }
+        //安装插件
+        $class->install();
+        $addon_info = get_addons_info($name);
+        $addon_info['status'] = 1;
         if($list){
-            $list->status=1;
-            $res = $list->save();
+            if($list->delete_time > 0){
+                $this->modelClass->restore(['id'=>$list->id]);
+            }
+            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
         }else{
             $res =  $this->modelClass->save($addon_info);
         }
         if (!$res) {
             $this->error(lang('addon install fail'));
         }
-        //添加数据库
-        try{
-            importsql($name);
-        } catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-        $sourceAssetsDir = Service::getSourceAssetsDir($name);
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($sourceAssetsDir)) {
-            FileHelper::copyDir($sourceAssetsDir, $destAssetsDir);
-        }
-        if($module!=='addon') {
-            //复制文件到app下面
-            Service::copyApp($name);
-        }
+        Service::copyApp($name,$delete = true);
         //复制文件到目录
         if(Service::getCheckDirs()){
             foreach (Service::getCheckDirs() as $k => $dir) {
                 $sourcedir = Service::getAddonsNamePath($name). $dir;
                 if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name);
+                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
                 }
             }
         }
@@ -297,7 +290,7 @@ class Addon extends Backend
             $this->error(lang('addon name is not right'));
         }
         //获取插件信息
-        $info =  $this->modelClass->where('name', $name)->find();
+        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if (empty($info)) {
             $this->error(lang('addon is not exist'));
         }
@@ -311,33 +304,19 @@ class Addon extends Backend
         $class = get_addons_instance($name);
         $class->uninstall();
         //删除菜单
-        $menu_config=$this->get_menu_config($class);
-        $addon_info = get_addons_info($name);
-        $module = isset($addon_info['app']) && $addon_info['app']==1?$name:'addon';
+        $menu_config=get_addons_menu($name);
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];
-                $this->addonService->delAddonMenu($menu,$module);
+                $this->addonService->delAddonMenu($menu,$name);
             }
             //卸载sql;
             uninstallsql($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
-        // 移除插件基础资源目录
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($destAssetsDir)) {
-            FileHelper::delDir($destAssetsDir);
-        }
-        //删除文件
-        $list = Service::getGlobalAddonsFiles($name);
-        foreach ($list as $k => $v) {
-            @unlink(app()->getRootPath() . $v);
-        }
-        if($module!=='addon'){
-//          //还原文件
-            Service::removeApp($name);
-        };
+        //还原文件
+        Service::removeApp($name,$delete= true);
         Service::updateAddonsInfo($name,1,0);
         try {
             //刷洗addon文件和配置
@@ -368,7 +347,7 @@ class Addon extends Backend
             Service::updateAddonsInfo($name,$addoninfo['status']);
             // 安装菜单
             $class = get_addons_instance($name);
-            $menu_config = $this->get_menu_config($class);
+            $menu_config = get_addons_menu($name);
             if(!empty($menu_config)){
                 if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
                     $pid = 0;
@@ -384,7 +363,6 @@ class Addon extends Backend
             }
             refreshaddons();
             $info->save();
-            $class = get_addons_instance($name);
             $addoninfo['status']==1 ?$class->enabled():$class->disabled();
         }catch (\Exception $e){
             $this->error(lang($e->getMessage()));
@@ -470,16 +448,8 @@ class Addon extends Backend
         if (empty($name)) {
             return false;
         }
-        $addons =  $this->modelClass->where('name', $name)->find();
+        $addons =  $this->modelClass->withTrashed()->where('name', $name)->find();
         return $addons;
-    }
-    /**
-     * @param $class
-     * @return mixed
-     */
-    protected function get_menu_config($class){
-        $menu = $class->menu;
-        return $menu;
     }
 
     /**
@@ -504,7 +474,7 @@ class Addon extends Backend
         set_time_limit(0);
         $name = $this->request->param("name");
         //获取插件信息
-        $info =  $this->modelClass->where('name', $name)->find();
+        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if($info && $info->status==1){
             $this->error(lang('Please disable addons %s first',[$name]));
         }
@@ -515,7 +485,7 @@ class Addon extends Backend
         $class = get_addons_instance($name);
         $class->uninstall();
         //删除菜单
-        $menu_config=$this->get_menu_config($class);
+        $menu_config=get_addons_menu($name);
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];

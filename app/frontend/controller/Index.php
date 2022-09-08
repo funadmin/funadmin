@@ -22,6 +22,7 @@ class Index extends Frontend {
 
     public function __construct(App $app)
     {
+        
         parent::__construct($app);
     }
     public function index(){

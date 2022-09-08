@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "68469dd9437aebda82f421e3a8fa2b1a",
+    "content-hash": "bff759ac311b21c15f42d6e4cb33260d",
     "packages": [
         {
             "name": "brick/math",
@@ -402,16 +402,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v4.2.7",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "5b341bb97737bb7849d0b5d4c789a88ea11295a1"
+                "reference": "efa8c22afa9c57abb1f95ed4b33fb65fa30896e2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/5b341bb97737bb7849d0b5d4c789a88ea11295a1",
-                "reference": "5b341bb97737bb7849d0b5d4c789a88ea11295a1",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/efa8c22afa9c57abb1f95ed4b33fb65fa30896e2",
+                "reference": "efa8c22afa9c57abb1f95ed4b33fb65fa30896e2",
                 "shasum": ""
             },
             "require": {
@@ -421,6 +421,7 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "think": {
@@ -455,9 +456,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v4.2.7"
+                "source": "https://github.com/funadmin/fun-addons/tree/main"
             },
-            "time": "2022-09-04T03:26:08+00:00"
+            "time": "2022-09-08T10:44:12+00:00"
         },
         {
             "name": "league/flysystem",
@@ -3215,7 +3216,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "funadmin/fun-addons": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -3223,5 +3226,5 @@
         "ext-json": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.3.0"
 }

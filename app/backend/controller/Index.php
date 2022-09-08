@@ -13,6 +13,9 @@
 
 namespace app\backend\controller;
 
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\BaseController;
@@ -26,6 +29,11 @@ use think\facade\Session;
 
 class Index extends Backend
 {
+    protected $middleware = [
+        CheckRole::class=>['except'=>['console','logout']],
+        ViewNode::class,
+        SystemLog::class
+    ];
     protected $layout = '';
     /**
      * @return string

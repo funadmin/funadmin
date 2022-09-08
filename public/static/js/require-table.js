@@ -97,8 +97,6 @@ define(['jquery', 'timePicker','fu'], function ($, timePicker,Fu) {
                     if (v === 'refresh') {
                         toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
                     } else if (v === 'add') {
-                        console.log('add')
-                        console.log(Fun.checkAuth('add', options.elem))
                         if (Fun.checkAuth('add', options.elem)) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm" lay-tips="add" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" title="' + __('Add') + '"><i class="layui-icon layui-icon-add-circle-fine"></i>' + __('Add') + '</a>\n'
                         }

@@ -17,13 +17,15 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (url &&　url.indexOf(domain) !== -1) {
                 return url;
             }
+            if(url.indexOf('ajax/uploads')>=0 && !Config.entrance) return '/frontend/'+url
+            if(url.indexOf('ajax/uploads')>=0 && Config.entrance) return Config.entrance+'/'+url;
             if(Config.entrance && url.indexOf(Config.entrance)>=0) return url;
             url = Fun.common.parseNodeStr(url);
             url = url.indexOf('/')==0 ? url.replace('/',''):url;
-            if(Config.modulename ==='backend') return Config.entrance+ '/' + url;
-            if(Config.modulename!=='backend' && !Config.addonname)  {
-                if(url.indexOf(Config.modulename)===-1){
-                    return '/'+Config.modulename+'/'+url;
+            if(Config.appname ==='backend') return Config.entrance+ '/' + url;
+            if(Config.appname!=='backend')  {
+                if(url.indexOf(Config.appname)===-1){
+                    return '/'+Config.appname+'/'+url;
                 }
             };
             return '/' +url;
@@ -42,6 +44,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (Config.superAdmin === true) {
                 return true;
             }
+            cons
             if(node.indexOf('?')>=0) node = node.replace(/(\?|#)[^'"]*/, '');           //去除参数
             return $(ele).data('node-' + node.toLowerCase()) === 1;
         },
@@ -475,7 +478,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
                 top.layui.$('body').attr('id',theme);
             },
-
             /**
              * 检测屏幕是否手机
              * @returns {boolean}

@@ -13,6 +13,9 @@
 
 namespace app\backend\controller;
 
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
@@ -26,6 +29,11 @@ use think\facade\Cache;
 
 class Ajax extends Backend
 {
+    protected $middleware = [
+        CheckRole::class=>['only'=>[]],
+        ViewNode::class,
+        SystemLog::class
+    ];
     public function __construct(App $app)
     {
         $this->modelClass = new AttachModel();
@@ -70,9 +78,8 @@ class Ajax extends Backend
         header('Content-Type: application/javascript');
         $name = $this->request->get("controllername");
         $name = strtolower(parse_name($name, 1));
-        $addon = $this->request->get("addons");
-        //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
-        return jsonp($this->loadlang($name, $addon))->code(200)->options([
+        $app = $this->request->get("app");
+        return jsonp($this->loadlang($name, $app))->code(200)->options([
             'var_jsonp_handler' => 'callback',
             'default_jsonp_handler' => 'jsonpReturn',
             'json_encode_param' => JSON_PRETTY_PRINT | JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE,
@@ -153,6 +160,7 @@ class Ajax extends Backend
         FileHelper::delDir(root_path() . 'runtime' . DIRECTORY_SEPARATOR . 'temp');
         Cache::clear() ? $this->success('清除成功') : $this->error('清除失败');
     }
+
     public function setConfig()
     {
         $config = Config::where('code',input('code'))->find();

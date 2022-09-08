@@ -11,6 +11,9 @@
  * Date: 2017/8/2
  */
 namespace app\backend\controller;
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use Exception;
@@ -18,10 +21,16 @@ use fun\helper\SignHelper;
 use think\App;
 
 class Login extends Backend {
+    protected $layout='';
+    protected $middleware = [
+        CheckRole::class=>['except'=>['index','verify']],
+        ViewNode::class,
+        SystemLog::class
+    ];
     public function __construct(App $app) {
+
         parent::__construct($app);
     }
-    protected $layout='';
     public function index(){
         if (!$this->request->isPost()) {
             $admin= session('admin');

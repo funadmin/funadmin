@@ -27,7 +27,6 @@ return [
 
     'tpl_replace_string' => [
         '__STATIC__' => Env::get('FunAdmin.static', '/static'),
-        '__ADDONS__'     => '/static/addons',
         '__PLUGINS__'     => '/static/plugins',
         '__CDN__'     => '',
     ]

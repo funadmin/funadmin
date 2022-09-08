@@ -63,7 +63,7 @@ class Auth extends Backend
                     ->order('pid asc,sort asc')
                     ->select()->toArray();
                 foreach ($list as $k => &$v) {
-//                    $v['lay_is_open'] = true;
+                    //$v['lay_is_open'] = true;是否展开
                     $v['title'] = lang($v['title']);
                 }
                 Cache::set('ruleList_' . $uid, $list, 3600);
@@ -90,13 +90,18 @@ class Auth extends Backend
             if (empty($post['sort'])) {
                 $this->error(lang('sort') . lang(' cannot null'));
             }
+            if(strtolower($post['module'])!='backend'){
+                $post = $post['module']."/".trim($post['href'],'/');
+            }
             $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $post['href'] = trim($post['href'], '/');
-            $rule = [
-                'href'=>'require|unique:auth_rule',
-                'title'=>'require'
+            $where = [
+                'module'=>$post['module'],
+                'href'=>$post['href'],
             ];
-            $this->validate($post, $rule);
+            if($this->modelClass->where($where)->find()){
+                $this->error(lang('module href has exist'));
+            }
             if ($this->modelClass->save($post)) {
                 Cache::clear();
                 $this->success(lang('operation success'));
@@ -132,6 +137,9 @@ class Auth extends Backend
             $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $id = $this->request->param('id');
             $model = $this->findModel($id);
+            if(strtolower($post['module'])!='backend'){
+                $post = $post['module']."/".trim($post['href'],'/');
+            }
             if($post['pid'] && $post['pid'] == $id)  $this->error(lang('The superior cannot be set as himself'));
             $childIds = array_filter(explode(',',(new AuthService())->getAllIdsBypid($id)));
             if($childIds && in_array($post['pid'],$childIds)) $this->error(lang('Parent menu cannot be modified to submenu'));
@@ -149,6 +157,9 @@ class Auth extends Backend
             $list = TreeHelper::getTree($list);
             $id = $this->request->param('id');
             $one = $this->modelClass->find($id)->toArray();
+            if(strtolower($one['module'])!=='backend'){
+                $one['href'] = substr($one['href'], strlen($one['module'])+1);
+            }
             $one['icon'] = $one['icon'] ? trim(substr($one['icon'],10),' ') : 'layui-icon layui-icon-diamond';
             $view = [
                 'formData' => $one,
@@ -228,7 +239,7 @@ class Auth extends Backend
         $field = $this->request->param('field');
         $value = $this->request->param('value');
         if($id){
-            if(!$this->allowModifyFileds = ['*'] and !in_array($field, $this->allowModifyFileds)){
+            if(!$this->allowModifyFileds = ['*'] && !in_array($field, $this->allowModifyFileds)){
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
             $model = $this->findModel($id);

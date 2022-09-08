@@ -1,0 +1,70 @@
+{
+  "name": "ergebnis/classy",
+  "description": "Provides a finder for classy constructs (classes, interfaces, and traits).",
+  "license": "MIT",
+  "type": "library",
+  "keywords": [
+    "finder",
+    "classy",
+    "constructs",
+    "classes",
+    "interfaces",
+    "traits"
+  ],
+  "authors": [
+    {
+      "name": "Andreas Möller",
+      "email": "am@localheinz.com"
+    }
+  ],
+  "homepage": "https://github.com/ergebnis/classy",
+  "support": {
+    "issues": "https://github.com/ergebnis/classy/issues",
+    "source": "https://github.com/ergebnis/classy"
+  },
+  "require": {
+    "php": "^7.4 || ^8.0",
+    "ext-tokenizer": "*"
+  },
+  "require-dev": {
+    "ergebnis/composer-normalize": "^2.22.0",
+    "ergebnis/license": "^1.1.0",
+    "ergebnis/php-cs-fixer-config": "^3.4.0",
+    "fakerphp/faker": "^1.17.0",
+    "infection/infection": "~0.25.5",
+    "phpunit/phpunit": "^9.5.11",
+    "psalm/plugin-phpunit": "~0.16.1",
+    "vimeo/psalm": "^4.16.1",
+    "zendframework/zend-file": "^2.8.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ergebnis\\Classy\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Ergebnis\\Classy\\Test\\": "test/"
+    },
+    "classmap": [
+      "test/Fixture"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/package-versions-deprecated": true,
+      "ergebnis/composer-normalize": true,
+      "infection/extension-installer": true
+    },
+    "platform": {
+      "php": "7.4.26"
+    },
+    "preferred-install": "dist",
+    "sort-packages": true
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0-dev"
+    }
+  }
+}

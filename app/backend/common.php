@@ -12,16 +12,3 @@
  * Time: 16:01
  */
 
-/**
- * 动态永久修改 config 文件内容
- * @param $key
- * @param $value
- * @return bool|int
- */
-if (!function_exists('auth')) {
-    function auth($url)
-    {
-        $auth = new \app\backend\service\AuthService();
-        return $auth->authNode($url);
-    }
-}

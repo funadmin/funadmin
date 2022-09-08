@@ -15,6 +15,7 @@
 namespace app\backend\service;
 
 use app\backend\model\AuthRule;
+use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
 use think\App;
@@ -27,7 +28,7 @@ use think\facade\Db;
 use think\facade\Request;
 use think\facade\Session;
 
-class AddonService
+class AddonService extends AbstractService
 {
     use Jump;
 
@@ -66,7 +67,7 @@ class AddonService
                 $v['href'] = trim($v['href'],'/');
                 $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
                 if($menu_rule){
-                    $menu_rule->delete();
+                    $menu_rule->delete(true);
                     if ($hasChild) {
                         $this->delAddonMenu($v['menulist']);
                     }
@@ -76,7 +77,7 @@ class AddonService
                 if($manager){
                     $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
                     if(!$manager_child){
-                        $manager->delete();
+                        $manager->delete(true);
                     }
                 }
             } catch (Exception $e) {
@@ -95,7 +96,7 @@ class AddonService
             'menu_status'=>1,
             //状态，1是显示，0是不显示
             "status" => 1,
-            "icon" =>'fa fa-circle-o',
+            "icon" =>'layui-icon layui-icon-app',
             //父ID
             "pid" => $addon_auth->id,
             //排序
@@ -104,7 +105,7 @@ class AddonService
         $manager = AuthRule::where('href','addon/manager')->find();
         if(!$manager){
             $manager = AuthRule::create($data);
-        }elseif($manager and $manager->menu_status==0){
+        }elseif($manager && $manager->menu_status==0){
             $manager->menu_status=1;
             $manager->status=1;
             $manager->save();

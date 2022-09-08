@@ -33,7 +33,7 @@ class AdminLogService extends AbstractService
     protected  $method = '';
     protected  $ip = '';
     protected  $agent = '';
-    protected  $module = '';
+    protected  $app = '';
     protected  $controller = '';
     protected  $action = '';
     protected  $admin_id = '';
@@ -54,13 +54,13 @@ class AdminLogService extends AbstractService
         $this->method = Request::method();
         $this->ip = Request::ip();
         $this->agent =Request::server('HTTP_USER_AGENT');
-        $this->module =  app('http')->getName();
+        $this->app =  app('http')->getName();
         $this->admin_id   = Session::get('admin.id',0);
         $this->username   = Session::get('admin.username','Unknown');
     }
     public function save()
     {
-        $url        = (Request::baseUrl());
+        $url        = (Request::pathinfo());
         $content    = Request::param();
         $this->controller = Request::controller();
         $this->action = Request::action();
@@ -75,27 +75,18 @@ class AdminLogService extends AbstractService
             //权限
             $auth = AuthRule::column('href','id');
             $url = str_replace('.'.config('view.view_suffix'),'',$url);
-            if($this->module!=='backend'){
-                $url = str_replace('.'.config('view.view_suffix'),'',Request::pathinfo());
-                $this->title =  AuthRule::where('href',$url)->where('module',$this->module)->value('title');
-            }else{
-                $key = array_search($url,$auth);
-                if($key>=0){
-                    $auth = AuthRule::where('id',$key)->find();
-                    if($auth) $this->title=$auth->title;
-                }
-            }
+            $this->title =  AuthRule::where('href',$url)->where('module',$this->app)->value('title');
         }
         if(isset($this->post_data['password'])) unset($this->post_data['password']);
         //插入数据
         if (!empty($this->title) && !empty($content)) {
             AdminLog::create([
-                'title'       => $this->title ? $this->title : '',
+                'title'       => $this->title ?: '',
                 'admin_id'    => $this->admin_id,
                 'username'    => $this->username,
                 'url'         => $url,
                 'addons'      => 'app',
-                'module'      => $this->module,
+                'module'      => $this->app,
                 'controller'      => $this->controller,
                 'action'      => $this->action,
                 'get_data'     => $this->get_data,
@@ -106,26 +97,6 @@ class AdminLogService extends AbstractService
                 'method'      => $this->method,
             ]);
         }
-    }
-    /**
-     * 保存插件历史记录
-     */
-    public function saveaddonslog($data)
-    {
-        $datas = [
-            'title' =>'',
-            'admin_id'    => $this->admin_id,
-            'username'    => $this->username,
-            'get_data'     => $this->get_data,
-            'post_data'     => $this->post_data,
-            'header_data'     => $this->header_data,
-            'agent'       => $this->agent,
-            'ip'          => $this->ip,
-            'method'      => $this->method,
-
-        ];
-        $data  = array_merge($data,$datas);
-        AdminLog::create($data);
     }
 
 }

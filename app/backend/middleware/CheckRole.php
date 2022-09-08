@@ -9,6 +9,7 @@ namespace app\backend\middleware;
 use app\backend\service\AuthService;
 use app\common\traits\Jump;
 use think\facade\Request;
+use think\facade\Session;
 
 class CheckRole
 {
@@ -18,7 +19,10 @@ class CheckRole
 
     public function handle($request, \Closure $next)
     {
+        if(!Session::has('admin')) {
 
+            $this->redirect(__u('backend/login/index'));
+        }
         $auth = new AuthService();
         $auth->checkNode();
         //中间件handle方法的返回值必须是一个Response对象。

@@ -83,9 +83,9 @@ class Ajax extends Frontend
         header('Content-Type: application/javascript');
         $controllername = $this->request->get("controllername");
         $controllername = strtolower(parse_name($controllername,1));
-        $addon = $this->request->param('addons');
+        $app = $this->request->param('app');
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
-        $this->loadlang($controllername,$addon);
+        $this->loadlang($controllername,$app);
         return jsonp(Lang::get())->code(200)->options([
             'var_jsonp_handler'     => 'callback',
             'default_jsonp_handler' => 'jsonpReturn',

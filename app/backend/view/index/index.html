@@ -25,7 +25,6 @@
     window.Config = {:json_encode($config)};
     window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
     window.STATIC ='__STATIC__'
-    window.ADDONS = '__ADDONS__'
     window.PLUGINS = '__PLUGINS__';
 </script>
 
@@ -54,7 +53,7 @@
         <div class="layui-site-mobile layui-hide-lg layui-hide-md" lay-event="flexible"><i class="layui-icon layui-icon-right"></i></div>
         <!-- 底部固定区域 -->
         <div class="layui-footer">
-            {$config['site']['site_copyright']} <span class="pull-right">v{:config('app.version')}</span>
+            {$config['site']['site_copyright']} <span class="pull-right">v{:config('funadmin.version')}</span>
         </div>
     </div>
 

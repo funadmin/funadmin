@@ -11,6 +11,7 @@ return [
     'Menu Target'=>'窗口目标',
     'MenuStatus'=>'菜单状态',
     'Menu_Status'=>'菜单状态',
+    'Menu Status'=>'菜单状态',
     'Target'=>'窗口',
     'href'=>'路由',
     '_self'=>'当前',

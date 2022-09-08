@@ -30,8 +30,8 @@
     "topthink/think-throttle": "^1.3",
     "doctrine/annotations": "^1.13",
     "ramsey/uuid": "^4.2",
-    "funadmin/fun-addons": "^4.2.7",
-    "phpoffice/phpspreadsheet": "^1.24"
+    "phpoffice/phpspreadsheet": "^1.24",
+    "funadmin/fun-addons": "dev-main"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
