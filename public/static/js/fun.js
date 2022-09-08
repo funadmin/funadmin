@@ -14,11 +14,11 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
     var Fun = {
         url: function (url) {
             var domain = window.location.host;
-            if (url &&　url.indexOf(domain) !== -1) {
-                return url;
-            }
-            if(url.indexOf('ajax/uploads')>=0 && !Config.entrance) return '/frontend/'+url
-            if(url.indexOf('ajax/uploads')>=0 && Config.entrance) return Config.entrance+'/'+url;
+            if (url &&　url.indexOf(domain) !== -1) return url;
+            var file_url = ['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles'];
+            tempurl = url.split('?')//公共url
+            if($.inArray(tempurl[0],file_url)!== -1 && !Config.entrance) return '/frontend/'+url
+            if($.inArray(tempurl[0],file_url)!== -1 && Config.entrance) return Config.entrance+'/'+url;
             if(Config.entrance && url.indexOf(Config.entrance)>=0) return url;
             url = Fun.common.parseNodeStr(url);
             url = url.indexOf('/')==0 ? url.replace('/',''):url;
@@ -44,7 +44,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (Config.superAdmin === true) {
                 return true;
             }
-            cons
             if(node.indexOf('?')>=0) node = node.replace(/(\?|#)[^'"]*/, '');           //去除参数
             return $(ele).data('node-' + node.toLowerCase()) === 1;
         },

@@ -400,7 +400,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'fu'], function($,Table, tabl
                             var token = $(this).parents('form').find('input[name="__token__"]');
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
-                            url = url?url: Fun.url(Upload.init.requests.select_url) + '?' +
+                            url = url?url: Upload.init.requests.select_url + '?' +
                                 '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
                                 '&path='+path+'&type='+uploadType;
                             var parentiframe = Fun.api.checkLayerIframe();
