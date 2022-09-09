@@ -43,7 +43,7 @@ body .layui-form-onswitch{border:none;}
 /*.fun-layer-class .layui-layer-btn,.layui-layer-content{text-align:center}*/
 /*.fun-layer-class .layui-layer-btn a{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);*/
 /*    border-radius:3px;border:none;height:32px;line-height:32px;color: #fff;}*/
-/*.fun-layer-class .layui-layer-btn a:last-child{background:#ccccccab;color:#333}*/
+.fun-layer-class .layui-layer-btn a:last-child{background:#fff;color:#333;border:1px solid #dedede;}
 .fun-layer-class .layui-layer-title{background: radial-gradient(circle, rgba(247,150,192,1) 0%, rgba(118,174,241,1) 100%) !important;color: #fff !important;border-bottom: none;}
 .layui-form-item.layui-btn-center button.submit{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);color:#fff;border:none}
 .layui-form-item.layui-btn-center button.reset{background:#eee}
