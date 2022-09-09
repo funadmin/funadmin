@@ -48,7 +48,7 @@ class Menu extends Command
         $this->setName('menu')
             ->addOption('controller', 'c', Option::VALUE_OPTIONAL, '控制器名', null)
             ->addOption('addon', 'a', Option::VALUE_OPTIONAL, '插件名', null)
-            ->addOption('app', '', Option::VALUE_OPTIONAL, 'app', null)
+            ->addOption('app', '', Option::VALUE_OPTIONAL, 'app', '')
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
             ->setDescription('Menu Command');
@@ -64,14 +64,14 @@ class Menu extends Command
         $param['delete'] = $input->getOption('delete');
         $this->config = $param;
         $this->addon = $param['addon'];
-        $this->app = $param['app']?:$this->addon;
+        $this->app = $this->addon?:$param['app'];
         $this->force = $param['force'];
         $this->delete = $param['delete'];
         if (empty($param['controller'])) {
             $output->info("控制器不能为空");
             return false;
         }
-        $controllerArr = explode('/', str_replace('.','/',$param['controller']));
+        $controllerArr = explode('/', str_replace('.', '/', $param['controller']));
         foreach ($controllerArr as $k => &$v) {
             $v = ucfirst(Str::studly($v));
         }
@@ -81,13 +81,13 @@ class Menu extends Command
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
         if (!$this->app) {
             $class = 'app\\backend\\controller' . $nameSpace . '\\' . $this->controllerName;
-        }else{
+        } else {
             $class = 'app\\' . $this->app . '\\controller' . $nameSpace . '\\' . $this->controllerName;
         }
-        if($this->addon){
-            $classFile = root_path().'addons'. DS.$this->addon.DS.$class.'.php';
-            $classFile = str_replace('\\',DS ,$classFile);
-            if(file_exists($classFile)) include_once $classFile;//插件类需要加载进来
+        if ($this->addon) {
+            $classFile = root_path() . 'addons' . DS . $this->addon . DS . $class . '.php';
+            $classFile = str_replace('\\', DS, $classFile);
+            if (file_exists($classFile)) include_once $classFile;//插件类需要加载进来
         }
         try {
             if (class_exists($class)) {
@@ -101,13 +101,14 @@ class Menu extends Command
                 $this->tableComment = $controllerTitle;
                 $menuList = [];
                 $methods = $reflectionClass->getMethods();
+                $href  = $this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName) ;
                 foreach ($methods as $m) {
                     $doc = $m->getDocComment();
                     $title = $this->getTitle($doc);
                     if (in_array($m->getName(), $commMethod) || !$title) continue;
                     if ($this->app) {
                         $menuList[] = [
-                            'href' => $this->app . '/' . lcfirst($this->controllerName . '/' . $m->getName()),
+                            'href' => $href . '/' . $m->getName(),
                             'title' => trim($title),
                             'status' => 1,
                             'menu_status' => 0,
@@ -115,7 +116,7 @@ class Menu extends Command
                         ];
                     } else {
                         $menuList[] = [
-                            'href' => ($this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName)) . '/' . $m->getName(),
+                            'href' => $href . '/' . $m->getName(),
                             'title' => trim($title),
                             'status' => 1,
                             'menu_status' => 0,
@@ -147,11 +148,11 @@ class Menu extends Command
      */
     protected function makeMenu(int $type = 1)
     {
-        $title = ($this->app)? ucfirst($this->app) . ucfirst($this->controllerName) : ($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
+        $title = ($this->app) ? ucfirst($this->app) . ucfirst($this->controllerName) : ($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
         $title = $this->tableComment ?? $title;
         $controller = $this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName);
         $childMenu = [
-            'href' => $this->app ? $this->app . '/' . $controller : $controller,
+            'href' => $controller,
             'title' => $title,
             'status' => 1,
             'menu_status' => 1,
@@ -163,8 +164,8 @@ class Menu extends Command
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
-                'href' => $this->app ? $this->app : $this->controllerName,
-                'title' => $this->app ? $this->app : $this->controllerName,
+                'href' => 'table' .( $this->app!='backend'?$this->app: $this->controllerName),
+                'title' => $this->app ? : $this->controllerName,
                 'status' => 1,
                 'auth_verify' => 1,
                 'type' => 1,
@@ -207,7 +208,7 @@ class Menu extends Command
 
     protected function buildMenu($menuListArr, $type = 1)
     {
-        $module = $this->app ? $this->app : 'backend';
+        $module = $this->app ?: 'backend';
         foreach ($menuListArr as $k => $v) {
             $v['pid'] = 0;
             $v['href'] = trim($v['href'], '/');

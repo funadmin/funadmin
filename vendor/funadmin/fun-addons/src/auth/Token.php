@@ -14,7 +14,6 @@
 namespace fun\auth;
 
 use app\common\service\PredisService;
-use fun\auth\Oauth;
 use think\facade\Config;
 use think\facade\Request;
 use fun\auth\Send;
@@ -51,7 +50,7 @@ class Token
     /**
      * 生成token
      */
-    public function accessToken(Request $request)
+    public function buildToken(Request $request)
     {
         //参数验证
         $validate = new \fun\auth\validate\Token;

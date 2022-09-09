@@ -598,19 +598,15 @@ class CurdService
     protected function makeMenu(int $type=1)
     {
         $controllerName = str_replace('/','.',$this->controllerNamePrefix);
-        $href  = '';
-
+        $href  = $controllerName;
         if($this->addon){
-            $href = $this->addon.'/' .$controllerName;
             $title = $this->addon.str_replace('/', '', $this->controllerNamePrefix);
         }elseif($this->app!=='backend'){
-            $href = $this->app.'/' .$controllerName;
             $title = $this->app.str_replace('/', '', $this->controllerNamePrefix);
         }else{
-            $href =  str_replace('/', '.', $this->controllerNamePrefix);
             $title = str_replace('/', '', $this->controllerNamePrefix);
         }
-        $title = $this->tableComment?$this->tableComment:$title;
+        $title = $this->tableComment?:$title;
         $childMenu =  [
             'href' => $href ,
             'title' => $title,
@@ -623,8 +619,8 @@ class CurdService
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
-                'href' => $this->addon?$this->addon:($this->app!=='backend'?$this->app:$this->controllerName),
-                'title' =>$this->addon?$this->addon:($this->app!=='backend'?$this->app:$this->controllerName),
+                'href' => 'table' . ($this->addon?:($this->app!=='backend'?$this->app:$this->controllerName)),
+                'title' =>$this->addon?:($this->app!=='backend'?$this->app:$this->controllerName),
                 'status' => 1,
                 'auth_verify' => 1,
                 'type' => 1,

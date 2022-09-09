@@ -567,7 +567,6 @@ if (!class_exists('Form')) {
     class_alias('fun\\Form', 'Form');
 }
 
-use fun\helper\FormHelper;
 
 if (!function_exists('form_token')) {
     /**
@@ -579,7 +578,7 @@ if (!function_exists('form_token')) {
      */
     function form_token($name = '__token__', $type = 'md5')
     {
-        return (new FormHelper())->token($name , $type);
+        return Form::token($name , $type);
     }
 }
 
@@ -593,7 +592,7 @@ if (!function_exists('form_input')) {
      */
     function form_input($name = '', $type = 'text', $options = [], $value = '')
     {
-        return (new FormHelper())->input($name, $type, $options, $value);
+        return Form::input($name, $type, $options, $value);
     }
 }
 
@@ -606,7 +605,7 @@ if (!function_exists('form_text')) {
      */
     function form_text($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->text($name,$options, $value);
+        return Form::text($name,$options, $value);
     }
 }
 if (!function_exists('form_password')) {
@@ -618,7 +617,7 @@ if (!function_exists('form_password')) {
      */
     function form_password($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->password($name,$options, $value);
+        return Form::password($name,$options, $value);
     }
 }
 if (!function_exists('form_hidden')) {
@@ -630,7 +629,7 @@ if (!function_exists('form_hidden')) {
      */
     function form_hidden($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->hidden($name,$options, $value);
+        return Form::hidden($name,$options, $value);
     }
 }
 if (!function_exists('form_number')) {
@@ -642,7 +641,7 @@ if (!function_exists('form_number')) {
      */
     function form_number($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->number($name,$options, $value);
+        return Form::number($name,$options, $value);
     }
 }
 if (!function_exists('form_range')) {
@@ -654,7 +653,7 @@ if (!function_exists('form_range')) {
      */
     function form_range($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->range($name,$options, $value);
+        return Form::range($name,$options, $value);
     }
 }
 if (!function_exists('form_url')) {
@@ -666,7 +665,7 @@ if (!function_exists('form_url')) {
      */
     function form_url($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->url($name,$options, $value);
+        return Form::url($name,$options, $value);
     }
 }
 if (!function_exists('form_tel')) {
@@ -678,7 +677,7 @@ if (!function_exists('form_tel')) {
      */
     function form_tel($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->tel($name,$options, $value);
+        return Form::tel($name,$options, $value);
     }
 }
 
@@ -692,7 +691,7 @@ if (!function_exists('form_email')) {
      */
     function form_email($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->email($name,$options, $value);
+        return Form::email($name,$options, $value);
     }
 }
 if (!function_exists('form_rate')) {
@@ -705,7 +704,7 @@ if (!function_exists('form_rate')) {
      */
     function form_rate($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->rate($name, $options, $value);
+        return Form::rate($name, $options, $value);
     }
 }
 
@@ -719,7 +718,7 @@ if (!function_exists('form_slider')) {
      */
     function form_slider($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->slider($name, $options, $value);
+        return Form::slider($name, $options, $value);
     }
 }
 if (!function_exists('form_radio')) {
@@ -732,7 +731,7 @@ if (!function_exists('form_radio')) {
      */
     function form_radio($name = '', $radiolist = '', $options = [], $value = '')
     {
-        return (new FormHelper())->radio($name, $radiolist, $options, $value);
+        return Form::radio($name, $radiolist, $options, $value);
     }
 }
 if (!function_exists('form_switchs')) {
@@ -745,7 +744,7 @@ if (!function_exists('form_switchs')) {
      */
     function form_switchs($name='', $switch = [], $option = [], $value = '')
     {
-        return (new FormHelper())->switchs($name, $switch, $option, $value);
+        return Form::switchs($name, $switch, $option, $value);
     }
 }
 if (!function_exists('form_switch')) {
@@ -758,7 +757,7 @@ if (!function_exists('form_switch')) {
      */
     function form_switch($name='', $switch = [], $option = [], $value = '')
     {
-        return (new FormHelper())->switchs($name, $switch, $option, $value);
+        return Form::switchs($name, $switch, $option, $value);
     }
 }
 if (!function_exists('form_checkbox')) {
@@ -768,7 +767,7 @@ if (!function_exists('form_checkbox')) {
      */
     function form_checkbox($name ='', $list = [], $option = [], $value = '')
     {
-        return (new FormHelper())->checkbox($name, $list, $option, $value);
+        return Form::checkbox($name, $list, $option, $value);
     }
 }
 
@@ -779,7 +778,7 @@ if (!function_exists('form_arrays')) {
      */
     function form_arrays($name='', $list = [], $option = [])
     {
-        return (new FormHelper())->arrays($name, $list, $option);
+        return Form::arrays($name, $list, $option);
     }
 }
 
@@ -791,7 +790,7 @@ if (!function_exists('form_textarea')) {
      */
     function form_textarea($name = '', $option = [], $value = '')
     {
-        return (new FormHelper())->textarea($name, $option, $value);
+        return Form::textarea($name, $option, $value);
     }
 }
 if (!function_exists('form_select')) {
@@ -804,7 +803,7 @@ if (!function_exists('form_select')) {
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
         if (!empty($value) and !is_array($value)) $value = explode(',', $value);
-        return (new FormHelper())->multiselect($name, $select, $options, $attr, $value);
+        return Form::multiselect($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_multiselect')) {
@@ -819,7 +818,7 @@ if (!function_exists('form_multiselect')) {
     function form_multiselect($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return (new FormHelper())->multiselect($name, $select, $options, $attr, $value);
+        return Form::multiselect($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_selectplus')) {
@@ -834,7 +833,7 @@ if (!function_exists('form_selectplus')) {
     function form_selectplus($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return (new FormHelper())->selectplus($name, $select, $options, $attr, $value);
+        return Form::selectplus($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_selectn')) {
@@ -849,7 +848,7 @@ if (!function_exists('form_selectn')) {
     function form_selectn($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return (new FormHelper())->selectn($name, $select, $options, $attr, $value);
+        return Form::selectn($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_xmselect')) {
@@ -861,7 +860,7 @@ if (!function_exists('form_xmselect')) {
     function form_xmselect($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and is_array($attr)) $attr = implode(',', $attr);
-        return (new FormHelper())->xmselect($name, $select, $options, $attr, $value);
+        return Form::xmselect($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_icon')) {
@@ -872,7 +871,7 @@ if (!function_exists('form_icon')) {
 
     function form_icon($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->icon($name, $options, $value);
+        return Form::icon($name, $options, $value);
     }
 }
 
@@ -884,7 +883,7 @@ if (!function_exists('form_date')) {
 
     function form_date($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->date($name, $options, $value);
+        return Form::date($name, $options, $value);
     }
 }
 
@@ -896,7 +895,7 @@ if (!function_exists('form_city')) {
 
     function form_city($name = 'cityPicker', $options = [])
     {
-        return (new FormHelper())->city($name, $options);
+        return Form::city($name, $options);
     }
 }
 if (!function_exists('form_region')) {
@@ -907,7 +906,7 @@ if (!function_exists('form_region')) {
 
     function form_region($name = 'regionCheck', $options = [])
     {
-        return (new FormHelper())->region($name, $options);
+        return Form::region($name, $options);
     }
 }
 if (!function_exists('form_tags')) {
@@ -919,7 +918,7 @@ if (!function_exists('form_tags')) {
     function form_tags($name = '', $options = [], $value = '')
     {
         $value = is_array($value) ? implode(',', $value) : $value;
-        return (new FormHelper())->tags($name, $options, $value);
+        return Form::tags($name, $options, $value);
     }
 }
 if (!function_exists('form_color')) {
@@ -930,7 +929,7 @@ if (!function_exists('form_color')) {
 
     function form_color($name = '', $options = [], $value = '')
     {
-        return (new FormHelper())->color($name, $options, $value);
+        return Form::color($name, $options, $value);
     }
 }
 
@@ -942,7 +941,7 @@ if (!function_exists('form_label')) {
      */
     function form_label($label = '', $options = [])
     {
-        return (new FormHelper())->label($label, $options);
+        return Form::label($label, $options);
     }
 }
 if (!function_exists('form_submitbtn')) {
@@ -953,7 +952,7 @@ if (!function_exists('form_submitbtn')) {
      */
     function form_submitbtn($reset = true, $options = [])
     {
-        return (new FormHelper())->submitbtn($reset, $options);
+        return Form::submitbtn($reset, $options);
     }
 }
 if (!function_exists('form_closebtn')) {
@@ -964,7 +963,7 @@ if (!function_exists('form_closebtn')) {
      */
     function form_closebtn($reset = true, $options = [])
     {
-        return (new FormHelper())->closebtn($reset, $options);
+        return Form::closebtn($reset, $options);
     }
 }
 if (!function_exists('form_upload')) {
@@ -975,7 +974,7 @@ if (!function_exists('form_upload')) {
      */
     function form_upload($name = '', $formdata = [], $options = [], $value = '')
     {
-        return (new FormHelper())->upload($name, $formdata, $options, $value);
+        return Form::upload($name, $formdata, $options, $value);
     }
 }
 if (!function_exists('form_editor')) {
@@ -985,7 +984,7 @@ if (!function_exists('form_editor')) {
      */
     function form_editor($name = 'content', $type = 1, $options = [], $value = '')
     {
-        return (new FormHelper())->editor($name, $type, $options, $value);
+        return Form::editor($name, $type, $options, $value);
     }
 }
 if (!function_exists('form_selectpage')) {
@@ -995,6 +994,6 @@ if (!function_exists('form_selectpage')) {
      */
     function form_selectpage($name = 'selectpage', $list = [], $options = [], $value=null)
     {
-        return (new FormHelper())->selectpage($name, $list, $options, $value);
+        return Form::selectpage($name, $list, $options, $value);
     }
 }

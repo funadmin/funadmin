@@ -279,7 +279,7 @@ class Install extends Command
             $adminUser['backend'] = $adminName;
             
             $this->output->highlight('👉 恭喜您：系统已经安装完成... 通过域名+后台入口文件即可访问后台');
-            $this->output->highlight('👉 管理员账号: '.$adminUser["username"].'，管理员密码:'.$adminUser['password'].',后台入口:'.$adminName);
+            $this->output->highlight('👉 管理员账号: '.$adminUser["username"].'，管理员密码:'.$adminUser['password'].',后台入口:'.request()->domain().'/backend');
         } catch (\Exception $e) {
             $this->output->error($e->getMessage());
         }
