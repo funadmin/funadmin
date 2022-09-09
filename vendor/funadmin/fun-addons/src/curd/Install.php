@@ -120,6 +120,9 @@ class Install extends Command
             $this->output->error('runtime path is  not writeable');
             exit();
         }
+
+        $this->output->info('runtime  is witeable');
+
         $sql_file = app()->getBasePath().'install'.DIRECTORY_SEPARATOR.'funadmin.sql';
         //检测能否读取安装文件
         $sql = @file_get_contents($sql_file);
@@ -127,9 +130,12 @@ class Install extends Command
             $this->output->error("Unable to read `{$sql_file}`，Please check if you have read permission");
             exit();
         }
-        $this->output->info('runtime  is witeable');
+
+        $this->output->info('sql file is witeable');
 
         $this->output->info('🎉 environment checking finished');
+
+
     }
     /**
      * 开始安装

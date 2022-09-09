@@ -14,6 +14,7 @@ namespace fun\auth;
 
 use think\exception\HttpResponseException;
 use think\App;
+use think\facade\Config;
 use think\facade\Request;
 use fun\auth\Send;
 use fun\auth\Oauth;
@@ -41,12 +42,15 @@ class Api
     
     protected $member_id = '';
 
+    protected $type ='simple';
+
     /**
      * 构造方法
      * @param App $app $app对象
      */
     public function __construct(App $app)
     {
+        $this->type  = Config::get('api.type','simple');
         $this->request = Request::instance();
         $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->group =  $this->request->param('group')?$this->request->param('group'):'api';
@@ -66,12 +70,11 @@ class Api
         if ($this->request->isOptions()) {
             $this->success('success');
         }
-        $oauth = new Oauth();
+        $class = '\\fun\\auth\\'.ucfirst($this->type).'Oauth';
+        $oauth = $class::instance();
         if (!$oauth->match($this->noAuth) || $oauth->match($this->noAuth) && Request::header(config('api.authentication'))) {               //请求方法白名单
-            $oauth = new Oauth();
             return $this->clientInfo = $oauth->authenticate();
         }
-
     }
     /**
      * 空方法

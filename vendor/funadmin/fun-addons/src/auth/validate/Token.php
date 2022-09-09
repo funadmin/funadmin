@@ -30,8 +30,8 @@ class Token extends Validate
     ];
 
     protected $scene  = [
-        'jwt'  =>  ['username','password','timestamp'],
-        'authappjwt'  =>  ['appid','appsecret','username','password','timestamp'],
+        'jwt'  =>  ['appid','appsecret','username','password','timestamp'],
+        'simple'  =>  ['username','password','timestamp'],
     ];
 
     protected $message  =   [

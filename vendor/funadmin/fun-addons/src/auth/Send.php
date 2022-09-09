@@ -12,6 +12,8 @@
  */
 namespace fun\auth;
 
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use think\exception\HttpResponseException;
 use think\facade\Db;
 use think\Response;
@@ -49,11 +51,13 @@ trait Send
      * @var 
      */
     public  $client ;
+
     /**
-     * @var bool
-     * 是否需要验证数据库账号
+     * 商戶ID
+     * @var int
      */
-    public $authapp = false;
+    protected $merchant_id = 0;
+
     /**
      * 测试appid，正式请数据库进行相关验证
      */
@@ -123,10 +127,32 @@ trait Send
         throw new HttpResponseException($response);
     }
 
-    protected function getClient($appid='',$appsecret='',$field='*'){
+    protected function getClientData($where=[],$field='*'){
 
-        return Db::name('oauth2_client')->where('appid',$appid)
-            ->where('appsecret',$appsecret)->field($field)->cache($appid.$appsecret,$this->refreshExpires)->find();
+        return Db::name('oauth2_client')->where($where)->field($field)->find();
+    }
+
+    protected function checkToken($jwt)
+    {
+        try {
+
+            JWT::$leeway = 60;//当前时间减去60，把时间留点余地
+            $decoded = JWT::decode($jwt, new Key(md5(config('api.jwt_key')), 'HS256'));
+            $jwtAuth = (array)$decoded;
+            $clientInfo['access_token'] = $jwt;
+            $clientInfo['member_id'] = $jwtAuth['member_id'];
+            $clientInfo['appid'] = $jwtAuth['appid'];
+        } catch (\Firebase\JWT\SignatureInvalidException $e) {  //签名不正确
+            throw new \Exception ($e->getMessage());
+        } catch (\Firebase\JWT\BeforeValidException $e) {  // 签名在某个时间点之后才能用
+            throw new \Exception($e->getMessage());
+        } catch (\Firebase\JWT\ExpiredException $e) {  // token过期
+            throw new \Exception($e->getMessage());
+        } catch (Exception $e) {  //其他错误
+            throw new \Exception($e->getMessage());
+        }
+        return $clientInfo;
+
     }
 }
 

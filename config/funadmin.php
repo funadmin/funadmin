@@ -1,22 +1,6 @@
 <?php
 
 return [
-//    //不需要验证权限的控制器
-//    'noRightController'=>[ 'ajax', 'login', 'index'],
-//    //不需要登录控制器
-//    'noLoginController'=>['login'],
-//    // 不需要鉴权
-//    'noRightNode'    =>['login/index', 'login/logout','ajax/lang','ajax/verify','login/verify','ajax/clearcache','ajax/setConfig'],
-//    // 不需要登陆
-//    'noLoginNode' => ['login/index', 'login/logout', 'ajax/lang', 'ajax/clearData','ajax/verify'],
-//    'noRightController'=>[ ],
-//    //不需要登录控制器
-//    'noLoginController'=>[],
-//    // 不需要鉴权
-//    'noRightNode'    =>[],
-//    // 不需要登陆
-//    'noLoginNode' => [],
-
     //权限开关
     "auth_on" =>true,
     //超级管理员id
@@ -26,9 +10,9 @@ return [
     'isDemo'=>0,
 
     //版本
-    'version' => '3.0',
+    'version' => '3.0.0',
 
-    'version_data' => '20220905',
+    'version_data' => '20220909',
 
     'layui_version' => '2.8.0',
 

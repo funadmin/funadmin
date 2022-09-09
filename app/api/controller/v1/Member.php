@@ -4,7 +4,6 @@ namespace app\api\controller\v1;
 
 use think\facade\Request;
 use fun\auth\Api;
-use fun\auth\validate\ValidataBase;
 
 class Member extends Api
 {
@@ -27,10 +26,6 @@ class Member extends Api
     {
         $this->success('ok',$this->member_id);
         //通用参数验证
-//        $validate = new ValidataBase();
-//        $validate->validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证
-//        $this->success('ok');
-
     }
 
     /**

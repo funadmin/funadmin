@@ -25,7 +25,7 @@ use think\facade\Request;
 /**
  * API鉴权验证
  */
-class Oauth
+class SimpleOauth
 {
     use Send;
 
@@ -72,26 +72,16 @@ class Oauth
     public function certification()
     {
         $data = $this->getClient();
-        if (Config::get('api.driver') == 'redis') {
-            $this->redis = PredisService::instance();
-            $AccessToken = $this->redis->get(Config::get('api.redisTokenKey')  . $data['access_token']);
-            $AccessToken = unserialize($AccessToken);
-        } else {
-            $AccessToken = Db::name('oauth2_access_token')
-                ->where('member_id', $data['member_id'])
-                ->where('tablename', $this->tableName)
-                ->where('group', $this->group)
-                ->where('access_token', $data['access_token'])->order('id desc')->find();
-        }
-        if (!$AccessToken) {
-            $this->error('access_token不存在或过期', [], 401);
-        }
-        $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
-        if (!$client || $client['appid'] !== $data['appid']) {
-            $this->error('appid错误', [], 401);//appid与缓存中的appid不匹配
-        }
         return $data;
     }
+
+    /**
+     * 解密
+     * @param $authorizationHeader
+     * @return array
+     * @throws \Exception
+     */
+
     /**
      * 检测当前控制器和方法是否匹配传递的数组
      *
@@ -115,7 +105,6 @@ class Oauth
     }
 
 
-
     /**
      * 获取用户信息
      * @return array
@@ -126,7 +115,7 @@ class Oauth
         $authorization = config('api.authentication') ? config('api.authentication') : 'Authorization';
         $authorizationHeader = Request::header($authorization);
         if (!$authorizationHeader) {
-            $this->error('Invalid authorization token', [], 401);
+            $this->error('Invalid authorization token', [], 401, '', $authorizationHeader ? $authorizationHeader : []);
         }
         try {
             //jwt
@@ -137,4 +126,6 @@ class Oauth
         }
         return $clientInfo;
     }
+
+
 }

@@ -729,8 +729,8 @@ CREATE TABLE `fun_oauth2_access_token` (
                                            `id` int unsigned NOT NULL AUTO_INCREMENT,
                                            `client_id` int NOT NULL COMMENT '客户端ID',
                                            `merchant_id` int unsigned DEFAULT '0' COMMENT '商户id',
-                                           `refresh_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '刷新令牌',
-                                           `access_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权令牌',
+                                           `refresh_token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '刷新令牌',
+                                           `access_token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权令牌',
                                            `expires_time` int NOT NULL COMMENT '过期时间',
                                            `refresh_expires_time` int NOT NULL COMMENT '刷新过期时间',
                                            `member_id` int unsigned DEFAULT '0' COMMENT '用户id',
@@ -774,14 +774,14 @@ CREATE TABLE `fun_oauth2_client` (
                                      `appsecret` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密钥',
                                      `redirect_uri` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '回调Url',
                                      `remark` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
-                                     `group` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '组别',
+                                     `group` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
                                      `status` tinyint DEFAULT '1' COMMENT '状态=[0:禁用;1启用]',
                                      `create_time` int unsigned DEFAULT '0' COMMENT '创建时间',
                                      `update_time` int unsigned DEFAULT '0' COMMENT '修改时间',
                                      `delete_time` int NOT NULL DEFAULT '0' COMMENT '删除时间',
                                      PRIMARY KEY (`id`),
                                      KEY `merchant_id` (`merchant_id`),
-                                     KEY `client_id` (`appid`)
+                                     KEY `appid` (`appid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='oauth2_授权客户端';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

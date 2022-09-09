@@ -26,11 +26,27 @@ use Firebase\JWT\JWT;
 class Token
 {
     use Send;
+
+    protected static $instance = null;
+
+    /**
+     *
+     * @param array $options 参数
+     * @return Oauth
+     */
+    public static function instance($options = [])
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new static($options);
+        }
+
+        return self::$instance;
+    }
     /**
      * 构造方法
      * @param Request $request Request对象
      */
-    public function __construct(Request $request)
+    public function __construct($options=[])
     {
         header('Access-Control-Allow-Origin:*');
         header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
@@ -42,42 +58,76 @@ class Token
         $this->refreshExpires =Config::get('api.refreshExpires')??$this->refreshExpires;
         $this->expires =Config::get('api.expires')??$this->expires;
         $this->responseType = Config::get('api.responseType')??$this->responseType;
-        $this->authapp = Config::get('api.authapp')??$this->authapp;
-        $this->group =  $this->request->param('group')?$this->request->param('group'):'api';
+        $this->group =  $this->request->param('group')?:$this->group;
+        $this->merchant_id =  $this->request->param('merchant_id')?$this->request->param('merchant_id'):0;
 
     }
 
     /**
      * 生成token
      */
-    public function buildToken(Request $request)
+    public function build()
     {
         //参数验证
         $validate = new \fun\auth\validate\Token;
-        if($this->authapp){
-            if (!$validate->scene('authappjwt')->check(Request::post())) {
-                $this->error($validate->getError(), '', 500);
-            }
-        }else {
-            if (!$validate->scene('jwt')->check(Request::post())) {
-                $this->error($validate->getError(), '', 500);
-            }
+        if (!$validate->scene('jwt')->check(Request::post())) {
+            $this->error($validate->getError(), '', 500);
         }
         $this->checkParams(Request::post());  //参数校验
         //数据库已经有一个用户,这里需要根据input('mobile')去数据库查找有没有这个用户
         $memberInfo = $this->getMember(Request::post('username'), Request::post('password'));
-        $client = $this->getClient($this->appid,$this->appsecret,'id,group');
-        if(!$client){
-            $this->error('client is not right',[] , 401);
-        }
         //虚拟一个member_id返回给调用方
         try {
-            $accessToken = $this->setAccessToken(array_merge($memberInfo, ['client_id' => $client['id'],'appid'=>$this->appid]));
+            $accessToken = $this->setAccessToken(array_merge($memberInfo, [
+                'client_id' => $this->client['id'],
+                'appid'=>$this->appid,
+                'group'=>$this->group,
+                'merchant_id'=>$this->merchant_id,
+            ]));
         } catch (\Exception $e) {
             $this->error($e->getMessage(), [], 500);
         }
         $this->success('success', $accessToken);
 
+    }
+
+    /**
+     * token 过期 刷新token
+     */
+    public function refresh()
+    {
+        $refresh_token = Request::post('refresh_token');
+        if(Config::get('api.driver')=='redis'){
+            $this->redis = PredisService::instance();
+            $refresh_token_info = $this->redis->get(Config::get('api.redisRefreshTokenKey').$refresh_token);
+            $refresh_token_info = unserialize($refresh_token_info);
+        }else{
+            $refresh_token_info = Db::name('oauth2_access_token')
+                ->where('refresh_token',$refresh_token)
+                ->where('tablename',$this->tableName)
+                ->where('group',$this->group)
+                ->order('id desc')->find();
+        }
+        if (!$refresh_token_info) {
+            $this->error('refresh_token is error or expired', [], 401);
+        }
+        if ($refresh_token_info['refresh_expires_time'] <time()) {
+            $this->error('refresh_token is error or expired', [], 401);
+        }
+        //重新给用户生成调用token
+        $member =  Db::name($this->tableName)->where('status',1)
+            ->field('id as member_id')->find($refresh_token_info['member_id']);
+
+        if(!$member) $this->error(lang('member is not exist'), [],401);
+
+        $this->client =  $this->getClientData(['id'=>$refresh_token_info['client_id']],'id as client_id,appid,group,merchant_id');
+        if(!$this->client) $this->error(lang('client is not exist'), [],401);
+        $this->appid  = $this->client['appid'];
+        $this->group  = $this->client['group'];
+        $this->merchant_id  = $this->client['merchant_id'];
+        $memberInfo = array_merge($member,$this->client);
+        $accessToken = $this->setAccessToken($memberInfo,$refresh_token);
+        $this->success('success', $accessToken);
     }
     /**
      * 设置AccessToken
@@ -97,15 +147,19 @@ class Token
             $accessTokenInfo['refresh_token'] = $this->buildAccessToken($memberInfo,$this->refreshExpires);
             //可以保存到数据库 也可以去掉下面两句,本身jwt不需要存储
             $this->redis = PredisService::instance();
-            $this->redis->set(Config::get('api.redisTokenKey').$this->appid. $this->tableName .  $accessTokenInfo['access_token'],serialize($accessTokenInfo),$this->expires);
-            $this->redis->set(Config::get('api.redisRefreshTokenKey') . $this->appid . $this->tableName . $accessTokenInfo['refresh_token'],serialize($accessTokenInfo),$this->refreshExpires);
+            $this->redis->set(Config::get('api.redisTokenKey').$accessTokenInfo['access_token'],serialize($accessTokenInfo),$this->expires);
+            $this->redis->set(Config::get('api.redisRefreshTokenKey') .$accessTokenInfo['refresh_token'],serialize($accessTokenInfo),$this->refreshExpires);
         }else{
-            $token =  Db::name('oauth2_access_token')->where('member_id',$memberInfo['member_id'])
-                ->where('tablename',$this->tableName)
-                ->where('group',$this->group)
+            $where = [
+                ['member_id','=',$memberInfo['member_id']],
+                ['tablename','=',$this->tableName],
+                ['group','=',$this->group]
+            ];
+            $token =  Db::name('oauth2_access_token')
+                ->where($where)
                 ->order('id desc')->limit(1)
                 ->find();
-            if($token and $token['expires_time'] > time() && !$refresh_token) {
+            if($token && $token['expires_time'] > time() && !$refresh_token) {
                 $accessTokenInfo['access_token'] = $token['access_token'];
                 $accessTokenInfo['refresh_token'] = $token['refresh_token'];
                 $accessTokenInfo['expires_time'] = $token['expires_time'];
@@ -119,38 +173,7 @@ class Token
         return $accessTokenInfo;
     }
 
-    /**
-     * token 过期 刷新token
-     */
-    public function refresh()
-    {
-        $refresh_token = Request::param('refresh_token');
-        if(Config::get('api.driver')=='redis'){
-            $this->redis = PredisService::instance();
-            $refresh_token_info = $this->redis->get(Config::get('api.redisRefreshTokenKey').$this->appid.$this->tableName.$refresh_token);
-            $refresh_token_info = unserialize($refresh_token_info);
-        }else{
-            $refresh_token_info = Db::name('oauth2_access_token')
-                ->where('refresh_token',$refresh_token)
-                ->where('tablename',$this->tableName)
-                ->where('group',$this->group)
-                ->order('id desc')->find();
-        }
-        if (!$refresh_token_info) {
-            $this->error('refresh_token is error or expired', [], 401);
-        }
-        if ($refresh_token_info['refresh_expires_time'] <time()) {
-            $this->error('refresh_token is error or expired', [], 401);
-        }
-        //重新给用户生成调用token
-        $member =  Db::name($this->tableName)->where('status',1)
-            ->field('id as member_id')->find($refresh_token_info['member_id']);
-        $client =  Db::name('oauth2_client')
-            ->field('id as client_id,appid,group')->find($refresh_token_info['client_id']);
-        $memberInfo = array_merge($member,$client);
-        $accessToken = $this->setAccessToken($memberInfo,$refresh_token);
-        $this->success('success', $accessToken);
-    }
+
 
     /**
      * 参数检测和验证签名
@@ -161,25 +184,18 @@ class Token
         if (abs($params['timestamp'] - time()) > $this->timeDif) {
             $this->error('请求时间戳与服务器时间戳异常' . time(), [], 401);
         }
-        if ($this->authapp && $params['appid'] !== $this->appid) {
-            //appid检测，查找数据库或者redis进行验证
-            $this->error('appid 错误', [], 401);
+        $where = [
+            ['appid','=' ,$params['appid']],
+            [ 'appsecret', '=',$params['appsecret']],
+            ['merchant_id', '=',$this->merchant_id],
+            ['group', '=',$this->group],
+        ];
+        $this->client = $this->getClientData($where,'id,appid,appsecret,group,merchant_id');
+        if (!$this->client) {
+            $this->error('Invalid authorization app', [], 401);
         }
-        if ($this->authapp && $params['appsecret'] !== $this->appsecret) {
-            //appid检测，查找数据库或者redis进行验证
-            $this->error('appsecret 错误', [], 401);
-        }
-        if($this->authapp){
-            $oauth2_client = Db::name('oauth2_client')
-                ->where('appid', $params['appid'])
-                ->where('appsecret', $params['appsecret'])
-                ->field('id')
-                ->find();
-            if (!$oauth2_client) {
-                $this->error('Invalid authorization app', [], 401);
-            }
-        }
-
+        $this->appid = $this->client['appid'];
+        $this->appsecret = $this->client['appsecret'];
     }
 
     /**
