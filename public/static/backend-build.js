@@ -11,7 +11,7 @@
         'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay','selectPage',
         'inputTags','timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
         'regionCheckBox','timePicker','croppers',
-        'dayjs', 'backend','md5','fun','fu', 'form','table','upload'
+        'dayjs', 'backend','md5','fun','form','table','upload'
     ],
     paths: {
         'lang'          : 'empty:',
@@ -43,7 +43,6 @@
         //自定义 后台扩展
         'backend'       : 'js/backend.min', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
-        'fu'            : 'js/require-fu',
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',

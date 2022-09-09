@@ -19,7 +19,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect','treeTable','tableEdit','tableFilter','tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','fu','form','table','upload','addons'],
+        'css','treeGrid','tableSelect','treeTable','tableEdit','tableFilter','tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -50,7 +50,6 @@ require.config({
         'backend'       : 'js/backend'+(Config.site.app_debug?'':'.min'), // fun后台扩展
         // 'backend'       : 'js/backend.min',
         'fun'           : 'js/fun', // api扩展
-        'fu'            : 'js/require-fu',
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',

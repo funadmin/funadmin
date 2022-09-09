@@ -10,7 +10,7 @@
         'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers', 'dayjs',
-        'md5','fun','form','fu', 'table','upload'],
+        'md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -41,7 +41,6 @@
         //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展
-        'fu'            : 'js/require-fu',
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',

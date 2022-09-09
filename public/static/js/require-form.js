@@ -7,7 +7,8 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus'], function($,Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus) {
+define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus'],
+    function($,Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus) {
     var Form = {
         init: {},
         //事件
@@ -36,9 +37,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         })
                     })
                 }
-
             },
-            selectplus:function() {
+            selectplus:function(formObj) {
                 var selectplus ={},list = $("*[lay-filter='selectPlus']");
                 if (list.length > 0) {
                     selectPlus = layui.selectPlus || parent.layui.selectPlus;
@@ -66,7 +66,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            selectn:function() {
+            selectn:function(formObj) {
                 var selectn ={},list = $("*[lay-filter='selectN']");
                 if (list.length > 0) {
                     selectN = layui.selectN || parent.layui.selectN;
@@ -92,7 +92,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            selectpage:function() {
+            selectpage:function(formObj) {
                 var list = $("*[lay-filter='selectPage']");
                 if (list.length > 0) {
                     selectPage = layui.selectPage || parent.layui.selectPage;
@@ -137,7 +137,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            xmSelect: function() {
+            xmSelect: function(formObj) {
                 var xmselectobj ={},list = $("*[lay-filter='xmSelect']");
                 if (list.length > 0) {
                     layui.each(list, function(i) {
@@ -250,7 +250,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            editor: function() {
+            editor: function(formObj) {
                 var list = $("*[lay-filter='editor']");
                 if (list.length > 0) {
                     const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -369,7 +369,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            tags: function() {
+            tags: function(formObj) {
                 var list = $("*[lay-filter='tags']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -387,7 +387,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            icon: function() {
+            icon: function(formObj) {
                 var list = $("*[lay-filter='iconPickers']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -407,7 +407,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            color: function() {
+            color: function(formObj) {
                 var list = $("*[lay-filter='colorPicker']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -428,7 +428,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            regionCheck: function() {
+            regionCheck: function(formObj) {
                 var list = $("*[lay-filter='regionCheck']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -462,7 +462,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            city: function() {
+            city: function(formObj) {
                 var list = $("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
                     cityPicker = layui.cityPicker;
@@ -503,7 +503,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            timepicker: function() {
+            timepicker: function(formObj) {
                 var list = $("*[lay-filter='timePicker']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -519,7 +519,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            date: function() {
+            date: function(formObj) {
                 var list = $("*[lay-filter='date']");
                 if (list.length > 0) {
                     layui.each(list, function() {
@@ -550,7 +550,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            rate: function() {
+            rate: function(formObj) {
                 var ratelist=[];
                 var list = $("*[lay-filter='rate']");
                 if (list.length > 0) {
@@ -578,7 +578,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            slider: function() {
+            slider: function(formObj) {
                 var sliderlist=[];
                 var list = $("*[lay-filter='slider']");
                 if (list.length > 0) {
@@ -607,7 +607,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            addInput: function() {
+            addInput: function(formObj) {
                 $(document).on('click', ".addInput", function() {
                     var name = $(this).data('name'), verify = $(this).data('verify'),
                         num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
@@ -615,29 +615,29 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     $(this).parents('.layui-form-item').after(str)
                 })
             },
-            removeInupt: function() {
+            removeInupt: function(formObj) {
                 $(document).on('click', ".removeInupt", function() {
                     var parentEle = $(this).parent().parent();
                     parentEle.remove()
                 })
             },
-
-            uploads: function() {
+            uploads: function(formObj) {
                 Upload.api.uploads();
             },
-            cropper: function() {
+            cropper: function(formObj) {
                 Upload.api.cropper();
             },
             //选择文件
-            chooseFiles: function() {
-                Form.api.chooseFiles()
+            chooseFiles: function(formObj) {
+                Form.api.chooseFiles(formObj)
             },
             //选择文件
-            selectFiles: function() {
-                Form.api.selectFiles()
+            selectFiles: function(formObj) {
+                Form.api.selectFiles(formObj)
             },
+
             //验证
-            verifys: function() {
+            verifys: function(formObj) {
                 layui.form.verify({
                     user: function(value) { //value：表单的值、item：表单的DOM对象
                         if (!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)) {
@@ -661,7 +661,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 });
             },
             //必填项
-            required: function() {
+            required: function(formObj) {
                 var vfList = $("[lay-verify]");
                 if (vfList.length > 0) {
                     layui.each(vfList, function() {
@@ -732,8 +732,13 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
+
+            //图片
+            photos: function(otihs) {
+                Fun.events.photos(otihs)
+            },
             //删除
-            upfileDelete: function(othis) {
+            filedelete: function(othis) {
                 var fileurl = othis.data('fileurl'),
                     that;
                 var confirm = Fun.toastr.confirm(__('Are you sure？'), function() {
@@ -753,18 +758,24 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 });
                 return false;
             },
-            //图片
-            photos: function(otihs) {
-                Fun.events.photos(otihs)
-            },
-            bindevent: function(form) {
-                $('body').on('click', '[lay-event]', function() {
+            bindevent: function(formObj) {
+                formObj.on('click', '[lay-event]', function() {
                     var _that = $(this),
                         attrEvent = _that.attr('lay-event');
-                    if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                    if (Form.events.hasOwnProperty(attrEvent)) {
+                        Form.events[attrEvent] && Form.events[attrEvent].call(this, _that);
                     }
                 });
+                require(['table'], function (Table) {
+                    $('body').on('click', '[lay-event]', function () {
+                        if ($('table').length > 0){
+                            var _that = $(this), attrEvent = _that.attr('lay-event');
+                        if (Table.events.hasOwnProperty(attrEvent)) {
+                            Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                        }
+                        }
+                    });
+                })
             },
         },
         api: {
@@ -928,13 +939,13 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 var html = '';
                                 layui.each(data.data, function(index, val) {
                                     if (uploadMime === 'images') {
-                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else if (uploadMime === 'video') {
-                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else if (uploadMime === 'audio') {
-                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     } else {
-                                        html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                     }
                                     fileArr.push(val.path)
                                 });
@@ -1006,15 +1017,15 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                             layui.each(li, function(index, val) {
                                                 var type = $(this).data('type'), url =  $(this).data('url');
                                                 if (type.indexOf('image') >=0)  {
-                                                    html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('video') >= 0) {
-                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('audio') >= 0) {
-                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('zip') >= 0) {
-                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else {
-                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + url + '"></i></li>\n';
+                                                    html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 }
                                                 fileArr.push(url)
                                             });
@@ -1059,35 +1070,30 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 events.submit(form, success, error, submit);
                 events.required(form)
                 events.verifys(form)
-                events.uploads() //上传
-                events.chooseFiles() //选择文件
-                events.selectFiles() //选择文件页面类型
-                events.cropper() //上传
-                events.icon();
-                events.xmSelect();
-                events.color();
-                events.tags();
-                events.city();
-                events.date();
-                events.rate();
-                events.slider();
-                events.timepicker();
-                events.editor();
-                events.regionCheck();
-                events.addInput();
-                events.selectplus();
-                events.selectn();
-                events.selectpage();
-                events.removeInupt();
-                events.events() //事件
                 events.bindevent(form);
+                events.uploads(form) //上传
+                events.chooseFiles(form) //选择文件
+                events.selectFiles(form) //选择文件页面类型
+                events.cropper(form) //上传
+                events.icon(form);
+                events.xmSelect(form);
+                events.color(form);
+                events.tags(form);
+                events.city(form);
+                events.date(form);
+                events.rate(form);
+                events.slider(form);
+                events.timepicker(form);
+                events.editor(form);
+                events.regionCheck(form);
+                events.addInput(form);
+                events.selectplus(form);
+                events.selectn(form);
+                events.selectpage(form);
+                events.removeInupt(form);
+                events.events() //事件
                 //初始化数据
                 this.initForm();
-                $('body').on('click', '[lay-event]', function() {
-                    var _that = $(this),
-                        attrEvent = _that.attr('lay-event');
-                    Form.events[attrEvent] && Form.events[attrEvent].call(this, _that)
-                });
             },
         },
     };
