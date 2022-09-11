@@ -194,7 +194,6 @@ class Index extends BaseController
             }
             $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
-            $adminUser['backend'] = $adminName;
             session('admin_install', $adminUser);
             $this->success('安装成功,安装后请重新启动程序');
         }

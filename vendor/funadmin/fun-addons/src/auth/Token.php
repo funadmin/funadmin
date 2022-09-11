@@ -279,7 +279,7 @@ class Token
             ->whereOr('mobile', $membername)
             ->whereOr('email', $membername)
             ->field('id as member_id,password')
-            ->cache($this->appid.$membername)
+            ->limit(1)
             ->find();
         if ($member) {
             if (password_verify($password, $member['password'])) {
