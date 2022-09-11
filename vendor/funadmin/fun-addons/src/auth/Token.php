@@ -71,7 +71,7 @@ class Token
         //参数验证
         $validate = new \fun\auth\validate\Token;
         if (!$validate->scene('jwt')->check(Request::post())) {
-            $this->error($validate->getError(), '', 500);
+            $this->error(lang($validate->getError()), '', 500);
         }
         $this->checkParams(Request::post());  //参数校验
         //数据库已经有一个用户,这里需要根据input('mobile')去数据库查找有没有这个用户
@@ -85,9 +85,9 @@ class Token
                 'merchant_id'=>$this->merchant_id,
             ]));
         } catch (\Exception $e) {
-            $this->error($e->getMessage(), [], 500);
+            $this->error(lang($e->getMessage()), [], 500);
         }
-        $this->success('success', $accessToken);
+        $this->success(lang('success'), $accessToken);
 
     }
 
@@ -109,10 +109,10 @@ class Token
                 ->order('id desc')->find();
         }
         if (!$refresh_token_info) {
-            $this->error('refresh_token is error or expired', [], 401);
+            $this->error(lang('refresh_token is error or expired'), [], 401);
         }
         if ($refresh_token_info['refresh_expires_time'] <time()) {
-            $this->error('refresh_token is error or expired', [], 401);
+            $this->error(lang('refresh_token is error or expired'), [], 401);
         }
         //重新给用户生成调用token
         $member =  Db::name($this->tableName)->where('status',1)
@@ -127,7 +127,7 @@ class Token
         $this->merchant_id  = $this->client['merchant_id'];
         $memberInfo = array_merge($member,$this->client);
         $accessToken = $this->setAccessToken($memberInfo,$refresh_token);
-        $this->success('success', $accessToken);
+        $this->success(lang('success'), $accessToken);
     }
     /**
      * 设置AccessToken
@@ -182,7 +182,7 @@ class Token
     {
         //时间戳校验
         if (abs($params['timestamp'] - time()) > $this->timeDif) {
-            $this->error('请求时间戳与服务器时间戳异常' . time(), [], 401);
+            $this->error(lang('Request timestamp and server timestamp are abnormal'), [], 401);
         }
         $where = [
             ['appid','=' ,$params['appid']],
@@ -192,10 +192,13 @@ class Token
         ];
         $this->client = $this->getClientData($where,'id,appid,appsecret,group,merchant_id');
         if (!$this->client) {
-            $this->error('Invalid authorization app', [], 401);
+            $this->error(lang('Invalid authorization app'), [], 401);
         }
         $this->appid = $this->client['appid'];
         $this->appsecret = $this->client['appsecret'];
+        if(!empty($params['sign']) && $params !=$this->buildSign($params)){
+            $this->error(lang('sign is not right'));
+        };
     }
 
     /**
@@ -291,5 +294,19 @@ class Token
         } else {
             $this->error(lang('Account is not exist'), [], 401);
         }
+    }
+
+
+    /**
+     * 生成签名
+     * 字符开头的变量不参与签名
+     */
+    protected  function buildSign ($data = [])
+    {
+        unset($data['version']);
+        unset($data['sign']);
+        ksort($data);
+        $data['key'] = $this->app_secret;
+        return strtolower(md5(urldecode(http_build_query($data))));
     }
 }

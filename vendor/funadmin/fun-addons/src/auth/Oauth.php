@@ -126,15 +126,16 @@ class Oauth
         $authorization = config('api.authentication') ? config('api.authentication') : 'Authorization';
         $authorizationHeader = Request::header($authorization);
         if (!$authorizationHeader) {
-            $this->error('Invalid authorization token', [], 401);
+            $this->error(lang('Invalid authorization token'), [], 401);
         }
         try {
             //jwt
             $clientInfo = $this->checkToken($authorizationHeader);
 
         } catch (\Exception $e) {
-            $this->error($e->getMessage(), [], 401, '', []);
+            $this->error(lang($e->getMessage()), [], 401);
         }
         return $clientInfo;
     }
+
 }

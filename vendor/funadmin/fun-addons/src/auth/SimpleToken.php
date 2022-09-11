@@ -70,16 +70,16 @@ class SimpleToken
         $post = Request::post() ;
         $validate = new \fun\auth\validate\Token;
         if (!$validate->scene('simple')->check(Request::post())) {
-            $this->error($validate->getError(), '', 500);
+            $this->error(lang($validate->getError()), '', 500);
         }
         //时间戳校验
         if (abs($post['timestamp'] - time()) > $this->timeDif) {
-            $this->error('请求时间戳与服务器时间戳异常' . time(), [], 401);
+            $this->error(lang('Request timestamp and server timestamp are abnormal'), [], 401);
         }
         //数据库已经有一个用户,这里需要根据input('mobile')去数据库查找有没有这个用户
         $memberInfo = $this->getMember(Request::post('username'), Request::post('password'));
         $accessToken =  $this->buildAccessToken($memberInfo,$this->expires);
-        $this->success('success', ['access_token'=>$accessToken]);
+        $this->success(lang('success'), ['access_token'=>$accessToken]);
 
     }
 
@@ -91,10 +91,10 @@ class SimpleToken
         $client = $this->checkToken($this->request->post('refresh_token'));
         $memberInfo =  Db::name($this->tableName)->field('id as member_id,password')->find($client['member_id']);
         if(!$memberInfo){
-            $this->error('member is not exist');
+            $this->error(lang('member is not exist'));
         }
         $accessToken =  $this->buildAccessToken($memberInfo,$this->expires);
-        $this->success('success', ['access_token'=>$accessToken]);
+        $this->success(lang('success'), ['access_token'=>$accessToken]);
     }
 
     /**

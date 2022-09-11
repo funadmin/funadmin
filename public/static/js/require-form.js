@@ -791,8 +791,11 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 option.refreshTable = option.refreshTable || false;
                 option.refreshFrame = option.refreshFrame || false;
                 if (option.refreshTable === true) {
-                    option.refreshTable = option.tableid ||  Table.init.tableId;
+                    require(['table'], function (Table) {
+                        option.refreshTable = option.tableid ||  Table.init.tableId;
+                    })
                 }
+                console.log(option)
                 var index = parent.layui.layer.getFrameIndex(window.name);
                 if (index) {
                     parent.layui.layer.close(index);
@@ -978,9 +981,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
              * 选择文件
              */
             selectFiles: function(formObj) {
-                console.log(formObj)
                 var fileSelectList = formObj!=undefined ? formObj.find("*[lay-filter='upload-select']") :$("*[lay-filter='upload-select']");
-                console.log(fileSelectList)
                 if (fileSelectList.length > 0) {
                     layui.each(fileSelectList, function(i, v) {
                         $(this).click(function(e){
