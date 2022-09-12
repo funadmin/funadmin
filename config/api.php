@@ -12,7 +12,7 @@
  */
 //配置api 接口
 return [
-    'type'=>'', //simple 简单jwt 不需要数据库和redis 空 则可选redis和mysql appid appsecret必填
+    'type'=>'simple', //simple 简单jwt 不需要数据库和redis 空 则可选redis和mysql appid appsecret必填
     'authentication'=>"Authorization",
     'jwt_key'=>'funadmin',//jwtkey，请一定记得修改
     'timeDif' => 100,//时间误差
@@ -24,3 +24,9 @@ return [
     'redisRefreshTokenKey'        =>'RefreshAccessToken:',//缓存键名
 
 ];
+
+//type simple
+//获取token方式  username password timestamp
+
+//type 為空
+//获取token方式  username password timestamp appid appsecret
