@@ -72,7 +72,7 @@ class Api
         }
         $class = '\\fun\\auth\\'.ucfirst($this->type).'Oauth';
         $oauth = $class::instance();
-        if(!$oauth->match($this->noAuth)){
+        if (!$oauth->match($this->noAuth) || ($oauth->match($this->noAuth) && Request::header(config('api.authentication')))) {               //请求方法白名单
             return $this->clientInfo = $oauth->authenticate();
         }
     }
