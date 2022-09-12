@@ -736,7 +736,7 @@ CREATE TABLE `fun_oauth2_access_token` (
                                            `member_id` int unsigned DEFAULT '0' COMMENT '用户id',
                                            `openid` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权对象openid',
                                            `tablename` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'member' COMMENT '授权用户表',
-                                           `group` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
+                                           `group` varchar(100)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
                                            `status` tinyint DEFAULT '1' COMMENT '状态=[-1:删除,0:禁用,1启用]',
                                            `create_time` int unsigned DEFAULT '0' COMMENT '创建时间',
                                            `update_time` int unsigned DEFAULT '0' COMMENT '修改时间',
@@ -791,7 +791,7 @@ CREATE TABLE `fun_oauth2_client` (
 
 LOCK TABLES `fun_oauth2_client` WRITE;
 /*!40000 ALTER TABLE `fun_oauth2_client` DISABLE KEYS */;
-INSERT INTO `fun_oauth2_client` VALUES (1,0,'FunAdmin','funadmin','692ffa52429dd7e2b1df280be0f8c83f','','','',1,0,0,0);
+INSERT INTO `fun_oauth2_client` VALUES (1,0,'FunAdmin','funadmin','692ffa52429dd7e2b1df280be0f8c83f','','','api',1,0,0,0);
 /*!40000 ALTER TABLE `fun_oauth2_client` ENABLE KEYS */;
 UNLOCK TABLES;
 

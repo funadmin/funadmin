@@ -186,7 +186,7 @@ class Token
         }
         $where = [
             ['appid','=' ,$params['appid']],
-            [ 'appsecret', '=',$params['appsecret']],
+            ['appsecret', '=',$params['appsecret']],
             ['merchant_id', '=',$this->merchant_id],
             ['group', '=',$this->group],
         ];
