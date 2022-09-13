@@ -43,21 +43,7 @@ class Frontend extends BaseController
      * 模型
      */
     protected $modelClass;
-    /**
-     * @var
-     * 模块
-     */
-    protected $module;
-    /**
-     * 控制器
-     * @var
-     */
-    protected $controller;
-    /**
-     * 方法
-     * @var
-     */
-    protected $action;
+
     /**
      * @var
      * 页面大小

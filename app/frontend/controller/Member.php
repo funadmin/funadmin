@@ -27,7 +27,7 @@ class Member extends Frontend {
     {
         parent::__construct($app);
         $this->modelClass = new \app\common\model\Member();
-        View::assign(['member'=>\session('member'),'action'=>$this->action]);
+        View::assign(['member'=>\session('member'),'action'=>request()->action()]);
     }
     /**
      * @return \think\Response

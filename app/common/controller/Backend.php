@@ -141,13 +141,13 @@ class Backend extends BaseController
         $lang = cookie(config('lang.cookie_var'));
         if($app && $app!=='backend'){
             $res =  Lang::load([
+                $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang  . '.php',
                 $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
-                $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang  . '.php'
             ]);
        }else{
             $res = Lang::load([
+                $this->app->getAppPath() . 'lang' . DS . $lang . '.php',
                 $this->app->getAppPath() . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
-                $this->app->getAppPath() . 'lang' . DS . $lang . '.php'
             ]);
         }
         return $res;
