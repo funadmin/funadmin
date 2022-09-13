@@ -7,7 +7,7 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
+define(['jquery', 'timePicker'], function ($, timePicker) {
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
@@ -58,8 +58,10 @@ define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
                         cols.push(arr)
                     })
                     Table.timeRender(cols)
-                    layui.form.render()
-                    Form.events.xmSelect();
+                    layui.form.render();
+                    require(['form'], function (Form) {
+                        Form.events.xmSelect();
+                    })
                 });
                 layui.form.render()
             }
@@ -253,8 +255,9 @@ define(['jquery', 'timePicker','form'], function ($, timePicker,Form) {
                 Table.api.tableSearch(options);
                 layui.form.render();
                 Table.timeRender(newCols)
-                Form.events.xmSelect();
-            }
+                require(['form'], function (Form) {
+                    Form.events.xmSelect();
+                })            }
         },
         timeRender: function (newCols) {
             layui.each(newCols, function (ncI, ncV) {

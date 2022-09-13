@@ -790,6 +790,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 option = option || {};
                 option.refreshTable = option.refreshTable || false;
                 option.refreshFrame = option.refreshFrame || false;
+                var Table;
                 if (option.refreshTable === true) {
                     require(['table'], function (Table) {
                         option.refreshTable = option.tableid ||  Table.init.tableId;
