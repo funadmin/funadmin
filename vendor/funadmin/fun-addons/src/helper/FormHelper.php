@@ -537,6 +537,7 @@ class FormHelper
                 }
             }
         }
+        $id = $options['id']??$name;
         $label = $options['label'] ?? $name;
         $url = $options['url'] ?? '';
         $multiple = '';
@@ -551,7 +552,7 @@ class FormHelper
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $str = '<div class="layui-form-item">' .$this->label($label,$options) . '
                 <div class="layui-input-block">
-                  <select data-attr="' . $attr . '" data-url="' . $url . '" ' .  $this->addextend($options) . ' ' . $this->addstyle($options) . '  class="layui-select-url layui-select' . $this->addClass($options) . '" name="' . $name . '" ' . $multiple . ' ' . $this->filter($options) . ' ' . $this->verify($options) . ' ' . $this->search($options) . ' ' . $this->readonlyOrdisabled($options) . ' >
+                  <select data-id="'.$id.'" data-attr="' . $attr . '" data-url="' . $url . '" ' .  $this->addextend($options) . ' ' . $this->addstyle($options) . '  class="layui-select-url layui-select' . $this->addClass($options) . '" name="' . $name . '" ' . $multiple . ' ' . $this->filter($options) . ' ' . $this->verify($options) . ' ' . $this->search($options) . ' ' . $this->readonlyOrdisabled($options) . ' >
                     <option value="">' . lang($default) . '</option>
                     ' . $op . '
                   </select>
