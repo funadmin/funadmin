@@ -84,7 +84,7 @@
     {if !$formData}
     {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
     {/if}
-    {:form_upload('avatar',$formData,['mime'=>'image'])}
+    {:form_upload('avatar',$formData,['mime'=>'images'])}
     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval please fill in carefully'] )}
     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
     {if(input('type'))}
