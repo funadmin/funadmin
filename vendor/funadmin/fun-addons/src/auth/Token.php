@@ -196,8 +196,13 @@ class Token
         }
         $this->appid = $this->client['appid'];
         $this->appsecret = $this->client['appsecret'];
-        if(Config::get('api.sign') && ((!empty($params['sign']) && $params !=$this->buildSign($params)) || empty($params['sign']))) {
-            $this->error(lang('sign is not right'));
+        if(Config::get('api.sign')) {
+            if(empty($params['nonce']) || empty($params['sign'])){
+                $this->error(lang('sign or nonce cannot be empty'), [],401);
+            }
+            if($params !=$this->buildSign($params)){
+                $this->error(lang('sign is not right'));
+            }
         }
     }
 
