@@ -30,7 +30,7 @@ body .layui-form-onswitch{border:none;}
 .layui-search-fieldset .layui-between .layui-input-inline{margin-right:3%;width:30%}
 .layui-search-fieldset .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
 .layui-search-fieldset .layui-form-select dl{top:31px;padding:0}
-.layui-form-select dl dd.layui-this{background:#1890ff;}
+.layui-form-select dl dd.layui-this{background:#1890ff;color:#fff}
 .layui-form-checked span, .layui-form-checked:hover span{background-color:#1890ff}
 /*.fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}*/
 /*.fun-layer-class .layui-layer-setwin .layui-layer-ico{background: none;}*/

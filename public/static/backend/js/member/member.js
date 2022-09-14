@@ -38,6 +38,35 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 width:'800',
                 height:'600',
             },
+            dropdown:{
+                type: 'dropdown',
+                event: 'dropdown',
+                class: 'layui-btn-xs layui-btn-green',
+                url: 'member.member/edit',
+                icon: 'layui-icon layui-icon-edit',
+                text: __('Edit'),
+                title: __('Edit'),
+                // full: 1,
+                width:'800',
+                height:'600',
+                extend:[
+                    {
+                        title: 'add'
+                        ,id: 101
+                        ,type: 'open'
+                        ,event: 'open'
+                        ,url: 'member.member/add'
+                        ,icon: 'layui-icon layui-icon-edit'
+                    },
+                    {
+                        title: 'add'
+                        ,id: 101
+                        ,type: 'open'
+                        ,event: 'open'
+                        ,url: 'member.member/add'
+                        ,icon: 'layui-icon layui-icon-edit'
+                    }]
+            }
         },
     };
     // Table.init2 = {
@@ -108,6 +137,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
+                        // operat: ['edit_url','copy', 'destroy','dropdown']
                         operat: ['edit_url','copy', 'destroy']
                     }
                 ]],

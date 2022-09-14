@@ -793,7 +793,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 });
                 return false;
             }, dropdown: function (othis) {
-                Fun.events.dropdown(othis, Table)
+                Fun.events.dropdown(othis)
             }, closeOpen: function (othis) {
                 Fun.api.close()
             }, common: function (othis) {

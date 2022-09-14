@@ -381,7 +381,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 });
                 return false
             },
-            dropdown: function (othis,Table='') {
+            dropdown: function (othis) {
                 var extend = $(othis).attr('data-extend');
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
@@ -412,12 +412,17 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
                             data.title = data.textTitle;
-                            if (Table && Table.events.hasOwnProperty(attrEvent)) {
-                            }else if(data.callback){
-                                data.callback.indexOf('(')!==-1 ?eval( data.callback):eval( data.callback+'()')
-                            }else{
-                                data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
-                            }
+                            require(['table'], function (Table) {
+                                console.log(this.elem)
+                                if (Table.events.hasOwnProperty(attrEvent)) {
+                                    Table.events[attrEvent].call(this, _that.find('button'))
+                                }else if(data.callback){
+                                    data.callback.indexOf('(')!==-1 ?eval( data.callback):eval( data.callback+'()')
+                                }else{
+                                    data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
+                                }
+                            })
+
                         }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
                     inst.reload();//点击后需要重载才不会隐藏
