@@ -196,9 +196,9 @@ class Token
         }
         $this->appid = $this->client['appid'];
         $this->appsecret = $this->client['appsecret'];
-        if(!empty($params['sign']) && $params !=$this->buildSign($params)){
+        if(Config::get('api.sign') && ((!empty($params['sign']) && $params !=$this->buildSign($params)) || empty($params['sign']))) {
             $this->error(lang('sign is not right'));
-        };
+        }
     }
 
     /**

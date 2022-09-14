@@ -22,4 +22,5 @@ return [
     'driver'        =>'redis',//缓存或数据驱动;//redis//mysql
     'redisTokenKey'  =>'AccessToken:',//缓存键名
     'redisRefreshTokenKey'        =>'RefreshAccessToken:',//缓存键名
+    'sign'        =>false,//是否需要签名 //加强安全性
 ];
