@@ -166,12 +166,11 @@ trait Send
         $authorization = config('api.authentication') ? config('api.authentication') : 'Authorization';
         $authorizationHeader = Request::header($authorization);
         if (!$authorizationHeader) {
-            $this->error(lang('Invalid authorization token'), [], 401);
+            throw new \Exception(lang('Invalid authorization token'));
         }
         try {
             //jwt
             $clientInfo = $this->checkToken($authorizationHeader);
-
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }

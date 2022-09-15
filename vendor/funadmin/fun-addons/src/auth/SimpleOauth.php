@@ -60,25 +60,28 @@ class SimpleOauth
      * 认证授权 通过用户信息和路由
      * @return array|mixed
      */
-    final function authenticate($noAuth=false)
+    final function authenticate()
     {
-        return $this->certification($noAuth);
+        return $this->certification();
     }
 
     /**
      * 获取用户信息后 验证权限
      * @return mixed
      */
-    public function certification($noAuth = false)
+    public function certification()
     {
-       
-        try {
-            $data = $this->getClient();
-        }catch (\Exception $e) {
-            if(!$noAuth) $this->error($e->getMessage());
-        }
+        $match = $this->match(!empty($this->options['noAuth'])?$this->options['noAuth']:[]);
+        if (!$match || ($match && Request::header(config('api.authentication')))) {               //请求方法白名单
+            try {
+                $data = $this->getClient();
+            }catch (\Exception $e) {
+                if(!$match) $this->error($e->getMessage(),[],401);
+            }
 
-        return $data;
+            return $data;
+        }
+       
     }
 
     /**

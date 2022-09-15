@@ -15,7 +15,7 @@ class Member extends Api
      * 所有方法都不需要鉴权
      * [*]
      */
-    protected $noAuth = [];
+    protected $noAuth = ['index'];
     //    案例
     /**
      * 显示资源列表
