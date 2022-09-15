@@ -97,8 +97,9 @@ class Oauth
             } catch (\Exception $e) {
                 if (!$match) $this->error($e->getMessage(), [], 401);
             }
+            return $data;
         }
-        return $data;
+        return '';
     }
     
 }

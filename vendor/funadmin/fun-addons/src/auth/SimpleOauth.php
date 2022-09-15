@@ -81,6 +81,7 @@ class SimpleOauth
 
             return $data;
         }
+        return '';
        
     }
 
