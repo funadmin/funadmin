@@ -16,6 +16,7 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use think\exception\HttpResponseException;
 use think\facade\Db;
+use think\facade\Request;
 use think\Response;
 
 trait Send
@@ -154,5 +155,50 @@ trait Send
         return $clientInfo;
 
     }
+
+    /**
+     * 获取客户端
+     * @return array|false
+     */
+    protected function getClient()
+    {
+        //获取头部信息
+        $authorization = config('api.authentication') ? config('api.authentication') : 'Authorization';
+        $authorizationHeader = Request::header($authorization);
+        if (!$authorizationHeader) {
+            $this->error(lang('Invalid authorization token'), [], 401);
+        }
+        try {
+            //jwt
+            $clientInfo = $this->checkToken($authorizationHeader);
+
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+        return $clientInfo;
+    }
+    /**
+     * 检测当前控制器和方法是否匹配传递的数组
+     *
+     * @param array $arr 需要验证权限的数组
+     * @return boolean
+     */
+    public function match($arr = [])
+    {
+        $request = Request::instance();
+        $arr = is_array($arr) ? $arr : explode(',', $arr);
+        if (!$arr) {
+            return false;
+        }
+        $arr = array_map('strtolower', $arr);
+        // 是否存在
+        if (in_array(strtolower($request->action()), $arr) || in_array('*', $arr)) {
+            return true;
+        }
+        // 没找到匹配
+        return false;
+    }
+
+
 }
 

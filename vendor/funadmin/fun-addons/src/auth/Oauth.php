@@ -60,82 +60,42 @@ class Oauth
      * 认证授权 通过用户信息和路由
      * @return array|mixed
      */
-    final function authenticate()
+    final function authenticate($noAuth=false)
     {
-        return $this->certification();
+        return $this->certification($noAuth);
     }
 
     /**
      * 获取用户信息后 验证权限
      * @return mixed
      */
-    public function certification()
+    public function certification($noAuth = false)
     {
-        $data = $this->getClient();
-        if (Config::get('api.driver') == 'redis') {
-            $this->redis = PredisService::instance();
-            $AccessToken = $this->redis->get(Config::get('api.redisTokenKey')  . $data['access_token']);
-            $AccessToken = unserialize($AccessToken);
-        } else {
-            $AccessToken = Db::name('oauth2_access_token')
-                ->where('member_id', $data['member_id'])
-                ->where('tablename', $this->tableName)
-                ->where('group', $this->group)
-                ->where('access_token', $data['access_token'])->order('id desc')->find();
+        try {
+            $data = $this->getClient();
+            if (Config::get('api.driver') == 'redis') {
+                $this->redis = PredisService::instance();
+                $AccessToken = $this->redis->get(Config::get('api.redisTokenKey')  . $data['access_token']);
+                $AccessToken = unserialize($AccessToken);
+            } else {
+                $AccessToken = Db::name('oauth2_access_token')
+                    ->where('member_id', $data['member_id'])
+                    ->where('tablename', $this->tableName)
+                    ->where('group', $this->group)
+                    ->where('access_token', $data['access_token'])->order('id desc')->find();
+            }
+            if (!$AccessToken) {
+                throw  new \Exception(lang('access_token不存在或过期'));
+            }
+            $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
+            if (!$client || $client['appid'] !== $data['appid']) {
+                throw  new \Exception(lang('appid错误'));
+            }
+        }catch (\Exception $e) {
+            if(!$noAuth) $this->error($e->getMessage(),[],401);
         }
-        if (!$AccessToken) {
-            $this->error('access_token不存在或过期', [], 401);
-        }
-        $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
-        if (!$client || $client['appid'] !== $data['appid']) {
-            $this->error('appid错误', [], 401);//appid与缓存中的appid不匹配
-        }
+        
         return $data;
     }
-    /**
-     * 检测当前控制器和方法是否匹配传递的数组
-     *
-     * @param array $arr 需要验证权限的数组
-     * @return boolean
-     */
-    public function match($arr = [])
-    {
-        $request = Request::instance();
-        $arr = is_array($arr) ? $arr : explode(',', $arr);
-        if (!$arr) {
-            return false;
-        }
-        $arr = array_map('strtolower', $arr);
-        // 是否存在
-        if (in_array(strtolower($request->action()), $arr) || in_array('*', $arr)) {
-            return true;
-        }
-        // 没找到匹配
-        return false;
-    }
-
-
-
-    /**
-     * 获取用户信息
-     * @return array
-     */
-    protected function getClient()
-    {
-        //获取头部信息
-        $authorization = config('api.authentication') ? config('api.authentication') : 'Authorization';
-        $authorizationHeader = Request::header($authorization);
-        if (!$authorizationHeader) {
-            $this->error(lang('Invalid authorization token'), [], 401);
-        }
-        try {
-            //jwt
-            $clientInfo = $this->checkToken($authorizationHeader);
-
-        } catch (\Exception $e) {
-            $this->error(lang($e->getMessage()), [], 401);
-        }
-        return $clientInfo;
-    }
-
+    
 }
