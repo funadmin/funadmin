@@ -72,30 +72,32 @@ class Oauth
     public function certification()
     {
         $match = $this->match(!empty($this->options['noAuth'])?$this->options['noAuth']:[]);
-        try {
-            $data = $this->getClient();
-            if (Config::get('api.driver') == 'redis') {
-                $this->redis = PredisService::instance();
-                $AccessToken = $this->redis->get(Config::get('api.redisTokenKey')  . $data['access_token']);
-                $AccessToken = unserialize($AccessToken);
-            } else {
-                $AccessToken = Db::name('oauth2_access_token')
-                    ->where('member_id', $data['member_id'])
-                    ->where('tablename', $this->tableName)
-                    ->where('group', $this->group)
-                    ->where('access_token', $data['access_token'])->order('id desc')->find();
+        if (!$match || ($match && Request::header(config('api.authentication')))) {               //请求方法白名单
+
+            try {
+                $data = $this->getClient();
+                if (Config::get('api.driver') == 'redis') {
+                    $this->redis = PredisService::instance();
+                    $AccessToken = $this->redis->get(Config::get('api.redisTokenKey') . $data['access_token']);
+                    $AccessToken = unserialize($AccessToken);
+                } else {
+                    $AccessToken = Db::name('oauth2_access_token')
+                        ->where('member_id', $data['member_id'])
+                        ->where('tablename', $this->tableName)
+                        ->where('group', $this->group)
+                        ->where('access_token', $data['access_token'])->order('id desc')->find();
+                }
+                if (!$AccessToken) {
+                    throw  new \Exception(lang('access_token不存在或过期'));
+                }
+                $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
+                if (!$client || $client['appid'] !== $data['appid']) {
+                    throw  new \Exception(lang('appid错误'));
+                }
+            } catch (\Exception $e) {
+                if (!$match) $this->error($e->getMessage(), [], 401);
             }
-            if (!$AccessToken) {
-                throw  new \Exception(lang('access_token不存在或过期'));
-            }
-            $client = Db::name('oauth2_client')->find($AccessToken['client_id']);
-            if (!$client || $client['appid'] !== $data['appid']) {
-                throw  new \Exception(lang('appid错误'));
-            }
-        }catch (\Exception $e) {
-            if(!$match) $this->error($e->getMessage(),[],401);
         }
-        
         return $data;
     }
     

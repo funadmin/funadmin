@@ -72,7 +72,7 @@ class Api
         }
         $class = '\\fun\\auth\\'.ucfirst($this->type).'Oauth';
         $oauth = $class::instance(['noAuth'=>$this->noAuth]);
-        $this->clientInfo = $oauth->authenticate($match);
+        $this->clientInfo = $oauth->authenticate();
     }
     /**
      * 空方法
