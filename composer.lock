@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "bff759ac311b21c15f42d6e4cb33260d",
+    "content-hash": "3193420367387cd91b04b476c94c7e5f",
     "packages": [
         {
             "name": "brick/math",
@@ -402,7 +402,7 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "dev-main",
+            "version": "v5.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
@@ -421,7 +421,6 @@
                 "topthink/think-helper": "^3.1",
                 "topthink/think-view": "^1.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "think": {
@@ -456,7 +455,7 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/main"
+                "source": "https://github.com/funadmin/fun-addons/tree/v5.0.0"
             },
             "time": "2022-09-15T05:30:44+00:00"
         },
@@ -3216,9 +3215,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "funadmin/fun-addons": 20
-    },
+    "stability-flags": [],
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
@@ -3226,5 +3223,5 @@
         "ext-json": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.3.0"
 }
