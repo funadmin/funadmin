@@ -1,0 +1,11 @@
+<form class="layui-form" lay-filter="form">
+    {:form_input('name','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'] )}
+    {:form_upload('thumb',$formData,['mime'=>''])}
+    {:form_input('url','text',['verify'=>'required|url','tips'=>'Must start with https or http']
+    )}
+    {:form_input('email','text',['verify'=>'email','tips'=>'email']
+    )}
+    {:form_input('qq','text',['verify'=>'number','tips'=>'qq']
+    )}
+    {:form_submitbtn()}
+</form>

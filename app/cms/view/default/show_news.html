@@ -1,0 +1,44 @@
+<style>
+  .pagebanner img{width:100%;max-height:300px;}
+  @media(min-width:1000px){.pagebanner img{min-height:130px;}}
+  @media(max-width:1000px){.pagebanner img{min-height:60px;}}
+</style>
+<div class="pagebanner">
+  {adv id="4" cache="3600"}
+  <img src="{$data['url']}">
+  {/adv}
+</div>
+
+
+{include file="layout_column"}
+
+<div class="newscenter-detail commonweb padtb">
+  <div class="news-detail-title">
+    <span class="date font22">{:date('Y-m-d')}</span>
+    {volist name=":explode(',',$list.tags)" id="vo"}
+    {if $vo}
+    <a class="tags" href="{:addons_url('index/search',['keys'=>$vo,'flag'=>'tags'])}">#{$vo}</a>
+    {/if}
+    {/volist}
+    <h2 class="font24" style="{$list.titlestyle}">{$list.title}</h2>
+  </div>
+
+  <div class="padding-top-30 padding-bottim-30">
+    <div class="text-center">
+      <img alt="images" src="{$list.thumb}">
+    </div>
+  </div>
+
+
+  <div class="news-datail-content padtb">
+    {$list['content']|raw}
+  </div>
+  <div class="news-detail-foot">
+    <ul class="content-exp">
+      <li class="text-overflow-ellipsis">上一篇： <a href="{:addons_url('index/show',['cateid'=>$cateid,'id'=>$front.id])}">{$front.title}</a></li>
+      <li class="text-overflow-ellipsis">下一篇： <a href="{:addons_url('index/show',['cateid'=>$cateid,'id'=>$after.id])}">{$after.title}</a></li>
+    </ul>
+  </div>
+</div>
+
+

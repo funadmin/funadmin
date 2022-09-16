@@ -1,0 +1,15 @@
+<table class="layui-table layui-hide" id="list" lay-filter="list"
+    data-node-dataadd="{:auth(addons_url('dataadd'))}"
+    data-node-dataedit="{:auth(addons_url('dataedit'))}"
+    data-node-datadelete="{:auth(addons_url('datadelete'))}"
+    data-node-modify="{:auth(addons_url('modify'))}"
+    data-node-destroy="{:auth(addons_url('destroy'))}"
+    data-node-export="{:auth(addons_url('export'))}"
+    data-node-import="{:auth(addons_url('import'))}"
+    data-node-recycle="{:auth(addons_url('recycle'))}"
+    data-node-restore="{:auth(addons_url('restore'))}"
+></table>
+<script>
+    var diyformid = "{$diyformid}";
+    var fieldList = {:json_encode($fieldList)};
+</script>

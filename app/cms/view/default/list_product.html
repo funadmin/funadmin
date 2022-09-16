@@ -1,0 +1,54 @@
+<style>
+  .pagebanner img{width:100%;max-height:300px;}
+  @media(min-width:1000px){.pagebanner img{min-height:130px;}}
+  @media(max-width:1000px){.pagebanner img{min-height:60px;}}
+</style>
+<div class="pagebanner">
+  {adv id="4" cache="3600"}
+  <img src="{$data['url']}">
+  {/adv}
+</div>
+
+{template file="layout_column"}
+
+
+<div class="common-clumb-min commonweb clearfix">
+  <div class="clumb-title">
+    <h3 class="cn font22">{:getCategory($cateid,'catename')}</h3>
+    <h2 class="en font24">{:getCategory($cateid,'cateflag')}</h2>
+  </div>
+</div>
+
+
+
+
+<div class="product-list commonweb">
+  <ul class="clearfix imgae-same-size">
+    {if $list}
+    {volist name="list" id="vo"}
+    <li class="col-xs-6 col-sm-3">
+      <a href="{:addons_url('index/show',['cateid'=>$vo.cateid,'id'=>$vo.id])}" title="{$vo.title}">
+        <p class="pro-img"> <img src="{$vo.thumb}" alt="{$vo.title}"> </p>
+        <p class="pro-text">{$vo.title}</p>
+      </a>
+    </li>
+    {/volist}
+    {else /}
+    <li class="line-height-2 padding-top-30 padding-left-30">
+      暂无相关信息!
+    </li>
+    {/if}
+  </ul>
+</div>
+{if $list}
+<div class="text-center padding-20 page-list">
+{$list|raw}
+</div>
+{/if}
+
+
+
+
+
+
+

@@ -1,0 +1,39 @@
+<div class="fun-main">
+    <div class="admin-main layui-anim layui-anim-upbit">
+        <div class="layui-row">
+            <div class="layui-col-md2 layui-col-sm12 layui-hide-xs"  style="border-right: 1px solid #e1e1e8">
+                <div class="layui-card">
+                    <div class="layui-card-header">{:lang('list')}</div>
+                    <div class="layui-card-body">
+                        <div id="tree" class="demo-tree"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-md10 layui-col-sm12" style="padding:0 10px;">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <iframe name="right" id="categorys_list" src="{:addons_url('board')}"
+                                style="height:100%;width:100%;border:none;" frameborder="0" ></iframe>
+                    </div>
+                </div>
+                <div class="table layui-hide">
+                    <table class="layui-table" id="list" lay-filter="list"
+                           data-node-add="{:auth(addons_url('add'))}"
+                           data-node-edit="{:auth(addons_url('edit'))}"
+                           data-node-delete="{:auth(addons_url('delete'))}"
+                           data-node-modify="{:auth(addons_url('modify'))}"
+                           data-node-destroy="{:auth(addons_url('destroy'))}"
+                           data-node-export="{:auth(addons_url('export'))}"
+                           data-node-import="{:auth(addons_url('import'))}"
+                           data-node-recycle="{:auth(addons_url('recycle'))}"
+                           data-node-restore="{:auth(addons_url('restore'))}"
+                           data-node-flashCache="{:auth(addons_url('flashCache'))}"
+                    ></table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var cateid = "{$cateid}";
+        var data = {:json_encode($list, true)};
+    </script>

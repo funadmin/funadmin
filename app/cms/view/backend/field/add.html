@@ -1,0 +1,84 @@
+<form class="layui-form" lay-filter="form">
+    {:form_input('moduleid','hidden')}
+    {:form_input('diyformid','hidden')}
+    {:form_input('field','text',['label'=>"Field name",'verify'=>'required','tips'=>"Field name"])}
+    {:form_input('name','text',['label'=>"Chinese name",'verify'=>'required','tips'=>"Chinese name"])}
+    <div class="layui-form-item">
+        <label class="layui-form-label">{:lang('Field Type')}</label>
+        <div class="layui-input-block">
+            <select name="type" lay-filter="type" lay-verify="required" lay-search>
+                <option>{:lang('Select')}</option>
+                {volist name="fieldType" id="vo"}
+                <option {if $formData && $formData.value==$vo.name}selected{/if} value="{$vo.name}" data-define="{$vo.default_define}" data-ifoption="{$vo.isoption}" >{$vo.title}</option>
+                {/volist}
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">{:lang('Field Defined')}</label>
+        <div class="layui-input-inline" style="width: 300px">
+            <input type="text" name="field_define" lay-verify="required" autocomplete="off" placeholder="{:lang('fieldDefinition')}" class="layui-input" id="define">
+        </div>
+        <div class="layui-input-inline" style="width: 300px">
+            <select lay-filter="fasttype" lay-search>
+                <option data-define="">请选择</option>
+                <option data-define="varchar(255) DEFAULT ''">255个字符串以内(默认空)</option>
+                <option data-define="varchar(255) NOT NULL DEFAULT ''">255个字符串以内</option>
+                <option data-define="int(11) NOT NULL DEFAULT '0'">11位以内纯数字</option>
+                <option data-define="tinyint(2) NOT NULL DEFAULT '0'">2位以内纯数字</option>
+                <option data-define="float NOT NULL DEFAULT '0'">浮点</option>
+                <option data-define="decimal(10,2) DEFAULT '0.00'">小数点</option>
+                <option data-define="decimal(10,2) unsigned NOT NULL">价格</option>
+                <option data-define="text DEFAULT NOT NULL">文本文档</option>
+                <option data-define="text DEFAULT NULL">空文本文档</option>
+                <option data-define="mediumtext NOT NULL">巨型文本文档</option>
+                <option data-define="mediumtext DEFAULT NULL">巨型空文本文档</option>
+                <option data-define="longtext NOT NULL">长文本文档</option>
+                <option data-define="longtext DEFAULT NULL">长空文本文档</option>
+                <option data-define="json  DEFAULT '0'">json数据</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-form-item" style="display: none" id="maxnum">
+        <label class="layui-form-label">MaxNum</label>
+        <div class="layui-input-block ">
+            <input type="number" name="maxnum" value="10" autocomplete="off" placeholder="{:lang('maxnum')}" class="layui-input">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">{:lang('Rules')}</label>
+        <div class="layui-input-inline" style="width: 300px">
+            <input type="text" name="rule" autocomplete="off" placeholder="{:lang('Regular check data legality, leave blank without checking')}" class="layui-input" id="rule">
+
+        </div>
+        <div class="layui-input-inline" style="width: 300px">
+            <select lay-filter="rule" lay-search>
+                <option data-define="">常用正则</option>
+                <option data-define="/^[0-9.-]+$/">数字</option>
+                <option data-define="/^[0-9-]+$/">整数</option>
+                <option data-define="/^[0-9.-]+$/">小数</option>
+                <option data-define="/^[a-z]+$/i">字母</option>
+                <option data-define="/^[0-9a-z]+$/i">数字+字母</option>
+                <option data-define="/^[\x{4e00}-\x{9fa5}]+$/u">中文</option>
+                <option data-define="/^[\w\-\.]+@[\w\-\.]+(\.\w+)+$/">E-mail</option>
+                <option data-define="/^[0-9]{5,20}$/">QQ</option>
+                <option data-define="/^((ht|f)tps?):\/\//">超级链接</option>
+                <option data-define="/^(1)[0-9]{10}$/">手机号码</option>
+                <option data-define="/^[0-9-]{6,13}$/">座机电话</option>
+            </select>
+        </div>
+    </div>
+    {:form_input('msg','text',['label'=>"Msg"]) }
+    <div id="options" style="{if $formData &&  $formData.option}  {else/} display:none {/if}">
+        {:form_textarea('option',['label'=>"Key value",'tips'=>'multiple_line_breaks separate_groups_with_colons']) }
+        {:form_input('value','text',['label'=>"Default value"]) }
+    </div>
+    {:form_radio('required',['NO','Yes'],['label'=>"Required"],1) }
+    {:form_radio('is_filter',['NO','Yes'],['label'=>"isFilter"],1) }
+    {:form_radio('is_release',['NO','Yes'],['label'=>"isrelease"],1) }
+    {:form_radio('status',['Close','Open'],['label'=>"Status"],1) }
+    {:form_input('sort','text',['label'=>"Sort"],50) }
+    {:form_input('moduleid','hidden',[],$moduleid)}
+    {:form_input('diyformid','hidden',[],$diyformid)}
+    {:form_submitbtn() }
+</form>

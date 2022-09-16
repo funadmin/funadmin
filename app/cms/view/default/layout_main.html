@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{$addon_config['seo']['title']}</title>
+    <meta name="keywords" content="{$addon_config['seo']['keywords']}">
+    <meta name="description" content="{$addon_config['seo']['info']}">
+    <meta name="author" content="funadmin CMS" data-url="http://www.funadmin.com">
+    <link ref="shortcut icon" href="">
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=0,minimal-ui">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="renderer" content="webkit">
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="__CDN__{$static_path}/css/animate.min.css">
+    <link rel="stylesheet" href="__CDN__{$static_path}/css/swiper.min.css">
+    <link rel="stylesheet" href="__CDN__{$static_path}/css/style.css">
+    <link rel="stylesheet" href="__CDN__{$static_path}/css/base.css">
+    <script src="__CDN__{$static_path}/js/jquery-3.2.1.min.js"></script>
+    <script src="__CDN__{$static_path}/js/wow.min.js"></script>
+    <script src="__CDN__{$static_path}/js/script.js"></script>
+    <script src="__CDN__{$static_path}/js/swiper.min.js"></script>
+    <script src="__CDN__{$static_path}/js/jquery.countup.min.js"></script>
+    <script src="__CDN__{$static_path}/js/layout.js"></script>
+    <script src="__CDN__{$static_path}/js/scrollbar.js"></script>
+    <script type="text/javascript">
+        // new WOW().init();
+        var wow = new WOW({
+            boxClass: 'wow',
+            animateClass: 'animated',
+            offset: 0,
+            mobile: true,
+            live: true
+        });
+        wow.init();
+    </script>
+    <!--[if lte IE 9]>
+    <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+    <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+<body>
+
+<header>
+    <div class="top-text">
+        <div class="welcome">
+            <span>欢迎您访问官方网站!</span>
+        </div>
+        <div class="login hidden-sm hidden-xs visible-md">
+            <a href="{:__u('login/index')}" target="_blank">登录</a> |
+            <a href="{:__u('login/reg')}" target="_blank">注册</a>
+
+        </div>
+    </div>
+    <div class="headerweb clearfix">
+        <div class="col-md-12">
+            <h3 class="logo col-md-2"> <a href=""><img src="{$addon_config['logo']['value']}" alt="logo"></a> </h3>
+            <div class="col-md-8">
+                <div class="nav" id="navMenu">
+                    <ul>
+                        <li data-id="1" class="{if $cateid==''}current{/if}" ><a href="{:addons_url('index/index')}">首页</a>
+                            {nav cache='0' pid="0" order="sort asc"}
+                            {volist name="data" id="vo"}
+                        <li data-id="{$vo.id}" class="{if $cateid && in_array($cateid,explode(',',$vo['arrchildid']))} current {/if}" ><a href="{$vo.url}">{$vo.catename}</a>
+                            {nav cache="3600" pid="$vo['id']"}
+                            {if $data}
+                            <ul>
+                                {volist name="data" id="v"}
+                                <li data-id="{$v.id}"><a href="{$v.url}">{$v.catename}</a></li>
+                                {/volist}
+                            </ul>
+                            {/if}
+                            {/nav}
+                        </li>
+                        {/volist}
+                        {/nav}
+                    </ul>
+                </div>
+                <div class="mask-bg" id="maskBg"></div>
+                <span class="nav-toggle hidden-md wenmenu" id="navToggle"><i class="fa fa-bars"></i></span>
+            </div>
+            <div class="col-md-2">
+                <form action="{:addons_url('index/search')}">
+                    <div class="ss-box visible-md hidden-sm hidden-xs">
+                        <div class="col-xs-9 padding-0">
+                            <input type="text" name="keys" class="s-input" placeholder="请输入关键字">
+                        </div>
+                        <div class="col-sm-3 col-xs-3">
+                            <button type="submit" class="s-btn col-xs-12"><i class="fa fa-search" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</header>
+
+
+
+
+
+{__CONTENT__}
+
+
+
+
+<footer class="footer">
+    <div class="footer-top commonweb clearfix">
+        <div class="col-md-9 footnav padding-right-0 visible-md hidden-sm hidden-xs">
+            <ul>
+                <li data-id="1" class="{if $cateid==''}current{/if}" ><a href="{:addons_url('index/index')}">首页</a>
+                    {nav cache='0' pid="0" data='nav'}
+                    {volist name="nav" id="vo"}
+                <li data-id="{$vo.id}" class="{if $cateid && in_array($cateid,explode(',',$vo['arrchildid']))} current {/if}" ><a href="{$vo.url}">{$vo.catename}</a>
+                    {nav cache="3600" pid="$vo['id']" data='nav'}
+                    {if $data}
+                    <ul>
+                        {volist name="nav" id="v"}
+                        <li data-id="{$v.id}"><a href="{$v.url}">{$v.catename}</a></li>
+                        {/volist}
+                    </ul>
+                    {/if}
+                    {/nav}
+                </li>
+                {/volist}
+                {/nav}
+            </ul>
+        </div>
+        <div class="col-md-3 right padding-left-0">
+            <p> <img src="{$addon_config['qrcode']['value']}" width="150"></p>
+            <p class="telnum">电话：{$addon_config['tel']['value']}</p>
+            <p class="copyright">{$addon_config['copyright']['value']}</p>
+            <p> 网站备案号：<a href="https://beian.miit.gov.cn/" target="_blank">{$addon_config['icp']['value']}</a> </p>
+        </div>
+    </div>
+
+    <!--友情链接-->
+    <div class="friendlink">
+        <div class="commonweb">
+            <p><span>友情链接：</span>
+                {links id='vo'}
+                <a href="{$vo.url}" target="_blank">{$vo.name}</a>
+                {/links}
+            </p>
+        </div>
+    </div>
+</footer>
+
+<!--PC端置顶-->
+<a class="zdsbacktop"></a>
+
+<!-- 移动端底部固定导航 -->
+<div class="footer-fixed">
+    <ul>
+        <li class="col-sm-4 col-xs-4">
+            <a href="{:addons_url('index/index')}">
+                <i class="fa fa-home"></i>
+                <span>首页</span>
+            </a>
+        </li>
+        <li class="col-sm-4 col-xs-4">
+            <a href="tel:0755888888">
+                <i class="fa fa-phone-square"></i>
+                <span>联系我们</span>
+            </a>
+        </li>
+        <li class="col-sm-4 col-xs-4">
+            <a href="" id="goToTops">
+                <i class="fa fa-caret-square-o-up"></i>
+                <span>置顶</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<script type="text/javascript">
+    var cateid = "{$cateid}";
+    var $navToggle = $("#navToggle");//手机端菜单图标
+    var $maskBg = $("#maskBg");//遮挡层
+    var $navMenu = $("#navMenu");
+    cateid = cateid?cateid:1;
+    $navToggle.on("click", function () {
+        $maskBg.addClass("active");
+        $navMenu.addClass("active");
+    });
+    $maskBg.on("click", function () {
+        $maskBg.removeClass("active");
+        $navMenu.removeClass("active");
+    });
+    $navMenu.children("ul").find("li").InitNav(cateid,cateid);//初始化响应式菜单
+
+    $navMenu = $("#navMenu");
+    $navMenu.find("li[data-id='"+cateid+"']").addClass("current");
+    var $navLis = $navMenu.find("li");
+    var $navLi = $navMenu.find("li[data-id='"+cateid+"']");
+    $navLis.each(function () {
+        var $this = $(this);
+        $this.children("a").on("mouseenter", function () {
+            $navLis.removeClass("current");
+            $this.addClass("current");
+        })
+    });
+    $navMenu.on("mouseleave", function () {
+        $navLis.removeClass("current");
+        $navLi.addClass("current");
+    })
+
+</script>
+
+
+<script type="text/javascript">
+    //移动端置顶
+    $goToTops = $('#goToTops');
+    $goToTops.click(function () {
+        $('html ,body').animate({ scrollTop: 0 }, 300);
+        return false;
+    });
+</script>
+
+
+
+</body>
+</html>
+

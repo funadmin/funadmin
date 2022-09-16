@@ -1,0 +1,74 @@
+<style>
+    .pagebanner img{width:100%;max-height:500px;}
+    @media(min-width:1000px){.pagebanner img{min-height:130px;}}
+    @media(max-width:1000px){.pagebanner img{min-height:60px;}}
+</style>
+<div class="pagebanner">
+    {adv id="9" cache="3600"}
+    <img src="{$data['url']}">
+    {/adv}
+</div>
+
+
+{include file="layout_column"}
+
+
+
+<div class="common-clumb-min commonweb clearfix">
+    <div class="clumb-title">
+        <h3 class="cn font22">{:getCategory($cateid,'catename')}</h3>
+        <h2 class="en font24">{:getCategory($cateid,'cateflag')}</h2>
+    </div>
+</div>
+
+
+
+
+<div class="Download-list commonweb phonepadding">
+    <ul>
+        {if $list}
+        {volist name="list" id="vo"}
+        <li> <span class="down-text">{$vo.title}</span> <a href="javascript:download('{$vo.id}');" title="{$vo.title}" class="down-btn"></a>
+            <input type="hidden" id="file_id_{$vo.id}" value="{:addons_url('index/download',['id'=>$vo.id])}">
+        </li>
+        {/volist}
+        {else /}
+        <li class="line-height-2 padding-top-30 padding-left-30">
+            暂无相关信息!
+        </li>
+        {/if}
+    </ul>
+</div>
+
+{if $list}
+<div class="text-center padding-20 page-list">
+    {$list|raw}
+</div>
+{/if}
+<script>
+
+    function download(file_id) {
+        var downurl = document.getElementById("file_id_"+file_id).value + "&_ajax=1";
+        //创建异步对象
+        var ajaxObj = new XMLHttpRequest();
+        ajaxObj.open("get", downurl, true);
+        ajaxObj.setRequestHeader("X-Requested-With","XMLHttpRequest");
+        ajaxObj.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //发送请求
+        ajaxObj.send();
+        ajaxObj.onreadystatechange = function () {
+            // 这步为判断服务器是否正确响应
+            if (ajaxObj.readyState == 4 && ajaxObj.status == 200) {
+                var json = ajaxObj.responseText;
+                var res = JSON.parse(json);
+                console.log(res)
+                if (res.code==0) {
+                    alert(res.msg);
+                }else{
+                    window.location.href = res.data.url;
+                }
+            }
+        };
+    };
+
+</script>

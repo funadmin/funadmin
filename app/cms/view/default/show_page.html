@@ -1,0 +1,30 @@
+<style>
+    .pagebanner img{width:100%;max-height:300px;}
+    @media(min-width:1000px){.pagebanner img{min-height:130px;}}
+    @media(max-width:1000px){.pagebanner img{min-height:60px;}}
+</style>
+<div class="pagebanner">
+    {adv id="8" cache="3600"}
+    <img src="{$data['url']}">
+    {/adv}
+</div>
+
+{include file="layout_column"}
+
+
+<div class="common-clumb-min commonweb clearfix">
+    <div class="clumb-title">
+        <h3 class="cn font22">{:getCategory($cateid,'catename')}</h3>
+        <h2 class="en font24">{:getCategory($cateid,'cateflag')}</h2>
+    </div>
+</div>
+
+
+
+<div class="Pledge-min commonweb padtb">
+    <div class="Pledetext">
+        {$list['content']|raw}
+       </div>
+</div>
+
+

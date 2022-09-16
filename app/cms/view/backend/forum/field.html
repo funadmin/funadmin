@@ -1,0 +1,66 @@
+{volist name="fieldList" id="vo" }
+{php}$verify = $vo['required']?'required':'';{/php}
+{switch name="vo.type"}
+{case value="cateid"}
+<input type="hidden" class="layui-input" name="{$vo.field}"  value="{$cate.id}">
+{/case}
+{case value="hidden"}
+{if $vo.value}
+    <input type="hidden" class="layui-input" name="{$vo.field}"  value="{$vo.value}">
+{/if}
+{/case}
+{case value="text"}
+{:form_input($vo.field,'text',['label'=>$vo.name,'verify'=> $verify,'tips'=>$vo.msg],$vo.value)}
+{/case}
+{case value="tags"}
+{:form_input($vo.field,'text',['label'=>$vo.name,'verify'=> $verify,'tips'=>$vo.msg],$vo.value)}
+{/case}
+{case value="number"}
+{:form_input($vo.field,'number',['label'=>$vo.name,'verify'=> $verify,'tips'=>$vo.msg],$vo.value)}
+{/case}
+{case value="switch"}
+{:form_switch($vo.field,[0=>'Close',1=>'open'],['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg],$vo.value)}
+{/case}
+{case value="array"}
+{:form_textarea($vo.field,$vo.value,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg])}
+{/case}
+{case value="checkbox"}
+{:form_checkbox($vo.field,$vo.option,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg],$vo.value,)}
+{/case}
+{case value="radio"}
+{:form_radio($vo.field,$vo.option,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg],$vo.value,)}
+{/case}
+{case value="select"}
+{:form_select($vo.field,$vo.option,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'search'=>1],[],$vo.value)}
+{/case}
+{case value="color"}
+{:form_color($vo.field,$vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'search'=>1],$formData.value)}
+{/case}
+{case value="datetime"}
+{if $vo.field !="create_time" && $vo.field !="update_time"}
+{:form_date($vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg])}
+{/if}
+{/case}
+{case value="range"}
+{:form_date($vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,'type'=>'range'])}
+{/case}
+{case value="textarea"}
+{:form_textarea($vo.field,['label'=>$vo.name,'verify'=>$verify,'tips'=>$vo.msg,],$vo.value)}
+{/case}
+{case value="image"}
+{:form_upload($vo.field,$vo.value,['label'=>$vo.name,'verify'=>$verify,'type'=>'radio','mime'=>'image','path'=>$addon,'num'=>'1','tips'=>$vo.msg])}
+{/case}
+{case value="images"}
+{:form_upload($vo.field,$vo.value,['label'=>$vo.name,'verify'=>$verify,'type'=>'checkbox','mime'=>'image','path'=>$addon,'num'=>'*','tips'=>$vo.msg])}
+{/case}
+{case value="file"}
+{:form_upload($vo.field,$vo.value,['label'=>$vo.name,'verify'=>$verify,'type'=>'radio','mime'=>'file','path'=>$addon,'num'=>'1','tips'=>$vo.msg])}
+{/case}
+{case value="files"}
+{:form_upload($vo.field,$vo.value,['label'=>$vo.name,'verify'=>$verify,'type'=>'checkbox','mime'=>'file','path'=>$addon,'num'=>'*','tips'=>$vo.msg])}
+{/case}
+{case value="editor"}
+{:form_editor($vo.field,2)}
+{/case}
+{/switch}
+{/volist}

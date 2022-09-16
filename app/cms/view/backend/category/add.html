@@ -1,0 +1,82 @@
+<form class="layui-form" lay-filter="form">
+    <div class="layui-tab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">基本设置</li>
+            <li>SEO设置</li>
+            <li>选项设置</li>
+            <li>模板设置</li>
+            <li>栏目介绍</li>
+        </ul>
+        <div class="layui-tab-content">
+            <div class="layui-tab-item layui-show">
+                {:form_select('pid',$colGroup,['verify'=>'','search'=>'','label'=>'父级'] ,'id,lcatename','')}
+                {:form_select('moduleid',$moduleGroup,['verify'=>'required','label'=>'模型'],'id,modulename','')}
+                {:form_select('diymoduleid',$diymoduleGroup,['verify'=>'','tips'=>'模型和表单模型二选一','label'=>'表单模型'],'id,name','')}
+                {:form_input('catename','text',['verify'=>'required','label'=>'栏目名','tips'=>'填写要显示的名字'])}
+                {:form_input('cateflag','text',['verify'=>'required','label'=>'栏目标识','tips'=>'填写栏目标识,一般为英文且不能重复'])}
+                {:form_upload('thumb',$formData,['label'=>'缩略图','type'=>'radio','num'=>'1','path'=>$addon])}
+            </div>
+            <div class="layui-tab-item">
+                {:form_input('title','text',['verify'=>'required','label'=>'SEO Title','tips'=>'SEO Title'])}
+                {:form_input('keywords','text',['verify'=>'required','label'=>'SEO keywords','tips'=>'SEO keywords Multiple keywords are separated by spaces'])}
+                {:form_textarea('intro',['verify'=>'required','label'=>'SEO Intro','tips'=>'SEO Intro'],'')}
+            </div>
+            <div class="layui-tab-item">
+                {:form_radio('is_release',[0=>'No',1=>'Yes'],['verify'=>'required','label'=>'Isrelease'],1)}
+
+                {:form_radio('type',[1=>'list',2=>'page',3=>'outurl','4'=>'column'],['filter'=>'type','verify'=>'required','label'=>'PageType'],1)}
+                <div id="url">
+                </div>
+                {:form_input('sort','text',['verify'=>'required','label'=>'Sort'],50)}
+                {:form_input('click','text',['verify'=>'number','label'=>'click'],100)}
+                {:form_input('page_size','text',['verify'=>'number','label'=>'pageSize'],16)}
+                {:form_radio('is_menu',[0=>'No',1=>'Yes'],['verify'=>'required','label'=>'IsMenu'],1)}
+                {:form_radio('status',[0=>'Disabled',1=>'Enabled'],['verify'=>'required','label'=>'Status'],1)}
+            </div>
+            <div class="layui-tab-item">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">{:lang('ColumnTemplate')}</label>
+                    <div class="layui-input-block">
+                        <select name="template_column" lay-verify="required">
+                            <option value="column_list.html" selected>{:lang('default')}:column.html</option>
+                            {volist name="_column" id="vo"}
+                            <option value="{$vo}">{$vo}</option>
+                            {/volist}
+                        </select>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('ListTemplate')}</label>
+                        <div class="layui-input-block">
+                            <select name="template_list" lay-verify="required">
+                                <option value="list_news.html" selected>{:lang('default')}:list_news.html</option>
+                                {volist name="_list" id="vo"}
+                                <option value="{$vo}">{$vo}</option>
+                                {/volist}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">{:lang('ContentTemplate')}</label>
+                        <div class="layui-input-block">
+                            <select name="template_show" lay-verify="required">
+                                <option value="show_news.html" selected>{:lang('default')}:show_news.html</option>
+                                {volist name="_show" id="vo"}
+                                <option value="{$vo}">{$vo}</option>
+                                {/volist}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-tab-item">
+                {:form_editor('content',2,['label'=>'detail'])}
+            </div>
+        </div>
+    </div>
+    {:form_submitbtn()}
+</form>
+<script id="url_tpl">
+    {:form_input('url','text',['verify'=>'required','label'=>'Url'])}
+</script>

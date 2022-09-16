@@ -1116,7 +1116,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             title: '<a href="javascript:;" lay-event="closeAllTabs">&nbsp;<i class="layui-icon layui-icon-close"></i>  关闭全部页</a>'
                             ,id: 'closeAllTabs'
                         }
-                        ]
+                        ],click:function (obj, othis) {
+                            var _that = othis.find('a'), attrEvent = obj.id;
+                            Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
+                        }
                     });
                     // //关闭右键菜单
                     $document.on('click', '.layui-body,.layui-header,.layui-side-menu,#layui-app-tabs .layui-tab,.layui-right-shade', function () {

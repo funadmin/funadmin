@@ -1,0 +1,37 @@
+<div class="full-inside-subnav">
+    <div class="commonweb clearfix">
+        <div class="inside-subnav">
+            {nav pid="$top_cateid"}
+            <h3 class="channel-title cur">{$data[0]['catename']}</h3>
+            <div class="subnav clearfix" id="subNav">
+                <ul>
+
+                    {volist name="data" id="vo"}
+                    <li data-id="{$vo.id}"><a href="{$vo.url}">{$vo.catename}</a></li>
+                    {/volist}
+                </ul>
+            </div>
+            {/nav}
+        </div>
+
+        <script type="text/javascript">
+            var $subNav = $("#subNav");
+            $subNav.children("ul").find("li").InitNav({$cateid});//初始化响应式菜单
+        </script>
+
+        <div class="crumb">
+            <div class="inner">
+                <a href='{:addons_url("index/index")}' class="home">
+                    <i class="fa fa-home text-red" aria-hidden="true"></i>
+                </a>
+                <a href='{:addons_url("index/index")}'>
+                主页
+                </a>
+                >
+                {:cateStep($cateid)}
+            </div>
+        </div>
+
+
+    </div>
+</div>

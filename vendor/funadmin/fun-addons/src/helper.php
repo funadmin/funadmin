@@ -802,7 +802,7 @@ if (!function_exists('form_select')) {
     function form_select($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        if (!empty($value) and !is_array($value)) $value = explode(',', $value);
+        if (!empty($value) and !is_array($value)) $value = explode(',', (string)$value);
         return Form::multiselect($name, $select, $options, $attr, $value);
     }
 }
