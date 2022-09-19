@@ -1,3 +1,4 @@
+/app/cms
 /.idea
 /.vscode
 /.DS_Store
@@ -7,5 +8,6 @@
 /runtime
 #/vendor
 /public/static/addons
+/public/static/cms
 /public/static/storage
 /auto_install.json

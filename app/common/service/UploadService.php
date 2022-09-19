@@ -299,9 +299,10 @@ class UploadService extends AbstractService
     protected function checkFile()
     {
         //禁止上传PHP和HTML.ssh等脚本文件
-        if (in_array($this->file->getMime(),
-                ['application/octet-stream', 'text/html','application/x-javascript','text/x-php','application/x-msdownload','application/java-archive'])
-            ||
+        if (
+//            in_array($this->file->getMime(),
+//                ['application/octet-stream', 'text/html','application/x-javascript','text/x-php','application/x-msdownload','application/java-archive'])
+//            ||
             in_array($this->file->extension(),
                 ['php', 'html', 'htm','xml','ssh','bat','jar','java'])) {
             throw new Exception(lang('File format is limited'));
