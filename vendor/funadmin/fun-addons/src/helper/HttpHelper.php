@@ -198,48 +198,49 @@ class HttpHelper
      * @param int $timeout
      * @return false|mixed
      */
-    public static function download($url, $savePath,$saveName, $method = 'GET', $params = '', $header = [], $cookies = [], $timeout = 3600)
+    public static function download($url, $filename = "", $timeout = 60)
     {
-        if(!is_dir($savePath)){
-            FileHelper::mkdirs($savePath);
+        if (empty($filename)) {
+            $filename = root_path() . 'public' . DS . 'temp' . DS . pathinfo($url, PATHINFO_BASENAME);
         }
-        @touch($saveName);
-        $fp = fopen($savePath.$savePath, 'wb');
-        $protocol = substr($url, 0, 5);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        if ('https' == $protocol) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        }
-        curl_setopt($ch, CURLOPT_HEADER, true);
-        curl_setopt($ch, CURLOPT_NOBODY, FALSE); //需要response body
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header ?: ['Expect:']);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_NOPROGRESS, 0);
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-        curl_setopt($ch, CURLOPT_BUFFERSIZE, 64000);
-        if ($method == 'POST') {
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-        }
-        if (!empty($cookies)) {
-            curl_setopt($ch, CURLOPT_COOKIE, $cookies);
-            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookies);
-        }
-        $res = curl_exec($ch);
-        $curlInfo = curl_getinfo($ch);
-        if (curl_errno($ch) || $curlInfo['http_code'] != 200) {
-            curl_error($ch);
-            @unlink($savePath.$savePath);
+        $path = dirname($filename);
+        if (!is_dir($path) && !mkdir($path, 0755, true)) {
             return false;
-        } else {
-            curl_close($ch);
         }
-        fclose($fp);
-        return $savePath.$savePath;
+        $url = str_replace(" ", "%20", $url);
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            // curl_setopt($ch, CURLOPT_MAXREDIRS, 2);
+            // curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+            if ('https' == substr($url, 0, 5)) {
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            }
+            $temp = curl_exec($ch);
+            if (file_put_contents($filename, $temp) && !curl_error($ch)) {
+                return $filename;
+            } else {
+                return false;
+            }
+        } else {
+            $opts = [
+                "http" => [
+                    "method"  => "GET",
+                    "header"  => "",
+                    "timeout" => $timeout,
+                ],
+            ];
+            $context = stream_context_create($opts);
+            if (@copy($url, $filename, $context)) {
+                //$http_response_header
+                return $filename;
+            } else {
+                return false;
+            }
+        }
     }
 
     /** php 接收流文件
