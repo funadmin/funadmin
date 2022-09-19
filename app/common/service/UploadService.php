@@ -75,7 +75,7 @@ class UploadService extends AbstractService
         $pathSrc = $path =='undefined'?'uploads':$path;
         $editor = Request::param('editor', '');
         $save = Request::param('save', '');
-        $disksdriver = Config::get('filesystem.default');
+        $disksdriver = Config::get('filesystem.default','public');
         $disksurl = Config::get('filesystem.disks.'.$disksdriver.'.url','/storage');
         $files = request()->file();
         $error='';
@@ -187,7 +187,7 @@ class UploadService extends AbstractService
                 $attach = AttachModel::where('md5', $md5)->find();
                 if (!$attach) {
                     try {
-                        $savename = \think\facade\Filesystem::disk('public')->putFile($path, $file);
+                        $savename = \think\facade\Filesystem::disk($disksdriver)->putFile($path, $file);
                         $savename = str_replace('\\','/',$savename);
                         $path = $disksurl . "/" . $savename;
                         $paths = trim($path, "/");
