@@ -406,7 +406,30 @@ CREATE TABLE `fun_field_type` (
 
 LOCK TABLES `fun_field_type` WRITE;
 /*!40000 ALTER TABLE `fun_field_type` DISABLE KEYS */;
-INSERT INTO `fun_field_type` VALUES (1,'text','输入框默认为空',1,'varchar(255) DEFAULT \'\'',0,'',1,0),(26,'checkbox','复选框',2,'varchar(50) NOT NULL DEFAULT \'\'',1,'',1,0),(3,'textarea','多行文本',3,'varchar(255) NOT NULL DEFAULT \'\'',0,'',1,0),(4,'radio','单选按钮',4,'char(10) NOT NULL DEFAULT \'\'',1,'',1,0),(5,'switch','开关',5,'tinyint(2) UNSIGNED NOT NULL DEFAULT \'0\'',0,'isBool',1,0),(6,'array','数组',6,'varchar(512) NOT NULL DEFAULT \'\'',1,'',1,0),(7,'select','下拉框',7,'varchar(10) NOT NULL DEFAULT \'\'',1,'',1,0),(8,'image','单张图',8,'varchar(255) NOT NULL DEFAULT \'\'',0,'',1,0),(9,'tags','标签',10,'varchar(255) NOT NULL DEFAULT \'\'',0,'',1,0),(10,'number','数字',11,'int(11) UNSIGNED NOT NULL DEFAULT \'0\'',0,'isNumber',1,0),(11,'datetime','日期',12,'int(11) UNSIGNED NOT NULL DEFAULT \'0\'',0,'',1,0),(12,'ueditor','百度编辑器',13,'longtext NOT NULL  DEFAULT \'\'',0,'',1,0),(13,'images','多张图',9,'varchar(256) NOT NULL DEFAULT \'\'',0,'',1,0),(14,'color','颜色值',17,'varchar(7) NOT NULL DEFAULT \'\'',0,'',1,0),(15,'file','单文件',15,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(16,'files','多文件',16,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(17,'wangEditor','wang编辑器',0,'longtext NOT NULL  DEFAULT \'\'',0,'',1,0),(18,'tags','标签',0,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(19,'hidden','隐藏域',0,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(21,'range','日期范围',0,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(22,'float','浮点类型',0,'varchar(255) NOT NULL DEFAULT \' \'',0,'',1,0),(23,'decimal','小数点',0,'decimal(10,2) DEFAULT \'0.00\'',0,'',1,0),(24,'quill','quill编辑器',0,'longtext NOT NULL  DEFAULT \'\'',0,'',1,0),(2,'text','输入框不为空',1,'varchar(255) NOT NULL DEFAULT \'\'',0,'',1,0);
+
+INSERT INTO `fun_field_type` (`id`, `name`, `title`, `sort`, `default_define`, `isoption`, `rules`, `status`, `delete_time`) VALUES
+(1, 'text', '输入框默认为空', 1, 'varchar(255) DEFAULT \'\'', 0, '', 1, 0),
+(2, 'text', '输入框不为空', 1, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0)
+(3, 'textarea', '多行文本', 3, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
+(4, 'radio', '单选按钮', 4, 'char(10) NOT NULL DEFAULT \'\'', 1, '', 1, 0),
+(5, 'switch', '开关', 5, 'tinyint(2) UNSIGNED NOT NULL DEFAULT \'0\'', 0, 'isBool', 1, 0),
+(6, 'array', '数组', 6, 'varchar(512) NOT NULL DEFAULT \'\'', 1, '', 1, 0),
+(7, 'select', '下拉框', 7, 'varchar(10) NOT NULL DEFAULT \'\'', 1, '', 1, 0),
+(8, 'image', '单张图', 8, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
+(9, 'tags', '标签', 10, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
+(10, 'number', '数字', 11, 'int(11) UNSIGNED NOT NULL DEFAULT \'0\'', 0, 'isNumber', 1, 0),
+(11, 'datetime', '日期', 12, 'int(11) UNSIGNED NOT NULL DEFAULT \'0\'', 0, '', 1, 0),
+(12, 'editor', '编辑器', 13, 'longtext NOT NULL  DEFAULT \'\'', 0, '', 1, 0),
+(13, 'images', '多张图', 9, 'varchar(256) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
+(14, 'color', '颜色值', 17, 'varchar(7) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
+(15, 'file', '单文件', 15, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(16, 'files', '多文件', 16, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(18, 'tags', '标签', 0, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(19, 'hidden', '隐藏域', 0, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(21, 'range', '日期范围', 0, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(22, 'float', '浮点类型', 0, 'varchar(255) NOT NULL DEFAULT \' \'', 0, '', 1, 0),
+(23, 'decimal', '小数点', 0, 'decimal(10,2) DEFAULT \'0.00\'', 0, '', 1, 0),
+(24, 'checkbox', '复选框', 2, 'varchar(50) NOT NULL DEFAULT \'\'', 1, '', 1, 0);
 /*!40000 ALTER TABLE `fun_field_type` ENABLE KEYS */;
 UNLOCK TABLES;
 
