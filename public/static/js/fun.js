@@ -15,7 +15,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         url: function (url) {
             var domain = window.location.host;
             if (url &&　url.indexOf(domain) !== -1) return url;
-            var file_url = ['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles'];
+            var file_url = ['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'];
             tempurl = url.split('?') ;//公共url
             if($.inArray(tempurl[0],file_url)!== -1) return Config.module+url
             url = url.indexOf('/')==0 ? url.replace('/',''):url;
