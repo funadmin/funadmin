@@ -409,7 +409,7 @@ LOCK TABLES `fun_field_type` WRITE;
 
 INSERT INTO `fun_field_type` (`id`, `name`, `title`, `sort`, `default_define`, `isoption`, `rules`, `status`, `delete_time`) VALUES
 (1, 'text', '输入框默认为空', 1, 'varchar(255) DEFAULT \'\'', 0, '', 1, 0),
-(2, 'text', '输入框不为空', 1, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0)
+(2, 'text', '输入框不为空', 1, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
 (3, 'textarea', '多行文本', 3, 'varchar(255) NOT NULL DEFAULT \'\'', 0, '', 1, 0),
 (4, 'radio', '单选按钮', 4, 'char(10) NOT NULL DEFAULT \'\'', 1, '', 1, 0),
 (5, 'switch', '开关', 5, 'tinyint(2) UNSIGNED NOT NULL DEFAULT \'0\'', 0, 'isBool', 1, 0),
