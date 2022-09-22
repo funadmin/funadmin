@@ -144,6 +144,7 @@ trait Curd
             }
             try {
                 $data = $list->toArray();
+                $data = array_merge($data,$post);
                 if(isset($data['create_time'])){
                     unset($data['create_time']);
                 }

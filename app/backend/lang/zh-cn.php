@@ -91,6 +91,9 @@ return [
     'Value'                     =>  '值',
     'Config'                    =>  '配置',
 
+    "debug"                     =>  '调试模式',
+    "version"                   =>  '版本',
+    "other"                     =>  '其他',
     'Upload'                    =>  "上传",
     'Refresh Success'           =>  '刷新成功',
     'Refresh'                   =>  '刷新页面',

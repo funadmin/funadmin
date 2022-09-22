@@ -6,6 +6,7 @@
         <li class="layui-this">{:lang('site setting')}</li>
         <li class="">{:lang('upload setting')}</li>
         <li class="">{:lang('water setting')}</li>
+        <li class="">{:lang('other')}</li>
     </ul>
     <div class="layui-tab-content">
         <!--网站配置-->
@@ -60,6 +61,14 @@
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
+        <div class="layui-tab-item">
+            <form class="layui-form " lay-filter="form">
+                {:form_radio('app_debug',[1=>'是',0=>'否'],['label'=>'Debug'])}
+                {:form_input('site_version','text',['label'=>'Version'])}
+                {:form_submitbtn(true,['show'=>1])}
+            </form>
+        </div>
+
 
     </div>
 </div>
