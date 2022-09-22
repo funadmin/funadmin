@@ -118,9 +118,9 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                         align: 'center',
                         title: '操作',
                         init: Table.init,
-                        // templet: Table.templet.operat,
-                        // operat: ['restore', 'delete']
-                        templet: "#template"
+                        templet: Table.templet.operat,
+                        operat: ['restore', 'delete']
+                        // templet: "#template"
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
