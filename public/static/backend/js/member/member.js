@@ -92,6 +92,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 primaryKey: 'id',
+                // primaryKey:"member_id",
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','import','export','recycle'],
