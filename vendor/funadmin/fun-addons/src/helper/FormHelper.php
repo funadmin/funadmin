@@ -527,7 +527,7 @@ class FormHelper
                 if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
                     $selected = 'selected';
                 }
-                if ($value != null && $value &&  in_array($k, $value) && !$attr) {
+                if (is_array($value) && in_array($k, $value) && !$attr) {
                     $selected = 'selected';
                 }
                 if (!empty($attr)) {
