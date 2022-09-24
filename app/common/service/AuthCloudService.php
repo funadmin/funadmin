@@ -207,7 +207,7 @@ class AuthCloudService extends AbstractService
      * @return false|mixed
      */
     public function down($savePath,$saveName){
-        $res = HttpHelper::download($this->api_url,$savePath,$saveName,$this->method,$this->params,$this->header);
+        $res = HttpHelper::download($this->api_url,$savePath. DIRECTORY_SEPARATOR . $saveName);
         return $res;
     }
 
