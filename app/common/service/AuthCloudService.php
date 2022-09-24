@@ -17,6 +17,7 @@ namespace app\common\service;
 use fun\helper\HttpHelper;
 use fun\helper\StringHelper;
 use think\App;
+use think\facade\Config;
 use think\facade\Cookie;
 
 class AuthCloudService extends AbstractService
@@ -44,6 +45,11 @@ class AuthCloudService extends AbstractService
         parent::__construct($app);
     }
 
+    public function getAppVersion(){
+        $config = Config::get('funadmin');
+        return $config?$config['version']:'';
+
+    }
     /**
      * $expire
      * @return mixed
@@ -118,6 +124,7 @@ class AuthCloudService extends AbstractService
         $data['appid'] = $this->appid;
         $data['appsecret'] = $this->appsecret;
         $data['key'] = $data['appsecret'];
+        $data['app_version'] = $this->getAppVersion();
         $data['sign'] = $this->getSign($data);
         $this->userdata= $data;
         return $this;

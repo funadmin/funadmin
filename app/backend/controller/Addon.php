@@ -35,12 +35,15 @@ class Addon extends Backend
 {
     protected $addonService;
     protected $authCloudService;
+    protected $app_version;
     public function __construct(App $app)
     {
+
         parent::__construct($app);
         $this->modelClass = new AddonModel();
         $this->addonService = new AddonService();
         $this->authCloudService = AuthCloudService::instance();
+        $this->app_version = config('funadmin.version');
     }
     /**
      * @NodeAnnotation(title="列表")
@@ -68,7 +71,7 @@ class Addon extends Backend
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
                 $map['cateid'] = $param['cateid']??0;
                 unset($map['status']);
-                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
+                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index?app_version='.$this->app_version)->setMethod('GET')
                     ->setParams($map);
                 if($this->authCloudService->getAuth()){
                     $res = $auth->setHeader()->run();
@@ -180,7 +183,7 @@ class Addon extends Backend
                 'name'=>$name,
                 'version_id'=>$version_id,
                 'version'=> '',
-                'app_version'=>config('funadmin.version'),
+                'app_version'=>$this->app_version,
                 "ip" => request()->ip(),
                 "domain" => request()->domain(),
             ];
