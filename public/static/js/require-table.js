@@ -737,6 +737,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     tableId = Table.init.tableId
                 }
                 Table.api.reload(tableId)
+            },tabswitch: function (othis) {  //切换选项卡重载表格
+                var field = othis.closest("[data-field]").data("field"), value = othis.data("value");
+                $where = {};
+                $where[field] = value;
+                Table.api.reload(Table.init.tableId, $where);
+                return false
             },export: function (othis) {
                 var url = othis.data('url');tableId = othis.data('tableid');
                 var dataField = $('#layui-search-field-' + tableId + ' .layui-form [name]').serializeArray();
