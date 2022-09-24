@@ -323,8 +323,7 @@ if (!function_exists('get_addons_list')) {
     function get_addons_list()
     {
         if (!Cache::get('addonslist')) {
-            $service = new Service(App::instance()); // 获取service 服务
-            $addons_path = $service->getAddonsPath(); // 插件列表
+            $addons_path = app()->getRootPath().'addons'.DS; // 插件列表
             $results = scandir($addons_path);
             $list = [];
             foreach ($results as $name) {
@@ -342,8 +341,8 @@ if (!function_exists('get_addons_list')) {
                     continue;
                 $info['url'] =isset($info['url']) && $info['url'] ?(string)addons_url($info['url']):'';
                 $list[$name] = $info;
-                Cache::set('addonslist', $list);
             }
+            Cache::set('addonslist', $list);
         } else {
             $list = Cache::get('addonslist');
         }
