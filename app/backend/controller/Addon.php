@@ -179,7 +179,7 @@ class Addon extends Backend
                 'plugins_id'=>$plugins_id,
                 'name'=>$name,
                 'version_id'=>$version_id,
-                'version'=> config('funadmin.version'),
+                'version'=> '',
                 'app_version'=>config('funadmin.version'),
                 "ip" => request()->ip(),
                 "domain" => request()->domain(),
