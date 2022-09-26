@@ -25,6 +25,7 @@ use think\Exception;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
+use think\facade\Cookie;
 
 /**
  * @ControllerAnnotation(title="插件管理")
@@ -78,7 +79,12 @@ class Addon extends Backend
                 }else{
                     $res = $auth->run();
                 }
-                $list = $res['data'];
+                $list = [];
+                if($res['code']==200){
+                    $list = $res['data'];
+                }else if($res['code']==401){
+                    Cookie::set('auth_account','');
+                }
                 list($localAddons,$localNameArr) = $this->getLocalAddons();
                 $addonNameArr = $list?array_keys($list):[];
                 $where = [];
