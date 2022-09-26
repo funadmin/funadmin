@@ -250,7 +250,9 @@ class AuthGroup extends Backend
                             ->where('href', 'like', '%/index')
                             ->field('id')
                             ->find();
-                        $childIndexId .= ($childIndex?$childIndex['id']:'').',';
+                        if($childIndex && in_array($childIndex['id'],$rules)){
+                            $childIndexId .= ($childIndex?$childIndex['id']:'').',';
+                        }
                     }
                     $rls.= $v.',';
                 }

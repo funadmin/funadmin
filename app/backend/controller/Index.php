@@ -47,6 +47,7 @@ class Index extends Backend
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type', 1)
                 ->where('menu_status', 1)
+                ->where('id', 'in',session('admin.rules'))
                 ->where('status', 1)
                 ->order('sort asc')->select()->toArray();
             $menulist = (new AuthService())->menuhtml($cate, false);

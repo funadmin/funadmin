@@ -208,8 +208,8 @@ class AuthService extends AbstractService
         if ($adminId != $cfg['superAdminId']) {
             if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
             $map= [
-                ['href'=> $this->requesturl],
-                ['module'=> $this->app]
+                ['href','=', $this->requesturl],
+                ['module','=', $this->app]
             ];
             $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
             $hrefTemp = trim($this->requesturl, '/');
