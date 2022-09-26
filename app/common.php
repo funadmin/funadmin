@@ -71,14 +71,14 @@ if (!function_exists('__')) {
 if (!function_exists("_getProvicesByPid")) {
     function _getProvicesByPid($pid = 0)
     {
-        return \think\facade\Db::name('provinces')->cache(true)->find($pid);
+        return  \app\common\model\Provinces::cache(true)->find($pid);
     }
 }
 
 if (!function_exists("_getMember")) {
     function _getMember($id)
     {
-        $member = \think\facade\Db::name('member')->cache(true)->find($id);
+        $member = \app\common\model\Member::cache(true)->find($id);
         if ($member) {
             return $member;
         }

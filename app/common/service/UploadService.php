@@ -166,6 +166,15 @@ class UploadService extends AbstractService
                                 $result['code'] = 0;
                                 $result['location'] = "";
                             }
+                            if($editor=='vditor'){
+                                $result['code'] = 0;
+                                $result['data'] = [
+                                    'errFiles'          =>[],
+                                    'succMap'          =>[
+                                        $savename=>$attach->path
+                                    ]
+                                ];
+                            }
                             return ($result);
                         }
                     } else {
@@ -260,6 +269,15 @@ class UploadService extends AbstractService
                             $result['code'] = 1;
                             $result['location'] = '';
                         }
+                        if($editor=='vditor'){
+                            $result['code'] = 0;
+                            $result['data'] = [
+                                'errFiles'          =>[],
+                                'succMap'          =>[
+                                    $savename=>$attach->path
+                                ]
+                            ];
+                        }
                         return ($result);
                     }
                 } else {
@@ -271,7 +289,6 @@ class UploadService extends AbstractService
                     $result["url"] = $attach->path;
                 }
             }
-
         }
         $result['state'] = 'SUCCESS'; //兼容百度
         $result['errno'] = 0; //兼容wangeditor
@@ -286,6 +303,15 @@ class UploadService extends AbstractService
         if($editor=='tinymce'){
             $result['code'] = 0;
             $result['location'] = $result['data'][0];
+        }
+        if($editor=='vditor'){
+            $result['code'] = 0;
+            $result['data'] = [
+                'errFiles'          =>[],
+                'succMap'          =>[
+                    $result['data']['file'][0]=>$result['data']['file'][0],
+                ]
+            ];
         }
         return ($result);
     }

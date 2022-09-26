@@ -250,7 +250,11 @@ class AuthGroup extends Backend
                             ->where('href', 'like', '%/index')
                             ->field('id')
                             ->find();
-                        if($childIndex && in_array($childIndex['id'],$rules)){
+                        $one = AuthRule::where('id','=',$v)
+                            ->field('id,href')
+                            ->find();
+                        if($childIndex && ( in_array($childIndex['id'],$rules)
+                            || trim($one['href'],'/').'/index' == $childIndex['href'])){
                             $childIndexId .= ($childIndex?$childIndex['id']:'').',';
                         }
                     }
