@@ -74,7 +74,7 @@ class UploadService extends AbstractService
         $group_id = Request::param('group_id', 1);
         $pathSrc = $path =='undefined'?'uploads':$path;
         $editor = Request::param('editor', '');
-        $save = Request::param('save', '');
+        $save = Request::param('save', 1);
         $disksdriver = Config::get('filesystem.default','public');
         $disksurl = Config::get('filesystem.disks.'.$disksdriver.'.url','/storage');
         $files = request()->file();
@@ -100,7 +100,7 @@ class UploadService extends AbstractService
                             $analyzeFileInfo = hook('getID3Hook',['path'=>'.' . "/" . $path]);
                             $duration=0;
                             if($analyzeFileInfo) {
-                                $analyzeFileInfo = json_decode($analyzeFileInfo,true);
+                                $analyzeFileInfo = unserialize($analyzeFileInfo);
                                 $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                             }
                             $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
@@ -159,9 +159,6 @@ class UploadService extends AbstractService
                             $result['errno'] = 'ERROR'; //兼容wangeditor
                             $result['uploaded'] = false; //兼容ckeditorditor
                             $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
-                            if($editor=='layedit'){
-                                $result['code'] = 1;
-                            }
                             if($editor=='tinymce'){
                                 $result['code'] = 0;
                                 $result['location'] = "";
@@ -204,7 +201,7 @@ class UploadService extends AbstractService
                         $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. "/" .$path]);
                         $duration=0;
                         if($analyzeFileInfo) {
-                            $analyzeFileInfo = json_decode($analyzeFileInfo,true);
+                            $analyzeFileInfo = unserialize($analyzeFileInfo);
                             $duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
                         }
                         $file_ext = strtolower(substr($savename, strrpos($savename, '.') + 1));
@@ -262,9 +259,6 @@ class UploadService extends AbstractService
                         $result['errno'] = 'ERROR'; //兼容wangeditor
                         $result['uploaded'] = false; //兼容ckeditorditor
                         $result['error'] = ["message"=> "ERROR"]; //兼容ckeditorditor
-                        if($editor=='layedit'){
-                            $result['code'] = 1;
-                        }
                         if($editor=='tinymce'){
                             $result['code'] = 1;
                             $result['location'] = '';
@@ -296,10 +290,6 @@ class UploadService extends AbstractService
         $result['error'] = ["message"=> "ok"]; //兼容ckeditorditor
         $result['code'] = 1;//默认
         $result['msg'] = lang('upload success');
-        if($editor=='layedit'){
-            $result['code'] = 0;
-            $result['data'] = ['src'=>$result['data'][0],'title'=>''];
-        }
         if($editor=='tinymce'){
             $result['code'] = 0;
             $result['location'] = $result['data'][0];
