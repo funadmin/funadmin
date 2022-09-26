@@ -57,10 +57,10 @@ class FormHelper
     /**
      * @param string $name
      * @param array $options
-     * @param mixed|null $value
+     * @param  $value
      * @return string
      */
-    public  function text(string $name,array $options = [], mixed $value = null)
+    public  function text(string $name,array $options = [], $value = null)
     {
         return $this->input( $name,'text',$options, $value);
     }
@@ -631,7 +631,7 @@ class FormHelper
      * @param $value
      * @return string
      */
-    public  function selectpage(string $name,array $lists= [],array $options = [],mixed $value=null)
+    public  function selectpage(string $name,array $lists= [],array $options = [],$value=null)
     {
 
         $url = $options['url']??'';
