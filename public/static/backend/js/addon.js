@@ -107,7 +107,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 if (d.website !== '') {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
-                                html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                if(d.web){
+                                    html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
                                     html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"

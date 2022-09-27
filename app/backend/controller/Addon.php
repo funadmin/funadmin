@@ -123,7 +123,7 @@ class Addon extends Backend
                                 $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
                                 $addons[$key]['web'] = httpType().$domain.'.'.$url;
                             }else{
-                                $addons[$key]['web'] = '/addons/'.$key;
+                                $addons[$key]['web'] = $info['url'];
                             }
                         }else{
                             $addons[$key] = $value;
