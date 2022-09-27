@@ -37,4 +37,5 @@ return [
     'Your Password'  =>  '您的密码',
     'UserName Or Email'  =>  '账号或密码',
     'Please backup your data before upgrading!!!'=>'升级前请备份数据!!!',
+    "Are you sure you want to install it"=>"确定安装吗?"
 ];

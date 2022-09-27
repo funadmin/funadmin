@@ -67,5 +67,6 @@ return [
     'watercolor'=>'水印颜色',
     'Image/Text'=>'图片或文字',
     'water setting'=>'水印设置',
+    'set'=>'配置',
 
 ];

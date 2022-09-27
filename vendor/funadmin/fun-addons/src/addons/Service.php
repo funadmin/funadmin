@@ -43,13 +43,14 @@ class Service extends \think\Service
 
         // 无则创建addons目录
         $this->addons_path = $this->getAddonsPath();
-        
+
         $this->autoload();
         // 加载系统语言包
         $this->loadLang();
         // 2.注册插件事件hook
         $this->loadEvent();
-        // 3.绑定插件容器
+
+        $this->loadService();
         // 4.自动加载全局的插件内部第三方类库
         addons_vendor_autoload($this->addons_data_list?$this->addons_data_list:Cache::get('addons_data_list',[]));
 
@@ -121,7 +122,40 @@ class Service extends \think\Service
         $this->app->loadLangPack($this->app->lang->defaultLangSet());
     }
 
+    /**
+     * 挂载插件服务
+     */
+    private function loadService()
+    {
+        $results = scandir($this->addons_path);
+        $bind = [];
+        foreach ($results as $name) {
+            if ($name === '.' or $name === '..') {
+                continue;
+            }
+            if (is_file($this->addons_path . $name)) {
+                continue;
+            }
+            $addonDir = $this->addons_path . $name . DIRECTORY_SEPARATOR;
+            if (!is_dir($addonDir)) {
+                continue;
+            }
 
+            if (!is_file($addonDir .   'Plugin.php')) {
+                continue;
+            }
+            $service_file = $addonDir . 'service.ini';
+            if (!is_file($service_file)) {
+                continue;
+            }
+            $info = parse_ini_file($service_file, true, INI_SCANNER_TYPED) ?: [];
+            if($info){
+                $this->app->register(array_shift($info));
+            }
+            $bind = array_merge($bind, $info);
+        }
+        $this->app->bind($bind);
+    }
     /**
      * 插件事件
      */
@@ -151,7 +185,7 @@ class Service extends \think\Service
             }
         }
     }
-    
+
 
     /**
      * 自动载入钩子插件

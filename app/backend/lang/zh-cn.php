@@ -30,6 +30,7 @@ return [
     'Del'                       =>  '删除',
     'Delete'                    =>  '销毁',
     'Destroy'                   =>  '删除',
+    'Destory'                   =>  '删除',
     'Restore'                   =>  '还原',
     'recycle'                   =>  '回收站',
     'Import'                    =>  '导入',
@@ -244,4 +245,10 @@ return [
     'MimeType'                  =>'Mime类型',
     'Permission Denied'         =>'没有权限',
     'Between 4 and 25 characters'=>'4-25个字符',
+
+
+    "save success"=>'保存成功',
+    "save failed"=>'保存失败',
+    "modify success"=>'修改成功',
+    "modify failed"=>'修改失败',
 ];

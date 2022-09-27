@@ -11,7 +11,6 @@ return [
     'Menu Target'=>'窗口目标',
     'MenuStatus'=>'菜单状态',
     'Menu_Status'=>'菜单状态',
-    'Menu Status'=>'菜单状态',
     'Target'=>'窗口',
     'href'=>'路由',
     '_self'=>'当前',
@@ -22,6 +21,7 @@ return [
     'title'=>'菜单名',
     'Module'=>'模块',
     'Parent menu cannot be modified to submenu'=>'父菜单不能修改到子菜单',
-    'The superior cannot be set as himself'=>'父级不能为自己'
-
+    'The superior cannot be set as himself'=>'父级不能为自己',
+    'setValue'=>'设置值',
+    'upme' =>'更新信息',
 ];

@@ -132,7 +132,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 if(event ==='open'){ return  this.call();}
                 if (event === 'install') {
                     if (auth) {
-                        Fun.toastr.confirm('Are you sure you want to install it', function () {
+                        Fun.toastr.confirm(__('Are you sure you want to install it'), function () {
                             let index = layer.load();
                             Fun.ajax({
                                 url: url,
