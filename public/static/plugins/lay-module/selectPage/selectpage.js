@@ -1508,7 +1508,9 @@ layui.define(['jquery'],function(exports) {
                         self.ajaxErrorNotify(self)
                     }
                 },
-                complete: function () {
+                complete: function (xhr, data) {
+                    var __token__=xhr.getResponseHeader('__token__');
+                    $('input[name="__token__"]').val(__token__)
                     self.prop.xhr = null
                 }
             })
