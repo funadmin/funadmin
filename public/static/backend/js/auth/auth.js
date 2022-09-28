@@ -181,6 +181,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                         Fun.api.close();
                         Fun.refreshmenu();
                         Fun.toastr.close();
+                        parent.layui.treeGrid.reload('list')
                     }, 0));
                     }, function (res) {
                         Fun.toastr.error(res.msg);

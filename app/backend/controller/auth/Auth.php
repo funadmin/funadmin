@@ -33,7 +33,13 @@ class Auth extends Backend
 {
 
     public $uid;
-
+    protected $allowModifyFields = [
+        'menu_status',
+        'type',
+        'auth_verify',
+        'status',
+        'status',
+    ];
     public function __construct(App $app)
     {
         parent::__construct($app);
@@ -232,7 +238,7 @@ class Auth extends Backend
         $field = $this->request->param('field');
         $value = $this->request->param('value');
         if($id){
-            if(!$this->allowModifyFileds = ['*'] && !in_array($field, $this->allowModifyFileds)){
+            if($this->allowModifyFields != ['*'] && !in_array($field, $this->allowModifyFields)){
                 $this->error(lang('Field Is Not Allow Modify：' . $field));
             }
             $model = $this->findModel($id);

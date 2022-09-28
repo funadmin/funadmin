@@ -793,29 +793,26 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 option = option || {};
                 option.refreshTable = option.refreshTable || false;
                 option.refreshFrame = option.refreshFrame || false;
-                var Table;
-                if (option.refreshTable === true) {
-                    require(['table'], function (Table) {
-                        option.refreshTable = option.tableid ||  Table.init.tableId;
-                    })
-                }
-                console.log(option)
+
                 var index = parent.layui.layer.getFrameIndex(window.name);
                 if (index) {
                     parent.layui.layer.close(index);
                 }
-                if (option.refreshTable !== false) {
-                    if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
-                        if((parent.layui.treeGrid)){
-                            parent.layui.treeGrid.reload(option.refreshTable, {}, true)
+                if (option.refreshTable === true) {
+                    require(['table'], function (Table) {
+                        option.refreshTable = option.tableid || Table.init.tableId;
+                        if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
+                            if (parent.layui.treeGrid) {
+                                parent.layui.treeGrid.reload(option.refreshTable, {}, true)
+                            }
+                            Table.api.reload(option.refreshTable)
+                        } else {
+                            setTimeout(function () {
+                                location.reload();
+                            }, 2000)
+                            return false;
                         }
-                        Table.api.reload(option.refreshTable)
-                    } else {
-                        setTimeout(function() {
-                            location.reload();
-                        }, 2000)
-                        return false;
-                    }
+                    })
                 }
                 if (!option.refreshFrame) {
                     return false;
