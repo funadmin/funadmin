@@ -248,6 +248,10 @@ return [
 
 
     "save success"=>'保存成功',
+    "add success"=>'保存成功',
+    "add failed"=>'保存失败',
+    "operate success"=>'操作成功',
+    "operate failed"=>'操作失败',
     "save failed"=>'保存失败',
     "modify success"=>'修改成功',
     "modify failed"=>'修改失败',

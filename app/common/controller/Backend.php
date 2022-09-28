@@ -106,7 +106,7 @@ class Backend extends BaseController
         $controller = parse_name($this->request->controller(),1);
         $controller = strtolower($controller);
         if($controller!=='ajax'){
-            $this->loadlang($controller,'');
+            $this->loadlang($controller,app()->http->getName());
         }
         //过滤参数
         $this->pageSize = input('limit', 15);
@@ -141,6 +141,7 @@ class Backend extends BaseController
         $lang = cookie(config('lang.cookie_var'));
         if($app && $app!=='backend'){
             $res =  Lang::load([
+                $this->app->getBasePath() .'backend'. DS . 'lang' . DS . $lang . '.php',
                 $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang  . '.php',
                 $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
             ]);
