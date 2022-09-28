@@ -56,7 +56,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
 
                         }
                     },
-                    {field: 'path', title: __('Path'), width: 80, sort: true, templet: Table.templet.image},
+                    {field: 'path', title: __('Path'), width: 80, sort: true,},
                     {field: 'ext', title: __('Ext'), width: 120, sort: true},
                     {field: 'size', title: __('Size(K)'), width: 80, sort: true},
                     {field: 'driver', title: __('Driver'), width: 80, sort: true},
