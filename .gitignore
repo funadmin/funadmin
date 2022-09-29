@@ -1,4 +1,5 @@
 /app/cms
+/app/mocms
 /.idea
 /.vscode
 /.DS_Store
@@ -9,5 +10,6 @@
 #/vendor
 /public/static/addons
 /public/static/cms
+/public/static/mocms
 /public/static/storage
 /auto_install.json

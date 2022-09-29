@@ -1044,7 +1044,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             filter: JSON.stringify(formatFilter),
                             op: JSON.stringify(formatOp)
                         }, true, false);
-                        $('#layui-input-search').prop("value", $(this).val());
+                        $('#layui-input-search-'+tableId).prop("value", $(this).val());
                         return false
                     } else {
                         Table.api.reload(tableId, {search: text, searchName: name}, true, true);
