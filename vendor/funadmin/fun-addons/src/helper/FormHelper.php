@@ -925,12 +925,13 @@ class FormHelper
             $options['select'] = $options['select'] ?? 'upload-select'; //可选upload-choose
             $select_container =  '<button id="' . $name . '" type="button" class="layui-btn layui-btn-danger ' . $options['select'] . '" ' .$data_value . $op . '  lay-filter="' . $options['select'] . '"><i class="layui-icon layui-icon-radio"></i>' . lang('Choose') . '</button>';
         }
+        $options['upload'] = $options['upload'] ?? 'upload';
         $str = ' <div class="layui-form-item">' .$this->label($label,$options) . '
                 <div class="layui-input-block">
                     <div class="layui-upload">
                         <input '  . $this->addextend($options) . ' ' . $this->addstyle($options) . '  value="' . $value . '" style="' . $css . ' ;width:65% " type="text" name="' . $name . '" class="layui-input attach ' . $this->addClass($options) . '"' . $this->verify($options) . '/>
                        ' . $croper_container . '
-                        <button type="button" ' .$data_value .' style="margin-left:0px" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="upload"><i class="layui-icon layui-icon-upload-drag"></i>' . lang('Uploads') . '</button>
+                        <button type="button" ' .$data_value .' style="margin-left:0px" class="layui-btn layui-btn-normal"  ' . $op . ' lay-filter="' . $options['upload'] . '"><i class="layui-icon layui-icon-upload-drag"></i>' . lang('Uploads') . '</button>
                         ' . $select_container . '
                         <div class="layui-upload-list">'
             . $li . '
