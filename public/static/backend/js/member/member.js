@@ -111,14 +111,14 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         width: 120,
                         search: 'select',
                         selectList: {0: __('Secret'), 1: __('Male'), 2: __('Female')},
-                        templet: Table.templet.selects,
+                        // templet: Table.templet.selects,
                         tips: __('Female')+'|'+  __('Male')
                     },
                     {
                         field: 'memberLevel.name',
                         title: __('MemberLevel'),
                         width: 120,
-                        templet: Table.templet.text
+                        // templet: Table.templet.text
                     },
                     {field: 'avatar', title: __('Avatar'), width: 120, templet: Table.templet.image},
                     {
