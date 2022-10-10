@@ -537,7 +537,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             type: type,
                             trigger: 'click',
                             calendar: true,
-                            theme: '#393D49'
+                            theme: '#1890ff'
                         };
                         if (format !== undefined && format !== '' && format != null) {
                             options['format'] = format
