@@ -729,10 +729,11 @@ class FormHelper
         if (isset($options['format'])) {
             $op .= 'data-format="' . $options['format'] . '"';
         }
+        $placeholder = $options['placeholder']?:'yyyy-MM-dd HH:mm:ss';
         $label = $options['label'] ?? $name;
         $str = '<div class="layui-form-item">' .$this->label($label,$options) . '       
         <div class="layui-input-block">
-         <input ' . $this->verify($options) . $this->addextend($options) . ' ' . $this->addstyle($options) . '  class="layui-input ' . $this->addClass($options) . '" type="text" name="' . $name . '" value="' . $value . '" lay-filter="date" ' . $op . ' placeholder="yyyy-MM-dd HH:mm:ss"/>
+         <input ' . $this->verify($options) . $this->addextend($options) . ' ' . $this->addstyle($options) . '  class="layui-input ' . $this->addClass($options) . '" type="text" name="' . $name . '" value="' . $value . '" lay-filter="date" ' . $op . ' placeholder="'.$placeholder.'"/>
          <i class="layui-icon layui-icon-date"></i></div>
         </div>';
         return $str;

@@ -526,8 +526,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 var list = formObj!=undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
                 if (list.length > 0) {
                     layui.each(list, function() {
-                        var format = $(this).data('format'),
-                            type = $(this).data('type'),
+                        var format = $(this).data('format'), type = $(this).data('type'),
+                            value=$(this).data('value') || $(this).val(),
                             range = $(this).data('range');
                         if (type === undefined || type === '' || type == null) {
                             type = 'datetime'
@@ -547,6 +547,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 range = '-'
                             }
                             options['range'] = range
+                        }
+                        if(value){
+                            options['value'] = value;
                         }
                         laydate = layui.laydate ? layui.laydate : parent.layui.laydate;
                         laydate.render(options)
