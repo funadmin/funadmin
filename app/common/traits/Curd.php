@@ -715,6 +715,16 @@ trait Curd
                         $where[] = [$key, '<=', strtotime($end)];
                     }
                     break;
+                case 'DATERANGE':
+                    $val = str_replace(' - ', ',', $val);
+                    $arr = array_slice(explode(',', $val), 0, 2);
+                    if (stripos($val, ',') === false || !array_filter($arr)) {
+                        continue 2;
+                    }
+                    [$begin, $end] = [$arr[0],$arr[1]];
+                    $where[] = [$key, 'BETWEEN TIME',[$begin, $end]];
+
+                    break;
                 case 'NOT RANGE':
                     $val = str_replace(' - ', ',', $val);
                     $arr = array_slice(explode(',', $val), 0, 2);

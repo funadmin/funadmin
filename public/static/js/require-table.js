@@ -245,7 +245,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         case'timerange':
                             d.searchOp = 'range';
                             formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
-                            break
+                            break;
+                        case'date':
+                            d.searchOp = 'daterange';
+                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                            break;
                     }
                     newCols.push(d)
                 }
@@ -283,7 +287,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             break
                     }
                 }
-                if (ncV.search === 'time') {
+                if (ncV.search === 'time' || ncV.search === 'date') {
                     switch (ncV.searchOp) {
                         case 'between':
                             layui.laydate.render({
@@ -295,6 +299,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                 elem: '[id="field_' + ncV.field + '_max"]',
                                 format: ncV.searchdateformat,
                                 type: ncV.timeType
+                            })
+                            break;
+                        case 'daterange':
+                            layui.timePicker.render({
+                                elem: '[name="' + ncV.field + '"]',
+                                options: {timeStamp: false, format: ncV.timepickerformat,},
                             })
                             break;
                         case 'range':
