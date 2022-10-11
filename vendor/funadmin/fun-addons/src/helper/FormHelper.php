@@ -865,22 +865,22 @@ class FormHelper
                     switch ($options['mime']) {
                         case 'video':
                             $li .= '<li><video lay-event="" class="layui-upload-img fl"  width="150" src="' . $v . '"></video>
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                         case 'audio':
                             $li .= '<li><audio lay-event="" class="layui-upload-img fl"  width="150" src="' . $v . '"></audio>
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                         case 'images':
                             $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="' . $v . '"></img>
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                         case 'image':
                             $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="' . $v . '"></img>
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                         case 'zip':
@@ -890,12 +890,12 @@ class FormHelper
                             break;
                         case 'office':
                             $li .= '<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/office.jpg"></img>
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                         default:
                             $li .= '<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/file.jpg">
-                    <i class="layui-icon layui-icon-close" lay-event="upfileDelete"
+                    <i class="layui-icon layui-icon-close" lay-event="filedelete"
                     data-fileurl="' . $v . '"></i></li>';
                             break;
                     }

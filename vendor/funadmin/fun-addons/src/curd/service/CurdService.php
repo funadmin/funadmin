@@ -103,13 +103,13 @@ class CurdService
 
     public function __construct(array $config)
     {
-        $this->rootPath = root_path();
-        $this->setParam($config);
         $this->tablePrefix = config('database.connections.' . $config['driver'] . '.prefix');
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
-        $this->driver = $config['driver'];
+        $this->rootPath = root_path();
         $this->dir = __DIR__;
         $this->tplPath = $this->rootPath . 'vendor' . DS . 'funadmin' . DS . 'fun-addons' . DS . 'src' . DS . 'curd' . DS . 'tpl' . DS;
+        $this->setParam($config);
+        $this->driver = $config['driver'];
         return $this;
     }
 
