@@ -744,7 +744,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Table.api.reload(Table.init.tableId, $where);
                 return false
             },export: function (othis) {
-                var url = othis.data('url');tableId = othis.data('tableid');
+                var url = othis.data('url'),tableId = othis.data('tableid'),primaryKey = $('#'+tableId).data('primarykey');
                 var dataField = $('#layui-search-field-' + tableId + ' .layui-form [name]').serializeArray();
                 var formatFilter = {}, formatOp = {};
                 layui.each(dataField, function () {
@@ -764,6 +764,15 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         formatOp[key] = op
                     }
                 });
+                var status = layui.table.checkStatus(tableId);
+                if(status.data.length>0){
+                    var ids = [];
+                    layui.each(status.data, function (i) {
+                        ids[i] = status.data[i][primaryKey];
+                    });
+                    formatFilter['id'] = ids
+                    formatOp['id'] = 'in';
+                }
                 if (url.indexOf('?') !== -1) {
                     where = "&filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)
                 } else {
