@@ -297,8 +297,8 @@ trait Curd
             $excelData = array_filter($excelData);
             $fieldTitle = array_filter($excelData[0]);
             $data = [];
-            $tableComment =  array_values($tableField);
-            $tableFieldKey =  array_keys($tableField);
+            $tableComment =  array_map('strtolower',array_values($tableField));
+            $tableComment = array_map('trim', $tableComment);
             foreach ($excelData as $key => $value) {
                 if($key == 0) continue;
                 $one = [];
@@ -307,7 +307,7 @@ trait Curd
                 }
                 $newValue = array_combine($fieldTitle,$value);
                 foreach ($newValue as $k=>$v){
-                    if ($k && in_array($k,$tableComment)) {
+                    if ($k && in_array(strtolower(trim($k)),$tableComment)) {
                         $field = array_search($k,$tableField);
                         if($field=='admin_id' && is_string($v)){
                             $admin = Admin::where('username|realname',$v)->find();
@@ -449,7 +449,7 @@ trait Curd
         $tableField = Db::connect($driver)->query($sql);
         $fieldArr = [];
         foreach ($tableField as $field){
-            $fieldArr[$field['COLUMN_NAME']] = $field['COLUMN_COMMENT'];
+            $fieldArr[$field['COLUMN_NAME']] = strtolower(trim($field['COLUMN_COMMENT']));
         }
         return $fieldArr;
     }
