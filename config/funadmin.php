@@ -10,7 +10,7 @@ return [
     'isDemo'=>0,
 
     //版本
-    'version' => '3.0.0',
+    'version' => '3.0.1',
 
     'version_data' => '20221013',
 
