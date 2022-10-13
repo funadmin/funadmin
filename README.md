@@ -39,7 +39,7 @@ funadmin前端和webman开发的后台管理系统
 ### 官方网址：http://www.funadmin.com/
 ### 插件市场 https://www.funadmin.com/frontend/plugins
 ### 帮助文档：https://doc.funadmin.com 正在持续更新中...
-### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/2KmvVJA8dU.php)
+### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/backend)
 ### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 ### QQ群2：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
 
