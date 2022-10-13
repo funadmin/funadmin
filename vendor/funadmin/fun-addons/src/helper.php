@@ -545,16 +545,13 @@ if (!function_exists('uninstallsql')) {
         if (is_file($sqlFile)) {
             $sql = file_get_contents($sqlFile);
             $sql = str_replace('__PREFIX__', config('database.connections.mysql.prefix'),$sql);
-            $sql = explode("\r\n",$sql);
+            $sql = array_filter(explode("\r\n",$sql));
             foreach ($sql as $k=>$v){
-                if(strpos(strtolower($v),'drop table')!==false){
-                    try {
-                        Db::execute($v);
-                    } catch (\Exception $e) {
-                        throw new Exception($e->getMessage());
-                    }
+                try {
+                    Db::execute($v);
+                } catch (\Exception $e) {
+                    throw new Exception($e->getMessage());
                 }
-               
             }
         }
         return true;
