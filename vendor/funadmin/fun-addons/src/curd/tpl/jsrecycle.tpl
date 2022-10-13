@@ -21,5 +21,5 @@ recycle: function () {
                 done: function (res, curr, count) {
                 }
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },

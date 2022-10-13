@@ -23,7 +23,7 @@ define(['table','form'], function (Table,Form) {
                 done: function (res, curr, count) {
                 }
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
             Controller.api.bindevent()
