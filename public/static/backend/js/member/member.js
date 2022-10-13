@@ -153,44 +153,44 @@ define(['jquery','table','form'], function ($,Table,Form) {
             }
             var table = Table.render(options);
             Table.api.bindEvent(Table.init.tableId) ;
-            var table2 = Table.render({
-                elem: '#' + Table.init2.table_elem,
-                id: Table.init2.tableId,
-                url: Fun.url(Table.init2.requests.index_url),
-                init: Table.init2,
-                toolbar: ['refresh','add','destroy','export','recycle'],
-                cols: [[
-                    {checkbox: true, },
-                    {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'name', title: __('GroupName'), minwidth: 120,},
-                    {field: 'rules', title: __('Rules'), minwidth: 120,},
-                    {
-                        field: 'status',
-                        title: __('Status'),
-                        width: 120,
-                        search: 'select',
-                        selectList: {0: __('Disabled'), 1: __('Enabled')},
-                        filter: 'status',
-                        templet: Table.templet.switch
-                    },
-                    {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
-                    {
-                        minwidth: 250,
-                        align: 'center',
-                        title: __('Operat'),
-                        init:  Table.init2,
-                        templet: Table.templet.operat,
-                        operat: ['edit', 'destroy',]
-                    }
-
-                ]],
-                limits: [10, 15, 20, 25, 50, 100],
-                limit: 15,
-                page: true,
-                done: function(res, curr, count){
-                }
-            });
-            Table.api.bindEvent(Table.init2.tableId);
+            // var table2 = Table.render({
+            //     elem: '#' + Table.init2.table_elem,
+            //     id: Table.init2.tableId,
+            //     url: Fun.url(Table.init2.requests.index_url),
+            //     init: Table.init2,
+            //     toolbar: ['refresh','add','destroy','export','recycle'],
+            //     cols: [[
+            //         {checkbox: true, },
+            //         {field: 'id', title: 'ID', width: 80, sort: true},
+            //         {field: 'name', title: __('GroupName'), minwidth: 120,},
+            //         {field: 'rules', title: __('Rules'), minwidth: 120,},
+            //         {
+            //             field: 'status',
+            //             title: __('Status'),
+            //             width: 120,
+            //             search: 'select',
+            //             selectList: {0: __('Disabled'), 1: __('Enabled')},
+            //             filter: 'status',
+            //             templet: Table.templet.switch
+            //         },
+            //         {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
+            //         {
+            //             minwidth: 250,
+            //             align: 'center',
+            //             title: __('Operat'),
+            //             init:  Table.init2,
+            //             templet: Table.templet.operat,
+            //             operat: ['edit', 'destroy',]
+            //         }
+            //
+            //     ]],
+            //     limits: [10, 15, 20, 25, 50, 100],
+            //     limit: 15,
+            //     page: true,
+            //     done: function(res, curr, count){
+            //     }
+            // });
+            // Table.api.bindEvent(Table.init2.tableId);
 
         },
         add:function () {
