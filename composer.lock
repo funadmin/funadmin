@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3193420367387cd91b04b476c94c7e5f",
+    "content-hash": "e76a63125128e93f7256ca6417382606",
     "packages": [
         {
             "name": "brick/math",
@@ -412,16 +412,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v5.0.2",
+            "version": "v5.0.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "faad7b887ed3eb9b4dc5976b22160e2a06bedb71"
+                "reference": "f9cc9b3f2917cd1833f6cdc68ed505b9a1ca8c48"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/faad7b887ed3eb9b4dc5976b22160e2a06bedb71",
-                "reference": "faad7b887ed3eb9b4dc5976b22160e2a06bedb71",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/f9cc9b3f2917cd1833f6cdc68ed505b9a1ca8c48",
+                "reference": "f9cc9b3f2917cd1833f6cdc68ed505b9a1ca8c48",
                 "shasum": ""
             },
             "require": {
@@ -465,9 +465,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v5.0.2"
+                "source": "https://github.com/funadmin/fun-addons/tree/v5.0.3"
             },
-            "time": "2022-09-29T06:52:37+00:00"
+            "time": "2022-10-13T07:22:35+00:00"
         },
         {
             "name": "league/flysystem",
@@ -2273,16 +2273,16 @@
         },
         {
             "name": "symfony/translation",
-            "version": "v5.4.12",
+            "version": "v5.4.14",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/translation.git",
-                "reference": "42ecc77eb4f229ce2df702a648ec93b8478d76ae"
+                "reference": "f0ed07675863aa6e3939df8b1bc879450b585cab"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/translation/zipball/42ecc77eb4f229ce2df702a648ec93b8478d76ae",
-                "reference": "42ecc77eb4f229ce2df702a648ec93b8478d76ae",
+                "url": "https://api.github.com/repos/symfony/translation/zipball/f0ed07675863aa6e3939df8b1bc879450b585cab",
+                "reference": "f0ed07675863aa6e3939df8b1bc879450b585cab",
                 "shasum": ""
             },
             "require": {
@@ -2350,7 +2350,7 @@
             "description": "Provides tools to internationalize your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/translation/tree/v5.4.12"
+                "source": "https://github.com/symfony/translation/tree/v5.4.14"
             },
             "funding": [
                 {
@@ -2366,7 +2366,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-08-02T15:52:22+00:00"
+            "time": "2022-10-07T08:01:20+00:00"
         },
         {
             "name": "symfony/translation-contracts",
@@ -3136,16 +3136,16 @@
         },
         {
             "name": "symfony/var-dumper",
-            "version": "v4.4.46",
+            "version": "v4.4.47",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/var-dumper.git",
-                "reference": "90425fd98d1ecad98e4b2dca9f54f62069193b15"
+                "reference": "1069c7a3fca74578022fab6f81643248d02f8e63"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/90425fd98d1ecad98e4b2dca9f54f62069193b15",
-                "reference": "90425fd98d1ecad98e4b2dca9f54f62069193b15",
+                "url": "https://api.github.com/repos/symfony/var-dumper/zipball/1069c7a3fca74578022fab6f81643248d02f8e63",
+                "reference": "1069c7a3fca74578022fab6f81643248d02f8e63",
                 "shasum": ""
             },
             "require": {
@@ -3205,7 +3205,7 @@
                 "dump"
             ],
             "support": {
-                "source": "https://github.com/symfony/var-dumper/tree/v4.4.46"
+                "source": "https://github.com/symfony/var-dumper/tree/v4.4.47"
             },
             "funding": [
                 {
@@ -3221,7 +3221,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2022-09-03T23:07:25+00:00"
+            "time": "2022-10-03T15:15:11+00:00"
         }
     ],
     "aliases": [],
@@ -3234,5 +3234,5 @@
         "ext-json": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.3.0"
 }
