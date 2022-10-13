@@ -73,7 +73,7 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                 limit: 15,
                 page: true
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add:function () {
             Controller.api.bindevent();
@@ -128,7 +128,7 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                 page: true
             });
             let table = $("#"+ Table.init.table_elem);
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
 
         api: {

@@ -44,7 +44,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
             });
 
 
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add:function () {
             Controller.api.bindevent()

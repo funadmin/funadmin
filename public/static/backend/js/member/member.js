@@ -152,7 +152,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 }
             }
             var table = Table.render(options);
-            Table.api.bindEvent(Table.init) ;
+            Table.api.bindEvent(Table.init.tableId) ;
             // var table2 = Table.render({
             //     elem: '#' + Table.init2.table_elem,
             //     id: Table.init2.tableId,
@@ -190,7 +190,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
             //     done: function(res, curr, count){
             //     }
             // });
-            // Table.api.bindEvent(Table.init2);
+            // Table.api.bindEvent(Table.init2.tableId);
 
         },
         add:function () {
@@ -257,7 +257,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 limit: 15,
                 page: true
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         api: {
             bindevent: function () {

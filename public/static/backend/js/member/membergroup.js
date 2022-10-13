@@ -51,7 +51,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 page: true
 
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add:function () {
             Controller.api.bindevent()
@@ -95,7 +95,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 limit: 15,
                 page: true
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
 
         api: {

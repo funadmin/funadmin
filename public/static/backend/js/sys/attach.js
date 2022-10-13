@@ -91,7 +91,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 page: true
             });
 
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
             Controller.api.bindevent()

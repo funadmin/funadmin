@@ -162,7 +162,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     treeGrid.render();
                 });
             });
-            Table.api.bindEvent(Table.init);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
             Controller.api.bindevent()
