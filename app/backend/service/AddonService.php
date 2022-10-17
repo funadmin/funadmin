@@ -37,7 +37,7 @@ class AddonService extends AbstractService
 
     }
     //添加菜单
-    public function addAddonMenu(array $menu,int $pid = 0,string $module = 'addon'){
+    public function addAddonMenu(array $menu,int $pid = 0,string $module = 'backend'){
         foreach ($menu as $v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {
@@ -60,7 +60,7 @@ class AddonService extends AbstractService
         $this->delMenuCache();
     }
     //循环删除菜单
-    public function delAddonMenu(array $menu,string $module = 'addon'){
+    public function delAddonMenu(array $menu,string $module = 'backend'){
         foreach ($menu as $k=>$v){
             $hasChild = isset($v['menulist']) && $v['menulist'] ? true : false;
             try {

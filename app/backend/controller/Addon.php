@@ -366,9 +366,9 @@ class Addon extends Backend
                 }
                 $menu[] = $menu_config['menu'];
                 if( $addoninfo['status']){
-                    $this->addonService->addAddonMenu($menu,$pid);
+                    $this->addonService->addAddonMenu($menu,$pid,$name);
                 }else{
-                    $this->addonService->delAddonMenu($menu);
+                    $this->addonService->delAddonMenu($menu,$name);
                 }
             }
             refreshaddons();
@@ -473,7 +473,7 @@ class Addon extends Backend
     }
 
     /**
-     * 更新
+     * 更新 先卸载插件
      * @return bool
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
@@ -499,7 +499,7 @@ class Addon extends Backend
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];
-                $this->addonService->delAddonMenu($menu);
+                $this->addonService->delAddonMenu($menu,$name);
             }
             //为了防止文件误删，这里先不卸载sql
 //            uninstallsql($name);
