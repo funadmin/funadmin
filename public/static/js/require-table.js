@@ -727,6 +727,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             return [ids, length]
         },
         events: {
+            //链接
+            href:function (othis,tabloptions = null){
+                window.open(othis.data('url'),'_blank');
+            },
             iframe: function (othis, options = null) {
                 if (options) {
                     Fun.api.iframe(options);
@@ -935,6 +939,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             break;
                         case'dropdown':
                             Table.events.dropdown(othis);
+                            break;
+                        case'href':
+                            Table.events.href(othis);
                             break;
                         default:
                             Table.events.common(othis)

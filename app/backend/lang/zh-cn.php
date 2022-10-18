@@ -91,6 +91,7 @@ return [
     'Name'                      =>  '名字',
     'Value'                     =>  '值',
     'Config'                    =>  '配置',
+    'Plugins'                    =>  '插件',
 
     "debug"                     =>  '调试模式',
     "version"                   =>  '版本',

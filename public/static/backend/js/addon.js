@@ -20,6 +20,15 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         title: __('Local Install'),
                         extend:"id='localinstall' data-callback='importFile()'",
                     },
+                    'plugins':{
+                        type: 'href',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'https://www.funadmin.com/frontend/plugins',
+                        icon: 'layui-icon layui-icon-app',
+                        text: __('plugins'),
+                        title: __('plugins'),
+                        extend:"id='plugins' ",
+                    },
                 },
             }
             importFile = function(){
@@ -30,7 +39,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','localinstall'],
+                toolbar: ['refresh','localinstall','plugins'],
                 searchInput:true,
                 searchName:'name',
                 search: true,
