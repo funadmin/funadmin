@@ -24,7 +24,6 @@ class AuthRule extends BackendModel
     use SoftDelete;
 
 
-    
     protected $deleteTime = 'delete_time';
     protected $defaultSoftDelete = 0;
 

@@ -35,6 +35,10 @@ abstract class Addons
     protected $view;
     // 插件配置
     protected $addon_config;
+
+    protected $config;
+
+    protected $info;
     // 插件信息
     protected $addon_info;
 
@@ -51,13 +55,14 @@ abstract class Addons
         $this->layout = false;
         $this->addon_path = $app->addons->getAddonsPath() . $this->name . DS;
         $this->addon_config = "addon_{$this->name}_config";
+        $this->config = $this->getConfig();
         $this->addon_info = "addon_{$this->name}_info";
+        $this->info = $this->getInfo();
         $this->view = clone View::engine('Think');
         app()->view->engine()->layout($this->layout);
         $this->view->config([
             'view_path' => $this->addon_path . 'view' . DS
         ]);
-
         // 控制器初始化
         $this->initialize();
     }
