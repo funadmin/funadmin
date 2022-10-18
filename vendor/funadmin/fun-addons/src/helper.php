@@ -243,7 +243,6 @@ if (!function_exists('get_addons_config')) {
         if (!$addon) {
             return [];
         }
-
         return $addon->getConfig($name);
     }
 }

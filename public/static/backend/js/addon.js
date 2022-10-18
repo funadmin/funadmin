@@ -129,7 +129,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url'),auth = $(this).data('auth');
                 url = Fun.url(url);var event = obj.event;
-                if(event ==='open'){ return  this.call();}
+                if(event ==='open'){ return this.call();}
                 if (event === 'install') {
                     if (auth) {
                         Fun.toastr.confirm(__('Are you sure you want to install it'), function () {

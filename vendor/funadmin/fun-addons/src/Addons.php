@@ -55,7 +55,6 @@ abstract class Addons
         $this->layout = false;
         $this->addon_path = $app->addons->getAddonsPath() . $this->name . DS;
         $this->addon_config = "addon_{$this->name}_config";
-        $this->config = $this->getConfig();
         $this->addon_info = "addon_{$this->name}_info";
         $this->info = $this->getInfo();
         $this->view = clone View::engine('Think');
@@ -181,7 +180,6 @@ abstract class Addons
             unset($temp_arr);
         }
         Config::set($config, $this->addon_config);
-
         return $config;
     }
     /**
