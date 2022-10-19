@@ -912,7 +912,7 @@ DROP TABLE IF EXISTS `fun_test_cate`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `fun_test_cate` (
                                  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
-                                 `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '名字',
+                                 `title` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '名字',
                                  `thumb` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '缩略图',
                                  `create_time` int DEFAULT '0' COMMENT '创建时间',
                                  `update_time` int DEFAULT '0' COMMENT '更新时间',

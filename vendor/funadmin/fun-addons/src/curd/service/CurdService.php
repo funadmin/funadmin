@@ -325,6 +325,7 @@ class CurdService
                     '{{$connection}}',
                     '{{$joinTpl}}',
                     '{{$attrTpl}}',
+                    '{{$primaryKey}}',
                 ],
                     [
                         $this->modelNamespace,
@@ -334,6 +335,7 @@ class CurdService
                         $connection,
                         '',
                         '',
+                        $this->joinPrimaryKey[$k]
                     ],
                     file_get_contents($modelTpl));
                 $this->makeFile($joinModelFile, $modelTplTemp);
