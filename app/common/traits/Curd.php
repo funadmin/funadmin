@@ -102,8 +102,8 @@ trait Curd
      */
     public function edit()
     {
-        $id = request()->param('id');
-        $list = $this->modelClass->find($id);
+        $id = request()->param($this->modelClass->getPk());
+        $list = $this->findModel($id);
         if(empty($list)) $this->error(lang('Data is not exist'));
         if (request()->isPost()) {
             $post = request()->post();
@@ -131,8 +131,8 @@ trait Curd
 
 
     public function copy(){
-        $id = request()->param('id');
-        $list = $this->modelClass->find($id);
+        $id = request()->param($this->modelClass->getPk());
+        $list = $this->findModel($id);
         if(empty($list)) $this->error(lang('Data is not exist'));
         if (request()->isPost()) {
             $post = request()->post();
@@ -151,7 +151,7 @@ trait Curd
                 if(isset($data['update_time'])){
                     unset($data['update_time']);
                 }
-                unset($data['id']);
+                unset($data[$this->modelClass->getPk()]);
                 $this->modelClass->save($data);
             } catch (\Exception $e) {
                 $this->error(lang($e->getMessage()));
@@ -166,7 +166,7 @@ trait Curd
      */
     public function delete()
     {
-        $ids =  request()->param('ids')?request()->param('ids'):request()->param('id');
+        $ids =  request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
         if($ids=='all'){
             $list = $this->modelClass->withTrashed(true)->select();
@@ -174,7 +174,7 @@ trait Curd
             if(is_string($ids)){
                 $ids = strpos($ids,',')!==false?explode(',',$ids):[$ids];
             }
-            $list = $this->modelClass->withTrashed(true)->where($this->primaryKey,'in', $ids)->select();
+            $list = $this->modelClass->withTrashed(true)->where($this->modelClass->getPk(),'in', $ids)->select();
         }
         if(empty($list))$this->error('Data is not exist');
         try {
@@ -191,9 +191,9 @@ trait Curd
      */
     public function destroy()
     {
-        $ids = request()->param('ids')?request()->param('ids'):request()->param('id');
+        $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
-        $list = $this->modelClass->whereIn($this->primaryKey, $ids)->select();
+        $list = $this->modelClass->whereIn($this->modelClass->getPk(), $ids)->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
@@ -222,7 +222,7 @@ trait Curd
      * @NodeAnnotation(title="modify")
      */
     public function modify(){
-        $id = input('id');
+        $id = input($this->modelClass->getPk());
         $field = input('field');
         $value = input('value');
         if($id){
@@ -270,9 +270,9 @@ trait Curd
      * @return bool
      */
     public function restore(){
-        $ids = request()->param('ids')?request()->param('ids'):request()->param('id');
+        $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
-        $list = $this->modelClass->onlyTrashed()->whereIn($this->primaryKey, $ids)->select();
+        $list = $this->modelClass->onlyTrashed()->whereIn($this->modelClass->getPk(), $ids)->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
@@ -390,7 +390,7 @@ trait Curd
      */
     protected function findModel($id)
     {
-        if (empty($id) || empty($model = $this->modelClass->find($id))) {
+        if (empty($id) || empty($model = $this->modelClass->where($this->modelClass->getPk(),$id)->find())) {
             return '';
         }
         return $model;

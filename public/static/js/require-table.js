@@ -784,8 +784,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     layui.each(status.data, function (i) {
                         ids[i] = status.data[i][primaryKey];
                     });
-                    formatFilter['id'] = ids
-                    formatOp['id'] = 'in';
+                    formatFilter[primaryKey] = ids
+                    formatOp[primaryKey] = 'in';
                 }
                 if (url.indexOf('?') !== -1) {
                     where = "&filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)

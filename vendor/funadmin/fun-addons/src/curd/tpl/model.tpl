@@ -14,6 +14,8 @@ class {{$modelName}} extends BaseModel
 
     {{$connection}}
 
+    protected $pk = '{{$primaryKey}}';
+
     public function __construct(array $data = [])
     {
         parent::__construct($data);

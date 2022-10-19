@@ -86,6 +86,7 @@ class CurdService
     protected $joinModel;
     protected $joinTable;
     protected $joinForeignKey;
+    protected $primaryKey = 'id';
     protected $joinPrimaryKey;
     protected $selectFields;
     protected $jsCols;
@@ -399,7 +400,9 @@ class CurdService
                 '{{$indexTpl}}',
                 '{{$recycleTpl}}',
                 '{{$layout}}',
-                '{{$limit}}'],
+                '{{$limit}}',
+
+            ],
             [
                 $this->controllerNamespace,
                 $this->controllerName,
@@ -411,7 +414,7 @@ class CurdService
                 $indexTpl,
                 $recycleTpl,
                 $layout,
-                $this->limit
+                $this->limit,
             ],
             file_get_contents($controllerTpl));
         $this->makeFile($this->fileList['controllerFileName'], $controllerTplBack);
@@ -504,6 +507,7 @@ class CurdService
             '{{$attrTpl}}',
             '{{$softDelete}}',
             '{{$connection}}',
+            '{{$primaryKey}}',
         ],
             [$this->modelNamespace,
                 ucfirst($this->modelName),
@@ -512,6 +516,7 @@ class CurdService
                 $attrStr,
                 $this->softDelete,
                 $connection,
+                $this->primaryKey,
             ],
             file_get_contents($modelTpl));
         $validateTpl = str_replace(
@@ -544,14 +549,14 @@ class CurdService
             $toolbar = "'refresh','add','delete','import','export','recycle'";
             $jsrecycleTpl = $this->tplPath . 'jsrecycle.tpl';
             $jsrecycleTpl = str_replace(['{{$requestsRecycle}}', '{{$jsColsRecycle}}',
-                '{{$limit}}', '{{$page}}'
+                '{{$limit}}', '{{$page}}','{{$primaryKey}}'
             ],
-                [$this->requestsRecycle, $this->jsColsRecycle, $this->limit, $this->page,
+                [$this->requestsRecycle, $this->jsColsRecycle, $this->limit, $this->page,$this->primaryKey
                 ],
                 file_get_contents($jsrecycleTpl));
         }
-        $jsTpl = str_replace(['{{$requests}}', '{{$jsCols}}', '{{$toolbar}}', '{{$limit}}', '{{$page}}', '{{$jsrecycleTpl}}'],
-            [$this->requests, $this->jsCols, $toolbar, $this->limit, $this->page, $jsrecycleTpl],
+        $jsTpl = str_replace(['{{$requests}}', '{{$jsCols}}', '{{$toolbar}}', '{{$limit}}', '{{$page}}','{{$primaryKey}}', '{{$jsrecycleTpl}}'],
+            [$this->requests, $this->jsCols, $toolbar, $this->limit, $this->page, $this->primaryKey,$jsrecycleTpl],
             file_get_contents($jsTpl));
         $this->makeFile($this->fileList['jsFileName'], $jsTpl);
     }
@@ -971,6 +976,9 @@ class CurdService
             $v['comment'] = str_replace('：', ':', $v['comment']);
             $v['name'] = $v['COLUMN_NAME'];
             $v['value'] = $v['COLUMN_DEFAULT'];
+            if($v['COLUMN_KEY'] == 'PRI'){
+                $this->primaryKey = $v['name'];
+            }
             if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
                 $v['comment'] = $v['name'];
             }

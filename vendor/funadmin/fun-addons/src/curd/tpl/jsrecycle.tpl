@@ -11,6 +11,7 @@ recycle: function () {
                 id: Table.init.tableId,
                 url: Fun.url(Table.init.requests.recycle_url),
                 init: Table.init,
+                primaryKey:'{{$primaryKey}}',
                 toolbar: ['refresh','delete','restore'],
                 cols: [[
                     {{$jsColsRecycle}}

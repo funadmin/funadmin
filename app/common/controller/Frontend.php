@@ -32,11 +32,6 @@ class Frontend extends BaseController
     protected $middleware = [
         ViewNode::class,
     ];
-    /**
-     * 主键 id
-     * @var string
-     */
-    protected $primaryKey = 'id';
 
     /**
      * @var
