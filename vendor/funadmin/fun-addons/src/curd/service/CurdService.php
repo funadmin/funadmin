@@ -981,7 +981,7 @@ class CurdService
             if($v['COLUMN_KEY'] == 'PRI'){
                 $this->primaryKey = $v['name'];
             }
-            if (!$v['COLUMN_COMMENT'] and $v['COLUMN_KEY'] != 'PRI' and !in_array($v['name'], $this->config['ignoreFields'])) {
+            if (!$v['COLUMN_COMMENT']) {
                 $v['comment'] = $v['name'];
             }
             $v['type'] = 'text';
