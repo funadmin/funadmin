@@ -148,7 +148,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 ,done: function (res, curr, count) {
                     this.limits.push(count) ;
 
-
                 }
             }
             var table = Table.render(options);

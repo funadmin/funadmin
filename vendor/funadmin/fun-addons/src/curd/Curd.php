@@ -36,6 +36,7 @@ class Curd extends Command
             ->addOption('controller', 'c', Option::VALUE_OPTIONAL, '控制器名', null)
             ->addOption('model', 'm', Option::VALUE_OPTIONAL, '模型名', null)
             ->addOption('fields', 'i', Option::VALUE_OPTIONAL|Option::VALUE_IS_ARRAY, '显示字段', null)
+            ->addOption('fieldslist', '', Option::VALUE_OPTIONAL|Option::VALUE_IS_ARRAY, '字段属性数组', null)
             ->addOption('validate', 'l', Option::VALUE_OPTIONAL, '验证器', null)
             ->addOption('joinTable', 'j', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, '关联表名', null)
             ->addOption('joinModel', 'o', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, '关联模型', null)
@@ -84,6 +85,7 @@ class Curd extends Command
         $param['method']  = $input->getOption('method');
         $param['addon'] = $input->getOption('addon');        //区块 。插件名字
         $param['fields'] = $input->getOption('fields');//自定义显示字段
+        $param['fieldslist'] = $input->getOption('fieldslist');//所有字段以及属性//wu
         $param['checkboxSuffix'] = $input->getOption('checkboxSuffix');
         $param['radioSuffix'] = $input->getOption('radioSuffix');
         $param['imageSuffix'] = $input->getOption('imageSuffix');

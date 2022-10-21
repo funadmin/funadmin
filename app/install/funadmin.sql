@@ -797,7 +797,7 @@ CREATE TABLE `fun_oauth2_client` (
                                      `appsecret` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密钥',
                                      `redirect_uri` varchar(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '回调Url',
                                      `remark` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
-                                     `group` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
+                                     `group` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
                                      `status` tinyint DEFAULT '1' COMMENT '状态=[0:禁用;1启用]',
                                      `create_time` int unsigned DEFAULT '0' COMMENT '创建时间',
                                      `update_time` int unsigned DEFAULT '0' COMMENT '修改时间',
