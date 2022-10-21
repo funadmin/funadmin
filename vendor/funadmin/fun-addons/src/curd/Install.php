@@ -277,12 +277,12 @@ class Install extends Command
                 file_get_contents($this->databaseTpl));
             $putConfig = @file_put_contents($this->databaseConfigFile, $putDatabase);
             if (!$putConfig) {
-                $this->output->error('安装失败，请确认database.php有写权限！:' . $error);
+                $this->output->error('安装失败，请确认database.php有写权限！');
                 exit();
             }
             $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
-            $adminUser['backend'] = $adminName;
+            $adminUser['backend'] = 'backend';
             
             $this->output->highlight('👉 恭喜您：系统已经安装完成... 通过域名+后台入口文件即可访问后台');
             $this->output->highlight('👉 管理员账号: '.$adminUser["username"].'，管理员密码:'.$adminUser['password'].',后台入口:'.request()->domain().'/backend');
