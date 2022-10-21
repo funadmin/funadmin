@@ -108,7 +108,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor' . DS . 'funadmin' . DS . 'fun-addons' . DS . 'src' . DS . 'curd' . DS . 'tpl' . DS;
+        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -203,32 +203,32 @@ class CurdService
         }
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
         //普通模式
-        $this->controllerNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . DS . $this->controllerName : $this->controllerName;
-        $this->modelNamePrefix = $modelArr ? $modelArr[0] . DS : '' . ($this->modelName);
-        $this->langNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . DS . Str::lower($this->controllerName) : Str::lower($this->controllerName);
-        $this->indexNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . DS . Str::snake($this->controllerName) : Str::snake($this->controllerName);
-        $this->addNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . DS . Str::snake($this->controllerName) : Str::snake($this->controllerName);
+        $this->controllerNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . $this->controllerName : $this->controllerName;
+        $this->modelNamePrefix = $modelArr ? $modelArr[0] . '/' : '' . ($this->modelName);
+        $this->langNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::lower($this->controllerName) : Str::lower($this->controllerName);
+        $this->indexNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
+        $this->addNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
         if (!$this->addon) {//普通app应用或后台应用
             $this->controllerNamespace = 'app\\' . $this->app . '\\controller' . $nameSpace;
             $this->baseController = '\\app\\common\\controller\\Backend';
             $this->modelNamespace = "app\\{$this->app}\\model" . ($modelArr ? '\\' . $modelArr[0] : '');
             $this->validateNamespace = "app\\{$this->app}\\validate" . ($modelArr ? '\\' . $modelArr[0] : '');
-            $path = $this->rootPath . "app" . DS . $this->app . DS;
+            $path = $this->rootPath . "app" . '/' . $this->app . '/';
             $this->fileList = [
                 'controllerFileName' =>
-                    $path . "controller" . DS . $this->controllerNamePrefix . '.php',
+                    $path . "controller" . '/' . $this->controllerNamePrefix . '.php',
                 'modelFileName' =>
-                    $path . "model" . DS . $this->modelNamePrefix . '.php',
+                    $path . "model" . '/' . $this->modelNamePrefix . '.php',
                 'validateFileName' =>
-                    $path . "validate" . DS . $this->modelNamePrefix . '.php',
+                    $path . "validate" . '/' . $this->modelNamePrefix . '.php',
                 'langFileName' =>
-                    $path . "lang" . DS . "zh-cn" . DS . $this->langNamePrefix . '.php',
+                    $path . "lang" . '/' . "zh-cn" . '/' . $this->langNamePrefix . '.php',
                 'jsFileName' =>
-                    $this->rootPath . "public" . DS . "static" . DS . $this->app . DS . "js" . DS . $this->langNamePrefix . '.js',
+                    $this->rootPath . "public" . '/' . "static" . '/' . $this->app . '/' . "js" . '/' . $this->langNamePrefix . '.js',
                 'indexFileName' =>
-                    $path . "view" . DS . $this->indexNamePrefix . DS . 'index.html',
+                    $path . "view" . '/' . $this->indexNamePrefix . '/' . 'index.html',
                 'addFileName' =>
-                    $path . "view" . DS . $this->indexNamePrefix . DS . 'add.html',
+                    $path . "view" . '/' . $this->indexNamePrefix . '/' . 'add.html',
             ];
 
         } else {
@@ -238,28 +238,28 @@ class CurdService
             //默认没有二级目录
             $this->modelNamespace = "app\\{$this->addon}\\model";
             $this->validateNamespace = "app\\{$this->addon}\\validate";
-            $path = $this->rootPath . "addons" . DS . $this->addon . DS . 'app' . DS . $this->addon . DS;
+            $path = $this->rootPath . "addons" . '/' . $this->addon . '/' . 'app' . '/' . $this->addon . '/';
             $this->fileList = [
                 'controllerFileName' =>
-                    $path . "controller" . DS . $this->controllerNamePrefix . '.php',
+                    $path . "controller" . '/' . $this->controllerNamePrefix . '.php',
                 'modelFileName' =>
-                    $path . "model" . DS . $this->modelNamePrefix . '.php',
+                    $path . "model" . '/' . $this->modelNamePrefix . '.php',
                 'validateFileName' =>
-                    $path . "validate" . DS . $this->modelNamePrefix . '.php',
+                    $path . "validate" . '/' . $this->modelNamePrefix . '.php',
                 'langFileName' =>
-                    $path . "lang" . DS . "zh-cn" . DS . $this->langNamePrefix . '.php',
+                    $path . "lang" . '/' . "zh-cn" . '/' . $this->langNamePrefix . '.php',
                 'jsFileName' =>
-                    $this->rootPath . "addons" . DS . $this->addon . DS . "public" . DS . "js" . DS . $this->langNamePrefix . '.js',
+                    $this->rootPath . "addons" . '/' . $this->addon . '/' . "public" . '/' . "js" . '/' . $this->langNamePrefix . '.js',
                 'indexFileName' =>
-                    $path . "view" . DS . $this->indexNamePrefix . DS . 'index.html',
+                    $path . "view" . '/' . $this->indexNamePrefix . '/' . 'index.html',
                 'addFileName' =>
-                    $path . "view" . DS . $this->indexNamePrefix . DS . 'add.html',
-                'pluginFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "Plugin.php",
-                'pluginIniFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "plugin.ini",
-                'pluginMenuFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "menu.php",
-                'pluginConfigFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "config.php",
-                'pluginControllerFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "controller" . DS . 'Index.php',
-                'pluginViewFileName' => $this->rootPath . "addons" . DS . $this->addon . DS . "view" . DS . 'index/index.html',
+                    $path . "view" . '/' . $this->indexNamePrefix . '/' . 'add.html',
+                'pluginFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "Plugin.php",
+                'pluginIniFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "plugin.ini",
+                'pluginMenuFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "menu.php",
+                'pluginConfigFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "config.php",
+                'pluginControllerFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "controller" . '/' . 'Index.php',
+                'pluginViewFileName' => $this->rootPath . "addons" . '/' . $this->addon . '/' . "view" . '/' . 'index/index.html',
             ];
         }
         return $this;
@@ -304,9 +304,9 @@ class CurdService
                 $joinName = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
                 if (!$this->addon) {
-                    $joinModelFile = $this->rootPath . "app" . DS . $this->app . DS . "model" . DS . ($this->modelArr ? $this->modelArr[0] . DS : '') . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
+                    $joinModelFile = $this->rootPath . "app" . '/' . $this->app . '/' . "model" . '/' . ($this->modelArr ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
                 } else {
-                    $joinModelFile = $this->rootPath . "addons" . DS . $this->addon . DS . "app" . DS . $this->addon . "model" . DS . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
+                    $joinModelFile = $this->rootPath . "addons" . '/' . $this->addon . '/' . "app" . '/' . $this->addon . "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
                 }
                 $softDelete = '';
                 //判断是否有删除字段
@@ -532,9 +532,9 @@ class CurdService
     protected function makeView()
     {
         $formFieldData = $this->getFormData();
-        $indexViewTpl = $this->tplPath . 'view' . DS . 'index.tpl';
+        $indexViewTpl = $this->tplPath . 'view' . '/' . 'index.tpl';
         $indexViewTpl = str_replace(['{{$nodeType}}', '{{$script}}'], [$this->nodeType, $this->script], file_get_contents($indexViewTpl));
-        $addViewTpl = $this->tplPath . 'view' . DS . 'add.tpl';
+        $addViewTpl = $this->tplPath . 'view' . '/' . 'add.tpl';
         $addViewTpl = str_replace(['{{$formDataField}}'], [$formFieldData], file_get_contents($addViewTpl));
         $this->makeFile($this->fileList['indexFileName'], $indexViewTpl);
         $this->makeFile($this->fileList['addFileName'], $addViewTpl);
@@ -570,11 +570,11 @@ class CurdService
     protected function makeAddon()
     {
         if ($this->addon && (!file_exists($this->fileList['pluginFileName']) || $this->force)) {
-            $controllerTpl = $this->tplPath . 'addon' . DS . 'controller.tpl';
-            $viewTpl = $this->tplPath . 'addon' . DS . 'view.tpl';
-            $configTpl = $this->tplPath . 'addon' . DS . 'config.tpl';
-            $iniTpl = $this->tplPath . 'addon' . DS . 'ini.tpl';
-            $pluginTpl = $this->tplPath . 'addon' . DS . 'plugin.tpl';
+            $controllerTpl = $this->tplPath . 'addon' . '/' . 'controller.tpl';
+            $viewTpl = $this->tplPath . 'addon' . '/' . 'view.tpl';
+            $configTpl = $this->tplPath . 'addon' . '/' . 'config.tpl';
+            $iniTpl = $this->tplPath . 'addon' . '/' . 'ini.tpl';
+            $pluginTpl = $this->tplPath . 'addon' . '/' . 'plugin.tpl';
             $controllerTpl = str_replace(
                 ['{{$addon}}'],
                 [Str::lower($this->addon)], file_get_contents($controllerTpl));
