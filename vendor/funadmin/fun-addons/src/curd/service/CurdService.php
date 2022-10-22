@@ -546,7 +546,7 @@ class CurdService
         $this->getCols();
         $jsTpl = $this->tplPath . 'js.tpl';
         $jsrecycleTpl = '';
-        $toolbar = "'refresh','add','delete','import','export'";
+        $toolbar = "'refresh','add','destroy','import','export'";
         if ($this->softDelete) {
             $toolbar = "'refresh','add','delete','import','export','recycle'";
             $jsrecycleTpl = $this->tplPath . 'jsrecycle.tpl';
@@ -940,7 +940,7 @@ class CurdService
         $operat = ' ["edit", "destroy","delete"]';
         if (!$this->softDelete) {
             $this->jsColsRecycle = '';
-            $operat = '["edit","delete"]';
+            $operat = '["edit","destroy"]';
         }
         $this->jsCols .= $space . '{
                         minWidth: 250,
