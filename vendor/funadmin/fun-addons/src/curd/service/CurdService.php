@@ -656,7 +656,7 @@ class CurdService
             }
         }
         if (!$this->softDelete) {
-            $this->method = 'index,add,edit,delete,import,export,modify';
+            $this->method = 'index,add,edit,destroy,import,export,modify';
         }
         foreach (explode(',', $this->method) as $k => $v) {
             if ($v == 'refresh') continue;
