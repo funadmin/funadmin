@@ -75,8 +75,7 @@ if (!function_exists('hook')) {
      */
     function hook($event, $params = null, bool $once = false)
     {
-        $event =  Event::trigger($event, $params, $once);
-        return  join('', $event);
+        return Event::trigger($event, $params, $once);
     }
 }
 
