@@ -218,7 +218,7 @@ class UploadService extends AbstractService
                         }
                         if ($this->driver != 'local') {
                             try {
-                                $path = $ossService->uploads($this->driver,$paths, '.'."/" . $paths,$save);
+                                $path = $ossService->uploads($this->driver,$paths, "./" . $paths,$save);
                             }catch (\Exception $e) {
                                 throw new Exception($e->getMessage());
                             }

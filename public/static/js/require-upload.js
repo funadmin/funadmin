@@ -141,17 +141,17 @@ define(["jquery", 'croppers'], function($, croppers) {
                                     var start = res.url.lastIndexOf(".");
                                     uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
                                     if (img.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else if (zip.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else if (video.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else if (audio.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else if (office.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     } else {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                     }
                                     var inputVal = input.val();
                                     if (uploadNum == 1) {
@@ -226,7 +226,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
                                     _parent.find('input[type="text"]').val(res.url)
-                                    var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                    var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" lay-fileurl="' + res.url + '"></i></li>\n';
                                     _parent.find('.layui-upload-list').html(html)
                                 } else if (res.code <= 0) {
                                     Fun.toastr.error(res.msg);
