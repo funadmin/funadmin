@@ -198,7 +198,7 @@ class UploadService extends AbstractService
                         $path = $disksurl . "/" . $savename;
                         $paths = trim($path, "/");
                         // 整合上传接口 获取视频音频长度
-                        $analyzeFileInfo = hook('getID3Hook',['path'=>'.'. "/" .$path]);
+                        $analyzeFileInfo = hook_one('getID3Hook',['path'=>'.'. "/" .$path]);
                         $duration=0;
                         if($analyzeFileInfo) {
                             $analyzeFileInfo = unserialize($analyzeFileInfo);

@@ -27,7 +27,7 @@ class OssService extends AbstractService
             'save'=>$save,
         ];
         try {
-            return hook('OssUpload', $param);
+            return hook_one('OssUpload', $param);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }
