@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit11048d0823a10588f830861938649821
+class ComposerStaticInit443330d83263f57a0e3f657f3527f1ce
 {
     public static $files = array (
         '9b552a3cc426e3287cc811caefa3cf53' => __DIR__ . '/..' . '/topthink/think-helper/src/helper.php',
@@ -138,19 +138,19 @@ class ComposerStaticInit11048d0823a10588f830861938649821
         ),
         'think\\' => 
         array (
-            0 => __DIR__ . '/..' . '/topthink/framework/src/think',
-            1 => __DIR__ . '/..' . '/topthink/think-filesystem/src',
-            2 => __DIR__ . '/..' . '/topthink/think-helper/src',
-            3 => __DIR__ . '/..' . '/topthink/think-image/src',
-            4 => __DIR__ . '/..' . '/topthink/think-orm/src',
-            5 => __DIR__ . '/..' . '/topthink/think-queue/src',
-            6 => __DIR__ . '/..' . '/topthink/think-template/src',
+            0 => __DIR__ . '/..' . '/topthink/think-template/src',
+            1 => __DIR__ . '/..' . '/topthink/think-helper/src',
+            2 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            3 => __DIR__ . '/..' . '/topthink/framework/src/think',
+            4 => __DIR__ . '/..' . '/topthink/think-filesystem/src',
+            5 => __DIR__ . '/..' . '/topthink/think-image/src',
+            6 => __DIR__ . '/..' . '/topthink/think-queue/src',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpdocumentor/reflection-common/src',
-            1 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
-            2 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            1 => __DIR__ . '/..' . '/phpdocumentor/type-resolver/src',
+            2 => __DIR__ . '/..' . '/phpdocumentor/reflection-docblock/src',
         ),
         'fun\\' => 
         array (
@@ -222,8 +222,8 @@ class ComposerStaticInit11048d0823a10588f830861938649821
         ),
         'Psr\\Http\\Message\\' => 
         array (
-            0 => __DIR__ . '/..' . '/psr/http-factory/src',
-            1 => __DIR__ . '/..' . '/psr/http-message/src',
+            0 => __DIR__ . '/..' . '/psr/http-message/src',
+            1 => __DIR__ . '/..' . '/psr/http-factory/src',
         ),
         'Psr\\Http\\Client\\' => 
         array (
@@ -314,11 +314,11 @@ class ComposerStaticInit11048d0823a10588f830861938649821
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit11048d0823a10588f830861938649821::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit11048d0823a10588f830861938649821::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit11048d0823a10588f830861938649821::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInit11048d0823a10588f830861938649821::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInit11048d0823a10588f830861938649821::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit443330d83263f57a0e3f657f3527f1ce::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit443330d83263f57a0e3f657f3527f1ce::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit443330d83263f57a0e3f657f3527f1ce::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInit443330d83263f57a0e3f657f3527f1ce::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInit443330d83263f57a0e3f657f3527f1ce::$classMap;
 
         }, null, ClassLoader::class);
     }
