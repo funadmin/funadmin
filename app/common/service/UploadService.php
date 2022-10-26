@@ -8,6 +8,7 @@ use think\facade\Cache;
 use think\facade\Config;
 use think\facade\Request;
 use think\Image;
+use think\Filesystem;
 
 class UploadService extends AbstractService
 {
@@ -37,6 +38,12 @@ class UploadService extends AbstractService
      * @var
      */
     protected $file;
+
+    /**
+     * 上传对象
+     */
+    protected $filesystem;
+
     /**
      * Service constructor.
      * @param App $app
@@ -56,6 +63,7 @@ class UploadService extends AbstractService
         $this->driver = syscfg('upload','upload_driver');
         $this->fileExt = syscfg('upload','upload_file_type');
         $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
+        $this->filesystem = new Filesystem($this->app);
         return $this;
     }
 
@@ -80,6 +88,7 @@ class UploadService extends AbstractService
         $files = request()->file();
         $error='';
         $ossService = OssService::instance();
+
         foreach ($files as $k => $file) {
             if(is_array($file)){
                 foreach($file as $kk=>$vv){
@@ -92,7 +101,7 @@ class UploadService extends AbstractService
                     $attach = AttachModel::where('md5', $md5)->find();
                     if (!$attach) {
                         try {
-                            $savename = \think\facade\Filesystem::disk($disksdriver)->putFile($pathSrc, $vv);
+                            $savename = $this->filesystem->disk($disksdriver)->putFile($pathSrc, $vv);
                             $savename = str_replace('\\','/',$savename);
                             $path = $disksurl . "/" . $savename;
                             $paths = trim($path, '/');
@@ -193,7 +202,7 @@ class UploadService extends AbstractService
                 $attach = AttachModel::where('md5', $md5)->find();
                 if (!$attach) {
                     try {
-                        $savename = \think\facade\Filesystem::disk($disksdriver)->putFile($path, $file);
+                        $savename = $this->filesystem->disk($disksdriver)->putFile($path, $file);
                         $savename = str_replace('\\','/',$savename);
                         $path = $disksurl . "/" . $savename;
                         $paths = trim($path, "/");

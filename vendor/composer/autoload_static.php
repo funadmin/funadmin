@@ -89,7 +89,6 @@ class ComposerStaticInit11048d0823a10588f830861938649821
         'L' => 
         array (
             'League\\MimeTypeDetection\\' => 25,
-            'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
         ),
         'F' => 
@@ -140,11 +139,12 @@ class ComposerStaticInit11048d0823a10588f830861938649821
         'think\\' => 
         array (
             0 => __DIR__ . '/..' . '/topthink/framework/src/think',
-            1 => __DIR__ . '/..' . '/topthink/think-helper/src',
-            2 => __DIR__ . '/..' . '/topthink/think-image/src',
-            3 => __DIR__ . '/..' . '/topthink/think-orm/src',
-            4 => __DIR__ . '/..' . '/topthink/think-queue/src',
-            5 => __DIR__ . '/..' . '/topthink/think-template/src',
+            1 => __DIR__ . '/..' . '/topthink/think-filesystem/src',
+            2 => __DIR__ . '/..' . '/topthink/think-helper/src',
+            3 => __DIR__ . '/..' . '/topthink/think-image/src',
+            4 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            5 => __DIR__ . '/..' . '/topthink/think-queue/src',
+            6 => __DIR__ . '/..' . '/topthink/think-template/src',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (
@@ -252,10 +252,6 @@ class ComposerStaticInit11048d0823a10588f830861938649821
         'League\\MimeTypeDetection\\' => 
         array (
             0 => __DIR__ . '/..' . '/league/mime-type-detection/src',
-        ),
-        'League\\Flysystem\\Cached\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/league/flysystem-cached-adapter/src',
         ),
         'League\\Flysystem\\' => 
         array (
