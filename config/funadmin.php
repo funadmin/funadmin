@@ -10,9 +10,9 @@ return [
     'isDemo'=>0,
 
     //版本
-    'version' => '3.0.1',
+    'version' => '3.1.0',
 
-    'version_data' => '20221013',
+    'version_data' => '20221026',
 
     'layui_version' => '2.8.3-beta',
 
