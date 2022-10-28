@@ -443,7 +443,7 @@ trait Curd
         $driver = Config::get('database.default');
         $this->modelClass = $modelClass?:$this->modelClass;
         $database = $this->modelClass->get_databasename();
-        $table = $this->modelClass->getName();
+        $table = Str::snake($this->modelClass->getName());
         $tablePrefix = $this->modelClass->get_table_prefix();
         $sql = "select $field from information_schema . columns  where table_name = '" . $tablePrefix . $table . "' and table_schema = '" . $database . "'";
         $tableField = Db::connect($driver)->query($sql);
