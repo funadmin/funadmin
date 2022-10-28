@@ -894,7 +894,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     var dataField = data.field;
                     [formatFilter,formatOp] = Table.getSearchField(dataField);
                     Table.getSearchField(dataField);
-                    Table.api.reload(tableId, {
+                    Table.api.reload(options.id, {
                         filter: JSON.stringify(formatFilter),
                         op: JSON.stringify(formatOp)
                     }, true, false);
