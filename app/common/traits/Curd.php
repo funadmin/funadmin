@@ -325,7 +325,7 @@ trait Curd
                                 $v = session('member.id');
                             }
                         }
-                        $one[$field] = $v;
+                        $one[$field] = $v?trim($v):$v;
 
                     }
                 }
