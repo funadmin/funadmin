@@ -463,7 +463,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
-                    $html += '<option ' + selected + ' value="' + i + '">' + ele.selectList[i] + '</option>'
+                    $html += '<option ' + selected + ' value="' + i + '">' + __(ele.selectList[i]) + '</option>'
                 })
                 $html += '</select><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script></div>';
                 return $html;
