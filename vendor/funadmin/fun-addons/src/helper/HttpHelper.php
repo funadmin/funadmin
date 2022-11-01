@@ -12,7 +12,8 @@
  */
 
 namespace fun\helper;
-
+use GuzzleHttp\RequestOptions;
+use GuzzleHttp\Client;
 class HttpHelper
 {
 
@@ -52,112 +53,43 @@ class HttpHelper
      */
     public static function sendRequest($url, $params = [], $method = 'POST', $header = [], $options = [], $cookies = [])
     {
-        $method = strtoupper($method);
-        $protocol = substr($url, 0, 5);
-        $query_string = is_array($params) ? http_build_query($params) : $params;
-
-        $ch = curl_init();
-        $defaults = [];
-        if ('GET' == $method) {
-            $geturl = $query_string ? $url . (stripos($url, "?") !== false ? "&" : "?") . $query_string : $url;
-            $defaults[CURLOPT_URL] = $geturl;
-        } else {
-            $defaults[CURLOPT_URL] = $url;
-            if ($method == 'POST') {
-                $defaults[CURLOPT_POST] = 1;
-            } else {
-                $defaults[CURLOPT_CUSTOMREQUEST] = $method;
+        try {
+            $client = self::getClient($options, $header,$cookies);
+            $response = $client->request($method, $url, $params ? ['query' => $params] : [])->getBody()->getContents();
+            if (!empty($response)) {
+                return ['ret' => true, 'msg' => $response];
             }
-            $defaults[CURLOPT_POSTFIELDS] = $query_string;
+        } catch (\Throwable $e) {
+            return ['ret' => false, 'msg' => $e->getMessage()];
         }
-        if (!empty($cookies)) {
-            curl_setopt($ch, CURLOPT_COOKIE, $cookies);
-            curl_setopt($ch, CURLOPT_COOKIEJAR, $cookies);
-
-        }
-        $defaults[CURLOPT_HEADER] = false;
-        $defaults[CURLOPT_USERAGENT] = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.98 Safari/537.36";
-        $defaults[CURLOPT_FOLLOWLOCATION] = true;
-        $defaults[CURLOPT_RETURNTRANSFER] = true;
-        $defaults[CURLOPT_CONNECTTIMEOUT] = 3;
-        $defaults[CURLOPT_TIMEOUT] = 3;
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header ?: array('Expect:'));
-        if ('https' == $protocol) {
-            $defaults[CURLOPT_SSL_VERIFYPEER] = false;
-            $defaults[CURLOPT_SSL_VERIFYHOST] = false;
-        }
-        curl_setopt_array($ch, empty($options) ? $defaults: (array)$options+$defaults);
-        $ret = curl_exec($ch);
-        $err = curl_error($ch);
-
-        if (false === $ret || !empty($err)) {
-            $errno = curl_errno($ch);
-            $info = curl_getinfo($ch);
-            curl_close($ch);
-            return [
-                'ret' => false,
-                'errno' => $errno,
-                'msg' => $err,
-                'info' => $info,
-            ];
-        }
-        curl_close($ch);
-        return [
-            'ret' => true,
-            'msg' => $ret,
-        ];
+        return ['ret' => false, 'msg' => $response];
+       
     }
 
     /**
      * 异步发送一个请求
-     * @param string $url 请求的链接
-     * @param mixed $params 请求的参数
-     * @param string $method 请求的方法
-     * @return boolean TRUE
+     * @param $url
+     * @param $params
+     * @param $method
+     * @param $header
+     * @param $options
+     * @param $cookies
+     * @return mixed|string
      */
-    public static function sendAsyncRequest($url, $params = [], $method = 'POST')
+    public static function sendAsyncRequest($url, $params = [], $method = 'POST', $header = [], $options = [], $cookies = [])
     {
-        $method = strtoupper($method);
-        $method = $method == 'POST' ? 'POST' : 'GET';
-        //构造传递的参数
-        if (is_array($params)) {
-            $post_params = [];
-            foreach ($params as $k => &$v) {
-                if (is_array($v)) {
-                    $v = implode(',', $v);
+        try {
+            $client = self::getClient($options, $header,$cookies);
+            $promise  = $client->requestAsync($method, $url, $params ? ['query' => $params] : [])->getBody()->getContents();
+            $promise->then(function ($response) {
+                if ($response->getStatusCode() == 200) {
+                    return ['ret' => true, 'msg' => $response];
                 }
-                $post_params[] = $k . '=' . urlencode($v);
-            }
-            $post_string = implode('&', $post_params);
-        } else {
-            $post_string = $params;
+            });
+        } catch (\Throwable $e) {
+            return ['ret' => false, 'msg' => $e->getMessage()];
         }
-        $parts = parse_url($url);
-        //构造查询的参数
-        if ($method == 'GET' && $post_string) {
-            $parts['query'] = isset($parts['query']) ? $parts['query'] . '&' . $post_string : $post_string;
-            $post_string = '';
-        }
-        $parts['query'] = isset($parts['query']) && $parts['query'] ? '?' . $parts['query'] : '';
-        //发送socket请求,获得连接句柄
-        $fp = fsockopen($parts['host'], isset($parts['port']) ? $parts['port'] : 80, $errno, $errstr, 3);
-        if (!$fp) {
-            return false;
-        }
-        //设置超时时间
-        stream_set_timeout($fp, 3);
-        $out = "{$method} {$parts['path']}{$parts['query']} HTTP/1.1\r\n";
-        $out .= "Host: {$parts['host']}\r\n";
-        $out .= "Content-Type: application/x-www-form-urlencoded\r\n";
-        $out .= "Content-Length: " . strlen($post_string) . "\r\n";
-        $out .= "Connection: Close\r\n\r\n";
-        if ($post_string !== '') {
-            $out .= $post_string;
-        }
-        fwrite($fp, $out);
-        //echo fread($fp, 1024);
-        fclose($fp);
-        return true;
+        return ['ret' => false, 'msg' => $response];;
     }
 
     /**
@@ -201,46 +133,20 @@ class HttpHelper
     public static function download($url, $filename = "", $timeout = 60)
     {
         if (empty($filename)) {
-            $filename = root_path() . 'public' . DS . 'temp' . DS . pathinfo($url, PATHINFO_BASENAME);
+            $filename = public_path() . 'temp' . DS . pathinfo($url, PATHINFO_BASENAME);
         }
         $path = dirname($filename);
         if (!is_dir($path) && !mkdir($path, 0755, true)) {
             return false;
         }
-        $url = str_replace(" ", "%20", $url);
-        if (function_exists('curl_init')) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            // curl_setopt($ch, CURLOPT_MAXREDIRS, 2);
-            // curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-            if ('https' == substr($url, 0, 5)) {
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            }
-            $temp = curl_exec($ch);
-            if (file_put_contents($filename, $temp) && !curl_error($ch)) {
-                return $filename;
-            } else {
-                return false;
-            }
-        } else {
-            $opts = [
-                "http" => [
-                    "method"  => "GET",
-                    "header"  => "",
-                    "timeout" => $timeout,
-                ],
-            ];
-            $context = stream_context_create($opts);
-            if (@copy($url, $filename, $context)) {
-                //$http_response_header
-                return $filename;
-            } else {
-                return false;
-            }
+        $client = self::getClient();
+        $file = fopen($filename, 'w+');
+        $httpClient = new Client();
+        $response = $httpClient->get($url, [RequestOptions::SINK => $file]);
+        if ($response->getStatusCode() === 200) {
+          return $filename;
         }
+        return  false;
     }
 
     /** php 接收流文件
@@ -283,5 +189,38 @@ class HttpHelper
         } else {
             return false;
         }
+    }
+
+
+    /**
+     * 获取访问客户端
+     * @param array $options
+     * @param array $header
+     * @return mixed
+     */
+    private static function getClient(array $options = [], array $header = [], array $cookies= [])
+    {
+        if (empty($options)) {
+            $options = [
+                'timeout'         => 60,
+                'connect_timeout' => 60,
+                'verify'          => false,
+                'http_errors'     => false,
+                'headers'         => [
+                    'X-REQUESTED-WITH' => 'XMLHttpRequest',
+                    'Referer'          => dirname(request()->url()),
+                ]
+            ];
+        }
+
+        if (!empty($header)) {
+            $options['headers'] = array_merge($options['headers'], $header);
+        }
+
+        if (!empty($cookies)) {
+            $options['cookies'] = $cookies;
+        }
+
+        return new Client($options);
     }
 }

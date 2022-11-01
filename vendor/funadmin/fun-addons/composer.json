@@ -13,8 +13,8 @@
     "topthink/framework": "^6.0.12",
     "topthink/think-view": "^1.0",
     "topthink/think-helper": "^3.1",
-    "firebase/php-jwt":"^6.0.0"
-
+    "firebase/php-jwt":"^6.0.0",
+    "guzzlehttp/guzzle": "^7.5"
   },
   "autoload": {
     "psr-4": {
