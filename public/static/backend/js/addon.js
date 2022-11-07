@@ -212,10 +212,10 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             url: url,
                             method: 'post'
                         }, function (res) {
-                            Fun.toastr.close(index)
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
                                 layui.table.reloadData(Table.init.tableId);
+
                             });
                         },function(res){
                             Fun.toastr.error(res.msg)
@@ -334,6 +334,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         //重载该实例，支持重载全部基础参数
                     },function (res) {
                         Fun.toastr.error(res.msg);
+                        Fun.toastr.close(load)
                     })
                 }
             });
