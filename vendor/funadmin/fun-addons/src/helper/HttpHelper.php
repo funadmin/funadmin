@@ -55,7 +55,7 @@ class HttpHelper
     {
         try {
             $client = self::getClient($options, $header,$cookies);
-            $response = $client->request($method, $url, $params ? ['query' => $params] : [])->getBody()->getContents();
+            $response = $client->request($method, $url, strtoupper($method)=='GET' ? ['query' => $params] : ['form_params'=>$params])->getBody()->getContents();
             if (!empty($response)) {
                 return ['ret' => true, 'msg' => $response];
             }
@@ -80,7 +80,7 @@ class HttpHelper
     {
         try {
             $client = self::getClient($options, $header,$cookies);
-            $promise  = $client->requestAsync($method, $url, $params ? ['query' => $params] : [])->getBody()->getContents();
+            $promise  = $client->requestAsync($method, $url, strtoupper($method)=='GET' ? ['query' => $params] : ['form_params'=>$params])->getBody()->getContents();
             $promise->then(function ($response) {
                 if ($response->getStatusCode() == 200) {
                     return ['ret' => true, 'msg' => $response];
