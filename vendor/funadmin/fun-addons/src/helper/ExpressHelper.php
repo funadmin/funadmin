@@ -21,8 +21,15 @@ class ExpressHelper{
      * @return array  物流跟踪信息数组
      */
     function queryExpress($postcom , $getNu) {
-        $url = "https://m.kuaidi100.com/query?type=".$postcom."&postid=".$getNu."&id=1&valicode=&temp=0.49738534969422676";
-        $resp = HttpHelper::get($url);
-        return json_decode($resp,true);
+        $url = "https://m.kuaidi100.com/query";
+        $params = [
+            'type'=>$postcom,
+            'postid'=>$getNu,
+            'id'=>1,
+            'valicode'=>'',
+            'temp'=>'0.49738534969422676',
+        ];
+        $resp = HttpHelper::get($url,$params);
+        return $resp;
     }
 }
