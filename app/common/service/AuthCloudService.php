@@ -147,7 +147,7 @@ class AuthCloudService extends AbstractService
         return $this;
     }
 
-    public function setOptions($options = '')
+    public function setOptions($options = [])
     {
         $this->options = $options;
         return $this;
