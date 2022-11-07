@@ -161,7 +161,7 @@ class AuthCloudService extends AbstractService
     {
         $data = $this->getAuth();
         $str= $data['client_id'] .' '.base64_encode($this->appid.':'.$data['access_token'].':'.$data['member_id']);
-        $header = array_merge([$this->authorization .":".$str],$header);
+        $header = array_merge([$this->authorization=> $this->authorization .":".$str],$header);
         $this->header = $header;
         return $this;
     }
