@@ -71,8 +71,9 @@ class Addon extends Backend
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
                 $map['cateid'] = $param['cateid']??0;
+                $map['app_version'] = $this->app_version;
                 unset($map['status']);
-                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index?app_version='.$this->app_version)->setMethod('GET')
+                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
                     ->setParams($map);
                 if($this->authCloudService->getAuth()){
                     $res = $auth->setHeader()->run();
@@ -95,7 +96,7 @@ class Addon extends Backend
                     $where[] = ['name','not in',$addonNameArr];
                 }
                 try {
-                    $addons =  $this->modelClass->where($where)->column('*', 'name');
+                    $addons =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
                     $list = array_merge($localAddons,$addons,$list?$list:[]);
                     foreach ($list as $key => &$value) {
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
