@@ -150,12 +150,12 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                     Fun.toastr.close(index)
                                     Fun.refreshmenu();
                                     Fun.toastr.close();
-                                    layui.table.reload(Table.init.tableId);
+                                    layui.table.reloadData(Table.init.tableId);
                                 });
                             },function (res) {
                                 Fun.toastr.error(res.msg, function () {
                                     Fun.toastr.close(index)
-                                    layui.table.reload(Table.init.tableId);
+                                    layui.table.reloadData(Table.init.tableId);
                                 });
                             })
                         });
@@ -208,7 +208,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 }
                 if (event === 'uninstall') {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
-                        let index = layer.load();
                         Fun.ajax({
                             url: url,
                             method: 'post'
@@ -216,14 +215,11 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                             Fun.toastr.close(index)
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
-                                layui.table.reload(Table.init.tableId);
-                                Fun.toastr.close()
+                                layui.table.reloadData(Table.init.tableId);
                             });
                         },function(res){
                             Fun.toastr.error(res.msg)
-                            Fun.toastr.close(index)
-                            Fun.toastr.close()
-                            layui.table.reload(Table.init.tableId);
+                            layui.table.reloadData(Table.init.tableId);
                         })
                     });
                 }
@@ -234,7 +230,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
-                                layui.table.reload(Table.init.tableId);
+                                layui.table.reloadData(Table.init.tableId);
                                 Fun.toastr.close()
                             });
                         })
@@ -258,7 +254,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                     }, function (res) {
                                         Fun.toastr.success(res.msg, function () {
                                             Fun.refreshmenu();
-                                            layui.table.reload(Table.init.tableId);
+                                            layui.table.reloadData(Table.init.tableId);
                                             Fun.toastr.close()
                                         });
                                     })
@@ -338,7 +334,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         //重载该实例，支持重载全部基础参数
                     },function (res) {
                         Fun.toastr.error(res.msg);
-                        Fun.toastr.close(load)
                     })
                 }
             });
