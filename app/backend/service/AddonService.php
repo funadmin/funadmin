@@ -67,7 +67,7 @@ class AddonService extends AbstractService
                 $v['href'] = trim($v['href'],'/');
                 $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
                 if($menu_rule){
-                    $menu_rule->delete(true);
+                    $menu_rule->force()->delete();
                     if ($hasChild) {
                         $this->delAddonMenu($v['menulist']);
                     }
@@ -77,7 +77,7 @@ class AddonService extends AbstractService
                 if($manager){
                     $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
                     if(!$manager_child){
-                        $manager->delete(true);
+                        $manager->force()->delete();
                     }
                 }
             } catch (Exception $e) {
