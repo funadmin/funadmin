@@ -325,7 +325,7 @@ class AuthService extends AbstractService
                     $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: -20px;">new</span>';
                 }
                 $hide = $key > 0 ? 'layui-hide' : '';
-                $html['menu'] .= '<ul class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
+                $html['menu'] .= '<ul style="display:block" class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
                 if ($val['child'] and count($val['child']) > 0) {
                     $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
                     foreach ($val['child'] as $k => $v) {

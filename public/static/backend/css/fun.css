@@ -158,10 +158,10 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     vertical-align: middle
 }
 
-.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
-    padding: 0px 0
+.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-child {
+    padding-top: 0;
+    padding-bottom: 0;
 }
-
 .layui-nav-tree > .layui-nav-item:hover > a:before {
     bottom: 0
 }
@@ -214,12 +214,15 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-side-menu .layui-nav .layui-nav-item a {
-    height: 45px;
-    line-height: 45px
+    height: 55px;
+    line-height: 55px;
+    padding-bottom: 0;
+    padding-top: 0;
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
-    padding: 5px 35px 5px 30px
+    padding-left:35px;
+    padding-right: 30px;
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
@@ -240,10 +243,6 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 
 .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
     padding-left: 95px
-}
-
-.layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
-    padding: 5px 0
 }
 
 .layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this > a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
@@ -349,7 +348,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     right: -1px;
     top: -4px
 }
-
+.layui-nav-tree .layui-nav-item.active.layui-nav-itemed dl{
+    display: block;
+}
 .layui-nav-tree .layui-nav-itemed > a > .layui-nav-more {
     -ms-transform: rotate(-180deg);
     -moz-transform: rotate(-180deg);
@@ -508,8 +509,8 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
-    line-height: 40px;
-    height: 40px;
+    line-height: 55px;
+    height: 55px;
     text-overflow: unset;
     overflow: hidden;
     white-space: normal
@@ -586,7 +587,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     position: fixed;
     top: 60px;
     left: 60px;
-    padding: 5px;
+    padding:0 5px;
     min-width: 150px;
     display: block !important;
     background: transparent !important;
@@ -957,7 +958,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
         position: fixed;
         top: 60px;
         left: 60px;
-        padding: 5px;
+        padding:0 5px;
         min-width: 150px;
         display: block !important;
         background: transparent !important;

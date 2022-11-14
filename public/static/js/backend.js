@@ -415,6 +415,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         var text = $menu.attr('data-tips') || $menu.attr('title'),
                             url = $menu.attr('data-url'), icon = $menu.find('i').attr('class');
                         $menu.parents('.layui-nav-item').addClass('active');
+                        $menu.parents('.dl').css({"display":'block'});
                         Backend.addTab({
                             layId: layId,
                             url: url,
@@ -1034,25 +1035,22 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         var _that = $(this);
                         if (!_that.attr("data-url")) {
                             var superEle = _that.parent(), ele = _that.next('.layui-nav-child'), height = ele.height();
-                            ele.css({"display": "block"});
+                            ele.css({"display": "block",height: "auto"});
                             // 是否是展开状态
                             if (superEle.is(".layui-nav-itemed")) {
-                                $('.layui-nav-itemed .layui-nav-child').css('padding',0)
-                                ele.height(0);ele.animate({height: height + "px"}, function () {
+                                ele.height(0);ele.animate({height: height + "px"}, 240,function () {
                                     ele.css({height: "auto"});
                                 });
                             } else {
-                                ele.animate({height: 0}, function () {ele.removeAttr("style");});
+                                ele.animate({height: 0},240, function () {ele.removeAttr("style");});
                             }
                             var topLevelEle = _that.parents("li.layui-nav-item");
                             var childs = $("#layui-side-left-menu > li > dl.layui-nav-child").not(topLevelEle.children("dl.layui-nav-child"));
-                            childs.each(function(i){
-                                if($(childs[i]).css('display') == 'block'){
-                                    $(childs[i]).animate({height:0},function(){
-                                        childs.removeAttr('style')
-                                    })
-                                }
-                            })
+                            childs.animate({
+                                height: '0px'
+                            }, 240, function () {
+                                childs.removeAttr('style')
+                            });
                         }
                     });
                     //点击事件
