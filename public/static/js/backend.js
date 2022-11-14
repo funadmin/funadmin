@@ -1037,6 +1037,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                             ele.css({"display": "block"});
                             // 是否是展开状态
                             if (superEle.is(".layui-nav-itemed")) {
+                                $('.layui-nav-itemed .layui-nav-child').css('padding',0)
                                 ele.height(0);ele.animate({height: height + "px"}, function () {
                                     ele.css({height: "auto"});
                                 });
