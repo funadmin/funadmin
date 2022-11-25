@@ -54,7 +54,7 @@
                     <ul class="file-list-item">
                         {if $data}
                         {volist name="data" id="vo"}
-                        <li  title="{$vo.original_name}" data-type="{$vo.mime}" data-id="{$vo.id}" data-path="{$vo.url}" data-url="{$vo.url}">
+                        <li  title="{$vo.original_name}" data-type="{$vo.mime}" data-id="{$vo.id}" data-path="{$vo.path}" data-url="{$vo.url}">
                             <a class="file-delete" href="javascript:void(0);" title="{:lang('DELETE')}">
                                 <i class="layui-icon layui-icon-delete"></i>
                             </a>
@@ -63,7 +63,7 @@
                             </a>
                             <div class="img-cover">
                                 {if (strpos($vo.mime,'image')!==false)}
-                                <img width="100%" src="{$vo.url}"
+                                <img width="100%" src="{$vo.path}"
                                      {elseif(strpos($vo.mime,'video')!==false) /}
                                 __CDN____STATIC__/static/backend/images/filetype/video.jpg
                                 {elseif(strpos($vo.mime,'audio')!==false) /}

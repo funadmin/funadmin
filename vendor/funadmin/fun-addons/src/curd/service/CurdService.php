@@ -967,7 +967,7 @@ class CurdService
         if (!$table) {
             throw new \Exception($this->table . '表不存在');
         }
-        $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "'";
+        $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "' order by ORDINAL_POSITION ASC";
         $tableField = Db::connect($this->driver)->query($sql);
         $tableComment = Db::connect($this->driver)->query(' SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_NAME =  "' . $this->tablePrefix . $this->table . '";');
         $this->tableComment = $tableComment[0]['TABLE_COMMENT'];

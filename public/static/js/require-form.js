@@ -1024,7 +1024,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                             }
                                             var fileArr=[],html='';
                                             layui.each(li, function(index, val) {
-                                                var type = $(this).data('type'), url =  $(this).data('url');
+                                                var type = $(this).data('type'), url =  $(this).data('path');
                                                 if (type.indexOf('image') >=0)  {
                                                     html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('video') >= 0) {
