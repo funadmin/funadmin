@@ -38,7 +38,7 @@ class Auth extends Backend
         'type',
         'auth_verify',
         'status',
-        'status',
+        'sort',
     ];
     public function __construct(App $app)
     {
