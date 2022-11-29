@@ -1,0 +1,10 @@
+<form class="layui-form" lay-filter="form">
+    {:form_input('name','text',['verify'=>'required','tips'=>'插件标识（唯一）'])}
+    {:form_input('title','text',['verify'=>'required','tips'=>'插件标题'])}
+    {:form_input('author','text',['verify'=>'required','tips'=>'插件作者'])}
+    {:form_input('ver','number',['verify'=>'required','tips'=>'插件版本'])}
+    {:form_input('requires','number',['verify'=>'required','tips'=>'框架最低版本'])}
+    {:form_textarea('description', ['label' => 'Description', 'verify' => ''], '')}
+    {:form_radio('force',['no','yes'],['filter'=>'force','label'=>'force'],0)}
+    {:form_submitbtn()}
+</form>

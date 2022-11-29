@@ -100,6 +100,11 @@ class CurdService
     protected $modelArr;
     protected $softDelete;
     protected $menuList;
+    protected $title;
+    protected $author;
+    protected $version;
+    protected $requires;
+    protected $description;
 
     public function __construct(array $config)
     {
@@ -158,6 +163,11 @@ class CurdService
         $this->addon = isset($this->config['addon']) && $this->config['addon'] ? $this->config['addon'] : '';
         $this->force = $this->config['force'];
         $this->app = $this->config['app'];
+        $this->title = $this->config['title']?:$this->addon;
+        $this->description = $this->config['description']?:$this->addon;
+        $this->requires = $this->config['requires']?:3.0;
+        $this->author = $this->config['author']?:$this->addon;
+        $this->version = $this->config['ver']?:1.0;
         $this->jump = $this->config['jump'];
         $this->limit = $this->config['limit'] ?: 15;
         $this->page = (empty($this->config['page']) || $this->config['page'] == 'true') ? "true" : 'false';
@@ -566,7 +576,7 @@ class CurdService
      * 生成插件文件
      * @throws \Exception
      */
-    protected function makeAddon()
+    public function makeAddon()
     {
         if ($this->addon && (!file_exists($this->fileList['pluginFileName']) || $this->force)) {
             $controllerTpl = $this->tplPath . 'addon' . '/' . 'controller.tpl';
@@ -582,8 +592,8 @@ class CurdService
                 [Str::lower($this->addon)], file_get_contents($viewTpl));
             $url = '/addons/' . $this->addon;
             $iniTpl = str_replace(
-                ['{{$addon}}', '{{$url}}', '{{$time}}', '{{$app}}'],
-                [Str::lower($this->addon), $url, date('Y-m-d H:i:s'), $this->addon]
+                ['{{$addon}}','{{$title}}','{{$description}}', '{{$author}}', '{{$requires}}', '{{$version}}', '{{$url}}', '{{$time}}', '{{$app}}']
+                ,[Str::lower($this->addon),$this->title,$this->description,$this->author,$this->requires,$this->version, $url, date('Y-m-d H:i:s'), $this->addon]
                 , file_get_contents($iniTpl));
             $pluginTpl = str_replace(
                 ['{{$addon}}'],
@@ -595,7 +605,7 @@ class CurdService
             $this->makeFile($this->fileList['pluginFileName'], $pluginTpl);
             $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
         }
-        if ($this->addon) {
+        if ($this->addon && $this->menuList) {
             $menuTpl = '<?php return ' . var_export($this->menuList, true) . ';';
             $this->makeFile($this->fileList['pluginMenuFileName'], $menuTpl);
         }
@@ -1294,4 +1304,5 @@ class CurdService
         }
         return false;
     }
+
 }

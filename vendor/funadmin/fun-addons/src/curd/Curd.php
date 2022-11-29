@@ -69,6 +69,11 @@ class Curd extends Command
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
             ->addOption('jump', '', Option::VALUE_OPTIONAL, '跳过重复文件', 1)
             ->addOption('app', '', Option::VALUE_OPTIONAL, '是否是APP', 'backend') //暂时无效
+            ->addOption('title', '', Option::VALUE_OPTIONAL, '插件标题', '') 
+            ->addOption('author', '', Option::VALUE_OPTIONAL, '插件作者', '') 
+            ->addOption('description', '', Option::VALUE_OPTIONAL, '插件描述', '')
+            ->addOption('ver', '', Option::VALUE_OPTIONAL, '插件版本', '')
+            ->addOption('requires', '', Option::VALUE_OPTIONAL, '插件需求版本', '')
             ->setDescription('Curd Command');
     }
 

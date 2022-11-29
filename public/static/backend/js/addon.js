@@ -18,9 +18,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
                         title: __('Local Install'),
-                        extend:"id='localinstall' data-callback='importFile()'",
+                        extend:"id='localinstall' data-callback='importFile(obj)'",
                     },
-                    'plugins':{
+                    plugins:{
                         type: 'href',
                         class: 'layui-btn-sm layui-btn-normal',
                         url: 'https://www.funadmin.com/frontend/plugins',
@@ -28,10 +28,18 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         text: __('plugins'),
                         title: __('plugins'),
                         extend:"id='plugins' ",
+                    },create:{
+                        type: 'open',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'addon/add',
+                        icon: 'layui-icon layui-icon-addition',
+                        text: __('Create'),
+                        title: __('Create'),
+                        extend:"id='Create' ",
                     },
                 },
             }
-            importFile = function(){
+            importFile = function(obj){
                 $('#importFile').click();
             }
             Table.render({
@@ -39,7 +47,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','localinstall','plugins'],
+                toolbar: ['refresh','localinstall','plugins','create'],
                 searchInput:true,
                 searchName:'name',
                 search: true,
@@ -340,6 +348,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             });
         },
         config: function () {
+            Controller.api.bindevent()
+        },
+        add:function (){
             Controller.api.bindevent()
         },
         api: {
