@@ -1136,11 +1136,11 @@ class CurdService
         $this->softDelete = $softDelete;
         $methodArr = explode(',', $this->method);
         if ($this->addon) {
-            $prefix_url = $this->addon . '/' . $this->controllerNamePrefix;
+            $prefix_url = $this->addon . '/' . str_replace('/', '.', $this->controllerNamePrefix);
         } elseif ($this->app != 'backend') {
-            $prefix_url = $this->app . '/' . $this->controllerNamePrefix;
+            $prefix_url = $this->app . '/' . str_replace('/', '.', $this->controllerNamePrefix);
         } else {
-            $prefix_url = $this->controllerNamePrefix;
+            $prefix_url = str_replace('/', '.', $this->controllerNamePrefix);
         }
         foreach ($methodArr as $k => $v) {
             if (!$this->softDelete && $v == 'recycle') continue;
