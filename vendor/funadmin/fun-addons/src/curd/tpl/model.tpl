@@ -16,6 +16,8 @@ class {{$modelName}} extends BaseModel
 
     protected $pk = '{{$primaryKey}}';
 
+    protected $name = '{{$modelTableName}}';
+
     public function __construct(array $data = [])
     {
         parent::__construct($data);

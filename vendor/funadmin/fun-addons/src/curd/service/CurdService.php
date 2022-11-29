@@ -77,7 +77,6 @@ class CurdService
     protected $indexNamePrefix;
     protected $addNamePrefix;
     protected $controllerUrl;
-    protected $modelTableName;
     protected $childMethod;
     protected $validateName;
     protected $validateNamespace;
@@ -513,7 +512,7 @@ class CurdService
         ],
             [$this->modelNamespace,
                 ucfirst($this->modelName),
-                $this->modelTableName,
+                $this->table,
                 $joinTplStr,
                 $attrStr,
                 $this->softDelete,
