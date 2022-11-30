@@ -698,7 +698,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         var filter = $(this).attr('lay-filter'),
                             type = $(this).data('type'),
                             refresh = $(this).data('refresh'),
-                            url = $('form[lay-filter="'+filter+'"]').attr('action') || $(this).data('request') || $(this).data('url') ;
+                            url =   $(this).data('request') || $(this).data('url') || $('form[lay-filter="'+filter+'"]').attr('action');
                         // 表格搜索不做自动提交
                         if (type === 'tableSearch') {
                             return false;
