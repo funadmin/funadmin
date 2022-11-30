@@ -195,8 +195,7 @@ CREATE TABLE `fun_attach_group` (
                                     `status` tinyint(1) DEFAULT '1' COMMENT '状态',
                                     `sort` int DEFAULT '999',
                                     PRIMARY KEY (`id`),
-                                    KEY `pid` (`create_time`),
-                                    KEY `pid_2` (`pid`)
+                                    KEY `pid` (`pid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='附件分组';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
