@@ -164,7 +164,7 @@ class Menu extends Command
         $menu = [
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
-                'href' => 'table' .( $this->app!='backend'?$this->app: $this->controllerName),
+                'href' => 'Panel' .( $this->app!='backend'?$this->app: $this->controllerName),
                 'title' => $this->app ? : $this->controllerName,
                 'status' => 1,
                 'auth_verify' => 1,
