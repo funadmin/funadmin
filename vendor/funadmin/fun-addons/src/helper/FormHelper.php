@@ -954,8 +954,8 @@ class FormHelper
         if (!isset($options['show'])) {
             $show = 'layui-hide';
         }
-        $str = '<div class="layui-form-item layui-btn-center ' . $show . '">
-                <button ' . $this->addstyle($options) . '  type="close" class="layui-btn layui-btn-sm ' . $this->addClass($options) . '" onclick="parent.layui.layer.closeAll();">' . lang('Close') .
+        $str = '<div class="layui-btn-center ' . $show . '">
+                <button ' . $this->addstyle($options) . '  type="close" class="layui-btn ' . $this->addClass($options) . '" onclick="parent.layui.layer.closeAll();">' . lang('Close') .
             '</button>
             </div>';
 
@@ -974,16 +974,15 @@ class FormHelper
         if (!isset($options['show'])) {
             $show = 'layui-hide';
         }
-        $str = '<input type="hidden" name="__token__" value="' . $this->token() . '"><div class=" layui-btn-submit layui-form-item layui-btn-center ' . $show . '" />
-            <button type="submit" class="layui-btn layui-btn-sm submit" lay-fitler="submit" lay-submit>' . lang('Submit') .
+        $str = '<input type="hidden" name="__token__" value="' . $this->token() . '"><div class=" layui-btn-submit layui-btn-center ' . $show . '" />
+            <button type="submit" class="layui-btn layui-btn-normal submit " lay-fitler="submit" lay-submit>' . lang('Submit') .
             '</button>';
         if ($reset) {
-            $str .= '<button type="reset" class="layui-btn layui-btn-sm layui-btn-primary reset">' . lang('Reset') . '</button>';
+            $str .= '<button type="reset" class="layui-btn  layui-btn-primary reset">' . lang('Reset') . '</button>';
         }
         $str .= '</div>';
         return $str;
     }
-
     /**
      * @param $label
      * @param $options
