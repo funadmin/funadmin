@@ -880,15 +880,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     return false;
                 });
             },
-            reload: function (tableId, $where, $deep = true, $parent = true) {
-                tableId = tableId ? tableId : Table.init.tableId;
-                $where = $where || {};
-                $map = {where: $where};
-                layui.table.reloadData(tableId, $map, $deep);
-                if ($parent && parent.layer && parent.layer.getFrameIndex(window.name)) {
-                    parent.layui.table.reloadData(tableId, {}, $deep);
-                }
-            },
             tableSearch: function (options) {
                 layui.form.on('submit(' + options.id + '_filter)', function (data) {
                     var dataField = data.field;
@@ -900,6 +891,18 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     }, true, false);
                     return false;
                 })
+            },
+            reload: function (tableId, $where, $deep = true, $parent = true) {
+                tableId = tableId ? tableId : Table.init.tableId;
+                $where = $where || {};
+                $map = {where: $where,
+                    page: {
+                        curr: 1 //重新从第 1 页开始
+                    }};
+                layui.table.reloadData(tableId, $map, $deep);
+                if ($parent && parent.layer && parent.layer.getFrameIndex(window.name)) {
+                    parent.layui.table.reloadData(tableId, {}, $deep);
+                }
             },
             toolbar: function (options) {
                 tableId = options.id || Table.init.tableId;
