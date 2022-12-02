@@ -49,42 +49,14 @@ class Addon extends Backend
     }
 
 
-    public function add(){
-        if($this->request->isAjax()){
-            $post = $this->request->post();
-            $curd = '';
-            foreach ($post as $k => $v) {
-                if ($k == '__token__') continue;
-                if ($v === '') continue;
-                $arr = [];
-                if (is_array($v)) {
-                    foreach ($v as $kk => $vv) {
-                        $arr[] = ['--' . $k, $vv];
-                    }
-                } else {
-                    $arr[] = ['--' . $k, $v];
-                }
 
-                $result = [];
-                array_walk_recursive($arr, function ($value) use (&$result) {
-                    array_push($result, $value);
-                });
-                $output = Console::call('addon', $result);
-                $content = $output->fetch();
-                if (strpos($content, 'success')) {
-                    $this->success(lang('make success'));
-                }
-                $this->error($content);
-            }
-        }
-        return view();
-    }
     /**
      * @NodeAnnotation(title="列表")
      * @return mixed|\think\response\Json|\think\response\View
      */
     public function index()
     {
+
         if ($this->request->isAjax()) {
             if($this->request->isPost()){
                 //登录请求
@@ -187,6 +159,41 @@ class Addon extends Backend
         $cateList = $res['data'];
         return view('',['auth'=>$this->authCloudService->getAuth()?1:0,'','cateList'=>$cateList]);
     }
+
+    /**
+     *創建插件
+     * @return \think\response\View
+     */
+    public function add(){
+        if($this->request->isAjax()){
+            $post = $this->request->post();
+            $curd = '';
+            foreach ($post as $k => $v) {
+                if ($k == '__token__') continue;
+                if ($v === '') continue;
+                $arr = [];
+                if (is_array($v)) {
+                    foreach ($v as $kk => $vv) {
+                        $arr[] = ['--' . $k, $vv];
+                    }
+                } else {
+                    $arr[] = ['--' . $k, $v];
+                }
+
+                $result = [];
+                array_walk_recursive($arr, function ($value) use (&$result) {
+                    array_push($result, $value);
+                });
+                $output = Console::call('addon', $result);
+                $content = $output->fetch();
+                if (strpos($content, 'success')) {
+                    $this->success(lang('make success'));
+                }
+                $this->error($content);
+            }
+        }
+        return view();
+    }
     /**
      * @NodeAnnotation(title="安装")
      * @throws Exception
@@ -241,7 +248,9 @@ class Addon extends Backend
         }
         //添加数据库
         try{
-            importsql($name);
+            if($type!='upgrade'){
+                importsql($name);
+            }
         } catch (Exception $e){
             $this->error($e->getMessage());
         }
@@ -539,6 +548,10 @@ class Addon extends Backend
 //            uninstallsql($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
+        }
+        $sql = root_path().'addons/'.$name.'/'.'upgrade.sql';
+        if(file_exists($sql)){
+            importSqlData($sql);
         }
         //为了防止文件误删，这里先不删除文件
 //        // 移除插件基础资源目录
