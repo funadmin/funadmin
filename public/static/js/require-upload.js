@@ -125,7 +125,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             size: uploadSize,
                             number:uploadNum,
                             multiple: uploadmultiple,
-                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'$group_id='+group,
+                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
                                 index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
                                     Fun.toastr.close();
