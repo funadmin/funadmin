@@ -325,6 +325,10 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 ,url: Fun.url(Upload.init.requests.upload_url)+'?save=1&path=addon' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
                 ,exts: 'zip|rar|7z' //只允许上传压缩文件
+                ,size:1024*50
+                ,before: function(obj){ //obj参数包含的信息，跟 choose回调完全一致，可参见上文。
+                    layer.load(); //上传loading
+                }
                 ,done: function(res){
                     if(res.code<=0){
                         Fun.toastr.error(res.msg);
@@ -335,11 +339,15 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         url:Table.init.requests.localinstall.url,
                         data:{url:res.url}
                     },function (res){
-                        Fun.toastr.success(res.msg);
+                        if(res.code==1){
+                            Fun.toastr.success(res.msg);
+                        }else{
+                            Fun.toastr.error(res.msg);
+                        }
                         uploadinit.reload({  elem: '#localinstall'});
                         Table.api.reload();//渲染表格点击无效无效
-                        Fun.toastr.close(load)
-                        //重载该实例，支持重载全部基础参数
+                        layui.layer.close(load)
+                        // 重载该实例，支持重载全部基础参数
                     },function (res) {
                         Fun.toastr.error(res.msg);
                         Fun.toastr.close(load)
