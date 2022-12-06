@@ -11,6 +11,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     uninstall_url: 'addon/uninstall',
                     config_url: 'addon/config',
                     modify_url: 'addon/modify',
+                    logout_url: 'addon/logout',
                     localinstall:{
                         type: 'upload',
                         class: 'layui-btn-sm layui-btn-normal',
@@ -36,7 +37,16 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         text: __('Create'),
                         title: __('Create'),
                         extend:"id='Create' ",
-                    },
+                    },account:{
+                        type: 'account',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'addon/add',
+                        icon: 'layui-icon layui-icon-user',
+                        text: __('Account'),
+                        title: __('Account'),
+                        node:false,
+                        extend:"data-callback='AccountClick' id='account'",
+                    }
                 },
             }
             importFile = function(obj){
@@ -47,7 +57,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','localinstall','plugins','create'],
+                toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
                 search: true,
@@ -165,6 +175,18 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                     Fun.toastr.close(index)
                                     layui.table.reloadData(Table.init.tableId);
                                 });
+                                if(res.url){
+                                    layui.layer.open({
+                                        content:res.url,
+                                        title: '立即支付',
+                                        shadeClose: true,
+                                        shade: 0.8,
+                                        resize:true,
+                                        maxmin:true,
+                                        area:['650px','680px'],
+                                        type:2,
+                                    })
+                                }
                             })
                         });
                     } else {
@@ -294,6 +316,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 $.ajax({
                                     url: url, type: 'post', data: data, dataType: "json", success: function (res) {
                                         if (res.code === 1) {
+                                            Fun.api.setStorage('funadmin_memberinfo',res.data);
                                             Fun.toastr.success(res.msg, layer.closeAll());
                                             location.reload();
                                         } else {
@@ -354,6 +377,96 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     })
                 }
             });
+            AccountClick = function(e){
+                console.log()
+                let funadmin_memberinfo =  Fun.api.getStorage('funadmin_memberinfo')
+                console.log(funadmin_memberinfo)
+                if(typeof funadmin_memberinfo !=='undefined' && funadmin_memberinfo!=''){
+                    layer.open({
+                        type: 1,
+                        shadeClose: true,
+                        content: $("#memberinfo_tpl").html(),
+                        zIndex: 9999,
+                        area: ['450px', '350px'],
+                        title: [__('Member Info') + 'FunAdmin', 'text-align:center'],
+                        resize: false,
+                        btnAlign: 'c',
+                        btn: [__('Logout'),__('Register')],
+                        yes: function (index, layero) {
+                            var url = Fun.url(Table.init.requests.logout_url);
+                            $.ajax({
+                                url: url, type: 'post', dataType: "json", success: function (res) {
+                                    if (res.code === 1) {
+                                        Fun.api.setStorage('funadmin_memberinfo','');
+                                        Fun.toastr.success(res.msg, layer.closeAll());
+                                        location.reload();
+                                    } else {
+                                        Fun.toastr.alert(res.msg);
+                                    }
+                                }, error: function (res) {
+                                    Fun.toastr.error(res.msg)
+                                }
+                            })
+                        },
+                        btn2: function () {
+                            Fun.api.close();
+                            return false;
+                        },
+                        success: function (layero, index) {
+                            $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
+                        },
+                        end: function () {
+                            $("#login").hide();
+                        },
+                    });
+                }else{
+                    layer.open({
+                        type: 1,
+                        shadeClose: true,
+                        content: $("#login_tpl").html(),
+                        zIndex: 9999,
+                        area: ['450px', '350px'],
+                        title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
+                        resize: false,
+                        btnAlign: 'c',
+                        btn: [__('Login'),__('Register')],
+                        yes: function (index, layero) {
+                            var url = Fun.url(Table.init.requests.index_url);
+                            var data = {
+                                username: $("#inputUsername", layero).val(),
+                                password: $("#inputPassword", layero).val(),
+                            };
+                            if (!data.username || !data.password) {
+                                Fun.toastr.error(__('Account Or Password Cannot Empty'));
+                                return false;
+                            }
+                            $.ajax({
+                                url: url, type: 'post', data: data, dataType: "json", success: function (res) {
+                                    if (res.code === 1) {
+                                        Fun.api.setStorage('funadmin_memberinfo',res.data);
+                                        Fun.toastr.success(res.msg, layer.closeAll());
+                                        location.reload();
+                                    } else {
+                                        Fun.toastr.alert(res.msg);
+                                    }
+                                }, error: function (res) {
+                                    Fun.toastr.error(res.msg)
+                                }
+                            })
+                        },
+                        btn2: function () {
+                            Fun.api.close();
+                            return false;
+                        },
+                        success: function (layero, index) {
+                            $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
+                        },
+                        end: function () {
+                            $("#login").hide();
+                        },
+                    });
+                }
+            }
         },
         config: function () {
             Controller.api.bindevent()
@@ -365,7 +478,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             bindevent: function () {
                 Form.api.bindEvent($('form'))
             },
-
         },
 
     };

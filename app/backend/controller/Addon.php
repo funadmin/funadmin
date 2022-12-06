@@ -13,6 +13,9 @@
 
 namespace app\backend\controller;
 
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\service\AddonService;
 use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
@@ -35,6 +38,12 @@ use think\facade\Cookie;
  */
 class Addon extends Backend
 {
+
+    protected $middleware = [
+        CheckRole::class =>['except'=>['enlang','verify','logout']],
+        ViewNode::class,
+        SystemLog::class
+    ];
     protected $addonService;
     protected $authCloudService;
     protected $app_version;
@@ -67,7 +76,10 @@ class Addon extends Backend
                     ->run();
                 if ($result['code'] == 200) {
                     $this->authCloudService->setAuth($result['data']);
-                    $this->success(lang('login successful'));
+                    $member = $this->authCloudService->setApiUrl('api/v1.member/get')->setMethod('get')
+                        ->setParams([])->setHeader([$this->authCloudService->authorization=>$result['data']['access_token']])->run();
+                    $this->authCloudService->setMember($member['data']);
+                    $this->success(lang('login successful'),'',$member['data']);
                 } else {
                     $this->error(lang('Login failed:' . $result['msg']));
                 }
@@ -157,7 +169,9 @@ class Addon extends Backend
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/cateList')->setMethod('GET')
             ->setParams([])->run();
         $cateList = $res['data'];
-        return view('',['auth'=>$this->authCloudService->getAuth()?1:0,'','cateList'=>$cateList]);
+        $account = $this->authCloudService->getMember();
+        return view('',[
+            'auth'=>$account?1:0, 'account'=>$account,'cateList'=>$cateList]);
     }
 
     /**
@@ -583,8 +597,16 @@ class Addon extends Backend
     protected function getCloundAddons($params){
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
             ->setParams($params)->setHeader()->setOptions()->run();
+        if($res['code'] == 401){
+            Cookie::delete('auth_account');
+            $this->error(lang('please login aigin'));
+        }
         if($res['code']!=200){
-            $this->error($res['msg']);
+            $url = '';
+            if(!empty($res['data']['url'])) {
+                $url = $res['data']['url'];
+            }
+            $this->error($res['msg'],$url);
         }
         $fileDir = '../runtime/addons/';
         if (!is_dir($fileDir)) {
@@ -599,4 +621,14 @@ class Addon extends Backend
 
     }
 
+    /**
+     * 退出云平台
+     * @return void
+     */
+    public function logout(){
+        Cookie::delete('auth_account');
+        Cookie::delete('clound_account');
+        $this->success(lang('logout success'));
+
+    }
 }

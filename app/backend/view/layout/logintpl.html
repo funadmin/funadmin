@@ -1,5 +1,6 @@
 <script type="text/html" id="login_tpl">
   <style>
+    .layui-input-block{margin-left:80px;}
     .layui-form-label {
       padding: 9px 0px;
       text-align:center;
@@ -33,14 +34,14 @@
       <div class="layui-card-body">
         <form class="layui-form" action="">
           <div class="layui-form-item">
-            <label class="layui-form-label required">账号<i class="fa fa-user"></i></label>
+            <label class="layui-form-label required">账号<i class="layui-icon layui-icon-user"></i></label>
             <div class="layui-input-block">
               <input type="text" class="layui-input"  lay-verify="required" id="inputUsername" value=""
                      placeholder="{:lang('username or email')}">
             </div>
           </div>
           <div class="layui-form-item">
-            <label class="layui-form-label required">密码<i class="fa fa-lock"></i></label>
+            <label class="layui-form-label required">密码<i class="layui-icon layui-icon-password"></i></label>
             <div class="layui-input-block">
               <input type="password" class="layui-input"  lay-verify="required" id="inputPassword" value=""
                      placeholder="{:lang('password')}">
@@ -48,6 +49,46 @@
           </div>
         </form>
       </div>
+    </div>
+  </div>
+</script>
+
+
+<script type="text/html" id="memberinfo_tpl">
+  <style>
+    .layui-form-label {
+      padding: 9px 0px;
+      text-align:center;
+    }
+    .layui-form-item .required::after{
+      position:unset;
+    }
+    .layui-card-header{
+      text-align: left;margin-top: 10px;
+    }
+    .layui-elem-quote{
+      padding: 5px;background: #409EFF ;
+      border-left: 5px solid #409EFF;
+      color: #fff;
+      /*background:radial-gradient(circle, rgb(247, 150, 192) 0%, rgb(118, 174, 241) 100%) !important;*/
+    }
+    .font{
+      color: #8e10b9;
+      font-size: medium;
+    }
+  </style>
+  <div>
+    <div class="layui-card">
+      <div class="layui-card-header" style="">
+        <blockquote class="layui-elem-quote" style="">
+          <br>
+          <h3>温馨提示</h3>
+          您的账号为: <a class="font" target="_blank" href="">{$account.username}</a>
+          <br>
+          您已经登录<a class="layui-font-red" target="_blank" href="https://www.funadmin.com">FunAdmin</a>云平台账号，点击查看您的订单
+        </blockquote>
+      </div>
+      <br>
     </div>
   </div>
 </script>

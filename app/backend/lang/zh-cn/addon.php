@@ -12,6 +12,7 @@ return [
     'LOGO'=>'Logo',
     'Create'=>'创建',
     'title'=>'标题',
+    'Account'=>'云账号',
     'Addon version'=>'版本',
     'Addon Config'=>'插件配置',
     'Addon require'=>'需求版本',

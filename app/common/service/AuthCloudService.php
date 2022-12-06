@@ -82,10 +82,22 @@ class AuthCloudService extends AbstractService
      * 设置账号缓存
      * @return mixed
      */
-    public function setAuth($memberInfo=[])
+    public function setAuth($token=[])
     {
-        Cookie::set('auth_account',base64_encode(serialize($memberInfo)),$this->expire);
+        Cookie::set('auth_account',base64_encode(serialize($token)),$this->expire);
         return $this;
+    }
+
+    public function setMember($memberInfo = [])
+    {
+        Cookie::set('clound_account',base64_encode(serialize($memberInfo)),$this->expire);
+        return $this;
+    }
+
+    public function getMember()
+    {
+        $account = Cookie::get('clound_account');
+        return $account?unserialize(base64_decode(Cookie::get('clound_account'))):'';
     }
     /**
      * 获取授权账号
