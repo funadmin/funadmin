@@ -206,6 +206,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             formHtml += '<div ' + d.extend + ' lay-filter="xmSelect" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             formHtml+= '</div>\n' + '</div>' + '</div>';
                             break;
+                        case 'selectpage':
+                            formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
+                            formHtml += "<input " +d.extend + " data-url='"+ (d.url!==undefined?d.url:"")  + "'" + 'lay-filter="selectPage" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
+                            formHtml+= '</div>\n' + '</div>' + '</div>';
+                            break;
                         case'select':
                             d.searchOp = '=';
                             var selectHtml = '';
@@ -261,7 +266,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Table.timeRender(newCols)
                 require(['form'], function (Form) {
                     Form.events.xmSelect();
-                })            }
+                    Form.events.selectpage();
+                })
+            }
         },
         timeRender: function (newCols) {
             layui.each(newCols, function (ncI, ncV) {

@@ -6,7 +6,7 @@
 // | git://github.com/funadmin/funadmin.git 994927909
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
-define(["jquery", 'croppers'], function($, croppers) {
+define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
     var upload = layui.upload;
     var croppers = layui.croppers;
     var Upload = {
@@ -18,15 +18,11 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
             upload_exts: Config.upload.upload_file_type,
             upload_size: Config.upload.upload_file_max,
-            upload_slice: Config.upload.upload_slice,
-            upload_slicesize: Config.upload.upload_slicesize,
+            upload_chunk: Config.upload.upload_slice,
+            upload_chunksize: Config.upload.upload_slicesize,
         },
         //事件
         events: {
-            //附件多图
-            mutiUpload: function() {
-                Upload.api.mutiUpload()
-            },
             //单图或多图文
             uploads: function() {
                 Upload.api.uploads();
@@ -37,139 +33,173 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
         },
         api: {
-            mutiUpload: function(ele,options,success,error,choose,progress) {
-                //多文件列表示例
-                var uploadList = typeof ele === 'undefined' ?$('*[lay-filter="multipleupload"]'):ele;
-                var opt = [];
-                layui.each(uploadList, function(i, v) {
-                    var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
-                    var id = $(this).attr('id');
-                    var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
-                    var upload = layui.upload ? layui.upload : parent.layui.upload;
-                    opt[i] = $.extend({
-                        elem: '#'+uploadListBtn,
-                        url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
-                        , accept: 'file',
-                        drag: true,
-                        multiple: true,
-                        auto: false,
-                        bindAction: '#'+id,
-                        choose:choose===undefined? function(obj) {
-                            var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
-                            //读取本地文件
-                            obj.preview(function(index, file, result) {
-                                var tr = $(['<tr id="upload-' + index + '">', '<td>' + file.name + '</td>', '<td>' + (file.size / 1024).toFixed(1) + 'kb</td>', '<td class="progress"> 0 </td>', '<td>等待上传</td>', '<td>', '<button class="layui-btn layui-btn-xs fun-upload-reload layui-hide">重传</button>', '<button class="layui-btn layui-btn-xs layui-btn-danger fun-upload-delete">删除</button>', '</td>', '</tr>'].join(''));
-                                //单个重传
-                                tr.find('.fun-upload-reload').on('click', function() {
-                                    obj.upload(index, file);
-                                });
-                                //删除
-                                tr.find('.fun-upload-delete').on('click', function() {
-                                    delete files[index]; //删除对应的文件
-                                    tr.remove();
-                                    uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
-                                });
-                                uploadListView.append(tr);
-                            });
-                        }:change,
-                        progress: progress===undefined?function(n, elem) {
-                            var percent = n + '%'; //获取进度百分比
-                            $('.progress').html(percent); //可配合 layui 进度条元素使用
-                        }:progress,
-                        done: success===undefined?function(res, index, upload) {
-                            if (res.code > 0) { //上传成功
-                                var tr = uploadListView.find('tr#upload-' + index),
-                                    tds = tr.children();
-                                tds.eq(3).html('<span style="color: #5FB878;">上传成功</span>');
-                                tds.eq(4).html(''); //清空操作
-                                var table = parent.$('body').find('table.layui-table[lay-filter');
-                                if(table.length > 0) {
-                                    var id = table.attr('id');
-                                    id && parent.layui.table && parent.layui.table.reload(id);
-                                }
-                                return delete this.files[index]; //删除文件队列已经上传成功的文件
-                            }
-                            this.error(index, upload, res);
-                        }:success,
-                        error: error===undefined?function(index, upload, res) {
-                            var tr = uploadListView.find('tr#upload-' + index),
-                                tds = tr.children();
-                            tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
-                            tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
-                        }:error
-                    },options==undefined?{}:options)
-                    uploadListIns = upload.render(opt[i]);
-
-                })
-            },
-            uploads: function(ele,options,success,error) {
+            uploads: function(ele,options,success,error,choose,progress) {
                 var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
                     var opt = [];
+                    //读取本地文件
+                    var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
+                    let  chunkSize = Upload.init.upload_chunksize*1024*1024;
+                    let  maxSize = Upload.init.upload_size*1024*1024;
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
                         if(typeof data.value == 'object') data = data.value;
-                        var uploadNum = data.num, uploadMime = data.mime,uploadAccept = data.accept,uploadPath = data.path || 'upload',
-                            uploadSize = data.size,save = data.save || 0,group = data.group || '', uploadmultiple = data.multiple,
-                            uploadExts = data.exts;uploadNum = uploadNum || 1;uploadSize = uploadSize || Upload.init.upload_size;
-                            uploadExts = uploadExts || Upload.init.upload_exts;
-                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replace(/,/g,'|'):uploadExts
+                        var uploadNum = data.num,
+                            uploadMime = data.mime,
+                            uploadAccept = data.accept,
+                            uploadPath = data.path || 'upload',
+                            uploadSize = data.size,
+                            save = data.save || 0,
+                            group = data.group || '',
+                            uploadmultiple = data.multiple,
+                            uploadExts = data.exts,chunk = data.chunk,
+                        uploadNum = uploadNum || 1;
+                        uploadSize = uploadSize || Upload.init.upload_size;
+                        uploadExts = uploadExts || Upload.init.upload_exts;
+                        uploadExts = uploadExts.indexOf(',') ? uploadExts.replace(/,/g, '|') : uploadExts
                         uploadmultiple = uploadmultiple || false;
                         uploadAccept = uploadAccept || uploadMime || "*";
-                        uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
-                        var _parent = $(this).parents('.layui-upload'),input = _parent.find('input[type="text"]'),index;
+                        uploadAccept = uploadAccept === '*' ? 'file' : uploadAccept;
+                        var _parent = $(this).parents('.layui-upload'), input = _parent.find('input[type="text"]'),index;
+                        var fileList = [],chunkList= [];
                         opt[i] = $.extend({
-                            elem: $(this),
+                            elem: '[lay-filter="upload"]',
                             accept: uploadAccept,
-                            size: uploadSize,
+                            size: uploadSize*1024,
                             number:uploadNum,
                             multiple: uploadmultiple,
+                            auto:false,
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
-                                index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
-                                    Fun.toastr.close();
-                                },1200))
-                            },
-                            done: success===undefined?function(res) {
-                                if (res.code > 0) {
-                                    var img ='jpg|jpeg|png|gif|svg|bmp|webp';
-                                    var video ='mp4|rmvb|avi|ts';
-                                    var zip ='jpg|jpeg|png|gif|';
-                                    var audio ='mp3|wma|wav';
-                                    var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
-                                    var start = res.url.lastIndexOf(".");
-                                    uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
-                                    if (img.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (zip.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (video.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (audio.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (office.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                    if(chunk==undefined || chunk ==false || chunk == 0){
+                                        index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
+                                            Fun.toastr.close()
+                                        },1200))
                                     }
-                                    var inputVal = input.val();
-                                    if (uploadNum == 1) {
-                                        input.val(res.url);
-                                        _parent.find('.layui-upload-list').html(html)
-                                    } else if (uploadNum == '*') {
-                                        _parent.find('.layui-upload-list').append(html)
-                                        if (inputVal) {
-                                            val_temp = (inputVal + ',' + res.url)
-                                        } else {
-                                            val_temp = res.url
+                            },
+                            progress: progress===undefined?function(n, elem) {
+
+                            }:progress,
+                            choose:choose===undefined? function(obj) {
+                                var that = this;
+                                var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                                obj.preview(function (index, file, result) {
+                                    if (file.size  > maxSize) {
+                                        delete files[index];
+                                        Fun.toastr.error(__('文件大小超过限制，最大不超过' + maxSize/1024 + 'KB'));
+                                        return false;
+                                    }
+                                    if (file.size <= chunkSize || chunk == undefined || chunk == 0 || chunk ==false) {
+                                        obj.upload(index, file)
+                                        delete files[index];
+                                    } else if(chunk == true || chunk == 1) {
+                                        obj.upload(index, file)
+                                        delete files[index];
+                                        var chunkId = file.lastModified +"-"+ file.size,
+                                            chunkCount = Math.ceil(file.size / chunkSize),
+                                            fileExt = /\.([0-9A-z]+)$/.exec(file.name)[1];
+                                        var list = [];
+                                        for (i=0;i<chunkCount;i++){
+                                            list.push({
+                                                status:0,
+                                                fileSize: file.size,
+                                                fileName: file.name,
+                                                fileType: file.type,
+                                                fileExt: fileExt,
+                                                chunkId: chunkId,
+                                                chunkIndex: i,
+                                                chunkCount: chunkCount,
+                                                chunkSize: chunkSize/(1024*1024),
+                                                start : i * chunkSize,
+                                                end: Math.min(file.size,  i * chunkSize + chunkSize),
+                                            })
                                         }
-                                        input.val(val_temp);
-                                    } else {
-                                        if (_parent.find('li').length >= uploadNum) {
-                                            Fun.toastr.error(__('File nums is limited'))
-                                            return false;
+                                        chunkList[chunkId] = list;
+                                        fileList[chunkId] = {_that: that, file: file, obj, obj, index: index};
+                                        var progress = 0;
+                                        for (var key in chunkList) {
+                                            if (chunkList[key].status === 0) {
+                                                progress = key;
+                                                break;
+                                            }
+                                        }
+                                        that.data = list[progress];
+                                        start = progress * chunkSize;
+                                        end = parseInt(Math.min(file.size, start + chunkSize));
+                                        obj.upload(index, blobSlice.call(file,start,end));
+                                    }
+                                })
+                            }:choose,
+                            done: success===undefined?function(res, index, upload) {
+                                if (res.code > 0) {
+                                    if(res.data['chunkId']!==undefined && !res.data.url){
+                                        var chunkIndex = res.data.chunkIndex, chunkId = res.data.chunkId,chunkCount=res.data.chunkCount;
+                                        var currentChunkList =chunkList[chunkId][chunkIndex];
+                                        if (!$('#' + chunkId).length) {
+                                            window[chunkId] = layer.open({
+                                                type: 1,
+                                                title: false,
+                                                skin: 'chunkProgress',
+                                                closeBtn: 0,
+                                                resize:false,
+                                                area: ['420px', 'auto'],
+                                                content: [
+                                                    '<style>.chunkProgress {\n' +
+                                                    '    background-color: transparent!important;\n' +
+                                                    '    box-shadow: 0 0 0 rgba(0,0,0,0)!important;\n' +
+                                                    '}</style><div id="' + chunkId + '" class="layui-progress layui-progress-big" lay-showPercent="yes" lay-filter="uploadProgress">',
+                                                    '<div class="layui-progress-bar layui-bg-blue" lay-percent="' + Math.ceil(100*(1 + chunkIndex ) / currentChunkList.chunkCount) + '%" ></div>',
+                                                    '</div>',].join(''),
+                                                success: function (layerObj, index) {
+                                                    layer.setTop(layerObj);
+                                                }
+                                            })
+                                            layui.element.render();
                                         } else {
+                                            layui.element.progress('uploadProgress', Math.ceil((100*(1 + chunkIndex ) / currentChunkList.chunkCount)) + '%');
+                                        }
+                                        if(chunkIndex +1 < chunkCount){
+                                            var start = currentChunkList.end;end = start + chunkSize;
+                                            chunkList[chunkId][chunkIndex]['status'] = 1;
+                                            _that = fileList[chunkId]._that;
+                                            _that.data = chunkList[chunkId][1 + chunkIndex ];
+                                            fileList[chunkId].obj.upload(fileList[chunkId].file, blobSlice.call(fileList[chunkId].file, start, end));
+                                        }else{
+                                            layui.element.progress('uploadProgress', Math.ceil((1 + chunkIndex ) * 100 / chunkCount) + '%');//更新进度条
+                                        }
+                                    }else{
+                                        if (res.data['chunkId'] !== undefined) {
+                                            layui.layer.close(window[res.data.chunkId]);
+                                            delete chunkList[res.data['chunkId']];
+                                            delete fileList[res.data['chunkId']];
+                                            res.url = res.data.url;
+                                        }
+                                        var img ='jpg|jpeg|png|gif|svg|bmp|webp';
+                                        var video ='mp4|rmvb|avi|ts';
+                                        var zip ='jpg|jpeg|png|gif|';
+                                        var audio ='mp3|wma|wav';
+                                        var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
+                                        var start = res.url.lastIndexOf(".");
+                                        uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
+                                        if (img.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (zip.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (video.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (audio.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (office.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        }
+                                        var inputVal = input.val();
+                                        if (uploadNum == 1) {
+                                            input.val(res.url);
+                                            _parent.find('.layui-upload-list').html(html)
+                                        } else if (uploadNum == '*') {
                                             _parent.find('.layui-upload-list').append(html)
                                             if (inputVal) {
                                                 val_temp = (inputVal + ',' + res.url)
@@ -177,9 +207,23 @@ define(["jquery", 'croppers'], function($, croppers) {
                                                 val_temp = res.url
                                             }
                                             input.val(val_temp);
+                                        } else {
+                                            if (_parent.find('li').length >= uploadNum) {
+                                                Fun.toastr.error(__('File nums is limited'))
+                                                return false;
+                                            } else {
+                                                _parent.find('.layui-upload-list').append(html)
+                                                if (inputVal) {
+                                                    val_temp = (inputVal + ',' + res.url)
+                                                } else {
+                                                    val_temp = res.url
+                                                }
+                                                input.val(val_temp);
+                                            }
                                         }
+                                        Fun.toastr.success(__('Upload Success'))
                                     }
-                                    Fun.toastr.success(__('Upload Success'))
+
                                 } else {
                                     Fun.toastr.error(__('Upload Failed') + __(res.msg))
                                 }
@@ -241,7 +285,6 @@ define(["jquery", 'croppers'], function($, croppers) {
                 }
             },
             bindEvent: function() {
-                Upload.events.mutiUpload();
                 Upload.events.uploads();
                 Upload.events.cropper();
             }

@@ -13,6 +13,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
         url: function (url) {
+            url = url==undefined?location.href:url;
             var domain = window.location.host;
             if (url &&　url.indexOf(domain) !== -1) return url;
             var file_url = ['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'];

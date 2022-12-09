@@ -1,20 +1,5 @@
-<form class="layui-form" lay-filter="form">
-    <div class="layui-upload">
-        <button type="button" class="layui-btn layui-btn-normal uploadListBtn" id="uploadListBtn">选择多文件</button>
-        <div class="layui-upload-list">
-            <table class="layui-table">
-                <thead>
-                <tr><th>文件名</th>
-                    <th>大小</th>
-                    <th>进度</th>
-                    <th>状态</th>
-                    <th>操作</th>
-                </tr></thead>
-                <tbody class="uploadList"></tbody>
-            </table>
-        </div>
-        <button type="button" lay-filter="multipleupload" id="multipleupload" class="layui-btn uploadSubBtn">开始上传</button>
-    </div>
+<form class="layui-form" method="post" action="">
+    {:form_upload('file',[],['label'=>'File','multiple'=>true,'select'=>false,'chunk'=>true])}
     {:form_closebtn()}
-</form>
 
+</form>

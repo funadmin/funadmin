@@ -426,7 +426,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
         },
         api: {
             bindevent: function () {
-                Upload.api.bindEvent();
                 Form.api.bindEvent($('form'))
 
             }

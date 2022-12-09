@@ -915,6 +915,7 @@ class FormHelper
             'multiple' =>  $options['multiple'] ?? '',
             'selecturl' =>  $options['selecturl'] ?? '',
             'tableurl' =>  $options['tableurl'] ?? '',
+            'chunk' =>  $options['chunk'] ?? false,
         ];
         $data_value = '';
         foreach ($op as $key => $val) {
