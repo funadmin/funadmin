@@ -85,11 +85,10 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
                                                 skin: 'chunkProgress',
                                                 closeBtn: 0,
                                                 resize: false,
-                                                area: ['420px', 'auto'],
+                                                shade:0.1,
+                                                area: ['420px', '20px'],
                                                 content: [
-                                                    '<style>.chunkProgress {\n' +
-                                                    '    background-color: transparent!important;\n' +
-                                                    '    box-shadow: 0 0 0 rgba(0,0,0,0)!important;\n' +
+                                                    '<style>.chunkProgress {background-color: transparent!important;box-shadow: 0 0 0 rgba(0,0,0,0)!important;' +
                                                     '}</style><div id="' + this.data.chunkId + '" class="layui-progress layui-progress-big" lay-showPercent="yes" lay-filter="uploadProgress">',
                                                     '<div class="layui-progress-bar layui-bg-blue" lay-percent="' + Math.ceil(100 * (0 + this.data.chunkIndex) / this.data.chunkCount) + '%" ></div>',
                                                     '</div>',].join(''),
@@ -104,7 +103,6 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
                                     }
                             },
                             progress: progress===undefined?function(n, elem) {
-
                             }:progress,
                             choose:choose===undefined? function(obj) {
                                 var that = this;
@@ -228,7 +226,9 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
                                     }
 
                                 } else {
-                                    Fun.toastr.error(__('Upload Failed') + __(res.msg))
+                                    Fun.toastr.error(__('Upload Failed') + __(res.msg),setTimeout(function(){
+                                        Fun.toastr.close();
+                                    },1500));
                                 }
                             }:success,
                             error:error===undefined? function(index, upload) {
