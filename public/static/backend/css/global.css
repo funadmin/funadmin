@@ -7,3 +7,4 @@
 .layui-bg-brown{background-color:#A52A2A;}
 .layui-bg-violet{background-color:#EE82EE;}
 .layui-bg-plum{background-color:#DDA0DD;}
+input[hidden] { height:0!important}
