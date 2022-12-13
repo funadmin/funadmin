@@ -136,6 +136,7 @@ class UploadService extends AbstractService
                     $result['data'][$k][$index] = $attach->path; //兼容wangeditor
                     $result['uploaded'] = true; //兼容ckeditorditor
                     $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
+                    $result['success'] = 1; //兼容editormd
                     $result['id'][$k][$index] = $attach->id;
                     $result['fileType'] = $type;
                     $result["url"][$k][$index] = $attach->path;
@@ -155,6 +156,7 @@ class UploadService extends AbstractService
                 $result['data'][] = $attach->path; //兼容wangeditor
                 $result['uploaded'] = true; //兼容ckeditorditor
                 $result['error '] = ["message"=> "ok"]; //兼容ckeditorditor
+                $result['success'] = 1; //兼容editormd
                 $result['id'] = $attach->id;
                 $result['fileType'] = $type;
                 $result["url"] = $attach->path;
@@ -164,6 +166,7 @@ class UploadService extends AbstractService
         $result['errno'] = 0; //兼容wangeditor
         $result['uploaded'] = true; //兼容ckeditorditor
         $result['error'] = ["message"=> "ok"]; //兼容ckeditorditor
+        $result['success'] = 1; //兼容editormd
         $result['code'] = 1;//默认
         $result['msg'] = lang('upload success');
         if($editor=='tinymce'){
