@@ -414,8 +414,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         if (selectList[v]) {
                             html += Table.getBadge(d, ele, v, __(selectList[v])) + ' '
                         }
-                    });
-                    return html
+                    })
+                    if(html){
+                        return html
+                    }
                 }
                 filter[ele.field] = content;
                 filter = JSON.stringify(filter);
