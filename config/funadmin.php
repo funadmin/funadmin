@@ -10,11 +10,11 @@ return [
     'isDemo'=>0,
 
     //版本
-    'version' => '3.1.1',
+    'version' => '3.2.0',
 
-    'version_data' => '20221129',
+    'version_data' => '2022123',
 
-    'layui_version' => '2.8.3-beta',
+    'layui_version' => '2.8.5-beta',
 
     'ip_check'=>false,
 ];
