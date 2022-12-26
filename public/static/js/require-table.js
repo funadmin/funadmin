@@ -399,7 +399,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },tags: function (d) {
                 var ele = $(this)[0];
                 var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
-                var content = eval('d.' + ele.field);
+                var content = eval('d.' + ele.field), prop =  (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
+                if(prop){ prop = prop[2];}else{prop = ele.prop;}
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};ops = {};
                 ops[ele.field] = op;
@@ -411,7 +412,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     layui.each(content, function (i, v) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
-                        if (selectList[v]) {
+                        if (prop) {
+                            prop = prop.split(',')
+                            layui.each(selectList, function (ii, vv) {
+                                if(vv[prop[1]]==v){
+                                    html += Table.getBadge(d, ele, v, __(vv[prop[0]])) + ' '
+                                }
+                            })
+                        }else if (selectList[v]) {
                             html += Table.getBadge(d, ele, v, __(selectList[v])) + ' '
                         }
                     })
