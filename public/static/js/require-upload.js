@@ -36,7 +36,7 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
             uploads: function(ele,options,success,error,choose,progress) {
                 var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
-                    var opt = [];
+                    var opt = [],uploadInt = [];
                     //读取本地文件
                     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
                     let  chunkSize = Upload.init.upload_chunksize*1024*1024;
@@ -65,7 +65,7 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
                         var _parent = $(this).parents('.layui-upload'), input = _parent.find('input[type="text"]'),index;
                         var fileList = [],chunkList= [];
                         opt[i] = $.extend({
-                            elem: '[lay-filter="upload"]',
+                            elem: this,
                             accept: uploadAccept,
                             size: uploadSize*1024,
                             number:uploadNum,
@@ -240,10 +240,8 @@ define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
                         if(uploadExts!=="*" && uploadExts){
                             opt[i]['exts'] = uploadExts
                         }
-                        uploadInt = [];
                         uploadInt[i] = layui.upload.render(opt[i]);
                         // Toastr.destroyAll();
-
                     })
                 }
             },
