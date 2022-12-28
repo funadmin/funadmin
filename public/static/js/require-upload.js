@@ -6,7 +6,7 @@
 // | git://github.com/funadmin/funadmin.git 994927909
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
-define(["jquery", 'croppers','md5'], function($, croppers,Md5) {
+define(["jquery", 'croppers'], function($, croppers) {
     var upload = layui.upload;
     var croppers = layui.croppers;
     var Upload = {
