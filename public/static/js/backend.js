@@ -399,6 +399,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
             //侧边
             sideFlexible: function () {
                 //侧边伸缩
+                console.log($(window).width())
+                if($('body').hasClass('menu4') && $(window).width() > 768) return;
                 $container.toggleClass(SIDE_SHRINK);
                 $container.toggleClass(FUN_APP);
                 $('.layui-header #layui-header-nav-pc,.layui-header #layui-header-nav-mobile').toggleClass('layui-layout-nav');
@@ -714,6 +716,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         '            <input lay-filter="setTheme" type="radio" value="1" title="侧边" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="2" title="水平" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
+                        '            <input lay-filter="setTheme" type="radio" value="4" title="侧栏" name="site_theme">' +
                         '        </div>\n' +
                         '</div>'+
                         ' <div class="layui-form-item">\n' +
@@ -986,8 +989,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         window.location.reload();
                     });
                     //监听导航点击菜单点击*/
-                    // 主题三
-                    $('#layui-header-nav-pc,#layui-header-nav-mobile').on('click','li a',function (){
+                    // 主题三 主题四
+                    $('#layui-header-nav-pc,#layui-header-nav-mobile,#layui-side-nav').on('click','li a',function (){
                         var id  = $(this).attr('menu-id');
                         if(id){
                             var index = layui.layer.load()
@@ -1000,8 +1003,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                                     $(this).parents('li').children('.layui-nav-child').removeClass('layui-show')
                                 }
                             }
-                            $('.layui-side-menu').find('.layui-nav-tree[menu-id="'+id+'"]').removeClass('layui-hide');
-                            $('.layui-side-menu').find('.layui-nav-tree[menu-id="'+id+'"]').siblings('ul').not('[data-rel="external"]').addClass('layui-hide');
+                            if($('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').length>0){
+                                $('#layui-app-body').addClass('layui-sub-body');
+                            }
+                            $('#layui-side-left-menu').removeClass('layui-hide');//四
+                            $('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').removeClass('layui-hide');
+                            $('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').siblings('ul').not('[data-rel="external"]').addClass('layui-hide');
                             layui.layer.close(index)
                         }
                     })
@@ -1018,6 +1025,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         layId = layId ? layId : url;
                         var parents = _that.parents('.layui-nav-header');
                         // 如果不存在子级
+                        var menuid  = $(this).attr('menu-id');
+                        if(menuid==undefined && $(this).parents('#layui-side-nav').length>0){
+                                $('#layui-app-body').removeClass('layui-sub-body');//四
+                                $('#layui-side-left-menu').addClass('layui-hide');//四
+
+                        }
                         if (_that.siblings().length == 0) {
                             if (target === '_blank') {window.open(url, "_blank");return false;}
                             let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};

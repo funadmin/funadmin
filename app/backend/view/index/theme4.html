@@ -1,0 +1,138 @@
+<link rel="stylesheet" href="__CDN____STATIC__/backend/css/theme4.css?v={:time()}" media="all">
+
+<div class="layui-header layui-bg-green">
+  <!-- 头部区域（可配合layui已有的水平导航） -->
+  <ul class="layui-nav layui-layout-left">
+    <li class="layui-nav-item layui-tool" lay-unselect="" >
+      <a  href="javascript:;" title="{:lang('flexible')}" lay-event="flexible">
+        <i class="layui-icon layui-icon-shrink-right" id="layui-flexible"></i>
+      </a>
+    </li>
+    <li class="layui-nav-item" lay-unselect="">
+      <a href="http://www.FunAdmin.com/" target="_blank" title="{:lang('Home')}">
+        <i class="layui-icon layui-icon-website"></i>
+      </a>
+    </li>
+    <li class="layui-nav-item layui-hide-xs" lay-unselect>
+      <a href="javascript:;" lay-event="refresh" title="{:lang('Refresh')}" data-ajax="{:__u('ajax/clearcache')}"><i
+              class="layui-icon layui-icon-refresh-1"></i></a>
+    </li>
+    <li class="layui-nav-item layui-hide-xs" lay-unselect>
+      <a href="javascript:;">
+        <i class="layui-icon layui-icon-fonts-clear"></i>
+      </a>
+      <dl class="layui-nav-child">
+        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear All')}" data-ajax="{:__u('ajax/clearcache',['type'=>'all'])}"><i
+                class="layui-icon layui-icon-fonts-clear">{:lang('Clear All')}</i></a></dd>
+        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear Frontend')}" data-ajax="{:__u('ajax/clearcache',['type'=>'frontend'])}"><i
+                class="layui-icon layui-icon-delete">{:lang('Clear Frontend')}</i></a></dd>
+        <dd><a href="javascript:;" lay-event="clear" title="{:lang('Clear Backend')}" data-ajax="{:__u('ajax/clearcache',['type'=>'backend'])}"><i
+                class="layui-icon layui-icon-delete">{:lang('Clear Backend')}</i></a></dd>
+
+      </dl>
+    </li>
+  </ul>
+  <ul class="layui-nav layui-layout-right">
+    <li class="layui-nav-item mobile layui-hide-xs" lay-unselect>
+      <a href="javascript:;" lay-event="fullscreen" title="{:lang('Fullscreen')}"><i class="layui-icon layui-icon-screen-full"></i></a>
+    </li>
+    <li class="layui-nav-item layui-hide-xs" lay-unselect="">
+      <a lay-event="lockScreen" title="{:lang('Lock')}"><i class="layui-icon layui-icon-password"></i></a>
+    </li>
+    <li class="layui-nav-item">
+      <a href="javascript:;">
+        {:session('admin.username')}
+      </a>
+      <dl class="layui-nav-child">
+        <dd><a lay-id="fun-info" data-url="{:__u('auth.admin/upme')}?id={:session('admin.id')}&type=menu" title="{:lang('Info')}">{:lang('Info')}</a></dd>
+        <dd><a lay-id="fun-safe" data-url="{:__u('auth.admin/password',['type'=>1])}" title="{:lang('Safe')}">{:lang('Safe')}</a></dd>
+        <dd><a lay-event="logout" data-ajax="{:__u('index/logout')}" title="{:lang('Logout')}">{:lang('Logout')}</a></dd>
+      </dl>
+    </li>
+    <li class="layui-nav-item layui-hide-xs">
+      <a href="javascript:;">
+        {:lang('language')}
+      </a>
+      <dl class="layui-nav-child">
+        {volist name='languages' id="vo"}
+          <dd><a lay-event="langset" title="{:lang($vo.name)}" data-ajax="{:__u('enlang',['lang'=>$vo.name])}">{:lang($vo.name)}</a></dd>
+        {/volist}
+        <!--                        <dd><a lay-event="langset" title="{:lang('en-us')}" lay-ajax="{:__u('enlang',['langset'=>'en-us'])}">en-us</a></dd>-->
+      </dl>
+    </li>
+    <li class="layui-nav-item layui-hide-xs">
+      <a href="javascript:;" title="{:lang('Theme')}" lay-event="opentheme">
+        <i class="layui-icon layui-icon-theme"></i>
+      </a>
+    </li>
+  </ul>
+</div>
+<!--        左侧菜单 logo-->
+<div class="layui-side layui-bg-black layui-side-menu">
+  <div class="layui-side-scroll">
+    <!--logo-->
+    <div class="layui-logo">
+      <a href="http://www.FunAdmin.com" target="_blank">
+        <img src="{:syscfg('site','site_logo')}" alt="logo">
+        <cite>{:syscfg('site','site_name')}</cite></a>
+    </div>
+    <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+    <ul style="display: block" class="layui-nav layui-nav-tree" lay-filter="menulist"  lay-shrink="all" id="layui-side-nav">
+      {$menulist.nav|raw}
+    </ul>
+    <ul data-rel="external" class="layui-nav layui-nav-tree header" style="margin-top: auto" lay-filter="test">
+      <li class="layui-nav-item" style="margin-left: 15px;" data-tips="相关链接">相关链接</li>
+      <li class="layui-nav-item" data-tips="系统官网">
+        <a href="http://www.FunAdmin.com" target="_blank">
+          <i class="layui-icon layui-icon-home layui-red"></i>
+          <span>系统官网</span>
+        </a>
+      </li>
+      <li class="layui-nav-item" data-tips="在线文档">
+        <a href="https://doc.funadmin.com" target="_blank">
+          <i class="layui-icon layui-icon-list layui-yellow"></i>
+          <span>在线文档</span>
+        </a>
+      </li>
+      <li class="layui-nav-item" data-tips="QQ交流群"><a href="https://jq.qq.com/?_wv=1027&k=PJkmNv40" target="_blank">
+        <i class="layui-icon layui-icon-login-qq layui-blue"></i>
+        <span>QQ交流群</span></a>
+      </li>
+    </ul>
+  </div>
+
+</div>
+<div id="layui-side-left-menu" class="layui-side layui-hide">
+  {$menulist.menu|raw}
+</div>
+<!--     导航按钮 +主题内容 -->
+<div class="layui-pagetabs" id="layui-app-tabs">
+  <div class="layui-icon layui-tabs-control layui-icon-next" lay-event="leftPage"></div>
+  <div class="layui-icon layui-tabs-control layui-icon-prev" lay-event="rightPage"></div>
+  <div class="layui-icon layui-tabs-control layui-icon-down">
+    <ul class="layui-nav layui-tabs-select">
+      <li class="layui-nav-item">
+        <a href="javascript:;"><span class="layui-nav-more"></span></a>
+        <dl class="layui-nav-child layui-anim-fadein">
+          <dd lay-event="closeThisTabs"><a href="javascript:;">关闭当前页</a></dd>
+          <dd lay-event="closeOtherTabs"><a href="javascript:;">关闭其它页</a></dd>
+          <dd lay-event="closeAllTabs"><a href="javascript:;">关闭全部页</a></dd>
+        </dl>
+      </li>
+    </ul>
+  </div>
+  <div class="layui-tab layui-tab-card" id="layui-tab"  overflow lay-allowclose="true" lay-filter="layui-layout-tabs">
+    <ul class="layui-tab-title" id="layui-tab-header">
+      <li lay-id="" lay-attr="console" class="layui-this">
+        <i class="layui-icon layui-icon-home"></i>
+      </li>
+    </ul>
+    <!-- 主体内容 -->
+    <div class="layui-body layui-tab-content" id="layui-app-body">
+      <div id="homePage" class="layui-body-tabs layui-tab-item layui-show">
+        <iframe width="100%" height="100%" frameborder="no" border="0" marginwidth="0" marginheight="0" src="{:__u('console')}"></iframe>
+      </div>
+    </div>
+  </div>
+
+</div>

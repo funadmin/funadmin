@@ -308,7 +308,7 @@ class AuthService extends AbstractService
                 }
                 $html .= '</li>';
             }
-        } elseif ($theme == 3) {
+        } elseif ($theme == 3  ||  $theme ==4) {
             $html = [];
             $hide = '';
             $html['nav'] = '';
@@ -322,9 +322,15 @@ class AuthService extends AbstractService
                 $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
                 $badge = '';
                 if (strtolower($val['title']) === 'addon') {
-                    $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: -20px;">new</span>';
+                    $badge = '<span class="layui-badge">new</span>';
                 }
-                $hide = $key > 0 ? 'layui-hide' : '';
+                $hide = '';
+                if($theme==3){
+                    $hide = $theme<=3 && $key > 0 ? 'layui-hide' : '';
+                }
+                if($theme==4){
+                    $hide = 'layui-hide';
+                }
                 $html['menu'] .= '<ul style="display:block" class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
                 if ($val['child'] and count($val['child']) > 0) {
                     $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
@@ -369,7 +375,9 @@ class AuthService extends AbstractService
                     $html = self::childmenuhtml($html, $v['child'], $type);
                 } else {
                     $v['target'] = $v['target'] ? $v['target'] : '_self';
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '">
+                    <i class="' . $v['icon'] . '"></i>
+                    <cite> ' . lang($v['title']) . '</cite></a>';
                 }
                 $html .= '</dd>';
             };

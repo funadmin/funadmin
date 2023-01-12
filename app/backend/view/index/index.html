@@ -13,9 +13,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="format-detection" content="telephone=no"  >
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
-    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/style.css?v={:syscfg('site_version')}" media="all">
-    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/fun.css?v={:syscfg('site_version')}" media="all">
-    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/global.css?v={:syscfg('site_version')}" media="all" />
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/style.css?v={:syscfg('site','site_version')}" media="all">
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/fun.css?v={:syscfg('site','site_version')}" media="all">
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/global.css?v={:syscfg('site','site_version')}" media="all" />
 
     {:token_meta()}
     <style id="fun-bg-color">
@@ -28,8 +28,10 @@
     window.PLUGINS = '__PLUGINS__';
 </script>
 
+{php} $site_theme = syscfg('site','site_theme'); $theme = "index/theme".$site_theme;{/php}
 
-<body class="layui-layout-body">
+
+<body class="layui-layout-body  menu{$site_theme}">
 <div id="fun-app" class="fun-app">
     <!--        加载层-->
     <div class="fun-loading">
@@ -41,12 +43,9 @@
             <span></span>
         </div>
     </div>
-
     <div class="layui-layout layui-layout-admin" >
 
-         {php} $theme = "index/theme".syscfg('site','site_theme');{/php}
-
-         {php} echo \think\facade\View::fetch($theme); {/php}
+        {php} echo \think\facade\View::fetch($theme); {/php}
         <!-- 遮罩 -->
         <div class="layui-body-shade" lay-event="shade"></div>
         <!--手机导航-->
