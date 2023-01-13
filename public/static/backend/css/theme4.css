@@ -4,6 +4,19 @@
 .layui-nav-tree > .layui-nav-item > a:before{
     background-color: #1e9fff;
 }
+
+#layui-side-left-menu .layui-nav-tree .layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-this>a,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this a{
+    background-color: #eee!important;
+}
+#layui-side-left-menu .layui-nav-tree .layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-this>a,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
+    background:#eee!important;
+}
 .layui-layout-admin #layui-side-left-menu{
     background-color: #fff!important;
     width: 120px;
