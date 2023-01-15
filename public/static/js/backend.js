@@ -698,6 +698,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     var anim = anims[Math.floor(Math.random() * anims.length + 1) - 1];
                     var html = '<style>.layui-text-left{text-align: left;padding-right: 0px}' +
                         '.layui-form-item{margin-bottom:5px;}'+
+                        '.layui-field-title{margin-bottom:0;}'+
                         '.layui-form-item .layui-quote-nm{margin:10px;border-left: 5px solid #1890ff;}' +
                         '</style><div class="layui-fun-color">' +
                         '<div class="color-title">' +
