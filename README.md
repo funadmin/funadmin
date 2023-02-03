@@ -33,18 +33,29 @@ funadmin前端和webman开发的后台管理系统
 </p>
 
 ### 开源不易，点击右上角 "Star" 支持一下 谢谢！
+
 ### 如果您想获悉项目实时更新信息，您可以点右上角"Watch"
+
 ### 如果您想参与项目的开发，您可以点右上角"Fork"！
+
 ### Github：https://github.com/funadmin/funadmin
+
 ### 官方网址：http://www.funadmin.com/
+
 ### 插件市场 https://www.funadmin.com/frontend/plugins
+
 ### 帮助文档：https://doc.funadmin.com 正在持续更新中...
+
 ### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/backend)
+
 ### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
+
 ### QQ群2：[1048893269](https://jq.qq.com/?_wv=1027&k=2pyFqDv3)
 
 ## 项目介绍
+
 FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
+
 + PHP支持php8.0的快速开发框架 建议使用PHP8
 + 这是一个有趣的后台管理系统，这是可以让你节约时间的系统
 + 这是一款快速、高效、便捷、灵活敏捷的应用开发框架。
@@ -63,6 +74,7 @@ FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 + ...更多功能尽请关注
 
 ## 环境要求:
+
 * PHP >= 7.4 支持php8.0
 * PDO PHP Extension
 * MBstring PHP Extension
@@ -73,6 +85,7 @@ FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 * Apache 或 Nginx
 
 ### 功能特性
+
 - **严谨规范：** 提供一套有利于团队协作的结构设计、编码、数据等规范。
 - **高效灵活：** 清晰的分层设计，解耦设计更能灵活应对需求变更。
 - **严谨安全：** 清晰的系统执行流程，严谨的异常检测和安全机制，详细的日志统计，为系统保驾护航。
@@ -81,7 +94,9 @@ FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 - **自身特色：** 权限管理、组件丰富、第三方应用多、分层解耦化设计和先进的设计思想。
 - **高级进阶：** 分布式、负载均衡、集群、Redis、分库分表。
 -
+
 ### 插件
+
 - ** CMS内容管理插件（免费）
 - ** BBS社区插件
 - ** 编辑器插件
@@ -90,6 +105,7 @@ FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 - ** 更多请查看 [插件列表](https://www.funadmin.com/plugins)
 
 ## 开发者信息
+
 * 系统名称：FunAdmin开发系统框架
 * 作者：FunAdmin
 * 官网网址：[http://www.funadmin.com/](http://www.funadmin.com/)
@@ -97,12 +113,14 @@ FunAdmin 基于thinkphp6.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 * 开源协议：Apache 2.0
 
 ## 鸣谢以下开源项目以及项目中用到的其他开源项目 （排名不分先后，）
+
 - [Thinkphp](http://thinkphp.cn)
 - [JQuery](http://jquery.com)
 - [Layui](http://www.layuion.com)
 - [Requirejs](https://requirejs.org)
 
 ## 版权信息
+
 FunAdmin 方便二次开发，您可以方便的使用到自己或企业的项目中,你可以免费学习或者使用
 
 本项目包含的第三方源码和二进制文件之版权信息另行标注。
@@ -116,12 +134,12 @@ All rights reserved。
 ![image](doc/images/pay.png)
 
 ## 问题反馈
+
 在使用中有任何问题，欢迎反馈给我，可以用以下联系方式跟我交流
 QQ群：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
 Gitee：https://gitee.com/funadmin/funadmin
 Github：https://github.com/funadmin/funadmin
-
 
 ## 项目目录结构
 
@@ -153,7 +171,7 @@ www  WEB部署目录（或者子目录）
 │  ├─app_name           应用配置目录
 │  │  ├─database.php    数据库配置
 │  │  ├─cache           缓存配置
-│  │  └─ ...            
+│  │  └─ ...          
 │  │
 │  ├─app.php            应用配置
 │  ├─cache.php          缓存配置
@@ -190,3 +208,4 @@ www  WEB部署目录（或者子目录）
 
 
 
+~~~
