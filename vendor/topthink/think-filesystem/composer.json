@@ -20,7 +20,7 @@
         }
     },
     "require": {
-        "topthink/framework": "^6.1",
+        "topthink/framework": "^6.1|^8.0",
         "league/flysystem": "^2.0"
     },
     "require-dev": {
