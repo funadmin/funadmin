@@ -472,7 +472,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 options.layId = options.layId || '';
                 options.url = options.url || '';
                 options.text = options.text || '';
-                options.icon = Config.site.site_tabicon>0 ? options.icon : '';
+                options.icon = Config.site.site_tabicon>0 ? options.icon : 'layui-tab-icon-active';
                 options.iframe = options.iframe || null;
                 if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
                     Fun.toastr.error(__('window is create by maxnum'));
@@ -593,6 +593,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '.layui-layout-admin .layui-nav-tree .layui-this,.layui-layout-admin .layui-nav-tree .layui-this>a,' +
                     '.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {background-color: ' + themeData.menuLeftBgThis + ' !important;}\n' +
                     '.layui-pagetabs .layui-tab-title li:hover,.layui-pagetabs .layui-tab-title li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
+                    '.layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active{ background-color:' + themeData.menuLeftBgThis + '!important;}\n' +
                     '.layui-layout-admin .layui-nav-tree .layui-nav-bar{background:' + themeData.menuLeftBgThis + '!important;}\n';
                 $('#fun-bg-color').html(styleHtml);
                 Backend.listenFrameTheme();

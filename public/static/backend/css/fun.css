@@ -427,7 +427,17 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     transition: all .3s;
     -webkit-transition: all .3s
 }
-
+.layui-pagetabs .layui-tab-title li .layui-tab-icon-active {
+    display: inline-block;
+    background-color: lightgray;
+    width: 9px;
+    height: 9px;
+    border-radius: 30px;
+    margin-right: 5px;
+}
+.layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active {
+    background-color: #1890ff;
+}
 .layui-pagetabs .layui-tab-title li:first-child {
     padding-right: 15px
 }
