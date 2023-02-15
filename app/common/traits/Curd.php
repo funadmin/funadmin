@@ -495,10 +495,10 @@ trait Curd
         if(input('selectFields') && input('showField')){
             return $this->selectpage();
         }
-        $fields = input('selectFields');
+        $fields = input('selectFields/a');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
-        $parentField = input('parentField');
+        $parentField = input('parentField/s','','htmlspecialchars,strip_tags');
         list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
         if($tree!='false' && $tree){
             $parentField = $parentField?:'pid';
