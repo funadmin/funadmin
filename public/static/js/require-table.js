@@ -915,7 +915,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 $map = {where: $where};
                 if($page>=1){
                     $map.page = {
-                        curr: 1 //重新从第 1 页开始
+                        curr: $page //重新从第 1 页开始
                     }
                 }
                 console.log($map)
