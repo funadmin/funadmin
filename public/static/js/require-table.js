@@ -909,13 +909,16 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     return false;
                 })
             },
-            reload: function (tableId, $where, $deep = true, $parent = true) {
+            reload: function (tableId, $where, $deep = true, $parent = true,$page=1) {
                 tableId = tableId ? tableId : Table.init.tableId;
                 $where = $where || {};
-                $map = {where: $where,
-                    page: {
+                $map = {where: $where};
+                if($page>=1){
+                    $map.page = {
                         curr: 1 //重新从第 1 页开始
-                    }};
+                    }
+                }
+                console.log($map)
                 layui.table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layer && parent.layer.getFrameIndex(window.name)) {
                     parent.layui.table.reloadData(tableId, {}, $deep);
@@ -989,7 +992,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                Table.api.reload(tableId)
+                                Table.api.reload(tableId,{},true,true,0)
                             })
                         }, function (res) {
                             Fun.toastr.error(res.msg, function () {
@@ -1022,7 +1025,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         var data = {id: this.value, field: this.name, value: checked};
                         Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                             Fun.toastr.success(res.msg);
-                            Table.api.reload(tableId);
+                            Table.api.reload(tableId,{},true,true,0)
                         }, function (res) {
                             obj.elem.checked = !checked;
                             layui.form.render();
@@ -1046,7 +1049,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     var data = {id: id, field: name, value: obj.value};
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg)
-                        Table.api.reload(tableId);
+                        Table.api.reload(tableId,{},true,true,0)
                     }, function (res) {
                         layui.form.render();
                         Fun.toastr.error(res.msg);
