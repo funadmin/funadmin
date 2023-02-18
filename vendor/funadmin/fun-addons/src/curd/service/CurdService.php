@@ -179,11 +179,11 @@ class CurdService
         $this->joinModel = $this->config['joinModel'] ?: $this->joinTable;
         $this->joinMethod = $this->config['joinMethod'];
         $this->joinForeignKey = $this->config['joinForeignKey'];
-        if (count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
+        if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
             $this->joinForeignKey = array_filter(explode(',', ($this->joinForeignKey[0])));
         }
         $this->joinPrimaryKey = $this->config['joinPrimaryKey'];
-        if (count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
+        if ($this->joinForeignKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
             $this->joinPrimaryKey = array_filter(explode(',', ($this->joinPrimaryKey[0])));
         }
         $this->selectFields = $this->config['selectFields'];
@@ -495,7 +495,7 @@ class CurdService
                 ) {
                     //关联模型搜索属性
                     $model = isset($this->joinModel[$i]) ? $this->joinModel[$i] : $this->joinModel[0];
-                    if (count($this->joinTable) == 1) {
+                    if ($this->joinTable && count($this->joinTable) == 1) {
                         $value = isset($this->selectFields[0]) ? $this->selectFields[0] : 'title';
                     } else {
                         $value = isset($this->selectFields[$i]) ? $this->selectFields[$i] : 'title';
@@ -1107,7 +1107,7 @@ class CurdService
             if (in_array($v['DATA_TYPE'], ['tinyint', 'set', 'enum']) and $v['type'] != '_id') {
                 $comment = explode('=', $v['comment']);
                 if (!in_array($v['name'], $this->config['ignoreFields'])) {
-                    if (count($comment) != 2) {
+                    if ($comment && count($comment) != 2) {
                         $v['type'] = 'text';
                     } else {
                         if ($v['DATA_TYPE'] == 'tinyint') $v['type'] = 'radio';
