@@ -9,7 +9,7 @@ funadmin前端和webman开发的后台管理系统
 
 <h3 align="center">为梦想而创作：FunAdmin开发框架系统 系统支持PHP8.0</h3>
 
-<h4 align="center">开源不易，您可以点右上角 "Star" 支持一下 谢谢！</h4>
+<h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
@@ -32,7 +32,7 @@ funadmin前端和webman开发的后台管理系统
 
 </p>
 
-### 开源不易，点击右上角 "Star" 支持一下 谢谢！
+### 用爱发电，开源不易，请先点击右上角 "Star" 支持一下 谢谢！
 
 ### 如果您想获悉项目实时更新信息，您可以点右上角"Watch"
 
@@ -171,7 +171,7 @@ www  WEB部署目录（或者子目录）
 │  ├─app_name           应用配置目录
 │  │  ├─database.php    数据库配置
 │  │  ├─cache           缓存配置
-│  │  └─ ...          
+│  │  └─ ...        
 │  │
 │  ├─app.php            应用配置
 │  ├─cache.php          缓存配置
