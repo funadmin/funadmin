@@ -65,7 +65,6 @@ class Addon extends Backend
      */
     public function index()
     {
-
         if ($this->request->isAjax()) {
             if($this->request->isPost()){
                 //登录请求

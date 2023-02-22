@@ -217,11 +217,7 @@ class Member extends Frontend {
      * 退出
      */
     public function logout(){
-        session('member',null);
-        Session::delete('member');
-        Cache::clear();
-        cookie('mid',null);
-        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
+        logout();
         $this->success('退成成功！',__u('login/index'));
 
     }

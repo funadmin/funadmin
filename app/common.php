@@ -12,6 +12,7 @@
  */
 
 use think\App;
+use think\facade\Cache;
 use think\facade\Route;
 use think\facade\Session;
 use think\facade\Db;
@@ -269,10 +270,10 @@ if (!function_exists('isLogin')) {
     function isLogin()
     {
         if (session('member')) {
-            $_COOKIE['mid'] = session('member.id');
+            \think\facade\Cookie::set('mid', session('member.id'));//跨域
             return session('member');
-        } else if(!empty($_COOKIE['mid'])) {
-            $member = \app\common\model\Member::find($_COOKIE['mid']);
+        } else if(!empty(\think\facade\Cookie::get('mid'))) {
+            $member = \app\common\model\Member::find(\think\facade\Cookie::get('mid'));
             session('member',$member);
             return $member;
         }else{
@@ -280,7 +281,19 @@ if (!function_exists('isLogin')) {
         }
     }
 }
+if (!function_exists('logout')) {
+    function logout()
+    {
+        Cache::clear();
+        Session::clear();
+        Session::delete('member');
+        cookie('mid',null);
+        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
+        \think\facade\Cookie::delete('mid');
+        return true;
 
+    }
+}
 /**
  * 获取版本号
  * @param $key
