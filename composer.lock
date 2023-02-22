@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7bd036cc9fb444a63f4525881e66d1ca",
+    "content-hash": "03e036db27028e57e81dd620d61ccf25",
     "packages": [
         {
             "name": "brick/math",
@@ -461,16 +461,16 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v5.1.0",
+            "version": "v5.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "c82f65ee70c61935d54d717fe82d92d6df5a45c4"
+                "reference": "5523fd84fbd519406ec1df831c8c92bdf858023a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/c82f65ee70c61935d54d717fe82d92d6df5a45c4",
-                "reference": "c82f65ee70c61935d54d717fe82d92d6df5a45c4",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/5523fd84fbd519406ec1df831c8c92bdf858023a",
+                "reference": "5523fd84fbd519406ec1df831c8c92bdf858023a",
                 "shasum": ""
             },
             "require": {
@@ -515,9 +515,9 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v5.1.0"
+                "source": "https://github.com/funadmin/fun-addons/tree/v5.1.1"
             },
-            "time": "2023-02-18T02:35:53+00:00"
+            "time": "2023-02-22T04:55:16+00:00"
         },
         {
             "name": "guzzlehttp/guzzle",
@@ -3137,21 +3137,21 @@
         },
         {
             "name": "topthink/think-multi-app",
-            "version": "v1.0.15",
+            "version": "v1.0.16",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-multi-app.git",
-                "reference": "387e0dac059c20f92cac5da41a871e10829c1c97"
+                "reference": "07b9183855150455e1f76f8cbe9d77d6d1bc399f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-multi-app/zipball/387e0dac059c20f92cac5da41a871e10829c1c97",
-                "reference": "387e0dac059c20f92cac5da41a871e10829c1c97",
+                "url": "https://api.github.com/repos/top-think/think-multi-app/zipball/07b9183855150455e1f76f8cbe9d77d6d1bc399f",
+                "reference": "07b9183855150455e1f76f8cbe9d77d6d1bc399f",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.1.0",
-                "topthink/framework": "^6.0"
+                "topthink/framework": "^6.0|^8.0"
             },
             "type": "library",
             "extra": {
@@ -3179,9 +3179,9 @@
             "description": "thinkphp6 multi app support",
             "support": {
                 "issues": "https://github.com/top-think/think-multi-app/issues",
-                "source": "https://github.com/top-think/think-multi-app/tree/v1.0.15"
+                "source": "https://github.com/top-think/think-multi-app/tree/v1.0.16"
             },
-            "time": "2022-10-26T08:03:06+00:00"
+            "time": "2023-02-07T08:40:09+00:00"
         },
         {
             "name": "topthink/think-orm",

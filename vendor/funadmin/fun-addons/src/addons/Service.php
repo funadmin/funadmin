@@ -45,14 +45,16 @@ class Service extends \think\Service
         $this->addons_path = $this->getAddonsPath();
 
         $this->autoload();
+
+        addons_vendor_autoload($this->addons_data_list?$this->addons_data_list:Cache::get('addons_data_list',[]));
+
         // 加载系统语言包
         $this->loadLang();
         // 2.注册插件事件hook
         $this->loadEvent();
-
+        
         $this->loadService();
         // 4.自动加载全局的插件内部第三方类库
-        addons_vendor_autoload($this->addons_data_list?$this->addons_data_list:Cache::get('addons_data_list',[]));
 
     }
     public function boot()
@@ -148,11 +150,15 @@ class Service extends \think\Service
             if (!is_file($service_file)) {
                 continue;
             }
-            $info = parse_ini_file($service_file, true, INI_SCANNER_TYPED) ?: [];
-            if($info){
-                $this->app->register(array_shift($info));
+            $services = parse_ini_file($service_file, true, INI_SCANNER_TYPED) ?: [];
+            if($services){
+                foreach ($services as $service) {
+                    if (class_exists($service)) {
+                        $this->app->register($service,$force=true);
+                    }
+                }
             }
-            $bind = array_merge($bind, $info);
+            $bind = array_merge($bind, $services);
         }
         $this->app->bind($bind);
     }
