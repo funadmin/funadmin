@@ -1,5 +1,5 @@
 <BR>
-<h3 align="center">FunAdmin3.0版本，插件系统重构,更加灵活的插件开发，更加方便插件开发者开发应用</h3>
+<h3 align="center">FunAdmin3.X版本，插件系统重构,更加灵活的插件开发，更加方便插件开发者开发应用</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
@@ -171,7 +171,7 @@ www  WEB部署目录（或者子目录）
 │  ├─app_name           应用配置目录
 │  │  ├─database.php    数据库配置
 │  │  ├─cache           缓存配置
-│  │  └─ ...        
+│  │  └─ ...      
 │  │
 │  ├─app.php            应用配置
 │  ├─cache.php          缓存配置
