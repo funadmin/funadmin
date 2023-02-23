@@ -704,7 +704,7 @@ DROP TABLE IF EXISTS `fun_member_third`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `fun_member_third` (
                                     `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'ID',
-                                    `member_id` int unsigned NOT NULL DEFAULT '1' COMMENT '会员ID',
+                                    `member_id` int unsigned  DEFAULT NULL COMMENT '会员ID',
                                     `platform` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '第三方应用 weixin /qq /sina /',
                                     `unionid` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'unionid',
                                     `openid` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '第三方唯一ID',
