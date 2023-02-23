@@ -281,15 +281,13 @@ if (!function_exists('isLogin')) {
         }
     }
 }
+
 if (!function_exists('logout')) {
     function logout()
     {
-        Cache::clear();
-        Session::clear();
         Session::delete('member');
-        cookie('mid',null);
+        Cookie::delete('mid');
         if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
-        \think\facade\Cookie::delete('mid');
         return true;
 
     }
