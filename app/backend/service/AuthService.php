@@ -292,7 +292,7 @@ class AuthService extends AbstractService
         $list = $this->authMenuNode($cate);
         $html = '';
         $theme = syscfg('site', 'site_theme');
-        if ($theme == 1 || $theme == 2) {
+        if (empty($theme) || ($theme && in_array($theme,[1,2,5]))) {
             foreach ($list as $key => $val) {
                 $html .= '<li class="layui-nav-item">';
                 $badge = '';

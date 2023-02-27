@@ -719,6 +719,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         '            <input lay-filter="setTheme" type="radio" value="2" title="水平" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
                         '            <input lay-filter="setTheme" type="radio" value="4" title="侧栏" name="site_theme">' +
+                        '            <input lay-filter="setTheme" type="radio" value="5" title="顶栏" name="site_theme">' +
                         '        </div>\n' +
                         '</div>'+
                         ' <div class="layui-form-item">\n' +
