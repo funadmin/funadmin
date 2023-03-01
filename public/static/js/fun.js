@@ -383,15 +383,27 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 });
                 return false
             },
-            dropdown: function (othis) {
+            dropdown: function (othis,options,rowData) {
                 var extend = $(othis).attr('data-extend');
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
+                    ele = '';d= '';
+                    if(rowData){
+                        ele = rowData.config;
+                        d = rowData.data;
+                    }
                     layui.each(extend, function (k, v) {
                         v.class = v.class || 'layui-btn layui-btn-xs';
                         v.title = v.title || v.text;
                         v.event = v.event || v.type;
-                        url =v.url?v.url:$(othis).attr('data-url');
+                        url = v.url ? v.url : $(othis).attr('data-url');
+                        if (ele) {
+                            if(url.indexOf('?')>=0){
+                                url = url+"&"+ele.primaryKey+'='+d[ele.primaryKey];
+                            } else {
+                                url = url+"?"+ele.primaryKey+'='+d[ele.primaryKey];
+                            }
+                        }
                         if(Fun.checkAuth(url)){
                             extend[k].url =url;
                             extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
@@ -415,13 +427,12 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             attrEvent = data.event;
                             data.title = data.textTitle;
                             require(['table'], function (Table) {
-                                console.log(this.elem)
                                 if (Table.events.hasOwnProperty(attrEvent)) {
                                     Table.events[attrEvent].call(this, _that.find('button'))
                                 }else if(data.callback){
-                                    data.callback.indexOf('(')!==-1 ?eval( data.callback):eval( data.callback+'()')
+                                    eval(data.callback)(_that)
                                 }else{
-                                    data.event.indexOf('(')!==-1 ?eval( data.event):eval( data.event+'()')
+                                    eval(data.event)(_that)
                                 }
                             })
 

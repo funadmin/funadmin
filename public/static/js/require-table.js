@@ -769,36 +769,36 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         },
         events: {
             //链接
-            href:function (othis,tabloptions = null){
+            href:function (othis,options = null,data=null){
                 window.open(othis.data('url'),'_blank');
             },
-            iframe: function (othis, options = null) {
+            iframe: function (othis, options = null,data=null) {
                 if (options) {
                     Fun.api.iframe(options);
                     return;
                 }
                 Fun.events.iframe(othis)
-            }, open: function (othis, options = null) {
-                if (options) {
+            }, open: function (othis, options = null,data=null) {
+                if (options && options.length>0) {
                     Fun.api.open(options);
                     return ;
                 }
                 Fun.events.open(othis)
-            }, photos: function (othis) {
+            }, photos: function (othis,options = null,data=null) {
                 Fun.events.photos(othis)
-            }, refresh: function (othis) {
+            }, refresh: function (othis,options = null,data=null) {
                 var tableId = othis.data('tableid');
                 if (tableId === undefined || tableId === '' || tableId == null) {
                     tableId = Table.init.tableId
                 }
                 Table.api.reload(tableId)
-            },tabswitch: function (othis) {  //切换选项卡重载表格
+            },tabswitch: function (othis,options = null,data=null) {  //切换选项卡重载表格
                 var field = othis.closest("[data-field]").data("field"), value = othis.data("value");
                 $where = {};
                 $where[field] = value;
                 Table.api.reload(Table.init.tableId, $where);
                 return false
-            },export: function (othis) {
+            },export: function (othis,options = null,data=null) {
                 var url = othis.data('url'),tableId = othis.data('tableid'),primaryKey = $('#'+tableId).data('primarykey');
                 var dataField = $('#layui-search-field-' + tableId + ' .layui-form [name]').serializeArray();
                 var formatFilter = {}, formatOp = {};
@@ -834,9 +834,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     where = "?filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)
                 }
                 window.open(Fun.url(url + where), '_blank')
-            },request: function (othis, options = null) {
+            },request: function (othis, options = null,data=null) {
                 Fun.events.request(othis, options, Table)
-            }, delete: function (othis, options = null) {
+            }, delete: function (othis, options = null,data=null) {
                 var tableId = othis.data('tableid');
                 if (options) {
                     url = options.url;
@@ -862,12 +862,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     })
                 });
                 return false;
-            }, dropdown: function (othis) {
-                Fun.events.dropdown(othis)
-            }, closeOpen: function (othis) {
+            }, dropdown: function (othis,options = null,data=null) {
+                Fun.events.dropdown(othis,options = null,data)
+            }, closeOpen: function (othis,options = null,data=null) {
                 Fun.api.close()
-            }, common: function (othis) {
-                Fun.api.callback(othis)
+            }, common: function (othis,options = null,data=null) {
+                Fun.api.callback(othis,options,data)
 
             },
         },
@@ -914,9 +914,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     var  data = obj.data; //获得当前行数据
                     var attrEvent = obj.event || _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this,_that,null,obj)
                     } else {
-                        Table.events.common(_that);
+                        Table.events.common(_that,null,obj);
                     }
                     return false;
                 });
@@ -1083,7 +1083,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             bindEvent: function (tableId='') {
                 var tableId = tableId || Table.init.tableId
-                $(document).on('click','*[lay-event]',function(){
+                $(document).on('click','*[lay-event]',function(obj){
                     var _that = $(this);
                     var attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {

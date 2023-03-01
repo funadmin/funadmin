@@ -53,10 +53,11 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     {
                         title: 'add'
                         ,id: 101
-                        ,type: 'open'
-                        ,event: 'open'
+                        ,type: 'qita'
+                        ,event: 'qita'
                         ,url: 'member.member/add'
                         ,icon: 'layui-icon layui-icon-edit'
+                        ,callback: 'demo'
                     },
                     {
                         title: 'add'
@@ -69,6 +70,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
             }
         },
     };
+    demo = function (obj){
+        console.log(obj)
+    }
     Table.init2 = {
         table_elem: 'list1',
         tableId: 'list1',
@@ -138,8 +142,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        // operat: ['edit_url','copy', 'destroy','dropdown']
-                        operat: ['edit_url','copy', 'destroy']
+                        // operat: ['edit_url','copy', 'destroy','dropdown'],
+                        operat: ['edit_url', 'destroy']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],
