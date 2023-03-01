@@ -70,8 +70,9 @@ define(['jquery','table','form'], function ($,Table,Form) {
             }
         },
     };
-    demo = function (obj){
+    demo = function (obj,data){
         console.log(obj)
+        console.log(data)
     }
     Table.init2 = {
         table_elem: 'list1',

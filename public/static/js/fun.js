@@ -427,9 +427,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
                                     Table.events[attrEvent].call(this, _that.find('button'))
                                 }else if(data.callback){
-                                    eval(data.callback)(_that)
+                                    eval(data.callback)(_that,data)
                                 }else{
-                                    eval(data.event)(_that)
+                                    eval(data.event)(_that,data)
                                 }
                             })
 
