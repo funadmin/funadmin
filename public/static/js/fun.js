@@ -388,10 +388,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
                     ele = '';d= '';
-                    if(rowData){
-                        ele = rowData.config;
-                        d = rowData.data;
-                    }
+                    if(rowData){ele = rowData.config;d = rowData.data;}
                     layui.each(extend, function (k, v) {
                         v.class = v.class || 'layui-btn layui-btn-xs';
                         v.title = v.title || v.text;
