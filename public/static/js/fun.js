@@ -383,7 +383,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 });
                 return false
             },
-            dropdown: function (othis,options,rowData) {
+            dropdown: function (othis,options=null,rowData=null) {
                 var extend = $(othis).attr('data-extend');
                 extend = JSON.parse(extend)
                 if (typeof extend === 'object') {
