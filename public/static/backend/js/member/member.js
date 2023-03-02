@@ -146,7 +146,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_url','copy', 'destroy','dropdown'],
+                        // operat: ['edit_url','copy', 'destroy','dropdown'],
                         // operat: ['edit_url', 'destroy']
                     }
                 ]],
