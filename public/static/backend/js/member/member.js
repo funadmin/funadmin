@@ -57,7 +57,10 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         ,event: 'qita'
                         ,url: 'member.member/add'
                         ,icon: 'layui-icon layui-icon-edit'
-                        ,callback: 'demo'
+                        ,callback: function(obj){
+                            console.log("eee");
+                            console.log(obj);
+                        }
                     },
                     {
                         title: 'add'
@@ -143,8 +146,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        // operat: ['edit_url','copy', 'destroy','dropdown'],
-                        operat: ['edit_url', 'destroy']
+                        operat: ['edit_url','copy', 'destroy','dropdown'],
+                        // operat: ['edit_url', 'destroy']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],

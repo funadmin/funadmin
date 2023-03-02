@@ -139,7 +139,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         v = eval('init.requests.' + v)
                     }
                     if(!v) return ;
-                    v.extend = typeof v.extend === "object" ? "data-extend='" + JSON.stringify(v.extend) + "'" : v.extend;
+                    v.extend = typeof v.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(v.extend) + "'" : v.extend;
                     url = Fun.replaceurl(v.url, d);
                     v.node = v.node === false ? v.node : Fun.common.getNode(v.url);
                     if (v.node === false || Fun.checkAuth(v.node, options.elem)) {
@@ -185,7 +185,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 d.timepickerformat = d.timepickerformat || 'YYYY-MM-DD HH:mm:ss';
                 d.searchdateformat = d.searchdateformat || d.dateformat;
                 d.extend = d.extend || '';
-                d.extend = typeof d.extend === "object" ? "data-extend='" + JSON.stringify(d.extend) + "'" : d.extend;
+                d.extend = typeof d.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(d.extend) + "'" : d.extend;
                 if (d.field !== false && d.search !== false) {
                     d.search = typeof d.search ==='string' ?d.search.toLowerCase():d.search;
                     cls = 'layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3';
@@ -404,14 +404,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};ops = {};
                 ops[ele.field] = op;
-                op = JSON.stringify(ops);
-                if (JSON.stringify(selectList) !== "{}" && content !== '' && content !== null) {
+                op = Fun.api.JSONStringify(ops);
+                if (Fun.api.JSONStringify(selectList) !== "{}" && content !== '' && content !== null) {
                     var reg = RegExp(/,/);
                     content = typeof content == 'string' && reg.test(content) ? content.split(',') : typeof content == 'object' ? content : [content];
                     html = '';
                     layui.each(content, function (i, v) {
                         filter[ele.field] = v;
-                        filter = JSON.stringify(filter);
+                        filter = Fun.api.JSONStringify(filter);
                         if (prop) {
                             prop = prop.split(',')
                             layui.each(selectList, function (ii, vv) {
@@ -428,7 +428,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     }
                 }
                 filter[ele.field] = content;
-                filter = JSON.stringify(filter);
+                filter = Fun.api.JSONStringify(filter);
                 content = content ? __(content) : '-';
                 return "<span lay-event='search'  data-filter='" + filter + "' data-op='" + op + "' data-tips='" + content + "' title='" + content + "' class='layui-btn layui-btn-xs layui-search layui-table-tags'>" + content + "</span>"
             },image: function (d) {
@@ -470,7 +470,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         callback: ele.callback || v.callback || '',templet:v.templet||ele.templet,
                     })
                 })
-                return $html = "<a class= 'layui-btn layui-btn-xs layui-btn-normal' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
+                return $html = "<a class= 'layui-btn layui-btn-xs layui-btn-normal' lay-event='dropdown' data-extend = '"+Fun.api.JSONStringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
             },selects: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
@@ -486,7 +486,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 return $html;
             }, switch: function (d) {
                 var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
-                ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
+                ele.selectListTips = ele.selectList && Fun.api.JSONStringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
                 ele.tips = ele.tips || 'switch';
                 var value = Table.templet.resolution(d, ele);
@@ -652,7 +652,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.title = va.title || vv.text || '';
                     vv.tips = va.tips || '';
                     vv.extend = va.extend || '';
-                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + JSON.stringify(vv.extend) + "'" : vv.extend;
+                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : vv.extend;
                     vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
                     vv.url = va.url.indexOf("?") !== -1 ? va.url + '&'+d.primaryKey+'=' + d.primaryKeyValue : va.url + '?'+d.primaryKey+'=' + d.primaryKeyValue;
                     vv.url = Fun.replaceurl(vv.url, d);
@@ -719,8 +719,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             var filter = {}, ops = {};
             filter[ele.field] = key;
             ops[ele.field] = op;
-            filter = JSON.stringify(filter);
-            op = JSON.stringify(ops);
+            filter = Fun.api.JSONStringify(filter);
+            op = Fun.api.JSONStringify(ops);
             if (badge[key]) {
                 return "<span data-event='search' data-filter='" + filter + "'  data-op='" + op + "'  class='layui-search' data-tips='" + value + "'  title='" + value + "'>" + badge[key] + "</span>"
             } else {
@@ -829,9 +829,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     formatOp[primaryKey] = 'in';
                 }
                 if (url.indexOf('?') !== -1) {
-                    where = "&filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)
+                    where = "&filter=" + Fun.api.JSONStringify(formatFilter) + '&op=' + Fun.api.JSONStringify(formatOp)
                 } else {
-                    where = "?filter=" + JSON.stringify(formatFilter) + '&op=' + JSON.stringify(formatOp)
+                    where = "?filter=" + Fun.api.JSONStringify(formatFilter) + '&op=' + Fun.api.JSONStringify(formatOp)
                 }
                 window.open(Fun.url(url + where), '_blank')
             },request: function (othis, options = null,data=null) {
@@ -927,8 +927,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     [formatFilter,formatOp] = Table.getSearchField(dataField);
                     Table.getSearchField(dataField);
                     Table.api.reload(options.id, {
-                        filter: JSON.stringify(formatFilter),
-                        op: JSON.stringify(formatOp)
+                        filter: Fun.api.JSONStringify(formatFilter),
+                        op: Fun.api.JSONStringify(formatOp)
                     }, true, false);
                     return false;
                 })
@@ -1115,8 +1115,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         where = {}
                         if(text) {
                             where = {
-                                filter: JSON.stringify(formatFilter),
-                                op: JSON.stringify(formatOp)
+                                filter: Fun.api.JSONStringify(formatFilter),
+                                op: Fun.api.JSONStringify(formatOp)
                             }
                         }
                         Table.api.reload(tableId, where, true, false);

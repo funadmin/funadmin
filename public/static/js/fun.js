@@ -385,7 +385,14 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             dropdown: function (othis,options=null,rowData=null) {
                 var extend = $(othis).attr('data-extend');
-                extend = JSON.parse(extend)
+                extend = JSON.parse(extend, (k, v) => {
+                    if (typeof v === 'string' && v.indexOf && v.indexOf('function') > -1) {
+                        // eval 可能在eslint中报错，需要加入下行注释
+                        // eslint-disable-next-line
+                        return eval(`(function(){return ${v}})()`);
+                    }
+                    return v;
+                });
                 if (typeof extend === 'object') {
                     ele = '';d= '';
                     if(rowData){ele = rowData.config;d = rowData.data;}
@@ -402,6 +409,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             }
                         }
                         if(Fun.checkAuth(url)){
+                            console.log(v)
                             extend[k].url =url;
                             extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
                             extend[k].id = v.id || v.event
@@ -427,9 +435,15 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
                                     Table.events[attrEvent].call(this, _that.find('button'))
                                 }else if(data.callback){
-                                    eval(data.callback)(_that,data)
+                                    // console.log(data)
+                                    if(typeof data.callback === 'function'){
+                                        data.callback(_that,data);
+                                    }else{
+                                        data.callback.indexOf('(')!==-1 ?eval( data.callback):eval(data.callback)(_that,data)
+                                    }
                                 }else{
-                                    eval(data.event)(_that,data)
+                                    data.event.indexOf('(')!==-1 ?eval(data.event):eval(data.event)(_that,data)
+
                                 }
                             })
 
@@ -442,6 +456,32 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         },
         //接口
         api: {
+            JSONParse :function(str){
+                return JSON.parse(str, (k, v) => {
+                    if (typeof v === 'string' && v.indexOf && v.indexOf('function') > -1) {
+                        // eval 可能在eslint中报错，需要加入下行注释
+                        // eslint-disable-next-line
+                        return eval(`(function(){return ${v}})()`);
+                    }
+                    return v;
+                });
+            },
+            JSONStringify :function(obj){
+                return JSON.stringify(obj,
+                    (key, val) => {
+                        // 处理函数丢失问题
+                        if (typeof val === 'function') {
+                            return `${val}`;
+                        }
+                        // 处理undefined丢失问题
+                        if (typeof val === 'undefined') {
+                            return 'undefined';
+                        }
+                        return val;
+                    },
+                    2
+                )
+            },
             setStorage: function(key,value) {
                 if (value != null && value !== "undefined") {
                     layui.data(key,{
@@ -463,7 +503,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     return false
                 }
             },
-
             //设置子页面主题
             setFrameTheme:function(body=''){
                 var colorId = Fun.api.getStorage('funColorId');
@@ -685,7 +724,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             callback:function (othis){
                 callback = othis.data('callback');
-                if (callback) {
+                if (typeof callback == 'function') {
+                    callback(othis);
+                }else{
                     callback = callback.replace('obj','othis').replace('_that','othis');
                     callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
                     callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
