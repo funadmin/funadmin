@@ -89,13 +89,13 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             return newTable
         },
         renderToolbar: function (options) {
-            var d = options.toolbar, tableId = options.id, searchInput = options.searchInput;init = options.init;
+            var d = options.toolbar, tableId = options.id, searchInput = options.searchInput;requests = options.init.requests;
             d = d || [];
             var toolbarHtml = '';
             var nodeArr = ['refresh','add', 'delete', 'destroy', 'export', 'import', 'recycle', 'restore'];
             layui.each(d, function (i, v) {
                 if ($.inArray(v, nodeArr) !== -1) {
-                    if (v !== 'refresh') url = Fun.replaceurl(eval('init.requests.' + v + '_url'), d);
+                    if (v !== 'refresh') url = Fun.replaceurl(eval('requests.' + v + '_url'), d);
                     if (v === 'refresh') {
                         toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" lay-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n'
                     } else if (v === 'add') {
@@ -127,34 +127,36 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-tips="restore"  lay-event="request" data-tableid="' + tableId + '"  data-url="' + url + '" data-text="' + __('Are you sure restore') + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Restore') + '</a>\n'
                         }
                     }
-                } else if (typeof v === 'string' && (typeof eval('init.requests.' + v)=== 'string' || typeof eval('init.requests.' + v+ '_url')=== 'string')) {
+                } else if (typeof v === 'string' && (typeof eval('requests.' + v)=== 'string' || typeof eval('requests.' + v+ '_url')=== 'string')) {
                     if (Fun.checkAuth(v, options.elem)) {
-                        url = eval(('init.requests.' + v + '_url'))  ||　eval(('init.requests.' + v ))
+                        url = eval(('requests.' + v + '_url'))  ||　eval(('requests.' + v ))
                         if(!url) return ;
                         url = Fun.replaceurl(url, d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n'
                     }
-                } else if (typeof v === 'string' && typeof eval('init.requests.' + v) === 'object' || typeof v === 'object') {
+                } else if (typeof v === 'string' && typeof eval('requests.' + v) === 'object' || typeof v === 'object') {
                     if (typeof v === 'string') {
-                        v = eval('init.requests.' + v)
+                        v = eval('requests.' + v)
                     }
                     if(!v) return ;
-                    v.extend = typeof v.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(v.extend) + "'" : v.extend;
-                    v.callback = typeof v.callback=='function'?Fun.api.JSONStringify(v.callback ) : v.callback;
+
                     url = Fun.replaceurl(v.url, d);
                     v.node = v.node === false ? v.node : Fun.common.getNode(v.url);
                     if (v.node === false || Fun.checkAuth(v.node, options.elem)) {
+                        v.tips = v.tips || '';
                         v.full = v.full || 0;
                         v.resize = v.resize || 0;
                         v.width = v.width || 800;
                         v.height = v.height || 600;
                         v.extend = v.extend || '';
                         v.callback = v.callback || '';
-                        v.tips = v.tips || '';
+                        v.extend = typeof v.extend === "object" ?  Fun.api.JSONStringify(v.extend) : v.extend;
+                        v.callback = typeof v.callback=='function'?Fun.api.JSONStringify(v.callback ) : v.callback;
+                        v.btn = v.btn!==undefined ? v.btn :undefined;btn = v.btn != undefined ? 'data-btn="' + v.btn + '" ' : '';//会影响后面行
                         if (v.type) {
-                            toolbarHtml += '<a '+ "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a '+ btn + "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" data-extend="'+ v.extend +'"><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += '<a '+ "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a '+ btn + "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title  + '" data-extend="'+ v.extend +'"><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -643,7 +645,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.class = va.class || '';
                     vv.class = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;
                     vv.full = va.full || '';
-                    vv.btn = va.btn || '';
                     vv.align = va.align || '';
                     vv.width = va.width || '';
                     vv.height = va.height || '';
@@ -653,8 +654,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.text = va.text || '';
                     vv.title = va.title || vv.text || '';
                     vv.tips = va.tips || '';
-                    vv.extend = va.extend || ' ';
+                    vv.extend = va.extend || '';
                     vv.callback = va.callback || ' ';
+                    vv.btn = va.btn!==undefined ? va.btn :undefined;
                     vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : "data-extend='"+vv.extend+"'";
                     vv.callback = typeof vv.callback === "function" ? "callback='" + Fun.api.JSONStringify(vv.callback) + "'" :  "callback='"+vv.callback+"'";
                     vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
@@ -670,7 +672,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
                     vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
                     vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
-                    vv.btn = vv.btn !== '' ? 'data-btn="' + vv.btn + '" ' : '';
+                    vv.btn = vv.btn != undefined ? 'data-btn="' + vv.btn + '" ' : '';
                     vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
                     vv.tableid = 'data-tableid="' + init.table_elem + '"';
                     vv.text = 'data-text="' + vv.text + '"';
