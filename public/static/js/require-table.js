@@ -140,6 +140,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     }
                     if(!v) return ;
                     v.extend = typeof v.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(v.extend) + "'" : v.extend;
+                    v.callback = typeof v.callback=='function'?Fun.api.JSONStringify(v.callback ) : v.callback;
                     url = Fun.replaceurl(v.url, d);
                     v.node = v.node === false ? v.node : Fun.common.getNode(v.url);
                     if (v.node === false || Fun.checkAuth(v.node, options.elem)) {
@@ -148,11 +149,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         v.width = v.width || 800;
                         v.height = v.height || 600;
                         v.extend = v.extend || '';
+                        v.callback = v.callback || '';
                         v.tips = v.tips || '';
                         if (v.type) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += "<a data-urlname='"+d[i]+ "'" +" callback='"+v.callback +"'"+ ' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += "<a data-urlname='"+d[i]+ "'" +" callback='"+v.callback +"'"+ ' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -651,11 +653,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.text = va.text || '';
                     vv.title = va.title || vv.text || '';
                     vv.tips = va.tips || '';
-                    vv.extend = va.extend || '';
+                    vv.extend = va.extend || ' ';
+                    vv.callback = va.callback || ' ';
                     vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : vv.extend;
+                    vv.callback = typeof vv.callback === "function" ? " callback='" + Fun.api.JSONStringify(vv.callback) + "'" : vv.callback;
                     vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
                     vv.url = va.url.indexOf("?") !== -1 ? va.url + '&'+d.primaryKey+'=' + d.primaryKeyValue : va.url + '?'+d.primaryKey+'=' + d.primaryKeyValue;
                     vv.url = Fun.replaceurl(vv.url, d);
+                    vv.urlname = "data-urlname='"+ ele.operat[k]+"'";
                     vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
                     vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
                     vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
@@ -672,7 +677,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.text = 'data-text="' + vv.text + '"';
                     vv.tips = 'lay-tips="' + vv.tips + '"';
                     if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId))) {
-                        html += '<button ' + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
+                        html += '<button '+  vv.urlname+  vv.callback + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                     }
                 });
                 return html

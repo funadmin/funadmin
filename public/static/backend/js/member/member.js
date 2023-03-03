@@ -37,6 +37,10 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 // full: 1,
                 width:'800',
                 height:'600',
+                extend:{},
+                callback:function (data) {
+                    console.log(data);
+                }
             },
             dropdown:{
                 type: 'dropdown',
@@ -60,6 +64,10 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         ,callback: function(obj){
                             console.log("eee");
                             console.log(obj);
+                            $.get("member.member/index", function(res){
+                                console.log(res)
+                                Fun.toastr.error("ok")
+                            });
                         }
                     },
                     {
@@ -103,7 +111,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 // primaryKey:"member_id",
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
-                toolbar: ['refresh','add_full','destroy','import','export','recycle'],
+                toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
@@ -146,7 +154,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        // operat: ['edit_url','copy', 'destroy','dropdown'],
+                        operat: ['edit_url','copy', 'destroy','dropdown'],
                         // operat: ['edit_url', 'destroy']
                     }
                 ]],

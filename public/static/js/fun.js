@@ -723,10 +723,11 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 return returnData;
             },
             callback:function (othis){
-                callback = othis.data('callback');
-                if (typeof callback == 'function') {
+                callback = othis.data('callback') || othis.attr('callback');
+                callback = callback.indexOf('function')!==-1 ? Fun.api.JSONParse(callback) :(callback?callback:'')
+                if (typeof callback === 'function') {
                     callback(othis);
-                }else{
+                }else if(callback){
                     callback = callback.replace('obj','othis').replace('_that','othis');
                     callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
                     callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
