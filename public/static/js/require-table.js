@@ -152,9 +152,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         v.callback = v.callback || '';
                         v.tips = v.tips || '';
                         if (v.type) {
-                            toolbarHtml += "<a data-urlname='"+d[i]+ "'" +" callback='"+v.callback +"'"+ ' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a '+ "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="' + v.type + '" data-tableid="' + tableId + '"   data-url="' + url + '" data-text="' + v.text + '" data-title="'+ v.title +'" title="' + v.title + '" ' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         } else {
-                            toolbarHtml += "<a data-urlname='"+d[i]+ "'" +" callback='"+v.callback +"'"+ ' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
+                            toolbarHtml += '<a '+ "callback='"+v.callback+"'" +' class="layui-btn layui-btn-sm ' + v.class + '" data-width="' + v.width + '" data-height="' + v.height + '" data-full="' + v.full + '" data-resize="' + v.resize + '" lay-tips="'+v.tips+'" lay-event="request" data-tableid="' + tableId + '" data-url="' + url + '" data-text="' + v.text + '"  data-title="'+ v.title +'" title="' + v.title + '"' + v.extend + '><i class="layui-icon ' + v.icon + '"></i>' + v.title + '</a>\n'
                         }
                     }
                 }
@@ -655,12 +655,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.tips = va.tips || '';
                     vv.extend = va.extend || ' ';
                     vv.callback = va.callback || ' ';
-                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : vv.extend;
-                    vv.callback = typeof vv.callback === "function" ? " callback='" + Fun.api.JSONStringify(vv.callback) + "'" : vv.callback;
+                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : "data-extend='"+vv.extend+"'";
+                    vv.callback = typeof vv.callback === "function" ? "callback='" + Fun.api.JSONStringify(vv.callback) + "'" :  "callback='"+vv.callback+"'";
                     vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
                     vv.url = va.url.indexOf("?") !== -1 ? va.url + '&'+d.primaryKey+'=' + d.primaryKeyValue : va.url + '?'+d.primaryKey+'=' + d.primaryKeyValue;
                     vv.url = Fun.replaceurl(vv.url, d);
-                    vv.urlname = "data-urlname='"+ ele.operat[k]+"'";
                     vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
                     vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
                     vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
@@ -676,8 +675,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     vv.tableid = 'data-tableid="' + init.table_elem + '"';
                     vv.text = 'data-text="' + vv.text + '"';
                     vv.tips = 'lay-tips="' + vv.tips + '"';
+                    vv.value = "data-id='" + d.primaryKeyValue + "' ";
                     if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId))) {
-                        html += '<button '+  vv.urlname+  vv.callback + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
+                        html += '<button '+  vv.value + vv.callback + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                     }
                 });
                 return html

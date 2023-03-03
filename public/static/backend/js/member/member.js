@@ -111,7 +111,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 // primaryKey:"member_id",
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
-                toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],
+                toolbar: ['refresh','add_full','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
@@ -154,8 +154,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_url','copy', 'destroy','dropdown'],
-                        // operat: ['edit_url', 'destroy']
+                        // operat: ['edit_url','copy', 'destroy','dropdown'],
+                        operat: ['edit_url', 'destroy']
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],
