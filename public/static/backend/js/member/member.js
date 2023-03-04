@@ -158,23 +158,23 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         templet: Table.templet.operat,
                         // operat: ['edit_url','copy', 'destroy','dropdown'],
                         operat: ['edit_url', 'destroy',
-                        //     {
-                        //         type: 'open',
-                        //         event: 'open',
-                        //         class: 'layui-btn-xs layui-btn-green',
-                        //         url: 'member.member/edit',
-                        //         icon: 'layui-icon layui-icon-edit',
-                        //         text: __('Edit'),
-                        //         title: __('Edit'),
-                        //         // full: 1,
-                        //         width:'800',
-                        //         height:'600',
-                        //         extend:'',
-                        //         // btn:'close',
-                        //         callback:function (data) {
-                        //         console.log(data);
-                        //     }
-                        // } //使用方法三
+                            // {
+                            //     type: 'x',
+                            //     event: 'x',
+                            //     class: 'layui-btn-xs layui-btn-green',
+                            //     url: 'member.member/edit',
+                            //     icon: 'layui-icon layui-icon-edit',
+                            //     text: __('Edit'),
+                            //     title: __('Edit'),
+                            //     // full: 1,
+                            //     width:'800',
+                            //     height:'600',
+                            //     extend:'',
+                            //     // btn:'close',
+                            //     callback:function (obj) {
+                            //     console.log($(obj).data());
+                            // }
+                            // } //使用方法三
                     ]
                     }
                 ]],
