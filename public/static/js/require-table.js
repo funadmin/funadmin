@@ -561,128 +561,143 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.operat = ele.operat || ['edit', 'delete'];
                 var html = '';
                 var requests = init['requests'] || d.init['requests'];
-                layui.each(ele.operat, function (k, v) {
-                    var vv = {};
-                    var va = {};
-                    if (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string')) {
-                        if (v === 'add') {
-                            va = {
-                                type: 'open',
-                                event: 'open',
-                                class: 'layui-btn layui-btn-warm',
-                                text: __('Add'),
-                                title: __('Add'),
-                                url: requests.add_url,
-                                icon: 'layui-icon layui-icon-add-circle-fine',
-                                extend: "", width: '800', height: '600', tips: 'add',
+                if(typeof ele.operat=="object"){
+                    layui.each(ele.operat, function (k, v) {
+                        var vv = {};
+                        var va = {};
+                        if (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string')) {
+                            if (v === 'add') {
+                                va = {
+                                    type: 'open',
+                                    event: 'open',
+                                    class: 'layui-btn layui-btn-warm',
+                                    text: __('Add'),
+                                    title: __('Add'),
+                                    url: requests.add_url,
+                                    icon: 'layui-icon layui-icon-add-circle-fine',
+                                    extend: "", width: '800', height: '600', tips: 'add',
+                                }
+                            } else if (v === 'edit' || v==='copy') {
+                                icon = v==='edit'? 'layui-icon-edit': 'layui-icon-file-b';
+                                va = {
+                                    type: 'open',
+                                    event: 'open',
+                                    class: 'layui-btn layui-btn-normal',
+                                    text: __(v),
+                                    title: __(v),
+                                    url: requests[v+'_url'],
+                                    icon: 'layui-icon '+icon,
+                                    extend: "", width: '800', height: '600', tips: v,
+                                }
+                            } else if (v === 'delete') {
+                                va = {
+                                    type: 'delete',
+                                    event: 'request',
+                                    class: 'layui-btn layui-btn-danger',
+                                    text: __('Are you sure to delete'),
+                                    title: __('Delete'),
+                                    url: requests.delete_url,
+                                    icon: 'layui-icon layui-icon-delete',
+                                    extend: "", width: '800', height: '600',tips: 'delete',
+                                }
+                            } else if (v === 'destroy') {
+                                va = {
+                                    type: 'delete',
+                                    event: 'request',
+                                    class: 'layui-btn layui-btn-warm',
+                                    text: __('Are you sure to Destroy'),
+                                    title: __('Destroy'),
+                                    url: requests.destroy_url,
+                                    icon: 'layui-icon layui-icon-fonts-clear',
+                                    extend: "", width: '800', height: '600',tips: 'destroy',
+                                }
+                            } else if (v === 'restore') {
+                                va = {
+                                    type: 'request',
+                                    event: 'request',
+                                    class: 'layui-btn layui-btn-warm',
+                                    text: __('Are you sure to restore'),
+                                    title: __('Restore'),
+                                    url: requests.restore_url,
+                                    icon: 'layui-icon layui-icon-refresh-1',
+                                    extend: "", width: '800', height: '600',tips: 'restore',
+                                }
+                            } else {
+                                va = {
+                                    type: 'open',
+                                    event: 'open',
+                                    class: 'layui-btn layui-btn-warm',
+                                    text: __('Open'),
+                                    title: __('Open'),
+                                    url: eval('requests.' + v + '_url') || eval('requests.' + v),
+                                    icon: 'layui-icon layui-icon-rate',
+                                    extend: "", width: '800', height: '600',tips: '',
+                                }
                             }
-                        } else if (v === 'edit' || v==='copy') {
-                            icon = v==='edit'? 'layui-icon-edit': 'layui-icon-file-b';
-                            va = {
-                                type: 'open',
-                                event: 'open',
-                                class: 'layui-btn layui-btn-normal',
-                                text: __(v),
-                                title: __(v),
-                                url: requests[v+'_url'],
-                                icon: 'layui-icon '+icon,
-                                extend: "", width: '800', height: '600', tips: v,
-                            }
-                        } else if (v === 'delete') {
-                            va = {
-                                type: 'delete',
-                                event: 'request',
-                                class: 'layui-btn layui-btn-danger',
-                                text: __('Are you sure to delete'),
-                                title: __('Delete'),
-                                url: requests.delete_url,
-                                icon: 'layui-icon layui-icon-delete',
-                                extend: "", width: '800', height: '600',tips: 'delete',
-                            }
-                        } else if (v === 'destroy') {
-                            va = {
-                                type: 'delete',
-                                event: 'request',
-                                class: 'layui-btn layui-btn-warm',
-                                text: __('Are you sure to Destroy'),
-                                title: __('Destroy'),
-                                url: requests.destroy_url,
-                                icon: 'layui-icon layui-icon-fonts-clear',
-                                extend: "", width: '800', height: '600',tips: 'destroy',
-                            }
-                        } else if (v === 'restore') {
-                            va = {
-                                type: 'request',
-                                event: 'request',
-                                class: 'layui-btn layui-btn-warm',
-                                text: __('Are you sure to restore'),
-                                title: __('Restore'),
-                                url: requests.restore_url,
-                                icon: 'layui-icon layui-icon-refresh-1',
-                                extend: "", width: '800', height: '600',tips: 'restore',
-                            }
-                        } else {
-                            va = {
-                                type: 'open',
-                                event: 'open',
-                                class: 'layui-btn layui-btn-warm',
-                                text: __('Open'),
-                                title: __('Open'),
-                                url: eval('requests.' + v + '_url') || eval('requests.' + v),
-                                icon: 'layui-icon layui-icon-rate',
-                                extend: "", width: '800', height: '600',tips: '',
+                        } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
+                            if (typeof v === 'string') {
+                                va = eval('requests.' + v)
+                            } else {
+                                va = v
                             }
                         }
-                    } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
-                        if (typeof v === 'string') {
-                            va = eval('requests.' + v)
-                        } else {
-                            va = v
+                        if($.isEmptyObject(va)){ return ;}
+                        vv.type = va.type || '';
+                        vv.class = va.class || '';
+                        vv.class = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;
+                        vv.full = va.full || '';
+                        vv.align = va.align || '';
+                        vv.width = va.width || '';
+                        vv.height = va.height || '';
+                        vv.event = va.event || vv.type || '';
+                        vv.icon = va.icon || '';
+                        vv.url = va.url || '';
+                        vv.text = va.text || '';
+                        vv.title = va.title || vv.text || '';
+                        vv.tips = va.tips || '';
+                        vv.extend = va.extend || '';
+                        vv.callback = va.callback || ' ';
+                        vv.btn = va.btn!==undefined ? va.btn :undefined;
+                        vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : "data-extend='"+vv.extend+"'";
+                        vv.callback = typeof vv.callback === "function" ? "callback='" + Fun.api.JSONStringify(vv.callback) + "'" :  "callback='"+vv.callback+"'";
+                        vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
+                        vv.url = va.url.indexOf("?") !== -1 ? va.url + '&'+d.primaryKey+'=' + d.primaryKeyValue : va.url + '?'+d.primaryKey+'=' + d.primaryKeyValue;
+                        vv.url = Fun.replaceurl(vv.url, d);
+                        vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
+                        vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
+                        vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
+                        vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
+                        vv.icon = vv.icon + vv.title;
+                        vv.class = vv.class ? 'class="layui-event-tips ' + vv.class + '"' : vv.class;
+                        vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
+                        vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
+                        vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
+                        vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
+                        vv.btn = vv.btn != undefined ? 'data-btn="' + vv.btn + '" ' : '';
+                        vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
+                        vv.tableid = 'data-tableid="' + init.table_elem + '"';
+                        vv.text = 'data-text="' + vv.text + '"';
+                        vv.tips = 'lay-tips="' + vv.tips + '"';
+                        vv.value = "data-id='" + d.primaryKeyValue + "' ";
+                        if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId))) {
+                            html += '<button '+  vv.value + vv.callback + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
                         }
+                    });
+                    return html;
+                }else if(typeof ele.operat == 'string' || typeof ele.operat == 'function'){
+                    tpl = ele.operat;
+                    if(typeof ele.operat == 'function'){
+                        tpl = ele.operat();
+                    }else if(typeof ele.operat == 'string' && ele.operat.indexOf('#')===0){
+                        tpl = $(ele.operat).html();
                     }
-                    if($.isEmptyObject(va)){ return ;}
-                    vv.type = va.type || '';
-                    vv.class = va.class || '';
-                    vv.class = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;
-                    vv.full = va.full || '';
-                    vv.align = va.align || '';
-                    vv.width = va.width || '';
-                    vv.height = va.height || '';
-                    vv.event = va.event || vv.type || '';
-                    vv.icon = va.icon || '';
-                    vv.url = va.url || '';
-                    vv.text = va.text || '';
-                    vv.title = va.title || vv.text || '';
-                    vv.tips = va.tips || '';
-                    vv.extend = va.extend || '';
-                    vv.callback = va.callback || ' ';
-                    vv.btn = va.btn!==undefined ? va.btn :undefined;
-                    vv.extend = typeof vv.extend === "object" ? "data-extend='" + Fun.api.JSONStringify(vv.extend) + "'" : "data-extend='"+vv.extend+"'";
-                    vv.callback = typeof vv.callback === "function" ? "callback='" + Fun.api.JSONStringify(vv.callback) + "'" :  "callback='"+vv.callback+"'";
-                    vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
-                    vv.url = va.url.indexOf("?") !== -1 ? va.url + '&'+d.primaryKey+'=' + d.primaryKeyValue : va.url + '?'+d.primaryKey+'=' + d.primaryKeyValue;
-                    vv.url = Fun.replaceurl(vv.url, d);
-                    vv.width = vv.width !== '' ? 'data-width="' + vv.width + '"' : '';
-                    vv.height = vv.height !== '' ? 'data-height="' + vv.height + '"' : '';
-                    vv.type = vv.type !== '' ? 'data-type="' + vv.type + '" ' : '';
-                    vv.icon = vv.icon !== '' ? '<i class="layui-icon ' + vv.icon + '"></i>' : '';
-                    vv.icon = vv.icon + vv.title;
-                    vv.class = vv.class ? 'class="layui-event-tips ' + vv.class + '"' : vv.class;
-                    vv.url = vv.url !== '' ? 'data-url="' + vv.url + '" title="' + vv.title + '"' : '';
-                    vv.title = vv.title !== '' ? 'data-title="' +vv.title + '" title="' + vv.title + '"' : '';
-                    vv.event = vv.event !== '' ? 'lay-event="' + vv.event + '" ' : '';
-                    vv.full = vv.full !== '' ? 'data-full="' + vv.full + '" ' : '';
-                    vv.btn = vv.btn != undefined ? 'data-btn="' + vv.btn + '" ' : '';
-                    vv.align = vv.align !== '' ? 'data-align="' + vv.align + '" ' : '';
-                    vv.tableid = 'data-tableid="' + init.table_elem + '"';
-                    vv.text = 'data-text="' + vv.text + '"';
-                    vv.tips = 'lay-tips="' + vv.tips + '"';
-                    vv.value = "data-id='" + d.primaryKeyValue + "' ";
-                    if (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId))) {
-                        html += '<button '+  vv.value + vv.callback + vv.tableid + vv.class + vv.width + vv.height + vv.text + vv.title + vv.url + vv.event + vv.tips + vv.type + vv.extend + vv.full + vv.btn + vv.align + '>' + vv.icon + '</button>'
+                    if(tpl){
+                        layui.laytpl(tpl).render(d, function(html){
+                             htmlTpl = html;
+                        });
+                        return htmlTpl;
                     }
-                });
-                return html
+                }
             },
         },
         on: function (filter) {

@@ -156,26 +156,32 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
+                        operat: ['edit_url', 'destroy',],
                         // operat: ['edit_url','copy', 'destroy','dropdown'],
-                        operat: ['edit_url', 'destroy',
-                            // {
-                            //     type: 'x',
-                            //     event: 'x',
-                            //     class: 'layui-btn-xs layui-btn-green',
-                            //     url: 'member.member/edit',
-                            //     icon: 'layui-icon layui-icon-edit',
-                            //     text: __('Edit'),
-                            //     title: __('Edit'),
-                            //     // full: 1,
-                            //     width:'800',
-                            //     height:'600',
-                            //     extend:'',
-                            //     // btn:'close',
-                            //     callback:function (obj) {
-                            //     console.log($(obj).data());
-                            // }
-                            // } //使用方法三
-                    ]
+                        // operat:function(d){
+                        //     return '<div><a href="/detail/{{=d.id}}" className="layui-table-link">{{=d.avatar}}</a> </div>'
+                        // }
+                        // operat:'<div><a href="/detail/{{=d.id}}" class="layui-table-link">{{=d.status}}</a></div>',
+                        // operat:'#demo',
+                    //     operat: ['edit_url', 'destroy',
+                    //         // {
+                    //         //     type: 'x',
+                    //         //     event: 'x',
+                    //         //     class: 'layui-btn-xs layui-btn-green',
+                    //         //     url: 'member.member/edit',
+                    //         //     icon: 'layui-icon layui-icon-edit',
+                    //         //     text: __('Edit'),
+                    //         //     title: __('Edit'),
+                    //         //     // full: 1,
+                    //         //     width:'800',
+                    //         //     height:'600',
+                    //         //     extend:'',
+                    //         //     // btn:'close',
+                    //         //     callback:function (obj) {
+                    //         //     console.log($(obj).data());
+                    //         // }
+                    //         // } //使用方法三
+                    // ]
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500],
