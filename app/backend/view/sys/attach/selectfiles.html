@@ -62,17 +62,20 @@
                                 <i class="layui-icon layui-icon-edit"></i>
                             </a>
                             <div class="img-cover">
+
+                                <img width="100%" src="
                                 {if (strpos($vo.mime,'image')!==false)}
-                                <img width="100%" src="{$vo.path}"
+                                {$vo.path}
                                      {elseif(strpos($vo.mime,'video')!==false) /}
-                                __CDN____STATIC__/static/backend/images/filetype/video.jpg
+                                __CDN____STATIC__/backend/images/filetype/video.jpg
                                 {elseif(strpos($vo.mime,'audio')!==false) /}
-                                __CDN____STATIC__/static/backend/images/filetype/audio.jpg
+                                __CDN____STATIC__/backend/images/filetype/audio.jpg
                                 {elseif(strpos($vo.mime,'zip')!==false) /}
-                                __CDN____STATIC__/static/backend/images/filetype/zip.jpg
+                                __CDN____STATIC__/backend/images/filetype/zip.jpg
                                 {else/}
-                                __CDN____STATIC__/static/backend/images/filetype/file.jpg
+                                __CDN____STATIC__/backend/images/filetype/file.jpg
                                 {/if}
+                                "
                                 data-type="image" >
                             </div>
                             <p class="file-name">{$vo.original_name}</p>

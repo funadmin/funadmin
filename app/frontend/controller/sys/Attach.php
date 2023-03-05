@@ -84,6 +84,51 @@ class Attach extends Frontend
         if(input('original_name')){
             $where[] = ['original_name','like','%'.input('original_name').'%'];
         }
+        if($param['mime'] && $param['mime']!=='*'){
+            $mimeType = $param['mime'];
+            switch ($mimeType){
+                case 'text':
+                    $mime = ['text/plain', 'text/html', 'text/css', 'text/javascript','application/x-javascript'];
+                    break;
+                case 'zip':
+                case 'rar':
+                case 'x-tar':
+                    $mime = ['application/zip','application/rar','application/x-tar'];
+                    break;
+                case 'pdf':
+                    $mime = ['application/pdf'];
+                    break;
+                case 'psd':
+                    $mime = ['application/x-photoshop'];
+                    break;
+                case 'apk':
+                    $mime = ['application/vnd.android.package-archive'];
+                    break;
+                case 'jar':
+                    $mime = ['application/java-archive'];
+                    break;
+                case 'exe':
+                    $mime = ['application/octet-stream'];
+                    break;
+                case 'cdr':
+                    $mime = ['application/x-coreldraw'];
+                    break;
+                case 'application':
+                    $mime = ['application/zip','application/rar','application/x-tar','application/x-photoshop','application/vnd.android.package-archive','application/java-archive','application/octet-stream', 'application/pkcs12', 'application/vnd.mspowerpoint', 'application/xhtml+xml', 'application/xml',  'application/pdf'];
+                    break;
+                case 'video':
+                    $mime = ['video/mp4','video/mpeg','video/x-m4v','video/x-ms-wmv','video/x-msvideo','video/webm','video/x-flv'];
+                    break;
+                case 'audio':
+                    $mime = ['audio/mpeg','audio/midi','audio/x-wav', 'audio/x-mpegurl'	, 'audio/x-m4a'	, 'audio/ogg','audio/x-realaudio'];
+                    break;
+                case 'image':
+                case 'images':
+                    $mime = ['image/gif','image/jpeg','image/png','image/tiff','image/jp2','image/bmp','image/webp','image/svg+xml','image/x-icon',''];
+                    break;
+            }
+            $where[] = ['mime','in',$mime];
+        }
         $this->pageSize = $param['limit']??12;
         $list = $this->modelClass
             ->where($where)
