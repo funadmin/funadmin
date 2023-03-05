@@ -39,9 +39,18 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 height:'600',
                 extend:'',
                 // btn:'close',
-                callback:function (data) {
-                    console.log(data);
-                }
+                // hidden:function(row){
+                //     console.log(row)
+                //     return true;
+                // },
+                // callback:function (data,row) {
+                //     console.log(data);
+                //     var res = {
+                //         code:0,
+                //         msg:"ok",
+                //     }
+                //     Fun.toastr.success("a'"+ res.msg +"'sa");
+                // }
             },
             dropdown:{
                 type: 'dropdown',

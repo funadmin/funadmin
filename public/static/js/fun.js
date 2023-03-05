@@ -34,10 +34,10 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         },
         //替换ids
         replaceurl: function (url, d) {
-            d.id = typeof d.primaryKeyValue !== 'undefined' ? d.primaryKeyValue : 0;
+            id = typeof d.primaryKeyValue !== 'undefined' ? d.primaryKeyValue : 0;
             //替换ids
             if (url) {
-                url = url.indexOf('{ids}') !== -1 ? url.replace('{ids}', d.id) : url;
+                url = url.indexOf('{ids}') !== -1 ? url.replace('{ids}', id) : url;
             }
             return url;
         },
