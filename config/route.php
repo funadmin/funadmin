@@ -16,10 +16,8 @@ return [
     'url_route_must'        => false,
     // 合并路由规则
     'route_rule_merge'      => false,
-    //自动生成域名
-    'url_domain_deploy'      => true, //如果插件需要域名路由那么这里要开启为true
     // 路由是否完全匹配
-    'route_complete_match'  => false,
+    'route_complete_match'  => true,
     // 是否开启路由缓存
     'route_check_cache'     => false,
     // 路由缓存连接参数
