@@ -17,7 +17,7 @@ return [
     // 合并路由规则
     'route_rule_merge'      => false,
     // 路由是否完全匹配
-    'route_complete_match'  => true,
+    'route_complete_match'  => false,
     // 是否开启路由缓存
     'route_check_cache'     => false,
     // 路由缓存连接参数
