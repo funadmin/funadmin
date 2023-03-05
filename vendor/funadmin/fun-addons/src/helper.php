@@ -150,7 +150,7 @@ if (!function_exists('addons_vendor_autoload')) {
  */
 if (!function_exists('set_addons_info')) {
 
-    function set_addons_info($name, $array)
+    function set_addons_info(string $name, array $array)
     {
         $service = new Service(App::instance()); // 获取service 服务
         $addons_path = $service->getAddonsPath();
@@ -158,7 +158,8 @@ if (!function_exists('set_addons_info')) {
         $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
         $addon = get_addons_instance($name);
         $array = $addon->setInfo($name, $array);
-        $array['status'] ? $addon->enabled() : $addon->disabled();
+        $array['install']==1 && $array['status'] ? $addon->enabled() : $addon->disabled();
+        if($array['install']==0 && $array['status']) $addon->disabled();
         if (!isset($array['name']) || !isset($array['title']) || !isset($array['version'])) {
             throw new Exception("Failed to write plugin config");
         }
