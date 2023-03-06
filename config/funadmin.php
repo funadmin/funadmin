@@ -12,9 +12,9 @@ return [
     //版本
     'version' => '3.3.0',
 
-    'version_data' => '20230302',
+    'version_data' => '20230306',
 
-    'layui_version' => '2.8.5-beta',
+    'layui_version' => '2.8.10-beta',
 
     'ip_check'=>false,
 ];
