@@ -383,9 +383,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 });
                 return false
             },
-            dropdown: function (othis,options=null,rowData=null) {
-                var extend = $(othis).attr('data-extend');
-                extend = extend?Fun.api.JSONParse(extend):"";
+            dropdown: function (othis,rowData=null,tableOption=null) {
+                var data = $(othis).data(); extend = data.extend;
                 if (typeof extend === 'object') {
                     ele = '';d= '';
                     if(rowData){ele = rowData.config;d = rowData.data;}
@@ -402,6 +401,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             }
                         }
                         if(Fun.checkAuth(url)){
+                            extend[k].rowindex = k;
+                            extend[k].buttonsindex = data.buttonsindex;
                             extend[k].url =url;
                             extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
                             extend[k].id = v.id || v.event
@@ -423,19 +424,20 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         elem: othis, show: true, data: extend, click: function (data, _that) {
                             attrEvent = data.event;
                             data.title = data.textTitle;
+                            buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
+                            buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
+                            callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent].call(this, _that.find('button'))
+                                    Table.events[attrEvent].call(this, _that.find('button'),data,rowData,tableOption)
                                 }else if(data.callback){
-                                    // console.log(data)
-                                    if(typeof data.callback === 'function'){
-                                        data.callback(_that,data);
-                                    }else{
-                                        data.callback.indexOf('(')!==-1 ?eval( data.callback):eval(data.callback)(_that,data)
-                                    }
+                                    eval(data.callback)(_that,data,rowData,tableOption)
+                                }else if(typeof callback ==='function'){
+                                    callback(_that,data,rowData,tableOption)
+                                }else if(callback && typeof callback ==='string'){
+                                    eval(callback)(_that,data,rowData,tableOption)
                                 }else{
-                                    data.event.indexOf('(')!==-1 ?eval(data.event):eval(data.event)(_that,data)
-
+                                    eval(data.event)(_that,data,rowData,tableOption)
                                 }
                             })
 
@@ -545,8 +547,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             //打开新窗口
             open: function (options) {
                 var title = options.title, url = options.url, width = options.width,
-                    height = options.height, success = options.success,
-                    cancel = options.cancel;end=options.end;
+                    height = options.height, success = options.success, cancel = options.cancel;end=options.end;
                 yes = options.yes, btn2 = options.btn2, type = options.type;
                 type = type === undefined || type===2  ? 2 : 1;
                 var isResize = options.isResize === undefined;
@@ -557,7 +558,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 height = ($(window).height()+110)>=height?height + 'px' :'95%';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
-                if (options.btn === undefined) {
+                if (options.btn == undefined) {
                     btns = ['submit', 'close'];
                     options.btn_lang = [__('submit'), __('close')];
                 } else if (options.btn === 'false' || options.btn === false || options.btn === '') {
@@ -571,13 +572,12 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         btns.push(v);
                     })
                 }
-
                 if (options.btnAlign === undefined) {
                     options.btnAlign = 'c';
                 }
                 if (options.btn_lang === []) options.btn_lang = false;
                 var parentiframe = Fun.api.checkLayerIframe();
-                opt = $.extend({
+                opt = $.extend(options ? options : {},{
                     title: title, type: type, area: [width, height], content: url,
                     shadeClose: true, anim: 0, shade: 0.1, isOutAnim: true,
                     zIndex: parent.layui.layer.zIndex, //
@@ -619,7 +619,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     end:end === undefined?function(index, layero){
                         layer.close(layer.index);
                     }:end
-                }, options ? options : {})
+                }, )
                 //增加多个按钮
                 if(btns.length>1){
                     for (i=1;i<btns.length;i++) {
@@ -714,17 +714,27 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 })
                 return returnData;
             },
-            callback:function (othis){
-                callback = othis.data('callback') || othis.attr('callback');
-                callback = callback.indexOf('function')!==-1 ? Fun.api.JSONParse(callback) :(callback?callback:'')
-                if (typeof callback === 'function') {
-                    callback(othis);
-                }else if(callback){
-                    callback = callback.replace('obj','othis').replace('_that','othis');
-                    callback = callback.indexOf('(') !== -1 ? callback : callback + '(othis)';
-                    callback = callback.indexOf('othis') !== -1 ? callback : callback.replace('(','(othis,');
-                    eval(callback);
-                    return true;
+            getButtons:function(buttons,buttonsindex=0){
+                if(buttons[buttonsindex]){
+                    return buttons[buttonsindex];
+                }
+                return '';
+            },
+            callback:function (othis,rowData=null,tableOption=null){
+                var data = othis.data(),callback = data.callback;
+                if (callback && typeof callback === 'string') {
+                    eval(callback)(othis,rowData,tableOption);
+                }else if(!callback &&( rowData || tableOption)){
+                    buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
+                    buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
+                    if(!buttons) return true;
+                    callback = buttons.callback;
+                    if(!callback) return true;
+                    if(typeof callback === 'string'){
+                        eval(callback)(othis,rowData,tableOption);
+                    }else if(typeof callback === 'function'){
+                        buttons.callback(othis,rowData,tableOption);
+                    }
                 }
                 return true;
             },

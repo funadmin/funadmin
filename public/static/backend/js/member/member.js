@@ -1,7 +1,7 @@
 define(['jquery','table','form'], function ($,Table,Form) {
     Table.init = {
-        table_elem: 'list',
-        tableId: 'list',
+        table_elem: 'list1',
+        tableId: 'list1',
         requests: {
             modify_url: 'member.member/modify',
             index_url: 'member.member/index',
@@ -23,12 +23,13 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 title: __('Add'),
                 // node:false,//不使用节点权限
                 // full: 1,
+                btn:'submit',
                 width:'800',
                 height:'600',
             },
             edit_url:{
-                type: 'open',
-                event: 'open',
+                type: 'x',
+                event: 'x',
                 class: 'layui-btn-xs layui-btn-green',
                 url: 'member.member/edit',
                 icon: 'layui-icon layui-icon-edit',
@@ -43,14 +44,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 //     console.log(row)
                 //     return true;
                 // },
-                // callback:function (data,row) {
-                //     console.log(data);
-                //     var res = {
-                //         code:0,
-                //         msg:"ok",
-                //     }
-                //     Fun.toastr.success("a'"+ res.msg +"'sa");
-                // }
+                // callback:'demo'
             },
             dropdown:{
                 type: 'dropdown',
@@ -65,8 +59,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 height:'600',
                 extend:[
                     {
-                        title: 'add'
-                        ,id: 101
+                         title: 'add'
+                        ,id: 0
                         ,type: 'qita'
                         ,event: 'qita'
                         ,url: 'member.member/add'
@@ -74,41 +68,54 @@ define(['jquery','table','form'], function ($,Table,Form) {
                         ,callback: function(obj){
                             console.log("eee");
                             console.log(obj);
-                            $.get("member.member/index", function(res){
+                            $.get(Fun.url("member.member/index"), function(res){
                                 console.log(res)
-                                Fun.toastr.error("ok")
+                                Fun.toastr.success("ok")
                             });
                         }
                     },
                     {
                         title: 'add'
-                        ,id: 101
+                        ,id: 1
                         ,type: 'open'
                         ,event: 'open'
                         ,url: 'member.member/add'
                         ,icon: 'layui-icon layui-icon-edit'
-                    }]
+                    },
+                    {
+                        title: '事件'
+                        ,id: 1
+                        ,type: 'qita'
+                        ,event: 'qita'
+                        ,url: 'member.member/add'
+                        ,icon: 'layui-icon layui-icon-edit',
+                        // callback:'demo'
+
+                    }
+                    ]
             }
         },
     };
     demo = function (obj,data){
-        console.log(obj)
-        console.log(data)
+       layui.layer.msg('请求正确')
     }
-    Table.init2 = {
-        table_elem: 'list1',
-        tableId: 'list1',
-        requests: {
-            modify_url: 'member.memberGroup/modify',
-            index_url: 'member.memberGroup/index',
-            add_url: 'member.memberGroup/add',
-            delete_url: 'member.memberGroup/delete',
-            destroy_url: 'member.memberGroup/destroy',
-            edit_url: 'member.memberGroup/edit',
-            recycle_url: 'member.memberGroup/recycle',
-            export_url: 'member.memberGroup/export',
-        },
-    };
+    qita = function (obj,data){
+        layui.layer.msg('请求正确')
+    }
+    // Table.init2 = {
+    //     table_elem: 'list1',
+    //     tableId: 'list1',
+    //     requests: {
+    //         modify_url: 'member.memberGroup/modify',
+    //         index_url: 'member.memberGroup/index',
+    //         add_url: 'member.memberGroup/add',
+    //         delete_url: 'member.memberGroup/delete',
+    //         destroy_url: 'member.memberGroup/destroy',
+    //         edit_url: 'member.memberGroup/edit',
+    //         recycle_url: 'member.memberGroup/recycle',
+    //         export_url: 'member.memberGroup/export',
+    //     },
+    // };
     let Controller = {
         index: function () {
             var options = {
@@ -122,7 +129,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','import','export','recycle'],
-                // toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],
+                // toolbar: ['refresh','add_full','edit_url','dropdown','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
