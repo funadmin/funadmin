@@ -870,13 +870,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Fun.events.request(othis, null, Table)
             }, delete: function (othis, data=null,tableOptions=null) {
                 var tableId = othis.data('tableid');
-                if (options) {
-                    url = options.url;
-                    tableId = options.tableId || Table.init.tableId
-                } else {
-                    url = othis.data('url');
-                    tableId = tableId || Table.init.tableId
-                }
+                url = othis.data('url');
+                tableId = tableId || Table.init.tableId
                 arr = Table.getIds(url, tableId);
                 ids = arr[0]
                 length = arr[1];
