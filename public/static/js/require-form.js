@@ -888,13 +888,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     layui.each(fileChooseList, function(i, v) {
                         var data = $(this).data();
                         if(typeof data.value == 'object') data = data.value;
-                        var uploadType = data.type,
-                            uploadNum = data.num,
-                            uploadMime = data.mime,
-                            url = data.tableurl,
-                            path = data.path;
-                        uploadMime = uploadMime || '*';
-                        uploadType = uploadType ? uploadType : 'radio';
+                        var uploadType = data.type, uploadNum = data.num, uploadMime = data.mime, url = data.tableurl, path = data.path;
+                        uploadMime = uploadMime || '*';uploadType = uploadType ? uploadType : 'radio';
                         uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
                         var input = $(this).parents('.layui-upload').find('input[type="text"]');
                         var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
