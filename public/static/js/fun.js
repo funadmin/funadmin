@@ -450,32 +450,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         },
         //接口
         api: {
-            JSONParse :function(str){
-                return JSON.parse(str, (k, v) => {
-                    if (typeof v === 'string' && v.indexOf && v.indexOf('function') > -1) {
-                        // eval 可能在eslint中报错，需要加入下行注释
-                        // eslint-disable-next-line
-                        return eval(`(function(){return ${v}})()`);
-                    }
-                    return v;
-                });
-            },
-            JSONStringify :function(obj){
-                return JSON.stringify(obj,
-                    (key, val) => {
-                        // 处理函数丢失问题
-                        if (typeof val === 'function') {
-                            return `${val}`;
-                        }
-                        // 处理undefined丢失问题
-                        if (typeof val === 'undefined') {
-                            return 'undefined';
-                        }
-                        return val;
-                    },
-                    2
-                )
-            },
             setStorage: function(key,value) {
                 if (value != null && value !== "undefined") {
                     layui.data(key,{
