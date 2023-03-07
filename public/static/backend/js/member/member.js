@@ -23,7 +23,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 title: __('Add'),
                 // node:false,//不使用节点权限
                 // full: 1,
-                btn:'submit',
+                // btn:'submit',
                 width:'800',
                 height:'600',
             },
