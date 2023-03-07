@@ -679,7 +679,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             html += '<button ' + title + cls + dataAttr +' >' + icon + '</button>'
                         }
                     });
-                    layui.table.cache[init.table_elem][d.LAY_INDEX]['buttons'] = buttons
+                    if(typeof layui.treeTable!=='undefined'){
+                        layui.table.cache[init.table_elem][d.LAY_INDEX]['buttons'] = buttons
+                    }
                     return html;
                 }else if(typeof ele.operat == 'string' || typeof ele.operat == 'function'){
                     tpl = ele.operat;
