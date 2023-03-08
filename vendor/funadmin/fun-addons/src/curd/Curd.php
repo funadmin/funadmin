@@ -114,6 +114,11 @@ class Curd extends Command
         $param['menu'] = $input->getOption('menu');
         $param['jump'] = $input->getOption('jump');
         $param['app'] = $input->getOption('app');
+        $param['title'] = $input->getOption('title');
+        $param['author'] = $input->getOption('author');
+        $param['description'] = $input->getOption('description');
+        $param['ver'] = $input->getOption('ver');
+        $param['requires'] = $input->getOption('requires');
         if (empty($param['table'])) {
             $output->info("主表不能为空");
             return false;

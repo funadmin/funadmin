@@ -1,6 +1,6 @@
 name = {{$addon}}
-title = {{$title}}插件
-description = {{$description}}插件-FunAdmin插件
+title = {{$title}}
+description = {{$description}}
 status = 1
 install = 0
 author = {{$author}}

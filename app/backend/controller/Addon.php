@@ -180,11 +180,10 @@ class Addon extends Backend
     public function add(){
         if($this->request->isAjax()){
             $post = $this->request->post();
-            $curd = '';
+            $arr = [];
             foreach ($post as $k => $v) {
                 if ($k == '__token__') continue;
                 if ($v === '') continue;
-                $arr = [];
                 if (is_array($v)) {
                     foreach ($v as $kk => $vv) {
                         $arr[] = ['--' . $k, $vv];
@@ -192,18 +191,17 @@ class Addon extends Backend
                 } else {
                     $arr[] = ['--' . $k, $v];
                 }
-
-                $result = [];
-                array_walk_recursive($arr, function ($value) use (&$result) {
-                    array_push($result, $value);
-                });
-                $output = Console::call('addon', $result);
-                $content = $output->fetch();
-                if (strpos($content, 'success')) {
-                    $this->success(lang('make success'));
-                }
-                $this->error($content);
             }
+            $result = [];
+            array_walk_recursive($arr, function ($value) use (&$result) {
+                array_push($result, $value);
+            });
+            $output = Console::call('addon', $result);
+            $content = $output->fetch();
+            if (strpos($content, 'success')) {
+                $this->success(lang('make success'));
+            }
+            $this->error($content);
         }
         return view();
     }
