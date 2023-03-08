@@ -159,6 +159,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     dataAttr+=" lay-"+j +"='"+vv[j]+"'";
                                 }else if(j==='extend' && typeof vv[j] ==='object'){
                                     dataAttr+=" data-"+j +"='"+JSON.stringify(vv[j])+"'";
+                                }else if(j==='extend' && typeof vv[j] ==='string'){
+                                    dataAttr+=" "+ vv[j]+" ";
                                 }else{
                                     dataAttr+=" data-"+j +"='"+vv[j]+"'";
                                 }
@@ -670,6 +672,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     dataAttr+=" lay-"+j +"='"+vv[j]+"'";
                                 }else if(j==='extend' && typeof vv[j] ==='object'){
                                     dataAttr+=" data-"+j +"='"+JSON.stringify(vv[j])+"'";
+                                }else if(j==='extend' && typeof vv[j] ==='string'){
+                                    dataAttr+=" "+ vv[j]+" ";
                                 }else{
                                     dataAttr+=" data-"+j +"='"+vv[j]+"'";
                                 }
