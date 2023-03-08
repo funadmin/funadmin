@@ -23,35 +23,33 @@ body .layui-form-onswitch{border:none;}
 .layui-text-right{text-align:right}
 .layui-upload-list li{display:inline-block}
 .layui-upload-list li i{background:#f2f2f2;cursor:pointer}
-#searchFieldList_list form{padding:10px}
-#searchFieldList_list .layui-btn{height:32px;line-height:28px;font-size:12px;padding:0 10px}
-#searchFieldList_list .layui-form-label{padding:0 8px;height:32px;line-height:30px}
-#searchFieldList_list .layui-input-inline input,#searchFieldList_list .layui-input-inline select{width:100%;height:32px;padding:2px 8px;line-height:1em}
-#searchFieldList_list .layui-between .layui-input-inline{margin-right:3%;width:30%}
-#searchFieldList_list .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
-#searchFieldList_list .layui-form-select dl{top:31px;padding:0}
-.layui-form-select dl dd.layui-this{background:#1890ff;}
+.layui-search-fieldset form{padding:10px}
+.layui-search-fieldset .layui-btn{height:32px;line-height:28px;font-size:12px;padding:0 10px}
+.layui-search-fieldset .layui-form-label{padding:0 8px;height:32px;line-height:30px}
+.layui-search-fieldset .layui-input-inline input,.layui-search-fieldset .layui-input-inline select{width:100%;height:32px;padding:2px 8px;line-height:1em}
+.layui-search-fieldset .layui-between .layui-input-inline{margin-right:3%;width:30%}
+.layui-search-fieldset .layui-between .layui-input-inline + .layui-input-inline:before{content:"-";position:absolute;left:-6%;top:6px}
+.layui-search-fieldset .layui-form-select dl{top:31px;padding:0}
+.layui-form-select dl dd.layui-this{background:#1890ff;color:#fff}
 .layui-form-checked span, .layui-form-checked:hover span{background-color:#1890ff}
-.fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}
-.fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
-.fun-layer-class .layui-layer-setwin .layui-layer-min:after{content:"\e625"}
-.fun-layer-class .layui-layer-setwin .layui-layer-ico{background: none;}
-.fun-layer-class .layui-layer-setwin .layui-layer-ico{background: none;}
-.fun-layer-class .layui-layer-setwin .layui-layer-min cite{background: none;}
-.fun-layer-class .layui-layer-setwin .layui-layer-close1:after{content:"\e626"}
-.fun-layer-class .layui-layer-setwin{background:none !important}
-.fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:none!important;opacity:.7}
-.fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:none!important;opacity:.7}
-.fun-layer-class .layui-layer-setwin > a:focus{text-decoration:none !important}
+/*.fun-layer-class .layui-layer-setwin > a:after{content:"\e623";font-family:iconfont;font-style:normal;font-weight:normal;text-decoration:inherit;position:absolute;font-size:18px;color:#fff;margin:0;z-index:1}*/
+/*.fun-layer-class .layui-layer-setwin .layui-layer-ico{background: none;}*/
+/*.fun-layer-class .layui-layer-setwin .layui-layer-ico{background: none;}*/
+/*.fun-layer-class .layui-layer-setwin .layui-layer-min cite{background: none;}*/
+/*.fun-layer-class .layui-layer-setwin{background:none !important}*/
+/*.fun-layer-class .layui-layer-setwin .layui-layer-min:hover cite{background:none!important;opacity:.7}*/
+/*.fun-layer-class .layui-layer-setwin .layui-layer-max:hover{background:none!important;opacity:.7}*/
+/*.fun-layer-class .layui-layer-setwin > a:focus{text-decoration:none !important}*/
+/*.fun-layer-class .layui-layer-btn,.layui-layer-content{text-align:center}*/
+/*.fun-layer-class .layui-layer-btn a{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);*/
+/*    border-radius:3px;border:none;height:32px;line-height:32px;color: #fff;}*/
+.fun-layer-class .layui-layer-btn a:last-child{background:#fff;color:#333;border:1px solid #dedede;}
+.fun-layer-class .layui-layer-title{background: radial-gradient(circle, rgba(247,150,192,1) 0%, rgba(118,174,241,1) 100%) !important;color: #fff !important;border-bottom: none;}
 .layui-form-item.layui-btn-center button.submit{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);color:#fff;border:none}
 .layui-form-item.layui-btn-center button.reset{background:#eee}
 .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 
-.fun-layer-class .layui-layer-btn,.layui-layer-content{text-align:center}
-.fun-layer-class .layui-layer-title{background: radial-gradient(circle, rgba(247,150,192,1) 0%, rgba(118,174,241,1) 100%) !important;color: #fff !important;border-bottom: none;}
-.fun-layer-class .layui-layer-btn a{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);
-border-radius:3px;border:none;height:32px;line-height:32px;}
-.fun-layer-class .layui-layer-btn .layui-layer-btn1{background:#ccccccab}
+
 /* 偶数行背景色 */
 .layui-table tr:nth-child(even) {background-color: rgb(243 245 243);}
 /* 鼠标指向表格时,奇数行背景颜色 */
@@ -61,7 +59,6 @@ border-radius:3px;border:none;height:32px;line-height:32px;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #1890ff}
 .layui-form-checked[lay-skin=primary] i{border-color: #1890ff!important;background-color: #1890ff;}
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
-table.layui-table td .layui-form-select {margin-top: -10px;margin-left: -15px;margin-right: -15px;}
 
 
 #theme0 .layui-btn,

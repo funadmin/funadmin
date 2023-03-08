@@ -25,7 +25,6 @@
     window.Config = {:json_encode($config)};
     window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
     window.STATIC ='__STATIC__'
-    window.ADDONS = '__ADDONS__'
     window.PLUGINS = '__PLUGINS__';
 </script>
 <style>
@@ -40,27 +39,44 @@
                     FunAdmin系统
                 </div>
             </div>
-            <form class="layui-form layui-form-pane" action="">
+            <form class="layui-form" action="">
                 {:token_field()}
                 <div class="layui-form-item">
-                    <label class="layui-icon layui-icon-username"></label>
-                    <input type="text" name="username" lay-verify="required" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" value="">
+                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-username"></i>
+                        </div>
+                        <input type="text" name="username" value="" lay-verify="required" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" lay-affix="clear">
+                    </div>
                 </div>
+
                 <div class="layui-form-item">
-                    <label class="layui-icon layui-icon-password"></label>
-                    <input type="password" name="password" lay-verify="pass" placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" value="">
+                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-password"></i>
+                        </div>
+                        <input type="password" name="password" lay-verify="pass" value="" lay-verify="required"  placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" lay-affix="eye">
+                    </div>
                 </div>
                 {if config('captcha.check')}
                 <div class="layui-form-item">
-                    <label class="layui-icon layui-icon-vercode" ></label>
-                    <input type="text" name="captcha" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" value="">
+
+                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-vercode"></i>
+                        </div>
+                        <input type="text" name="captcha" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" lay-affix="clear">
+                    </div>
+
+                </div>
+                {/if}
+                <div class="layui-form-item layui-clear">
+                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
+                    {if config('captcha.check')}
                     <div class="captcha-img">
                         <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
                     </div>
-                </div>
-                {/if}
-                <div class="layui-form-item">
-                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
+                    {/if}
                 </div>
                 <div class="layui-form-item">
                     <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>

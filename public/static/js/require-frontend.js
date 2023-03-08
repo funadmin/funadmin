@@ -7,7 +7,7 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-var BASE_URL = document.scripts[document.scripts.length - 1].src.substring(0, document.scripts[document.scripts.length - 1].src.lastIndexOf('/')+1);
+var BASE_URL = location.protocol+'//'+location.host+'/static/';
 require.config({
     urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
     packages: [
@@ -19,19 +19,13 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect',
-        'treeTable','tableEdit','tableTree',
-        'iconPicker','iconFonts','tableFilter',
-        'toastr','step-lay','inputTags' ,'xmSelect',
-        'timeago','multiSelect','selectPlus','selectN','cityPicker',
-        'regionCheckBox','timePicker','croppers',
-        'md5','fun','fu','form','table','upload','addons'],
+        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableTree', 'iconPicker','iconFonts','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
-        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid',
+        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
         'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',
@@ -45,6 +39,7 @@ require.config({
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
         'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
         'selectN'       : 'plugins/lay-module/selectPlus/selectN',
+        'selectPage'    : 'plugins/lay-module/selectPage/selectpage.min',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
@@ -52,7 +47,6 @@ require.config({
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'fun'           : 'js/fun', // api扩展
-        'fu'            : 'js/require-fu',
         'form'          : 'js/require-form',
         'table'         : 'js/require-table',
         'upload'        : 'js/require-upload',
@@ -67,20 +61,11 @@ require.config({
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data', 'css!plugins/lay-module/cityPicker/city-picker.css'],
         },
-        'inputTags':{
-            deps: ['css!plugins/lay-module/inputTags/inputTags.css'],
-        },
-        'regionCheckBox':{
-            deps: ['css!plugins/lay-module/regionCheckBox/regionCheckBox.css'],
-        },
-        'multiSelect': {
-            deps: ['css!plugins/lay-module/multiSelect/multiSelect.css'],
+        'tableFilter':{
+            deps: ['css!plugins/lay-module/tableFilter/tableFilter.css'],
         },
         'timePicker':{
             deps:['css!plugins/lay-module/timePicker/timePicker.css'],
-        },
-        'step': {
-            deps: ['css!plugins/lay-module/step/step.css'],
         },
         'croppers': {
             deps: ['plugins/lay-module/cropper/cropper', 'css!plugins/lay-module/cropper/cropper.css'], exports: "cropper"
@@ -94,8 +79,8 @@ require.config({
 require(["jquery"], function ($) {
     // 配置语言包的路径
     var paths = {};
-    paths["lang"] = Config.entrance + 'ajax/lang?callback=define&addons='+Config.addonname+'&controllername=' + Config.controllername;
-    paths['frontend/'] = 'frontend/';
+    paths["lang"] = '/frontend/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
+    // paths['frontend/'] = 'frontend/';
     require.config({paths:paths});
     $(function () {
         require(['fun','addons'], function (Fun) {
@@ -103,7 +88,6 @@ require(["jquery"], function ($) {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     console.log(Config.jspath)
                     require([BASE_URL+Config.jspath], function (Controller) {
-                        console.log(Config.autojs)
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {

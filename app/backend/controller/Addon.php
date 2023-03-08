@@ -13,6 +13,9 @@
 
 namespace app\backend\controller;
 
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\service\AddonService;
 use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
@@ -26,6 +29,7 @@ use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
 use think\facade\Console;
+use think\facade\Cookie;
 
 /**
  * @ControllerAnnotation(title="插件管理")
@@ -34,15 +38,27 @@ use think\facade\Console;
  */
 class Addon extends Backend
 {
+
+    protected $middleware = [
+        CheckRole::class =>['except'=>['enlang','verify','logout']],
+        ViewNode::class,
+        SystemLog::class
+    ];
     protected $addonService;
     protected $authCloudService;
+    protected $app_version;
     public function __construct(App $app)
     {
+
         parent::__construct($app);
         $this->modelClass = new AddonModel();
         $this->addonService = new AddonService();
         $this->authCloudService = AuthCloudService::instance();
+        $this->app_version = config('funadmin.version');
     }
+
+
+
     /**
      * @NodeAnnotation(title="列表")
      * @return mixed|\think\response\Json|\think\response\View
@@ -59,7 +75,10 @@ class Addon extends Backend
                     ->run();
                 if ($result['code'] == 200) {
                     $this->authCloudService->setAuth($result['data']);
-                    $this->success(lang('login successful'));
+                    $member = $this->authCloudService->setApiUrl('api/v1.member/get')->setMethod('get')
+                        ->setParams([])->setHeader([$this->authCloudService->authorization=>$result['data']['access_token']])->run();
+                    $this->authCloudService->setMember($member['data']);
+                    $this->success(lang('login successful'),'',$member['data']);
                 } else {
                     $this->error(lang('Login failed:' . $result['msg']));
                 }
@@ -68,6 +87,7 @@ class Addon extends Backend
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
                 $map['cateid'] = $param['cateid']??0;
+                $map['app_version'] = $this->app_version;
                 unset($map['status']);
                 $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
                     ->setParams($map);
@@ -76,7 +96,12 @@ class Addon extends Backend
                 }else{
                     $res = $auth->run();
                 }
-                $list = $res['data'];
+                $list = [];
+                if($res['code']==200){
+                    $list = $res['data'];
+                }else if($res['code']==401){
+                    Cookie::set('auth_account','');
+                }
                 list($localAddons,$localNameArr) = $this->getLocalAddons();
                 $addonNameArr = $list?array_keys($list):[];
                 $where = [];
@@ -87,13 +112,13 @@ class Addon extends Backend
                     $where[] = ['name','not in',$addonNameArr];
                 }
                 try {
-                    $addons =  $this->modelClass->where($where)->column('*', 'name');
+                    $addons =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
                     $list = array_merge($localAddons,$addons,$list?$list:[]);
                     foreach ($list as $key => &$value) {
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
                         //是否已经安装过
-                        if($localNameArr and in_array($key,$localNameArr)){
+                        if($localNameArr && in_array($key,$localNameArr)){
                             $config = get_addons_config($key);
                             $info = get_addons_info($key);
                             if ($addons && !isset($addons[$key]) || !$addons) {
@@ -115,7 +140,7 @@ class Addon extends Backend
                                 $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
                                 $addons[$key]['web'] = httpType().$domain.'.'.$url;
                             }else{
-                                $addons[$key]['web'] = '/addons/'.$key;
+                                $addons[$key]['web'] = $info['url'];
                             }
                         }else{
                             $addons[$key] = $value;
@@ -143,7 +168,42 @@ class Addon extends Backend
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/cateList')->setMethod('GET')
             ->setParams([])->run();
         $cateList = $res['data'];
-        return view('',['auth'=>$this->authCloudService->getAuth()?1:0,'','cateList'=>$cateList]);
+        $account = $this->authCloudService->getMember();
+        return view('',[
+            'auth'=>$account?1:0, 'account'=>$account,'cateList'=>$cateList]);
+    }
+
+    /**
+     *創建插件
+     * @return \think\response\View
+     */
+    public function add(){
+        if($this->request->isAjax()){
+            $post = $this->request->post();
+            $arr = [];
+            foreach ($post as $k => $v) {
+                if ($k == '__token__') continue;
+                if ($v === '') continue;
+                if (is_array($v)) {
+                    foreach ($v as $kk => $vv) {
+                        $arr[] = ['--' . $k, $vv];
+                    }
+                } else {
+                    $arr[] = ['--' . $k, $v];
+                }
+            }
+            $result = [];
+            array_walk_recursive($arr, function ($value) use (&$result) {
+                array_push($result, $value);
+            });
+            $output = Console::call('addon', $result);
+            $content = $output->fetch();
+            if (strpos($content, 'success')) {
+                $this->success(lang('make success'));
+            }
+            $this->error($content);
+        }
+        return view();
     }
     /**
      * @NodeAnnotation(title="安装")
@@ -169,7 +229,7 @@ class Addon extends Backend
         }
         //检查插件是否安装
         $list = $this->isInstall($name);
-        if ($list and $list->status==1) {
+        if ($list && $list->status==1) {
             $this->error(lang('addons %s is already installed', [$name]));
         }
         list($addons,$localNameArr) = $this->getLocalAddons();
@@ -180,7 +240,8 @@ class Addon extends Backend
                 'plugins_id'=>$plugins_id,
                 'name'=>$name,
                 'version_id'=>$version_id,
-                'version'=>'',
+                'version'=> '',
+                'app_version'=>$this->app_version,
                 "ip" => request()->ip(),
                 "domain" => request()->domain(),
             ];
@@ -196,10 +257,16 @@ class Addon extends Backend
         if (empty($class)) {
             $this->error(lang('addons %s is not ready', [$name]));
         }
-        //安装插件
-        $class->install();
+        //添加数据库
+        try{
+            if($type!='upgrade'){
+                importsql($name);
+            }
+        } catch (Exception $e){
+            $this->error($e->getMessage());
+        }
         // 安装菜单
-        $menu_config=$this->get_menu_config($class);
+        $menu_config=get_addons_menu($name);
         if(!empty($menu_config)){
             if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
                 $pid = 0;
@@ -207,36 +274,30 @@ class Addon extends Backend
                 $pid = $this->addonService->addAddonManager()->id;
             }
             $menu[] = $menu_config['menu'];
-            $this->addonService->addAddonMenu($menu,$pid);
+            $this->addonService->addAddonMenu($menu,$pid,$name);
         }
+        //安装插件
+        $class->install();
         $addon_info = get_addons_info($name);
         $addon_info['status'] = 1;
         if($list){
-            $list->status=1;
-            $res = $list->save();
+            if($list->delete_time > 0){
+                $this->modelClass->restore(['id'=>$list->id]);
+            }
+            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
         }else{
             $res =  $this->modelClass->save($addon_info);
         }
         if (!$res) {
             $this->error(lang('addon install fail'));
         }
-        //添加数据库
-        try{
-            importsql($name);
-        } catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-        $sourceAssetsDir = Service::getSourceAssetsDir($name);
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($sourceAssetsDir)) {
-            FileHelper::copyDir($sourceAssetsDir, $destAssetsDir);
-        }
+        Service::copyApp($name,$delete = true);
         //复制文件到目录
         if(Service::getCheckDirs()){
             foreach (Service::getCheckDirs() as $k => $dir) {
                 $sourcedir = Service::getAddonsNamePath($name). $dir;
                 if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name);
+                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
                 }
             }
         }
@@ -293,7 +354,7 @@ class Addon extends Backend
             $this->error(lang('addon name is not right'));
         }
         //获取插件信息
-        $info =  $this->modelClass->where('name', $name)->find();
+        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if (empty($info)) {
             $this->error(lang('addon is not exist'));
         }
@@ -307,27 +368,19 @@ class Addon extends Backend
         $class = get_addons_instance($name);
         $class->uninstall();
         //删除菜单
-        $menu_config=$this->get_menu_config($class);
+        $menu_config=get_addons_menu($name);
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];
-                $this->addonService->delAddonMenu($menu);
+                $this->addonService->delAddonMenu($menu,$name);
             }
             //卸载sql;
             uninstallsql($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
-        // 移除插件基础资源目录
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($destAssetsDir)) {
-            FileHelper::delDir($destAssetsDir);
-        }
-        //删除文件
-        $list = Service::getGlobalAddonsFiles($name);
-        foreach ($list as $k => $v) {
-            @unlink(app()->getRootPath() . $v);
-        }
+        //还原文件
+        Service::removeApp($name,$delete= true);
         Service::updateAddonsInfo($name,1,0);
         try {
             //刷洗addon文件和配置
@@ -358,7 +411,7 @@ class Addon extends Backend
             Service::updateAddonsInfo($name,$addoninfo['status']);
             // 安装菜单
             $class = get_addons_instance($name);
-            $menu_config = $this->get_menu_config($class);
+            $menu_config = get_addons_menu($name);
             if(!empty($menu_config)){
                 if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
                     $pid = 0;
@@ -367,14 +420,13 @@ class Addon extends Backend
                 }
                 $menu[] = $menu_config['menu'];
                 if( $addoninfo['status']){
-                    $this->addonService->addAddonMenu($menu,$pid);
+                    $this->addonService->addAddonMenu($menu,$pid,$name);
                 }else{
-                    $this->addonService->delAddonMenu($menu);
+                    $this->addonService->delAddonMenu($menu,$name);
                 }
             }
             refreshaddons();
             $info->save();
-            $class = get_addons_instance($name);
             $addoninfo['status']==1 ?$class->enabled():$class->disabled();
         }catch (\Exception $e){
             $this->error(lang($e->getMessage()));
@@ -460,16 +512,8 @@ class Addon extends Backend
         if (empty($name)) {
             return false;
         }
-        $addons =  $this->modelClass->where('name', $name)->find();
+        $addons =  $this->modelClass->withTrashed()->where('name', $name)->find();
         return $addons;
-    }
-    /**
-     * @param $class
-     * @return mixed
-     */
-    protected function get_menu_config($class){
-        $menu = $class->menu;
-        return $menu;
     }
 
     /**
@@ -483,7 +527,7 @@ class Addon extends Backend
     }
 
     /**
-     * 更新
+     * 更新 先卸载插件
      * @return bool
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
@@ -494,7 +538,7 @@ class Addon extends Backend
         set_time_limit(0);
         $name = $this->request->param("name");
         //获取插件信息
-        $info =  $this->modelClass->where('name', $name)->find();
+        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if($info && $info->status==1){
             $this->error(lang('Please disable addons %s first',[$name]));
         }
@@ -505,16 +549,20 @@ class Addon extends Backend
         $class = get_addons_instance($name);
         $class->uninstall();
         //删除菜单
-        $menu_config=$this->get_menu_config($class);
+        $menu_config=get_addons_menu($name);
         try {
             if(!empty($menu_config)){
                 $menu[] = $menu_config['menu'];
-                $this->addonService->delAddonMenu($menu);
+                $this->addonService->delAddonMenu($menu,$name);
             }
             //为了防止文件误删，这里先不卸载sql
 //            uninstallsql($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
+        }
+        $sql = root_path().'addons/'.$name.'/'.'upgrade.sql';
+        if(file_exists($sql)){
+            importSqlData($sql);
         }
         //为了防止文件误删，这里先不删除文件
 //        // 移除插件基础资源目录
@@ -546,8 +594,16 @@ class Addon extends Backend
     protected function getCloundAddons($params){
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
             ->setParams($params)->setHeader()->setOptions()->run();
+        if($res['code'] == 401){
+            Cookie::delete('auth_account');
+            $this->error(lang('please login aigin'));
+        }
         if($res['code']!=200){
-            $this->error($res['msg']);
+            $url = '';
+            if(!empty($res['data']['url'])) {
+                $url = $res['data']['url'];
+            }
+            $this->error($res['msg'],$url);
         }
         $fileDir = '../runtime/addons/';
         if (!is_dir($fileDir)) {
@@ -562,4 +618,14 @@ class Addon extends Backend
 
     }
 
+    /**
+     * 退出云平台
+     * @return void
+     */
+    public function logout(){
+        Cookie::delete('auth_account');
+        Cookie::delete('clound_account');
+        $this->success(lang('logout success'));
+
+    }
 }

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>安装完成 - FunAdmin管理系统安装</title>
+    {include file="index/step-base"}
+</head>
+<body>
+<div class="layui-container">
+    {if(session('admin_install'))}
+    <h1 class="install-h1">完成</h1>
+    <blockquote class="layui-elem-quote" style="text-align:center">
+        <h1>安装成功</h1>
+        <p>账号:&nbsp;{:session('admin_install.username')}&nbsp;密码:&nbsp;{:session('admin_install.password')}&nbsp;</p>
+        <p style="color: red;">为了安全，请记得要删除 /app/install</p>
+        <p style="color: red;">请牢记后台登录地址：<a href="http://{:request()->host()}/backend" >http://{:request()->host()}/backend</a></p>
+    </blockquote>
+    <div class="btn-box">
+        <a href="/" class="layui-btn layui-btn-normal layui-btn-radius pre">前往前台浏览</a>
+        <a href="javascript:void(0)" class="layui-btn layui-btn-danger layui-btn-radius next">后台登录</a>
+    </div>
+    {else/}
+    <script>window.location.href='/';</script>
+    {/if}
+</div>
+
+
+<script>
+    layui.use('layer', function(){
+        var $ = layui.jquery, layer = layui.layer;
+        // 判断是否通过
+        $(document).on("click",'.next',function(){
+            $.post('')
+                    .done(function (res) {
+                        if (res.code>0) {
+                            window.location.href = "http://{:request()->host()}/"+'backend';
+                        }
+                        layer.close(load)
+                    })
+                    .fail(function (data) {
+
+                    });
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

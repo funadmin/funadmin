@@ -1,16 +1,29 @@
 <form class="layui-form" lay-filter="form">
-    {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters.'])}
+    {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}
+    {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
+    {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'])}
     {:form_input('mobile','text',['verify'=>'phone'])}
-    {:form_upload('avatar',$formData,['cropper'=>1])}
-    {:form_upload('attach_file', $formData, ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio','exts'=>'jpg,jpeg','mime' => 'images', 'path' =>'my', 'num' => '1'])}
-
-    {:form_upload('avatar2',$formData,['cropper'=>1])}
+    {:form_upload('avatar',$formData,['cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>'required'])}
+{/*    {:form_upload('avatar2',$formData,['cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>'required'])&cc;*/}
+{/*    {:form_tags('avatar3',[],'111')&cc;*/}
+{/*    {:form_upload('avatar2',$formData,['multiple'=>1,'num'=>10,'cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>'required'])&cc;*/}
     {:form_input('email','text',['verify'=>'email'])}
-    {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level','multiple'=>1] ,'id,name')}
-    {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group',] ,'id,name')}
 <!--    示例-->
-<!--    {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}-->
-<!--    {:form_selectn('city_ids',[],['url'=>__u('member.member/getcitys'),'multiple'=>1,'verify'=>'required'],'id,name',$formData?$formData['city_ids']:'')}-->
-<!--    {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex'],1)}-->
+{/*    {:form_tel('mobile',['verify'=>''])&cc;*/}
+{/*    {:form_number('number',['verify'=>''])&cc;*/}
+{/*    {:form_url('url',['verify'=>''])&cc;*/}
+{/*    {:form_email('email',['verify'=>''])&cc;*/}
+{/*    {:form_hidden('hidden',['verify'=>''])&cc;*/}
+{/*    {:form_range('range',['verify'=>'required'])&cc;*/}
+{/*    {:Form::range('range',['verify'=>'required'])&cc;*/}
+{/*    {:form_password('password',['verify'=>'SSS'])&cc;*/}
+{/*{:form_upload('attach_file', $formData, ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio','exts'=>'jpg,jpeg','mime' => 'images', 'path' =>'my', 'num' => '1'])&cc;*/}
+{/*    {:Form::selectpage('group_id',[],['url'=>'member.member/index','field'=>'username','multiple'=>true,'verify'=>'required'])&cc;*/}
+{/*    {:form_editor('content',1,['verify'=>'required'],$formData?$formData['content']:'')&cc;*/}
+{/*    {:form_slider('slider',['verify'=>'required','format'=>'rgb'])&cc;*/}
+{/*    {:form_color('color',['verify'=>'required','format'=>'rgb'])&cc;*/}
+{/*    {:form_selectn('city_ids',[],['url'=>__u('member.member/getcitys'),'multiple'=>1,'verify'=>'required'],'id,name',$formData?$formData['city_ids']:'')&cc;*/}
+{/*    {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex','verify'=>'required'],1)&cc;*/}
+{/*    {:form_icon('icon',['verify'=>'required'])&cc;*/}
     {:form_submitbtn()}
 </form>

@@ -17,6 +17,7 @@ namespace app\common\service;
 use fun\helper\HttpHelper;
 use fun\helper\StringHelper;
 use think\App;
+use think\facade\Config;
 use think\facade\Cookie;
 
 class AuthCloudService extends AbstractService
@@ -31,7 +32,7 @@ class AuthCloudService extends AbstractService
     public $expire = 3600*24*7;
     // 请求类型
     public $method = 'post';
-    public $authentication = 'authentication';//不可更改
+    public $authorization = 'authentication';//不可更改
     public $token = '';
     public $params = [];
     public $userdata = [];
@@ -44,6 +45,11 @@ class AuthCloudService extends AbstractService
         parent::__construct($app);
     }
 
+    public function getAppVersion(){
+        $config = Config::get('funadmin');
+        return $config?$config['version']:'';
+
+    }
     /**
      * $expire
      * @return mixed
@@ -76,10 +82,22 @@ class AuthCloudService extends AbstractService
      * 设置账号缓存
      * @return mixed
      */
-    public function setAuth($memberInfo=[])
+    public function setAuth($token=[])
     {
-        Cookie::set('auth_account',base64_encode(serialize($memberInfo)),$this->expire);
+        Cookie::set('auth_account',base64_encode(serialize($token)),$this->expire);
         return $this;
+    }
+
+    public function setMember($memberInfo = [])
+    {
+        Cookie::set('clound_account',base64_encode(serialize($memberInfo)),$this->expire);
+        return $this;
+    }
+
+    public function getMember()
+    {
+        $account = Cookie::get('clound_account');
+        return $account?unserialize(base64_decode(Cookie::get('clound_account'))):'';
     }
     /**
      * 获取授权账号
@@ -87,7 +105,8 @@ class AuthCloudService extends AbstractService
      */
     public function getAuth()
     {
-        return unserialize(base64_decode((Cookie::get('auth_account'))));
+        $auth_account = Cookie::get('auth_account');
+        return $auth_account?unserialize(base64_decode(Cookie::get('auth_account'))):'';
     }
     public function getApiUrl()
     {
@@ -117,6 +136,7 @@ class AuthCloudService extends AbstractService
         $data['appid'] = $this->appid;
         $data['appsecret'] = $this->appsecret;
         $data['key'] = $data['appsecret'];
+        $data['app_version'] = $this->getAppVersion();
         $data['sign'] = $this->getSign($data);
         $this->userdata= $data;
         return $this;
@@ -139,7 +159,7 @@ class AuthCloudService extends AbstractService
         return $this;
     }
 
-    public function setOptions($options = '')
+    public function setOptions($options = [])
     {
         $this->options = $options;
         return $this;
@@ -151,9 +171,8 @@ class AuthCloudService extends AbstractService
      */
     public function setHeader($header=[])
     {
-        $data = $this->getAuth();
-        $str= $data['client_id'] .' '.base64_encode($this->appid.':'.$data['access_token'].':'.$data['member_id']);
-        $header = array_merge([$this->authentication .":".$str],$header);
+        $data = $this->getAuth()?:['access_token'=>''];
+        $header = array_merge([$this->authorization=>$data['access_token']],$header);
         $this->header = $header;
         return $this;
     }
@@ -206,7 +225,7 @@ class AuthCloudService extends AbstractService
      * @return false|mixed
      */
     public function down($savePath,$saveName){
-        $res = HttpHelper::download($this->api_url,$savePath,$saveName,$this->method,$this->params,$this->header);
+        $res = HttpHelper::download($this->api_url,$savePath. DIRECTORY_SEPARATOR . $saveName);
         return $res;
     }
 

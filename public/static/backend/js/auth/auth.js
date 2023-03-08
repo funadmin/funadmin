@@ -40,7 +40,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,height:'100%'
                 ,isFilter:false
                 ,iconOpen:true//是否显示图标【默认显示】
-                ,isOpenDefault:false//节点默认是展开还是折叠【默认展开】
+                ,isOpenDefault:true//节点默认是展开还是折叠【默认展开】
                 ,loading:true
                 ,method:'get'
                 ,isPage:false
@@ -49,12 +49,14 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     // {field: 'id', title: __('ID'), width: 80, , sort: true},
                     {field: 'icon',title: __("icon"), width: 60,templet: Table.templet.icon},
                     {field: 'title', title: __('Auth Name'), minwidth: 120,},
-                    {field: 'href', title: __('Controller/Action'), minwidth: 200},
+                    {field: 'href', title: __('Module/Controller/Action'), minwidth: 200,templet: function (d){
+                            return d.module +'@'+ d.href;
+                        }},
                     {
                         field: 'auth_verify',
                         align: 'center',
                         title: __('Auth Verify'),
-                        width: 150,
+                        width: 100,
                         tips:__('YES')+'|'+__('NO'),
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         templet: Table.templet.switch,
@@ -62,7 +64,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'type',
                         title: __('IsMenu'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('No'), 1: __('Yes')},
                         filter: 'status',
@@ -71,7 +73,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'menu_status',
                         title: __('MenuStatus'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         filter: 'status',
@@ -80,13 +82,13 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {
                         field: 'status',
                         title: __('Status'),
-                        width: 120,
+                        width: 100,
                         search: 'select',
                         selectList: {0: __('Disabled'), 1: __('Enabled')},
                         filter: 'status',
                         templet: Table.templet.switch,
                     },
-                    {field: 'sort',align: 'center', title: __("sort"), width: 80, edit: 'text'},
+                    {field: 'sort',align: 'center', title: __("sort"), width: 60, edit: 'text'},
                     {
                         width: 300,
                         align: 'center',
@@ -160,8 +162,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     treeGrid.render();
                 });
             });
-            var table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
             Controller.api.bindevent()
@@ -177,9 +178,10 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
             bindevent: function () {
                 Form.api.bindEvent($('form'), function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
-                        Form.api.close();
+                        Fun.api.close();
                         Fun.refreshmenu();
                         Fun.toastr.close();
+                        parent.layui.treeGrid.reload('list')
                     }, 0));
                     }, function (res) {
                         Fun.toastr.error(res.msg);

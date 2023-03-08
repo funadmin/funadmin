@@ -1,0 +1,109 @@
+<style>body,html{margin:0;padding:0;height:100%;background:#fff}.tree .tree-choose{float:right;margin-right:15px;font-weight:700;font-size:12px}.file-group .group-header{width:100%;text-align:center}.file-group,.file-list{float:left;padding:0 10px}.file-list-right{padding:0}.file-list .box-header{margin-bottom:5px;height:30px}.box-body{width:100%}.box-body ul.file-list-item{overflow-y:auto;width:100%;height:480px}.box-body ul.file-list-item li{position:relative;float:left;margin:1%;padding:1%;width:20%;height:135px;overflow:hidden;border:1px solid rgba(0,0,0,.05);border-radius:6px;cursor:pointer;-webkit-transition:All .2s ease-in-out;-moz-transition:All .2s ease-in-out;-o-transition:All .2s ease-in-out;transition:All .2s ease-in-out}.box-body ul.file-list-item li:hover{border:1px solid dodgerblue}.box-body ul.file-list-item li .img-cover{display:table-cell;width:120px;height:120px;vertical-align:middle}.box-body ul.file-list-item li .img-cover image{width:120px}.box-body ul.file-list-item li p.file-name{overflow:hidden;margin:5px 0 0;width:120px;text-overflow:ellipsis;white-space:nowrap;word-wrap:normal}.box-body ul.file-list-item li.active .select-mask{display:block}.box-body ul.file-list-item li .select-mask{position:absolute;top:0;right:0;bottom:0;left:0;display:none;border-radius:6px;background:rgba(0,0,0,.5);text-align:center}.box-body ul.file-list-item li .select-mask img{position:absolute;top:50px;left:45px}.box-body ul.file-list-item li .file-edit{position:absolute;top:3px;right:3px;z-index:1;display:none}.box-body ul.file-list-item li .file-delete{position:absolute;top:3px;right:30px;z-index:1;display:none}.box-body ul.file-list-item li:hover .file-delete,.box-body ul.file-list-item li:hover .file-edit{display:block}.box-header .search{display:inline-flex;padding-right:0px;height:32px}.layui-btn{height:32px;line-height:32px}.box-header .group-select .layui-btn{padding:0 2px 0 8px}.box-header .delete{margin-left:5px}.box-header .dropdown{position:relative;display:inline-block}.box-header .dropdown .dropdown-content{position:absolute;top:100%;left:0;z-index:1020;float:left;display:none;margin:9px 0 0;padding:10px 0;min-width:200px;border:1px solid #ddd;border-radius:0;background-color:#fff;background-clip:padding-box;text-align:left;line-height:1.6;-webkit-background-clip:padding-box;-webkit-animation-duration:.15s;animation-duration:.15s}.box-header .dropdown.active > .dropdown-content{display:block}.box-header .dropdown .dropdown-content:after,.box-header .dropdown .dropdown-content:before{position:absolute;z-index:1;display:block;width:0;height:0;content:"";border:8px dashed transparent;border-bottom:8px solid transparent;border-width:0 8px 8px}.box-header .dropdown .dropdown-content:before{bottom:0;border-bottom-color:#ddd}.box-header .dropdown .dropdown-content:after{bottom:-1px;border-bottom-color:#fff}.box-header .dropdown .dropdown-content:after,.box-header .dropdown .dropdown-content:before{top:-16px;left:10px;pointer-events:none}.box-header .dropdown .dropdown-content:after{top:-14px}.box-header .dropdown .dropdown-content:first-child{margin-top:0}.box-header .dropdown .dropdown-header{display:block;padding:6px 20px;color:#999;font-size:13px}.box-header .dropdown ul.dropdown-content > li > a{clear:both;display:block;padding:6px 20px;color:#333;white-space:nowrap;font-weight:400}.box-header .dropdown ul.dropdown-content > li > a:focus,.box-header .dropdown ul.dropdown-content > li > a:hover{background-color:#f5f5f5;color:#262626;text-decoration:none}.box-header .dropdown ul.dropdown-content > .active > a,.box-header .dropdown ul.dropdown-content > .active > a:focus,.box-header .dropdown ul.dropdown-content > .active > a:hover{outline:0;background-color:#f5f5f5;color:#333;text-decoration:none}@media screen and (min-width:1023px){.box-body ul.file-list-item{overflow-y:auto;width:100%;height:auto}}</style>
+<link rel="stylesheet" href="__CDN____PLUGINS__/lay-module/eletree/css/icon.css">
+{:token_field()}
+<div class="layui-row" id="list">
+    <div class="layui-col-lg3 layui-col-xs3 layui-col-sm3 file-group">
+        <button class="layui-btn layui-btn-normal layui-btn-sm group-header"> 文件分组 </button>
+        <div class="tree" id="tree"
+             data-radio="{:isset($param['openradio'])?$param['openradio']:1}"
+             data-checkbox="{:isset($param['opencheckbox'])?$param['opencheckbox']:0}"
+             style="margin-top: 20px;">
+        </div>
+    </div>
+    <div class="layui-col-lg9 layui-col-xs9 layui-col-sm9 file-list file-list-right" >
+        <div class="box-header layui-row">
+            <div>
+                <div class="fl layui-col-xs3">
+                    <div class="fl group-select dropdown">
+                        <button type="button" class="layui-btn  layui-btn-normal layui-btn-sm">
+                            移动至<i class="layui-icon layui-icon-triangle-d"></i>
+                        </button>
+                        <ul class="group-list dropdown-content">
+                            <li class="dropdown-header">选择分组</li>
+                            <div class="tree" id="selectTree"></div>
+                        </ul>
+                    </div>
+                    <div class="fl delete">
+                        <button type="button" class="layui-btn layui-btn-danger layui-btn-sm file-delete">
+                            <i class="layui-icon"></i>删除
+                        </button>
+                    </div>
+                </div>
+                <div class="fr layui-col-xs9">
+                    <div class="layui-col-xs3">
+                        <button id="uploadfile" type="button" class="uploadfile layui-btn layui-btn-warm layui-btn-sm"
+                                lay-filter="upload" data-chunk="1"
+                                data-value='{:json_encode($param)}'>
+                            <i class="layui-icon"></i>上传
+                        </button>
+                    </div>
+                    <div class="layui-col-xs9">
+                        <div class="layui-col-xs9">
+                            <input class="layui-input search" value="{:isset($param['original_name'])?$param['original_name']:''}" type="text" placeholder="搜索" name="original_name">
+                        </div>
+                        <div class="layui-col-xs2">
+                            <button class="layui-btn  layui-btn-normal" type="submit">搜索</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--内容-->
+            <div id="file-list-body" class="box-body layui-col-xs12 layui--col-sm12" data-node="">
+                <div id="file-container">
+                    <ul class="file-list-item">
+                        {if $data}
+                        {volist name="data" id="vo"}
+                        <li  title="{$vo.original_name}" data-type="{$vo.mime}" data-id="{$vo.id}" data-path="{$vo.url}" data-url="{$vo.url}">
+                            <a class="file-delete" href="javascript:void(0);" title="{:lang('DELETE')}">
+                                <i class="layui-icon layui-icon-delete"></i>
+                            </a>
+                            <a class="file-edit" href="javascript:void(0);" title="{:lang('Edit')}">
+                                <i class="layui-icon layui-icon-edit"></i>
+                            </a>
+                            <div class="img-cover">
+                                <img width="100%" src="
+                                {if (strpos($vo.mime,'image')!==false)}
+                                {$vo.path}
+                                        {elseif(strpos($vo.mime,'video')!==false) /}
+                                   __CDN____STATIC__/backend/images/filetype/video.jpg
+                                   {elseif(strpos($vo.mime,'audio')!==false) /}
+                                   __CDN____STATIC__/backend/images/filetype/audio.jpg
+                                   {elseif(strpos($vo.mime,'zip')!==false) /}
+                                   __CDN____STATIC__/backend/images/filetype/zip.jpg
+                                {else/}
+                                __CDN____STATIC__/backend/images/filetype/file.jpg
+                                {/if}
+                                "
+                                     data-type="image" >
+                            </div>
+                            <p class="file-name">{$vo.original_name}</p>
+                            <div class="select-mask">
+                                <img src="__CDN____STATIC__/backend/images/choose.png">
+                            </div>
+                        </li>
+                        {/volist}
+                        {else/}
+                        <div style="padding-top:80px;text-align:center;" class="empty">
+                            <i style="font-size: 150px;color: #eee" class="layui-icon layui-icon-face-surprised"></i>
+                            <div style="line-height:30px;color: #999;" class="">没有找到数据</div>
+                        </div>
+                        {/if}
+                    </ul>
+                </div>
+                <div id="page"></div>
+            </div>
+        </div>
+        <!--End 内容-->
+    </div>
+</div>
+<script src="/static/plugins/lay-module/eletree/eleTree.js">
+
+</script>
+<script>
+    var treeData = {:json_encode($groupList)};
+    var param = {:json_encode($param)};
+    var count = {$count};
+
+</script>
+

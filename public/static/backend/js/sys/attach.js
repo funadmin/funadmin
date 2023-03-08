@@ -56,7 +56,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
 
                         }
                     },
-                    {field: 'path', title: __('Path'), width: 80, sort: true, templet: Table.templet.image},
+                    {field: 'path', title: __('Path'), width: 80, sort: true,},
                     {field: 'ext', title: __('Ext'), width: 120, sort: true},
                     {field: 'size', title: __('Size(K)'), width: 80, sort: true},
                     {field: 'driver', title: __('Driver'), width: 80, sort: true},
@@ -90,8 +90,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 limit: 15,
                 page: true
             });
-            let table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
             Controller.api.bindevent()
@@ -102,12 +102,16 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
             showRadio = $('#tree').data('radio')
             //选择文件
             function fileSelect(othis,type=1) {
+                if(type==1 && othis.parent('li').length==1){
+                    var id = othis.parent('li').data('id')
+                    $ids = [id] ;
+                    return $ids;
+                }
                 var li = $('.box-body .file-list-item li.active');
+                var ids = [];
                 if(li.length ===0 && type===1){
-                    ids = [othis.parents('li').data('id')];
                     return ids;
                 }
-                var ids = [];
                 li.each(function () {
                     ids.push($(this).attr('data-id'));
                 });
@@ -307,7 +311,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 ,limit:param.limit?param.limit:12
                 ,limits: [12,24,72,108,1000]
                 // ,layout: ['prev', 'page', 'next', 'limit', 'refresh','count' ,'skip']
-                ,layout: ['prev', 'page', 'next', 'limit','refresh','count']
+                ,layout: ['prev', 'page', 'next', 'limit','refresh']
                 //跳转页码时调用
                 , jump: function (data, first) { //obj为当前页的属性和方法，第一次加载first为true
                     //         do something
@@ -340,7 +344,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     parent.layer.close(load);
                 }
                 , allDone: function (obj) { //当文件全部被提交后，才触发
-                    console.log(obj)
                     parent.layer.close(load);
                 }
                 , done: function (res) { //console.info(res);
@@ -388,8 +391,8 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
             //图片编辑
             $('.box-body').delegate('.file-edit,.file-name', 'click', function () {
                 var _this, id, name;_this = $(this).parent();id = _this.attr('data-id');name = _this.attr('title');
-                parent.layer.prompt({title: '修改图片名称', value: name, formType: 3}, function (value, index) {
-                    parent.layer.close(index);
+                layui.layer.prompt({title: '修改图片名称', value: name, formType: 3}, function (value, index) {
+                    layui.layer.close(index);
                     var Url = Fun.url(Table.init.requests.edit_url+ '?id=' + id) ;
                     var data = {
                         'original_name': value,
@@ -423,7 +426,6 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
         },
         api: {
             bindevent: function () {
-                Upload.api.bindEvent();
                 Form.api.bindEvent($('form'))
 
             }

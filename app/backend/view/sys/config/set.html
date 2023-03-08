@@ -6,6 +6,7 @@
         <li class="layui-this">{:lang('site setting')}</li>
         <li class="">{:lang('upload setting')}</li>
         <li class="">{:lang('water setting')}</li>
+        <li class="">{:lang('other')}</li>
     </ul>
     <div class="layui-tab-content">
         <!--网站配置-->
@@ -18,7 +19,7 @@
                 {:form_textarea('site_seo_title',['label'=>'Site title','verify'=>"required"])}
                 {:form_textarea('site_seo_keywords',['label'=>'Meta keywords','verify'=>"required"])}
                 {:form_textarea('site_seo_desc',['label'=>'Meta description','verify'=>"required"])}
-                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2021 www.FunAdmin.com Apache2 license')}
+                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2022 www.FunAdmin.com Apache2 license')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
@@ -27,8 +28,8 @@
             <form class="layui-form " lay-filter="form">
                 {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
                 {:form_input('upload_file_max','text',['label'=>"Maxfilesize",'verify'=>'number','tips'=>"M"],'50')}
-                {:form_radio('upload_slice',[1=>'是',0=>'否'],['label'=>'是否分片'])}
-                {:form_input('upload_slicesize','text', ['label'=>"分片大小",'verify'=>'number'])}
+                {:form_radio('upload_chunk',[1=>'是',0=>'否'],['label'=>'是否分片'])}
+                {:form_input('upload_chunksize','text', ['label'=>"分片大小",'verify'=>'number'])}
                 <div class="layui-form-item">
                     <label class="layui-form-label">{:lang('Upload Driver')}</label>
                     <div class="layui-input-block">
@@ -38,6 +39,8 @@
                             <option value="alioss">{:lang('AliOSS')}</option>
                             <option value="qiniuoss">{:lang('QiniuOSS')}</option>
                             <option value="tencos">{:lang('Tencos')}</option>
+                            <option value="bos">{:lang('baidu')}</option>
+                            <option value="obs">{:lang('huawei')}</option>
                         </select>
                         <div class="layui-form-mid layui-word-aux">M {:lang('Driver')}：1 M = 1024 KB</div>
                     </div>
@@ -49,7 +52,7 @@
             <form class="layui-form " lay-filter="form">
                 {:form_radio('upload_water',[0=>'No',1=>'Image',2=>'text'],['label'=>"water"])}
                 {:form_radio('upload_water_position',
-                [1=>'左上角',2=>'左上角',3=>'右上角',4=>"左居中",5=>"居中",6=>"右居中",7=>"左下角",8=>"下居中",9=>"右下角"],
+                [1=>'左上角',2=>'上居中',3=>'右上角',4=>"左居中",5=>"居中",6=>"右居中",7=>"左下角",8=>"下居中",9=>"右下角"],
                 ['label'=>"waterposition"])}
                 {:form_input('upload_water_alpha','text',['label'=>"wateralpha",'verify'=>'number','tips'=>"0-100"],'50')}
                 {:form_input('upload_water_size','text',['label'=>"waterSize",'verify'=>'number','tips'=>""],'50')}
@@ -58,6 +61,14 @@
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
+        <div class="layui-tab-item">
+            <form class="layui-form " lay-filter="form">
+                {:form_radio('app_debug',[1=>'是',0=>'否'],['label'=>'Debug'])}
+                {:form_input('site_version','text',['label'=>'Version'])}
+                {:form_submitbtn(true,['show'=>1])}
+            </form>
+        </div>
+
 
     </div>
 </div>

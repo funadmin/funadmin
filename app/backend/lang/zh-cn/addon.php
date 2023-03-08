@@ -10,7 +10,9 @@ return [
     'addon uninstall fail'=>'插件卸载失败',
     'Uninstall successful'=>'插件卸载成功',
     'LOGO'=>'Logo',
+    'Create'=>'创建',
     'title'=>'标题',
+    'Account'=>'云账号',
     'Addon version'=>'版本',
     'Addon Config'=>'插件配置',
     'Addon require'=>'需求版本',
@@ -24,6 +26,9 @@ return [
     'ADDONAME'=>'插件名',
     'config'=>'配置',
     'install'=>'安装',
+    'Ver'=>'版本',
+    'Force'=>'强制',
+    'Requires'=>'需求版本',
     'uninstall'=>'卸载',
     'disabled'=>'已禁用',
     'disable'=>'禁用',
@@ -37,4 +42,5 @@ return [
     'Your Password'  =>  '您的密码',
     'UserName Or Email'  =>  '账号或密码',
     'Please backup your data before upgrading!!!'=>'升级前请备份数据!!!',
+    "Are you sure you want to install it"=>"确定安装吗?"
 ];

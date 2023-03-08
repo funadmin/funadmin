@@ -1,6 +1,6 @@
 {
   "name": "funadmin/funadmin",
-  "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的敏捷开发应用框架",
+  "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的k开发应用框架",
   "type": "project",
   "license": "Apache-2.0",
   "keywords": [
@@ -15,22 +15,31 @@
       "email": "994927909@qq.com"
     }
   ],
+  "support": {
+    "email": "994927909@qq.com",
+    "issues": "https://github.com/funadmin/funadmin/issues",
+    "forum": "https://bbs.funadmin.com/",
+    "wiki": "https://doc.funadmin.com",
+    "source": "https://github.com/funadmin/funadmin"
+  },
   "require": {
     "php": ">=7.4.0",
     "ext-json": "*",
-    "topthink/framework": "^6.0.12",
+    "topthink/framework": "^6.1.2",
     "topthink/think-orm": "2.0.*",
     "topthink/think-view": "^1.0",
     "topthink/think-image": "^1.0",
     "topthink/think-queue": "^3.0",
-    "topthink/think-captcha": "^3.0",
+    "topthink/think-captcha": "^3.0.7",
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
     "topthink/think-ide-helper": "^1.0",
     "topthink/think-throttle": "^1.3",
+    "topthink/think-filesystem": "^2.0",
     "doctrine/annotations": "^1.13",
     "ramsey/uuid": "^4.2",
-    "funadmin/fun-addons": "^4.0.15"
+    "phpoffice/phpspreadsheet": "^1.24",
+    "funadmin/fun-addons": "^5.1.2"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
@@ -43,6 +52,7 @@
       "": "extend/"
     },
     "files": [
+      
     ]
   },
   "config": {

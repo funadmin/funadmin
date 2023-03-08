@@ -22,16 +22,20 @@ use think\exception\ValidateException;
 use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Lang;
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\ViewNode;
+use app\backend\middleware\SystemLog;
 
 class Backend extends BaseController
 {
-    use Jump;
-    use Curd;
-    /**
-     * 主键 id
-     * @var string
-     */
-    protected $primaryKey = 'id';
+    use Jump,Curd;
+
+    protected $middleware = [
+        CheckRole::class =>['except'=>['enlang','verify']],
+        ViewNode::class,
+        SystemLog::class
+    ];
+
     /**
     * @var
      * 模型
@@ -79,6 +83,12 @@ class Backend extends BaseController
      * @var array
      */
     protected $joinSearch = [];
+    /**
+     * selectpage 字段
+     * @var string[]
+     */
+    protected $selectpageFields = ['*'];
+
 
     /**
      * @param App $app
@@ -91,13 +101,11 @@ class Backend extends BaseController
         $controller = parse_name($this->request->controller(),1);
         $controller = strtolower($controller);
         if($controller!=='ajax'){
-            $this->loadlang($controller,'');
+            $this->loadlang($controller,app()->http->getName());
         }
         //过滤参数
         $this->pageSize = input('limit', 15);
         $this->page = input('page', 1);
-        //加载语言包
-        $this->loadlang($controller,'');
     }
 
     public function enlang()
@@ -123,20 +131,23 @@ class Backend extends BaseController
         return Captcha::create();
     }
     //自动加载语言
-    protected function loadlang($name,$addon)
+    protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
-        if($addon){
-            $res = Lang::load([
-                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
-                app()->getRootPath().'addons'.DS.$addon .DS.'backend'.DS . 'lang' . DS . $lang .'.php'
+        if($app && $app!=='backend'){
+            $res =  Lang::load([
+                $this->app->getBasePath() .'backend'. DS . 'lang' . DS . $lang . '.php',
+                $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang  . '.php',
+                $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
             ]);
-        }else{
+       }else{
             $res = Lang::load([
-                $this->app->getAppPath() . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php'
+                $this->app->getAppPath() . 'lang' . DS . $lang . '.php',
+                $this->app->getAppPath() . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
             ]);
         }
         return $res;
+
     }
     protected function validate(array $data, $validate, array $message = [], bool $batch = false)
     {

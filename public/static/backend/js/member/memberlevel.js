@@ -73,8 +73,7 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                 limit: 15,
                 page: true
             });
-            let table = $("#"+ Table.init.table_elem);
-            Table.api.bindEvent(table);
+            Table.api.bindEvent(Table.init.tableId);
         },
         add:function () {
             Controller.api.bindevent();
@@ -119,8 +118,9 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                         align: 'center',
                         title: '操作',
                         init: Table.init,
-                        templet: Table.templet.operat,
-                        operat: ['restore', 'delete']
+                        // templet: Table.templet.operat,
+                        // operat: ['restore', 'delete']
+                        toolbar: "#template"
                     }
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
@@ -128,12 +128,12 @@ define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilt
                 page: true
             });
             let table = $("#"+ Table.init.table_elem);
-            Table.api.bindEvent(table);
+            Table.api.bindEvent(Table.init.tableId);
         },
 
         api: {
             bindevent: function () {
-                Form.api.bindEvent()
+                Form.api.bindEvent($('form'))
             }
         }
     };

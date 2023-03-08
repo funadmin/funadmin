@@ -14,7 +14,7 @@ return [
 //        'useImgBg' => true,         //是否添加背景图.
 //        'imageH'   => 50,        // 验证码图片高度
 //        'imageW'   => 200,         // 验证码图片宽度11.
-        'math'=>true,       //使用算术验证码
+        'math'=>false,       //使用算术验证码 true
         'length'   => 4,        //长度
         'reset'    => true, // 验证成功后是否重置        15.
         'expire'    =>60*5, //过期时间

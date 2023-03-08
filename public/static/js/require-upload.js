@@ -12,21 +12,17 @@ define(["jquery", 'croppers'], function($, croppers) {
     var Upload = {
         init: {
             requests: {
-                upload_url: '/ajax/uploads',
-                attach_url: '/ajax/getAttach',
-                select_url:'/sys.attach/selectfiles'
+                upload_url: 'ajax/uploads',
+                attach_url: 'ajax/getAttach',
+                select_url:'sys.attach/selectfiles'
             },
             upload_exts: Config.upload.upload_file_type,
             upload_size: Config.upload.upload_file_max,
-            upload_slice: Config.upload.upload_slice,
-            upload_slicesize: Config.upload.upload_slicesize,
+            upload_chunk: Config.upload.upload_chunk,
+            upload_chunksize: Config.upload.upload_chunksize,
         },
         //事件
         events: {
-            //附件多图
-            mutiUpload: function() {
-                Upload.api.mutiUpload()
-            },
             //单图或多图文
             uploads: function() {
                 Upload.api.uploads();
@@ -37,145 +33,172 @@ define(["jquery", 'croppers'], function($, croppers) {
             },
         },
         api: {
-            mutiUpload: function() {
-                //多文件列表示例
-                var uploadList = $('*[lay-filter="multipleupload"]');
-                layui.each(uploadList, function(i, v) {
-                    var uploadListView = $(this).parent('.layui-upload').find('.uploadList');
-                    var id = $(this).attr('id');
-                    var uploadListBtn = $(this).parent('.layui-upload').find('.uploadListBtn').attr('id');
-                    var upload = layui.upload ? layui.upload : parent.layui.upload;
-                    uploadListIns = upload.render({
-                        elem: '#'+uploadListBtn,
-                        url: Fun.url(Upload.init.requests.upload_url) //改成您自己的上传接口
-                        , accept: 'file',
-                        drag: true,
-                        multiple: true,
-                        auto: false,
-                        bindAction: '#'+id,
-                        choose: function(obj) {
-                            var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
-                            //读取本地文件
-                            obj.preview(function(index, file, result) {
-                                var tr = $(['<tr id="upload-' + index + '">', '<td>' + file.name + '</td>', '<td>' + (file.size / 1024).toFixed(1) + 'kb</td>', '<td class="progress"> 0 </td>', '<td>等待上传</td>', '<td>', '<button class="layui-btn layui-btn-xs fun-upload-reload layui-hide">重传</button>', '<button class="layui-btn layui-btn-xs layui-btn-danger fun-upload-delete">删除</button>', '</td>', '</tr>'].join(''));
-                                //单个重传
-                                tr.find('.fun-upload-reload').on('click', function() {
-                                    obj.upload(index, file);
-                                });
-                                //删除
-                                tr.find('.fun-upload-delete').on('click', function() {
-                                    delete files[index]; //删除对应的文件
-                                    tr.remove();
-                                    uploadListIns.config.elem.next()[0].value = ''; //清空 input file 值，以免删除后出现同名文件不可选
-                                });
-                                uploadListView.append(tr);
-                            });
-                        },
-                        progress: function(n, elem) {
-                            var percent = n + '%'; //获取进度百分比
-                            $('.progress').html(percent); //可配合 layui 进度条元素使用
-                        },
-                        done: function(res, index, upload) {
-                            if (res.code > 0) { //上传成功
-                                var tr = uploadListView.find('tr#upload-' + index),
-                                    tds = tr.children();
-                                tds.eq(3).html('<span style="color: #5FB878;">上传成功</span>');
-                                tds.eq(4).html(''); //清空操作
-                                var table = parent.$('body').find('table.layui-table[lay-filter');
-                                if(table.length > 0) {
-                                    var id = table.attr('id');
-                                    id && parent.layui.table && parent.layui.table.reload(id);
-                                }
-                                return delete this.files[index]; //删除文件队列已经上传成功的文件
-                            }
-                            this.error(index, upload, res);
-                        },
-                        error: function(index, upload, res) {
-                            var tr = uploadListView.find('tr#upload-' + index),
-                                tds = tr.children();
-                            tds.eq(3).html('<span style="color: #FF5722;">上传失败(' + __(res.msg) + ')</span>');
-                            tds.eq(4).find('.demo-reload').removeClass('layui-hide'); //显示重传
-                        }
-                    });
-
-                })
-            },
-            uploads: function() {
-                var uploadList = $('*[lay-filter="upload"]');
+            uploads: function(ele,options,success,error,choose,progress) {
+                var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
+                    var opt = [],uploadInt = [];
+                    //读取本地文件
+                    var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
+                    let  chunkSize = Upload.init.upload_chunksize*1024*1024;
+                    let  maxSize = Upload.init.upload_size*1024*1024;
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
                         if(typeof data.value == 'object') data = data.value;
                         var uploadNum = data.num,
-                            uploadMime = data.mime;
-                        var uploadAccept = data.accept,
+                            uploadMime = data.mime,
+                            uploadAccept = data.accept,
                             uploadPath = data.path || 'upload',
                             uploadSize = data.size,
+                            save = data.save || 0,
+                            group = data.group || '',
                             uploadmultiple = data.multiple,
-                            uploadExts = data.exts;
+                            uploadExts = data.exts,chunk = data.chunk,
                         uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
-                        uploadExts = uploadExts.indexOf(',') ?uploadExts.replace(/,/g,'|'):uploadExts
+                        uploadExts = uploadExts.indexOf(',') ? uploadExts.replace(/,/g, '|') : uploadExts
                         uploadmultiple = uploadmultiple || false;
-                        uploadAccept = uploadAccept || uploadMime;
-                        uploadAccept = uploadAccept ==='*' ?'file':uploadAccept;
-                        var _parent = $(this).parents('.layui-upload')
-                        var input = _parent.find('input[type="text"]');
-                        var options = {}
-                        options = {
+                        uploadNum = uploadmultiple && uploadNum==1 ? 100:uploadNum;
+                        uploadAccept = uploadAccept || uploadMime || "*";
+                        uploadAccept = uploadAccept === '*' ? 'file' : uploadAccept;
+                        var _parent = $(this).parents('.layui-upload'), input = _parent.find('input[type="text"]'),index;
+                        var fileList = [],chunkList= [];
+                        opt[i] = $.extend({
                             elem: this,
                             accept: uploadAccept,
-                            size: uploadSize,
+                            size: uploadSize*1024,
+                            number:uploadNum,
                             multiple: uploadmultiple,
-                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath,
+                            auto:false,
+                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
-                                var index = Fun.toastr.loading(__('uploading...'))
-                            },
-                            done: function(res) {
-                                if (res.code > 0) {
-                                    var img ='jpg|jpeg|png|gif|svg|bmp|webp';
-                                    var video ='mp4|rmvb|avi|ts';
-                                    var zip ='jpg|jpeg|png|gif|';
-                                    var audio ='mp3|wma|wav';
-                                    var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
-                                    var start = res.url.lastIndexOf(".");
-                                    uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
-                                    if (img.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (zip.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (video.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (audio.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else if (office.indexOf(uploadAccept) !==-1) {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    } else {
-                                        html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                    }
-                                    var inputVal = input.val();
-                                    if (uploadNum == 1) {
-                                        input.val(res.url);
-                                        _parent.find('.layui-upload-list').html(html)
-                                    } else if (uploadNum == '*') {
-                                        _parent.find('.layui-upload-list').append(html)
-                                        if (inputVal) {
-                                            val_temp = (inputVal + ',' + res.url)
-                                        } else {
-                                            val_temp = res.url
-                                        }
-                                        input.val(val_temp);
-                                    } else {
-                                        if (_parent.find('li').length >= uploadNum) {
-                                            Fun.toastr.error(__('File nums is limited'), function() {
-                                                setTimeout(function() {
-                                                    Fun.toastr.close();
-                                                }, 2000)
+                                    if(chunk==undefined || chunk ==false || chunk == 0){
+                                        index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
+                                            Fun.toastr.close()
+                                        },1200))
+                                    }else{
+                                        if (!$('#' + this.data.chunkId).length) {
+                                            window[this.data.chunkId] = layer.open({
+                                                type: 1,
+                                                title: false,
+                                                skin: 'chunkProgress',
+                                                closeBtn: 0,
+                                                resize: false,
+                                                shade:0.1,
+                                                area: ['420px', '20px'],
+                                                content: [
+                                                    '<style>.chunkProgress {background-color: transparent!important;box-shadow: 0 0 0 rgba(0,0,0,0)!important;' +
+                                                    '}</style><div id="' + this.data.chunkId + '" class="layui-progress layui-progress-big" lay-showPercent="yes" lay-filter="uploadProgress">',
+                                                    '<div class="layui-progress-bar layui-bg-blue" lay-percent="' + Math.ceil(100 * (0 + this.data.chunkIndex) / this.data.chunkCount) + '%" ></div>',
+                                                    '</div>',].join(''),
+                                                success: function (layerObj, index) {
+                                                    layer.setTop(layerObj);
+                                                }
                                             })
-                                            return false;
+                                            layui.element.render();
+                                        }else{
+                                            layui.element.progress('uploadProgress', Math.ceil((100*(1 + this.data.chunkIndex ) / this.data.chunkCount)) + '%');
+                                        }
+                                    }
+                            },
+                            progress: progress===undefined?function(n, elem) {
+                            }:progress,
+                            choose:choose===undefined? function(obj) {
+                                var that = this;
+                                var files = this.files = obj.pushFile(); //将每次选择的文件追加到文件队列
+                                obj.preview(function (index, file, result) {
+                                    if (file.size  > maxSize) {
+                                        delete files[index];
+                                        Fun.toastr.error(__('文件大小超过限制，最大不超过' + maxSize/1024 + 'KB'));
+                                        return false;
+                                    }
+                                    if (file.size <= chunkSize || chunk == undefined || chunk == 0 || chunk ==false) {
+                                        console.log(1)
+                                        obj.upload(index, file)
+                                        delete files[index];
+                                    } else if(chunk == true || chunk == 1) {
+                                        var chunkId = file.lastModified +"-"+ file.size,
+                                            chunkCount = Math.ceil(file.size / chunkSize),
+                                            fileExt = /\.([0-9A-z]+)$/.exec(file.name)[1];
+                                        var list = [];
+                                        for (i=0;i<chunkCount;i++){
+                                            list.push({
+                                                status:0,
+                                                fileSize: file.size,
+                                                fileName: file.name,
+                                                fileType: file.type,
+                                                fileExt: fileExt,
+                                                chunkId: chunkId,
+                                                chunkIndex: i,
+                                                chunkCount: chunkCount,
+                                                chunkSize: chunkSize/(1024*1024),
+                                                start : i * chunkSize,
+                                                end: Math.min(file.size,  i * chunkSize + chunkSize),
+                                            })
+                                        }
+                                        chunkList[chunkId] = list;
+                                        fileList[chunkId] = {_that: that, file: file, obj, obj, index: index};
+                                        var progress = 0;
+                                        for (var key in chunkList) {
+                                            if (chunkList[key].status === 0) {
+                                                progress = key;
+                                                break;
+                                            }
+                                        }
+                                        that.data = list[progress];
+                                        start = progress * chunkSize;
+                                        end = parseInt(Math.min(file.size, start + chunkSize));
+                                        obj.upload(index, blobSlice.call(file,start,end));
+                                    }
+                                })
+                            }:choose,
+                            done: success===undefined?function(res, index, upload) {
+                                if (res.code > 0) {
+                                    if(res.data['chunkId']!==undefined && !res.data.url){
+                                        var chunkIndex = res.data.chunkIndex, chunkId = res.data.chunkId,chunkCount=res.data.chunkCount;
+                                        var currentChunkList =chunkList[chunkId][chunkIndex];
+                                        if(chunkIndex +1 < chunkCount){
+                                            var start = currentChunkList.end;end = start + chunkSize;
+                                            chunkList[chunkId][chunkIndex]['status'] = 1;
+                                            _that = fileList[chunkId]._that;
+                                            _that.data = chunkList[chunkId][1 + chunkIndex ];
+                                            fileList[chunkId].obj.upload(fileList[chunkId].file, blobSlice.call(fileList[chunkId].file, start, end));
+                                        }else{
+                                            layui.element.progress('uploadProgress', Math.ceil((1 + chunkIndex ) * 100 / chunkCount) + '%');//更新进度条
+                                        }
+                                    }else{
+                                        if (res.data['chunkId'] !== undefined) {
+                                            layui.layer.close(window[res.data.chunkId]);
+                                            delete chunkList[res.data['chunkId']];
+                                            delete fileList[res.data['chunkId']];
+                                            res.url = res.data.url;
+                                        }
+                                        var img ='jpg|jpeg|png|gif|svg|bmp|webp';
+                                        var video ='mp4|rmvb|avi|ts';
+                                        var zip ='jpg|jpeg|png|gif|';
+                                        var audio ='mp3|wma|wav';
+                                        var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
+                                        var start = res.url.lastIndexOf(".");
+                                        uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
+                                        if (img.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (zip.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (video.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (audio.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        } else if (office.indexOf(uploadAccept) !==-1) {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                         } else {
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                        }
+                                        var inputVal = input.val();
+                                        if (uploadNum == 1) {
+                                            input.val(res.url);
+                                            _parent.find('.layui-upload-list').html(html)
+                                        } else if (uploadNum == '*') {
                                             _parent.find('.layui-upload-list').append(html)
                                             if (inputVal) {
                                                 val_temp = (inputVal + ',' + res.url)
@@ -183,44 +206,49 @@ define(["jquery", 'croppers'], function($, croppers) {
                                                 val_temp = res.url
                                             }
                                             input.val(val_temp);
+                                        } else {
+                                            if (_parent.find('li').length >= uploadNum) {
+                                                Fun.toastr.error(__('File nums is limited'))
+                                                return false;
+                                            } else {
+                                                _parent.find('.layui-upload-list').append(html)
+                                                if (inputVal) {
+                                                    val_temp = (inputVal + ',' + res.url)
+                                                } else {
+                                                    val_temp = res.url
+                                                }
+                                                input.val(val_temp);
+                                            }
                                         }
+                                        Fun.toastr.success(__('Upload Success'),setTimeout(function(){
+                                            Fun.toastr.close();
+                                        },1500));
                                     }
-                                    Fun.toastr.success(__('Upload Success'), function() {
-                                        setTimeout(function() {
-                                            Fun.toastr.close();
-                                        }, 2000)
-                                    })
-                                } else {
-                                    Fun.toastr.error(__('Upload Failed') + __(res.msg), function() {
-                                        setTimeout(function() {
-                                            Fun.toastr.close();
-                                        }, 2000)
-                                    })
-                                }
-                                Fun.toastr.close(index);
-                            },
-                            error: function() {
-                                Fun.toastr.error(__('Upload Failed'), function() {
-                                    setTimeout(function() {
-                                        Fun.toastr.close();
-                                    }, 2000)
-                                })
-                                Fun.toastr.close();
-                            }
-                        }
-                        if(uploadExts!=="*" && uploadExts){
-                            options.exts = uploadExts
-                        }
-                        var uploadInt = layui.upload.render(options);
-                        Toastr.destroyAll();
 
+                                } else {
+                                    Fun.toastr.error(__('Upload Failed') + __(res.msg),setTimeout(function(){
+                                        Fun.toastr.close();
+                                    },1500));
+                                }
+                            }:success,
+                            error:error===undefined? function(index, upload) {
+                                Fun.toastr.error(__('Upload Failed'),setTimeout(function(){
+                                    Fun.toastr.close();
+                                },1500));
+                            }:error,
+                        },options==undefined?{}:options)
+                        if(uploadExts!=="*" && uploadExts){
+                            opt[i]['exts'] = uploadExts
+                        }
+                        uploadInt[i] = layui.upload.render(opt[i]);
+                        // Toastr.destroyAll();
                     })
                 }
             },
-            cropper: function() {
-                var cropperlist = $("*[lay-filter='cropper']");
+            cropper: function(ele,options,success,error) {
+                var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
                 if (cropperlist.length > 0) {
-                    cropperlistobj = {}
+                    var cropperlistobj = {},opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload'), id = $(this).prop('id');
@@ -232,31 +260,34 @@ define(["jquery", 'croppers'], function($, croppers) {
                         saveH = saveH || 300;
                         mark = mark || 1;
                         area = area || '720px';
-                        cropperlistobj[i] = layui.croppers.render({
-                            elem: '#' + id,
+                        opt[i] = $.extend({
+                            elem: $(this),
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
                             area: area, //弹窗宽度
                             url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
-                            done: function(res) {
+                            done:success=== undefined ? function(res) {
                                 //上传完毕回调
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
                                     _parent.find('input[type="text"]').val(res.url)
-                                    var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="upfileDelete" lay-fileurl="' + res.url + '"></i></li>\n';
+                                    var html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" lay-fileurl="' + res.url + '"></i></li>\n';
                                     _parent.find('.layui-upload-list').html(html)
                                 } else if (res.code <= 0) {
                                     Fun.toastr.error(res.msg);
                                 }
-                            }
-                        });
+                            }:success,
+                            error: error === undefined ? function (index){
+
+                            }:error,
+                        },options===undefined?{}:options)
+                        cropperlistobj[i] = layui.croppers.render(opt[i]);
                     })
                 }
             },
             bindEvent: function() {
-                Upload.events.mutiUpload();
                 Upload.events.uploads();
                 Upload.events.cropper();
             }

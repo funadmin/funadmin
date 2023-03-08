@@ -17,6 +17,7 @@ namespace app\backend\service;
 use app\backend\model\Admin as AdminModel;
 use app\backend\model\AuthGroup as AuthGroupModel;
 use app\backend\model\AuthRule;
+use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
 use think\facade\Cache;
@@ -26,7 +27,7 @@ use think\facade\Request;
 use think\facade\Session;
 use think\helper\Str;
 
-class AuthService
+class AuthService extends AbstractService
 {
     use Jump;
 
@@ -39,6 +40,8 @@ class AuthService
      * @var Request
      */
     protected $request;
+
+    protected $app;
 
     protected $controller;
 
@@ -62,22 +65,15 @@ class AuthService
         }
         // 初始化request
         $this->request = Request::instance();
-        $this->controller = parse_name($this->request->controller(), 1);
-        $this->controller = strtolower($this->controller ? $this->controller : 'index');
-        $this->action = parse_name($this->request->action(), 1);
-        $this->action = $this->action ? $this->action : 'index';
-        $url = $this->controller . '/' . $this->action;
-        $pathurl = $this->request->url();
-        $pathurl = explode('?', trim($pathurl, '/'))[0];
-        $this->requesturl = strtolower($url);
-        if (substr($pathurl, 0,7) === 'addons/') {
-            $this->requesturl = $pathurl;
-        }else{
-            $this->requesturl = str_replace(Config::get('backend.backendEntrance'),'',$this->requesturl);
+        $this->app = app('http')->getName();
+        $this->controller = Str::camel($this->request->controller());
+        $this->action = $this->request->action();
+        $this->action = $this->action ?: 'index';
+        $this->requesturl = $this->request->pathinfo();
+        if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
+            $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
         }
-        if(Str::endsWith($this->requesturl,'.'. config('view.view_suffix'))){
-            $this->requesturl = Str::substr($this->requesturl,0,strlen($this->requesturl)-strlen(config('view.view_suffix'))-1);
-        }
+        $this->requesturl = trim($this->requesturl, '/');
     }
 
     /**
@@ -156,7 +152,8 @@ class AuthService
         foreach ($cate as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
-                $v['title'] = lang($v['title']);
+                if (!in_array($v['module'], ['addon', 'backend'])) $v['href'] = $v['module'] . '/' . $v['href'];
+                $v['title'] = lang($v['title']) .' '. $v['module'].'@' . $v['href'];
                 if (self::authChecked($cate, $v['id'], $rules, $group_id)) {
                     $v['children'] = self::authChecked($cate, $v['id'], $rules, $group_id);
                 } else {
@@ -169,6 +166,7 @@ class AuthService
         }
         return $list;
     }
+
     /**
      * 权限多维转化为二维
      * @param $cate  栏目
@@ -190,65 +188,46 @@ class AuthService
         }
         return $list;
     }
+
     /**
      * 验证权限
      */
     public function checkNode()
     {
-        $cfg = config('backend');
+        $cfg = config('funadmin');
         if ($this->requesturl === '/') {
             $this->error(lang('Login again'), __u('login/index'));
         }
+        if (!$this->isLogin()) {
+            $this->error(lang('Please Login First'), __u('backend/login/index'));
+        }
+        if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
+            return true;
+        }
         $adminId = session('admin.id');
-        if (!in_array($this->controller, $cfg['noLoginController']) && !in_array($this->requesturl, $cfg['noLoginNode'])) {
-            if (!$this->isLogin()) {
-                $this->error(lang('Please Login First'), __u('login/index'));
+        if ($adminId != $cfg['superAdminId']) {
+            if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
+            $map= [
+                ['href','=', $this->requesturl],
+                ['module','=', $this->app]
+            ];
+            $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
+            $hrefTemp = trim($this->requesturl, '/');
+            $menuid = 0;
+            if (Str::endsWith($hrefTemp, '/index')) {
+                $where =[
+                    ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
+                    ['module', '=', $this->app]
+                ];
+                $menuid = AuthRule::where($where)->where('status', 1)->value('id');
             }
-            if ($adminId && $adminId != $cfg['superAdminId']) {
-                if (!in_array($this->controller, $cfg['noRightController']) &&  !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-                        $this->error(lang('Demo is not allow to change data'));
-                    }
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
-                        ->where('status', 1)
-                        ->value('id');
-                    $hrefTemp = trim($this->requesturl,'/');
-                    $menuid = 0;
-                    if(Str::endsWith($hrefTemp,'/index')){
-                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
-                            ->where('status', 1)
-                            ->value('id');
-                    }
-                    if($menuid) $this->hrefId = $menuid;
-                    //当前管理员权限
-                    $rules = $this->getRules(session('admin.group_id'));
-                    //用户权限规则id
-                    $this->adminRules = array_unique( array_filter(explode(',', $rules)));
-                    if ($this->hrefId) {
-                        if (!in_array($this->hrefId, $this->adminRules)) {
-                            $this->error(lang('Permission Denied'));
-                        }
-                    }else{
-                        if (!in_array($this->requesturl, $cfg['noRightNode'])) {
-                            $this->error(lang('Permission Denied'));
-                        }
-                    }
-                }
-            } else {
-                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    if ($this->request->isPost() && $cfg['isDemo'] == 1) {
-                        $this->error(lang('Demo is not allow to change data'));
-                    }
-                }
-            }
-        } elseif (
-            //不需要鉴权
-            in_array($this->controller, $cfg['noLoginController'])
-            //不需要登录
-            && in_array($this->requesturl, $cfg['noLoginNode'])
-        ) {
-            if ($this->isLogin()) {
-                $this->redirect(__u('index/index'));
+            if ($menuid) $this->hrefId = $menuid;
+            //当前管理员权限
+            $rules = $this->getRules(session('admin.group_id'));
+            //用户权限规则id
+            $this->adminRules = array_unique(array_filter(explode(',', $rules)));
+            if ($this->hrefId) {
+                if (!in_array($this->hrefId, $this->adminRules)) $this->error(lang('Permission Denied'));
             }
         }
     }
@@ -258,53 +237,48 @@ class AuthService
      */
     public function authNode($url)
     {
-        $cfg = config('backend');
-        $url = (string)$url;
-        $this->requesturl  = str_replace($cfg['backendEntrance'],'',explode('.'.config('view.view_suffix'),$url)[0]);
-        $this->requesturl = trim($this->requesturl,'/');
-        $urlArr = explode('/',$this->requesturl);
-        $this->controller =  strpos($this->requesturl,'addons/')===false?parse_name($urlArr[0]):$urlArr[1].'/'.$urlArr[2].'/'.$urlArr[3];
-        if ($this->requesturl === '/') {return false;}
-        $adminId = session('admin.id');
         // 判断权限验证开关
+        $cfg = Config::get('funadmin');
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        if (!in_array($this->controller, $cfg['noLoginController']) && !in_array($this->requesturl, $cfg['noLoginNode'])) {
-            //不在权限内
-            if (!$this->isLogin()) return false;
-            if ($adminId && $adminId != $cfg['superAdminId']) {
-                if (!in_array($this->controller, $cfg['noRightController']) && !in_array($this->requesturl, $cfg['noRightNode'])) {
-                    $hrefTemp = trim($this->requesturl,'/');
-                    $this->hrefId = AuthRule::where('href', $this->requesturl)
-                    ->where('status', 1)
-                    ->value('id');
-                    $menuid = 0;
-                    if(Str::endsWith($hrefTemp,'/index')){
-                        $menuid =  AuthRule::where('href', substr($hrefTemp,0,strlen($hrefTemp)-6))
-                            ->where('status', 1)->value('id');
-                    }
-                    if($menuid)  $this->hrefId = $menuid;
-                    //当前管理员权限
-                    $rules = $this->getRules(session('admin.group_id'));
-                    //用户权限规则id
-                    $this->adminRules = array_unique( array_filter(explode(',', $rules)));
-                    if ($this->hrefId && in_array($this->hrefId, $this->adminRules))  return true;
-                    if (in_array($this->requesturl, $cfg['noRightNode'])) return true;
-                }elseif(in_array($this->controller, $cfg['noRightController']) && in_array($this->requesturl, $cfg['noRightNode'])){
-                    return true;
-                }
-            } else {//超管
-                return true;
+        $this->requesturl = (string)$url;
+        if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
+            $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
+        }
+        $this->requesturl = trim($this->requesturl, '/');
+        $requesturlArr = explode('/', $this->requesturl);
+        $this->app = array_shift($requesturlArr);
+        $this->requesturl = implode('/', $requesturlArr);
+        if ($this->requesturl === '/')  return false;
+        if (!$this->isLogin()) return false;
+        $adminId = session('admin.id');
+        if ($adminId != $cfg['superAdminId']) {
+            $map = [
+                ['href', '=', $this->requesturl],
+                ['module', '=', $this->app]
+            ];
+            $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
+            $menuid = 0;
+            if (Str::endsWith($this->requesturl, '/index')) {
+                $where[] = [
+                    ['href', '=', substr($this->requesturl, 0, strlen($this->requesturl) - 6)],
+                    ['module', '=', $this->app]
+                ];
+                $menuid = AuthRule::where($where)->where('status', 1)->value('id');
             }
-        } elseif (in_array($this->controller, $cfg['noLoginController'])
-        && in_array($this->requesturl, $cfg['noLoginNode'])){//不需要登录也就不需要鉴权了权限最大化
-            return true;
-        } elseif (in_array($this->controller, $cfg['noRightController']) && in_array($this->requesturl, $cfg['noRightNode'])) {
+            if ($menuid) $this->hrefId = $menuid;
+            //当前管理员权限
+            $rules = $this->getRules(session('admin.group_id'));
+            //用户权限规则id
+            $this->adminRules = array_unique(array_filter(explode(',', $rules)));
+            if ($this->hrefId && in_array($this->hrefId, $this->adminRules)) return true;
+        } else {//超管
             return true;
         }
         return false;
     }
+
     /**
      * @param $cate
      * @return string
@@ -318,7 +292,7 @@ class AuthService
         $list = $this->authMenuNode($cate);
         $html = '';
         $theme = syscfg('site', 'site_theme');
-        if ($theme == 1 || $theme == 2){
+        if (empty($theme) || ($theme && in_array($theme,[1,2,5]))) {
             foreach ($list as $key => $val) {
                 $html .= '<li class="layui-nav-item">';
                 $badge = '';
@@ -334,46 +308,52 @@ class AuthService
                 }
                 $html .= '</li>';
             }
-        }elseif($theme==3){
+        } elseif ($theme == 3  ||  $theme ==4) {
             $html = [];
             $hide = '';
             $html['nav'] = '';
             $html['menu'] = '';
-            $html['navm'] = '<li class="layui-nav-item"  menu-id="'.$list[0]['id'].'">
+            $html['navm'] = '<li class="layui-nav-item"  menu-id="' . $list[0]['id'] . '">
                     <a href="javascript:;"><i class="fa fa-list-ul"></i> 请选择<span class="layui-nav-more"></span></a>
                     <dl class="layui-nav-child">';
             foreach ($list as $key => $val) {
-                $laythis =$key==0? 'layui-this':'';
-                $html['nav'] .= '<li class="layui-nav-item '.$laythis.'"  menu-id="'.$val['id'].'">';
+                $laythis = $key == 0 ? 'layui-this' : '';
+                $html['nav'] .= '<li class="layui-nav-item ' . $laythis . '"  menu-id="' . $val['id'] . '">';
                 $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
                 $badge = '';
                 if (strtolower($val['title']) === 'addon') {
-                    $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: -20px;">new</span>';
+                    $badge = '<span class="layui-badge">new</span>';
                 }
-                $hide = $key>0?'layui-hide':'';
-                $html['menu'] .= '<ul class="layui-nav layui-nav-tree '.$hide.'" menu-id="'.$val['id'].'" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
+                $hide = '';
+                if($theme==3){
+                    $hide = $theme<=3 && $key > 0 ? 'layui-hide' : '';
+                }
+                if($theme==4){
+                    $hide = 'layui-hide';
+                }
+                $html['menu'] .= '<ul style="display:block" class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
                 if ($val['child'] and count($val['child']) > 0) {
                     $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                    foreach($val['child'] as $k=>$v){
+                    foreach ($val['child'] as $k => $v) {
                         if ($v['child'] and count($v['child']) > 0) {
-                            $html['menu'] .= '<li class="layui-nav-item"  menu-id="'.$v['id'].'"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a>';
+                            $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $v['id'] . '"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a>';
                             $html['menu'] .= $this->childmenuhtml('', $v['child']);
                             $html['menu'] .= '</li>';
-                        }else{
+                        } else {
                             $target = $val['target'] ? $val['target'] : '_self';
-                            $html['menu'] .= '<li class="layui-nav-item"  lay-id="'.$v['id'].'"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a></li>';
+                            $html['menu'] .= '<li class="layui-nav-item"  lay-id="' . $v['id'] . '"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a></li>';
                         }
                     }
-                    $html['menu'].='</ul>';
+                    $html['menu'] .= '</ul>';
                 } else {
                     $target = $val['target'] ? $val['target'] : '_self';
                     $html['nav'] .= '<a href="javascript:;" lay-event="tab" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                    $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="'.$val['id'].'"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a></li>';
+                    $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="' . $val['id'] . '"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a></li>';
                 }
-                $html['menu'].='</ul>';
+                $html['menu'] .= '</ul>';
                 $html['nav'] .= '</li>';
             }
-            $html['navm'].='</dl><li>';
+            $html['navm'] .= '</dl><li>';
         }
         return $html;
     }
@@ -384,29 +364,31 @@ class AuthService
      * @return string
      * 获取子菜单html
      */
-    public function childmenuhtml($html, $child,$type=1)
+    public function childmenuhtml($html, $child, $type = 1)
     {
-        if($type<3){
+        if ($type < 3) {
             $html .= '<dl class="layui-nav-child">';
             foreach ($child as $k => $v) {
                 $html .= '<dd >';
                 if ($v['child'] and count($v['child']) > 0) {
                     $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '"  data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
-                    $html = self::childmenuhtml($html, $v['child'],$type);
+                    $html = self::childmenuhtml($html, $v['child'], $type);
                 } else {
                     $v['target'] = $v['target'] ? $v['target'] : '_self';
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '">
+                    <i class="' . $v['icon'] . '"></i>
+                    <cite> ' . lang($v['title']) . '</cite></a>';
                 }
                 $html .= '</dd>';
             };
             $html .= '</dl>';
-        }else{
+        } else {
             $html .= '<dl class="layui-nav-child">';
             foreach ($child as $k => $v) {
                 $html .= '<dd >';
                 if ($v['child'] and count($v['child']) > 0) {
                     $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '"  data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
-                    $html = self::childmenuhtml($html, $v['child'],$type);
+                    $html = self::childmenuhtml($html, $v['child'], $type);
                 } else {
                     $v['target'] = $v['target'] ? $v['target'] : '_self';
                     $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
@@ -419,6 +401,13 @@ class AuthService
     }
 
     /**
+     * 获取用户信息
+     * @return mixed
+     */
+    public function getAdmin(){
+        return Session::get('admin');
+    }
+    /**
      * 检测是否登录
      * @return boolean
      */
@@ -430,19 +419,19 @@ class AuthService
         }
         //判断是否同一时间同一账号只能在一个地方登录// 要是备份还原的话，这里会有点问题
         $me = AdminModel::find($admin['id']);
-//        if (!$me || $me['token'] != $admin['token']) {
+        // if (!$me || $me['token'] != $admin['token']) {
         if (!$me) {
             $this->logout();
             return false;
         }
-//        }
+        //}
         //过期
         if (!session('admin.expiretime') || session('admin.expiretime') < time()) {
             $this->logout();
             return false;
         }
-//判断管理员IP是否变动
-        if (config('app.ip_check') && ( !isset($admin['lastloginip']) || $admin['lastloginip'] != request()->ip())) {
+        //判断管理员IP是否变动
+        if (config('funadmin.ip_check') && (!isset($admin['lastloginip']) || $admin['lastloginip'] != request()->ip())) {
             $this->logout();
             return false;
         }
@@ -485,7 +474,7 @@ class AuthService
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
             } else {
-                $admin['expiretime'] = config('session.expire') +time();
+                $admin['expiretime'] = config('session.expire') + time();
             }
             unset($admin['password']);
             Session::set('admin', $admin);
@@ -494,6 +483,7 @@ class AuthService
         }
         return true;
     }
+
     /**
      * 注销登录
      */
@@ -510,43 +500,41 @@ class AuthService
     }
 
 
-
     /**
      * 获取rules
      * @param $groups
      * @return void
      */
-    protected function getRules($groups){
-        if($groups && in_array(1,explode(",",$groups))){
-            $rules = AuthRule::where('status',1)->cache('superAdmin',24*3600)->column('id');
-            $rules = implode(',',$rules);
-        }else{
-            $rules = AuthGroupModel::where('id', 'in', $groups)->where('status',1)->value('rules');
+    protected function getRules($groups)
+    {
+        if ($groups && in_array(1, explode(",", $groups))) {
+            $rules = AuthRule::where('status', 1)->cache('superAdmin', 24 * 3600)->column('id');
+            $rules = implode(',', $rules);
+        } else {
+            $rules = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->value('rules');
         }
-        $norules = AuthRule::where('auth_verify',0)->column('id');
-        $norules = $norules?implode(',',$norules):'';
-        return $rules.','.$norules;
+        $norules = AuthRule::where('auth_verify', 0)->column('id');
+        $norules = $norules ? implode(',', $norules) : '';
+        return $rules . ',' . $norules;
     }
+
     //获取左侧主菜单树形结构
     protected function authMenuNode($menu, $pid = 0, $rules = [])
     {
-        $authrules = array_unique(explode(',',$this->getRules(session('admin.group_id'))));
+        $authrules = array_unique(explode(',', $this->getRules(session('admin.group_id'))));
         $list = array();
         foreach ($menu as $v) {
             $href = $v['href'];
             if ($v['menu_status'] == 1) {
-                $v['href'] =  trim($v['href'], '/' );
-                if(!Str::endsWith($v['href'],'/index')){
-                    $v['href'] = $v['href']. '/index';
+                $v['href'] = trim($v['href'], '/');
+                if (!Str::endsWith($v['href'], '/index')) {
+                    $v['href'] = $v['href'] . '/index';
                 }
             }
-            if ($v['module'] !== 'addon') {
-                $v['href'] = (parse_name(__u(trim($v['href'], ' ')), 1));
-            } else {
-                $v['href'] = (parse_name('/' . trim($v['href'], '/'), 1));
-            }
-            if(preg_match("/^http(s)?:\\/\\/.+/",$href)) {
+            if (preg_match("/^http(s)?:\\/\\/.+/", $href)) {
                 $v['href'] = $href;
+            }else{
+                $v['href'] = "/" . $v['module']. '/' . trim($v['href'], '/');
             }
             if ($v['pid'] == $pid) {
                 if (session('admin.id') != 1) {
@@ -571,17 +559,18 @@ class AuthService
         }
         return $list;
     }
+
     /**
      * 获取所有子id
      */
-    protected function getallIdsBypid($pid)
+    public function getAllIdsBypid($pid)
     {
         $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
         $str = '';
         if (!empty($res)) {
             foreach ($res as $k => $v) {
                 $str .= "," . $v['id'];
-                $str .= $this->getallIdsBypid($v['id']);
+                $str .= $this->getAllIdsBypid($v['id']);
             }
         }
         return $str;

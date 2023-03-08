@@ -194,7 +194,7 @@ class Admin extends Backend
         }
         $list =  $this->modelClass->find($id);
         $list->password = '';
-        $auth_group = AuthGroupModel::where('status', 1)->select();
+        $auth_group = AuthGroupModel::where('status', 1)->field('id,title')->select();
         if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
         $view = [
             'formData'  =>$list,

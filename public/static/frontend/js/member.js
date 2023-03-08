@@ -18,7 +18,7 @@ define(['jquery', "form", 'toastr','upload'], function ($, Form, Toastr,Upload) 
                 Form.api.bindEvent($('form'));
                 var uploadInst = layui.upload.render({
                     elem: '.upload-img' //绑定元素
-                    ,url: Upload.init.requests.upload_url //上传接口
+                    ,url: Fun.url(Upload.init.requests.upload_url) //上传接口
                     ,done: function(res){
                         $('.upload-img').parents('.avatar-add').find('img').attr('src',res.url);
                         $('.upload-img').find('input').val(res.url);

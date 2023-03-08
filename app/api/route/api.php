@@ -18,6 +18,6 @@ Route::get(':version/member/index','api/:version.member/index');
 //Route::resource(':version/member','api/:version.member');
 //
 ////生成access_token，post访问Token类下的token方法
-Route::post(':version/token','api/:version.token/accessToken');
+Route::post(':version/token','api/:version.token/build');
 Route::post(':version/token/refresh','api/:version.token/refresh');
 

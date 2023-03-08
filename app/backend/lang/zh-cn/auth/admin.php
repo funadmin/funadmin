@@ -13,5 +13,5 @@ return [
     'Username is between 4 and 25 characters'=>'用户名在4-25个字符',
     'Password must be greater than 6 characters and less than 15 characters'=>'密码在6-15个字符',
     'realname' => '姓名',
-    'For password retrieval, please fill in carefully.'=>'找回密码请认真填写',
+    'For password retrieval please fill in carefully'=>'找回密码请认真填写',
 ];

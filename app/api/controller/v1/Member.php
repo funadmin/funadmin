@@ -4,7 +4,6 @@ namespace app\api\controller\v1;
 
 use think\facade\Request;
 use fun\auth\Api;
-use fun\auth\validate\ValidataBase;
 
 class Member extends Api
 {
@@ -16,7 +15,7 @@ class Member extends Api
      * 所有方法都不需要鉴权
      * [*]
      */
-    protected $noAuth = [];
+    protected $noAuth = ['index'];
     //    案例
     /**
      * 显示资源列表
@@ -25,12 +24,8 @@ class Member extends Api
      */
     public function index()
     {
-        $this->success('ok',$this->member_id);
+        $this->success('ok',['member_id'=>$this->member_id]);
         //通用参数验证
-//        $validate = new ValidataBase();
-//        $validate->validateCheck(['name' => 'require', 'password' => 'require'], Request::param()); //参数验证
-//        $this->success('ok');
-
     }
 
     /**

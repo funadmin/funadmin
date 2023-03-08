@@ -1,0 +1,94 @@
+#layui-app-body{
+    /*top:0;*/
+}
+.layui-layout-admin .layui-pagetabs{
+    left: 0;top: 60px!important;;
+}
+
+.layui-header .layui-layout-center{
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    background: #fff;
+}
+/*.layui-layout-admin .layui-logo{*/
+/*    background-color:#fff;*/
+/*    box-shadow:0 0px 2px 0 rgb(0 0 0 / 15%);*/
+/*    width: 60px;*/
+/*    background: #fff;*/
+/*}*/
+/*.layui-layout-admin .layui-logo .cite{*/
+/*    color:#595959!important;*/
+/*}*/
+.layui-layout-admin .layui-nav-header{
+    background-color:#fff;
+    position: fixed; top:60px;width:100%;
+    z-index:999;
+}
+.layui-layout-admin .layui-tab-header{
+    display: none!important;
+}
+.layui-layout-admin .layui-body{
+    margin-bottom:30px;
+    padding-bottom: 6px;;
+}
+.layui-layout-admin .layui-footer{
+    left: 0!important;
+}
+.layui-nav .layui-this:after, .layui-nav-bar{
+    background: #fff;
+}
+.layui-layout-admin .layui-nav .layui-nav-item dd{
+    line-height:50px;height:50px!important;
+}
+
+.layui-nav-header .layui-nav .layui-nav-item a i {
+    padding-right: 5px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item a {
+    height: 45px;
+    line-height: 45px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item .layui-nav-child a {
+    padding-left: 10px;
+    padding-right: 25px
+}
+
+.layui-nav-header .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
+    padding-left: 15px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 20px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 30px
+}
+
+.layui-nav-header .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 40px
+}
+
+.layui-nav-header-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
+    padding-left: 75px
+}
+
+.layui-nav-header .layui-nav .layui-nav-itemed>.layui-nav-child {
+    padding: 5px 0
+}
+
+
+/*.layui-layout-admin .layui-nav .layui-nav-item a{*/
+/*    padding: 0 25px;*/
+/*}*/
+.layui-layout-admin .layui-nav-header .layui-nav {
+    background-color:#fff;
+}.layui-layout-admin .layui-nav-header .layui-nav li a {
+     color: #595959!important
+}
+.layui-layout-admin .layui-nav-header .layui-nav .layui-badge{
+    float: none!important;right: auto!important;
+}

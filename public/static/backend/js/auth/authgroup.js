@@ -29,7 +29,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 toolbar: ['refresh', 'add', 'delete'],
                 cols: [[
                     {checkbox: true, },
-                    {field: 'id', title: __('ID'), width: 80, sort: true},
+                    {field: 'id', title: __('ID'), width: 80, sort: true,align:"left"},
                     // {field: 'pid', title: __('Pid'), width: 150,},
                     {field: 'ltitle', title: __('GroupName'), minwidth: 120,},
                     {
@@ -62,8 +62,8 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 limit: 15,
                 page: true
             });
-            let table = $('#' + Table.init.table_elem);
-            Table.api.bindEvent(table);
+
+            Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
 
@@ -95,33 +95,12 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     , showCheckbox: true  //是否显示复选框
                     , id: 'treebox'
                     // ,edit: ['add','update']
-                    , showLine: false
+                    , showLine: true
                     ,onlyIconControl:true//是否仅允许节点左侧图标控制展开收缩
-                    , accordion: false//是否开启手风琴模式，默认 false
+                    , accordion: true//是否开启手风琴模式，默认 false
                     , isJump: false //是否允许点击节点时弹出新窗口跳转
 
                 });
-                var scripts = "<script>" +
-                    "$('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').css({\n" +
-                    "                    'display':'block','width':'100%'\n" +
-                    "                });\n" +
-                    "                $('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').children('.layui-tree-pack.layui-tree-lineExtend.layui-tree-showLine').css({\n" +
-                    "                    'display':'inline-flex','width':'100%'\n" +
-                    "                });\n" +
-                    "                $('.layui-tree-checkedFirst').siblings('.layui-tree-set.layui-tree-spread').children('.layui-tree-pack.layui-tree-lineExtend.layui-tree-showLine')\n" +
-                    "                    .children('.layui-tree-set.layui-tree-spread').css({\n" +
-                    "                    'width':'180px'\n" +
-                    "                });</script>"
-                // var stype = "<style>" +
-                //     ".layui-tree-entry{padding: 10px 15px} " +
-                //     ".layui-tree-spread .layui-tree-showLine .layui-tree-showLine{display: inline-flex}" +
-                //     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst{display: inline-flex!important;}" +
-                //     ".layui-tree-spread .layui-tree-lineExtend .layui-tree-checkedFirst.layui-tree-set{width: auto!important;}" +
-                //     ".layui-tree-pack .layui-tree-spread .layui-tree-pack.layui-tree-lineExtend{display: inline-flex!important;}" +
-                //     ".layui-tree-line .layui-tree-set.layui-tree-setLineShort:before{height: 100%!important;}" +
-                //     ".layui-tree-line .layui-tree-set .layui-tree-set:after{top: 20px!important;}" +
-                //     "<\/style>"
-                $('body').append(scripts)
             })
             // 按钮事件
             util.event('lay-event', {
@@ -134,7 +113,6 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                 , reload: function () {
                     //重载实例
                     tree.reload('treebox', {});
-
                 }
             })
             Form.api.bindEvent($('form'), function () {
@@ -147,7 +125,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     data: {rules: JSON.stringify(dataRule)},
                 }, function (res) {
                     Fun.toastr.success(res.msg, function () {
-                        Form.api.closeCurrentOpen({refreshTable:true});
+                        Form.api.closeOpen({refreshTable:true});
                     })
                 })
             })

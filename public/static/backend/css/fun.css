@@ -141,8 +141,8 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     height: 60px;
     overflow: hidden;
     background-color: #20222A;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .15);
-    vertical-align: middle
+    box-shadow: initial;
+    vertical-align: middle;
 }
 
 .layui-layout-admin .layui-logo img {
@@ -150,7 +150,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-layout-admin .layui-logo cite {
-    display: inline-block;
+    display: inline;
     text-align: center;
     transition: all .3s !important;
     color: #fff;
@@ -158,10 +158,10 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     vertical-align: middle
 }
 
-.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
-    padding: 0px 0
+.layui-layout-admin .layui-side-menu .layui-nav .layui-nav-child {
+    padding-top: 0;
+    padding-bottom: 0;
 }
-
 .layui-nav-tree > .layui-nav-item:hover > a:before {
     bottom: 0
 }
@@ -214,12 +214,15 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-side-menu .layui-nav .layui-nav-item a {
-    height: 45px;
-    line-height: 45px
+    height: 55px;
+    line-height: 55px;
+    padding-bottom: 0;
+    padding-top: 0;
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a {
-    padding: 5px 35px 5px 30px
+    padding-left:35px;
+    padding-right: 30px;
 }
 
 .layui-side-menu .layui-nav .layui-nav-item .layui-nav-child .layui-nav-child a {
@@ -240,10 +243,6 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 
 .layui-side-menu .layui-nav .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child .layui-nav-child a {
     padding-left: 95px
-}
-
-.layui-side-menu .layui-nav .layui-nav-itemed > .layui-nav-child {
-    padding: 5px 0
 }
 
 .layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this > a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
@@ -349,7 +348,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     right: -1px;
     top: -4px
 }
-
+.layui-nav-tree .layui-nav-item.active.layui-nav-itemed dl{
+    display: block;
+}
 .layui-nav-tree .layui-nav-itemed > a > .layui-nav-more {
     -ms-transform: rotate(-180deg);
     -moz-transform: rotate(-180deg);
@@ -389,9 +390,9 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     background: #fff
 }
 
-.layui-layout-admin .layui-tab-title i {
-    vertical-align: middle
-}
+/*.layui-layout-admin .layui-tab-title i {*/
+/*    vertical-align: middle*/
+/*}*/
 
 .layui-layout-admin .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
     background-color: #f6f6f6;
@@ -426,7 +427,17 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     transition: all .3s;
     -webkit-transition: all .3s
 }
-
+.layui-pagetabs .layui-tab-title li .layui-tab-icon-active {
+    display: inline-block;
+    background-color: lightgray;
+    width: 9px;
+    height: 9px;
+    border-radius: 30px;
+    margin-right: 5px;
+}
+.layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active {
+    background-color: #1890ff;
+}
 .layui-pagetabs .layui-tab-title li:first-child {
     padding-right: 15px
 }
@@ -508,8 +519,8 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 }
 
 .layui-side-shrink .layui-side-menu .layui-nav-tree .layui-nav-item a {
-    line-height: 40px;
-    height: 40px;
+    line-height: 55px;
+    height: 55px;
     text-overflow: unset;
     overflow: hidden;
     white-space: normal
@@ -586,7 +597,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     position: fixed;
     top: 60px;
     left: 60px;
-    padding: 5px;
+    padding:0 5px;
     min-width: 150px;
     display: block !important;
     background: transparent !important;
@@ -882,7 +893,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
     }
 
     .layui-side-shrink .layui-layout-admin .layui-logo cite {
-        display: inline-block;
+        display: inline;
         width: 150px;
         text-align: center;
         font-style: normal;
@@ -957,7 +968,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
         position: fixed;
         top: 60px;
         left: 60px;
-        padding: 5px;
+        padding:0 5px;
         min-width: 150px;
         display: block !important;
         background: transparent !important;

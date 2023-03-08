@@ -1,0 +1,131 @@
+::-webkit-scrollbar{width:8px !important;height:10px !important;background:#ffffff !important;cursor:pointer !important;overflow-y:auto}
+::-webkit-scrollbar-thumb{background-color:#9C9DA098;-webkit-border-radius:2em;-moz-border-radius:2em;border-radius:2em}
+::-webkit-scrollbar-track{-webkit-box-shadow:inset 0 0 5px rgba(240,240,240,.5) !important;border-radius:0 !important;background:rgba(240,240,240,0.5) !important;cursor:pointer !important}
+.layui-nav-tree > .layui-nav-item > a:before{
+    background-color: #1e9fff;
+}
+
+#layui-side-left-menu .layui-nav-tree .layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-this>a,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this a{
+    background-color: #eee!important;
+}
+#layui-side-left-menu .layui-nav-tree .layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-this>a,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this,
+#layui-side-left-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
+    background:#eee!important;
+}
+.layui-layout-admin #layui-side-left-menu{
+    background-color: #fff!important;
+    width: 120px;
+    margin-top:10px;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    left: 110px;
+    top: 100px;
+    bottom: 40px;
+    box-shadow: 2px 0 2px 0 rgb(0 0 0 / 5%);
+}
+.layui-layout-admin #layui-side-left-menu a{
+    color: #333;
+}
+.layui-layout-admin #layui-side-left-menu ul{
+    margin-top: 0;
+    height:100%;
+    width:120px;
+    background-color: #fff!important;
+}
+.layui-layout-admin #layui-side-left-menu ul a{
+    height:55px;
+    line-height:55px;
+    padding-bottom:0;
+    padding-top:0;
+}
+.layui-layout-admin #layui-side-left-menu ul .layui-nav-itemed>.layui-nav-child{
+    background-color: #fff!important;
+}
+.layui-layout-admin .layui-header .layui-nav.layui-layout-left{
+    left:110px;
+}
+.layui-layout-admin .layui-side-menu .layui-nav{
+    width: 110px;
+}
+
+.layui-side-menu .layui-nav .layui-nav-item .layui-nav-child a{
+    padding-left: 25px;
+    padding-right: 25px;
+}
+.layui-side-menu .layui-nav .layui-nav-item a i{
+    padding-right: initial;
+}
+.layui-layout-admin .layui-pagetabs{
+    left: 110px;
+}
+.layui-layout-admin .layui-pagetabs .layui-sub-body{
+    left: 120px;
+}
+.layui-layout-admin .layui-side-menu{
+    width: 110px!important;
+}
+.layui-layout-admin .layui-logo{
+    background-color:#fff;
+    width: 110px;
+}
+.layui-layout-admin .layui-logo{
+    box-shadow:0 0px 2px 0 rgb(0 0 0 / 15%);
+}
+.layui-layout-admin .layui-logo .cite{
+    color:#595959!important;
+    display: none;
+}
+.layui-layout-admin .layui-nav-header{
+    background-color:#fff;
+    position: fixed; top:60px;width:100%;
+    z-index:999;
+}
+.layui-layout-admin .layui-tab-header{
+    display: none!important;
+}
+.layui-layout-admin .layui-body{
+    margin-bottom:30px;
+    padding-bottom: 40px;;
+}
+.layui-layout-admin .layui-footer{
+    left: 110px;
+}
+.layui-nav .layui-this:after, .layui-nav-bar{
+    background: #fff;
+}
+
+@media screen and (max-width: 769px) {
+    .layui-layout-admin .layui-footer{
+        left: 0px;
+    }
+    .layui-side-shrink .layui-side-menu{
+        width: 110px;
+    }
+    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-nav{
+        width: 110px;
+    }
+    .layui-side-shrink .layui-layout-admin .layui-side-menu .layui-logo{
+        width: 110px!important;
+    }
+    .layui-side-shrink .layui-layout-admin .layui-logo cite{
+        display:none;
+    }
+    .layui-layout-admin .layui-header .layui-nav.layui-layout-left{
+        left: 0;
+    }
+    .layui-layout-admin #layui-side-left-menu{
+        left: 0;
+    }
+    .layui-layout-admin .layui-pagetabs{left :0;}
+    .layui-side-shrink .layui-pagetabs, .layui-side-shrink .layui-layout-admin .layui-footer, .layui-side-shrink .layui-layout-admin .layui-layout-left
+    {
+        left: 0;
+        transform: translate3d(110px, 0, 0);
+        -webkit-transform: translate3d(110px, 0, 0)
+    }
+}

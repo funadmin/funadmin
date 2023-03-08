@@ -205,7 +205,7 @@ class AuthGroup extends Backend
                     ->field('id,rules,pid')
                     ->find();
                 $rules = $groupRule && $groupRule['rules']?$groupRule['rules']:'';
-                if($groupRule->pid > 0 and $groupRule->pid!=1){
+                if($groupRule->pid > 0 && $groupRule->pid!=1){
                     $prules =  $this->modelClass->where('id', $groupRule->pid)
 //                        ->where('status',1)
                         ->field('rules')
@@ -216,7 +216,7 @@ class AuthGroup extends Backend
                         ->order('sort asc')->cache(true)
                         ->select()->toArray();
                 }else{
-                    $admin_rule = $AuthModel->field('id, pid, title')
+                    $admin_rule = $AuthModel->field('id, pid, title,href,module')
                         ->where('status',1)
                         ->order('sort asc')->cache(true)
                         ->select()->toArray();
@@ -250,7 +250,13 @@ class AuthGroup extends Backend
                             ->where('href', 'like', '%/index')
                             ->field('id')
                             ->find();
-                        $childIndexId .= ($childIndex?$childIndex['id']:'').',';
+                        $one = AuthRule::where('id','=',$v)
+                            ->field('id,href')
+                            ->find();
+                        if($childIndex && ( in_array($childIndex['id'],$rules)
+                            || trim($one['href'],'/').'/index' == $childIndex['href'])){
+                            $childIndexId .= ($childIndex?$childIndex['id']:'').',';
+                        }
                     }
                     $rls.= $v.',';
                 }

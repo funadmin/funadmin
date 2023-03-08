@@ -12,24 +12,103 @@
         <link rel="stylesheet" href="__PLUGINS__/layui/css/layui.css">
         <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
     </head>
+    <script>
+        window.Config = {:json_encode($config)};
+        window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
+                window.STATIC ='__STATIC__'
+        window.PLUGINS = '__PLUGINS__';
+    </script>
+
 <body>
 
-{include file="layout/header"}
-{__CONTENT__}
-{include file="layout/footer"}
+<div class="fly-header layui-bg-black">
+    <div class="layui-container">
+        <a class="fly-logo" href="/">
+      <span style="color:#009688;
+   ;font-size: 24px;">FunAdmin</span>
+        </a>
 
+        <ul class="layui-nav fly-nav-user">
+            {if !$member}
+                <!-- 未登入的状态 -->
+                <li class="layui-nav-item">
+                    <a class="iconfont icon-touxiang layui-hide-xs" href="{:__u('login/index')}"></a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="{:__u('login/index')}">登入</a>
+                </li>
+                <li class="layui-nav-item">
+                    <a href="{:__u('login/reg')}">注册</a>
+                </li>
+                <!--      <li class="layui-nav-item layui-hide-xs">-->
+                <!--        <a href="" onclick="layer.msg('正在通过QQ登入', {icon:16, shade: 0.1, time:0})" title="QQ登入" class="iconfont icon-qq"></a>-->
+                <!--      </li>-->
+                <!--      <li class="layui-nav-item layui-hide-xs">-->
+                <!--        <a href="" onclick="layer.msg('正在通过微博登入', {icon:16, shade: 0.1, time:0})" title="微博登入" class="iconfont icon-weibo"></a>-->
+                <!--      </li>-->
+
+                <!-- 登入后的状态 -->
+            {else /}
+                <li class="layui-nav-item">
+                    <a class="fly-nav-avatar" href="javascript:;">
+                        <cite class="layui-hide-xs">{$member.username}</cite>
+                        <i class="iconfont icon-renzheng layui-hide-xs" title="{$member.username}"></i>
+                        <i class="layui-badge fly-badge-vip layui-hide-xs">VIP{$member.level_id}</i>
+                        <img src="{$member.avatar}">
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="{:__u('member/set')}"><i class="layui-icon">&#xe620;</i>基本设置</a></dd>
+                        <dd><a href="{:__u('member/home')}"><i class="layui-icon" style="margin-left: 2px; font-size: 22px;">&#xe68e;</i>我的主页</a></dd>
+                        <hr style="margin: 5px 0;">
+                        <dd><a href="javascript:;" data-url="{:__u('member/logout')}" id="logout" style="text-align: center;">退出</a></dd>
+                    </dl>
+                </li>
+            {/if}
+        </ul>
+    </div>
+</div>
+
+
+{__CONTENT__}
+
+
+<style>
+    .fly-footer{
+        text-align: center;
+        line-height: 30px;
+        border-top: none;
+        background: #393D49;
+        color: #fff;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+    }
+    .fly-footer a{
+        color: #aaa;
+    }
+</style>
+
+
+
+<div class="fly-footer">
+    <p>
+        <a href="javascript:;" target="_blank">Powered by FunAdmin</a>  <a href="javascript:;" target="_blank">2018-2028 &copy;</a></p>
+    <p>
+        <a href="javascript:;" >版权所有:FunAdmin版权所有</a>
+        <a href="http://www.funadmin.com/" title="funadmin官网">funadmin官网</a>
+        <a href="https://jq.qq.com/?_wv=1027&k=5wj2Wdy" title="获取源码">社区插件授权获取源码</a>
+        <a href="http://www.Funadmin.com/" title="开源后台管理系统">开源后台管理系统</a>
+        <a href="https://demo.funadmin.com/admin.php" title="php cms 后台管理系统">php后台管理系统</a>
+        <a href="http://www.beian.miit.gov.cn">粤ICP备19106066号</a>
+    </p>
+</div>
 
 <!--[if lt IE 9]>
 <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
 <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
-<script>
-    window.Config = {:json_encode($config)};
-    window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
-    window.STATIC ='__STATIC__'
-    window.ADDONS = '__ADDONS__'
-    window.PLUGINS = '__PLUGINS__';
-</script>
 <script src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-frontend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
 
 </body>

@@ -27,7 +27,7 @@ class Member extends Frontend {
     {
         parent::__construct($app);
         $this->modelClass = new \app\common\model\Member();
-        View::assign(['member'=>\session('member'),'action'=>$this->action]);
+        View::assign(['member'=>\session('member'),'action'=>request()->action()]);
     }
     /**
      * @return \think\Response
@@ -119,9 +119,14 @@ class Member extends Frontend {
     }
     //获取地区
     public function getProvinces($pid=0){
+
         $pid = $this->request->param('pid')?$this->request->param('pid'):$pid;
         $list = Db::name('provinces')->where('pid',$pid)->cache(true)->select();
-        return $list;
+        if($this->request->isAjax()){
+            $this->success('','',$list);
+        }else{
+            return $list;
+        }
     }
 
     /**
@@ -212,11 +217,7 @@ class Member extends Frontend {
      * 退出
      */
     public function logout(){
-        session('member',null);
-        Session::delete('member');
-        Cache::clear();
-        cookie('mid',null);
-        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
+        logout();
         $this->success('退成成功！',__u('login/index'));
 
     }

@@ -11,6 +11,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     uninstall_url: 'addon/uninstall',
                     config_url: 'addon/config',
                     modify_url: 'addon/modify',
+                    logout_url: 'addon/logout',
                     localinstall:{
                         type: 'upload',
                         class: 'layui-btn-sm layui-btn-normal',
@@ -18,11 +19,37 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
                         title: __('Local Install'),
-                        extend:"id='localinstall' data-callback='importFile()'",
+                        extend:"id='localinstall' data-callback='importFile(obj)'",
                     },
+                    plugins:{
+                        type: 'href',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'https://www.funadmin.com/frontend/plugins',
+                        icon: 'layui-icon layui-icon-app',
+                        text: __('plugins'),
+                        title: __('plugins'),
+                        extend:"id='plugins' ",
+                    },create:{
+                        type: 'open',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'addon/add',
+                        icon: 'layui-icon layui-icon-addition',
+                        text: __('Create'),
+                        title: __('Create'),
+                        extend:"id='Create' ",
+                    },account:{
+                        type: 'account',
+                        class: 'layui-btn-sm layui-btn-normal',
+                        url: 'addon/add',
+                        icon: 'layui-icon layui-icon-user',
+                        text: __('Account'),
+                        title: __('Account'),
+                        node:false,
+                        extend:"data-callback='AccountClick' id='account'",
+                    }
                 },
             }
-            importFile = function(){
+            importFile = function(obj){
                 $('#importFile').click();
             }
             Table.render({
@@ -30,7 +57,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 id: Table.init.table_render_id,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar: ['refresh','localinstall'],
+                toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
                 search: true,
@@ -99,15 +126,17 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 }
                                 html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</a>'
                                 if (d.status == 1 ) {
-                                    html += '<a '+d.lastVersion + d.localVersion+' data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
+                                    html += '<a lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
                                 } else {
                                     html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
                                 }
-                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"   title="'+__('uninstall')+'"lay-event="uninstall"  data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
+                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
                                 if (d.website !== '') {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
                                 }
-                                html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                if(d.web){
+                                    html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
                                     html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
@@ -123,13 +152,14 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 limit: 15,
                 page: false
             });
+            Table.api.bindEvent(Table.init.tableId);
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url'),auth = $(this).data('auth');
-                url = Fun.url(url);
-                var event = $(this).attr('lay-event');
+                url = Fun.url(url);var event = obj.event;
+                if(event ==='open'){ return this.call();}
                 if (event === 'install') {
                     if (auth) {
-                        Fun.toastr.confirm('Are you sure you want to install it', function () {
+                        Fun.toastr.confirm(__('Are you sure you want to install it'), function () {
                             let index = layer.load();
                             Fun.ajax({
                                 url: url,
@@ -138,13 +168,25 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                     Fun.toastr.close(index)
                                     Fun.refreshmenu();
                                     Fun.toastr.close();
-                                    layui.table.reload(Table.init.tableId);
+                                    layui.table.reloadData(Table.init.tableId);
                                 });
                             },function (res) {
                                 Fun.toastr.error(res.msg, function () {
                                     Fun.toastr.close(index)
-                                    layui.table.reload(Table.init.tableId);
+                                    layui.table.reloadData(Table.init.tableId);
                                 });
+                                if(res.url){
+                                    layui.layer.open({
+                                        content:res.url,
+                                        title: '立即支付',
+                                        shadeClose: true,
+                                        shade: 0.8,
+                                        resize:true,
+                                        maxmin:true,
+                                        area:['650px','680px'],
+                                        type:2,
+                                    })
+                                }
                             })
                         });
                     } else {
@@ -182,7 +224,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 })
                             },
                             btn2: function () {
-                                Fun.api.closeCurrentOpen();
+                                Fun.api.close();
                                 return false;
                             },
                             success: function (layero, index) {
@@ -196,22 +238,18 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 }
                 if (event === 'uninstall') {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
-                        let index = layer.load();
                         Fun.ajax({
                             url: url,
                             method: 'post'
                         }, function (res) {
-                            Fun.toastr.close(index)
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
-                                layui.table.reload(Table.init.tableId);
-                                Fun.toastr.close()
+                                layui.table.reloadData(Table.init.tableId);
+
                             });
                         },function(res){
                             Fun.toastr.error(res.msg)
-                            Fun.toastr.close(index)
-                            Fun.toastr.close()
-                            layui.table.reload(Table.init.tableId);
+                            layui.table.reloadData(Table.init.tableId);
                         })
                     });
                 }
@@ -222,7 +260,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         }, function (res) {
                             Fun.toastr.success(res.msg, function () {
                                 Fun.refreshmenu();
-                                layui.table.reload(Table.init.tableId);
+                                layui.table.reloadData(Table.init.tableId);
                                 Fun.toastr.close()
                             });
                         })
@@ -246,7 +284,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                     }, function (res) {
                                         Fun.toastr.success(res.msg, function () {
                                             Fun.refreshmenu();
-                                            layui.table.reload(Table.init.tableId);
+                                            layui.table.reloadData(Table.init.tableId);
                                             Fun.toastr.close()
                                         });
                                     })
@@ -278,6 +316,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 $.ajax({
                                     url: url, type: 'post', data: data, dataType: "json", success: function (res) {
                                         if (res.code === 1) {
+                                            Fun.api.setStorage('funadmin_memberinfo',res.data);
                                             Fun.toastr.success(res.msg, layer.closeAll());
                                             location.reload();
                                         } else {
@@ -289,7 +328,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 })
                             },
                             btn2: function () {
-                                Fun.api.closeCurrentOpen();
+                                Fun.api.close();
                                 return false;
                             },
                             success: function (layero, index) {
@@ -303,13 +342,16 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 }
                 return false;
             })
-            let table = $('#' + Table.init.table_elem);
             //指定允许上传的文件类型
             var uploadinit = layui.upload.render({
                 elem: '#importFile'
                 ,url: Fun.url(Upload.init.requests.upload_url)+'?save=1&path=addon' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
                 ,exts: 'zip|rar|7z' //只允许上传压缩文件
+                ,size:1024*50
+                ,before: function(obj){ //obj参数包含的信息，跟 choose回调完全一致，可参见上文。
+                    layer.load(); //上传loading
+                }
                 ,done: function(res){
                     if(res.code<=0){
                         Fun.toastr.error(res.msg);
@@ -320,27 +362,122 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         url:Table.init.requests.localinstall.url,
                         data:{url:res.url}
                     },function (res){
-                        Fun.toastr.success(res.msg);
+                        if(res.code==1){
+                            Fun.toastr.success(res.msg);
+                        }else{
+                            Fun.toastr.error(res.msg);
+                        }
                         uploadinit.reload({  elem: '#localinstall'});
                         Table.api.reload();//渲染表格点击无效无效
-                        Fun.toastr.close(load)
-                        //重载该实例，支持重载全部基础参数
+                        layui.layer.close(load)
+                        // 重载该实例，支持重载全部基础参数
                     },function (res) {
                         Fun.toastr.error(res.msg);
                         Fun.toastr.close(load)
                     })
                 }
             });
-            Table.api.bindEvent(table);
+            AccountClick = function(e){
+                console.log()
+                let funadmin_memberinfo =  Fun.api.getStorage('funadmin_memberinfo')
+                console.log(funadmin_memberinfo)
+                if(typeof funadmin_memberinfo !=='undefined' && funadmin_memberinfo!=''){
+                    layer.open({
+                        type: 1,
+                        shadeClose: true,
+                        content: $("#memberinfo_tpl").html(),
+                        zIndex: 9999,
+                        area: ['450px', '350px'],
+                        title: [__('Member Info') + 'FunAdmin', 'text-align:center'],
+                        resize: false,
+                        btnAlign: 'c',
+                        btn: [__('Logout'),__('Register')],
+                        yes: function (index, layero) {
+                            var url = Fun.url(Table.init.requests.logout_url);
+                            $.ajax({
+                                url: url, type: 'post', dataType: "json", success: function (res) {
+                                    if (res.code === 1) {
+                                        Fun.api.setStorage('funadmin_memberinfo','');
+                                        Fun.toastr.success(res.msg, layer.closeAll());
+                                        location.reload();
+                                    } else {
+                                        Fun.toastr.alert(res.msg);
+                                    }
+                                }, error: function (res) {
+                                    Fun.toastr.error(res.msg)
+                                }
+                            })
+                        },
+                        btn2: function () {
+                            Fun.api.close();
+                            return false;
+                        },
+                        success: function (layero, index) {
+                            $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
+                        },
+                        end: function () {
+                            $("#login").hide();
+                        },
+                    });
+                }else{
+                    layer.open({
+                        type: 1,
+                        shadeClose: true,
+                        content: $("#login_tpl").html(),
+                        zIndex: 9999,
+                        area: ['450px', '350px'],
+                        title: [__('Login In ') + 'FunAdmin', 'text-align:center'],
+                        resize: false,
+                        btnAlign: 'c',
+                        btn: [__('Login'),__('Register')],
+                        yes: function (index, layero) {
+                            var url = Fun.url(Table.init.requests.index_url);
+                            var data = {
+                                username: $("#inputUsername", layero).val(),
+                                password: $("#inputPassword", layero).val(),
+                            };
+                            if (!data.username || !data.password) {
+                                Fun.toastr.error(__('Account Or Password Cannot Empty'));
+                                return false;
+                            }
+                            $.ajax({
+                                url: url, type: 'post', data: data, dataType: "json", success: function (res) {
+                                    if (res.code === 1) {
+                                        Fun.api.setStorage('funadmin_memberinfo',res.data);
+                                        Fun.toastr.success(res.msg, layer.closeAll());
+                                        location.reload();
+                                    } else {
+                                        Fun.toastr.alert(res.msg);
+                                    }
+                                }, error: function (res) {
+                                    Fun.toastr.error(res.msg)
+                                }
+                            })
+                        },
+                        btn2: function () {
+                            Fun.api.close();
+                            return false;
+                        },
+                        success: function (layero, index) {
+                            $(".layui-layer-btn1", layero).prop("href", "http://www.funadmin.com/frontend/login/index.html").prop("target", "_blank");
+                        },
+                        end: function () {
+                            $("#login").hide();
+                        },
+                    });
+                }
+            }
         },
         config: function () {
+            Controller.api.bindevent()
+        },
+        add:function (){
             Controller.api.bindevent()
         },
         api: {
             bindevent: function () {
                 Form.api.bindEvent($('form'))
             },
-
         },
 
     };

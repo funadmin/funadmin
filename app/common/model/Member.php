@@ -73,7 +73,7 @@ class  Member extends BaseModel{
         $member->last_ip = $_SERVER['REMOTE_ADDR'];
         $member->last_login = time();
         $member->token = token();
-        $member->save = time();
+        $member->login_time = time();
         if (!$member->save())  throw new \Exception('login failed');
         session('member', $member);
         $_COOKIE['mid']= $member->id;

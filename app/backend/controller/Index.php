@@ -13,11 +13,15 @@
 
 namespace app\backend\controller;
 
+use app\backend\middleware\CheckRole;
+use app\backend\middleware\SystemLog;
+use app\backend\middleware\ViewNode;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\BaseController;
 use app\common\controller\Backend;
 use think\facade\Db;
+use think\facade\Console;
 use think\facade\Request;
 use think\facade\View;
 use think\facade\Cache;
@@ -25,6 +29,11 @@ use think\facade\Session;
 
 class Index extends Backend
 {
+    protected $middleware = [
+        CheckRole::class=>['except'=>['console','logout']],
+        ViewNode::class,
+        SystemLog::class
+    ];
     protected $layout = '';
     /**
      * @return string
@@ -39,7 +48,7 @@ class Index extends Backend
                 ->where('type', 1)
                 ->where('menu_status', 1)
                 ->where('status', 1)
-                ->order('sort asc')->select()->toArray();
+                ->order('sort asc')->cache(3600)->select()->toArray();
             $menulist = (new AuthService())->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }

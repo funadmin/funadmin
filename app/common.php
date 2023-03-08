@@ -12,7 +12,9 @@
  */
 
 use think\App;
+use think\facade\Cache;
 use think\facade\Route;
+use think\facade\Cookie;
 use think\facade\Session;
 use think\facade\Db;
 
@@ -47,11 +49,7 @@ if (!function_exists('__u')) {
 
     function __u($url = '', array $vars = [], $suffix = true, $domain = false)
     {
-        $url = (string)Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
-        $pos = strpos($url, '/backend');
-        if ($pos !== false) {
-            $url = substr_replace($url, '', $pos, strlen('/backend'));
-        }
+        $url =(string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
         return $url;
     }
 }
@@ -75,14 +73,14 @@ if (!function_exists('__')) {
 if (!function_exists("_getProvicesByPid")) {
     function _getProvicesByPid($pid = 0)
     {
-        return \think\facade\Db::name('provinces')->cache(true)->find($pid);
+        return  \app\common\model\Provinces::cache(true)->find($pid);
     }
 }
 
 if (!function_exists("_getMember")) {
     function _getMember($id)
     {
-        $member = \think\facade\Db::name('member')->cache(true)->find($id);
+        $member = \app\common\model\Member::cache(true)->find($id);
         if ($member) {
             return $member;
         }
@@ -273,10 +271,10 @@ if (!function_exists('isLogin')) {
     function isLogin()
     {
         if (session('member')) {
-            $_COOKIE['mid'] = session('member.id');
+            \think\facade\Cookie::set('mid', session('member.id'));//跨域
             return session('member');
-        } else if(!empty($_COOKIE['mid'])) {
-            $member = \app\common\model\Member::find($_COOKIE['mid']);
+        } else if(!empty(\think\facade\Cookie::get('mid'))) {
+            $member = \app\common\model\Member::withoutField('password')->find(Cookie::get('mid'));
             session('member',$member);
             return $member;
         }else{
@@ -285,6 +283,16 @@ if (!function_exists('isLogin')) {
     }
 }
 
+if (!function_exists('logout')) {
+    function logout()
+    {
+        Session::delete('member');
+        Cookie::delete('mid');
+        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
+        return true;
+
+    }
+}
 /**
  * 获取版本号
  * @param $key

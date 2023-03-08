@@ -44,7 +44,7 @@ class Upgrade extends Backend
     {
         parent::__construct($app);
         $this->backup_dir = '../../backup/';
-        $this->now_version = config('app.version');
+        $this->now_version = config('funadmin.version');
         $this->lockFile = '../../backup/'.$this->now_version.'.lock';
         $this->authCloudService = AuthCloudService::instance();
     }
