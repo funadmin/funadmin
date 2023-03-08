@@ -699,13 +699,17 @@ class CurdService
      */
     public function makeFile($filename, $content)
     {
-        if (is_file($filename) && !$this->force && !$this->jump) {
-            throw new \Exception($filename . '文件已经存在');
+        if(is_file($filename)){
+            if($this->force && !$this->jump){
+                file_put_contents($filename, $content);
+            }
+        }else{
+            if (!is_dir(dirname($filename))) {
+                @mkdir(dirname($filename), 0755, true);
+            }
+            file_put_contents($filename, $content);
         }
-        if (!is_dir(dirname($filename))) {
-            @mkdir(dirname($filename), 0755, true);
-        }
-        file_put_contents($filename, $content);
+
     }
 
     protected function buildMenu($menuListArr, $type = 1)
