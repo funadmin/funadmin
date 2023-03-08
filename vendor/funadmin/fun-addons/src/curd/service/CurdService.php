@@ -709,9 +709,7 @@ class CurdService
             }
             file_put_contents($filename, $content);
         }
-
     }
-
     protected function buildMenu($menuListArr, $type = 1)
     {
         $module = $this->addon ?: $this->app;
