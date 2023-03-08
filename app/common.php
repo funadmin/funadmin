@@ -14,6 +14,7 @@
 use think\App;
 use think\facade\Cache;
 use think\facade\Route;
+use think\facade\Cookie;
 use think\facade\Session;
 use think\facade\Db;
 
