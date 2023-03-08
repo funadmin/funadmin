@@ -72,9 +72,11 @@
                 {/if}
                 <div class="layui-form-item layui-clear">
                     <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
+                    {if config('captcha.check')}
                     <div class="captcha-img">
                         <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
                     </div>
+                    {/if}
                 </div>
                 <div class="layui-form-item">
                     <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
