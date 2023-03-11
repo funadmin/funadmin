@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["jquery", "lang",'toastr','dayjs','fun'], function ($, Lang,Toastr,Dayjs,Fun) {
+define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
     var layer = layui.layer, element = layui.element;layer = layer || parent.layer;
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
