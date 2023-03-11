@@ -19,7 +19,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
                         title: __('Local Install'),
-                        extend:"id='localinstall' data-callback='importFile(obj)'",
+                        extend:"id='localinstall' data-callback='importFile'",
                     },
                     plugins:{
                         type: 'href',

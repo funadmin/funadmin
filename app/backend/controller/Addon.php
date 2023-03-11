@@ -181,6 +181,8 @@ class Addon extends Backend
         if($this->request->isAjax()){
             $post = $this->request->post();
             $arr = [];
+            if(is_numeric($post['name']))  $this->error(lang('The plugin name cannot be a number'));
+
             foreach ($post as $k => $v) {
                 if ($k == '__token__') continue;
                 if ($v === '') continue;

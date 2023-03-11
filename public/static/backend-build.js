@@ -1,17 +1,25 @@
 ({
     baseUrl : './', //基于appDir，项目目录
-    name    : 'js/require-backend.js', //基于baseUrl，项目文件
+    name    : 'js/require-backend', //基于baseUrl，项目文件
     out     : 'js/require-backend.min.js', //基于baseUrl，输出文件
     // locale  : 'en-us', //国际化配置
     optimize: 'uglify', //压缩方式
+    // optimize: 'none', //压缩方式
+    throwWhen: {
+        optimize: true
+    },
+    output: {
+        comments: false, // 去掉注释
+    },
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
         'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
-        'tableTree', 'iconPicker','iconFonts', 'toastr','step-lay','selectPage',
-        'inputTags','timeago','multiSelect','cityPicker','xmSelect','selectPlus','selectN',
+        'tableTree','iconPicker','iconFonts', 'toastr',
+        'step-lay','inputTags' ,'cityPicker',
+        'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers',
-        'dayjs', 'backend','md5','fun','form','table','upload'
+        'dayjs', 'md5','fun','form', 'table', 'upload', 'backend'
     ],
     paths: {
         'lang'          : 'empty:',
@@ -30,8 +38,8 @@
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
         'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
-        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
         'selectN'       : 'plugins/lay-module/selectPlus/selectN',
+        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
         'selectPage'    : 'plugins/lay-module/selectPage/selectpage.min',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
         'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
@@ -41,12 +49,12 @@
         'dayjs'         : 'plugins/dayjs/dayjs.min',
         'md5'           : 'plugins/lay-module/md5/md5.min',
         //自定义 后台扩展
-        'backend'       : 'js/backend.min', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',
         'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
+        'backend'       : 'js/backend', // fun后台扩展
     },
     map: {
         '*': {

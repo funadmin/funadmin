@@ -39,8 +39,8 @@ define(["jquery", 'croppers'], function($, croppers) {
                     var opt = [],uploadInt = [];
                     //读取本地文件
                     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
-                    let  chunkSize = Upload.init.upload_chunksize*1024*1024;
-                    let  maxSize = Upload.init.upload_size*1024*1024;
+                    var  chunkSize = Upload.init.upload_chunksize*1024*1024;
+                    var  maxSize = Upload.init.upload_size*1024*1024;
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var data = $(this).data();
@@ -79,7 +79,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                         },1200))
                                     }else{
                                         if (!$('#' + this.data.chunkId).length) {
-                                            window[this.data.chunkId] = layer.open({
+                                            window[this.data.chunkId] = layui.layer.open({
                                                 type: 1,
                                                 title: false,
                                                 skin: 'chunkProgress',
@@ -93,7 +93,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                                                     '<div class="layui-progress-bar layui-bg-blue" lay-percent="' + Math.ceil(100 * (0 + this.data.chunkIndex) / this.data.chunkCount) + '%" ></div>',
                                                     '</div>',].join(''),
                                                 success: function (layerObj, index) {
-                                                    layer.setTop(layerObj);
+                                                    layui.layer.setTop(layerObj);
                                                 }
                                             })
                                             layui.element.render();
@@ -135,10 +135,10 @@ define(["jquery", 'croppers'], function($, croppers) {
                                                 chunkSize: chunkSize/(1024*1024),
                                                 start : i * chunkSize,
                                                 end: Math.min(file.size,  i * chunkSize + chunkSize),
-                                            })
+                                            });
                                         }
                                         chunkList[chunkId] = list;
-                                        fileList[chunkId] = {_that: that, file: file, obj, obj, index: index};
+                                        fileList[chunkId] = {_that: that, file: file, obj:obj, index: index};
                                         var progress = 0;
                                         for (var key in chunkList) {
                                             if (chunkList[key].status === 0) {

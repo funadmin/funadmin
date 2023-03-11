@@ -2,7 +2,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
         element.init();
         if (!/http(s*):\/\//.test(location.href)) {
-            let tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
+            var tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
             return Fun.toastr.alert(tips);
         }
         var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
@@ -285,7 +285,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 Backend.initBgColor();
                 Backend.api.bindEvent();
             },
-            initBodyTheme:function (name='setTab',type=1){
+            initBodyTheme:function (name){
+                name = typeof name==='undefined'?'setTab':name;
                 $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
                 $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop').removeAttr('style');
                 if($('.layui-layout-admin .layui-nav-header').length>0){
@@ -323,7 +324,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
 
                         title = [__('Input Password'),LayerTitleBg];
                         if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
-                        layer.prompt({
+                        layui.layer.prompt({
                             btn: [__('Unlock Now')],
                             title: title,
                             closeBtn: 0,
@@ -487,7 +488,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 if (options.iframe) ele = top.layui.element;
                 var checkLayId = Backend.checkLayId(options.layId), loadindex;
                 if (!checkLayId) {
-                    loadindex = layer.load();
+                    loadindex = layui.layer.load();
                     ele.tabAdd('layui-layout-tabs', {
                         title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                         ,
@@ -496,11 +497,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         id: options.layId,
                     });
                 } else {
-                    loadindex = layer.load();
+                    loadindex = layui.layer.load();
                     top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
                 }
                 $('#layui-nav-righmenu').remove();
-                layer.close(loadindex);
+                layui.layer.close(loadindex);
                 ele.tabChange('layui-layout-tabs', options.layId);
             },
             //切换id
@@ -604,8 +605,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
              * @param options
              */
             listenSwitch: function (options) {
-                options.filter = options.filter || null;
-                element.on('tab(' + options.filter + ')', function () {
+                options.filter = options.filter || '';
+                layui.element.on('tab(' + options.filter + ')', function(){
                     var layId = $(this).attr('lay-id');
                     Backend.changeSessioinTabId(layId);
                     Backend.listenSwitchIframe(layId);
@@ -613,7 +614,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 });
             },
             //监听主题
-            listenFrameTheme(){
+            listenFrameTheme:function(){
                 Fun.api.setFrameTheme();
             },
             /**
@@ -692,7 +693,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             events: {
                 //弹出主题面板
                 opentheme: function () {
-                    var loading = layer.load(0, {shade: false, time: 2 * 1000});
+                    var loading = layui.layer.load(0, {shade: false, time: 2 * 1000});
                     var clientHeight = (document.documentElement.clientHeight) - 60;
                     var bgColorHtml = Backend.buildBgColorHtml();
                     var anims = [0, 1, 2, 3, 4, 5, 6];
@@ -747,7 +748,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         '    </span>\n' +
                         '    </blockquote>\n' +
                         '</div>';
-                    layer.open({
+                    layui.layer.open({
                         type: 1,
                         title: false,
                         closeBtn: 0,
@@ -768,7 +769,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     data.site_theme?data.site_theme:1;
                     layui.form.val("form", data);
                     layui.form.render()
-                    layer.close(loading);
+                    layui.layer.close(loading);
                 },
                 /**
                  * 设置颜色配置
@@ -788,7 +789,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     theme = Fun.api.getStorage('setFrameTheme');
                     title = [__('Set Password To Lock Screen'),LayerTitleBg];
                     if(theme) title[1] =  'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
-                    layer.prompt({
+                    layui.layer.prompt({
                         btn: [__('Lock Now'),__('Cancel')],
                         title:title,
                         formType: 1,
@@ -803,10 +804,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                                 return false;
                             } else {
                                 Fun.api.setStorage('BackendLock',value);
-                                layer.close(index);
+                                layui.layer.close(index);
                                 title = [__('Input Password'),LayerTitleBg];
                                 if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
-                                layer.prompt({
+                                layui.layer.prompt({
                                     btn: [__('Unlock')],
                                     title: title,
                                     closeBtn: 0,
@@ -820,7 +821,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                                         return false;
                                     } else {
                                         if (value === Fun.api.getStorage('BackendLock')) {
-                                            layer.close(index);
+                                            layui.layer.close(index);
                                             $(".yy").hide();
                                             //清除密码
                                             Fun.api.setStorage('BackendLock', null);
@@ -850,10 +851,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     if ($container.hasClass(SIDE_SHRINK)) {
                         if (type === 1) {
                             if(othis.children('dl').length>0) return false;
-                            let tip = othis.data('tips') || othis.children('a').data('tips');
-                            layer.tips(tip, othis,{time: 1000});
+                            var tip = othis.data('tips') || othis.children('a').data('tips');
+                            layui.layer.tips(tip, othis,{time: 1000});
                         } else {
-                            layer.close();
+                            layui.layer.close();
                         }
                     }
                 }
@@ -1036,7 +1037,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         }
                         if (_that.siblings().length == 0) {
                             if (target === '_blank') {window.open(url, "_blank");return false;}
-                            let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
+                            var options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
                             if(_that.data('url')){
                                 Backend.addTab(options);
                             }

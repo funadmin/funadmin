@@ -1,16 +1,25 @@
 ({
     baseUrl : './', //基于appDir，项目目录
-    name    : 'js/require-frontend.js', //基于baseUrl，项目文件
+    name    : 'js/require-frontend', //基于baseUrl，项目文件
     out     : 'js/require-frontend.min.js', //基于baseUrl，输出文件
     // locale  : 'en-us', //国际化配置
     optimize: 'uglify', //压缩方式
+    throwWhen: {
+        optimize: true
+    },
+    output: {
+        comments: false, // 去掉注释
+    },
+    // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [
         'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
-        'tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags' ,'cityPicker',
+        'tableTree','iconPicker','iconFonts', 'toastr',
+        'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
-        'regionCheckBox','timePicker','croppers', 'dayjs',
-        'md5','fun','form','table','upload'],
+        'regionCheckBox','timePicker','croppers',
+        'dayjs', 'md5', 'fun','form', 'table', 'upload'
+    ],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -38,7 +47,7 @@
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'dayjs'         : 'plugins/dayjs/dayjs.min',
-        //自定义
+        // //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展
         'table'         : 'js/require-table',

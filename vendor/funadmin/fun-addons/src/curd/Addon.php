@@ -51,7 +51,7 @@ class Addon extends Command
         $param['title'] = $input->getOption('title');
         $param['description'] = $input->getOption('description');
         $param['author'] = $input->getOption('author');
-        $param['version'] = $input->getOption('version');
+        $param['version'] = $input->getOption('ver');
         $param['requires'] = $input->getOption('requires');
         $param['menu']  = $input->getOption('menu');
         $param['force'] = $input->getOption('force');//强制覆盖或删除

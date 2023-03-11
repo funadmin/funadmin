@@ -8,10 +8,10 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
-    let layer = layui.layer, element = layui.element;layer = layer || parent.layer;
+define(["jquery", "lang",'toastr','dayjs','fun'], function ($, Lang,Toastr,Dayjs,Fun) {
+    var layer = layui.layer, element = layui.element;layer = layer || parent.layer;
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
-    let Fun = {
+    var Fun = {
         url: function (url) {
             url = url==undefined?location.href:url;
             var domain = window.location.host;
@@ -46,7 +46,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             if (Config.superAdmin === true) {
                 return true;
             }
-            if(node.indexOf('?')>=0) node = node.replace(/(\?|#)[^'"]*/, '');           //去除参数
+            if(node.indexOf('?')>=0) node = node.replace(/([?#])[^'"]*/, '');           //去除参数
             return $(ele).data('node-' + node.toLowerCase()) === 1;
         },
         param: function (param, defaultParam) {
@@ -152,14 +152,14 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 index = Math.max(index, parseInt($(this).attr("times")));
                             });
                             if (index) {
-                                layer.close(index);
+                                layui.layer.close(index);
                             }
                         } else if (parent.$(".layui-layer").length) {
                             parent.$(".layui-layer").each(function () {
                                 index = Math.max(index, parseInt($(this).attr("times")));
                             });
                             if (index) {
-                                parent.layer.close(index);
+                                parent.layui.layer.close(index);
                             }
                         }
                     })
@@ -236,34 +236,34 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             // duration: 2000, //默认2秒关闭
             // showClose: true //显示关闭按钮
             // 成功消息
-            success: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
+            success: function (msg, callback,duration,position,showClose) {
                 return Toastr.success(msg,callback,duration,position,showClose);
             },
             // 失败消息
-            error: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
+            error: function (msg, callback,duration,position,showClose) {
                 return Toastr.error(msg,callback,duration,position,showClose);
             },
-            info:function(msg, callback,duration=2000,position='topCenter',showClose=true) {
+            info:function(msg, callback,duration,position,showClose) {
                 return Toastr.info(msg,callback,duration,position,showClose);
             },
-            warning:function(msg, callback,duration=2000,position='topCenter',showClose=true) {
+            warning:function(msg, callback,duration,position,showClose) {
                 return Toastr.warning(msg,callback,duration,position,showClose);
             },
             // 警告消息框
-            alert: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
+            alert: function (msg, callback,duration,position,showClose) {
                 return Toastr.warning(msg,callback,duration,position,showClose);
             },
             // 消息提示
-            tips: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
+            tips: function (msg, callback,duration,position,showClose) {
                 return Toastr.info(msg,callback,duration,position,showClose);
             },
             // 加载中提示
-            loading: function (msg, callback,duration=2000,position='topCenter',showClose=true) {
+            loading: function (msg, callback,duration,position,showClose) {
                 return Toastr.loading(msg,callback,duration,position,showClose);
             },
             // 对话框
             confirm: function (msg, success, error) {
-                var index = layer.confirm(msg, {
+                var index = layui.layer.confirm(msg, {
                     title: __('Are you sure'),
                     icon: 3,
                     btn: [__('Confirm'), __('Cancel')]
@@ -277,12 +277,14 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             // 关闭消息框
             close: function (index) {
-                if (index) {layer.close(index);} else {layer.closeAll();}
+                if (index) {layui.layer.close(index);} else {layui.layer.closeAll();}
                 return Toastr.destroyAll(); //全部关闭
 
             }
         },
-        //事件
+        /**
+         * 事件
+         */
         events: {
             photos: function (othis) {
                 var title = othis.prop('title'),
@@ -300,7 +302,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         }
                     ]
                 };
-                layer.photos({
+                layui.layer.photos({
                     photos: photos,
                     anim: 5
                 });
@@ -331,7 +333,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
                 Fun.api.iframe(options)
             },
-            request: function (othis, options = null,Table='') {
+            request: function (othis, options,Table) {
                 var data = othis.data(),value;
                 if (options) {
                     title = options.title;
@@ -383,7 +385,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 });
                 return false
             },
-            dropdown: function (othis,rowData=null,tableOption=null) {
+            dropdown: function (othis,rowData,tableOption) {
                 var data = $(othis).data(); extend = data.extend;
                 if (typeof extend === 'object') {
                     ele = '';d= '';
@@ -448,7 +450,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
             },
         },
-        //接口
+        /*
+        接口
+         */
         api: {
             setStorage: function(key,value) {
                 if (value != null && value !== "undefined") {
@@ -472,12 +476,12 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 }
             },
             //设置子页面主题
-            setFrameTheme:function(body=''){
+            setFrameTheme:function(body){
                 var colorId = Fun.api.getStorage('funColorId');
                 colorId = colorId?colorId:0;theme = 'theme'+colorId;
                 if(Fun.api.getStorage('setFrameTheme')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
-                    for (let i = 0; i < iframe.length; i++) {
+                    for (var i = 0; i < iframe.length; i++) {
                         $(iframe[i]).on('load',function(){
                             //此处加载时必须要
                             $(this).contents().find('body').attr('id', theme);
@@ -521,10 +525,10 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             //打开新窗口
             open: function (options) {
                 var title = options.title, url = options.url, width = options.width,
-                    height = options.height, success = options.success, cancel = options.cancel;end=options.end;
-                yes = options.yes, btn2 = options.btn2, type = options.type;
+                    height = options.height, success = options.success, cancel = options.cancel,end=options.end,
+                yes = options.yes, type = options.type;
                 type = type === undefined || type===2  ? 2 : 1;
-                var isResize = options.isResize === undefined;
+                var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '600';
@@ -575,31 +579,31 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     yes: yes === undefined ? function (index, layero) {
                         try {
                             //此处必须是close才直接关闭
-                            if(btns.length==1 && btns[0]=='close'){layer.close(index);return false;}
+                            if(btns.length==1 && btns[0]=='close'){layui.ayer.close(index);return false;}
                             $(document).ready(function () {// 父页面获取子页面的iframe
-                                var body = layer.getChildFrame('body', index);
-                                if (parentiframe) {body = parent.layer.getChildFrame('body', index);}
+                                var body = layui.layer.getChildFrame('body', index);
+                                if (parentiframe) {body = parent.layui.layer.getChildFrame('body', index);}
                                 body.find('button[type="' + btns[0] + '"]').trigger('click');
                                 body.find('.layui-hide').hide();
                             })
                         } catch (err) {
-                            layer.close(index);
+                            layui.layer.close(index);
                         }
                         return false;
                     } : yes,
                     cancel: cancel === undefined? function (index, layero) {
-                        layer.close(layer.index);
+                        layui.layer.close(layer.index);
                     }:cancel,
                     end:end === undefined?function(index, layero){
-                        layer.close(layer.index);
-                    }:end
-                }, )
+                        layui.layer.close(layer.index);
+                    }:end,
+                })
                 //增加多个按钮
                 if(btns.length>1){
                     for (i=1;i<btns.length;i++) {
                         if(i==btns.length-1){
                             opt['btn'+(i+1)] =  function (index, layero) {
-                                layer.close(layer.index);
+                                layui.layer.close(layer.index);
                             };
                         }else{
                             try {
@@ -611,7 +615,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         }
                     }
                 }
-                var index =  parentiframe? parent.layer.open(opt): layer.open(opt);
+                var index =  parentiframe? parent.layui.layer.open(opt): layui.layer.open(opt);
                 if (Fun.api.checkScreen() || width === undefined || height === undefined) {
                     layui.layer.full(index);
                 }
@@ -627,9 +631,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             /**
              * 关闭当前弹窗
              */
-            close:function(index,type=0){
-                index =  index === undefined? parent.layer.getFrameIndex(window.name):index;
-                type === 1? parent.layer.closeAll(): parent.layer.close(index)
+            close:function(index,type){
+                index =  index === undefined? parent.layui.layer.getFrameIndex(window.name):index;
+                type === 1? parent.layui.layer.closeAll(): parent.layui.layer.close(index)
                 return true;
             },
             /**
@@ -662,7 +666,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         window.open(url, "_blank");
                         return false;
                     }
-                    let options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
+                    options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
                     layui.Backend.addTab(options);
                     if (layui.Backend.checkScreen()) {
                         $container.removeClass(SIDE_SHRINK).addClass('fun-app')
@@ -674,11 +678,13 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 return false;
             },
             refreshTable: function (tableName) {
-                tableName = tableName | 'list';
+                tableName = tableName || 'list';
                 layui.table.reload(tableName,{},true);
             },
             //获取同步数据
-            getData: function (url,data={},method='get',async=false) {
+            getData: function (url,data,method,async) {
+                method = method?method:"GET";
+                async = typeof async!=='undefined'?async:true;
                 if(!url) return false;
                 var returnData;
                 Fun.ajax({url:Fun.url(url),data:data,method:method,async:async},function(res){
@@ -688,17 +694,17 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 })
                 return returnData;
             },
-            getButtons:function(buttons,buttonsindex=0){
+            getButtons:function(buttons){
                 if(buttons[buttonsindex]){
                     return buttons[buttonsindex];
                 }
                 return '';
             },
-            callback:function (othis,rowData=null,tableOption=null){
+            callback:function (othis,rowData,tableOption){
                 var data = othis.data(),callback = data.callback;
                 if (callback && typeof callback === 'string') {
                     eval(callback)(othis,rowData,tableOption);
-                }else if(!callback &&( rowData || tableOption)){
+                }else if(!callback && ( rowData || tableOption)){
                     buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
                     buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
                     if(!buttons) return true;

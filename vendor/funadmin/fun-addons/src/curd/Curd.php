@@ -117,7 +117,7 @@ class Curd extends Command
         $param['title'] = $input->getOption('title');
         $param['author'] = $input->getOption('author');
         $param['description'] = $input->getOption('description');
-        $param['ver'] = $input->getOption('ver');
+        $param['version'] = $input->getOption('ver');
         $param['requires'] = $input->getOption('requires');
         if (empty($param['table'])) {
             $output->info("主表不能为空");

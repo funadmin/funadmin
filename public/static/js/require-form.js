@@ -299,8 +299,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     {title: 'None', value: ''},
                                     {title: 'Some class', value: 'class-name'}],
                                 //动态改变值
-                                init_instance_callback: (editor) => {
-                                    editor.on('change', (e) => {
+                                init_instance_callback:function (editor){
+                                    editor.on('change', function(e) {
                                         var val = editor.contentDocument.body.innerHTML;
                                         $('textarea[name="' + name + '"]').val(val);
                                     });
@@ -1009,9 +1009,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     try {
                                         $(document).ready(function () {
                                             // 父页面获取子页面的iframe
-                                            var body = layer.getChildFrame('body', index);
+                                            var body = layui.layer.getChildFrame('body', index);
                                             if (parentiframe) {
-                                                body = parent.layer.getChildFrame('body', index);
+                                                body = parent.layui.layer.getChildFrame('body', index);
                                             }
                                             li = body.find('.box-body .file-list-item li.active');
                                             __token__ = body.find('input[name="__token__"]').val();
@@ -1050,7 +1050,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                             }
                                             //token失效
                                             token.val(__token__)
-                                            layer.close(index) || parent.layer.close(index)
+                                            layui.layer.close(index) || parent.layui.layer.close(index)
                                         })
                                     } catch (err) {
                                         Fun.toastr.error(err)
