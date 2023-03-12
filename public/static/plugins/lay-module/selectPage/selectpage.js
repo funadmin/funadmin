@@ -849,6 +849,11 @@ layui.define(['jquery'],function(exports) {
                         },
                         error: function () {
                             self.ajaxErrorNotify(self)
+                        }, complete: function (xhr) {
+                            var token = xhr.getResponseHeader('__token__');
+                            if (token) {
+                                $("input[name='__token__']").val(token);
+                            }
                         }
                     })
                 }

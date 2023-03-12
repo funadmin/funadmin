@@ -27,8 +27,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 height:'600',
             },
             edit_url:{
-                type: 'x',
-                event: 'x',
+                type: 'open',
+                event: 'open',
                 class: 'layui-btn-xs layui-btn-green',
                 url: 'member.member/edit',
                 icon: 'layui-icon layui-icon-edit',

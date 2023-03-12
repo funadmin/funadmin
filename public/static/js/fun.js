@@ -694,8 +694,8 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 })
                 return returnData;
             },
-            getButtons:function(buttons){
-                if(buttons[buttonsindex]){
+            getButtons:function(buttons,buttonsindex){
+                if(buttons && buttons[buttonsindex]){
                     return buttons[buttonsindex];
                 }
                 return '';
@@ -705,15 +705,15 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 if (callback && typeof callback === 'string') {
                     eval(callback)(othis,rowData,tableOption);
                 }else if(!callback && ( rowData || tableOption)){
-                    buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
-                    buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
-                    if(!buttons) return true;
-                    callback = buttons.callback;
+                    var buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
+                    var button = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
+                    if(!button) return true;
+                    callback = button.callback;
                     if(!callback) return true;
                     if(typeof callback === 'string'){
                         eval(callback)(othis,rowData,tableOption);
                     }else if(typeof callback === 'function'){
-                        buttons.callback(othis,rowData,tableOption);
+                       callback(othis,rowData,tableOption);
                     }
                 }
                 return true;
