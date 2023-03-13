@@ -360,11 +360,11 @@ class Service extends \think\Service
             foreach (scandir($appDir) as $dir){
                 $sourcedir = $appDir.DS.$dir;
                 if(in_array($dir,['.','..'])) continue;
+                if(!is_dir($addonPath .'app'. DS. $name)) @mkdir($addonPath .'app'. DS. $name,0755,true);
                 if (is_dir($sourcedir)) {
                     FileHelper::copyDir($sourcedir, $addonPath .'app'. DS. $name . DS .$dir. DS,$delete);
                     if($delete) FileHelper::delDir($sourcedir);
                 }else{
-                    if(!is_dir(dirname($addonPath .'app'. DS. $name))) @mkdir($addonPath .'app'. DS. $name,0755,true);
                     @copy($sourcedir,$addonPath .'app'.DS .$name . DS .$dir);
                     if($delete) unlink($sourcedir);
                 }
