@@ -1047,7 +1047,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 })
             },
             edit: function (options) {
-                url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
+                var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 tableId = options.id || Table.init.tableId;
                 if (url !== false) {
                     layui.table.on('edit(' + options.layFilter + ')', function (obj) {
