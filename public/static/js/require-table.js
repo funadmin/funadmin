@@ -1102,7 +1102,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.on('select', function (obj) {
                     url = $(obj.elem).attr('data-url') ||options.init.requests.modify_url || false;
                     if(url===false) return ;
-                    tableId = init.tableId || Table.init.tableId;
+                    tableId = options.id || Table.init.tableId;
                     filter = $(obj.elem).attr('lay-filter');
                     if(!filter) return ;
                     //兼容表单
