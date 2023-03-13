@@ -498,7 +498,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     });
                 } else {
                     loadindex = layui.layer.load();
-                    top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                    top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe").eq(0).attr('src', options.url)
+                    // top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
                 }
                 $('#layui-nav-righmenu').remove();
                 layui.layer.close(loadindex);
