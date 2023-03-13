@@ -183,7 +183,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             show = Fun.param(options.searchShow, false) ? '' : 'layui-hide';
             cols = cols[0] || {};
             var newCols = [];
-            var formHtml = '';
+            var formHtml = '',formVal = {};
             layui.each(cols, function (i, d) {
                 d.field = d.field || false;
                 d.fieldAlias = Fun.param(d.fieldAlias, d.field);
@@ -202,6 +202,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 d.extend = d.extend || '';
                 d.extend = typeof d.extend === "object" ? "data-extend='" + JSON.stringify(d.extend) + "'" : d.extend;
                 if (d.field !== false && d.search !== false) {
+                    formVal[d.field] = d.searchValue;
                     d.search = typeof d.search ==='string' ?d.search.toLowerCase():d.search;
                     cls = 'layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3';
                     switch (d.search) {
@@ -277,6 +278,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             if (formHtml !== '') {
                 $('#' + tableId).before('<fieldset id="layui-search-field-' + tableId + '" class="layui-elem-field layui-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" lay-filter="layui-form-' + tableId + '" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
                 Table.api.tableSearch(options);
+                layui.form.val('layui-form-'+tableId,formVal);
                 layui.form.render();
                 Table.timeRender(newCols)
                 require(['form'], function (Form) {
