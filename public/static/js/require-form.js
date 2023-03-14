@@ -99,8 +99,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     layui.each(list, function(i) {
                         var _that = $(this);value = _that.val() || _that.data("init");
                         var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                            url = _that.data('url') || _that.data('request'),
-                            data = _that.data('data'), field = _that.data('field') ||　'title',
+                            url = _that.data('url') || _that.data('request'),isTree = _that.data('istree') ,isHtml = _that.data('ishtml'),
+                            data = _that.data('data'), field = _that.data('field') ||　'title',pageSize = _that.data('pagesize') ||　12,
                             primaryKey = _that.data('primarkey') ||　'id', selectOnly = _that.data('selectonly') ||　false,
                             pagination = !(_that.data('pagination') == 'false' || _that.data('pagination') == 0), listSize = _that.data('listsize') ||　'15',
                             multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton') ||　true,
@@ -109,13 +109,14 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             method    = _that.data('method') ||　'GET', dbTable    = _that.data('dbtable'),
                             selectToCloseList  =_that.data('selecttocloselist') ||　 false,disabled = _that.data('disabled') || false,
                             andOr =_that.data('andor'),formatItem = _that.data('formatitem') || false,required = _that.data('required') || ''
-                        orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;
+                        orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;isHtml!=undefined?isHtml:true;
                         if(!value && Config.formData && Config.formData[name]) {
                             _that.val( Config.formData[name]);
                         }
+                        console.log(isTree)
                         options = {
-                            showField : field, keyField :primaryKey,
-                            selectFileds:searchField,searchKey:searchKey,
+                            showField : field, keyField :primaryKey,pageSize:pageSize,
+                            selectFileds:searchField,searchKey:searchKey,isTree:isTree,isHtml:isHtml,
                             data : data || Fun.url(url), dbTable : dbTable, andOr : andOr, method:method,
                             //仅选择模式，不允许输入查询关键字
                             selectOnly : selectOnly,required : required, selectToCloseList:selectToCloseList,

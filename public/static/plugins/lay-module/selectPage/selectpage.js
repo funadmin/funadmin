@@ -161,6 +161,10 @@ layui.define(['jquery'],function(exports) {
              * @default 0.5
              */
             inputDelay: 0.5,
+
+            isHtml: true,
+
+            isTree:false,
             /** ---------------------Callback---------------------- */
             /**
              * Result list item selected callback
@@ -839,7 +843,9 @@ layui.define(['jquery'],function(exports) {
                             showField: p.showField,
                             keyField: p.keyField,
                             keyValue: key,
-                            selectFields: p.selectFields
+                            selectFields: p.selectFields,
+                            isTree:p.isTree,
+                            isHtml:p.isHtml,
                         },
                         success: function (json) {
                             var d = null
@@ -1455,7 +1461,9 @@ layui.define(['jquery'],function(exports) {
                 searchTable: p.dbTable,
                 showField: self.option.showField,
                 keyField: self.option.keyField,
-                selectFields: self.option.selectFields
+                selectFields: self.option.selectFields,
+                isTree:self.option.isTree,
+                isHtml:self.option.isHtml,
             }
             if (p.orderBy !== false) _orgParams.orderBy = p.orderBy
             _orgParams[searchKey] = q_word[0]

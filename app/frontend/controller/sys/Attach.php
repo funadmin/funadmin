@@ -126,6 +126,11 @@ class Attach extends Frontend
                 case 'images':
                     $mime = ['image/gif','image/jpeg','image/png','image/tiff','image/jp2','image/bmp','image/webp','image/svg+xml','image/x-icon',''];
                     break;
+                default:
+                    $mime = [];
+            }
+            if(!empty($mime)){
+                $where[] = ['mime','in',$mime];
             }
             $where[] = ['mime','in',$mime];
         }

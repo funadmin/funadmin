@@ -549,9 +549,8 @@ trait Curd
         //搜索字段
         $searchfield = (array) request()->param("selectFields/a")  ;
         //是否返回树形结构
-        $istree = request()->param("isTree", 0);
-
-        $ishtml = request()->param("isHtml", 0);
+        $istree = request()->param("isTree/d", 0);
+        $ishtml = request()->param("isHtml/d", 0);
         if ($istree) {
             $word     = [];
             $pagesize = 999999;
@@ -589,14 +588,17 @@ trait Curd
                 $item[$field]      = isset($item[$field]) ? $item[$field] : '';
                 $item['pid'] = isset($item['pid']) ? $item['pid'] : (isset($item['parent_id']) ? $item['parent_id'] : 0);
             }
+            unset($item);
             if ($istree && !$primaryvalue) {
-                $list =TreeHelper::getTree($list, $field);
-                if (!$ishtml) {
-                    foreach ($list as &$item) {
-                        $item = str_replace('|--', ' ', $item);
+                $list['data'] =TreeHelper::cateTree($list['data'], $field);
+                    foreach ($list['data'] as &$item) {
+                        if (!$ishtml) {
+                            $item['ltitle'] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['ltitle']);
+                            $item['title'] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['title']);
+                        }
+                        $item['title'] = $item['ltitle'];
                     }
                     unset($item);
-                }
             }
         }
         $result = ['data' => $list['data'], 'count' =>$list['total']];

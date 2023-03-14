@@ -2,6 +2,11 @@
 
 return [
     'Attach'=>'附件',
+    'zip'=>'压缩件',
+    'file'=>'文件',
+    'image'=>'图片',
+    'video'=>'视频',
+    'audio'=>'音频',
     'OriginalName'=>'原名',
     'name'=>'名字',
     'thumb'=>'缩略图',

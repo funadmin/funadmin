@@ -128,8 +128,12 @@ class Attach extends Backend
                 case 'images':
                     $mime = ['image/gif','image/jpeg','image/png','image/tiff','image/jp2','image/bmp','image/webp','image/svg+xml','image/x-icon',''];
                     break;
+                default:
+                    $mime = [];
             }
-            $where[] = ['mime','in',$mime];
+            if(!empty($mime)){
+                $where[] = ['mime','in',$mime];
+            }
         }
         $this->pageSize = $param['limit']??12;
         $list = $this->modelClass
