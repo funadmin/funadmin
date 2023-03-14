@@ -1006,6 +1006,15 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             options = {
                                 title:__('Filelist'),type:2,
                                 url: Fun.url(url), width: width, height: height, method: 'get',
+                                success: function(layero, index){
+                                    var body = layui.layer.getChildFrame('body', index);
+                                    if (parentiframe) {
+                                        body = parent.layui.layer.getChildFrame('body', index);
+                                    }
+                                    __token__ = body.find('input[name="__token__"]').val();
+                                    //token失效
+                                    token.val(__token__)
+                                },
                                 yes:  function (index, layero) {
                                     try {
                                         $(document).ready(function () {
@@ -1015,7 +1024,6 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                                 body = parent.layui.layer.getChildFrame('body', index);
                                             }
                                             li = body.find('.box-body .file-list-item li.active');
-                                            __token__ = body.find('input[name="__token__"]').val();
                                             if(li.length===0){
                                                 Fun.toastr.error(__('please choose file'));
                                                 return false;
@@ -1049,8 +1057,6 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                                 }
                                                 uploadList.append(html)
                                             }
-                                            //token失效
-                                            token.val(__token__)
                                             layui.layer.close(index) || parent.layui.layer.close(index)
                                         })
                                     } catch (err) {
