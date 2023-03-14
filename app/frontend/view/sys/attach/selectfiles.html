@@ -12,56 +12,44 @@
     </div>
     <div class="layui-col-lg9 layui-col-xs9 layui-col-sm9 file-list file-list-right" >
         <div class="box-header layui-row">
-            <div>
-                <div class="fl layui-col-xs3">
-                    <div class="fl group-select dropdown">
-                        <button type="button" class="layui-btn  layui-btn-normal layui-btn-sm">
-                            移动至<i class="layui-icon layui-icon-triangle-d"></i>
-                        </button>
-                        <ul class="group-list dropdown-content">
-                            <li class="dropdown-header">选择分组</li>
-                            <div class="tree" id="selectTree"></div>
-                        </ul>
-                    </div>
-                    <div class="fl delete">
-                        <button type="button" class="layui-btn layui-btn-danger layui-btn-sm file-delete">
-                            <i class="layui-icon layui-icon-delete"></i>删除
-                        </button>
-                    </div>
+            <div class="layui-col-lg12">
+                <div class="fl group-select dropdown">
+                    <button type="button" class="layui-btn  layui-btn-normal layui-btn-sm">
+                        移动至<i class="layui-icon layui-icon-triangle-d"></i>
+                    </button>
+                    <ul class="group-list dropdown-content">
+                        <li class="dropdown-header">选择分组</li>
+                        <div class="tree" id="selectTree"></div>
+                    </ul>
                 </div>
-                <div class="fr layui-col-xs9">
-                    <div class="layui-col-xs2">
-                        <button id="uploadfile" type="button" class="uploadfile layui-btn layui-btn-warm layui-btn-sm"
-                                lay-filter="upload" data-chunk="1"
-                                data-value='{:json_encode($param)}'>
-                            <i class="layui-icon layui-icon-upload"></i>上传
-                        </button>
-                    </div>
-                    <form class="layui-form" action="" lay-filter="form">
-                        <div class="layui-col-xs2">
-                            <div class="layui-form-item">
-                                <div class="layui-input-inline" style="width: 60px" >
-                                    <select name="mime" lay-verify="" lay-filter="mime">
-                                        <option value="*" {if input('mime')=='*'}selected{/if}>{:lang('All')}</option>
-                                        <option value="image" {if input('mime')=='image'}selected{/if}>{:lang('image')}</option>
-                                        <option value="video" {if input('mime')=='video'}selected{/if}>{:lang('video')}</option>
-                                        <option value="audio" {if input('mime')=='audio'}selected{/if}>{:lang('audio')}</option>
-                                        <option value="zip" {if input('mime')=='zip'}selected{/if}>{:lang('zip')}</option>
-                                        <option value="text" {if input('mime')=='text'}selected{/if}>{:lang('text')}</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="layui-col-xs8">
-                            <div class="layui-col-xs9">
-                                <input class="layui-input search" name="original_name" value="{:isset($param['original_name'])?$param['original_name']:''}" type="text" placeholder="搜索">
-                            </div>
-                            <div class="layui-col-xs2">
-                                <button class="layui-btn  layui-btn-normal" type="submit">搜索</button>
-                            </div>
-                        </div>
-                    </form>
+                <div class="fl delete">
+                    <button type="button" class="layui-btn layui-btn-danger layui-btn-sm file-delete">
+                        <i class="layui-icon layui-icon-delete"></i>删除
+                    </button>
                 </div>
+                <div class="fl">
+                    <button id="uploadfile" type="button" class="uploadfile layui-btn layui-btn-warm layui-btn-sm"
+                            lay-filter="upload" data-chunk="1"
+                            data-value='{:json_encode($param)}'>
+                        <i class="layui-icon layui-icon-upload"></i>上传
+                    </button>
+                </div>
+                <form class="layui-form fl" action="" lay-filter="form">
+                    <div class="layui-input-inline" style="width: 60px" >
+                        <select name="mime" lay-verify="" lay-filter="mime">
+                            <option value="*" {if input('mime')=='*'}selected{/if}>{:lang('All')}</option>
+                            <option value="image" {if input('mime')=='image'}selected{/if}>{:lang('image')}</option>
+                            <option value="video" {if input('mime')=='video'}selected{/if}>{:lang('video')}</option>
+                            <option value="audio" {if input('mime')=='audio'}selected{/if}>{:lang('audio')}</option>
+                            <option value="zip" {if input('mime')=='zip'}selected{/if}>{:lang('zip')}</option>
+                            <option value="text" {if input('mime')=='text'}selected{/if}>{:lang('text')}</option>
+                        </select>
+                    </div>
+                    <div class="layui-input-inline"  >
+                        <input class="layui-input search" name="original_name" value="{:isset($param['original_name'])?$param['original_name']:''}" type="text" placeholder="搜索">
+                    </div>
+                    <button class="layui-btn  layui-btn-normal" type="submit">搜索</button>
+                </form>
             </div>
 
             <!--内容-->
