@@ -355,13 +355,15 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                     }
                 }
             });
+            layui.form.on('select(mime)', function(obj){
+                var mime = obj.value,val = $.trim($('input.search').val()), url = location.href.split('?')[0];
+                url = url+"?group_id="+group_id+'&original_name='+val+'&mime='+mime ;
+                location.href = url;
+                return false;
+            })
             layui.form.on('submit(submit)', function(obj){
-                console.log(obj)
-                var _this = $(this);
-                val = $.trim($('input.search').val());
-                mime = obj.data.mime;
-                var url = window.location.href;
-                url  = url.indexOf('?')!==-1?url+"&group_id="+group_id+'&original_name='+val :url+'?group_id='+group_id+'&original_name='+val+'&mime='+mime
+                var _this = $(this),val = $.trim($('input.search').val()),mime = obj.data.mime, url = location.href.split('?')[0];
+                url = url+"?group_id="+group_id+'&original_name='+val+'&mime='+mime ;
                 location.href = url;
                 return false;
             })
