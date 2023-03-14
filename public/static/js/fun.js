@@ -152,16 +152,27 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 index = Math.max(index, parseInt($(this).attr("times")));
                             });
                             if (index) {
-                                layui.layer.close(index);
+                                // layui.layer.close(index);
                             }
                         } else if (parent.$(".layui-layer").length) {
                             parent.$(".layui-layer").each(function () {
                                 index = Math.max(index, parseInt($(this).attr("times")));
                             });
                             if (index) {
-                                parent.layui.layer.close(index);
+                                // parent.layui.layer.close(index);
                             }
                         }
+                        if(index){
+                            var confirm = top.layui.layer.confirm(__('are you sure you want to close this window'),{
+                                btn: [__('confirm'),__('cancel')] //按钮
+                            }, function(){
+                                layui.layer.close(index);
+                                top.layui.layer.close(confirm);
+                                parent.layui.layer.close(index);
+                            }, function(){
+                            });
+                        }
+
                     })
                     //锁屏
                     if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
