@@ -89,6 +89,9 @@ class Attach extends Backend
         if($param['mime'] && $param['mime']!=='*'){
             $mimeType = $param['mime'];
             switch ($mimeType){
+                case 'office':
+                    $mime = ['application/msword','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-powerpoint','application/csv','application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+                    break;
                 case 'text':
                     $mime = ['text/plain', 'text/html', 'text/css', 'text/javascript','application/x-javascript'];
                     break;
