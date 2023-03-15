@@ -504,6 +504,18 @@ trait Curd
             // 按列写入
             foreach ($rows as $keyName => $value) {
                 if(!in_array($keyName,$keys)) continue;
+                if($keyName=='admin_id'){
+                    $admin = Admin::find($value);
+                    if($admin){
+                        $value = $admin->username;
+                    }
+                }
+                if($keyName=='member_id'){
+                    $member = Member::find($value);
+                    if($member){
+                        $value = $member->username;
+                    }
+                }
                 // 超过26列会报错的解决方案
                 if ($span > ord("Z")) {
                     $span2 += 1;
