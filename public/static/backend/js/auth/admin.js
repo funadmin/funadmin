@@ -81,6 +81,10 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
 
             Controller.api.bindevent()
         },
+        upme: function () {
+
+            Controller.api.bindevent()
+        },
         edit: function () {
             Controller.api.bindevent()
 
