@@ -170,7 +170,7 @@ class CurdService
         $this->version = $this->config['version']?:1.0;
         $this->jump = $this->config['jump'];
         $this->limit = $this->config['limit'] ?: 15;
-        $this->page = (empty($this->config['page']) || $this->config['page'] == 'true') ? "true" : 'false';
+        $this->page = ($this->config['page']==null ||  $this->config['page'] == 1) ? "true" : 'false';
         $this->joinTable = $this->config['joinTable'];
         foreach ($this->joinTable as $k => $v) {
             $this->joinTable[$k] = str_replace($this->tablePrefix, '', $v);
