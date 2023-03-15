@@ -19,6 +19,175 @@ use think\helper\Str;
 
 class FormHelper
 {
+    /**
+     * @param $name
+     * @param $value
+     * @param $options
+     * @param $list
+     * @param $attr
+     * @return string
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    public  function config($name='',$options=[],$value='')
+    {
+        $where = ['code'=>$name];
+        $data = \app\common\model\Config::where($where)->find();
+        if(!$data) return '';
+        $extra=[];
+        if(!empty($options['extra'])){
+            $data['extra'] = $options['extra'];
+        }
+        if ($data['extra'] && is_string($data['extra'])){
+            $arr = array_filter(explode("\n",str_replace("\r",'',$data['extra'])));
+            foreach ($arr as $v){
+                $kk = explode(':',$v);
+                $extra[$kk[0]] = $kk[1];
+            }
+        }
+        $options['verify'] = $options['verify']??$data['verify'];
+        $options['label'] = $options['label']??$data['remark'];
+        $value = $value?$value:$data['value'];
+        switch ($data['type']) {
+                case'switch':
+                    $list = ($options['list']??$extra);
+                    $form =  $this->switchs($name,$list,$options,$value);
+                    break;
+                case'radio':
+                    $list = ($options['list']??$extra);
+                    $form =  $this->radio($name,$list,$options,$value);
+                    break;
+                case 'hidden':
+                    $form = $this->hidden($name,  $options, $value);
+                    break;
+                case 'float':
+                case 'decimal':
+                case 'number':
+                    $form = $this->number($name, $options, $value);
+                    break;
+                case 'select':
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->multiselect($name,$list,$options,$attr,$value);
+                    break;
+                case 'selects':
+                    $options['multiple'] = 'multiple';
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->multiselect($name,$list,$options,$attr,$value);
+                    break;
+                case 'xmselect':
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->xmselect($name,$list, $options,$attr,$value);
+                    break;
+                case 'selectpage':
+                    $list = ($options['list']??$extra);
+                    $form =  $this->selectpage($name,$list,$options,$value);
+                    break;
+                case 'tags':
+                    $form =  $this->tags($name, $options,$value);
+                    break;
+                case 'checkbox':
+                    $list = ($options['list']??$extra);
+                    $form =  $this->checkbox($name,$list, $options,$value);
+                    break;
+                case 'textarea':
+                    $form =  $this->textarea($name, $options,$value);
+                    break;
+                case 'range':
+                    $form = $this->range($name,  $options, $value);
+                    break;
+                case 'daterange':
+                    $options['type'] = 'datetime';
+                    $options['range'] = true;
+                    $form =  $this->date($name, $options,$value);
+                    break;
+                case 'year':
+                    $options['type'] = 'year';
+                    $form =  $this->date($name, $options,$value);
+                    break;
+                 case 'month':
+                    $options['type'] = 'month';
+                    $form =  $this->date($name, $options,$value);
+                 break;
+                case 'time':
+                    $options['type'] = 'time';
+                    $form =  $this->date($name, $options,$value);
+                    break;
+                case 'date':
+                case 'datetime':
+                    $options['type'] = 'datetime';
+                    $form =  $this->date($name, $options,$value);
+                    break;
+                case 'password':
+                    $form =  $this->password($name, $options,$value);
+                    break;
+                case 'image':
+                case 'file':
+                    $form =  $this->upload($name,$value,$options,$value);
+                    break;
+                case "images":
+                case 'files':
+                    $options['num'] = 100;
+                    $form =  $this->upload($name,$value,$options,$value);
+                    break;
+                case 'editor':
+                    $form =  $this->editor($name,2,$options,$value);
+                    break;
+                case 'color':
+                    $form =  $this->color($name,$options,$value);
+                    break;
+                case 'icon':
+                    $form =  $this->icon($name,$options,$value);
+                    break;
+                case 'token':
+                    $form =  $this->token($name,$value);
+                    break;
+                case 'email':
+                    $form =  $this->email($name,$options,$value);
+                    break;
+                case 'tel':
+                    $form =  $this->tel($name,$options,$value);
+                    break;
+                case 'url':
+                    $form =  $this->url($name,$options,$value);
+                    break;
+                case 'rate':
+                    $form =  $this->rate($name,$options,$value);
+                    break;
+                case 'slider':
+                    $form =  $this->slider($name,$options,$value);
+                    break;
+                case 'arrays':
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->arrays($name,$list,$options);
+                    break;
+                case 'selectn':
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->selectn($name,$list,$options,$attr,$value);
+                    break;
+                case 'selectplus':
+                    $attr = $options['attr']??['id','title'];
+                    $list = ($options['list']??$extra);
+                    $form =  $this->selectplus($name,$list,$options,$attr,$value);
+                    break;
+                case 'city':
+                    $form =  $this->city($name,$options);
+                    break;
+                case 'region':
+                    $form =  $this->region($name,$options);
+                    break;
+                default :
+                    $form =  $this->input($name, 'text',$options,$value);
+                    break;
+            }
+        return $form;
+    }
+
 
     public  function token($name = '__token__', $type = 'md5')
     {
@@ -35,11 +204,13 @@ class FormHelper
      * @param array $options
      * @return string
      */
-    public  function input($name = '', $type = 'text', $options = [], $value = '')
+    public  function input(string $name = '', string $type = 'text',array $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $tips = $options['tips'] ?? $label;
         $placeholder = $options['placeholder'] ?? $tips;
+        $type = $options['type']??$type;
         $value = !is_null($value) ? 'value="' . $value . '"' : '';
         $disorread = $this->readonlyOrdisabled($options) ? $this->readonlyOrdisabled($options) : $this->readonlyOrdisabled($options);
         $disorread  = $disorread ? 'layui-disabled' : '';
@@ -73,10 +244,11 @@ class FormHelper
      *
      * @return string
      */
-    public  function password(string $name, array $options = [])
+    public  function password(string $name, array $options = [],$value='')
     {
         $options['verify'] = isset($options['verify'])?$options['verify']:'pass';
-        return $this->input($name, 'password', $options);
+        $options['type'] = 'password';
+        return $this->input($name, 'password', $options,$value);
     }
 
     /**
@@ -90,6 +262,7 @@ class FormHelper
      */
     public  function range($name, $options = [], $value = null)
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $tips = $options['tips'] ?? $label;
         $placeholder = $options['placeholder'] ?? $tips;
@@ -192,6 +365,7 @@ class FormHelper
      */
     public  function rate($name = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $id = ($options['id']) ?? $name;
         $value = !is_null($value) ? $value  : '';
@@ -219,6 +393,7 @@ class FormHelper
      */
     public  function slider($name = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $id = ($options['id']) ?? $name;
         $value = !is_null($value) ? $value  : '';
@@ -249,6 +424,7 @@ class FormHelper
         if (is_null($radiolist)) {
             $radiolist = $name;
         }
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $input = '';
         if (is_string($radiolist) && strpos($radiolist, "\n") !== false) $radiolist = explode("\n", $radiolist);
@@ -285,6 +461,7 @@ class FormHelper
 
     public  function switchs($name = '', $switch=[], $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $switchArr = $switch;
         if (is_string($switch) && strpos($switch, '|')) {
@@ -311,6 +488,7 @@ class FormHelper
      */
     public  function checkbox($name = '', $list = [], $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         if (empty($value)) $value = $name;
         if (is_string($value) && strpos($value, "\n") !== false) $value = explode("\n", $value);
         if (is_string($value) && strpos($value, ",") !== false) $value = explode(",", $value);
@@ -365,6 +543,7 @@ class FormHelper
      */
     public  function arrays($name = '', $list = [], $options = [])
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $arr = '';
         $i = 0;
@@ -418,6 +597,7 @@ class FormHelper
      */
     public  function textarea($name = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $tips = $options['tips'] ?? $name;
         $placeholder = $options['placeholder'] ?? $tips;
@@ -440,6 +620,7 @@ class FormHelper
      */
     public  function selectn($name = '', $select= [], $options=[], $attr=[], $value='')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $options['url'] =  $options['url'] ?? '';
         $options['delimiter'] =   $options['delimiter'] ?? '';
@@ -479,6 +660,7 @@ class FormHelper
      */
     public  function selectplus($name = '', $select= [], $options=[], $attr=[], $value='')
     {
+        $name = $options['formname']??$name;
         $options['url']  = $options['url'] ?? '';
         $id = $options['id'] ?? $name;
         $label = $options['label'] ?? $name;
@@ -520,20 +702,22 @@ class FormHelper
      */
     public  function multiselect($name = '', $select=[], $options=[], $attr=[], $value='')
     {
+        $name = $options['formname']??$name;
         $op = '';
         if ($select) {
             foreach ($select as $k => $v) {
                 $selected = '';
-                if (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value)) {
+                if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr)  && $v[$attr[0]] == $value))) {
                     $selected = 'selected';
                 }
                 if (is_array($value) && in_array($k, $value) && !$attr) {
                     $selected = 'selected';
                 }
-                if (!empty($attr)) {
-                    $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
-                } else {
+                if(is_string($v)){
                     $op .= '<option ' . $selected . ' value="' . $k . '">' . lang($v) . '</option>';
+                }
+                if (!empty($attr) && (is_array($v) || is_object($v))) {
+                    $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . lang($v[$attr[1]]) . '</option>';
                 }
             }
         }
@@ -571,6 +755,7 @@ class FormHelper
      */
     public  function xmselect($name = '', $select=[], $options=[], $attr=[], $value='')
     {
+        $name = $options['formname']??$name;
         $op = '';
         if (is_array($select)) {
             $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
@@ -633,7 +818,7 @@ class FormHelper
      */
     public  function selectpage(string $name,array $lists= [],array $options = [],$value=null)
     {
-
+        $name = $options['formname']??$name;
         $url = $options['url']??'';
         foreach ($options as $k => $v) {
             $op['extend']['data-'.$k] = $v;
@@ -656,6 +841,7 @@ class FormHelper
      */
     public function tags($name = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $id = $options['id'] ?? $name;
         $str = '<div class="layui-form-item">' .$this->label($label,$options) . '
@@ -679,6 +865,7 @@ class FormHelper
     public  function color($name = '', $options = [], $value = '')
     {
 
+        $name = $options['formname']??$name;
         $id = $options['id'] ?? $name;$label = $options['label'] ?? $name;$format = $options['format'] ?? 'hex';
         $str = '<div class="layui-form-item">' .$this->label($label,$options) . '
                     <div class="layui-input-block">
@@ -698,6 +885,7 @@ class FormHelper
      */
     public  function icon($name = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $name = $name ? $name : 'icon';
         $label = $options['label'] ?? $name;
         $value = $value ? $value : 'layui-icon-rate';
@@ -719,6 +907,7 @@ class FormHelper
      */
     public  function date($name='', $options=[], $value='')
     {
+        $name = $options['formname']??$name;
         $op = '';
         if (isset($options['range'])) {
             $op .= 'data-range="' . $options['range'] . '"';
@@ -746,6 +935,7 @@ class FormHelper
      */
     public  function city($name = 'cityPicker', $options = [])
     {
+        $name = $options['formname']??$name;
         $id =  $options['id'] ?? $name;
         $options['provinceId'] = $options['provinceId'] ?? 'province_id';
         $options['cityId'] = $options['cityId'] ?? 'city_id';
@@ -768,6 +958,7 @@ class FormHelper
      */
     public  function region($name = 'regionCheck',  $options = [])
     {
+        $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $id = $options['id'] ?? $name;
         $str = ' <div class="layui-form-item">' .$this->label($label,$options) . '
@@ -790,6 +981,7 @@ class FormHelper
      */
     public  function editor($name = 'container', $type = 1, $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         $id = $options['id'] ?? $name;
         $height = $options['height'] ?? '400px';
         $path = $options['path'] ?? 'upload';
@@ -822,6 +1014,7 @@ class FormHelper
      */
     public  function upload($name = 'avatar', $formData = '', $options = [], $value = '')
     {
+        $name = $options['formname']??$name;
         if (!isset($options['type'])) $options['type'] = 'radio';
         if (!isset($options['mime'])) $options['mime'] = 'images';
         if (!isset($options['num'])) $options['num'] = 1;

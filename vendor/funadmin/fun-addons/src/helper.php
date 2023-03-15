@@ -577,7 +577,19 @@ if (!class_exists('Form')) {
     class_alias('fun\\Form', 'Form');
 }
 
-
+if (!function_exists('form_config')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_config($name='',$options=[],$value='')
+    {
+        return Form::config($name, $options,$value);
+    }
+}
 if (!function_exists('form_token')) {
     /**
      * @param string $name

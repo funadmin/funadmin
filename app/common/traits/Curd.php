@@ -15,12 +15,16 @@ use app\backend\model\Admin;
 use app\common\annotation\NodeAnnotation;
 use app\common\model\Member;
 use fun\helper\TreeHelper;
+use OpenAI\Responses\Images\VariationResponse;
 use think\facade\Cache;
 use think\facade\Db;
 use think\facade\Config;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
 /**
  * Trait Curd
  * @package common\traits
@@ -325,12 +329,15 @@ trait Curd
                                 $v = session('member.id');
                             }
                         }
-                        $one[$field] = $v;
+                        if($field){
+                            $one[$field] = $v;
+                        }
 
                     }
                 }
                 if($one) $data[] = $one;
             }
+            $data = array_filter($data);
             $this->modelClass->saveAll($data);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
@@ -369,19 +376,17 @@ trait Curd
         }
         $list = $this->modelClass->where($where)->order($sort)->select()->toArray();
         $tableChName =  $tableInfo[0]['Comment']? $tableInfo[0]['Comment']:$tableName;
-        $headTitle = $tableChName.'-'.date('Y-m-d H:i:s');;
-        $headTitle= "<tr style='height:50px;border-style:none;'><th border=\"0\" style='height:60px;font-size:22px;' colspan='".(count($headerArr))."' >{$headTitle}</th></tr>";
         $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
         $param  = [
-            'headTitle'=>$headTitle,
+            'headerArr'=>$headerArr,
             'fileName'=>$fileName,
             'list'=>$list,
         ];
-        $res = hook('exportExcel',$param);
+        $res = hook_one('exportExcel',$param);
         if($res){
             $this->success(lang('export success'));
         }
-        $this->excelData($list,$headerArr,$headTitle,$fileName);
+        $this->excelData($list,$headerArr,$fileName);
     }
 
     /**
@@ -449,7 +454,7 @@ trait Curd
         $tableField = Db::connect($driver)->query($sql);
         $fieldArr = [];
         foreach ($tableField as $field){
-            $fieldArr[$field['COLUMN_NAME']] = strtolower(trim($field['COLUMN_COMMENT']));
+            $fieldArr[$field['COLUMN_NAME']] = (trim($field['COLUMN_COMMENT']));
         }
         return $fieldArr;
     }
@@ -459,29 +464,87 @@ trait Curd
      * @param $headTitle
      * @param $filename
      */
-    protected function excelData($data,$headerArr,$headTitle,$filename){
-        $str = "<html xmlns:o=\"urn:schemas-microsoft-com:office:office\"\r\nxmlns:x=\"urn:schemas-microsoft-com:office:excel\"\r\nxmlns=\"http://www.w3.org/TR/REC-html40\">\r\n<head>\r\n<meta http-equiv=Content-Type content=\"text/html; charset=utf-8\">\r\n</head>\r\n<body>";
-        $str .="<style>tr,td,th{text-align: center;height: 22px;line-height: 22px;}</style>";
-        $str .="<table border=1>".$headTitle."<tr>";
-        foreach ($headerArr as $k=>$v){
-            $str.= "<th>".$v."</th>";
-        }
-        $str.= '</tr>';
-        foreach ($data  as $key=> $rt ) {
-            $str .= "<tr>";
-            foreach($headerArr as $k=>$v){
-                $str.= "<td>".$rt[$k]."</td>";
+    protected function excelData($data=[],$headerArr=[],$filename=''){
+        $objPHPExcel = new Spreadsheet();
+        $objPHPExcel->getProperties();
+        $key = ord("A"); // 设置表头
+        $key2 = ord("@"); //	超过26列会报错的解决方案
+        // 居中
+        $objPHPExcel->getDefaultStyle()->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $objPHPExcel->getDefaultStyle()->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+        // 设置表头
+        foreach ($headerArr as $v) {
+            // 超过26列会报错的解决方案
+            if ($key > ord("Z")) {
+                $key2 += 1;
+                $key = ord("A");
+                $colum = chr($key2) . chr($key); //超过26个字母时才会启用
+            } else {
+                if ($key2 >= ord("A")) {
+                    $colum = chr($key2) . chr($key);
+                } else {
+                    $colum = chr($key);
+                }
             }
-            $str .= "</tr>\n";
+            // 写入表头
+            $objPHPExcel->setActiveSheetIndex(0)->setCellValue($colum . '1', $v);
+            // 自适应宽度
+                // $len = strlen(iconv('utf-8','gb2312',$v));//会报错
+            $len = strlen(iconv('utf-8', 'gbk', $v));
+            $objPHPExcel->getActiveSheet()->getColumnDimension($colum)->setWidth($len + 5);
+            $key += 1;
         }
-        $str .= "</table></body></html>";
-        header( "Content-Type: application/vnd.ms-excel; name='excel'" );
-        header( "Content-type: application/octet-stream" );
-        header( "Content-Disposition: attachment; filename=".$filename );
-        header( "Cache-Control: must-revalidate, post-check=0, pre-check=0" );
-        header( "Pragma: no-cache" );
-        header( "Expires: 0" );
-        exit( $str );
+        $column = 2;
+        $objActSheet = $objPHPExcel->getActiveSheet();
+        $keys = array_keys($headerArr);
+        // 写入行数据
+        foreach ($data as $key => $rows) {
+            $span = ord("A");
+            $span2 = ord("@");
+            // 按列写入
+            foreach ($rows as $keyName => $value) {
+                if(!in_array($keyName,$keys)) continue;
+                // 超过26列会报错的解决方案
+                if ($span > ord("Z")) {
+                    $span2 += 1;
+                    $span = ord("A");
+                    $tmpSpan = chr($span2) . chr($span); //超过26个字母时才会启用
+                } else {
+                    if ($span2 >= ord("A")) {
+                        $tmpSpan = chr($span2) . chr($span);
+                    } else {
+                        $tmpSpan = chr($span);
+                    }
+                }
+                // 写入数据
+                $objActSheet->setCellValue($tmpSpan . $column, $value);
+                $span++;
+            }
+            $column++;
+        }
+
+        // 自动加边框
+        $styleThinBlackBorderOutline = array(
+            'borders' => array(
+                'allborders' => array( //设置全部边框
+                    'style' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN //粗的是thick
+                ),
+
+            ),
+        );
+        $objPHPExcel->getActiveSheet()->getStyle('A1:' . $colum . --$column)->applyFromArray($styleThinBlackBorderOutline);
+        // 重命名表
+        // $fileName = iconv("utf-8", "gb2312", $fileName);
+        $fileName = iconv("utf-8", "gbk", $filename);
+        // 设置活动单指数到第一个表,所以Excel打开这是第一个表
+        $objPHPExcel->setActiveSheetIndex(0);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header("Content-Disposition: attachment;filename=$fileName");
+        header('Cache-Control: max-age=0');
+        // $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($objPHPExcel, 'Xlsx');
+        $writer = new Xlsx($objPHPExcel);
+        $writer->save('php://output'); // 文件通过浏览器下载
+        exit();
     }
 
     /**
