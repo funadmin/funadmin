@@ -528,6 +528,7 @@ trait Curd
                         $tmpSpan = chr($span);
                     }
                 }
+                $value = is_array($value)?implode(',',$value):$value;
                 // 写入数据
                 $objActSheet->setCellValue($tmpSpan . $column, $value);
                 $span++;
