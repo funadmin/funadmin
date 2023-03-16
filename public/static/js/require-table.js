@@ -645,7 +645,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     text: __('Open'),
                                     title: __('Open'),
                                     url: eval('requests.' + v + '_url') || eval('requests.' + v),
-                                    icon: 'layui-icon layui-icon-rate',
+                                    icon: 'layui-icon layui-icon-radio',
                                     extend: "", width: '800', height: '600',tips: '',
                                 }
                             }

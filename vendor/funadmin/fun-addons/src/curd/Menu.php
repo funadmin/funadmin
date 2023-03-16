@@ -36,6 +36,8 @@ class Menu extends Command
     protected $app;
     protected $config;
     protected $method;
+    protected $menuname;
+    protected $menuid;
     protected $force;
     protected $delete;
     protected $childMethod;
@@ -49,6 +51,8 @@ class Menu extends Command
             ->addOption('controller', 'c', Option::VALUE_OPTIONAL, '控制器名', null)
             ->addOption('addon', 'a', Option::VALUE_OPTIONAL, '插件名', null)
             ->addOption('app', '', Option::VALUE_OPTIONAL, 'app', '')
+            ->addOption('menuid', '', Option::VALUE_OPTIONAL, '上级菜单', 0)
+            ->addOption('menuname', '', Option::VALUE_OPTIONAL, '菜单名称', null)
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
             ->setDescription('Menu Command');
@@ -62,11 +66,14 @@ class Menu extends Command
         $param['app'] = $input->getOption('app');
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
+        $param['menuname'] = $input->getOption('menuname');
+        $param['menuid'] = $input->getOption('menuid');
         $this->config = $param;
         $this->addon = $param['addon'];
         $this->app = $this->addon?:$param['app'];
         $this->force = $param['force'];
-        $this->delete = $param['delete'];
+        $this->menuid = $param['menuid'];
+        $this->menuname = $param['menuname'];
         if (empty($param['controller'])) {
             $output->info("控制器不能为空");
             return false;
@@ -165,7 +172,7 @@ class Menu extends Command
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
                 'href' => 'Panel' .( $this->app!='backend'?$this->app: $this->controllerName),
-                'title' => $this->app ? : $this->controllerName,
+                'title' => $this->menuname?:($this->app ? : $this->controllerName),
                 'status' => 1,
                 'auth_verify' => 1,
                 'type' => 1,
@@ -210,7 +217,7 @@ class Menu extends Command
     {
         $module = $this->app ?: 'backend';
         foreach ($menuListArr as $k => $v) {
-            $v['pid'] = 0;
+            $v['pid'] = $this->menuname?:0;
             $v['href'] = trim($v['href'], '/');
             $v['module'] = $module;
             $menu = AuthRule::withTrashed()->where('href', $v['href'])->where('module', $module)->find();

@@ -630,7 +630,7 @@ class CurdService
         $title = $this->tableComment ?: $title;
         $childMenu = [
             'href' => $href,
-            'title' => $title,
+            'title' => $this->config['menuname']?:$title,
             'status' => 1,
             'type' => 1,
             'menu_status' => 1,
@@ -641,7 +641,7 @@ class CurdService
             'is_nav' => 1,//1导航栏；0 非导航栏
             'menu' => [ //菜单;
                 'href' => 'table' . ($this->addon ?: ($this->app !== 'backend' ? $this->app : $this->controllerName)),
-                'title' => $this->addon ?: ($this->app !== 'backend' ? $this->app : $this->controllerName),
+                'title' => $this->config['menuname']?:($this->addon ?: ($this->app !== 'backend' ? $this->app : $this->controllerName)),
                 'status' => 1,
                 'auth_verify' => 1,
                 'type' => 1,
@@ -714,7 +714,7 @@ class CurdService
     {
         $module = $this->addon ?: $this->app;
         foreach ($menuListArr as $k => $v) {
-            $v['pid'] = 0;
+            $v['pid'] = $this->config['menuid']?:0;
             $v['href'] = trim($v['href'], '/');
             $v['module'] = $module;
             $menu = AuthRule::withTrashed()->where('href', $v['href'])->where('module', $module)->find();
@@ -774,6 +774,7 @@ class CurdService
         foreach ($this->fieldsList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name'] != 'status') continue;
+            if(!empty($this->config['formFields']) && !in_array($vo['name'], $this->config['formFields'])) continue;
             $name = Str::studly($vo['name']);
             switch ($vo['type']) {
                 case "text":

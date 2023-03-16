@@ -60,11 +60,14 @@ class Curd extends Command
             ->addOption('sortField', '', Option::VALUE_OPTIONAL, '排序字段', null)
             ->addOption('statusField', '', Option::VALUE_OPTIONAL, '状态字段', null)
             ->addOption('ignoreFields', 'g', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, '忽略的字段', null)
+            ->addOption('formFields', '', Option::VALUE_OPTIONAL | Option::VALUE_IS_ARRAY, '表单字段', null)
             ->addOption('method', '', Option::VALUE_OPTIONAL, '方法', null)
             ->addOption('page', '', Option::VALUE_OPTIONAL, '是否页', null)
             ->addOption('limit', '', Option::VALUE_OPTIONAL , '分页大小', null)
             ->addOption('addon', 'a', Option::VALUE_OPTIONAL, '插件名', '')
             ->addOption('menu', 'u', Option::VALUE_OPTIONAL, '菜单', 0)
+            ->addOption('menuid', '', Option::VALUE_OPTIONAL, '上级菜单', 0)
+            ->addOption('menuname', '', Option::VALUE_OPTIONAL, '菜单名称', null)
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
             ->addOption('jump', '', Option::VALUE_OPTIONAL, '跳过重复文件', 1)
@@ -102,6 +105,7 @@ class Curd extends Command
         $param['selectsSuffix'] = $input->getOption('selectsSuffix');
         $param['sortField'] = $input->getOption('sortField');
         $param['ignoreFields'] = $input->getOption('ignoreFields');
+        $param['formFields'] = $input->getOption('formFields');
         $param['joinTable'] = $input->getOption('joinTable');
         $param['joinName'] = $input->getOption('joinName');
         $param['joinModel'] = $input->getOption('joinModel');
@@ -112,6 +116,8 @@ class Curd extends Command
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
         $param['menu'] = $input->getOption('menu');
+        $param['menuname'] = $input->getOption('menuname');
+        $param['menuid'] = $input->getOption('menuid');
         $param['jump'] = $input->getOption('jump');
         $param['app'] = $input->getOption('app');
         $param['title'] = $input->getOption('title');
