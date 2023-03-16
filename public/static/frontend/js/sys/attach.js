@@ -47,7 +47,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                                 html += '<img src="' + STATIC + '/backend/images/filetype/pdf.jpg" alt="' + __('Pdf') + '" width="50">'
                             } else if (d.mime === 'application/zip') {
                                 html += '<img src="' + STATIC + '/backend/images/filetype/zip.jpg" alt="' + __('Zip') + '" width="50">'
-                            } else if (d.mime === 'application/msexcel' || d.mime === 'application/mspowerpoint' || d.mime === 'application/msword') {
+                            } else if ( d.mime.indexOf("application/vnd.ms") != -1 || d.mime.indexOf("application/vnd.openxmlformats-officedocument") != -1) {
                                 html += '<img src="' + STATIC + '/backend/images/filetype/office.jpg" alt="' + __('Office') + '" width="50">'
                             } else {
                                 html += '<img src="' + STATIC + '/backend/images/filetype/file.jpg" alt="' + __('File') + '" width="50">'
