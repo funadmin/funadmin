@@ -498,8 +498,11 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     });
                 } else {
                     loadindex = layui.layer.load();
-                    top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe").eq(0).attr('src', options.url)
-                    // top.window.$("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                    if(Config.site.site_reloadiframe){
+                        var current_iframe = window.$("#layui-app-tabs .layui-tab-content div").find("iframe[id='"+options.layId+"']");
+                        current_iframe.eq(0).attr('src',options.url)
+                        // current_iframe[0].contentWindow.location.reload();
+                    }
                 }
                 $('#layui-nav-righmenu').remove();
                 layui.layer.close(loadindex);
