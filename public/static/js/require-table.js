@@ -12,7 +12,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
             options.elem = options.elem || '#' + options.init.table_elem;
-            options.primaryKey = options.primaryKey || $('#'+options.id).data('primaryKey') || 'id';
+            options.primaryKey = options.primaryKey || $('#'+options.id).data('primarykey') || 'id';
             options.init = options.init || Table.init;
             options.id = options.id || options.init.tableId;
             options.layFilter = options.id;
@@ -492,7 +492,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },selects: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
-                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
+                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 value = Table.templet.resolution(d, ele)
                 $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.field + '"  lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
@@ -503,7 +503,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 $html += '</select><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script></div>';
                 return $html;
             }, switch: function (d) {
-                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
+                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
                 ele.tips = ele.tips || 'switch';
@@ -1049,8 +1049,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             edit: function (options) {
                 var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 tableId = options.id || Table.init.tableId;
-                if (url !== false) {
-                    layui.table.on('edit(' + options.layFilter + ')', function (obj) {
+                if(!url || url=='undefined') return ;
+                layui.table.on('edit(' + options.layFilter + ')', function (obj) {
                         var value = obj.value, data = obj.data, id = data[options.primaryKey], field = obj.field;
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
@@ -1065,7 +1065,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             Table.api.reload(tableId)
                         })
                     })
-                }
             },
             sort: function (options) {
                 tableId = options.id || Table.init.tableId;
@@ -1081,27 +1080,27 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
                     url = $(this).attr('data-url') ||options.init.requests.modify_url || false;
-                    if (url === false) return;
-                        var filter = $(this).attr('lay-filter');
-                        if(!filter) return ;
-                        var checked = obj.elem.checked ? 1 : 0;
-                        var data = {id: this.value, field: this.name, value: checked};
-                        Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
-                            Fun.toastr.success(res.msg);
-                            Table.api.reload(tableId,{},true,true,0)
-                        }, function (res) {
-                            obj.elem.checked = !checked;
-                            layui.form.render();
-                            Fun.toastr.error(res.msg)
-                        }, function () {
-                        })
+                    if(!url || url=='undefined') return ;
+                    var filter = $(this).attr('lay-filter');
+                    if(!filter) return ;
+                    var checked = obj.elem.checked ? 1 : 0;
+                    var data = {id: this.value, field: this.name, value: checked};
+                    Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
+                        Fun.toastr.success(res.msg);
+                        Table.api.reload(tableId,{},true,true,0)
+                    }, function (res) {
+                        obj.elem.checked = !checked;
+                        layui.form.render();
+                        Fun.toastr.error(res.msg)
+                    }, function () {
+                    })
                     return ;
                 })
             },
             selects: function (options) {
                 layui.form.on('select', function (obj) {
-                    url = $(obj.elem).attr('data-url') ||options.init.requests.modify_url || false;
-                    if(url===false) return ;
+                    url = $(obj.elem).attr('data-url') || options.init.requests.modify_url || false;
+                    if(!url || url=='undefined') return ;
                     tableId = options.id || Table.init.tableId;
                     filter = $(obj.elem).attr('lay-filter');
                     if(!filter) return ;
