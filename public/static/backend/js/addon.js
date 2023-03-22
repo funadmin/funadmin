@@ -165,9 +165,8 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 url: url,
                             }, function (res) {
                                 Fun.toastr.success(res.msg, function () {
-                                    Fun.toastr.close(index)
                                     Fun.refreshmenu();
-                                    Fun.toastr.close();
+                                    Fun.toastr.close(index)
                                     layui.table.reloadData(Table.init.tableId);
                                 });
                             },function (res) {

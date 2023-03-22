@@ -16,9 +16,15 @@ define(['backend'], function (Backend) {
                     url: Fun.url('ajax/refreshmenu'),
                 }, function (res) {
                     if(typeof res.data =='object'){
-                        _that.html(res.data['menu']);
-                        $('#layui-header-nav-pc').html(res.data['nav']);
-                        $('#layui-header-nav-mobile').html(res.data['navm']);
+                        if(Config.site.site_theme!=4){
+                            _that.html(res.data['menu']);
+                            $('#layui-header-nav-pc').html(res.data['nav']);
+                            $('#layui-header-nav-mobile').html(res.data['navm']);
+                        }else{
+                            _that.html(res.data['menu']);
+                            $('#layui-side-nav').html(res.data['nav']);
+                        }
+
                     }else{
                         _that.html(res.data);
                     }
