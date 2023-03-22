@@ -24,4 +24,5 @@ return [
     'The superior cannot be set as himself'=>'父级不能为自己',
     'setValue'=>'设置值',
     'upme' =>'更新信息',
+    'Are you sure you want to delete menu and children menu!!!'=>'确定要删除菜单和子菜单吗!!!'
 ];

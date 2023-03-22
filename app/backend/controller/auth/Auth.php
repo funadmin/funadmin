@@ -216,16 +216,20 @@ class Auth extends Backend
     {
         $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
         $list = $this->modelClass->find($ids);
-        $child = $this->modelClass->where('pid', 'in', $ids)->select();
-        if (!empty($child->toArray())) {
-            $this->error(lang('delete child first'));
-        } elseif (empty($child->toArray())) {
+        $childIds = $this->modelClass->getAuthChildIds($ids);
+        try {
+            $childs  = $this->modelClass->where('id','in',$childIds)->select();
+            if($childs){
+                foreach ($childs as $child) {
+                    $child->force(true)->delete();
+                }
+            }
             $list->force(true)->delete();
             Cache::clear();
-            $this->success(lang('operation success'));
-        } else {
-            $this->error('id' . lang('not exist'));
+        }catch (\Exception $e) {
+            $this->error($e->getMessage());
         }
+        $this->success(lang('operation success'));
     }
 
     /**

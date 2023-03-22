@@ -10,7 +10,17 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     index_url: 'auth.auth/index',
                     add_url: 'auth.auth/add',
                     edit_url: 'auth.auth/edit',
-                    delete_url: 'auth.auth/delete',
+                    delete: {
+                        type: 'request',
+                        class: 'layui-btn-xs layui-btn-warm',
+                        icon: 'layui-icon-add-circle-fine',
+                        url: 'auth.auth/delete',
+                        text: __('Are you sure you want to delete menu and children menu!!!'),
+                        title:  __('Delete'),
+                        full:0,
+                        width:'',
+                        height:'',
+                    },
                     modify_url: 'auth.auth/modify',
                     child:  {
                         type: 'open',
