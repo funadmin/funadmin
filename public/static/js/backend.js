@@ -20,7 +20,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#1890ff',
                     menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#fff',
@@ -32,7 +32,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#20b598',
                     menuLeftBgHover: '#20b598',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
 
                 }, {
@@ -45,7 +45,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#8e10b9',
                     menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
 
                 }, {
@@ -58,7 +58,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#b8279f',
                     menuLeftBgHover: '#b8279f',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#fff',
@@ -70,7 +70,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#20b598',
                     menuLeftBgHover: '#20b598',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#fff',
@@ -82,7 +82,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#8e10b9',
                     menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#20b598',
@@ -94,7 +94,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#20b598',
                     menuLeftBgHover: '#20b598',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#20b598',
@@ -106,7 +106,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#20b598',
                     menuLeftBgHover: '#20b598',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#00a65a',
@@ -117,7 +117,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#00a65a',
                     menuLeftBgHover: '#00a65a',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#8e10b9',
@@ -129,7 +129,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#8e10b9',
                     menuLeftBgHover: '#8e10b9',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#23262e',
@@ -141,7 +141,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#20b598',
                     menuLeftBgHover: '#3b3f4b',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#ffa4d1',
@@ -153,7 +153,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#ffa4d1',
                     menuLeftBgHover: '#ffa4d1',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#1890ff',
@@ -165,7 +165,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#1890ff',
                     menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#963885',
@@ -177,7 +177,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#963885',
                     menuLeftBgHover: '#963885',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#963885',
@@ -189,7 +189,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#963885',
                     menuLeftBgHover: '#963885',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#1890ff',
@@ -201,7 +201,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#1890ff',
                     menuLeftBgHover: '#1890ff',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#ffb800',
@@ -213,7 +213,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#ffb800',
                     menuLeftBgHover: '#ffb800',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#ffb800',
@@ -225,7 +225,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#ffb800',
                     menuLeftBgHover: '#ffb800',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#e82121',
@@ -237,7 +237,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#e82121',
                     menuLeftBgHover: '#e82121',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 }, {
                     headerBg: '#e82121',
@@ -249,7 +249,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     menuLeftBgThis: '#e82121',
                     menuLeftBgHover: '#e82121',
                     menuLeftDlBg: 'rgba(0,0,0,.3)',
-                    menuLeftfontColor: 'rgba(255,255,255,.7)',
+                    menuLeftfontColor: '#fff',
                     menuLeftfontColorHover: '#fff',
                 },  {
                     headerBg: '#fff',
