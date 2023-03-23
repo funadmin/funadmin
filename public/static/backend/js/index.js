@@ -16,17 +16,21 @@ define(['backend'], function (Backend) {
                     url: Fun.url('ajax/refreshmenu'),
                 }, function (res) {
                     if(typeof res.data =='object'){
-                        if(Config.site.site_theme!=4){
+                        if(Config.site.site_theme<4){
                             _that.html(res.data['menu']);
                             $('#layui-header-nav-pc').html(res.data['nav']);
                             $('#layui-header-nav-mobile').html(res.data['navm']);
-                        }else{
+                        }else if(Config.site.site_theme==4){
                             _that.html(res.data['menu']);
                             $('#layui-side-nav').html(res.data['nav']);
                         }
 
                     }else{
-                        _that.html(res.data);
+                        if(Config.site.site_theme==1){
+                            _that.html(res.data);
+                        }else{
+                            $('#layui-side-left-menu5').html(res.data);
+                        }
                     }
                     layui.element.render('nav');//重新渲染nav导航
                 }, function () {

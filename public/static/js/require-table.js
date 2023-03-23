@@ -686,7 +686,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             html += '<button ' + title + cls + dataAttr +' >' + icon + '</button>'
                         }
                     });
-                    if(layui.table.cache[init.table_elem]){
+                    if(layui.table.cache[init.table_elem] && layui.table.cache[init.table_elem][d.LAY_INDEX]){
                         layui.table.cache[init.table_elem][d.LAY_INDEX]['buttons'] = buttons
                     }
                     return html;
