@@ -26,7 +26,7 @@ input::-webkit-input-placeholder{color: #bdcada
 input:-moz-placeholder{color:#bdcada}
 input::-moz-placeholder{color: #bdcada;}
 input:-ms-input-placeholder{color:#bdcada}
-@media screen and (min-width:1201px){.layui-login-body{max-width:420px;margin-top:180px}
+@media screen and (min-width:4200px){.layui-login-body{max-width:420px;margin-top:180px}
 }
 @media screen and (max-width:1200px){.layui-login-body{max-width:420px;margin-top:180px}
 }
