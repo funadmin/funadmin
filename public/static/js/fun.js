@@ -330,6 +330,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     full: data.full,
                     btn: data.btn,
                     btnAlign: data.btnAlign,
+                    autoheight: data.autoheight,
                 };
                 Fun.api.open(options);
             },
@@ -537,7 +538,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             open: function (options) {
                 var title = options.title, url = options.url, width = options.width,
                     height = options.height, success = options.success, cancel = options.cancel,end=options.end,
-                yes = options.yes, type = options.type;
+                yes = options.yes, type = options.type, autoheight = options.autoheight;
                 type = type === undefined || type===2  ? 2 : 1;
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
@@ -545,6 +546,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 width = width || '800';height = height || '600';
                 width = $(window).width()+20 >= width ? width + 'px' :'95%';
                 height = ($(window).height()+110)>=height?height + 'px' :'95%';
+                autoheight = autoheight === false ? false : true;
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn == undefined) {
@@ -576,7 +578,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         try {
                             // 置顶当前窗口
                             parent.layui.layer.setTop(layero);
-                            parent.layui.layer.iframeAuto(index) //- 指定iframe层自适应
+                            if(autoheight) parent.layui.layer.iframeAuto(index) //- 指定iframe层自适应
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
                             layero.find('.layui-layer-btn.layui-layer-btn-c').css('background', '#f3f6f6');
