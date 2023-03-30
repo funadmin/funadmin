@@ -112,7 +112,7 @@ class Index extends BaseController
                 $this->error('两次输入密码不一致！');
             }
             if (!preg_match('/^[0-9a-z_$]{6,16}$/i', $admin['password'])) {
-                $this->error('密码必须6-16位,且必须包含字母和数字,不能有中文和空格');
+                $this->error('密码必须6-16位,不能有中文和空格');
 
             }
             if (!preg_match("/^\w+$/", $admin['username'])) {
@@ -121,8 +121,8 @@ class Index extends BaseController
             if (strlen($admin['username']) < 3 || strlen($admin['username']) > 12) {
                 $this->error('用户名请输入3~12位字符！');
             }
-            if (strlen($admin['password']) < 5 || strlen($admin['password']) > 16) {
-                $this->error('密码请输入5~16位字符！');
+            if (strlen($admin['password']) < 6 || strlen($admin['password']) > 16) {
+                $this->error('密码请输6~16位字符！');
             }
             //检测能否读取安装文件
             $sql = @file_get_contents($this->sqlFile);
