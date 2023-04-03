@@ -81,7 +81,7 @@
 }
 
 .layui-nav-header .layui-nav .layui-nav-itemed>.layui-nav-child {
-    padding: 5px 0
+    padding: 5px 0;background-color: #fff!important;
 }
 
 .layui-layout-admin .layui-nav .layui-nav-item a{
