@@ -14,7 +14,7 @@
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
-        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
+        'css','layCascader','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
@@ -25,6 +25,7 @@
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
+        'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
@@ -83,6 +84,8 @@
                 'css!plugins/lay-module/cropper/cropper.css'
             ],
             exports: "cropper"
+        }, "layCascader":{
+            deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
         },
     },
 })

@@ -19,11 +19,12 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableTree', 'iconPicker','iconFonts','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','croppers', 'md5','fun','form','table','upload','addons'],
+        'css','layCascader','treeGrid','tableSelect', 'treeTable','tableEdit','tableTree', 'iconPicker','iconFonts','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
+        'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
@@ -69,6 +70,9 @@ require.config({
         },
         'croppers': {
             deps: ['plugins/lay-module/cropper/cropper', 'css!plugins/lay-module/cropper/cropper.css'], exports: "cropper"
+        },
+        "layCascader":{
+            deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
         },
     },
     waitSeconds: 30,

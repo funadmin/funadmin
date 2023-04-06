@@ -13,7 +13,7 @@
     // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
+        'css','layCascader','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
@@ -24,6 +24,7 @@
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
+        'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         // 'layui'         : 'plugins/layui/layui', // jquery
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
@@ -82,6 +83,8 @@
                 'css!plugins/lay-module/cropper/cropper.css'
             ],
             exports: "cropper"
+        }, "layCascader":{
+            deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
         },
     },
 })
