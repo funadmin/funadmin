@@ -24,7 +24,12 @@ trait VersionTrait
     /**
      * Returns the version
      */
-    abstract public function getVersion(): ?int;
+    abstract public function getVersion(): ?Version;
+
+    /**
+     * Returns true if these fields represent a max UUID
+     */
+    abstract public function isMax(): bool;
 
     /**
      * Returns true if these fields represent a nil UUID
@@ -38,20 +43,15 @@ trait VersionTrait
      */
     private function isCorrectVersion(): bool
     {
-        if ($this->isNil()) {
+        if ($this->isNil() || $this->isMax()) {
             return true;
         }
 
-        switch ($this->getVersion()) {
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-            case 6:
-                return true;
-        }
-
-        return false;
+        return match ($this->getVersion()) {
+            Version::Time, Version::DceSecurity, Version::HashMd5,
+                Version::Random, Version::HashSha1, Version::ReorderedTime,
+                Version::UnixTime, Version::Custom => true,
+            default => false,
+        };
     }
 }

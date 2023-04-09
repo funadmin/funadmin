@@ -17,7 +17,7 @@ namespace Ramsey\Uuid\Codec;
 use Ramsey\Uuid\Exception\InvalidArgumentException;
 use Ramsey\Uuid\Exception\UnsupportedOperationException;
 use Ramsey\Uuid\Rfc4122\FieldsInterface as Rfc4122FieldsInterface;
-use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\Rfc4122\Version;
 use Ramsey\Uuid\UuidInterface;
 
 use function strlen;
@@ -50,15 +50,12 @@ class OrderedTimeCodec extends StringCodec
      * fields rearranged for optimized storage
      *
      * @inheritDoc
-     * @psalm-return non-empty-string
-     * @psalm-suppress MoreSpecificReturnType we know that the retrieved `string` is never empty
-     * @psalm-suppress LessSpecificReturnStatement we know that the retrieved `string` is never empty
      */
     public function encodeBinary(UuidInterface $uuid): string
     {
         if (
             !($uuid->getFields() instanceof Rfc4122FieldsInterface)
-            || $uuid->getFields()->getVersion() !== Uuid::UUID_TYPE_TIME
+            || $uuid->getFields()->getVersion() !== Version::Time
         ) {
             throw new InvalidArgumentException(
                 'Expected RFC 4122 version 1 (time-based) UUID'
@@ -67,7 +64,6 @@ class OrderedTimeCodec extends StringCodec
 
         $bytes = $uuid->getFields()->getBytes();
 
-        /** @phpstan-ignore-next-line PHPStan complains that this is not a non-empty-string. */
         return $bytes[6] . $bytes[7]
             . $bytes[4] . $bytes[5]
             . $bytes[0] . $bytes[1] . $bytes[2] . $bytes[3]
@@ -90,7 +86,12 @@ class OrderedTimeCodec extends StringCodec
             );
         }
 
-        // Rearrange the bytes to their original order.
+        /**
+         * Rearrange the bytes to their original order.
+         *
+         * @psalm-suppress UnnecessaryVarAnnotation
+         * @phpstan-var non-empty-string $rearrangedBytes
+         */
         $rearrangedBytes = $bytes[4] . $bytes[5] . $bytes[6] . $bytes[7]
             . $bytes[2] . $bytes[3]
             . $bytes[0] . $bytes[1]
@@ -100,7 +101,7 @@ class OrderedTimeCodec extends StringCodec
 
         if (
             !($uuid->getFields() instanceof Rfc4122FieldsInterface)
-            || $uuid->getFields()->getVersion() !== Uuid::UUID_TYPE_TIME
+            || $uuid->getFields()->getVersion() !== Version::Time
         ) {
             throw new UnsupportedOperationException(
                 'Attempting to decode a non-time-based UUID using '

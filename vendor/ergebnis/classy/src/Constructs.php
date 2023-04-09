@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Copyright (c) 2017-2021 Andreas Möller
+ * Copyright (c) 2017-2022 Andreas Möller
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -40,16 +40,8 @@ final class Constructs
 
         $namespaceSegmentOrNamespaceTokens = [
             \T_STRING,
+            \T_NAME_QUALIFIED,
         ];
-
-        // https://wiki.php.net/rfc/namespaced_names_as_token
-        if (\PHP_VERSION_ID >= 80000 && \defined('T_NAME_QUALIFIED')) {
-            /** @var array<int> $namespaceSegmentOrNamespaceTokens */
-            $namespaceSegmentOrNamespaceTokens = [
-                \T_STRING,
-                \T_NAME_QUALIFIED,
-            ];
-        }
 
         $classyTokens = [
             \T_CLASS,
@@ -233,7 +225,7 @@ final class Constructs
      */
     private static function significantBefore(
         int $index,
-        array $sequence
+        array $sequence,
     ): int {
         for ($current = $index - 1; -1 < $current; --$current) {
             $token = $sequence[$current];

@@ -5,7 +5,7 @@
        data-node-destroy="{:auth({{$nodeType}}('destroy'))}"
        data-node-modify="{:auth({{$nodeType}}('modify'))}"
        data-node-recycle="{:auth({{$nodeType}}('recycle'))}"
-       data-node-restore="{:auth({{$nodeType}}('index'))}"
+       data-node-restore="{:auth({{$nodeType}}('restore'))}"
        data-node-import="{:auth({{$nodeType}}('import'))}"
        data-node-export="{:auth({{$nodeType}}('export'))}"
 ></table>

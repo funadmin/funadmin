@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Copyright (c) 2017-2021 Andreas Möller
+ * Copyright (c) 2017-2022 Andreas Möller
  *
  * For the full copyright and license information, please view
  * the LICENSE.md file that was distributed with this source code.
@@ -68,8 +68,6 @@ final class Construct
 
     /**
      * Clones the construct and adds the file name to the list of files the construct is defined in.
-     *
-     * @param string ...$fileNames
      */
     public function definedIn(string ...$fileNames): self
     {

@@ -364,7 +364,7 @@ class FormHelper
      * @return string
      */
     public  function rate($name = '', $options = [], $value = '')
-    {
+    {        
         $name = $options['formname']??$name;
         $label = $options['label'] ?? $name;
         $id = ($options['id']) ?? $name;

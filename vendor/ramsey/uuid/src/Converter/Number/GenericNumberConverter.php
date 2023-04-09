@@ -26,22 +26,12 @@ use Ramsey\Uuid\Type\Integer as IntegerObject;
  */
 class GenericNumberConverter implements NumberConverterInterface
 {
-    /**
-     * @var CalculatorInterface
-     */
-    private $calculator;
-
-    public function __construct(CalculatorInterface $calculator)
+    public function __construct(private CalculatorInterface $calculator)
     {
-        $this->calculator = $calculator;
     }
 
     /**
-     * @inheritDoc
      * @psalm-pure
-     * @psalm-return numeric-string
-     * @psalm-suppress MoreSpecificReturnType we know that the retrieved `string` is never empty
-     * @psalm-suppress LessSpecificReturnStatement we know that the retrieved `string` is never empty
      */
     public function fromHex(string $hex): string
     {
@@ -49,15 +39,10 @@ class GenericNumberConverter implements NumberConverterInterface
     }
 
     /**
-     * @inheritDoc
      * @psalm-pure
-     * @psalm-return non-empty-string
-     * @psalm-suppress MoreSpecificReturnType we know that the retrieved `string` is never empty
-     * @psalm-suppress LessSpecificReturnStatement we know that the retrieved `string` is never empty
      */
     public function toHex(string $number): string
     {
-        /** @phpstan-ignore-next-line PHPStan complains that this is not a non-empty-string. */
         return $this->calculator->toBase(new IntegerObject($number), 16);
     }
 }
