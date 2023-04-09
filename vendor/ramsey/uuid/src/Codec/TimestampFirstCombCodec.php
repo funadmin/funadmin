@@ -50,11 +50,15 @@ use function substr_replace;
  */
 class TimestampFirstCombCodec extends StringCodec
 {
+    /**
+     * @psalm-return non-empty-string
+     * @psalm-suppress MoreSpecificReturnType we know that the retrieved `string` is never empty
+     * @psalm-suppress LessSpecificReturnStatement we know that the retrieved `string` is never empty
+     */
     public function encode(UuidInterface $uuid): string
     {
         $bytes = $this->swapBytes($uuid->getFields()->getBytes());
 
-        /** @var non-empty-string */
         return sprintf(
             '%08s-%04s-%04s-%04s-%012s',
             bin2hex(substr($bytes, 0, 4)),
@@ -65,8 +69,14 @@ class TimestampFirstCombCodec extends StringCodec
         );
     }
 
+    /**
+     * @psalm-return non-empty-string
+     * @psalm-suppress MoreSpecificReturnType we know that the retrieved `string` is never empty
+     * @psalm-suppress LessSpecificReturnStatement we know that the retrieved `string` is never empty
+     */
     public function encodeBinary(UuidInterface $uuid): string
     {
+        /** @phpstan-ignore-next-line PHPStan complains that this is not a non-empty-string. */
         return $this->swapBytes($uuid->getFields()->getBytes());
     }
 
@@ -89,8 +99,6 @@ class TimestampFirstCombCodec extends StringCodec
 
     /**
      * Swaps bytes according to the timestamp-first COMB rules
-     *
-     * @return non-empty-string
      */
     private function swapBytes(string $bytes): string
     {
@@ -98,8 +106,8 @@ class TimestampFirstCombCodec extends StringCodec
         $last48Bits = substr($bytes, -6);
 
         $bytes = substr_replace($bytes, $last48Bits, 0, 6);
+        $bytes = substr_replace($bytes, $first48Bits, -6);
 
-        /** @var non-empty-string */
-        return substr_replace($bytes, $first48Bits, -6);
+        return $bytes;
     }
 }

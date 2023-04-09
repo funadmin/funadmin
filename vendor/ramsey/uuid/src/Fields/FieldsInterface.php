@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace Ramsey\Uuid\Fields;
 
+use Serializable;
+
 /**
  * UUIDs are comprised of unsigned integers, the bytes of which are separated
  * into fields and arranged in a particular layout defined by the specification
@@ -21,22 +23,10 @@ namespace Ramsey\Uuid\Fields;
  *
  * @psalm-immutable
  */
-interface FieldsInterface
+interface FieldsInterface extends Serializable
 {
     /**
-     * @return mixed[]
-     */
-    public function __serialize(): array;
-
-    /**
-     * @param mixed[] $data
-     */
-    public function __unserialize(array $data): void;
-
-    /**
      * Returns the bytes that comprise the fields
-     *
-     * @return non-empty-string
      */
     public function getBytes(): string;
 }

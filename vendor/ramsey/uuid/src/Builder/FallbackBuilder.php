@@ -28,10 +28,16 @@ use Ramsey\Uuid\UuidInterface;
 class FallbackBuilder implements UuidBuilderInterface
 {
     /**
-     * @param iterable<UuidBuilderInterface> $builders An array of UUID builders
+     * @var BuilderCollection
      */
-    public function __construct(private iterable $builders)
+    private $builders;
+
+    /**
+     * @param BuilderCollection $builders An array of UUID builders
+     */
+    public function __construct(BuilderCollection $builders)
     {
+        $this->builders = $builders;
     }
 
     /**
@@ -39,7 +45,7 @@ class FallbackBuilder implements UuidBuilderInterface
      * succeeds
      *
      * @param CodecInterface $codec The codec to use for building this instance
-     * @param non-empty-string $bytes The byte string from which to construct a UUID
+     * @param string $bytes The byte string from which to construct a UUID
      *
      * @return UuidInterface an instance of a UUID object
      *

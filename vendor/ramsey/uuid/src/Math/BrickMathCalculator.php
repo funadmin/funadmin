@@ -114,7 +114,6 @@ final class BrickMathCalculator implements CalculatorInterface
     public function toBase(IntegerObject $value, int $base): string
     {
         try {
-            /** @var non-empty-string */
             return BigInteger::of($value->toString())->toBase($base);
         } catch (MathException | \InvalidArgumentException $exception) {
             throw new InvalidArgumentException(

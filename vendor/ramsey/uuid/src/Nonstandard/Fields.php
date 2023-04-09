@@ -18,7 +18,6 @@ use Ramsey\Uuid\Exception\InvalidArgumentException;
 use Ramsey\Uuid\Fields\SerializableFieldsTrait;
 use Ramsey\Uuid\Rfc4122\FieldsInterface;
 use Ramsey\Uuid\Rfc4122\VariantTrait;
-use Ramsey\Uuid\Rfc4122\Version;
 use Ramsey\Uuid\Type\Hexadecimal;
 
 use function bin2hex;
@@ -49,18 +48,25 @@ final class Fields implements FieldsInterface
     use VariantTrait;
 
     /**
-     * @param non-empty-string $bytes A 16-byte binary string representation of a UUID
+     * @var string
+     */
+    private $bytes;
+
+    /**
+     * @param string $bytes A 16-byte binary string representation of a UUID
      *
      * @throws InvalidArgumentException if the byte string is not exactly 16 bytes
      */
-    public function __construct(private readonly string $bytes)
+    public function __construct(string $bytes)
     {
-        if (strlen($this->bytes) !== 16) {
+        if (strlen($bytes) !== 16) {
             throw new InvalidArgumentException(
                 'The byte string must be 16 bytes long; '
-                . 'received ' . strlen($this->bytes) . ' bytes'
+                . 'received ' . strlen($bytes) . ' bytes'
             );
         }
+
+        $this->bytes = $bytes;
     }
 
     public function getBytes(): string
@@ -71,83 +77,56 @@ final class Fields implements FieldsInterface
     public function getClockSeq(): Hexadecimal
     {
         $clockSeq = hexdec(bin2hex(substr($this->bytes, 8, 2))) & 0x3fff;
-        $clockSeqHex = str_pad(dechex($clockSeq), 4, '0', STR_PAD_LEFT);
 
-        return new Hexadecimal($clockSeqHex);
+        return new Hexadecimal(str_pad(dechex($clockSeq), 4, '0', STR_PAD_LEFT));
     }
 
     public function getClockSeqHiAndReserved(): Hexadecimal
     {
-        /** @var non-empty-string $clockSeqHiAndReserved */
-        $clockSeqHiAndReserved = bin2hex(substr($this->bytes, 8, 1));
-
-        return new Hexadecimal($clockSeqHiAndReserved);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 8, 1)));
     }
 
     public function getClockSeqLow(): Hexadecimal
     {
-        /** @var non-empty-string $clockSeqLow */
-        $clockSeqLow = bin2hex(substr($this->bytes, 9, 1));
-
-        return new Hexadecimal($clockSeqLow);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 9, 1)));
     }
 
     public function getNode(): Hexadecimal
     {
-        /** @var non-empty-string $node */
-        $node = bin2hex(substr($this->bytes, 10));
-
-        return new Hexadecimal($node);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 10)));
     }
 
     public function getTimeHiAndVersion(): Hexadecimal
     {
-        /** @var non-empty-string $timeHiAndVersion */
-        $timeHiAndVersion = bin2hex(substr($this->bytes, 6, 2));
-
-        return new Hexadecimal($timeHiAndVersion);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 6, 2)));
     }
 
     public function getTimeLow(): Hexadecimal
     {
-        /** @var non-empty-string $timeLow */
-        $timeLow = bin2hex(substr($this->bytes, 0, 4));
-
-        return new Hexadecimal($timeLow);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 0, 4)));
     }
 
     public function getTimeMid(): Hexadecimal
     {
-        /** @var non-empty-string $timeMid */
-        $timeMid = bin2hex(substr($this->bytes, 4, 2));
-
-        return new Hexadecimal($timeMid);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 4, 2)));
     }
 
     public function getTimestamp(): Hexadecimal
     {
-        /** @var non-empty-string $timestamp */
-        $timestamp = sprintf(
+        return new Hexadecimal(sprintf(
             '%03x%04s%08s',
             hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff,
             $this->getTimeMid()->toString(),
             $this->getTimeLow()->toString()
-        );
-
-        return new Hexadecimal($timestamp);
+        ));
     }
 
-    public function getVersion(): ?Version
+    public function getVersion(): ?int
     {
         return null;
     }
 
     public function isNil(): bool
-    {
-        return false;
-    }
-
-    public function isMax(): bool
     {
         return false;
     }

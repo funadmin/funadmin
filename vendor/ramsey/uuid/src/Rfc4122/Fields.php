@@ -17,7 +17,7 @@ namespace Ramsey\Uuid\Rfc4122;
 use Ramsey\Uuid\Exception\InvalidArgumentException;
 use Ramsey\Uuid\Fields\SerializableFieldsTrait;
 use Ramsey\Uuid\Type\Hexadecimal;
-use Ramsey\Uuid\Variant;
+use Ramsey\Uuid\Uuid;
 
 use function bin2hex;
 use function dechex;
@@ -40,27 +40,33 @@ use const STR_PAD_LEFT;
  */
 final class Fields implements FieldsInterface
 {
-    use MaxTrait;
     use NilTrait;
     use SerializableFieldsTrait;
     use VariantTrait;
     use VersionTrait;
 
     /**
-     * @param non-empty-string $bytes A 16-byte binary string representation of a UUID
+     * @var string
+     */
+    private $bytes;
+
+    /**
+     * @param string $bytes A 16-byte binary string representation of a UUID
      *
      * @throws InvalidArgumentException if the byte string is not exactly 16 bytes
      * @throws InvalidArgumentException if the byte string does not represent an RFC 4122 UUID
      * @throws InvalidArgumentException if the byte string does not contain a valid version
      */
-    public function __construct(private readonly string $bytes)
+    public function __construct(string $bytes)
     {
-        if (strlen($this->bytes) !== 16) {
+        if (strlen($bytes) !== 16) {
             throw new InvalidArgumentException(
                 'The byte string must be 16 bytes long; '
-                . 'received ' . strlen($this->bytes) . ' bytes'
+                . 'received ' . strlen($bytes) . ' bytes'
             );
         }
+
+        $this->bytes = $bytes;
 
         if (!$this->isCorrectVariant()) {
             throw new InvalidArgumentException(
@@ -82,63 +88,39 @@ final class Fields implements FieldsInterface
 
     public function getClockSeq(): Hexadecimal
     {
-        if ($this->isMax()) {
-            $clockSeq = 0xffff;
-        } elseif ($this->isNil()) {
-            $clockSeq = 0x0000;
-        } else {
-            $clockSeq = hexdec(bin2hex(substr($this->bytes, 8, 2))) & 0x3fff;
-        }
+        $clockSeq = hexdec(bin2hex(substr($this->bytes, 8, 2))) & 0x3fff;
 
         return new Hexadecimal(str_pad(dechex($clockSeq), 4, '0', STR_PAD_LEFT));
     }
 
     public function getClockSeqHiAndReserved(): Hexadecimal
     {
-        /** @var non-empty-string $clockSeqHiAndReserved */
-        $clockSeqHiAndReserved = bin2hex(substr($this->bytes, 8, 1));
-
-        return new Hexadecimal($clockSeqHiAndReserved);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 8, 1)));
     }
 
     public function getClockSeqLow(): Hexadecimal
     {
-        /** @var non-empty-string $clockSeqLow */
-        $clockSeqLow = bin2hex(substr($this->bytes, 9, 1));
-
-        return new Hexadecimal($clockSeqLow);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 9, 1)));
     }
 
     public function getNode(): Hexadecimal
     {
-        /** @var non-empty-string $node */
-        $node = bin2hex(substr($this->bytes, 10));
-
-        return new Hexadecimal($node);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 10)));
     }
 
     public function getTimeHiAndVersion(): Hexadecimal
     {
-        /** @var non-empty-string $timeHiAndVersion */
-        $timeHiAndVersion = bin2hex(substr($this->bytes, 6, 2));
-
-        return new Hexadecimal($timeHiAndVersion);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 6, 2)));
     }
 
     public function getTimeLow(): Hexadecimal
     {
-        /** @var non-empty-string $timeLow */
-        $timeLow = bin2hex(substr($this->bytes, 0, 4));
-
-        return new Hexadecimal($timeLow);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 0, 4)));
     }
 
     public function getTimeMid(): Hexadecimal
     {
-        /** @var non-empty-string $timeMid */
-        $timeMid = bin2hex(substr($this->bytes, 4, 2));
-
-        return new Hexadecimal($timeMid);
+        return new Hexadecimal(bin2hex(substr($this->bytes, 4, 2)));
     }
 
     /**
@@ -158,57 +140,55 @@ final class Fields implements FieldsInterface
      */
     public function getTimestamp(): Hexadecimal
     {
-        /** @var non-empty-string $timestamp */
-        $timestamp = match ($this->getVersion()) {
-            Version::DceSecurity => sprintf(
-                '%03x%04s%08s',
-                hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff,
-                $this->getTimeMid()->toString(),
-                ''
-            ),
-            Version::ReorderedTime => sprintf(
-                '%08s%04s%03x',
-                $this->getTimeLow()->toString(),
-                $this->getTimeMid()->toString(),
-                hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff
-            ),
-            // The Unix timestamp in version 7 UUIDs is a 48-bit number,
-            // but for consistency, we will return a 60-bit number, padded
-            // to the left with zeros.
-            Version::UnixTime => sprintf(
-                '%011s%04s',
-                $this->getTimeLow()->toString(),
-                $this->getTimeMid()->toString(),
-            ),
-            default => sprintf(
-                '%03x%04s%08s',
-                hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff,
-                $this->getTimeMid()->toString(),
-                $this->getTimeLow()->toString()
-            ),
-        };
+        switch ($this->getVersion()) {
+            case Uuid::UUID_TYPE_DCE_SECURITY:
+                $timestamp = sprintf(
+                    '%03x%04s%08s',
+                    hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff,
+                    $this->getTimeMid()->toString(),
+                    ''
+                );
+
+                break;
+            case Uuid::UUID_TYPE_PEABODY:
+                $timestamp = sprintf(
+                    '%08s%04s%03x',
+                    $this->getTimeLow()->toString(),
+                    $this->getTimeMid()->toString(),
+                    hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff
+                );
+
+                break;
+            default:
+                $timestamp = sprintf(
+                    '%03x%04s%08s',
+                    hexdec($this->getTimeHiAndVersion()->toString()) & 0x0fff,
+                    $this->getTimeMid()->toString(),
+                    $this->getTimeLow()->toString()
+                );
+        }
 
         return new Hexadecimal($timestamp);
     }
 
-    public function getVersion(): ?Version
+    public function getVersion(): ?int
     {
-        if ($this->isNil() || $this->isMax()) {
+        if ($this->isNil()) {
             return null;
         }
 
-        /** @var int[] $parts */
+        /** @var array $parts */
         $parts = unpack('n*', $this->bytes);
 
-        return Version::tryFrom($parts[4] >> 12);
+        return (int) $parts[4] >> 12;
     }
 
     private function isCorrectVariant(): bool
     {
-        if ($this->isNil() || $this->isMax()) {
+        if ($this->isNil()) {
             return true;
         }
 
-        return $this->getVariant() === Variant::Rfc4122;
+        return $this->getVariant() === Uuid::RFC_4122;
     }
 }

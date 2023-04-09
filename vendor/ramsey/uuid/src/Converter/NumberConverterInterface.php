@@ -23,15 +23,17 @@ namespace Ramsey\Uuid\Converter;
 interface NumberConverterInterface
 {
     /**
-     * Converts a hexadecimal number into a string integer representation of
+     * Converts a hexadecimal number into an string integer representation of
      * the number
      *
      * The integer representation returned is a string representation of the
      * integer, to accommodate unsigned integers greater than PHP_INT_MAX.
      *
-     * @param non-empty-string $hex The hexadecimal string representation to convert
+     * @param string $hex The hexadecimal string representation to convert
      *
-     * @return numeric-string String representation of an integer
+     * @return string String representation of an integer
+     *
+     * @psalm-return numeric-string
      *
      * @psalm-pure
      */
@@ -41,11 +43,13 @@ interface NumberConverterInterface
      * Converts a string integer representation into a hexadecimal string
      * representation of the number
      *
-     * @param numeric-string $number A string integer representation to convert;
-     *     this must be a numeric string to accommodate unsigned integers
-     *     greater than PHP_INT_MAX.
+     * @param string $number A string integer representation to convert; this
+     *     must be a numeric string to accommodate unsigned integers greater
+     *     than PHP_INT_MAX.
      *
-     * @return non-empty-string Hexadecimal string
+     * @return string Hexadecimal string
+     *
+     * @psalm-return non-empty-string
      *
      * @psalm-pure
      */

@@ -18,6 +18,7 @@ use JsonSerializable;
 use Ramsey\Uuid\Fields\FieldsInterface;
 use Ramsey\Uuid\Type\Hexadecimal;
 use Ramsey\Uuid\Type\Integer as IntegerObject;
+use Serializable;
 
 /**
  * A UUID is a universally unique identifier adhering to an agreed-upon
@@ -25,25 +26,11 @@ use Ramsey\Uuid\Type\Integer as IntegerObject;
  *
  * @psalm-immutable
  */
-interface UuidInterface extends JsonSerializable
+interface UuidInterface extends
+    DeprecatedUuidInterface,
+    JsonSerializable,
+    Serializable
 {
-    /**
-     * @return mixed[]
-     */
-    public function __serialize(): array;
-
-    /**
-     * Casts the UUID to the string standard representation
-     *
-     * @psalm-return non-empty-string
-     */
-    public function __toString(): string;
-
-    /**
-     * @param mixed[] $data
-     */
-    public function __unserialize(array $data): void;
-
     /**
      * Returns -1, 0, or 1 if the UUID is less than, equal to, or greater than
      * the other UUID
@@ -65,7 +52,7 @@ interface UuidInterface extends JsonSerializable
      * Returns true if the UUID is equal to the provided object
      *
      * The result is true if and only if the argument is not null, is a UUID
-     * object, has the same variant, and contains the same value, bit-for-bit,
+     * object, has the same variant, and contains the same value, bit for bit,
      * as the UUID.
      *
      * @param object|null $other An object to test for equality with this UUID
@@ -97,17 +84,16 @@ interface UuidInterface extends JsonSerializable
     public function getInteger(): IntegerObject;
 
     /**
-     * Returns the string standard representation of the UUID as a URN
-     *
-     * @link http://en.wikipedia.org/wiki/Uniform_Resource_Name Uniform Resource Name
-     * @link https://tools.ietf.org/html/rfc4122#section-3 RFC 4122, § 3: Namespace Registration Template
-     */
-    public function getUrn(): string;
-
-    /**
      * Returns the string standard representation of the UUID
      *
      * @psalm-return non-empty-string
      */
     public function toString(): string;
+
+    /**
+     * Casts the UUID to the string standard representation
+     *
+     * @psalm-return non-empty-string
+     */
+    public function __toString(): string;
 }

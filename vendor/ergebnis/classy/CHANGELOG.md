@@ -6,15 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
-For a full diff see [`1.4.0...main`][1.4.0...main].
-
-## [`1.4.0`][1.4.0]
-
-For a full diff see [`1.3.0...1.4.0`][1.3.0...1.4.0].
-
-### Changed
-
-- Dropped support for PHP 7.4 ([#619]), by [@localheinz]
+For a full diff see [`1.3.0...main`][1.3.0...main].
 
 ## [`1.3.0`][1.3.0]
 
@@ -132,7 +124,6 @@ For a full diff see [`0.4.0...0.5.0`][0.4.0...0.5.0].
 [1.1.1]: https://github.com/localheinz/ergebnis/classy/releases/tag/1.1.1
 [1.2.0]: https://github.com/localheinz/ergebnis/classy/releases/tag/1.2.0
 [1.3.0]: https://github.com/localheinz/ergebnis/classy/releases/tag/1.3.0
-[1.4.0]: https://github.com/localheinz/ergebnis/classy/releases/tag/1.4.0
 
 [0.4.0...0.5.0]: https://github.com/ergebnis/classy/compare/0.4.0...0.5.0
 [0.5.0...0.5.1]: https://github.com/ergebnis/classy/compare/0.5.0...0.5.1
@@ -143,8 +134,7 @@ For a full diff see [`0.4.0...0.5.0`][0.4.0...0.5.0].
 [1.1.0...1.1.1]: https://github.com/ergebnis/classy/compare/1.1.0...1.1.1
 [1.1.1...1.2.0]: https://github.com/ergebnis/classy/compare/1.1.1...1.2.0
 [1.2.0...1.3.0]: https://github.com/ergebnis/classy/compare/1.2.0...1.3.0
-[1.3.0...1.4.0]: https://github.com/ergebnis/classy/compare/1.3.0...1.4.0
-[1.4.0...main]: https://github.com/ergebnis/classy/compare/1.4.0...main
+[1.3.0...main]: https://github.com/ergebnis/classy/compare/1.3.0...main
 
 [#77]: https://github.com/ergebnis/classy/pull/77
 [#88]: https://github.com/ergebnis/classy/pull/88
@@ -157,7 +147,6 @@ For a full diff see [`0.4.0...0.5.0`][0.4.0...0.5.0].
 [#478]: https://github.com/ergebnis/classy/pull/478
 [#481]: https://github.com/ergebnis/classy/pull/481
 [#486]: https://github.com/ergebnis/classy/pull/486
-[#619]: https://github.com/ergebnis/classy/pull/619
 
 [@ergebnis]: https://github.com/ergebnis
 [@localheinz]: https://github.com/localheinz

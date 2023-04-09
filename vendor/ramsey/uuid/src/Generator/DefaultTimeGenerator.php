@@ -23,11 +23,11 @@ use Ramsey\Uuid\Provider\TimeProviderInterface;
 use Ramsey\Uuid\Type\Hexadecimal;
 use Throwable;
 
+use function ctype_xdigit;
 use function dechex;
 use function hex2bin;
 use function is_int;
 use function pack;
-use function preg_match;
 use function sprintf;
 use function str_pad;
 use function strlen;
@@ -40,11 +40,29 @@ use const STR_PAD_LEFT;
  */
 class DefaultTimeGenerator implements TimeGeneratorInterface
 {
+    /**
+     * @var NodeProviderInterface
+     */
+    private $nodeProvider;
+
+    /**
+     * @var TimeConverterInterface
+     */
+    private $timeConverter;
+
+    /**
+     * @var TimeProviderInterface
+     */
+    private $timeProvider;
+
     public function __construct(
-        private readonly NodeProviderInterface $nodeProvider,
-        private readonly TimeConverterInterface $timeConverter,
-        private readonly TimeProviderInterface $timeProvider
+        NodeProviderInterface $nodeProvider,
+        TimeConverterInterface $timeConverter,
+        TimeProviderInterface $timeProvider
     ) {
+        $this->nodeProvider = $nodeProvider;
+        $this->timeConverter = $timeConverter;
+        $this->timeProvider = $timeProvider;
     }
 
     /**
@@ -53,7 +71,7 @@ class DefaultTimeGenerator implements TimeGeneratorInterface
      *
      * @inheritDoc
      */
-    public function generate(Hexadecimal | int | string | null $node = null, ?int $clockSeq = null): string
+    public function generate($node = null, ?int $clockSeq = null): string
     {
         if ($node instanceof Hexadecimal) {
             $node = $node->toString();
@@ -103,14 +121,13 @@ class DefaultTimeGenerator implements TimeGeneratorInterface
      * Uses the node provider given when constructing this instance to get
      * the node ID (usually a MAC address)
      *
-     * @param non-empty-string|positive-int|null $node A node value that may be
-     *     used to override the node provider
+     * @param string|int|null $node A node value that may be used to override the node provider
      *
-     * @return non-empty-string 6-byte binary string representation of the node
+     * @return string 6-byte binary string representation of the node
      *
      * @throws InvalidArgumentException
      */
-    private function getValidNode(int | string | null $node): string
+    private function getValidNode($node): string
     {
         if ($node === null) {
             $node = $this->nodeProvider->getNode();
@@ -121,11 +138,10 @@ class DefaultTimeGenerator implements TimeGeneratorInterface
             $node = dechex($node);
         }
 
-        if (!preg_match('/^[A-Fa-f0-9]+$/', (string) $node) || strlen((string) $node) > 12) {
+        if (!ctype_xdigit((string) $node) || strlen((string) $node) > 12) {
             throw new InvalidArgumentException('Invalid node value');
         }
 
-        /** @var non-empty-string */
         return (string) hex2bin(str_pad((string) $node, 12, '0', STR_PAD_LEFT));
     }
 }

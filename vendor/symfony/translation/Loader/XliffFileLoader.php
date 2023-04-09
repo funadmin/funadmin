@@ -28,7 +28,10 @@ use Symfony\Component\Translation\Util\XliffUtils;
  */
 class XliffFileLoader implements LoaderInterface
 {
-    public function load(mixed $resource, string $locale, string $domain = 'messages'): MessageCatalogue
+    /**
+     * {@inheritdoc}
+     */
+    public function load($resource, string $locale, string $domain = 'messages')
     {
         if (!class_exists(XmlUtils::class)) {
             throw new RuntimeException('Loading translations from the Xliff format requires the Symfony Config component.');
@@ -100,10 +103,6 @@ class XliffFileLoader implements LoaderInterface
             $fileAttributes = $file->attributes();
 
             $file->registerXPathNamespace('xliff', $namespace);
-
-            foreach ($file->xpath('.//xliff:prop') as $prop) {
-                $catalogue->setCatalogueMetadata($prop->attributes()['prop-type'], (string) $prop, $domain);
-            }
 
             foreach ($file->xpath('.//xliff:trans-unit') as $translation) {
                 $attributes = $translation->attributes();
@@ -228,6 +227,6 @@ class XliffFileLoader implements LoaderInterface
 
     private function isXmlString(string $resource): bool
     {
-        return str_starts_with($resource, '<?xml');
+        return 0 === strpos($resource, '<?xml');
     }
 }

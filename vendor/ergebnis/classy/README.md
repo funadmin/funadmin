@@ -11,7 +11,7 @@
 [![Latest Stable Version](https://poser.pugx.org/ergebnis/classy/v/stable)](https://packagist.org/packages/ergebnis/classy)
 [![Total Downloads](https://poser.pugx.org/ergebnis/classy/downloads)](https://packagist.org/packages/ergebnis/classy)
 
-Provides a finder for classy constructs (classes, enums, interfaces, and traits).
+Provides a finder for classy constructs (classes, interfaces, and traits).
 
 ## Installation
 
@@ -40,20 +40,19 @@ namespace Example;
 
 class Foo {}
 
-enum Bar {}
+interface Bar {}
 
-interface Baz {}
-
-trait Qux {}
+trait Baz {}
 PHP;
 
+/** @var Construct[] $constructs */
 $constructs = Constructs::fromSource($source);
 
 $names = array_map(static function (Construct $construct): string {
     return $construct->name();
 }, $constructs);
 
-var_dump($names); // ['Example\Bar', 'Example\Baz', 'Example\Foo', 'Example\Qux']
+var_dump($names); // ['Example\Bar', 'Example\Baz', 'Example\Foo']
 ```
 
 ### Collect classy constructs from a directory
@@ -66,6 +65,7 @@ Use `Constructs::fromDirectory()` to collect classy constructs in a directory:
 use Ergebnis\Classy\Construct;
 use Ergebnis\Classy\Constructs;
 
+/** @var Construct[] $constructs */
 $constructs = Constructs::fromDirectory(__DIR__ . '/example');
 
 $names = array_map(static function (Construct $construct): string {

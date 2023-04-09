@@ -61,18 +61,25 @@ class CombGenerator implements RandomGeneratorInterface
 {
     public const TIMESTAMP_BYTES = 6;
 
+    /**
+     * @var RandomGeneratorInterface
+     */
+    private $randomGenerator;
+
+    /**
+     * @var NumberConverterInterface
+     */
+    private $converter;
+
     public function __construct(
-        private readonly RandomGeneratorInterface $generator,
-        private readonly NumberConverterInterface $numberConverter
+        RandomGeneratorInterface $generator,
+        NumberConverterInterface $numberConverter
     ) {
+        $this->converter = $numberConverter;
+        $this->randomGenerator = $generator;
     }
 
     /**
-     * @param positive-int $length The number of bytes of random binary data to
-     *     generate
-     *
-     * @return non-empty-string
-     *
      * @throws InvalidArgumentException if $length is not a positive integer
      *     greater than or equal to CombGenerator::TIMESTAMP_BYTES
      *
@@ -80,7 +87,7 @@ class CombGenerator implements RandomGeneratorInterface
      */
     public function generate(int $length): string
     {
-        if ($length < self::TIMESTAMP_BYTES) {
+        if ($length < self::TIMESTAMP_BYTES || $length < 0) {
             throw new InvalidArgumentException(
                 'Length must be a positive integer greater than or equal to ' . self::TIMESTAMP_BYTES
             );
@@ -88,17 +95,16 @@ class CombGenerator implements RandomGeneratorInterface
 
         $hash = '';
         if (self::TIMESTAMP_BYTES > 0 && $length > self::TIMESTAMP_BYTES) {
-            $hash = $this->generator->generate($length - self::TIMESTAMP_BYTES);
+            $hash = $this->randomGenerator->generate($length - self::TIMESTAMP_BYTES);
         }
 
         $lsbTime = str_pad(
-            $this->numberConverter->toHex($this->timestamp()),
+            $this->converter->toHex($this->timestamp()),
             self::TIMESTAMP_BYTES * 2,
             '0',
             STR_PAD_LEFT
         );
 
-        /** @var non-empty-string */
         return (string) hex2bin(
             str_pad(
                 bin2hex($hash),
@@ -110,15 +116,12 @@ class CombGenerator implements RandomGeneratorInterface
     }
 
     /**
-     * Returns current timestamp as string integer, precise to 0.00001 seconds
-     *
-     * @return numeric-string
+     * Returns current timestamp a string integer, precise to 0.00001 seconds
      */
     private function timestamp(): string
     {
-        $time = explode(' ', microtime());
+        $time = explode(' ', microtime(false));
 
-        /** @var numeric-string */
         return $time[1] . substr($time[0], 2, 5);
     }
 }
