@@ -8,7 +8,6 @@
 .env
 /addons
 /runtime
-#/vendor
 /public/static/addons
 /public/static/cms
 /public/static/mocms
