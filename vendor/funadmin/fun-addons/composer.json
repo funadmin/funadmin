@@ -1,0 +1,45 @@
+{
+  "name": "funadmin/fun-addons",
+  "license": "Apache-2.0",
+  "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
+  "authors": [
+    {
+      "name": "fun-addons",
+      "email": "994927909@qq.com"
+    }
+  ],
+  "require": {
+    "php": ">=7.4.0",
+    "topthink/framework": "^6.0.12",
+    "topthink/think-view": "^1.0",
+    "topthink/think-helper": "^3.1",
+    "firebase/php-jwt":"^6.0.0",
+    "guzzlehttp/guzzle": "^7.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "fun\\": "src/"
+    },
+    "files": [
+      "src/helper.php"
+    ]
+  },
+  "extra": {
+    "think": {
+      "services": [
+        "fun\\addons\\Service"
+      ],
+      "config":{
+        "addons": "src/config.php",
+        "api": "src/api.php",
+        "console": "src/console.php"
+      }
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "php think addons:config",
+      "php think auth:config"
+    ]
+  }
+}
