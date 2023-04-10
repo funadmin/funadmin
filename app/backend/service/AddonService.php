@@ -69,7 +69,7 @@ class AddonService extends AbstractService
                 if($menu_rule){
                     $menu_rule->force()->delete();
                     if ($hasChild) {
-                        $this->delAddonMenu($v['menulist']);
+                        $this->delAddonMenu($v['menulist'],$module);
                     }
                 }
                 //删除主菜单；
