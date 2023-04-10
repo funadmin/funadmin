@@ -136,7 +136,7 @@ class Auth extends Backend
     public function edit()
     {
         if (request()->isAjax()) {
-            $post = $this->request->param();
+            $post = $this->request->post();
             $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
             $id = $this->request->param('id');
             $model = $this->findModel($id);
