@@ -55,7 +55,7 @@ body .layui-form-onswitch{border:none;}
 /* 鼠标指向表格时,奇数行背景颜色 */
 .layui-table tbody tr:hover,.layui-table-hover {background-color: #eeeeee;}
 .layui-form-item input[lay-filter=date] {padding-left:36px;}
-.layui-form-item .layui-icon.layui-icon-date {position: absolute;left: 4px;top: 4px;font-size: 30px;color: #f44336;}
+.layui-form-item .layui-icon.layui-icon-date {color: #f44336;}
 .layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color: #1890ff}
 .layui-form-checked[lay-skin=primary] i{border-color: #1890ff!important;background-color: #1890ff;}
 /*!* 设置下拉框的高度与表格单元格的高度相同 *!*/
