@@ -399,14 +399,16 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             dropdown: function (othis,rowData,tableOption) {
                 var data = $(othis).data(); extend = data.extend;
+                var dropdowndata = [];
                 if (typeof extend === 'object') {
                     ele = '';d= '';
                     if(rowData){ele = rowData.config;d = rowData.data;}
                     layui.each(extend, function (k, v) {
-                        v.class = v.class || 'layui-btn layui-btn-xs';
+                        v.class = v['class'] || 'layui-btn layui-btn-xs';
                         v.title = v.title || v.text;
                         v.event = v.event || v.type;
                         url = v.url ? v.url : $(othis).attr('data-url');
+                        node = Fun.common.getNode(url);
                         if (ele) {
                             if(url.indexOf('?')>=0){
                                 url = url+"&"+ele.primaryKey+'='+d[ele.primaryKey];
@@ -414,32 +416,36 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 url = url+"?"+ele.primaryKey+'='+d[ele.primaryKey];
                             }
                         }
-                        if(Fun.checkAuth(url)){
-                            extend[k].rowindex = k;
-                            extend[k].buttonsindex = data.buttonsindex;
-                            extend[k].url =url;
-                            extend[k].class =v.class || 'layui-btn-xs layui-btn-normal';
-                            extend[k].id = v.id || v.event
-                            extend[k].callback = v.callback || '';
-                            extend[k].extend = v.extend || '';
-                            extend[k].type = v.type || 'normal';
-                            extend[k].target = v.target || '_self';
-                            extend[k].child = v.child || [];
-                            extend[k].textTitle = v.title
-                            extend[k].icon = v.icon || '';
-                            extend[k].field = v.field || '';
-                            extend[k].value = v.value || '';
+                        if(Fun.checkAuth(node,ele.elem || tableOption.elem)){
+                            dropdowndata[k] = extend[k];
+                            dropdowndata[k].rowindex = k;
+                            dropdowndata[k].buttonsindex = data.buttonsindex;
+                            dropdowndata[k].url = url;
+                            dropdowndata[k].class =v.class || 'layui-btn-xs layui-btn-normal';
+                            dropdowndata[k].id = v.id || v.event ;
+                            dropdowndata[k].callback = v.callback || '';
+                            dropdowndata[k].extend = v.extend || '';
+                            dropdowndata[k].type = v.type || 'normal';
+                            dropdowndata[k].target = v.target || '_self';
+                            dropdowndata[k].child = v.child || [];
+                            dropdowndata[k].textTitle = v.title
+                            dropdowndata[k].icon = v.icon || '';
+                            dropdowndata[k].field = v.field || '';
+                            dropdowndata[k].value = v.value || '';
                             icon = extend[k].icon ? '<i class="{{d.icon}}"></i>':'';
-                            extend[k].templet = v.templet ||  "<button data-value='{{d.value}}' data-field='{{d.field}}' data-id='{{d.id}}' lay-event='{{d.event}}' data-url='{{d.url}}' class='layui-btn layui-btn-normal {{d.class}}' title='{{d.title}}'>" +icon+' {{d.title}}  </button>';
-                            extend[k].title =v.title ;
+                            dropdowndata[k].templet = v.templet ||  "<button data-value='{{d.value}}' data-field='{{d.field}}' data-id='{{d.id}}' lay-event='{{d.event}}' data-url='{{d.url}}' class='layui-btn layui-btn-normal {{d.class}}' title='{{d.title}}'>" +icon+' {{d.title}}  </button>';
+                            dropdowndata[k].title =v.title ;
                         }
                     })
+                    console.log(dropdowndata)
                     var inst = layui.dropdown.render({
-                        elem: othis, show: true, data: extend, click: function (data, _that) {
-                            attrEvent = data.event;
-                            data.title = data.textTitle;
+                        elem: othis, show: true, data: dropdowndata, click: function (row, _that) {
+                            attrEvent = row.event;
+                            data.title = row.textTitle;
+                            data.rowindex = row.rowindex;
                             buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
                             buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
+                            console.log(buttons)
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
