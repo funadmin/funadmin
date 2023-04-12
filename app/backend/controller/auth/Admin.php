@@ -52,15 +52,30 @@ class Admin extends Backend
             if ($this->request->param('selectFields')) {
                 $this->selectList();
             }
+
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $count = $this->modelClass
-                ->where($where)
-                ->order($sort)
-                ->count();
-            $list =$this->modelClass->where($where)
-                ->order($sort)
-                ->page($this->page  ,$this->pageSize)
-                ->select()->toArray();
+            if(\session('admin.id')!==1){
+                $model = new AuthGroupModel();
+                $group = session('admin.group_id');
+                $childsIds = $model->getAllIdsBypid($group);
+                $groupids = explode(',',$childsIds.','.$group);
+                $groupids = array_filter($groupids);
+                $ids = [];
+                foreach ($groupids as $id) {
+                    $id = intval($id);
+                    $val = $this->modelClass
+                        ->where($where)->whereFindInSet('group_id',$id)->column('id');
+                    if(!empty($val)) array_push($ids,implode(',',$val));
+                }
+                $count = $this->modelClass->where($where)->where('id','in',$ids)->order($sort)->count();
+                $list =$this->modelClass->where($where)->where('id','in',$ids)->order($sort)->page($this->page  ,$this->pageSize)->select()->toArray();
+            }else{
+                $count = $this->modelClass
+                    ->where($where)->order($sort)->count();
+                $list =$this->modelClass
+                    ->where($where)->order($sort)->page($this->page  ,$this->pageSize)->select()->toArray();
+            }
+
             foreach ($list as $key=>$item){
                 $title = AuthGroupModel::where('id','in',$item['group_id'])->column('title');
                 $list[$key]['authGroup']['title'] = join(',',$title);
