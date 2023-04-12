@@ -38,6 +38,11 @@ class AuthGroup extends Backend
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort, $where) = $this->buildParames();
+            if(session('admin.id')!==1){
+                $pid = session('admin.group_id');
+                $ids = $this->modelClass->getAllIdsBypid($pid);
+                $where[] = ['id','in',$ids.','.$pid];
+            }
             $count = $this->modelClass
                 ->where($where)
                 ->count();
@@ -45,7 +50,13 @@ class AuthGroup extends Backend
                 ->where($where)
                 ->order('id asc')
                 ->page($this->page, $this->pageSize)
-                ->select();
+                ->select()->toArray();
+            foreach ($list as $key=>$item) {
+                $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
+                if(empty($parent)){
+                    $list[$key]['pid']=0;
+                }
+            }
             $list = TreeHelper::cateTree($list,'title');
             $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
             return json($result);
@@ -72,6 +83,7 @@ class AuthGroup extends Backend
                 ]
             ];
             $this->validate($post, $rule);
+            $post['stauts'] = 1;
             $result =  $this->modelClass->save($post);
             if ($result) {
                 $this->success(lang('operation success'));
@@ -80,7 +92,19 @@ class AuthGroup extends Backend
             }
 
         } else {
-            $authGroup = $this->modelClass->where('status',1)->select()->toArray();
+            $where = [];
+            if(session('admin.id')!==1){
+                $pid = session('admin.group_id');
+                $ids = $this->modelClass->getAllIdsBypid($pid);
+                $where[] = ['id','in',$ids.','.$pid];
+            }
+            $authGroup = $this->modelClass->where('status',1)->where($where)->select()->toArray();
+            foreach ($authGroup as $key=>$item) {
+                $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
+                if(empty($parent)){
+                    $authGroup[$key]['pid']=0;
+                }
+            }
             $authGroup = TreeHelper::cateTree($authGroup);
             $view = [
                 'formData' => null,
@@ -117,7 +141,17 @@ class AuthGroup extends Backend
         } else {
             $id = $this->request->param('id');
             $list = $this->modelClass->find(['id' => $id]);
-            $authGroup = $this->modelClass->where('status',1)->select()->toArray();
+            $where = [];
+            if(session('admin.id')!==1){
+                $where[] = ['id','in',session('admin.group_id')];
+            }
+            $authGroup = $this->modelClass->where('status',1)->where($where)->select()->toArray();
+            foreach ($authGroup as $key=>$item) {
+                $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
+                if(empty($parent)){
+                    $authGroup[$key]['pid']=0;
+                }
+            }
             $authGroup = TreeHelper::cateTree($authGroup);
             $view = [
                 'formData' => $list,
@@ -171,10 +205,14 @@ class AuthGroup extends Backend
             $list = $this->modelClass->withTrashed()->where('id','in', $ids)->select();
             try {
                 foreach ($list as $k=>$v){
+                    $child = $this->modelClass->withTrashed()->where('pid','in', $v['id'])->find();
+                    if($child){
+                       throw new \Exception('there is child group in' .$v['title'] );
+                    }
                     $v->force()->delete();
                 }
             } catch (\Exception $e) {
-                $this->error(lang("operation success"));
+                $this->error(lang($e->getMessage() ." operation error"));
             }
             $this->success(lang('operation success'));
 
@@ -191,7 +229,7 @@ class AuthGroup extends Backend
     public function access()
     {
         $AuthModel = new AuthRule();
-        $group_id = $this->request->param('id');
+        $group_id = $this->request->get('id');
         if($this->request->isAjax()){
             if($this->request->isGet()){
                 $idList = cache('authIdList'.session('admin.id'));
@@ -210,15 +248,15 @@ class AuthGroup extends Backend
 //                        ->where('status',1)
                         ->field('rules')
                         ->value('rules');
-                    $admin_rule = $AuthModel->field('id, pid, title')
+                    $admin_rule = $AuthModel->field('id, pid,title,href,module')
                         ->where('status',1)
                         ->where('id','in',trim($prules,','))
-                        ->order('sort asc')->cache(true)
+                        ->order('sort asc')
                         ->select()->toArray();
                 }else{
-                    $admin_rule = $AuthModel->field('id, pid, title,href,module')
+                    $admin_rule = $AuthModel->field('id, pid,title,href,module')
                         ->where('status',1)
-                        ->order('sort asc')->cache(true)
+                        ->order('sort asc')
                         ->select()->toArray();
                 }
                 $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);

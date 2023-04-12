@@ -12,9 +12,11 @@
  */
 namespace app\backend\controller\auth;
 use app\backend\model\AuthGroup as AuthGroupModel;
+use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use fun\helper\SignHelper;
 use fun\helper\StringHelper;
+use fun\helper\TreeHelper;
 use think\facade\Request;
 use think\facade\Session;
 use think\facade\View;
@@ -59,11 +61,10 @@ class Admin extends Backend
                 ->order($sort)
                 ->page($this->page  ,$this->pageSize)
                 ->select()->toArray();
-            foreach ($list as $k=>&$v){
-                $title = AuthGroupModel::where('id','in',$v['group_id'])->column('title');
-                $v['authGroup']['title'] = join(',',$title);
+            foreach ($list as $key=>$item){
+                $title = AuthGroupModel::where('id','in',$item['group_id'])->column('title');
+                $list[$key]['authGroup']['title'] = join(',',$title);
             }
-            unset($v);
             $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$list,'count'=>$count];
             return json($result);
         }
@@ -111,10 +112,10 @@ class Admin extends Backend
             }
         }
         $list = '';
-        $auth_group = AuthGroupModel::where('status', 1)->select();
+        $authGroup = $this->getAuthGroup();
         $view = [
             'formData'  =>$list,
-            'authGroup' => $auth_group,
+            'authGroup' => $authGroup,
             'title' => lang('Add'),
         ];
         View::assign($view);
@@ -193,12 +194,12 @@ class Admin extends Backend
             }
         }
         $list =  $this->modelClass->find($id);
-        $list->password = '';
-        $auth_group = AuthGroupModel::where('status', 1)->field('id,title')->select();
         if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
+        $list->password = '';
+        $authGroup = $this->getAuthGroup();
         $view = [
             'formData'  =>$list,
-            'authGroup' => $auth_group,
+            'authGroup' => $authGroup,
             'title' => lang('Add'),
             'type' => $this->request->get('type'),
         ];
@@ -323,5 +324,25 @@ class Admin extends Backend
             $this->success(lang('operation success'));
 
         }
+    }
+
+    protected function getAuthGroup(){
+        $where = [];
+        $model = new  AuthGroupModel();
+        $authGroup = AuthGroupModel::where('status',1)->where($where)->select()->toArray();
+        $childsIds = [];
+        if(session('admin.id')!==1){
+            $childsIds = $model->getAllIdsBypid(session('admin.group_id'));
+            $where[] = ['id','in',$childsIds];
+            $authGroup = $model->where('status',1)->where($where)->select()->toArray();
+        }
+        foreach ($authGroup as $key=>$item) {
+            $parent = $model->where('id',$item['pid'])->where('id','in',$childsIds)->find();
+            if(empty($parent)){
+                $authGroup[$key]['pid']=0;
+            }
+        }
+        $authGroup = TreeHelper::cateTree($authGroup,'title',' --- ');
+        return $authGroup;
     }
 }

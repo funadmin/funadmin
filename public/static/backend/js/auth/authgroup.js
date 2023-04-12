@@ -31,7 +31,7 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80, sort: true,align:"left"},
                     // {field: 'pid', title: __('Pid'), width: 150,},
-                    {field: 'ltitle', title: __('GroupName'), minwidth: 120,},
+                    {field: 'ltitle', title: __('GroupName'), minwidth: 120,align:'left'},
                     {
                         field: 'status',
                         title: __('Status'),

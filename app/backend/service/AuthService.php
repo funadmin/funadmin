@@ -152,7 +152,7 @@ class AuthService extends AbstractService
         foreach ($cate as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
-                if (!in_array($v['module'], ['addon', 'backend'])) $v['href'] = $v['module'] . '/' . $v['href'];
+                if (!in_array($v['module'], ['backend'])) $v['href'] = $v['module'] . '/' . $v['href'];
                 $v['title'] = lang($v['title']) .' '. $v['module'].'@' . $v['href'];
                 if (self::authChecked($cate, $v['id'], $rules, $group_id)) {
                     $v['children'] = self::authChecked($cate, $v['id'], $rules, $group_id);
@@ -511,7 +511,13 @@ class AuthService extends AbstractService
             $rules = AuthRule::where('status', 1)->cache('superAdmin', 24 * 3600)->column('id');
             $rules = implode(',', $rules);
         } else {
-            $rules = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->value('rules');
+            //这一句有长度限制
+//            $rules  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('group_concat(rules)')->value('group_concat(rules)');
+            $data  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('rules')->select();
+            $rules = '';
+            foreach ($data as $rule) {
+                $rules .=$rule['rules'].',';
+            }
         }
         $norules = AuthRule::where('auth_verify', 0)->column('id');
         $norules = $norules ? implode(',', $norules) : '';
