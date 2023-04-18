@@ -547,6 +547,7 @@ class AuthService extends AbstractService
                     if (in_array($v['id'], $authrules)) {
                         $child = AuthRule::field('href,id')
                             ->where('status', 1)
+                            ->where('menu_status', 1)
                             ->where('pid', $v['id'])->find();
                         //删除下级没有list的菜单权限
                         if (!$child) {
