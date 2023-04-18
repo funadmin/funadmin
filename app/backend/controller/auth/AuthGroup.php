@@ -83,7 +83,7 @@ class AuthGroup extends Backend
                 ]
             ];
             $this->validate($post, $rule);
-            $post['stauts'] = 1;
+            $post['status'] = 1;
             $result =  $this->modelClass->save($post);
             if ($result) {
                 $this->success(lang('operation success'));
