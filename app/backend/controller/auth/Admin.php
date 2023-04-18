@@ -350,14 +350,15 @@ class Admin extends Backend
             $childsIds = $model->getAllIdsBypid(session('admin.group_id'));
             $where[] = ['id','in',$childsIds];
             $authGroup = $model->where('status',1)->where($where)->select()->toArray();
-        }
-        foreach ($authGroup as $key=>$item) {
-            $parent = $model->where('id',$item['pid'])->where('id','in',$childsIds)->find();
-            if(empty($parent)){
-                $authGroup[$key]['pid']=0;
+            foreach ($authGroup as $key=>$item) {
+                $parent = $model->where('id',$item['pid'])->where('id','in',$childsIds)->find();
+                if(empty($parent)){
+                    $authGroup[$key]['pid']=0;
+                }
             }
         }
-        $authGroup = TreeHelper::cateTree($authGroup,'title',' --- ');
+
+        $authGroup = TreeHelper::cateTree($authGroup,'title','---');
         return $authGroup;
     }
 }
