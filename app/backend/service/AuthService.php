@@ -242,7 +242,11 @@ class AuthService extends AbstractService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        $this->requesturl = (string)$url;
+        if(Str::endsWith($this->requesturl,'.' . config('view.view_suffix'))){
+            $this->requesturl = (string)$url;
+        }else{
+            $this->requesturl = (string) __u($url);
+        }
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
             $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
         }
