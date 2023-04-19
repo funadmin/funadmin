@@ -157,7 +157,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             max = $(this).data('max'), create = $(this).data('create'),on =$(this).data('on'), repeat = !! $(this).data('repeat'),
                             theme = $(this).data('theme') || '#1890ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
                             style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
-                            layVerify = $(this).attr('lay-verify') || '', layReqText = $(this).data('reqtext') || '';
+                            layVerify = $(this).attr('lay-verify') || $(this).data('verify') || '', layReqText = $(this).data('reqtext') || '';layVerType = $(this).data('vertype') || 'tips'
                         var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
                         var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
                         var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
@@ -236,6 +236,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         if (cascader) options.cascader = cascader;
                         if (style) options.style = style;
                         if (layReqText) options.layReqText = layReqText;
+                        if (layVerType) options.layVerType = layVerType;
                         if (content) options.content = content;
                         xmselectobj[i] = xmSelect.render(options);
                         if(data.toString()==='' && url){
