@@ -315,7 +315,7 @@ class CurdService
                 if (!$this->addon) {
                     $joinModelFile = $this->rootPath . "app" . '/' . $this->app . '/' . "model" . '/' . ($this->modelArr ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
                 } else {
-                    $joinModelFile = $this->rootPath . "addons" . '/' . $this->addon . '/' . "app" . '/' . $this->addon . "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
+                    $joinModelFile = $this->rootPath . "addons" . '/' . $this->addon . '/' . "app" . '/' . $this->addon .'/'. "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
                 }
                 $softDelete = '';
                 //判断是否有删除字段
