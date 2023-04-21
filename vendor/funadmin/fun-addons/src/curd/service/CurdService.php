@@ -699,6 +699,9 @@ class CurdService
      */
     public function makeFile($filename, $content)
     {
+        if(!$this->force && Str::contains($filename,'menu.php') ===true){
+            file_put_contents($filename, $content);
+        }
         if(is_file($filename)){
             if($this->force && !$this->jump){
                 file_put_contents($filename, $content);
