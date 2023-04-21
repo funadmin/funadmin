@@ -648,15 +648,15 @@ class CurdService
                 'menu_status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [
-//                    $childMenu
+                    $childMenu
                 ]
             ]
         ];
         $addon_old_menu = [];
         if ($this->addon) {
+            $menu['menu']['menulist'] = [];
             $addon_menu = get_addons_menu($this->addon);
             if ($addon_menu) {
-                $menu['menu']['menulist'] = [];
                 foreach ($addon_menu['menu']['menulist'] as $k => $v) {
                     if ($v['href'] != $childMenu['href']) {
                         $menu['menu']['menulist'][] = $v;
