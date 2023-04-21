@@ -279,7 +279,7 @@ class CurdService
      */
     public function maker()
     {
-        $this->getFieldList();
+        list($this->tableComment,$this->fieldsList,$this->assign,$this->lang,$this->softDelete,$this->requests,$this->requestsRecycle) = $this->getFieldList();
         if (!$this->config['delete']) {
             $this->makeModel();
             $this->makeController();
@@ -301,6 +301,7 @@ class CurdService
     {
         $controllerTpl = $this->tplPath . 'controller.tpl';
         $modelTpl = $this->tplPath . 'model.tpl';
+        $attrTpl = $this->tplPath . 'attr.tpl';
         $indexTpl = '';
         $recycleTpl = '';
         $relationSearch = '';
@@ -324,6 +325,19 @@ class CurdService
                 if (!empty($delete)) {
                     $softDelete = $this->getSoftDelete($delete[0]);
                 }
+                list($tableComment,$fieldsList,$assign,$lang,$softDelete,$requests,$requestsRecycle)  = $this->getFieldList($v,'*');
+                $joinTplStr = '';
+                if ($assign) {
+                    foreach ($assign as $key => $val) {
+                        $kk = Str::studly($key);
+                        if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+                            $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
+                                    ['get' . $kk, $val],
+                                    file_get_contents($attrTpl)) . PHP_EOL;
+                        }
+                    }
+                }
+                $attrStr = $this->modifyAttr($fieldsList);
                 //生成关联表的模型
                 $connection = $this->driver == 'mysql' ? "" : "protected \$connection = '" . $this->driver . "';";
                 $modelTplTemp = str_replace([
@@ -342,8 +356,8 @@ class CurdService
                         $this->joinName[$k],
                         $softDelete,
                         $connection,
-                        '',
-                        '',
+                        $joinTplStr,
+                        $attrStr,
                         $this->joinPrimaryKey[$k]
                     ],
                     file_get_contents($modelTpl));
@@ -972,20 +986,21 @@ class CurdService
      * 获取字段数据
      * @param $table
      */
-    protected function getFieldList($field = '*')
+    protected function getFieldList($model='',$field = '*')
     {
         $assign = [];
         $lang = '';
         $softDelete = '';
-        $sql = "show tables like '{$this->tablePrefix}{$this->table}'";
+        $model = $model?:$this->table;
+        $sql = "show tables like '{$this->tablePrefix}{$model}'";
         $table = Db::connect($this->driver)->query($sql);
         if (!$table) {
-            throw new \Exception($this->table . '表不存在');
+            throw new \Exception($model . '表不存在');
         }
-        $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $this->table . "' and table_schema = '" . $this->database . "' order by ORDINAL_POSITION ASC";
+        $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $model . "' and table_schema = '" . $this->database . "' order by ORDINAL_POSITION ASC";
         $tableField = Db::connect($this->driver)->query($sql);
-        $tableComment = Db::connect($this->driver)->query(' SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_NAME =  "' . $this->tablePrefix . $this->table . '";');
-        $this->tableComment = $tableComment[0]['TABLE_COMMENT'];
+        $tableComment = Db::connect($this->driver)->query(' SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES  WHERE TABLE_NAME =  "' . $this->tablePrefix . $model . '";');
+        $tableComment = $tableComment[0]['TABLE_COMMENT'];
         foreach ($tableField as $k => &$v) {
             $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
             $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');
@@ -1136,10 +1151,7 @@ class CurdService
 
         }
         unset($v);
-        $this->fieldsList = $tableField;
-        $this->assign = $assign;
-        $this->lang = $lang;
-        $this->softDelete = $softDelete;
+        $fieldsList = $tableField;
         $methodArr = explode(',', $this->method);
         if ($this->addon) {
             $prefix_url = $this->addon . '/' . str_replace('/', '.', $this->controllerNamePrefix);
@@ -1161,7 +1173,7 @@ class CurdService
                 }
             }
         }
-        return $this;
+        return [$tableComment,$fieldsList,$assign,$lang,$softDelete,$requests,$requestsRecycle];
     }
 
     /**
@@ -1181,7 +1193,7 @@ class CurdService
      * 设置属性
      * @return string
      */
-    protected function modifyAttr()
+    protected function modifyAttr($fieldList = '')
     {
         $fieldAttrData = '';
         $tpl = [
@@ -1190,7 +1202,8 @@ class CurdService
             $this->tplPath . 'attrmutiget.tpl',
             $this->tplPath . 'attrmutiset.tpl',
         ];
-        foreach ($this->fieldsList as $k => $vo) {
+        $fieldList = $fieldsList?:$this->fieldsList;
+        foreach ($fieldsList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name'] != 'status') continue;
             $name = Str::studly($vo['name']);
