@@ -185,16 +185,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             selelectFields.value = propArr[1]== props.name  ?'id': propArr[1];
                         };lang = lang ? lang : 'zh';paging = paging === undefined || paging !== 'false';
                         pageSize = pageSize ? pageSize : 10;radio = !! radio;disabled = !! disabled;max = max ? max : 0;
-                        clickClose = clickClose ? clickClose : false;create = !create ?
-                            function(val) {
-                                return {
-                                    name: val,
-                                    value: val
-                                }
-                            } : eval(create)?eval(create):false;
-                        on = !on ?
-                            function(val) {
-                            } : eval(on)?eval(on):false;
+                        clickClose = clickClose ? clickClose : false;
                         xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                         options = {
                             el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
@@ -202,7 +193,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             filterable: filterable,remoteSearch: remoteSearch,
                             remoteMethod: function(val, cb, show) {
                                 if (remoteMethod && remoteMethod !== undefined) {
-                                    eval(remoteMethod)
+                                    eval(remoteMethod)(val, cb, show)
                                 } else {
                                     var formatFilter = {},
                                         formatOp = {};
@@ -230,7 +221,11 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 color: theme,
                             }, radio: radio, layVerify: layVerify, clickClose: clickClose,
                             maxMethod: function(val) {
-                            }, on:on, create: create,
+                            }, on:function(data) {
+                                return eval(on)?eval(on)(data):false;
+                            }, create: function(val, arr) {
+                                return eval(create)?eval(create)(val, arr): {name: val, value: val}
+                            } ,
                         }
                         if (tree) options.tree = tree;
                         if (cascader) options.cascader = cascader;
