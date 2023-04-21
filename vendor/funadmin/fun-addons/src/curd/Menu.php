@@ -179,7 +179,7 @@ class Menu extends Command
                 'menu_status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [
-                    $childMenu
+//                    $childMenu
                 ]
             ]
         ];

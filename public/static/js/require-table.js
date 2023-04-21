@@ -1134,7 +1134,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
                     Table.api.reload($(this).data('tableid') || tableId, {}, false);
-                    return false;
                 });
                 /**
                  * tips

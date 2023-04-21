@@ -606,7 +606,7 @@ class CurdService
             $this->makeFile($this->fileList['pluginConfigFileName'], file_get_contents($configTpl));
         }
         if ($this->addon && $this->menuList) {
-            $menuTpl = '<?php return ' . var_export($this->menuList, true) . ';';
+            $menuTpl = '<?php ' . PHP_EOL .' return ' . var_export($this->menuList, true) . ';';
             $this->makeFile($this->fileList['pluginMenuFileName'], $menuTpl);
         }
     }
@@ -648,7 +648,7 @@ class CurdService
                 'menu_status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [
-                    $childMenu
+//                    $childMenu
                 ]
             ]
         ];
