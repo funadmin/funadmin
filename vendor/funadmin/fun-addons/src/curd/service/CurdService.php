@@ -1160,16 +1160,17 @@ class CurdService
         } else {
             $prefix_url = str_replace('/', '.', $this->controllerNamePrefix);
         }
+        $requests = '';$requestsRecycle='';
         foreach ($methodArr as $k => $v) {
             if (!$this->softDelete && $v == 'recycle') continue;
             if ($v != 'refresh') {
                 $space = $k == 0 ? '' : '                    ';
                 if (!in_array($v, ['restore'])) {
                     $space = $k == 0 ? '' : '                    ';
-                    $this->requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL;
+                    $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL;
                 }
                 if (in_array($v, ['recycle', 'restore', 'delete'])) {
-                    $this->requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL . $space;
+                    $requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL . $space;
                 }
             }
         }
