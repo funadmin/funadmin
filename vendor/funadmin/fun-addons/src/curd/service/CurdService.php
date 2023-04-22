@@ -27,6 +27,7 @@ class CurdService
         'fields' => [],//显示的字段
         'ignoreFields' => ['create_time', 'status', 'update_time', 'delete_time'],//忽略字段
         'tagsSuffix' => ['tags', 'tag'],//识别为tag类型
+        'urlSuffix' => ['url', 'urls'],//识别为tag类型
         'fileSuffix' => ['file', 'files', 'path', 'paths'],//识别为文件字段
         'priSuffix' => ['_id', '_ids'],//识别为别的表的主键
         'sortSuffix' => ['sort'],//排序
@@ -917,7 +918,11 @@ class CurdService
                         case 'files':
                             $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),templet: Table.templet.url}," . PHP_EOL;;
                             break;
+                        case 'url':
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),filter: '{$v['name']}',templet: Table.templet.url}," . PHP_EOL;;
+                            break;
                         case 'checkbox':
+                        case 'tags':
                             $this->jsCols .= $space . "{field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,templet: Table.templet.tags}," . PHP_EOL;;
                             break;
                         case 'select':
@@ -1067,6 +1072,9 @@ class CurdService
             if ($this->hasSuffix($fieldsName, $this->config['tagsSuffix'])) {
                 $v['type'] = "tags";
             }
+            if ($this->hasSuffix($fieldsName, $this->config['urlSuffix'])) {
+                $v['type'] = "url";
+            }
             //指定后缀结尾 且类型为text系列的字段 为富文本编辑器
             if ($this->hasSuffix($fieldsName, $this->config['editorSuffix'])
                 && in_array($v['DATA_TYPE'], ['longtext', 'mediumtext', 'text', 'smalltext', 'tinytext'])) {
@@ -1160,7 +1168,8 @@ class CurdService
         } else {
             $prefix_url = str_replace('/', '.', $this->controllerNamePrefix);
         }
-        $requests = '';$requestsRecycle='';
+        $requests = '';
+        $requestsRecycle = '';
         foreach ($methodArr as $k => $v) {
             if (!$this->softDelete && $v == 'recycle') continue;
             if ($v != 'refresh') {
