@@ -923,7 +923,7 @@ class CurdService
                             break;
                         case 'checkbox':
                         case 'tags':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',search: 'select',title: __('{$name}'),filter: '{$v['name']}',selectList:{$listName}List,templet: Table.templet.tags}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),filter: '{$v['name']}',templet: Table.templet.tags}," . PHP_EOL;;
                             break;
                         case 'select':
                         case 'radio':
