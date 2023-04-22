@@ -13,7 +13,7 @@
     // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','layCascader','treeGrid','tableSelect', 'treeTable','tableEdit','tableFilter',
+        'css','layCascader','treeGrid','tableSelect','tableEdit','tableFilter',
         'tableTree','iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
@@ -29,7 +29,6 @@
         // 'layui'         : 'plugins/layui/layui', // jquery
         'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
-        'treeTable'     : 'plugins/lay-module/treeTable/treeTable',
         'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',
         'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
