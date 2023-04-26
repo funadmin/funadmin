@@ -580,10 +580,11 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
-                        $(layero).data("callback", that.callback?that.callback:'');
-                        // 置顶当前窗口
-                        parent.layui.layer.setTop(layero);
+
                         try {
+                            $(layero).data("callback", that.callback?that.callback:'');
+                            // 置顶当前窗口
+                            parent.layui.layer.setTop(layero);
                             if(autoheight) parent.layui.layer.iframeAuto(index) //- 指定iframe层自适应
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
