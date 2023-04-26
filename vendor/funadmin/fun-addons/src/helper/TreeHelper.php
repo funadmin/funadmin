@@ -27,9 +27,13 @@ class TreeHelper
                 $parentId = $data[$parentField];
                 if ($pid == $parentId) {
                     $tree[$data[$pk]] =& $list[$key];
+                    $tree[$data[$pk]]['isParent'] = true;
+                    $tree[$data[$pk]]['parentId'] = 0;
                 }else{
                     if (isset($refer[$parentId])) {
                         $parent =& $refer[$parentId];
+                        $list[$key]['isParent'] = false;
+                        $list[$key]['parentId'] = $parentId;
                         $parent[$child][] =& $list[$key];
                     }
                 }

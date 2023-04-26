@@ -74,7 +74,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var format = Table.getSearchField(layui.form.val('layui-form-'+options.id));
             options.where =  options.where || {filter:JSON.stringify(format.formatFilter), op:JSON.stringify(format.formatOp)};
-            var newTable = layui.table.render(options);
+            if(options.tree){
+                var newTable = layui.treeTable.render(options);
+            }else{
+                var newTable = layui.table.render(options);
+            }
             Table.api.switch(options);
             Table.api.selects(options);
             Table.api.toolbar(options);
@@ -803,7 +807,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
         },
         getIds: function (url, tableId) {
             url = url !== undefined ? Fun.url(url) : window.location.href;
-            var checkStatus = layui.table.checkStatus(tableId), data = checkStatus.data;
+            table = layui.table ||　layui.treeTable;
+            var checkStatus = table.checkStatus(tableId), data = checkStatus.data;
             var ids = [];
             if (url.indexOf('id=all') !== -1) {
                 ids = 'all';
@@ -819,6 +824,16 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 length = ids.length
             }
             return [ids, length]
+        },
+        getOptions:function (tableId){
+            return layui.table.getOptions(tableId);
+        },
+        getTableObj:function(tableId){
+            options = Table.getOptions(tableId);
+            if(options.tree){
+                return layui.treeTable;
+            }
+            return layui.table;
         },
         events: {
             //链接
@@ -863,7 +878,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         formatOp[key] = op
                     }
                 });
-                var status = layui.table.checkStatus(tableId);
+                var status = Table.getTableObj(tableId).checkStatus(tableId);
                 if(status.data.length>0){
                     var ids = [];
                     layui.each(status.data, function (i) {
@@ -940,14 +955,15 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             toolDouble:function (options){
                 //单元格工具事件 - 双击触发 注：v2.7.0 新增
-                layui.table.on('toolDouble('+options.id+')', function(obj){
+                Table.getTableObj(options.id).on('toolDouble('+options.id+')', function(obj){
                     // 用法跟 tool 事件完全相同
                     // 这里写你的逻辑
                 });
             },
+
             tool:function (options){
                 //原来的点击事件失效改为此处
-                layui.table.on('tool('+options.id+')', function (obj) {
+                Table.getTableObj(options.id).on('tool('+options.id+')', function (obj) {
                     var _that = $(this);
                     var attrEvent = obj.event || _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
@@ -982,14 +998,15 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         curr: $page //重新从第 1 页开始
                     }
                 }
-                layui.table.reloadData(tableId, $map, $deep);
+                table = layui.table || layui.treeTable;
+                table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
-                    parent.layui.table.reloadData(tableId, {}, $deep);
+                    parent.table.reloadData(tableId, {}, $deep);
                 }
             },
             toolbar: function (options) {
                 tableId = options.id || Table.init.tableId;
-                layui.table.on('toolbar(' + options.layFilter + ')', function (obj) {
+                Table.getTableObj(tableId).on('toolbar(' + options.layFilter + ')', function (obj) {
                     var othis = $(this);
                     switch (obj.event) {
                         case'TABLE_SEARCH':
@@ -1036,7 +1053,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             rowDouble: function (options) {
                 var layFilter = options.layFilter, ops = options.init.requests.edit_url;
-                layui.table.on('rowDouble(' + layFilter + ')', function (obj) {
+                Table.getTableObj(options.id).on('rowDouble(' + layFilter + ')', function (obj) {
                     url = typeof ops==="object"?ops.url:ops;
                     if (url && Fun.checkAuth(Fun.common.getNode(url), options.elem)) {
                         url = url.indexOf('?') !== -1 ? url + '&'+options.primaryKey+'=' + obj.data[options.primaryKey] : url + '?'+options.primaryKey+'=' + obj.data[options.primaryKey];
@@ -1050,7 +1067,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 tableId = options.id || Table.init.tableId;
                 if(!url || url=='undefined') return ;
-                layui.table.on('edit(' + options.layFilter + ')', function (obj) {
+                Table.getTableObj(tableId).on('edit(' + options.layFilter + ')', function (obj) {
                         var value = obj.value, data = obj.data, id = data[options.primaryKey], field = obj.field;
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
@@ -1068,7 +1085,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             sort: function (options) {
                 tableId = options.id || Table.init.tableId;
-                layui.table.on('sort(' + tableId + ')', function (obj) {
+                Table.getTableObj(tableId).on('sort(' + tableId + ')', function (obj) {
                     $where ={
                         field: obj.field
                         ,order: obj.type //排序方式
@@ -1079,6 +1096,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             switch: function (options) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
+                    console.log(1)
                     url = $(this).attr('data-url') ||options.init.requests.modify_url || false;
                     if(!url || url=='undefined') return ;
                     var filter = $(this).attr('lay-filter');

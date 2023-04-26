@@ -437,7 +437,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             dropdowndata[k].title =v.title ;
                         }
                     })
-                    console.log(dropdowndata)
                     var inst = layui.dropdown.render({
                         elem: othis, show: true, data: dropdowndata, click: function (row, _that) {
                             attrEvent = row.event;
@@ -581,9 +580,10 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
+                        $(layero).data("callback", that.callback?that.callback:'');
+                        // 置顶当前窗口
+                        parent.layui.layer.setTop(layero);
                         try {
-                            // 置顶当前窗口
-                            parent.layui.layer.setTop(layero);
                             if(autoheight) parent.layui.layer.iframeAuto(index) //- 指定iframe层自适应
                             // 将保存按钮改变成提交按钮
                             layero.addClass('layui-form');
@@ -696,9 +696,11 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 parent.location.reload();
                 return false;
             },
-            refreshTable: function (tableName) {
-                tableName = tableName || 'list';
-                layui.table.reload(tableName,{},true);
+            refreshTable: function (tableId) {
+                tableId = tableId || 'list';
+
+                table = layui.table || layui.treeTable;
+                table.reload(tableId,{},true);
             },
             //获取同步数据
             getData: function (url,data,method,async) {

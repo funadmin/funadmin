@@ -1,6 +1,5 @@
 define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
-    var treeGrid = layui.treeGrid,
-        form = layui.form;
+    var treeGrid = layui.treeGrid, form = layui.form;
     var Controller = {
         index: function () {
             Table.init = {
@@ -35,30 +34,22 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     },
                 },
             };
-            treeGrid.render({
+            Table.render({
                 id: Table.init.tableId,
                 elem: '#' + Table.init.table_elem,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                idField:'id'
-                ,cellMinWidth: 100
-                ,treeId:'id'//树形id字段名称
-                ,treeUpId:'pid'//树形父id字段名称
-                ,treeShowName:'title'//以树形式显示的字段
-                ,heightRemove:[".dHead",10]//不计算的高度,表格设定的是固定高度，此项不生效
-                // ,height:'full-140'
-                ,height:'100%'
-                ,isFilter:false
-                ,iconOpen:true//是否显示图标【默认显示】
-                ,isOpenDefault:true//节点默认是展开还是折叠【默认展开】
-                ,loading:true
-                ,method:'get'
-                ,isPage:false
+                toolbar:['refresh','add','expand'],
+                // maxHeight: '501px',
+                tree: {
+                    customName: {},
+                    data: {isSimpleData:false},
+                    }
                 ,cols: [[
-                    // {checkbox: true, },
-                    // {field: 'id', title: __('ID'), width: 80, , sort: true},
-                    {field: 'icon',title: __("icon"), width: 60,templet: Table.templet.icon},
-                    {field: 'title', title: __('Auth Name'), minwidth: 120,},
+                    {checkbox: true, },
+                    {field: 'id', title: __('ID'), width: 80,  sort: true},
+                    {field: 'icons',title: __("icon"), width: 60,templet: Table.templet.icon},
+                    {field: 'name', title: __('Auth Name'), minwidth: 120,align: 'left'},
                     {field: 'href', title: __('Module/Controller/Action'), minwidth: 200,templet: function (d){
                             return d.module +'@'+ d.href;
                         }},
@@ -111,67 +102,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,page:false
             });
             var url = Fun.url(Table.init.requests.modify_url);
-            form.on('switch(auth_verify)', function(obj){
-                var field = obj.elem.name;
-                value = obj.elem.checked?1:0;
-                data = {id:obj.value,value:value,field:field};
-                Fun.ajax({url:url,data:data})
-            });
-            form.on('switch(status)', function(obj){
-                var field = obj.elem.name;
-                value = obj.elem.checked?1:0;
-                data = {id:obj.value,value:value,field:field};
-                Fun.ajax({url:url,data:data})
-            });
-            $(document).on('click','[lay-event]',function (e) {
-                var event = $(this).attr('lay-event');
-                if(event=='openAll'){
-                    openAll();
-                    if($(this).html()=='展开全部'){
-                        $(this).html('折叠全部')
-                    }else{
-                        $(this).html('展开全部')
-                    }
-                }else if(event=='add'){
-                    options = {
-                        title:__('add'),
-                        url:Fun.url(Table.init.requests.add_url),
-                    }
-                    Fun.api.open(options)
-                }
-            })
-            function openAll() {
-                var treedata=treeGrid.getDataTreeList(Table.init.tableId);
-                if(treedata.length>0){
-                    treeGrid.treeOpenAll(Table.init.table_elem,!treedata[0][treeGrid.config.cols.isOpen]);
-                }
-            }
-            treeGrid.on('edit(' + Table.init.table_elem + ')', function (obj) {
-                var value = obj.value,
-                    data = obj.data,
-                    id = data.id,
-                    field = obj.field;
-                var _data = {
-                    id: id,
-                    field: field,
-                    value: value,
-                };
-                Fun.ajax({
-                    url: url,
-                    prefix: true,
-                    data: _data,
-                }, function (res) {
-                    Fun.toastr.success(res.msg, function () {
-                        window.location.reload();
-                    });
-                }, function (res) {
-                    Fun.toastr.error(res.msg, function () {
-                        window.location.reload();
-                    });
-                }, function () {
-                    treeGrid.render();
-                });
-            });
+            layui.treeTable.expandAll( Table.init.tableId, false); // 关闭全部节点
             Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {

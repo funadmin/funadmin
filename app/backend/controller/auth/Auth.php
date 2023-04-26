@@ -69,11 +69,16 @@ class Auth extends Backend
                     ->order('pid asc,sort asc')
                     ->select()->toArray();
                 foreach ($list as $k => &$v) {
-                    //$v['lay_is_open'] = true;是否展开
                     $v['title'] = lang($v['title']);
+                    $v['name'] = lang($v['title']);
+                    $v['icons'] = lang($v['icon']);
+                    unset($v['icon']);
                 }
+                unset($v);
+                $list = TreeHelper::getTree($list);
                 Cache::set('ruleList_' . $uid, $list, 3600);
             }
+            sort($list);
             $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list, 'count' => count($list), 'is' => true, 'tip' => '操作成功'];
             return json($result);
         }

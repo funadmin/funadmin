@@ -358,7 +358,7 @@ class Admin extends Backend
             }
         }
 
-        $authGroup = TreeHelper::cateTree($authGroup,'title','┠──');
+        $authGroup = TreeHelper::cateTree($authGroup,'title');
         return $authGroup;
     }
 }
