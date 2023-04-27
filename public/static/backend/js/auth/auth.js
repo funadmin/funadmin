@@ -1,5 +1,5 @@
-define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
-    var treeGrid = layui.treeGrid, form = layui.form;
+define(['jquery','table','form'], function ($,Table, Form) {
+    var form = layui.form;
     var Controller = {
         index: function () {
             Table.init = {
@@ -77,12 +77,11 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
                     {field: 'icons',title: __("icon"), width: 60,templet: Table.templet.icon},
                     {field: 'name', title: __('Auth Name'), minwidth: 120,align: 'left'},
-                    {field: 'href', title: __('Module/Controller/Action'), minwidth: 200,templet: function (d){
+                    {field: 'href', title: __('Module/Controller/Action'),align: 'left', minwidth: 200,templet: function (d){
                             return d.module +'@'+ d.href;
                         }},
                     {
                         field: 'auth_verify',
-                        align: 'center',
                         title: __('Auth Verify'),
                         width: 100,
                         tips:__('YES')+'|'+__('NO'),
@@ -130,6 +129,15 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
             });
             var url = Fun.url(Table.init.requests.modify_url);
             Table.api.bindEvent(Table.init.tableId);
+
+            form.on('switch(auth_verify)', function (obj) {
+                Fun.refreshmenu();
+                return false;
+            });
+            form.on('switch(status)', function (obj) {
+                Fun.refreshmenu();
+                return false;
+            });
         },
         add: function () {
             Controller.api.bindevent()
@@ -145,10 +153,8 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
             bindevent: function () {
                 Form.api.bindEvent($('form'), function (res) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
-                        Fun.api.close();
                         Fun.refreshmenu();
                         Fun.toastr.close();
-                        parent.layui.treeGrid.reload('list')
                     }, 0));
                     }, function (res) {
                         Fun.toastr.error(res.msg);

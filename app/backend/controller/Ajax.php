@@ -65,7 +65,10 @@ class Ajax extends Backend
      */
     public function refreshmenu()
     {
-        $cate = AuthRule::where('menu_status', 1)->order('sort asc')->select()->toArray();
+        $cate = AuthRule::where('menu_status', 1)
+            ->where('type',1)
+            ->order('sort asc')
+            ->select()->toArray();
         $menulsit = (new AuthService())->menuhtml($cate);
         $this->success('ok','',$menulsit);
     }

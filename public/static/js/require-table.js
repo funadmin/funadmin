@@ -1096,8 +1096,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             switch: function (options) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
-                    console.log(1)
-                    url = $(this).attr('data-url') ||options.init.requests.modify_url || false;
+                    url = $(this).attr('data-url') || options.init.requests.modify_url || false;
                     if(!url || url=='undefined') return ;
                     var filter = $(this).attr('lay-filter');
                     if(!filter) return ;
