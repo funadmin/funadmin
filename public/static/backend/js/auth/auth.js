@@ -32,6 +32,33 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                         width:'',
                         height:'',
                     },
+                    expand:{
+                        type: 'expand',
+                        class: 'layui-btn-xs layui-btn-normal',
+                        url: '',
+                        text: __('展开'),
+                        title:  __('展开'),
+                        width:'',
+                        height:'',
+                        node:false,
+                        callback:function (data){
+                            //暂时不支持
+                            layui.treeTable.expandAll( Table.init.tableId, true); // 关闭全部节点
+                        }
+                    },
+                    close:{
+                        type: 'close',
+                        class: 'layui-btn-xs layui-btn-warm',
+                        url: '',
+                        text: __('关闭'),
+                        title:  __('关闭'),
+                        width:'',
+                        height:'',
+                        node:false,
+                        callback:function (data){
+                            layui.treeTable.expandAll( Table.init.tableId, false); // 关闭全部节点
+                        }
+                    }
                 },
             };
             Table.render({
@@ -39,7 +66,7 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 elem: '#' + Table.init.table_elem,
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
-                toolbar:['refresh','add','expand'],
+                toolbar:['refresh','add','expand','close'],
                 // maxHeight: '501px',
                 tree: {
                     customName: {},
@@ -102,7 +129,6 @@ define(['jquery','treeGrid','table','form'], function ($,treeGrid,Table, Form) {
                 ,page:false
             });
             var url = Fun.url(Table.init.requests.modify_url);
-            layui.treeTable.expandAll( Table.init.tableId, false); // 关闭全部节点
             Table.api.bindEvent(Table.init.tableId);
         },
         add: function () {
