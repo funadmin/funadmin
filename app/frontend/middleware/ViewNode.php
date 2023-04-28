@@ -25,19 +25,20 @@ class ViewNode
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$appname}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$appname}/js/{$jsname}.js";
         $config = [
-            'appname'    => $appname,
-            'moduleurl'    => rtrim(__u("/{$appname}", [], false), '/'),
-            'module'    => '/frontend/',
-            'controllername'       =>$controllername,
-            'actionname'           => $actionname,
-            'requesturl'          => $requesturl,
-            'jspath' => "{$jspath}",
-            'autojs'           => $autojs,
-            'superAdmin'           => session('member.id')==1,
-            'lang'           =>  strip_tags(Lang::getLangset()),
-            'site'           =>   syscfg('site'),
-            'upload'           =>  syscfg('upload'),
-            'editor'           =>  syscfg('editor'),
+            'appname'               => $appname,
+            'moduleurl'             => rtrim(__u("/{$appname}", [], false), '/'),
+            'module'                => '/frontend/',
+            'controllername'        => $controllername,
+            'actionname'            => $actionname,
+            'requesturl'            => $requesturl,
+            'jspath'                => "{$jspath}",
+            'autojs'                => $autojs,
+            'superAdmin'            => session('member.id') == 1,
+            'lang'                  => strip_tags(Lang::getLangset()),
+            'site'                  => syscfg('site'),
+            'upload'                => syscfg('upload'),
+            'editor'                => syscfg('editor'),
+            'publicAjaxUrl'         =>config('funadmin.publicAjaxUrl'),
 
         ];
         View::assign('config',$config);

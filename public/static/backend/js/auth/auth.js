@@ -32,20 +32,20 @@ define(['jquery','table','form'], function ($,Table, Form) {
                         width:'',
                         height:'',
                     },
-                    expand:{
-                        type: 'expand',
-                        class: 'layui-btn-xs layui-btn-normal',
-                        url: '',
-                        text: __('展开'),
-                        title:  __('展开'),
-                        width:'',
-                        height:'',
-                        node:false,
-                        callback:function (data){
-                            //暂时不支持
-                            layui.treeTable.expandAll( Table.init.tableId, true); // 关闭全部节点
-                        }
-                    },
+                    // expand:{
+                    //     type: 'expand',
+                    //     class: 'layui-btn-xs layui-btn-normal',
+                    //     url: '',
+                    //     text: __('展开'),
+                    //     title:  __('展开'),
+                    //     width:'',
+                    //     height:'',
+                    //     node:false,
+                    //     callback:function (data){
+                    //         //暂时不支持
+                    //         layui.treeTable.expandAll( Table.init.tableId, true); // 关闭全部节点
+                    //     }
+                    // },
                     close:{
                         type: 'close',
                         class: 'layui-btn-xs layui-btn-warm',

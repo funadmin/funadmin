@@ -17,6 +17,8 @@ return [
     'layui_version' => '2.8.1',
 
     'ip_check'=>false,
+
+    'publicAjaxUrl'=>['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import']
 ];
 
 
