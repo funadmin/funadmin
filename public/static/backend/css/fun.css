@@ -23,23 +23,13 @@ body .layui-yellow {
     color: #f39c12 !important
 }
 
-body .fun-layer-class .layui-layer-title {
-    background: radial-gradient(circle, rgba(247, 150, 192, 1) 0%, rgba(118, 174, 241, 1) 100%) !important;
-    color: #fff !important;
-    border-bottom: none
-}
 
-body .fun-layer-class .layui-layer-btn a {
-    background: linear-gradient(0deg, rgba(0, 172, 238, 1) 0%, rgba(2, 126, 251, 1) 100%) !important;
-    border-radius: 3px;
-    border: none;
-    height: 32px;
-    line-height: 32px
-}
-
-body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
-    background: #ccccccab !important
-}
+body .fun-layer-class .layui-layer-btn a:last-child{background:#fff;color:#333;border:1px solid #dedede;}
+body .fun-layer-class .layui-layer-title{background:rgb(243, 246, 246);border-bottom: none;}
+body .fun-layer-class .layui-layer-btn.layui-layer-btn-c{background-color:rgb(243, 246, 246)}
+body .layui-form-item.layui-btn-center button.submit{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);color:#fff;border:none}
+body .layui-form-item.layui-btn-center button.reset{background:#eee}
+body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 
 .layui-layout-admin .layui-header {
     position: fixed;
@@ -477,7 +467,7 @@ body .fun-layer-class .layui-layer-btn .layui-layer-btn1 {
 .layui-layout-admin .layui-body {
     left: 0;
     top: 40px;
-    bottom: 40px;
+    bottom: 30px;
     margin-bottom: 45px;
     position: absolute;
     z-index: auto;

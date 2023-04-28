@@ -7,7 +7,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
     }
     var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
         THIS = 'layui-this', SIDE_SHRINK = 'layui-side-shrink',
-        LayerTitleBg='background: radial-gradient(circle, rgba(247, 150, 192, 1) 0%, rgba(118, 174, 241, 1) 100%) !important;color: #fff !important;',
+        LayerTitleBg='background: background:rgb(243, 246, 246);border-bottom: none;',
         //主题配置
         THEME = [
             {

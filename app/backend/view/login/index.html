@@ -71,7 +71,7 @@
                 </div>
                 {/if}
                 <div class="layui-form-item layui-clear">
-                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="primary" title="{:lang('Keep Login')}">
+                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">
                     {if config('captcha.check')}
                     <div class="captcha-img">
                         <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
@@ -79,7 +79,7 @@
                     {/if}
                 </div>
                 <div class="layui-form-item">
-                    <button class="layui-btn layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
+                    <button class="layui-btn layui-btn-normal layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
                 </div>
                 <div class="layui-form-item copyright">
                     © 2018-2028 <a href="http://www.FunAdmin.com" target="_blank">FunAdmin</a> All Rights Reserved.
