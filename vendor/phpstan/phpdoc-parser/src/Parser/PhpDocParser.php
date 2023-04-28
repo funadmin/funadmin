@@ -31,12 +31,29 @@ class PhpDocParser
 	/** @var bool */
 	private $preserveTypeAliasesWithInvalidTypes;
 
-	public function __construct(TypeParser $typeParser, ConstExprParser $constantExprParser, bool $requireWhitespaceBeforeDescription = false, bool $preserveTypeAliasesWithInvalidTypes = false)
+	/** @var bool */
+	private $useLinesAttributes;
+
+	/** @var bool */
+	private $useIndexAttributes;
+
+	/**
+	 * @param array{lines?: bool, indexes?: bool} $usedAttributes
+	 */
+	public function __construct(
+		TypeParser $typeParser,
+		ConstExprParser $constantExprParser,
+		bool $requireWhitespaceBeforeDescription = false,
+		bool $preserveTypeAliasesWithInvalidTypes = false,
+		array $usedAttributes = []
+	)
 	{
 		$this->typeParser = $typeParser;
 		$this->constantExprParser = $constantExprParser;
 		$this->requireWhitespaceBeforeDescription = $requireWhitespaceBeforeDescription;
 		$this->preserveTypeAliasesWithInvalidTypes = $preserveTypeAliasesWithInvalidTypes;
+		$this->useLinesAttributes = $usedAttributes['lines'] ?? false;
+		$this->useIndexAttributes = $usedAttributes['indexes'] ?? false;
 	}
 
 
@@ -58,30 +75,82 @@ class PhpDocParser
 			$tokens->consumeTokenType(Lexer::TOKEN_CLOSE_PHPDOC);
 		} catch (ParserException $e) {
 			$name = '';
+			$startLine = $tokens->currentTokenLine();
+			$startIndex = $tokens->currentTokenIndex();
 			if (count($children) > 0) {
 				$lastChild = $children[count($children) - 1];
 				if ($lastChild instanceof Ast\PhpDoc\PhpDocTagNode) {
 					$name = $lastChild->name;
+					$startLine = $tokens->currentTokenLine();
+					$startIndex = $tokens->currentTokenIndex();
 				}
 			}
+
+			$tag = new Ast\PhpDoc\PhpDocTagNode(
+				$name,
+				$this->enrichWithAttributes(
+					$tokens,
+					new Ast\PhpDoc\InvalidTagValueNode($e->getMessage(), $e),
+					$startLine,
+					$startIndex
+				)
+			);
+
 			$tokens->forwardToTheEnd();
-			return new Ast\PhpDoc\PhpDocNode([
-				new Ast\PhpDoc\PhpDocTagNode($name, new Ast\PhpDoc\InvalidTagValueNode($e->getMessage(), $e)),
-			]);
+
+			return $this->enrichWithAttributes($tokens, new Ast\PhpDoc\PhpDocNode([$this->enrichWithAttributes($tokens, $tag, $startLine, $startIndex)]), 1, 0);
 		}
 
-		return new Ast\PhpDoc\PhpDocNode(array_values($children));
+		return $this->enrichWithAttributes($tokens, new Ast\PhpDoc\PhpDocNode(array_values($children)), 1, 0);
 	}
 
 
 	private function parseChild(TokenIterator $tokens): Ast\PhpDoc\PhpDocChildNode
 	{
 		if ($tokens->isCurrentTokenType(Lexer::TOKEN_PHPDOC_TAG)) {
-			return $this->parseTag($tokens);
-
+			$startLine = $tokens->currentTokenLine();
+			$startIndex = $tokens->currentTokenIndex();
+			return $this->enrichWithAttributes($tokens, $this->parseTag($tokens), $startLine, $startIndex);
 		}
 
-		return $this->parseText($tokens);
+		$startLine = $tokens->currentTokenLine();
+		$startIndex = $tokens->currentTokenIndex();
+		$text = $this->parseText($tokens);
+
+		return $this->enrichWithAttributes($tokens, $text, $startLine, $startIndex);
+	}
+
+	/**
+	 * @template T of Ast\Node
+	 * @param T $tag
+	 * @return T
+	 */
+	private function enrichWithAttributes(TokenIterator $tokens, Ast\Node $tag, int $startLine, int $startIndex): Ast\Node
+	{
+		$endLine = $tokens->currentTokenLine();
+		$endIndex = $tokens->currentTokenIndex();
+
+		if ($this->useLinesAttributes) {
+			$tag->setAttribute(Ast\Attribute::START_LINE, $startLine);
+			$tag->setAttribute(Ast\Attribute::END_LINE, $endLine);
+		}
+
+		if ($this->useIndexAttributes) {
+			$tokensArray = $tokens->getTokens();
+			if ($tokensArray[$endIndex][Lexer::TYPE_OFFSET] === Lexer::TOKEN_CLOSE_PHPDOC) {
+				$endIndex--;
+				if ($tokensArray[$endIndex][Lexer::TYPE_OFFSET] === Lexer::TOKEN_HORIZONTAL_WS) {
+					$endIndex--;
+				}
+			} elseif ($tokensArray[$endIndex][Lexer::TYPE_OFFSET] === Lexer::TOKEN_PHPDOC_EOL) {
+				$endIndex--;
+			}
+
+			$tag->setAttribute(Ast\Attribute::START_INDEX, $startIndex);
+			$tag->setAttribute(Ast\Attribute::END_INDEX, $endIndex);
+		}
+
+		return $tag;
 	}
 
 
@@ -124,6 +193,9 @@ class PhpDocParser
 
 	public function parseTagValue(TokenIterator $tokens, string $tag): Ast\PhpDoc\PhpDocTagValueNode
 	{
+		$startLine = $tokens->currentTokenLine();
+		$startIndex = $tokens->currentTokenIndex();
+
 		try {
 			$tokens->pushSavePoint();
 
@@ -251,7 +323,7 @@ class PhpDocParser
 			$tagValue = new Ast\PhpDoc\InvalidTagValueNode($this->parseOptionalDescription($tokens), $e);
 		}
 
-		return $tagValue;
+		return $this->enrichWithAttributes($tokens, $tagValue, $startLine, $startIndex);
 	}
 
 
@@ -333,6 +405,8 @@ class PhpDocParser
 	private function parseMethodTagValue(TokenIterator $tokens): Ast\PhpDoc\MethodTagValueNode
 	{
 		$isStatic = $tokens->tryConsumeTokenValue('static');
+		$startLine = $tokens->currentTokenLine();
+		$startIndex = $tokens->currentTokenIndex();
 		$returnTypeOrMethodName = $this->typeParser->parse($tokens);
 
 		if ($tokens->isCurrentTokenType(Lexer::TOKEN_IDENTIFIER)) {
@@ -341,7 +415,9 @@ class PhpDocParser
 			$tokens->next();
 
 		} elseif ($returnTypeOrMethodName instanceof Ast\Type\IdentifierTypeNode) {
-			$returnType = $isStatic ? new Ast\Type\IdentifierTypeNode('static') : null;
+			$returnType = $isStatic
+				? $this->typeParser->enrichWithAttributes($tokens, new Ast\Type\IdentifierTypeNode('static'), $startLine, $startIndex)
+				: null;
 			$methodName = $returnTypeOrMethodName->name;
 			$isStatic = false;
 
@@ -351,9 +427,12 @@ class PhpDocParser
 		}
 
 		$templateTypes = [];
+
 		if ($tokens->tryConsumeTokenType(Lexer::TOKEN_OPEN_ANGLE_BRACKET)) {
 			do {
-				$templateTypes[] = $this->parseTemplateTagValue($tokens, false);
+				$startLine = $tokens->currentTokenLine();
+				$startIndex = $tokens->currentTokenIndex();
+				$templateTypes[] = $this->enrichWithAttributes($tokens, $this->parseTemplateTagValue($tokens, false), $startLine, $startIndex);
 			} while ($tokens->tryConsumeTokenType(Lexer::TOKEN_COMMA));
 			$tokens->consumeTokenType(Lexer::TOKEN_CLOSE_ANGLE_BRACKET);
 		}
@@ -374,6 +453,9 @@ class PhpDocParser
 
 	private function parseMethodTagValueParameter(TokenIterator $tokens): Ast\PhpDoc\MethodTagValueParameterNode
 	{
+		$startLine = $tokens->currentTokenLine();
+		$startIndex = $tokens->currentTokenIndex();
+
 		switch ($tokens->currentTokenType()) {
 			case Lexer::TOKEN_IDENTIFIER:
 			case Lexer::TOKEN_OPEN_PARENTHESES:
@@ -398,7 +480,12 @@ class PhpDocParser
 			$defaultValue = null;
 		}
 
-		return new Ast\PhpDoc\MethodTagValueParameterNode($parameterType, $isReference, $isVariadic, $parameterName, $defaultValue);
+		return $this->enrichWithAttributes(
+			$tokens,
+			new Ast\PhpDoc\MethodTagValueParameterNode($parameterType, $isReference, $isVariadic, $parameterName, $defaultValue),
+			$startLine,
+			$startIndex
+		);
 	}
 
 	private function parseTemplateTagValue(TokenIterator $tokens, bool $parseDescription): Ast\PhpDoc\TemplateTagValueNode
@@ -430,10 +517,15 @@ class PhpDocParser
 
 	private function parseExtendsTagValue(string $tagName, TokenIterator $tokens): Ast\PhpDoc\PhpDocTagValueNode
 	{
+		$startLine = $tokens->currentTokenLine();
+		$startIndex = $tokens->currentTokenIndex();
 		$baseType = new IdentifierTypeNode($tokens->currentTokenValue());
 		$tokens->consumeTokenType(Lexer::TOKEN_IDENTIFIER);
 
-		$type = $this->typeParser->parseGeneric($tokens, $baseType);
+		$type = $this->typeParser->parseGeneric(
+			$tokens,
+			$this->typeParser->enrichWithAttributes($tokens, $baseType, $startLine, $startIndex)
+		);
 
 		$description = $this->parseOptionalDescription($tokens);
 
@@ -458,6 +550,8 @@ class PhpDocParser
 		$tokens->tryConsumeTokenType(Lexer::TOKEN_EQUAL);
 
 		if ($this->preserveTypeAliasesWithInvalidTypes) {
+			$startLine = $tokens->currentTokenLine();
+			$startIndex = $tokens->currentTokenIndex();
 			try {
 				$type = $this->typeParser->parse($tokens);
 				if (!$tokens->isCurrentTokenType(Lexer::TOKEN_CLOSE_PHPDOC)) {
@@ -466,7 +560,9 @@ class PhpDocParser
 							$tokens->currentTokenValue(),
 							$tokens->currentTokenType(),
 							$tokens->currentTokenOffset(),
-							Lexer::TOKEN_PHPDOC_EOL
+							Lexer::TOKEN_PHPDOC_EOL,
+							null,
+							$tokens->currentTokenLine()
 						);
 					}
 				}
@@ -474,7 +570,10 @@ class PhpDocParser
 				return new Ast\PhpDoc\TypeAliasTagValueNode($alias, $type);
 			} catch (ParserException $e) {
 				$this->parseOptionalDescription($tokens);
-				return new Ast\PhpDoc\TypeAliasTagValueNode($alias, new Ast\Type\InvalidTypeNode($e));
+				return new Ast\PhpDoc\TypeAliasTagValueNode(
+					$alias,
+					$this->enrichWithAttributes($tokens, new Ast\Type\InvalidTypeNode($e), $startLine, $startIndex)
+				);
 			}
 		}
 
@@ -490,8 +589,16 @@ class PhpDocParser
 
 		$tokens->consumeTokenValue(Lexer::TOKEN_IDENTIFIER, 'from');
 
+		$identifierStartLine = $tokens->currentTokenLine();
+		$identifierStartIndex = $tokens->currentTokenIndex();
 		$importedFrom = $tokens->currentTokenValue();
 		$tokens->consumeTokenType(Lexer::TOKEN_IDENTIFIER);
+		$importedFromType = $this->enrichWithAttributes(
+			$tokens,
+			new IdentifierTypeNode($importedFrom),
+			$identifierStartLine,
+			$identifierStartIndex
+		);
 
 		$importedAs = null;
 		if ($tokens->tryConsumeTokenValue('as')) {
@@ -499,7 +606,7 @@ class PhpDocParser
 			$tokens->consumeTokenType(Lexer::TOKEN_IDENTIFIER);
 		}
 
-		return new Ast\PhpDoc\TypeAliasImportTagValueNode($importedAlias, new IdentifierTypeNode($importedFrom), $importedAs);
+		return new Ast\PhpDoc\TypeAliasImportTagValueNode($importedAlias, $importedFromType, $importedAs);
 	}
 
 	/**
