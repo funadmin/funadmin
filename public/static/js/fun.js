@@ -551,6 +551,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '100%';
                 width = $(window).width()+20 >= width ? width + 'px' :'95%';
+                height = ($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight === false ? false : true;
                 offset= options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
                 if (isFull) {width = '100%';height = '100%';}
@@ -575,7 +576,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 if (options.btn_lang === []) options.btn_lang = false;
                 var parentiframe = Fun.api.checkLayerIframe();
                 opt = $.extend(options ? options : {},{
-                    title: title, type: type, area: [width, '100%'], content: url,
+                    title: title, type: type, area: [width, height], content: url,
                     shadeClose: true,offset: offset, anim: anim, shade: 0.1, isOutAnim: true,
                     zIndex: parent.layui.layer.zIndex, //
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
