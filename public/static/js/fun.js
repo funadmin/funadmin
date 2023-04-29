@@ -582,7 +582,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
                     success: success === undefined ? function (layero) {
-
+                        var that = this;
                         try {
                             $(layero).data("callback", that.callback?that.callback:'');
                             // 置顶当前窗口
