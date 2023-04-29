@@ -24,7 +24,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 // node:false,//不使用节点权限
                 // full: 1,
                 width:'800',
-                height:'600',
             },
             edit_url:{
                 type: 'open',
@@ -36,7 +35,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 title: __('Edit'),
                 // full: 1,
                 width:'800',
-                height:'600',
                 extend:'',
                 // btn:'close',
                 // hidden:function(row){
@@ -62,7 +60,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 title: __('Edit'),
                 // full: 1,
                 width:'800',
-                height:'600',
                 extend:[
                     {
                         title: 'add'
@@ -183,7 +180,6 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     //         //     title: __('Edit'),
                     //         //     // full: 1,
                     //         //     width:'800',
-                    //         //     height:'600',
                     //         //     extend:'',
                     //         //     // btn:'close',
                     //         //     callback:function (obj) {

@@ -53,7 +53,7 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                                 $html = '';
                                 var elem = '#'+d.LAY_COL.init.tableId;
                                 if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.edit_url),elem)) {
-                                    $html += '<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="' + Table.init.tableId + '" data-width="800" data-height="600" data-url="' + Table.init.requests.edit_url + '?id=' + d.id + '" title="' + __('Edit') + '" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>';
+                                    $html += '<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="' + Table.init.tableId + '" data-width="800"  data-url="' + Table.init.requests.edit_url + '?id=' + d.id + '" title="' + __('Edit') + '" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>';
                                 }
                                 if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.setValue.url),elem)){
                                     $html +='<button data-tableid="'+Table.init.tableId+'" class="layui-btn-xs layui-btn-danger layui-btn layui-btn-xs" title="'+__('SetValue')+'" data-url="'+Table.init.requests.setValue.url+'?id='+ d.id +'" lay-event="open" data-type="open" data-full="1"><i class="layui-icon layui-icon layui-icon-set"></i></button>';

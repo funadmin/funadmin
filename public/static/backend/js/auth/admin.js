@@ -19,7 +19,6 @@ define(['jquery', 'table', 'form'], function ($, Table, Form) {
                         title: __('Add'),
                         full: 0,
                         width: 800,
-                        height: 600,
                     },
                     edit_full: {
                         type: 'open',

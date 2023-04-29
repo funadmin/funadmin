@@ -594,7 +594,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Add'),
                                     url: requests.add_url,
                                     icon: 'layui-icon layui-icon-add-circle-fine',
-                                    extend: "", width: '800', height: '600', tips: 'add',
+                                    extend: "", width: '800', height: '100%', tips: 'add',
                                 }
                             } else if (v === 'edit' || v==='copy') {
                                 icon = v==='edit'? 'layui-icon-edit': 'layui-icon-file-b';
@@ -606,7 +606,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __(v),
                                     url: requests[v+'_url'],
                                     icon: 'layui-icon '+icon,
-                                    extend: "", width: '800', height: '600', tips: v,
+                                    extend: "", width: '800', height: '100%', tips: v,
                                 }
                             } else if (v === 'delete') {
                                 va = {
@@ -617,7 +617,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Delete'),
                                     url: requests.delete_url,
                                     icon: 'layui-icon layui-icon-delete',
-                                    extend: "", width: '800', height: '600',tips: 'delete',
+                                    extend: "", width: '800', height: '100%',tips: 'delete',
                                 }
                             } else if (v === 'destroy') {
                                 va = {
@@ -628,7 +628,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Destroy'),
                                     url: requests.destroy_url,
                                     icon: 'layui-icon layui-icon-fonts-clear',
-                                    extend: "", width: '800', height: '600',tips: 'destroy',
+                                    extend: "", width: '800', height: '100%',tips: 'destroy',
                                 }
                             } else if (v === 'restore') {
                                 va = {
@@ -639,7 +639,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Restore'),
                                     url: requests.restore_url,
                                     icon: 'layui-icon layui-icon-refresh-1',
-                                    extend: "", width: '800', height: '600',tips: 'restore',
+                                    extend: "", width: '800', height: '100%',tips: 'restore',
                                 }
                             } else {
                                 va = {
@@ -650,7 +650,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Open'),
                                     url: eval('requests.' + v + '_url') || eval('requests.' + v),
                                     icon: 'layui-icon layui-icon-radio',
-                                    extend: "", width: '800', height: '600',tips: '',
+                                    extend: "", width: '800', height: '100%',tips: '',
                                 }
                             }
                         } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
