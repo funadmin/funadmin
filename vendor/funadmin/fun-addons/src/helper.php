@@ -526,7 +526,7 @@ if (!function_exists('importsql')) {
                 $sql .= fgets($gz);
                 if(preg_match('/.*;$/', trim($sql))) {
                     $sql = preg_replace('/(\/\*(\s|.)*?\*\/);/','',$sql);
-                    $sql = str_replace('__PREFIX__', config('database.connections.mysql.prefix'),$sql);
+                    $sql = $sql?str_replace('__PREFIX__', config('database.connections.mysql.prefix'),$sql):'';
                     if(strpos($sql,'CREATE TABLE')!==false || strpos($sql,'INSERT INTO')!==false || strpos($sql,'ALTER TABLE')!==false || strpos($sql,'DROP TABLE')!==false){
                         try {
                             Db::execute($sql);
