@@ -985,7 +985,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         $(this).click(function(e){
                             var data = $(this).data();
                             if(typeof data.value == 'object') data = data.value;
-                            uploadType = data.type,width = data.width||800,height = data.height||600
+                            uploadType = data.type,width = data.width||800,height = data.height|| '100%'
                                 uploadNum = data.num, uploadMime = data.mime,
                                 url  = data.selecturl, path = data.path;
                             uploadMime = uploadMime || '';
