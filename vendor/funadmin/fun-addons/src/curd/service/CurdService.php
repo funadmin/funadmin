@@ -355,7 +355,7 @@ class CurdService
                 $attrStr = $this->modifyAttr($fieldsList);
                 //生成关联表的模型
                 $connection = $this->driver == 'mysql' ? "" : "protected \$connection = '" . $this->driver . "';";
-                if (class_exists($joinclass) && $joinTplStr) {
+                if (!$this->force && class_exists($joinclass) && $joinTplStr) {
                     $content = file_get_contents($joinModelFile);
                     $content = substr($content,0,strrpos($content,'}',0)).$joinTplStr .PHP_EOL .'}';
                     file_put_contents($joinModelFile,$content);
