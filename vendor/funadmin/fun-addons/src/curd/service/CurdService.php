@@ -315,9 +315,11 @@ class CurdService
                 $joinName = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
                 if (!$this->addon) {
-                    $joinModelFile = $this->rootPath . "app" . '/' . $this->app . '/' . "model" . '/' . ($this->modelArr ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
+                    $joinclass = "app" . '/' . $this->app . '/' . "model" . '/' . ($this->modelArr ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) ;
+                    $joinModelFile = $this->rootPath . $joinclass . '.php';
                 } else {
-                    $joinModelFile = $this->rootPath . "addons" . '/' . $this->addon . '/' . "app" . '/' . $this->addon .'/'. "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) . '.php';
+                    $joinclass =   "app" . '/' . $this->addon .'/'. "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) ;
+                    $joinModelFile = $this->rootPath . "addons" . '/' . $this->addon . '/' . $joinclass . '.php';
                 }
                 $softDelete = '';
                 //判断是否有删除字段
@@ -328,41 +330,62 @@ class CurdService
                 }
                 list($tableComment,$fieldsList,$assign,$lang,$softDelete,$requests,$requestsRecycle)  = $this->getFieldList($v,'*');
                 $joinTplStr = '';
+                $joinclass = str_replace(DS, '\\', $joinclass);
+                if (file_exists($joinModelFile)) include_once $joinModelFile;
                 if ($assign) {
                     foreach ($assign as $key => $val) {
                         $kk = Str::studly($key);
                         if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
-                            $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
-                                    ['get' . $kk, $val],
-                                    file_get_contents($attrTpl)) . PHP_EOL;
+                            $joinMethod = 'get' . $kk;
+                            if (class_exists($joinclass)) {
+                                $joinClassMethods = get_class_methods($joinclass);
+                                if(!in_array($joinMethod,$joinClassMethods)){
+                                    $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
+                                            ['get' . $kk, $val],
+                                            file_get_contents($attrTpl)) . PHP_EOL;
+                                }
+                            }else{
+                                $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
+                                        ['get' . $kk, $val],
+                                        file_get_contents($attrTpl)) . PHP_EOL;
+                            }
                         }
                     }
                 }
                 $attrStr = $this->modifyAttr($fieldsList);
                 //生成关联表的模型
                 $connection = $this->driver == 'mysql' ? "" : "protected \$connection = '" . $this->driver . "';";
-                $modelTplTemp = str_replace([
-                    '{{$modelNamespace}}',
-                    '{{$modelName}}',
-                    '{{$modelTableName}}',
-                    '{{$softDelete}}',
-                    '{{$connection}}',
-                    '{{$joinTpl}}',
-                    '{{$attrTpl}}',
-                    '{{$primaryKey}}',
-                ],
-                    [
-                        $this->modelNamespace,
-                        ucfirst(Str::studly($this->joinName[$k])),
-                        $this->joinName[$k],
-                        $softDelete,
-                        $connection,
-                        $joinTplStr,
-                        $attrStr,
-                        $this->joinPrimaryKey[$k]
+                if (class_exists($joinclass) && $joinTplStr) {
+                    $content = file_get_contents($joinModelFile);
+                    $content = substr($content,0,strrpos($content,'}',0)).$joinTplStr .PHP_EOL .'}';
+                    file_put_contents($joinModelFile,$content);
+                }else{
+                    $modelTplTemp = str_replace([
+                        '{{$modelNamespace}}',
+                        '{{$modelName}}',
+                        '{{$modelTableName}}',
+                        '{{$softDelete}}',
+                        '{{$connection}}',
+                        '{{$joinTpl}}',
+                        '{{$attrTpl}}',
+                        '{{$primaryKey}}',
                     ],
-                    file_get_contents($modelTpl));
-                $this->makeFile($joinModelFile, $modelTplTemp);
+                        [
+                            $this->modelNamespace,
+                            ucfirst(Str::studly($this->joinName[$k])),
+                            $this->joinName[$k],
+                            $softDelete,
+                            $connection,
+                            $joinTplStr,
+                            $attrStr,
+                            $this->joinPrimaryKey[$k]
+                        ],
+                        file_get_contents($modelTpl));
+
+                    //插件类需要加载进来
+                    $this->makeFile($joinModelFile, $modelTplTemp);
+                }
+
             }
             $joinIndexMethod = substr($joinIndexMethod, 0, strlen($joinIndexMethod) - 1);
             $joinIndexMethod .= "])";
@@ -505,7 +528,7 @@ class CurdService
                             ['get' . $kk, $v],
                             file_get_contents($attrTpl)) . PHP_EOL;
                 } elseif ($this->hasSuffix($k, $this->config['priSuffix'])
-                    and $this->joinTable and $this->joinTable
+                    and  $this->joinTable
                     and in_array(substr($k, 0, strlen($k) - 4), $this->joinForeignKey)
                 ) {
                     //关联模型搜索属性
