@@ -8,13 +8,12 @@ return [
     'superAdminId'=>1,
     //是否演示站点
     'isDemo'=>0,
-
     //版本
     'version' => '3.3.1',
 
     'version_data' => '20230501',
 
-    'layui_version' => '2.8.1',
+    'layui_version' => '2.8.2',
 
     'ip_check'=>false,
 
