@@ -24,6 +24,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.rowDouble =  !(options.rowDouble != undefined && options.rowDouble == false && (options.init.rowDouble == undefined || (options.init.rowDouble == false)));
             options.searchInput = !(options.searchInput != undefined && options.searchInput == false && (options.init.searchInput == undefined || (options.init.searchInput == false)));
             options.searchName = Fun.param(options.searchName || options.init.searchName, 'id');
+            options.searchOp = Fun.param(options.searchOp || options.init.searchOp, '%*%');
             options.cols = Table.colsRender(options);
             options.page = Fun.param(options.page, true);
             options.limit = options.limit || 15;
@@ -177,7 +178,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 }
             });
             if (searchInput) {
-                toolbarHtml += '<input id="layui-input-search-'+options.id+'"  name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n';
+                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n';
             }
             return '<div>' + toolbarHtml + '</div>';
         },
@@ -978,7 +979,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.on('submit(' + options.id + '_filter)', function (data) {
                     var dataField = data.field;
                     var format = Table.getSearchField(dataField);
-                    Table.getSearchField(dataField);
                     Table.api.reload(options.id, {
                         filter: JSON.stringify(format.formatFilter),
                         op: JSON.stringify(format.formatOp)
