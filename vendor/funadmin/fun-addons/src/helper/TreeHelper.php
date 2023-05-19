@@ -32,7 +32,6 @@ class TreeHelper
                 }else{
                     if (isset($refer[$parentId])) {
                         $parent =& $refer[$parentId];
-                        $list[$key]['isParent'] = false;
                         $list[$key]['parentId'] = $parentId;
                         $parent[$child][] =& $list[$key];
                     }

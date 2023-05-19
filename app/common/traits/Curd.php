@@ -226,7 +226,7 @@ trait Curd
      * @NodeAnnotation(title="modify")
      */
     public function modify(){
-        $id = input($this->modelClass->getPk());
+        $id = input($this->modelClass->getPk()) ?: input('id');
         $field = input('field');
         $value = input('value');
         if($id){

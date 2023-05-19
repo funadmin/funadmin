@@ -75,6 +75,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var format = Table.getSearchField(layui.form.val('layui-form-'+options.id));
             options.where =  options.where || {filter:JSON.stringify(format.formatFilter), op:JSON.stringify(format.formatOp)};
+            options.done = options.done || Table.done;
             if(options.tree){
                 var newTable = layui.treeTable.render(options);
             }else{
@@ -400,13 +401,20 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             return [newclos]
         },
         templet: {
-            // date:function (d) {
-            //     var ele = $(this)[0];
-            //     var value = eval('d.' + ele.field) || '';
-            //     ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url ;
-            //     var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
-            //     return '<div lay-event="date"><input data-url="' +  ele.saveurl + '"  class="layui-input date"  data-dateformat="'+format+'" placeholder="'+__('select date')+'" value="'+ value+ '"></div'
-            // },
+            laydate:function (d) {
+                var ele = $(this)[0];
+                var value = eval-('d.' + ele.field) || '';
+                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
+                var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
+                return '<input lay-event="laydate" lay-filter="laydate" data-tableid="'+ele.init.tableId+'" data-field="'+ele.field+'" data-url="' +  ele.saveurl + '"  class="layui-input laydate"  data-dateformat="'+format+'" placeholder="'+__('select date')+'" value="'+ value+ '">';
+            },
+            colorpicker:function(d){
+                var ele = $(this)[0];
+                var value = eval('d.' + ele.field) || '';
+                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
+                var color =JSON.stringify ({color: value});
+                return "<div lay-event='colorpicker' lay-filter='colorPicker' data-tableid='"+ele.init.tableId+"' data-field='"+ele.field+"' data-url='" +  ele.saveurl + "'  class='colorpicker' placeholder='"+__('select color')+"' lay-options='"+color+"' value='"+ value+ "'></div>";
+            },
             time: function (d) {
                 var ele = $(this)[0];
                 var time = eval('d.' + ele.field);
@@ -499,13 +507,13 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
                 ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 value = Table.templet.resolution(d, ele)
-                $html = '<div class="layui-table-select"><select data-url="'+ ele.saveurl +'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"  lay-search="">\n' +
+                $html = '<select class="layui-border" data-url="'+ ele.saveurl +'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"   lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
                     $html += '<option ' + selected + ' value="' + i + '">' + __(ele.selectList[i]) + '</option>'
                 })
-                $html += '</select><script>$(".layui-table-box, .layui-table-body").css("overflow","visible");$(".layui-table-select").parent("div").css("overflow","visible")</script></div>';
+                $html += '</select>';
                 return $html;
             }, switch: function (d) {
                 var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
@@ -712,6 +720,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
         },
         on: function (filter) {
+
+        },
+        done: function (res, curr, count) {
+            if($('.colorpicker').length>0){
+                $('.colorpicker').trigger('click');
+            }
         },
         getButtonsOptions:function(va){
             var vv = {};
@@ -782,6 +796,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             } else {
                 return "<span data-event='search'  data-filter='" + filter + "'  data-op='" + op + "' class='layui-search'  data-tips='" + value + "'  title='" + value + "'>" + badge[0] + "</span>"
             }
+        },
+        getRowData:function(elem,tableId){
+            var index = $(elem).closest('tr').data('index');
+            return layui.table.cache[tableId][index] || {};
         },
         //获取搜索数据
         getSearchField:function(dataField){
@@ -921,11 +939,54 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 Fun.events.dropdown(othis,data,tableOptions)
             }, closeOpen: function (othis,data,tableOptions) {
                 Fun.api.close();
+            },laydate:function (othis,data,tableOptions) {
+                // laydate
+                layui.laydate.render({
+                    elem: '.laydate',
+                    done: function(value, date, endDate){
+                        var data = Table.getRowData(this.elem, othis.data('tableid')); // 获取当前行数据(如 id 等字段，以作为数据修改的索引)
+                        // 更新数据中对应的字段
+                        var primaryKey = $('#'+tableId).data('primarykey');
+                        var url = othis.data('url');field = othis.data('field');
+                        Fun.ajax({url: url, data: {id: data[primaryKey], field: field, value: value,},}, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                Table.api.reload(tableId)
+                            })
+                        }, function (res) {
+                            Fun.toastr.error(res.msg)
+                        })
+                        return false;
+                    }
+                });
+            }, colorpicker:function (othis,data,tableOptions) {
+                layui.colorpicker.render({
+                    elem: '.colorpicker',
+                    predefine: true,
+                    alpha: true,
+                    done: function (value) {
+                        var data = Table.getRowData(this.elem, othis.data('tableid')); // 获取当前行数据(如 id 等字段，以作为数据修改的索引)
+                        // 更新数据中对应的字段
+                        var primaryKey = $('#' + tableId).data('primarykey');
+                        var url = othis.data('url');field = othis.data('field');
+                        Fun.ajax({url: url, data: {id: data[primaryKey], field: field, value: value,},}, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                Table.api.reload(tableId)
+                            })
+                        }, function (res) {
+                            Fun.toastr.error(res.msg)
+                        })
+                        return false;
+                    }
+                });
             },common: function (othis,data,tableOptions) {
                 Fun.api.callback(othis,data,tableOptions)
             },
         },
         api: {
+            colorpicker:function (options) {
+                othis = $('[lay-event="colorpicker"]');
+                Table.events.colorpicker(othis);
+            },
             //必须先加载否则上传无效
             import: function (options){
                 othis = $('[lay-event="import"]');
@@ -1139,7 +1200,17 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             bindEvent: function (tableId) {
                 tableId = tableId || Table.init.tableId;
+                $(document).on('focus','*[lay-event]',function(){
+                    var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    if (Table.events.hasOwnProperty(attrEvent)) {
+                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
+                    } else {
+                        Table.events.common(_that);
+                    }
+                    return false;
+                })
                 $(document).on('click','*[lay-event]',function(obj){
+
                     var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)

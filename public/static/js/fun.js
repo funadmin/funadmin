@@ -143,41 +143,26 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         init: function () {
             // 绑定ESC关闭窗口事件
             $(window).keyup(function (event) {
-                if (event.keyCode === 27 || event.keyCode === '27') {
+                if (event.keyCode == 27) {
                     var index = 0;
                     $(document).ready(function () {
-                        if ($(".layui-layer").length > 0) {
-                            $(".layui-layer").each(function () {
-                                index = Math.max(index, parseInt($(this).attr("times")));
-                            });
-                            if (index) {
-                                // layui.layer.close(index);
-                            }
-                        } else if (parent.$(".layui-layer").length) {
-                            parent.$(".layui-layer").each(function () {
-                                index = Math.max(index, parseInt($(this).attr("times")));
-                            });
-                            if (index) {
-                                // parent.layui.layer.close(index);
-                            }
-                        }
-                        if(index){
-                            var confirm = top.layui.layer.confirm(__('are you sure you want to close this window'),{
-                                btn: [__('confirm'),__('cancel')] //按钮
-                            }, function(){
-                                layui.layer.close(index);
-                                top.layui.layer.close(confirm);
-                                parent.layui.layer.close(index);
-                            }, function(){
-                            });
-                        }
-
+                        parent.layui.layer.close(index);
+                        var confirm = top.layui.layer.confirm(__('are you sure you want to close this window'),{
+                            btn: [__('confirm'),__('cancel')] //按钮
+                        }, function(){
+                            layui.layer.closeLast('dialog'); // 关闭最近一次打开的信息框
+                            layui.layer.closeLast('page'); // 关闭最近一次打开的页面层
+                            layui.layer.closeLast('iframe'); // 关闭最近一次打开的 iframe 层
+                            layui.layer.closeLast('loading'); // 关闭最近一次打开的加载层
+                            layui.layer.closeLast('tips'); // 关闭最近一次打开的 tips 层
+                            top.layui.layer.close(confirm);
+                        }, function(){
+                        });
                     })
                     //锁屏
                     if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
                         $('#lock-screen').remove();
                     }
-
                 }
             });
         },
@@ -563,7 +548,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     options.btn_lang = false;
                 } else {
                     btnsdata = options.btn;
-                    btnsdata = (btnsdata.split(','));
+                    btnsdata = layui.isArray(btnsdata)?btnsdata:btnsdata.split(',');
                     options.btn_lang = [];
                     layui.each(btnsdata, function (k, v) {
                         options.btn_lang[k] = __(v);

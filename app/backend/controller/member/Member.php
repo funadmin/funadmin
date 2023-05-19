@@ -58,7 +58,6 @@ class Member extends Backend
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
             $list = $this->modelClass
                 ->withJoin(['memberGroup','memberLevel'])
-                ->withCache(10)
                 ->where($where)
                 ->order($sort)
                 ->paginate([

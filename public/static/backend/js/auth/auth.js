@@ -69,14 +69,16 @@ define(['jquery','table','form'], function ($,Table, Form) {
                 toolbar:['refresh','add','expand','close'],
                 // maxHeight: '501px',
                 tree: {
-                    customName: {},
-                    data: {isSimpleData:false},
+                    customName: {
+                        'name':'title',
+                    },
+                    // data: {isSimpleData:false},
                     }
                 ,cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
                     {field: 'icons',title: __("icon"), width: 60,templet: Table.templet.icon},
-                    {field: 'name', title: __('Auth Name'), minwidth: 120,align: 'left'},
+                    {field: 'title', title: __('Auth Name'), minwidth: 120,align: 'left'},
                     {field: 'href', title: __('Module/Controller/Action'),align: 'left', minwidth: 200,templet: function (d){
                             return d.module +'@'+ d.href;
                         }},
