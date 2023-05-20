@@ -17,6 +17,7 @@ body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-
 .layui-card-body .layui-form-item .layui-input-prefix i{color: #1e9fff !important}
 .layui-form-checked span, .layui-form-checked:hover span{background-color: #1e9fff !important}
 .layui-form-checked i, .layui-form-checked:hover i{color: #1e9fff}
+.layui-form-checked:hover>div, .layui-form-checked>div{background-color:#1e9fff}
 .layui-form-item .captcha-img{display:inline-block;width:50%;float:right}
 .layui-form-item .captcha-img img{border:1px solid #e6e6e6;height:43px;width:100%}
 .layui-form-item.copyright{font-size:12px;color:#999;text-align:center}
