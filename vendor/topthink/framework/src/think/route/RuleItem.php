@@ -38,7 +38,7 @@ class RuleItem extends Rule
      * @access public
      * @param  Route             $router 路由实例
      * @param  RuleGroup         $parent 上级对象
-     * @param  string            $name 路由标识
+     * @param  string|null       $name 路由标识
      * @param  string            $rule 路由规则
      * @param  string|\Closure   $route 路由地址
      * @param  string            $method 请求类型
@@ -75,27 +75,6 @@ class RuleItem extends Rule
     public function isMiss(): bool
     {
         return $this->miss;
-    }
-
-    /**
-     * 设置当前路由为自动注册OPTIONS
-     * @access public
-     * @return $this
-     */
-    public function setAutoOptions()
-    {
-        $this->autoOption = true;
-        return $this;
-    }
-
-    /**
-     * 判断当前路由规则是否为自动注册的OPTIONS路由
-     * @access public
-     * @return bool
-     */
-    public function isAutoOptions(): bool
-    {
-        return $this->autoOption;
     }
 
     /**

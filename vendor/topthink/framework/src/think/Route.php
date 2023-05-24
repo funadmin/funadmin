@@ -19,6 +19,7 @@ use think\route\dispatch\Callback;
 use think\route\dispatch\Url as UrlDispatch;
 use think\route\Domain;
 use think\route\Resource;
+use think\route\ResourceRegister;
 use think\route\Rule;
 use think\route\RuleGroup;
 use think\route\RuleItem;
@@ -182,6 +183,11 @@ class Route
         $this->removeSlash    = $this->config['remove_slash'];
 
         $this->group->removeSlash($this->removeSlash);
+
+        // 注册全局MISS路由
+        $this->miss(function () {
+            return Response::create('', 'html', 204)->header(['Allow' => 'GET, POST, PUT, DELETE']);
+        }, 'options')->allowCrossDomain();
     }
 
     public function config(string $name = null)
@@ -317,8 +323,7 @@ class Route
         $domainName = is_array($name) ? array_shift($name) : $name;
 
         if (!isset($this->domains[$domainName])) {
-            $domain = (new Domain($this, $domainName, $rule))
-                ->lazy($this->lazy)
+            $domain = (new Domain($this, $domainName, $rule, $this->lazy))
                 ->removeSlash($this->removeSlash)
                 ->mergeRuleRegex($this->mergeRuleRegex);
 
@@ -523,19 +528,18 @@ class Route
     }
 
     /**
-     * 设置跨域有效路由规则
+     * 设置路由规则全局有效
      * @access public
      * @param Rule   $rule   路由规则
-     * @param string $method 请求类型
      * @return $this
      */
-    public function setCrossDomainRule(Rule $rule, string $method = '*')
+    public function setCrossDomainRule(Rule $rule)
     {
         if (!isset($this->cross)) {
             $this->cross = (new RuleGroup($this))->mergeRuleRegex($this->mergeRuleRegex);
         }
 
-        $this->cross->addRuleItem($rule, $method);
+        $this->cross->addRuleItem($rule);
 
         return $this;
     }
@@ -554,8 +558,7 @@ class Route
             $name  = '';
         }
 
-        return (new RuleGroup($this, $this->group, $name, $route))
-            ->lazy($this->lazy)
+        return (new RuleGroup($this, $this->group, $name, $route, $this->lazy))
             ->removeSlash($this->removeSlash)
             ->mergeRuleRegex($this->mergeRuleRegex);
     }
@@ -661,12 +664,17 @@ class Route
      * @access public
      * @param string $rule  路由规则
      * @param string $route 路由地址
-     * @return Resource
+     * @return Resource|ResourceRegister
      */
-    public function resource(string $rule, string $route): Resource
+    public function resource(string $rule, string $route)
     {
-        return (new Resource($this, $this->group, $rule, $route, $this->rest))
-            ->lazy($this->lazy);
+        $resource = new Resource($this, $this->group, $rule, $route, $this->rest);
+
+        if (!$this->lazy) {
+            return new ResourceRegister($resource);
+        }
+
+        return $resource;
     }
 
     /**

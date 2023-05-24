@@ -25,15 +25,15 @@ class RuleGroup extends Rule
 {
     /**
      * 分组路由（包括子分组）
-     * @var array
+     * @var Rule[]
      */
     protected $rules = [];
 
     /**
-     * 分组路由规则
-     * @var mixed
+     * 是否已经解析
+     * @var bool
      */
-    protected $rule;
+    protected $hasParsed;
 
     /**
      * MISS路由
@@ -56,12 +56,13 @@ class RuleGroup extends Rule
     /**
      * 架构函数
      * @access public
-     * @param  Route     $router 路由对象
-     * @param  RuleGroup $parent 上级对象
-     * @param  string    $name   分组名称
-     * @param  mixed     $rule   分组路由
+     * @param Route          $router 路由对象
+     * @param RuleGroup|null $parent 上级对象
+     * @param string         $name   分组名称
+     * @param mixed          $rule   分组路由
+     * @param bool           $lazy   延迟解析
      */
-    public function __construct(Route $router, RuleGroup $parent = null, string $name = '', $rule = null)
+    public function __construct(Route $router, RuleGroup $parent = null, string $name = '', $rule = null, bool $lazy = false)
     {
         $this->router = $router;
         $this->parent = $parent;
@@ -75,8 +76,8 @@ class RuleGroup extends Rule
             $this->parent->addRuleItem($this);
         }
 
-        if ($router->isTest()) {
-            $this->lazy(false);
+        if (!$lazy) {
+            $this->parseGroupRule($rule);
         }
     }
 
@@ -138,9 +139,7 @@ class RuleGroup extends Rule
         }
 
         // 解析分组路由
-        if ($this instanceof Resource) {
-            $this->buildResourceRule();
-        } else {
+        if (!$this->hasParsed) {
             $this->parseGroupRule($this->rule);
         }
 
@@ -163,8 +162,8 @@ class RuleGroup extends Rule
         }
 
         // 检查分组路由
-        foreach ($rules as $key => $item) {
-            $result = $item[1]->check($request, $url, $completeMatch);
+        foreach ($rules as $item) {
+            $result = $item->check($request, $url, $completeMatch);
 
             if (false !== $result) {
                 return $result;
@@ -173,9 +172,9 @@ class RuleGroup extends Rule
 
         if (!empty($option['dispatcher'])) {
             $result = $this->parseRule($request, '', $option['dispatcher'], $url, $option);
-        } elseif ($this->miss && in_array($this->miss->getMethod(), ['*', $method])) {
+        } elseif ($miss = $this->getMissRule($method)) {
             // 未匹配所有路由的路由规则处理
-            $result = $this->parseRule($request, '', $this->miss->getRoute(), $url, $this->miss->getOption());
+            $result = $miss->parseRule($request, '', $miss->getRoute(), $url, $miss->getOption());
         } else {
             $result = false;
         }
@@ -223,22 +222,6 @@ class RuleGroup extends Rule
     }
 
     /**
-     * 延迟解析分组的路由规则
-     * @access public
-     * @param  bool $lazy 路由是否延迟解析
-     * @return $this
-     */
-    public function lazy(bool $lazy = true)
-    {
-        if (!$lazy) {
-            $this->parseGroupRule($this->rule);
-            $this->rule = null;
-        }
-
-        return $this;
-    }
-
-    /**
      * 解析分组和域名的路由规则及绑定
      * @access public
      * @param  mixed $rule 路由规则
@@ -246,6 +229,10 @@ class RuleGroup extends Rule
      */
     public function parseGroupRule($rule): void
     {
+        if (is_null($rule)) {
+            return;
+        }
+
         if (is_string($rule) && is_subclass_of($rule, Dispatch::class)) {
             $this->dispatcher($rule);
             return;
@@ -254,13 +241,14 @@ class RuleGroup extends Rule
         $origin = $this->router->getGroup();
         $this->router->setGroup($this);
 
-        if ($rule instanceof \Closure) {
+        if ($rule instanceof Closure) {
             Container::getInstance()->invokeFunction($rule);
         } elseif (is_string($rule) && $rule) {
             $this->router->bind($rule, $this->domain);
         }
 
         $this->router->setGroup($origin);
+        $this->hasParsed = true;
     }
 
     /**
@@ -368,11 +356,19 @@ class RuleGroup extends Rule
     /**
      * 获取分组的MISS路由
      * @access public
+     * @param  string $method 请求类型
      * @return RuleItem|null
      */
-    public function getMissRule():  ? RuleItem
+    public function getMissRule(string $method = '*'): ?RuleItem
     {
-        return $this->miss;
+        if (isset($this->miss[$method])) {
+            $miss = $this->miss[$method];
+        } elseif (isset($this->miss['*'])) {
+            $miss = $this->miss['*'];
+        } else {
+            return null;
+        }
+        return $miss;
     }
 
     /**
@@ -387,8 +383,7 @@ class RuleGroup extends Rule
         // 创建路由规则实例
         $ruleItem = new RuleItem($this->router, $this, null, '', $route, strtolower($method));
 
-        $ruleItem->setMiss();
-        $this->miss = $ruleItem;
+        $this->miss[$method] = $ruleItem->setMiss();
 
         return $ruleItem;
     }
@@ -419,7 +414,7 @@ class RuleGroup extends Rule
         // 创建路由规则实例
         $ruleItem = new RuleItem($this->router, $this, $name, $rule, $route, $method);
 
-        $this->addRuleItem($ruleItem, $method);
+        $this->addRuleItem($ruleItem);
 
         return $ruleItem;
     }
@@ -428,21 +423,11 @@ class RuleGroup extends Rule
      * 注册分组下的路由规则
      * @access public
      * @param  Rule   $rule   路由规则
-     * @param  string $method 请求类型
      * @return $this
      */
-    public function addRuleItem(Rule $rule, string $method = '*')
+    public function addRuleItem(Rule $rule)
     {
-        if (strpos($method, '|')) {
-            $rule->method($method);
-            $method = '*';
-        }
-
-        $this->rules[] = [$method, $rule];
-
-        if ($rule instanceof RuleItem && 'options' != $method) {
-            $this->rules[] = ['options', $rule->setAutoOptions()];
-        }
+        $this->rules[] = $rule;
 
         return $this;
     }
@@ -507,7 +492,8 @@ class RuleGroup extends Rule
         }
 
         return array_filter($this->rules, function ($item) use ($method) {
-            return $method == $item[0] || '*' == $item[0];
+            $ruleMethod = $item->getMethod();
+            return '*' == $ruleMethod || false !== strpos($ruleMethod, $method);
         });
     }
 

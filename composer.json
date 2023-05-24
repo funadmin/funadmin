@@ -39,7 +39,7 @@
     "doctrine/annotations": "^1.14",
     "ramsey/uuid": "^4.2",
     "phpoffice/phpspreadsheet": "^1.28",
-    "funadmin/fun-addons": "^5.1.8"
+    "funadmin/fun-addons": "^5.1.10"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"

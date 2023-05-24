@@ -67,7 +67,7 @@ abstract class Rule
      * 请求类型
      * @var string
      */
-    protected $method;
+    protected $method = '*';
 
     /**
      * 路由变量
@@ -572,14 +572,7 @@ abstract class Rule
      */
     public function crossDomainRule()
     {
-        if ($this instanceof RuleGroup) {
-            $method = '*';
-        } else {
-            $method = $this->method;
-        }
-
-        $this->router->setCrossDomainRule($this, $method);
-
+        $this->router->setCrossDomainRule($this);
         return $this;
     }
 
