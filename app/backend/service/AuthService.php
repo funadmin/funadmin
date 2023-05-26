@@ -71,7 +71,7 @@ class AuthService extends AbstractService
         $this->action = $this->action ?: 'index';
         $this->requesturl = $this->request->pathinfo();
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
-            $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
+            $this->requesturl = rtrim($this->requesturl, '.' .config('view.view_suffix'));
         }
         $this->requesturl = trim($this->requesturl, '/');
     }
