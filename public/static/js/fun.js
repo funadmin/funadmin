@@ -390,7 +390,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     ele = '';d= '';
                     if(rowData){ele = rowData.config;d = rowData.data;}
                     layui.each(extend, function (k, v) {
-                        v.class = v['class'] || 'layui-btn layui-btn-xs';
+                        v.class = v['class'] || '';
                         v.title = v.title || v.text;
                         v.event = v.event || v.type;
                         url = v.url ? v.url : $(othis).attr('data-url');
@@ -407,7 +407,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             dropdowndata[k].rowindex = k;
                             dropdowndata[k].buttonsindex = data.buttonsindex;
                             dropdowndata[k].url = url;
-                            dropdowndata[k].class =v.class || 'layui-btn-xs layui-btn-normal';
+                            dropdowndata[k].class =v.class || '';
                             dropdowndata[k].id = v.id || v.event ;
                             dropdowndata[k].callback = v.callback || '';
                             dropdowndata[k].extend = v.extend || '';
@@ -419,7 +419,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             dropdowndata[k].field = v.field || '';
                             dropdowndata[k].value = v.value || '';
                             icon = extend[k].icon ? '<i class="{{d.icon}}"></i>':'';
-                            dropdowndata[k].templet = v.templet ||  "<button data-value='{{d.value}}' data-field='{{d.field}}' data-id='{{d.id}}' lay-event='{{d.event}}' data-url='{{d.url}}' class='layui-btn layui-btn-normal {{d.class}}' title='{{d.title}}'>" +icon+' {{d.title}}  </button>';
+                            dropdowndata[k].templet = v.templet ||  "<a data-value='{{d.value}}' data-field='{{d.field}}' data-id='{{d.id}}' lay-event='{{d.event}}' data-url='{{d.url}}' class='{{d.class}}' title='{{d.title}}'>" +icon+' {{d.title}}  </a>';
                             dropdowndata[k].title =v.title ;
                         }
                     })
@@ -446,7 +446,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                                 }
                             })
 
-                        }, style: 'margin-left: -45px; box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
+                        }, style: 'box-shadow: 1px 1px 10px rgb(0 0 0 / 12%);'
                     })
                     inst.reload();//点击后需要重载才不会隐藏
                     return false;

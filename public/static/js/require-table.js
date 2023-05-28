@@ -501,7 +501,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         callback: ele.callback || v.callback || '',templet:v.templet||ele.templet,
                     })
                 })
-                return $html = "<a class= 'layui-btn layui-btn-xs layui-btn-normal' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
+                alert(1)
+                return $html = "<a class= '' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
             },selects: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
