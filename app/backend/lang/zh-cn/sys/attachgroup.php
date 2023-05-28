@@ -1,11 +1,12 @@
 <?php
 
 return [
+    'title'=>'组名',
     'Attach'=>'附件',
     'zip'=>'压缩件',
     'text'=>'文本',
     'file'=>'文件',
-    'image'=>'图片',
+    'Thumb'=>'图片',
     'video'=>'视频',
     'audio'=>'音频',
     'OriginalName'=>'原名',
