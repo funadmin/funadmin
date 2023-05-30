@@ -75,8 +75,11 @@ class Attach extends Frontend
     {
         $param = $this->request->param();
         $group = AttachGroup::order('sort asc')->select()->toArray();
-        $allGroup = [['pid'=>0,'id'=>0,'title'=>'全部','sort'=>1, 'disabled'=> true,'radioDisabled'=>true ,  "children" => []]];
-        $groupList = array_merge($allGroup,TreeHelper::getTree($group));
+        foreach ($group as &$item) {
+            $item['spread'] = true;
+        }
+        unset($item);
+        $groupList = TreeHelper::getTree($group);
         list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
         if(input('group_id')){
             $where[] = ['group_id','=',input('group_id')];

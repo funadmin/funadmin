@@ -146,18 +146,25 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 if (event.keyCode == 27) {
                     var index = 0;
                     $(document).ready(function () {
-                        parent.layui.layer.close(index);
-                        var confirm = top.layui.layer.confirm(__('are you sure you want to close this window'),{
-                            btn: [__('confirm'),__('cancel')] //按钮
-                        }, function(){
-                            layui.layer.closeLast('dialog'); // 关闭最近一次打开的信息框
-                            layui.layer.closeLast('page'); // 关闭最近一次打开的页面层
-                            layui.layer.closeLast('iframe'); // 关闭最近一次打开的 iframe 层
-                            layui.layer.closeLast('loading'); // 关闭最近一次打开的加载层
-                            layui.layer.closeLast('tips'); // 关闭最近一次打开的 tips 层
-                            top.layui.layer.close(confirm);
-                        }, function(){
-                        });
+                        if ($(".layui-layer").length > 0) {
+                            $(".layui-layer").each(function () {
+                                index = Math.max(index, parseInt($(this).attr("times")));
+                            });
+                        } else if (parent.$(".layui-layer").length) {
+                            parent.$(".layui-layer").each(function () {
+                                index = Math.max(index, parseInt($(this).attr("times")));
+                            });
+                        }
+                        if (index) {
+                            var confirm = top.layui.layer.confirm(__('are you sure you want to close this window'), {
+                                btn: [__('confirm'), __('cancel')] //按钮
+                            }, function () {
+                                layui.layer.close(index);
+                                top.layui.layer.close(confirm);
+                                parent.layui.layer.close(index);
+                            }, function () {
+                            });
+                        }
                     })
                     //锁屏
                     if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
@@ -566,7 +573,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                     zIndex: parent.layui.layer.zIndex, //
                     maxmin: true, moveOut: true, resize: isResize, scrollbar: true,
                     btnAlign: options.btnAlign, btn: options.btn_lang,
-                    success: success === undefined ? function (layero) {
+                    success: success === undefined ? function (layero,index) {
                         var that = this;
                         try {
                             $(layero).data("callback", that.callback?that.callback:'');

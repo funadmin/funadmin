@@ -117,103 +117,88 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                 });
                 return ids;
             }
-            var tree = layui.eleTree({
-                el: '#tree',data: treeData,//静态数据,
-                emptText:"",//当数据为空时显示的内容
-                highlightCurrent:true,//是否高亮当前选中节点
-                defaultExpandAll:true,//是否默认展开所有节点
-                radioOnClickNode:true,//单选框是否在点击文本的时候选中节点
-                checkOnClickNode:true,//单选框是否在点击文本的时候选中节点
-                showLine:true,
-                indent:21,
-                radioType: "level", // all      // 单选范围（是同一级还是整体只能选择一个）
-                rightMenuList: [
-                    // "copy",
-                    // "paste",
-                    // "paste_before",
-                    // "paste_after",
-                    // "cut_paste",
-                    "edit", "remove",
-                    "add_child",
-                    "add_before",
-                    "add_after"
-                ],
-                customText: function(data) {
-                    var s = data.title;s+=`<i style="" class="layui-icon layui-icon-ok tree-choose"></i>`;
-                    return s;
+            var tree = layui.tree.render({
+                elem: '#tree',
+                data: treeData,//静态数据,
+                showCheckbox: false,
+                showLine: true , // 是否开启连接线
+                accordion:true,//是否开启手风琴模式
+                // isJump:true,
+                edit: ['add', 'update', 'del'] ,// 开启节点的右侧操作图标
+                click: function(obj){//节点被点击的回调函数。返回的参数如下：
+                    var url = window.location.href;
+                    url  = url.indexOf('?')!==-1?url+"&group_id="+obj.data.id :url+'?group_id='+obj.data.id
+                    location.href = url;
                 },
-                imgUrl:PLUGINS+"/lay-module/eletree/images/",
-                icon: {
-                    fold: "fold.png",
-                    leaf: "fold.png",
-                    // leaf: "leaf.png",
-                },defaultRadioCheckedKeys:[group_id],
-                draggable:false,showCheckbox: showCheckbox?true:false,showRadio: showRadio?true:false,
-                request: {          // 对于后台数据重新定义名字
-                    name: "title",
-                    key: "id",
-                    children: "children",
-                    disabled: "disabled",       // 被禁用的节点不会影响父子节点的选中状态
-                    checked: "checked",
-                    isOpen: "isOpen",
-                    isLeaf: "isLeaf",
-                    pid: "pid",
-                    radioChecked: "radioChecked",
-                    radioDisabled: "radioDisabled"
-                },
+                operate: function(obj){
+                    var type = obj.type; // 得到操作类型：add、edit、del
+                    var elem = obj.elem; // 得到当前节点元素
+                    var data =  obj.data; // 得到当前节点元素
+                    // Ajax 操作
+                    var id = data.id; // 得到节点索引
+                    if(type == 'add'){ // 增加节点
+                        var postdata = {
+                            pid:obj.data.id,
+                            title:elem.find('.layui-tree-txt').html(),
+                            '__token__': $("input[name='__token__']").val()
+                        }
+                        Fun.ajax({url: Table.init.requests.group_add_url, data:postdata }
+                            , function (res) {
+                                if (res.code > 0) {
+                                    Fun.toastr.success(res.msg);
+                                    window.location.reload()
+                                }
+                            })
+                    } else if(type == 'update'){ // 修改节点
+                        console.log(obj)
+                        var postdata = {
+                            id:obj.data.id,
+                            title:elem.find('.layui-tree-txt').html(),
+                            '__token__': $("input[name='__token__']").val()
+                        }
+                        Fun.ajax({url: Table.init.requests.group_edit_url, data: postdata}, function (res) {
+                            if (res.code > 0) {
+                                Fun.toastr.success(res.msg);
+                            }
+                        },function (res){
+                        })
+                        console.log(elem.find('.layui-tree-txt').html()); // 得到修改后的内容
+                    } else if(type == 'del'){ // 删除节点
+                        Fun.ajax({url: Table.init.requests.group_delete_url, data: {ids: obj.data.id}}
+                            , function (res) {
+                                if (res.code > 0) {
+                                    Fun.toastr.success(res.msg);
+                                }
+                            })
+                    };
+                }
+
             })
-            tree.setRadioChecked([group_id])
-            var selectTree = layui.eleTree({
-                el: '#selectTree',data: treeData,//静态数据,
-                emptText:"",//当数据为空时显示的内容
-                highlightCurrent:true,//是否高亮当前选中节点
-                defaultExpandAll:true,//是否默认展开所有节点
-                radioOnClickNode:true,//单选框是否在点击文本的时候选中节点
-                checkOnClickNode:true,//单选框是否在点击文本的时候选中节点
-                showLine:true,
-                indent:21,
-                radioType: "level", // all      // 单选范围（是同一级还是整体只能选择一个）
-                imgUrl:PLUGINS+"/lay-module/eleTree/images/",
-                customText: function(data) {
-                    var s = data.title;s+=`<i style="" class="layui-icon layui-icon-ok tree-choose"></i>`;
-                    return s;
-                },
-                icon: {
-                    fold: "fold.png",
-                    leaf: "fold.png",
-                    // leaf: "leaf.png",
-                },defaultRadioCheckedKeys:[group_id],
-                draggable:false,showCheckbox: showCheckbox?true:false,showRadio: showRadio?true:false,
-                request: {          // 对于后台数据重新定义名字
-                    name: "title",
-                    key: "id",
-                    children: "children",
-                    disabled: "disabled",       // 被禁用的节点不会影响父子节点的选中状态
-                    checked: "checked",
-                    isOpen: "isOpen",
-                    isLeaf: "isLeaf",
-                    pid: "pid",
-                    radioChecked: "radioChecked",
-                    radioDisabled: "radioDisabled"
-                },
-            })
-            selectTree.on("click", function(data) {
-                if(this.target.classList.contains('tree-choose')){
-                    var _this = $(this);
+            var selectTree = layui.tree.render({
+                elem: '#selectTree',
+                data: treeData,//静态数据,
+                showCheckbox: false,
+                showLine: true , // 是否开启连接线
+                accordion:true,//是否开启手风琴模式
+                click: function(obj){//节点被点击的回调函数。返回的参数如下：
+                    console.log(obj.data); // 得到当前点击的节点数据
+                    console.log(obj.state); // 得到当前节点的展开状态：open、close、normal
+                    console.log(obj.elem); // 得到当前节点元素
+                    var _this = $(obj.elem);
                     var ids = fileSelect(_this,2);
                     $('.group-select').removeClass('active');
                     if (ids.length === 0) {
                         Fun.toastr.error(__('please choose data'))
                         return false;
                     }
-                    if(data.data.id===0){
+                    if(obj.data.id===0){
                         Fun.toastr.error(__('please choose group'))
                         return false;
                     }
                     var Url =Fun.url(Table.init.requests.move_url);
                     var data = {
                         ids: ids, '__token__': $("input[name='__token__']").val(),
-                        group_id:data.data.id?data.data.id:1,
+                        group_id:obj.data.id?obj.data.id:1,
                     };
                     Fun.ajax({url:Url, data:data}, function (res) {
                         if (res.code >0 ) {
@@ -223,85 +208,7 @@ define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form
                             Fun.toastr.error(res.msg);
                         }
                     });
-                }
-
-            })
-            // 如果不写下面的事件，则默认自动执行此操作
-            tree.on("click", function(data) {
-                if(this.target.classList.contains('eleTree-title') || this.target.classList.contains('tree-choose')) {
-                    var url = window.location.href;
-                    url  = url.indexOf('?')!==-1?url+"&group_id="+data.data.id :url+'?group_id='+data.data.id
-                    location.href = url;
-                }
-            }).on("edit", function(data) {
-                setTimeout(function() {
-                    data.load({
-                        checked: true
-                    })
-                }, 100)
-                var postdata = {
-                    id:data.data.id,
-                    title:data.data.title,
-                    '__token__': $("input[name='__token__']").val()
-                }
-                Fun.ajax({url: Table.init.requests.group_edit_url, data: postdata}, function (res) {
-                    if (res.code > 0) {
-                        Fun.toastr.success(res.msg);
-                    }
-                },function (res){
-                    $('.eleTree-title-active').find('.eleTree-text').text(data.rightClickData.title);
-                })
-            }).on("remove", function(data) {
-                setTimeout(data.load, 100)
-                var confirm = Fun.toastr.confirm(__('Are you sure delete？'), function () {
-                    Fun.ajax({url: Table.init.requests.group_delete_url, data: {ids: data.data.id}}
-                        , function (res) {
-                            if (res.code > 0) {
-                                Fun.toastr.success(res.msg);
-                                tree.remove(data.data.id)
-                            }
-                        })
-                });
-            }).on("add_child", function(data) {
-                setTimeout(data.load, 100)
-                var postdata = {
-                    pid:data.rightClickData.id,
-                    title:data.data.title,
-                    '__token__': $("input[name='__token__']").val()
-                }
-                Fun.ajax({url: Table.init.requests.group_add_url, data:postdata }
-                    , function (res) {
-                        if (res.code > 0) {
-                            Fun.toastr.success(res.msg);
-                        }
-                    })
-            }).on("add_before", function(data) {
-                setTimeout(data.load, 100)
-                var postdata = {
-                    pid:0,
-                    title:data.data.title,
-                    sort:data.rightClickData.sort - 1,
-                    '__token__': $("input[name='__token__']").val()
-                };Fun.ajax({url: Table.init.requests.group_add_url, data:postdata }
-                    , function (res) {
-                        if (res.code > 0) {
-                            Fun.toastr.success(res.msg);
-                        }
-                    })
-            }).on("add_after", function(data) {
-                setTimeout(data.load, 100)
-                var postdata = {
-                    pid:0,
-                    title:data.data.title,
-                    sort:data.rightClickData.sort + 1,
-                    '__token__': $("input[name='__token__']").val()
-                }
-                Fun.ajax({url: Table.init.requests.group_add_url, data:postdata }
-                    , function (res) {
-                        if (res.code > 0) {
-                            Fun.toastr.success(res.msg);
-                        }
-                    })
+                },
             })
             //分页
             layui.laypage.render({
