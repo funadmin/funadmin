@@ -19,7 +19,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','layCascader','treeGrid','tableSelect','tableEdit','tableFilter','tableTree','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload','addons'],
+        'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -27,10 +27,7 @@ require.config({
         // 'cardTable'     : 'plugins/lay-module/cardTable/cardTable',
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
-        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
-        'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',
-        'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框

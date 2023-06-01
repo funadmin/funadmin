@@ -804,9 +804,6 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     require(['table'], function (Table) {
                         option.refreshTable = option.tableid || Table.init.tableId;
                         if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
-                            if (parent.layui.treeGrid) {
-                                parent.layui.treeGrid.reload(option.refreshTable, {}, true)
-                            }
                             Table.api.reload(option.refreshTable)
                         } else {
                             setTimeout(function () {

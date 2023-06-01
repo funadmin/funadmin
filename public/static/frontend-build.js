@@ -13,8 +13,8 @@
     // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','layCascader','treeGrid','tableSelect','tableEdit','tableFilter',
-        'tableTree','iconPicker','iconFonts', 'toastr',
+        'css','layCascader','tableSelect','tableFilter',
+        'iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers',
@@ -27,10 +27,7 @@
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         // 'layui'         : 'plugins/layui/layui', // jquery
-        'treeGrid'      : 'plugins/lay-module/treeGrid/treeGrid.min',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
-        'tableEdit'     : 'plugins/lay-module/tableTree/tableEdit',
-        'tableTree'     : 'plugins/lay-module/tableTree/tableTree',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
         'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框

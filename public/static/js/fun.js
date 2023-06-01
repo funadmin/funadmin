@@ -361,17 +361,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 Fun.toastr.confirm(__(title), function () {
                     Fun.ajax({url: url, data: postdata}, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            try {
-                                if(layui.treeGrid && layui.treeGrid.getDataList(tableId).length>0){
-                                    Table && layui.treeGrid.reload(tableId);
-                                }else {
-                                    Table && Table.api.reload(tableId)
-                                }
-                            } catch (err) {
-                                console.log(err)
-                                Table && Table.api.reload(tableId)
-                                //在此处理错误
-                            }
+                            Table && Table.api.reload(tableId)
                         })
                     }, function (res) {
                         Fun.toastr.error(res.msg, function () {
@@ -693,7 +683,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             refreshTable: function (tableId) {
                 tableId = tableId || 'list';
-
                 table = layui.table || layui.treeTable;
                 table.reload(tableId,{},true);
             },
