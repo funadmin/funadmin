@@ -744,7 +744,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             vv.tips = va.tips || '';
             vv.extend = va.extend || '';
             vv.callback = va.callback || '';
-            vv.node = va.node === false ? va.node : Fun.common.getNode(va.url);
+            vv.node = va.node === false ? va.node : (va.node?va.node:Fun.common.getNode(va.url));
             if(typeof va.btn !=='undefined'){vv.btn = va.btn;}
             return vv;
         },

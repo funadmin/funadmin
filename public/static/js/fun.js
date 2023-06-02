@@ -119,8 +119,10 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
          */
         lang: function () {
             var obj = arguments, str = arguments[0];
-            str = str.toString();
-            str = str.toLowerCase();
+            if(str !==null && str!==''){
+                str = str.toString();
+                str = str.toLowerCase();
+            }
             if (typeof Lang !== 'undefined' && typeof Lang[str] !== 'undefined') {
                 str = Lang[str];
             } else {
@@ -532,8 +534,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
                 width = width || '800';height = height || '100%';
-                width = $(window).width()+20 >= width ? width + 'px' :'95%';
-                height = ($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
                 offset= options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
                 if (isFull) {width = '100%';height = '100%';}
