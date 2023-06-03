@@ -551,7 +551,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if(value){
                     value = value.split(',');
                     for(var i=0;i<value.length;i++){
-                        url = url.indexOf('?')!==-1?(url+"&id="+id+"&value="+value[i]):(url+"?id="+id+"&value="+value[i]);
+                        url = url.indexOf('?')!==-1?(url+"&"+ele.primaryKey+"="+id+"&value="+value[i]):(url+"?"+ele.primaryKey+"="+id+"&value="+value[i]);
                         html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] + '" lay-event="iframe" data-event="iframe" data-type="iframe" data-url="' + url + '"  class="label bg-green"> '+ value[i] +' </a>'
                     }
                 }
@@ -563,7 +563,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if(value){
                     value = value.split(',');
                     for(var i=0;i<value.length;i++){
-                        url = url.indexOf('?')!==-1?(url+"&id="+id+"&value="+value[i]):(url+"?id="+id+"&value="+value[i]);
+                        url = url.indexOf('?')!==-1?(url+"&"+ele.primaryKey+"="+id+"&value="+value[i]):(url+"?"+ele.primaryKey+"="+id+"&value="+value[i]);
                         html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] +'" lay-event="open" data-event="open" data-type="open" data-url="' + url + '"  class="label bg-green">'+ value[i] +'</a>'
                     }
                 }
