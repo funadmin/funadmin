@@ -179,7 +179,7 @@ class Upgrade extends Backend
             @unlink($this->lockFile);
             $version = $updateInfo['version'];
             session('upgradeInfo','');
-            setConfig('../config/app.php','version',$version);
+            setConfig('../config/funadmin.php','version',$version);
             $this->success('更新成功');
         }
     }
