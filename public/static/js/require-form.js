@@ -258,14 +258,14 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                     const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
                     layui.each(list, function () {
-                        var id = $(this).prop('id');
+                        var id = $(this).prop('id');data = $(this).data();
                         var name = $(this).prop('name');
                         var path = $(this).data('path');
                         $(this).html(Config.formData[name]);
-                        var upload_url = Fun.url(Upload.init.requests.upload_url) + '?editor=tinymce&path=' + path
+                        var upload_url = data.url?data.url:Fun.url(Upload.init.requests.upload_url) + '?editor=tinymce&path=' + path
                         if ($(this).data('editor') == 2) {
                             if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
-                                $('body').append($("<script referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
+                                $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
                             }
                             window['editor' + id] = tinymce.init({
                                 selector: '#' + id,
