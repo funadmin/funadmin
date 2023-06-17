@@ -86,10 +86,16 @@ class Addon extends Backend
                 $param = $this->request->param();
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
-                $map['cateid'] = $param['cateid']??0;
+                if(empty($param['cateid'])){
+                    $map['cateid'] = 0;
+                }elseif(is_numeric($param['cateid'])){
+                    $map['cateid'] = $param['cateid'];
+                }
                 $map['app_version'] = $this->app_version;
+                $map['page'] = $param['page'];
+                $map['limit'] = $param['limit'];
                 unset($map['status']);
-                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
+                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/getList')->setMethod('GET')
                     ->setParams($map);
                 if($this->authCloudService->getAuth()){
                     $res = $auth->setHeader()->run();
@@ -97,40 +103,55 @@ class Addon extends Backend
                     $res = $auth->run();
                 }
                 $list = [];
+                $addonNameArr = [];
+                $addonNameArrAll = [];
+                $count = 1;
                 if($res['code']==200){
-                    $list = $res['data'];
+                    $list = $res['data']['list'];
+                    $allList = $res['data']['allList'];
+                    $addonNameArr = $res['data']['searchNameList'];
+                    $addonNameArrAll = $res['data']['nameList'];
+                    $count = count($addonNameArr);
                 }else if($res['code']==401){
                     Cookie::set('auth_account','');
                 }
                 list($localAddons,$localNameArr) = $this->getLocalAddons();
-                $addonNameArr = $list?array_keys($list):[];
-                $where = [];
-                if(isset($param['cateid']) && $param['cateid']){
-                    $where[] = ['name','in',$addonNameArr];
-                }
-                if(empty($addonNameArr)){
-                    $where[] = ['name','not in',$addonNameArr];
-                }
                 try {
-                    $addons =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
-                    $list = array_merge($localAddons,$addons,$list?$list:[]);
+                    $addonsInstalled =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
+                    //$list = array_merge($localAddons,$addons,$list?$list:[]);
+                    if($param['cateid'] == 'local'){
+                        $list= $localAddons;
+                        foreach ($list as $key=>$item) {
+                            if(in_array($key,$addonNameArrAll)) {
+                                unset($list[$key]);
+                            }
+                        }
+                        $count = 1;
+                    }elseif($param['cateid'] =='installed'){
+                        $list= $addonsInstalled;
+                        $count =1;
+                    }
+                    $addons = [];
                     foreach ($list as $key => &$value) {
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
+                        if(in_array($key,$addonNameArrAll)){
+                            $addon[$key] = $value;
+                        }
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
                             $config = get_addons_config($key);
                             $info = get_addons_info($key);
-                            if ($addons && !isset($addons[$key]) || !$addons) {
+                            if (empty($addonsInstalled[$key])) {
                                 $class = get_addons_instance($key);
                                 $addons["$key"] = $class->getInfo();
                                 if ($addons[$key]) {
                                     $addons[$key]['install'] = 0;
-                                    $addons[$key]['status'] = 0;
+                                    $addons[$key]['status'] = 1;
                                 }
                                 $addons[$key] = $value;
                             } else {
-                                $addons[$key] = array_merge($value,$addons[$key]);
+                                $addons[$key] = array_merge($value,$addonsInstalled[$key]);
                                 $addons[$key]['install'] = 1;
                             }
                             $addons[$key]['localVersion'] = $info['version'];
@@ -158,7 +179,7 @@ class Addon extends Backend
                     }
                     unset($value);
                     $result = ['code' => 0, 'msg' => lang('Get Data Success'),
-                        'data' => $addons, 'count' => count($addons)];
+                        'data' => $addons, 'count' => $count];
                 }catch (\Exception $e){
                     $this->error($e->getMessage());
                 }

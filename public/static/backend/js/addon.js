@@ -60,6 +60,8 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
+                height: 'full-35',
+                lineStyle: 'height: 80px;', // 定义表格的多行样式
                 search: true,
                 show:false,
                 cols: [[
@@ -87,7 +89,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {
                         field: 'thumb',
                         title: __('Logo'),
-                        width: 100,
+                        width: 80,
                         imageHeight: 40,
                         search: false,
                         align: "center",
@@ -95,7 +97,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     },
                     {field: 'description', title: __('Description'), minWidth: 220, },
                     {
-                        field: 'version', title: __('Addon version'), width: 160, search: false,
+                        field: 'version', title: __('Addon version'), width: 100, search: false,
                         templet: function (d) {
                             return d['pluginsVersion'] ? d['pluginsVersion'] ['0']['version'] : d.version;
                         }
@@ -112,9 +114,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         }
                     },
                     {field: 'download', title: __('download'), width: 120,search: false},
-                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,templet:Table.templet.time},
+                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,dateformat: 'yyyy-MM-dd',templet:Table.templet.time},
                     {
-                        minwidth: 250, align: 'center', init: Table.init, templet: function (d) {
+                        width: 180, align: 'center', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install == 1 ) {
                                 if(d.lastVersion > d.localVersion){
@@ -150,7 +152,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
-                page: false
+                page: true
             });
             Table.api.bindEvent(Table.init.tableId);
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {

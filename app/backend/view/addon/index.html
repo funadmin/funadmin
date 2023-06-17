@@ -1,9 +1,12 @@
 <div class="layui-tab layui-tab-card" lay-filter="tab">
     <ul class="layui-tab-title" data-field="cateid">
-        <li class="layui-this" data-value="" lay-event="tabswitch">全部</li>
+        <li class="layui-this" data-value="" lay-event="tabswitch">在线插件</li>
         {volist name='$cateList' id="vo"}
         <li data-value="{$vo.id}" lay-event="tabswitch">{$vo.title}</li>
         {/volist}
+        <li data-value="local" lay-event="tabswitch">本地</li>
+        <li data-value="installed" lay-event="tabswitch">已安装</li>
+
     </ul>
 </div>
 <table class="layui-table" id="list" lay-filter="list"
