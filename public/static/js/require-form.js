@@ -231,7 +231,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             if (layReqText) options.layReqText = layReqText;
                             if (layVerType) options.layVerType = layVerType;
                             if (content) options.content = content;
-                            window['xmselect-' + id] = xmSelect.render(options);
+                            window['xmSelect-' + id] = xmSelect.render(options);
                             if(data.toString()==='' && url){
                                 searchData = {selectFields:selelectFields,tree:tree.show,parentField:parentfield}
                                 Fun.ajax({
@@ -239,7 +239,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     url: Fun.url(url?url: window.location.href),
                                     data:searchData
                                 },function (res) {
-                                    xmselectobj[i].update({
+                                    window['xmSelect-' + id].update({
                                         data: res.data,
                                         autoRow: autoRow,
                                     })
