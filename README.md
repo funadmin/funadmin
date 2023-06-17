@@ -1,5 +1,5 @@
 <BR>
-<h3 align="center">FunAdmin3.X版本，插件系统重构,更加灵活的插件开发，更加方便插件开发者开发应用</h3>
+<h3 align="center">FunAdmin4.X版本 在3.X的基础上优化了许多功能，还在测试阶段，并计划升级TP8</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
