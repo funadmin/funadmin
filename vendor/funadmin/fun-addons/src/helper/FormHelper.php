@@ -796,10 +796,11 @@ EOF;
         $options['theme'] =  $options['theme'] ??'';
         $options['value'] = $options['value'] ??'';
         $options['autorow'] =  $options['autorow'] ??'';
+        $options['filter'] = 'xmSelect';
         $options['toolbar'] = isset($options['toolbar'])?json_encode($options['toolbar'],JSON_UNESCAPED_UNICODE)  : '';
         $str = <<<EOF
-<div class="layui-form-item">{$this->label($name,$options)} . '      
-    <div {$this->getDataPropAttr($name,$value,$options)} class="layui-input-block {$this->getClass($options)} '  {$op} lay-filter="xmSelect">
+<div class="layui-form-item">{$this->label($name,$options)}    
+    <div {$this->getDataPropAttr($name,$value,$options)} class="layui-input-block {$this->getClass($options)} "  {$op}>
      {$this->tips($options)}
     </div>
 </div>
@@ -1407,7 +1408,7 @@ EOF;
                         $attr.= $this->search($options);
                         break;
                     case 'value':
-                        $attr .= "'" .$key.'="'.$this-> entities($val).'" data-'.$key.'="'.$this->entities($val).'" ';
+                        $attr .=  $key.'="{$this->entities($val)}" data-'.$key.'="'.$this->entities($val).'" ';
                         break;
                     case 'attr':
                         if(is_object($val) || is_array($val)){

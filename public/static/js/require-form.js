@@ -140,7 +140,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     }
                 },
                 xmSelect: function(formObj) {
-                    var xmselect ={},list = formObj!=undefined?formObj.find("*[lay-filter='xmSelect']"):$("*[lay-filter='xmSelect']");
+                    var xmselect ={},list = formObj!=undefined?formObj.find("*[lay-filter='xmSelect']"):($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
                     if (list.length > 0) {
                         layui.each(list, function(i) {
                             var id = $(this).prop('id'),
