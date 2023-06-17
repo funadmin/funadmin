@@ -888,19 +888,19 @@ class CurdService
                     $formFieldData .= "{:form_textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}',], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "image":
-                    $formFieldData .= "{:form_upload('{$vo['name']}',\$formData?\$formData['{$vo['name']}']:'{$vo['value']}' ,['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'])}" . PHP_EOL;
+                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "images":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'])}" . PHP_EOL;
+                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "file":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'])}" . PHP_EOL;
+                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "files":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'])}" . PHP_EOL;
+                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "editor":
-                    $formFieldData .= "{:form_editor('{$vo['name']}', 2,['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:form_editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
             }
         }
         return $formFieldData;
@@ -964,20 +964,20 @@ class CurdService
                                 break;
                             }
                         case 'date':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy-MM-dd',searchdateformat:'yyyy-MM-dd',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy-MM-dd',searchdateformat:'yyyy-MM-dd',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
                             break;
                         case 'timestamp':
                         case 'datetime':
                             if (in_array($v['name'], ['update_time', 'delete_time'])) {
                                 break;
                             }
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
                             break;
                         case 'year':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
                             break;
                         case 'time':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
                             break;
                         default :
                             $this->jsCols .= $space . "{field:'{$v['name']}', title: __('{$name}'),align: 'center'}," . PHP_EOL;

@@ -15,7 +15,7 @@
                 {:form_input('site_name','text',['label'=>"Site name",'verify'=>"required"])}
                 {:form_input('site_domain','text',['label'=>"Site Domain",'verify'=>"required|url"])}
                 {:form_input('site_email','text',['label'=>"Site Email"])}
-                {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
+                {:form_upload('site_logo',['type'=>'checkbox'],$formData?$formData['site_logo']:'')}
                 {:form_textarea('site_seo_title',['label'=>'Site title','verify'=>"required"])}
                 {:form_textarea('site_seo_keywords',['label'=>'Meta keywords','verify'=>"required"])}
                 {:form_textarea('site_seo_desc',['label'=>'Meta description','verify'=>"required"])}
@@ -26,6 +26,10 @@
         <!--上传配置-->
         <div class="layui-tab-item">
             <form class="layui-form " lay-filter="form">
+                {:form_select('upload_editor',
+                ['tinymce'=>'tinymce','ueditor'=>'ueditor','wangeditor'=>'wangeditor','ckeditor'=>"ckeditor"],
+                ['label'=>'Editor'],$formData['upload_editor']??'')}
+
                 {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
                 {:form_input('upload_file_max','text',['label'=>"Maxfilesize",'verify'=>'number','tips'=>"M"],'50')}
                 {:form_radio('upload_chunk',[1=>'是',0=>'否'],['label'=>'是否分片'])}
@@ -57,7 +61,7 @@
                 {:form_input('upload_water_alpha','text',['label'=>"wateralpha",'verify'=>'number','tips'=>"0-100"],'50')}
                 {:form_input('upload_water_size','text',['label'=>"waterSize",'verify'=>'number','tips'=>""],'50')}
                 {:form_color('upload_water_color',['label'=>"watercolor"])}
-                {:form_upload('upload_water_thumb',$formData,['label'=>'image/text'])}
+                {:form_upload('upload_water_thumb',['label'=>'image/text'],$formData['upload_water_thumb']??'')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>

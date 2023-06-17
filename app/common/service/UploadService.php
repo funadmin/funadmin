@@ -399,10 +399,9 @@ class UploadService extends AbstractService
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制
-        if ($this->fileExt !='*' && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
+        if ($this->fileExt !='*' && $this->file->extension() && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
             throw new Exception(lang('File type is limited'));
         }
-        $file_ext = $this->file->extension();
         if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
             $imgInfo = getimagesize($this->file->getPathname());
             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {

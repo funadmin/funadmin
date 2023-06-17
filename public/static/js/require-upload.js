@@ -54,7 +54,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             group = data.group || '',
                             uploadmultiple = data.multiple,
                             uploadExts = data.exts,chunk = data.chunk,
-                        uploadNum = uploadNum || 1;
+                            uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
                         uploadExts = uploadExts.indexOf(',') ? uploadExts.replace(/,/g, '|') : uploadExts
@@ -71,14 +71,17 @@ define(["jquery", 'croppers'], function($, croppers) {
                             number:uploadNum,
                             multiple: uploadmultiple,
                             auto:false,
-                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
+                            url: Fun.url(data.url?data.url:Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
-                                    if(chunk==undefined || chunk ==false || chunk == 0){
-                                        index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
-                                            Fun.toastr.close()
-                                        },1200))
-                                    }else{
-                                        if (!$('#' + this.data.chunkId).length) {
+                                console.log(chunk)
+                                console.log(this.data)
+                                if(chunk==undefined || chunk ==false || chunk == 0){
+                                    index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
+                                        Fun.toastr.close()
+                                    },1200))
+                                }else{
+                                    if(this.data){
+                                        if (this.data['chunkId']===undefined) {
                                             window[this.data.chunkId] = layui.layer.open({
                                                 type: 1,
                                                 title: false,
@@ -101,6 +104,8 @@ define(["jquery", 'croppers'], function($, croppers) {
                                             layui.element.progress('uploadProgress', Math.ceil((100*(1 + this.data.chunkIndex ) / this.data.chunkCount)) + '%');
                                         }
                                     }
+
+                                }
                             },
                             progress: progress===undefined?function(n, elem) {
                             }:progress,
@@ -266,7 +271,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
                             area: area, //弹窗宽度
-                            url: Fun.url(Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
+                            url: Fun.url(data.url?data.url:Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
                             done:success=== undefined ? function(res) {
                                 //上传完毕回调
