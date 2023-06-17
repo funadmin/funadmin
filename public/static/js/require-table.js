@@ -61,7 +61,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     Table.timeRender(cols);
                     layui.form.render();
                     require(['form'], function (Form) {
-                        Form.events.xmSelect();
+                        Form.events.xmselect();
                     })
                 });
                 layui.form.render();
@@ -288,7 +288,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 layui.form.render();
                 Table.timeRender(newCols)
                 require(['form'], function (Form) {
-                    Form.events.xmSelect();
+                    Form.events.xmselect();
                     Form.events.selectpage();
                 })
             }

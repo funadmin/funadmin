@@ -36,7 +36,7 @@ define(["jquery", 'croppers'], function($, croppers) {
             uploads: function(ele,options,success,error,choose,progress) {
                 var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
                 if (uploadList.length > 0) {
-                    var opt = [],uploadInt = [];
+                    var opt = [];
                     //读取本地文件
                     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
                     var  chunkSize = Upload.init.upload_chunksize*1024*1024;
@@ -245,7 +245,7 @@ define(["jquery", 'croppers'], function($, croppers) {
                         if(uploadExts!=="*" && uploadExts){
                             opt[i]['exts'] = uploadExts
                         }
-                        uploadInt[i] = layui.upload.render(opt[i]);
+                        window['upload-'+id] = layui.upload.render(opt[i]);
                         // Toastr.destroyAll();
                     })
                 }
@@ -253,7 +253,7 @@ define(["jquery", 'croppers'], function($, croppers) {
             cropper: function(ele,options,success,error) {
                 var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
                 if (cropperlist.length > 0) {
-                    var cropperlistobj = {},opt = [];
+                    var opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
                         var _parent = $(this).parents('.layui-upload'), id = $(this).prop('id');
@@ -288,7 +288,7 @@ define(["jquery", 'croppers'], function($, croppers) {
 
                             }:error,
                         },options===undefined?{}:options)
-                        cropperlistobj[i] = layui.croppers.render(opt[i]);
+                        window['cropper-'+id] = layui.croppers.render(opt[i]);
                     })
                 }
             },
