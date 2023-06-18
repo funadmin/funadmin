@@ -60,7 +60,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
-                lineStyle: 'height: 80px;', // 定义表格的多行样式
+                lineStyle: 'height: 60px;', // 定义表格的多行样式
                 search: true,
                 show:false,
                 cols: [[
