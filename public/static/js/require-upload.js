@@ -43,9 +43,9 @@ define(["jquery", 'croppers'], function($, croppers) {
                     var  maxSize = Upload.init.upload_size*1024*1024;
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
-                        var data = $(this).data();
+                        var _that= $(this), data = _that.data();
                         if(typeof data.value == 'object') data = data.value;
-                        var uploadNum = data.num,
+                        var uploadNum = data.num,id= _that.prop('id') || data.id,
                             uploadMime = data.mime,
                             uploadAccept = data.accept,
                             uploadPath = data.path || 'upload',
@@ -256,8 +256,9 @@ define(["jquery", 'croppers'], function($, croppers) {
                     var opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
-                        var _parent = $(this).parents('.layui-upload'), id = $(this).prop('id');
-                        var data = $(this).data();
+
+                        var _that = $(this), _parent =_that.parents('.layui-upload'), id = _that.prop('id') || _that.data('id');
+                        var data = _that.data();
                         if(typeof data.value == 'object') data = data.value;
                         var saveW = data.width, saveH = data.height, mark = data.mark,
                             area = data.area, uploadPath = data.path || 'upload';

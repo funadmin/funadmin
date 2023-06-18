@@ -1202,7 +1202,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             bindEvent: function (tableId) {
                 tableId = tableId || Table.init.tableId;
                 $(document).on('focus','*[lay-event]',function(){
-                    var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     } else {
@@ -1211,8 +1211,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     return false;
                 })
                 $(document).on('click','*[lay-event]',function(obj){
-
-                    var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    console.log(obj)
+                    var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     } else {

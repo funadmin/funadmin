@@ -136,7 +136,7 @@ class Addon extends Backend
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
                         if(in_array($key,$addonNameArrAll)){
-                            $addon[$key] = $value;
+                            $value = $allList[$key];
                         }
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
