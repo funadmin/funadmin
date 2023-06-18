@@ -1211,7 +1211,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     return false;
                 })
                 $(document).on('click','*[lay-event]',function(obj){
-                    console.log(obj)
                     var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)

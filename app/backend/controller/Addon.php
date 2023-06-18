@@ -133,11 +133,11 @@ class Addon extends Backend
                     }
                     $addons = [];
                     foreach ($list as $key => &$value) {
-                        $value['plugins_id'] = isset($value['id'])?$value['id']:0;
-                        unset($value['id']);
                         if(in_array($key,$addonNameArrAll)){
                             $value = $allList[$key];
                         }
+                        $value['plugins_id'] = isset($value['id'])?$value['id']:0;
+                        unset($value['id']);
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
                             $config = get_addons_config($key);

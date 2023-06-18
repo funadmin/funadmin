@@ -155,10 +155,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 page: true
             });
             Table.api.bindEvent(Table.init.tableId);
-            layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
-                var url = $(this).data('url'),auth = $(this).data('auth');
+            var tableObj = layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
+                var  _that = $(this), url = _that.data('url')   ,auth = _that.data('auth');
                 url = Fun.url(url);var event = obj.event;
-                if(event ==='open'){ return this.call();}
                 if (event === 'install') {
                     if (auth) {
                         Fun.toastr.confirm(__('Are you sure you want to install it'), function () {
@@ -237,7 +236,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         });
                     }
                 }
-                if (event === 'uninstall') {
+                else if (event === 'uninstall') {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
                         Fun.ajax({
                             url: url,
@@ -254,7 +253,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         })
                     });
                 }
-                if (event === 'status') {
+                else if (event === 'status') {
                     Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
                         Fun.ajax({
                             url: url,
@@ -267,7 +266,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         })
                     });
                 }
-                if(event === 'more') {
+                else if(event === 'more') {
                     if (auth) {
                         //更多下拉菜单
                         jsondata = $(this).data('value');
@@ -341,6 +340,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         });
                     }
                 }
+                else {
+                     return  _that.trigger("click");
+                }
                 return false;
             })
             //指定允许上传的文件类型
@@ -381,7 +383,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             AccountClick = function(e){
                 console.log()
                 let funadmin_memberinfo =  Fun.api.getStorage('funadmin_memberinfo')
-                console.log(funadmin_memberinfo)
                 if(typeof funadmin_memberinfo !=='undefined' && funadmin_memberinfo!=''){
                     layer.open({
                         type: 1,
