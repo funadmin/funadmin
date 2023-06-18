@@ -109,7 +109,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {field: 'general_price', title: __('Price'), width: 120,search: false,
                         templet: function (d){
                             if(d.general_price>0){
-                                return '<span class="layui-btn layui-btn-sm layui-btn-danger">￥'+d.general_price+'</span>';
+                                return '<span class="layui-btn layui-btn-sm layui-btn-danger layui-font-14">￥'+d.general_price+'</span>';
                             }else{
                                 return '<span class="layui-btn layui-btn-sm layui-btn-normal">免费</span>';
                             }
