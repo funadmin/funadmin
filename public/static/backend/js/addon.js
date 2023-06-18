@@ -141,9 +141,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                                 }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
-                                    html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</button>"
+                                    html+="<button class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</button>"
                                 }else{
-                                    html += '<a data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
+                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
                                 }
                             }
                             return html;
