@@ -468,7 +468,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.title = ele.title || ele.field;
                 var src = eval('d.' + ele.field);
                 src = src ? src : '/static/common/images/image.png';
-                title = d[ele.title] || src;
+                title = d[ele.title] || d[ele.name] || src;
                 src = src.split(',');
                 var html = [];
                 layui.each(src, function (i, v) {

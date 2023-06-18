@@ -75,18 +75,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         hide:true
                     },
                     {
-                        field: 'title',
-                        title: __('Title'),
-                        // width: 150,
-                        templet: function (d){
-                            if(d.website){
-                                return '<a class="layui-btn-xs layui-btn layui-btn-normal" target="_blank" href="'+d.website+'">'+d.title+'</a>';
-                            }else{
-                                return d.title;
-                            }
-                        }
-                    },
-                    {
                         field: 'thumb',
                         title: __('Logo'),
                         width: 80,
@@ -95,7 +83,21 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         align: "center",
                         templet: Table.templet.image
                     },
-                    {field: 'description', title: __('Description'), minWidth: 220, },
+                    {
+                        field: 'title',
+                        title: __('Title'),
+                        // width: 150,
+                        align:'left',
+                        templet: function (d){
+                            if(d.website){
+                                return '<a class="layui-btn-xs layui-btn layui-btn-normal" target="_blank" href="'+d.website+'">'+d.title+'</a>';
+                            }else{
+                                return d.title;
+                            }
+                        }
+                    },
+
+                    {field: 'description', title: __('Description'), minWidth: 220,align:'left',},
                     {
                         field: 'version', title: __('Addon version'), width: 100, search: false,
                         templet: function (d) {
