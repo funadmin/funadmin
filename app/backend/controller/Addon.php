@@ -155,14 +155,14 @@ class Addon extends Backend
                                 $addons[$key]['install'] = 1;
                             }
                             $addons[$key]['localVersion'] = $info['version'];
-                            if(isset($config['domain']) && $config['domain']['value']){
-                                $index = strpos($_SERVER['HTTP_HOST'],'.');
-                                $domain = explode(',', $config['domain']['value'])[0];
-                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
-                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
-                            }else{
-                                $addons[$key]['web'] = $info['url'];
-                            }
+//                            if(isset($config['domain']) && $config['domain']['value']){
+//                                $index = strpos($_SERVER['HTTP_HOST'],'.');
+//                                $domain = explode(',', $config['domain']['value'])[0];
+//                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+////                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
+//                            }else{
+////                                $addons[$key]['web'] =(string) addons_url($info['url']);
+//                            }
                         }else{
                             $addons[$key] = $value;
                             $addons[$key]['insatll'] = 0;

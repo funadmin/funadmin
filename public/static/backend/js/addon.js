@@ -76,9 +76,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {
                         field: 'thumb',
                         title: __('Logo'),
-                        width: 80,
-                        imageHeight: 60,
-                        imageWidth: 60,
+                        width: 90,
+                        imageHeight: 50,
+                        imageWidth: 50,
                         search: false,
                         align: "center",
                         templet: Table.templet.image
@@ -109,41 +109,41 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     {field: 'general_price', title: __('Price'), width: 120,search: false,
                         templet: function (d){
                             if(d.general_price>0){
-                                return '<span class="layui-badge">￥'+d.general_price+'</span>';
+                                return '<span class="layui-btn layui-btn-sm layui-btn-danger">￥'+d.general_price+'</span>';
                             }else{
-                                return '<span class="layui-badge layui-bg-blue">免费</span>';
+                                return '<span class="layui-btn layui-btn-sm layui-btn-normal">免费</span>';
                             }
                         }
                     },
                     {field: 'download', title: __('download'), width: 120,search: false},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,dateformat: 'yyyy-MM-dd',templet:Table.templet.time},
                     {
-                        fixed:'right', width: 170, align: 'left', init: Table.init, templet: function (d) {
+                        fixed:'right', minWidth: 170, align: 'left', init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install == 1 ) {
                                 if(d.lastVersion > d.localVersion){
-                                    html += "<button data-auth='"+auth+"' class='layui-btn layui-btn-normal layui-btn-xs ' title='"+ __('Upgrade') +"'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
+                                    html += "<button data-auth='"+auth+"' class='layui-btn layui-btn-normal layui-btn-sm ' title='"+ __('Upgrade') +"'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
                                         'data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
                                         __('Upgrade')+"</button>";
                                 }
-                                html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
+                                html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-sm"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
                                 if (d.status == 1 ) {
-                                    html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
+                                    html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
                                 } else {
-                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</button>'
+                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</button>'
                                 }
-                                html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
+                                html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
                                 if (d.website !== '') {
-                                    html += '<button  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</button>';
+                                    html += '<button  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</button>';
                                 }
-                                if(d.web){
-                                    html+="<button data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</button>"
-                                }
+                                // if(d.web){
+                                //     html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                // }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
-                                    html+="<button class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</button>"
+                                    html+="<button class=\"layui-btn  layui-btn-sm layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</button>"
                                 }else{
-                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
+                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
                                 }
                             }
                             return html;
@@ -154,6 +154,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 limit: 15,
                 page: true
             });
+            Table.api.bindEvent(Table.init.tableId);
             layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
                 var url = $(this).data('url'),auth = $(this).data('auth');
                 url = Fun.url(url);var event = obj.event;
@@ -467,7 +468,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     });
                 }
             }
-            Table.api.bindEvent(Table.init.tableId);
         },
         config: function () {
             Controller.api.bindevent()
