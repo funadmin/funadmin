@@ -7,5 +7,28 @@
 .layui-bg-brown{background-color:#A52A2A;}
 .layui-bg-violet{background-color:#EE82EE;}
 .layui-bg-plum{background-color:#DDA0DD;}
-.layui-font-blue{color:#1890ff!important;}
+.layui-bg-green{background-color:#67c23a!important;}
+.layui-bg-info{background-color:#909399!important;}
+.layui-bg-1{ background-color: #fff !important;color:#333}
+.layui-bg-2{color: #fff;background-color: #1e9fff;}
+.layui-bg-3{color: #fff;background-color: #E6A23C;}
+.layui-bg-4{color: #fff;background-color: #F56C6C;}
+.layui-bg-5{color: #fff;background-color: #36b368;}
+.layui-bg-6{color: #fff;background-color: #bc8fb8;}
+.layui-bg-7{color: #fff;background-color: #909399;}
+.layui-bg-8{color: #fff;background-color: #fa6141;}
+.layui-bg-9{color: #fff;background-color: #2e2e2e;}
+.layui-bg-10{color: #fff;background-color: #ec407a;}
+.layui-bg-11{color: #fff;background-color: #4285f4;}
+.layui-bg-12{color: #fff;background-color: #59698d;}
+.layui-bg-13{color: #fff;background-color: #33b5e5;}
+.layui-bg-14{color: #fff;background-color: #ff3547;}
+.layui-bg-15{color: #fff;background-color: #fb3;}
+.layui-bg-16{color: #fff;background-color: #00bcd4 ;}
+.layui-bg-17{color: #fff;background-color: #23272b;}
+.layui-bg-18{color: #fff;background-color: #07c160;}
+.layui-bg-19{color: #fff;background-color: #1989fa;}
+.layui-bg-20{color: #fff;background-color: #ee0a24;}
+.layui-bg-21{color: #fff;background-color: #ff976a;}
+.layui-font-blue{color:#1e9fff!important;}
 input[hidden] { height:0!important}

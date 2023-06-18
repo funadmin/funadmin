@@ -14,7 +14,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     logout_url: 'addon/logout',
                     localinstall:{
                         type: 'upload',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-btn-danger',
                         url: 'addon/localinstall',
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
@@ -23,7 +23,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     },
                     plugins:{
                         type: 'href',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-bg-5',
                         url: 'https://www.funadmin.com/frontend/plugins',
                         icon: 'layui-icon layui-icon-app',
                         text: __('plugins'),
@@ -39,7 +39,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         extend:"id='Create' ",
                     },account:{
                         type: 'account',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-bg-10',
                         url: 'addon/add',
                         icon: 'layui-icon layui-icon-user',
                         text: __('Account'),

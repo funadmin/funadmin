@@ -73,8 +73,6 @@ define(["jquery", 'croppers'], function($, croppers) {
                             auto:false,
                             url: Fun.url(data.url?data.url:Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
-                                console.log(chunk)
-                                console.log(this.data)
                                 if(chunk==undefined || chunk ==false || chunk == 0){
                                     index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
                                         Fun.toastr.close()

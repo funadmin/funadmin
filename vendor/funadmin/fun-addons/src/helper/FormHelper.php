@@ -415,21 +415,18 @@ EOF;
             foreach ($radiolist as $k => $v) {
                 if (is_string($v) && strpos($v, ':') !== false) {
                     $v = explode(":", $v);
-                    $value = $v[0];
                     $input .= <<<EOF
-<input {$this->getDataPropAttr($name,$value,$options)} class="{$this->getClass($options)}" type="radio" {$this->selectedOrchecked($value, $v[0], 2)}   title="{$this->__($v[1])}" />
+<input {$this->getDataPropAttr($name,$v[0],$options)} class="{$this->getClass($options)}" type="radio" {$this->selectedOrchecked($value, $v[0], 2)}   title="{$this->__($v[1])}" />
 EOF;
-                } else {
-                    $value = $k;
+                } else{
                     $input .=<<<EOF
-<input {$this->getDataPropAttr($name,$value,$options)} class="{$this->getClass($options)}"  type="radio" {$this->selectedOrchecked($value, $v[0], 2)}   title="{$this->__($v)}" />
+<input {$this->getDataPropAttr($name,$k,$options)} class="{$this->getClass($options)}"  type="radio" {$this->selectedOrchecked($value, $k, 2)}   title="{$this->__($v)}" />
 EOF;
                 }
             }
         } else {
-            $value = $radiolist;
             $input .=<<<EOF
- <input {$this->getDataPropAttr($name,$value,$options)} class="{$this->getClass($options)}" type="radio"  title="{$this->__($radiolist)}" />
+ <input {$this->getDataPropAttr($name,$radiolist,$options)} class="{$this->getClass($options)}" type="radio"  title="{$this->__($radiolist)}" />
 EOF;
         }
         $str =<<<EOF
@@ -852,12 +849,12 @@ EOF;
     {
         list($name,$id) = $this->getNameId($name,$options);
         $format = $options['format'] ?? 'hex';
-        $options['filter']  = $options['filter']??'colorPicker'?
+        $options['filter']  = $options['filter']??'colorPicker';
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name,$options)}
     <div class="layui-input-block">
-        <input {$this->getDataPropAttr($name,$value,$options)}  class="layui-input layui-input-inline {$this->getClass($options)}"  type="text" />
-        <div {$this->getOptionsAttr($name,$options)}  data-id="{$id}"  data-name="{$name}" data-format = "{$format}" ></div>
+        <input {$this->getNameValueAttr($name,$value,$options)} lay-verify="{$options['verify']}" class="layui-input layui-input-inline {$this->getClass($options)}"  type="text" />
+        <div {$this->getOptionsAttr($name,$options)}   data-format = "{$format}" ></div>
     </div>
 </div>
 EOF;
@@ -938,10 +935,10 @@ EOF;
      * @param $options
      * @return string
      */
-    public  function region($name = 'regionCheck',  $options = [],$value='')
+    public  function region($name = 'region',  $options = [],$value='')
     {
         list($name,$id) = $this->getNameId($name,$options);
-        $options['filter'] = 'regionCheck';
+        $options['filter'] = 'region';
         $str = <<<EOF
  <div class="layui-form-item">{$this->label($name,$options)}
     <div class="layui-input-block">
@@ -973,7 +970,7 @@ EOF;
         if($options['editor'] =='tinymce'){
             // tinyedit
             $content = <<<EOF
-            <textarea {$this->getDataPropAttr($name,$value,$options)} lay-editor type="text/plain">{$value}</textarea>;
+            <textarea {$this->getDataPropAttr($name,$value,$options)} lay-editor type="text/plain">{$value}</textarea>
 EOF;
         }else{
             //百度。quill wangeditor ckeditor,editormd
@@ -981,7 +978,7 @@ EOF;
             $text = '';
             if (isset($options['textarea'])) {
                $text= <<<EOF
- <textarea {$this->getDataPropAttr($name,$value,$options)} </textarea>;
+ <textarea {$this->getNameValueAttr($name,$value,$options)} </textarea>
 EOF;
             }
             $content = <<<EOF
@@ -992,7 +989,7 @@ EOF;
         }
         $str =  <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
-     <div class="layui-input-block">;
+     <div class="layui-input-block">
     {$content}
     </div>
 </div>

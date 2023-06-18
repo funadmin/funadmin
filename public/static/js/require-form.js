@@ -58,7 +58,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 values = [values];
                             }
                             options = {
-                                el: '#' + id, data:data, url: url, type: type,  name: name,
+                                el: this, data:data, url: url, type: type,  name: name,
                                 field: attr, values: values, method: method, where: where,
                                 delimiter: delimiter, fielddelimiter: fielddelimiter,verify:verify,
                             };
@@ -71,6 +71,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     if (list.length > 0) {
                         selectN = layui.selectN || parent.layui.selectN;
                         layui.each(list, function(i) {
+                            console.log(this)
                             var _that = $(this);
                             var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
                                 url = _that.data('url') || _that.data('request'),
@@ -84,7 +85,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 pid = _that.data('pid') ||　'pid',
                                 delimiter = _that.data('delimiter') || ',',
                                 options = {
-                                    elem: '#' + id, data: data, url: url, name: name,pid:pid,formFilter:id,
+                                    elem: this, data: data, url: url, name: name,pid:pid,formFilter:id,
                                     field: attr, selected: values, method: method,search:search,num:num,
                                     delimiter: delimiter,last:last,verify:verify,
                                 };
@@ -107,7 +108,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 maxSelectLimit  = _that.data('maxselectlimit ') ||　0, searchField   = _that.data('searchfield') || field,
                                 searchKey =_that.data('searchkey') ||　primaryKey, orderBy    = _that.data('orderby') ||　false,
                                 method    = _that.data('method') ||　'GET', dbTable    = _that.data('dbtable'),
-                                selectToCloseList  =_that.data('selecttocloselist') ||　 false,disabled = _that.data('disabled') || false,
+                                selectToCloseList  =_that.data('selecttocloselist') ||　 true,disabled = _that.data('disabled') || false,
                                 andOr =_that.data('andor'),formatItem = _that.data('formatitem') || false,required = _that.data('required') || ''
                             orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;isHtml!=undefined?isHtml:true;eSelect=_that.data('eselect');
                             if(!value && Config.formData && Config.formData[name]) {
@@ -186,7 +187,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             clickClose = clickClose ? clickClose : false;
                             xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
                             options = {
-                                el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
+                                el: this, language: lang, data: data, initValue: value, name: name,prop: props,
                                 tips: tips, empty: empty, searchTips: searchTips, disabled: disabled,
                                 filterable: filterable,remoteSearch: remoteSearch,
                                 remoteMethod: function(val, cb, show) {
@@ -267,7 +268,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
                                 }
                                 window['editor-' + id] = tinymce.init({
-                                    selector: '#' + id,
+                                    selector:'#' + id+'[lay-editor]',
                                     language: data.language?data.language:'zh-Hans',
                                     plugins: data.plugins?data.plugins:'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
                                     menubar: 'file edit view insert format tools table help',
@@ -381,7 +382,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             var id = _that.prop('id');var data = _that.data();
                             var inputTags = layui.inputTags ? layui.inputTags : parent.layui.inputTags;
                             window['tags-'+id] = inputTags.render({
-                                elem: '#' + id,
+                                elem: this,
                                 content: content,
                                 done: (data.done?eval(data.done(value)):function(value) {})
                             })
@@ -395,7 +396,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             var _that = $(this);var data = _that.data();
                             var id = _that.prop('id');
                             window['icon-'+id] = layui.iconPicker.render({
-                                elem: '#' + id,
+                                elem: this,
                                 type: 'fontClass',
                                 search: true,
                                 page: true,
@@ -412,11 +413,11 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     var list = formObj!=undefined?formObj.find("*[lay-filter='colorPicker']"):$("*[lay-filter='colorPicker']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var _that = $(this),name= _that.data('name'),format = _that.data('format') || 'hex';
-                            var id = _that.prop('id');var data = _that.data();
+                            var _that = $(this),name= _that.data('name'),format = _that.data('format') || 'hex', data = _that.data();
+                            var id = _that.prop('id') || _that.data('id');
                             var color = _that.prev('input').val();
                             window['color-'+id] = layui.colorpicker.render({
-                                elem: '#' + id,
+                                elem: this,
                                 color: color,
                                 predefine: true,
                                 alpha: true,
@@ -429,8 +430,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         })
                     }
                 },
-                regioncheck: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='regionCheck']"):$("*[lay-filter='regionCheck']");
+                region: function(formObj) {
+                    var list = formObj!=undefined?formObj.find("*[lay-filter='region']"):$("*[lay-filter='region']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _that = $(this);
@@ -440,8 +441,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             if(value && typeof value === 'string'){
                                 value = value.split(',');
                             }
-                            window['regioncheck-'+id] = layui.regionCheckBox.render({
-                                elem: '#' + id,
+                            window['region-'+id] = layui.regionCheckBox.render({
+                                elem: this,
                                 name: name,
                                 value: value,
                                 width: '550px',
@@ -478,7 +479,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 province = cityValue.split('/')[0]; city = cityValue.split('/')[1];district = cityValue.split('/')[2];
                             }
                             var districtId = $(this).data('districtid');
-                            window['citypicker-'+id] = new cityPicker("#" + id, {
+                            window['citypicker-'+id] = new cityPicker(this, {
                                 provincename: provinceId,
                                 cityname: cityId,
                                 districtname: districtId,
@@ -510,7 +511,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         layui.each(list, function() {
                             var id = $(this).prop('id');
                             window['timepicker-'+id] = layui.timePicker.render({
-                                elem: '#' + id,
+                                elem: this,
                                 trigger: 'click',
                                 options: {
                                     timeStamp: false,
@@ -560,7 +561,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         layui.each(list, function(i) {
                             var _that = $(this),id = _that.prop('id'),name=_that.data('name')
                             options = _that.data('options') || {};
-                            options.elem = '#' + id;
+                            options.elem =this;
                             options.value = _that.data('value');
                             options.length = options.length?options.length:5;
                             options.theme = options.theme==undefined?'#1E9FFF':options.length;
@@ -588,7 +589,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         layui.each(list, function(i) {
                             var _that = $(this),id = _that.prop('id'),name=_that.data('name');
                             options = _that.data('options') || {};
-                            options.elem = '#' + id;
+                            options.elem = this;
                             options.value = _that.data('value');
                             options.max = options.max?options.max:100;
                             options.min = options.min?options.min:0;
@@ -890,7 +891,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             url = url?url: Fun.url(Upload.init.requests.attach_url + '?' +
                                 '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+ '&path='+path+'&type='+uploadType);
                             tableSelect.render({
-                                elem: '[lay-filter=\"upload-choose\"]',
+                                elem: this,
                                 checkedKey: 'id',
                                 searchType: 2,
                                 searchList: [{
@@ -1089,7 +1090,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     events.slider(form);
                     events.timepicker(form);
                     events.editor(form);
-                    events.regioncheck(form);
+                    events.region(form);
                     events.addInput(form);
                     events.selectplus(form);
                     events.selectn(form);
