@@ -70,7 +70,7 @@ class Auth extends Backend
                     ->select()->toArray();
                 foreach ($list as $k => &$v) {
                     $v['title'] = lang($v['title']);
-                    $v['icons'] = lang($v['icon']);
+                    $v['icons'] = $v['icon'];
                     unset($v['icon']);
                 }
                 unset($v);
