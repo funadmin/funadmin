@@ -598,16 +598,14 @@ EOF;
      */
     public  function textarea($name = '', $options = [], $value = '')
     {
-        $name = $options['formname']??$name;
-        $label = $options['label'] ?? $name;
-        $tips = $options['tips'] ?? $name;
-        $placeholder = $options['placeholder'] ?? $tips;
-        $str = ' <div class="layui-form-item layui-form-text">' .$this->label($name,$options) . '            <div class="layui-input-block">
-            <textarea '. $this->getExtend($options) . ' ' . $this->getStyle($options) . '  placeholder="' . $this->__($placeholder) . '" class="layui-textarea ' . $this->getClass($options) . '" 
-            ' . $this->filter($options) . $this->verify($options) . ' name="' . $name . '"
-            value="' . $value . '">' . $value . '</textarea>
-            ' . $this->tips($options) . '
-            </div></div>';
+        $str = <<<EOF
+ <div class="layui-form-item layui-form-text">{$this->label($name,$options)}
+    <div class="layui-input-block">
+            <textarea {$this->getDataPropAttr($name,$value,$options)} class="layui-textarea {$this->getClass($options)}" 
+            >{$value}</textarea>
+            {$this->tips($options)}
+            </div></div>
+EOF;
         return $str;
     }
 
@@ -825,12 +823,13 @@ EOF;
     {
         list($name,$id) = $this->getNameId($name,$options);
         $options['filter'] = $options['filter'] ?? 'tags';
+        $options['placeholder'] = $options['placeholder'] ?? 'Space To Generate Tags';
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name,$options)}
     <div class="layui-input-block">
         <div class="tags" >
             <input type="hidden" name="{$name}" value="{$value}" />
-            <input id="{$id}" {$this->getOptionsAttr($name,$options)} {$this->getStyle($options)}  class="{$this->getClass($options)}"   type="text" placeholder="{$this->__("Space To Generate Tags") }" />
+            <input id="{$id}" {$this->getOptionsAttr($name,$options)} class="{$this->getClass($options)}"   type="text"  />
         </div>
     </div>
 </div>
@@ -1170,8 +1169,8 @@ EOF;
 EOF;
         }
         $str = <<<EOF
-<input type="hidden" name="__token__" value="{$this->token()} ">
-<div class=" layui-btn-submit layui-btn-center {$show}" />
+        <input type="hidden" name="__token__" value="{$this->token()} ">
+        <div class=" layui-btn-submit layui-btn-center {$show}" />
             <button type="submit" class="layui-btn layui-btn-normal submit " lay-fitler="submit" lay-submit>{$this->__('Submit')}
             </button>
             {$reset}
@@ -1369,7 +1368,7 @@ EOF;
             $options['id'] = $options['id']??$name;
             $options['name'] = $options['formname']??($options['fromName']??$name);
             $options['label'] = $options['label'] ?? $name;
-            $options['tips'] = $options['tips'] ?? $options['label'];
+            $options['tips'] = $options['tips'] ?? '';
             $options['filter'] = $options['filter'] ?? $name;
             foreach ($options as $key => $val) {
                 switch ($key){
@@ -1379,7 +1378,7 @@ EOF;
                     case 'label':
                         break;
                     case 'placeholder':
-                        $attr.= "'" .$key.'="'. $this->__($val).'" ';
+                        $attr.=  $key.'="'. $this->__($val).'" ';
                         break;
                     case 'verify':
                         $attr.= $this->verify($options);
@@ -1485,7 +1484,7 @@ EOF;
      * @return float|int|mixed|string
      */
     protected function __($string=''){
-        return lang($string);
+        return lang($this->entities($string));
     }
     protected function getTitle($string){
         return $this->__(Str::title($string));
