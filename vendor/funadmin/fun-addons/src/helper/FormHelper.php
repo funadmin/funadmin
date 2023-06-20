@@ -1213,6 +1213,17 @@ EOF;
     {
         return htmlentities($value, ENT_QUOTES, 'UTF-8', false);
     }
+
+    /**
+     * 把 HTML 实体转换回字符
+     * @param $value
+     * @return string
+     */
+    protected function entity_decode($value)
+    {
+        return html_entity_decode($value);
+    }
+
     /**
      * @param $options
      * @return string
@@ -1484,7 +1495,7 @@ EOF;
      * @return float|int|mixed|string
      */
     protected function __($string=''){
-        return lang($this->entities($string));
+        return lang($this->entity_decode($string));
     }
     protected function getTitle($string){
         return $this->__(Str::title($string));
