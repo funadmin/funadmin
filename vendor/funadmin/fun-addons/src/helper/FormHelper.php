@@ -1106,6 +1106,8 @@ EOF;
 <button id="select-{$id}" type="button" class="layui-btn layui-btn-danger {$options['select']}"  lay-filter="{$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>;
 EOF;
         }
+        $verify = $options['verify']??"";
+        $options['verify'] = '';
         if (!isset($options['filter'])) $options['filter'] = 'upload'; //监听
         $str = <<<EOF
 <style>
@@ -1117,7 +1119,7 @@ width:65%
 <div class="layui-form-item">{$this->label($name,$options) }
     <div class="layui-input-block">
         <div class="layui-upload">
-            <input {$this->getNameValueAttr($name,$value,$options)}   type="text"  class="layui-input layui-input-upload attach {$this->getClass($options)}" />
+            <input {$this->getNameValueAttr($name,$value,$options)} lay-verify="{$verify}"  type="text"  class="layui-input layui-input-upload attach {$this->getClass($options)}" />
            {$croper_container}
             <button id="upload-{$id}" type="button" {$this->getOptionsAttr($name,$options)} style="margin-left:0px" class="layui-btn layui-btn-normal"><i class="layui-icon layui-icon-upload-drag"></i>{$this->__('Uploads')}</button>
             {$select_container}

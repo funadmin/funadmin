@@ -1062,7 +1062,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 table = layui.table || layui.treeTable;
                 table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
-                    parent.table.reloadData(tableId, {}, $deep);
+                    parent.table && parent.table.reloadData(tableId, {}, $deep);
                 }
             },
             toolbar: function (options) {
