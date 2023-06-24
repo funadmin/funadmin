@@ -977,6 +977,18 @@ if (!function_exists('form_submitbtn')) {
         return Form::submitbtn($reset, $options);
     }
 }
+
+if (!function_exists('form_submit')) {
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    function form_submit($reset = true, $options = [])
+    {
+        return Form::submit($reset, $options);
+    }
+}
 if (!function_exists('form_closebtn')) {
     /**
      * @param bool $reset

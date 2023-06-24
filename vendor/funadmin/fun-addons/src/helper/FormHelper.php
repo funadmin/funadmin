@@ -1180,6 +1180,10 @@ EOF;
 EOF;
         return $str;
     }
+
+    public function submit($reset=true, $options=[]){
+        return $this->submitbtn($reset,$options);
+    }
     /**
      * @param $label
      * @param $options
