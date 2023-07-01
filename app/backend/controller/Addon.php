@@ -248,8 +248,8 @@ class Addon extends Backend
             $this->error(lang('addon name is not right'));
         }
         if($type =='upgrade'){
-            if($this->doUpgrade($name)){
-                $this->success('upgrade success');
+            if(!$this->doUpgrade($name)){
+                $this->error('upgrade failed');
             };
         }
         if( $this->doInstall( $name, $plugins_id, $version_id, $type)){
@@ -506,6 +506,16 @@ class Addon extends Backend
         if (empty($class)) {
             $this->error(lang('addons %s is not ready', [$name]));
         }
+        $addon_info = get_addons_info($name);
+        if($addon_info['depend']){
+            $depend = explode(',',$addon_info['depend']);
+            foreach ($depend as $v) {
+                $dependAddon  = get_addons_info($v);
+                if(empty($dependAddon)){
+                    $this->error('Please install the dependent plugin first: '.$addon_info['depend']);
+                }
+            }
+        }
         //添加数据库
         try{
             if($type!='upgrade'){
@@ -514,14 +524,7 @@ class Addon extends Backend
         } catch (Exception $e){
             $this->error($e->getMessage());
         }
-        $addon_info = get_addons_info($name);
-        if($addon_info['depend']){
-            $depend = explode(',',$addon_info['depend']);
-            foreach ($depend as $v) {
-                $this->getCloundAddons($this->getCloundData($v));
-                $this->doInstall($name);
-            }
-        }
+
         // 安装菜单
         $menu_config=get_addons_menu($name);
         if(!empty($menu_config)){
