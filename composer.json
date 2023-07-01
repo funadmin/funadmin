@@ -38,7 +38,7 @@
     "phpoffice/phpspreadsheet": "^1.28",
     "guzzlehttp/guzzle": "^7.7",
     "funadmin/fun-addons": "^5.2",
-    "firebase/php-jwt": "^6.7"
+    "firebase/php-jwt": "*"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
