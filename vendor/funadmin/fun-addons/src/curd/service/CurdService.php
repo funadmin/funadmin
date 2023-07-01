@@ -1194,7 +1194,7 @@ class CurdService
         $requests = '';
         $requestsRecycle = '';
         foreach ($methodArr as $k => $v) {
-            if (!$this->softDelete && $v == 'recycle') continue;
+            if (!$softDelete && $v == 'recycle') continue;
             if ($v != 'refresh') {
                 $space = $k == 0 ? '' : '                    ';
                 if (!in_array($v, ['restore'])) {
