@@ -435,7 +435,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _that = $(this);
-                            var id = _that.attr('id'),
+                            var id = _that.prop('id'),
                                 name = _that.attr('name');
                             value = _that.data('value') || [];
                             if(value && typeof value === 'string'){
@@ -525,9 +525,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     var list = formObj!=undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var format = $(this).data('format'), type = $(this).data('type'),
-                                value=$(this).data('value') || $(this).val(),
-                                range = $(this).data('range');
+                            var format = $(this).data('format'), type = $(this).data('type'),id= $(this).prop('id') || $(this).data('id'),
+                                value = $(this).data('value') || $(this).val(), range = $(this).data('range');
                             if (type === undefined || type === '' || type == null) {
                                 type = 'datetime'
                             }
