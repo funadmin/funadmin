@@ -1,5 +1,6 @@
 /app/cms
 /app/mocms
+/app/curd
 /app/test
 /.idea
 /.vscode
@@ -11,4 +12,5 @@
 /public/static/addons
 /public/static/cms
 /public/static/mocms
+/public/static/curd
 /public/static/storage

@@ -10,7 +10,7 @@ use think\facade\Config;
 use think\facade\Request;
 use think\file\UploadedFile;
 use think\Image;
-use think\Filesystem;
+use think\facade\Filesystem;
 
 class UploadService extends AbstractService
 {
@@ -76,7 +76,7 @@ class UploadService extends AbstractService
      */
     protected $height = 0;
 
-
+    protected $rule  = '';
     /**
      * Service constructor.
      * @param App $app
@@ -94,10 +94,11 @@ class UploadService extends AbstractService
      */
     protected function initialize()
     {
+        $this->rule = syscfg('upload','upload_file_rule')?:'';
         $this->driver = syscfg('upload','upload_driver');
         $this->fileExt = syscfg('upload','upload_file_type');
         $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
-        $this->filesystem = new Filesystem($this->app);
+        $this->filesystem =  Filesystem::instance();
         $this->disksdriver = Config::get('filesystem.default','public');
         $this->disksurl = Config::get('filesystem.disks.'.$this->disksdriver.'.url','/storage');
         $this->ossService = OssService::instance();
@@ -330,7 +331,7 @@ class UploadService extends AbstractService
 
         $this->file = $file?:$this->file;
         $saveFilePath = input('path','uploads') =='undefined'?:$this->saveFilePath;
-        $savename = $this->filesystem->disk($this->disksdriver)->putFile($saveFilePath, $this->file);
+        $savename = $this->filesystem->disk($this->disksdriver)->putFile($saveFilePath, $this->file,$this->rule);
         $savename = str_replace('\\','/',$savename);
         $path = $this->disksurl . "/" . $savename;
         $attach = AttachModel::where('md5',$this->file->md5())->find();

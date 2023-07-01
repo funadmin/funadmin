@@ -232,7 +232,7 @@ class Addon extends Backend
      * @NodeAnnotation(title="安装")
      * @throws Exception
      */
-    public function install($name='',$type='')
+    public function install(string $name='',string $type='')
     {
         set_time_limit(0);
         $name = $this->request->param("name")??$name;
@@ -259,21 +259,13 @@ class Addon extends Backend
         //本地存在空和更新则请求后端
         if(empty($type) || $type=='upgrade'){
             //不存在或者
-            $params = [
-                'plugins_id'=>$plugins_id,
-                'name'=>$name,
-                'version_id'=>$version_id,
-                'version'=> '',
-                'app_version'=>$this->app_version,
-                "ip" => request()->ip(),
-                "domain" => request()->domain(),
-            ];
+            $postData = $this->getCloundData($name,$plugins_id,$version_id);
             if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
             ){
-                $this->getCloundAddons($params);
+                $this->getCloundAddons($postData);
             }
             if($type =='upgrade'){
-                $this->getCloundAddons($params);
+                $this->getCloundAddons($postData);
             }
         }
         $class = get_addons_instance($name);
@@ -288,6 +280,14 @@ class Addon extends Backend
         } catch (Exception $e){
             $this->error($e->getMessage());
         }
+        $addon_info = get_addons_info($name);
+        if($addon_info['depend']){
+            $depend = explode(',',$addon_info['depend']);
+            foreach ($depend as $v) {
+                $this->getCloundAddons($this->getCloundData($v));
+                $this->install($name);
+            }
+        }
         // 安装菜单
         $menu_config=get_addons_menu($name);
         if(!empty($menu_config)){
@@ -299,9 +299,9 @@ class Addon extends Backend
             $menu[] = $menu_config['menu'];
             $this->addonService->addAddonMenu($menu,$pid,$name);
         }
+
         //安装插件
         $class->install();
-        $addon_info = get_addons_info($name);
         $addon_info['status'] = 1;
         if($list){
             if($list->delete_time > 0){
@@ -614,7 +614,7 @@ class Addon extends Backend
      * @return void
      * @throws \Exception
      */
-    protected function getCloundAddons($params){
+    protected function getCloundAddons(array $params=[]){
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
             ->setParams($params)->setHeader()->setOptions()->run();
         if($res['code'] == 401){
@@ -641,6 +641,24 @@ class Addon extends Backend
 
     }
 
+    /**
+     * 获取远程请求参数
+     * @param $name
+     * @param $plugins_id
+     * @param $version_id
+     * @return array
+     */
+    protected  function getCloundData(string $name,int $plugins_id=0,int $version_id=0){
+        return  [
+            'plugins_id'=>$plugins_id,
+            'name'=>$name,
+            'version_id'=>$version_id,
+            'version'=> '',
+            'app_version'=>$this->app_version,
+            "ip" => request()->ip(),
+            "domain" => request()->domain(),
+        ];
+    }
     /**
      * 退出云平台
      * @return void

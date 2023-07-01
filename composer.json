@@ -17,10 +17,10 @@
   ],
   "support": {
     "email": "994927909@qq.com",
-    "issues": "https://github.com/funadmin/funadmin/issues",
+    "issues": "https://gitee.com/funadmin/funadmin/issues",
     "forum": "https://bbs.funadmin.com/",
     "wiki": "https://doc.funadmin.com",
-    "source": "https://github.com/funadmin/funadmin"
+    "source": "https://gitee.com/funadmin/funadmin"
   },
   "require": {
     "php": ">=7.4.0",
@@ -29,17 +29,15 @@
     "topthink/think-orm": "2.0.*",
     "topthink/think-view": "^1.0",
     "topthink/think-image": "^1.0",
-    "topthink/think-queue": "^3.0",
     "topthink/think-captcha": "^3.0.7",
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
-    "topthink/think-ide-helper": "^1.0",
-    "topthink/think-throttle": "^1.3",
     "topthink/think-filesystem": "^2.0",
     "doctrine/annotations": "^1.14",
-    "ramsey/uuid": "^4.2",
+    "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
-    "funadmin/fun-addons": "^5.1.10"
+    "guzzlehttp/guzzle": "^7.7",
+    "funadmin/fun-addons": "^5.2"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
