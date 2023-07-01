@@ -1106,6 +1106,7 @@ EOF;
 <button id="select-{$id}" type="button" class="layui-btn layui-btn-danger {$options['select']}"  lay-filter="{$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>;
 EOF;
         }
+        $label = $this->label($name,$options) ;
         $verify = $options['verify']??"";
         $options['verify'] = '';
         if (!isset($options['filter'])) $options['filter'] = 'upload'; //监听
@@ -1116,7 +1117,7 @@ EOF;
 width:65% 
 }
 </style>
-<div class="layui-form-item">{$this->label($name,$options) }
+<div class="layui-form-item">{$label}
     <div class="layui-input-block">
         <div class="layui-upload">
             <input {$this->getNameValueAttr($name,$value,$options)} lay-verify="{$verify}"  type="text"  class="layui-input layui-input-upload attach {$this->getClass($options)}" />
@@ -1311,7 +1312,6 @@ EOF;
 
     protected  function labelRequire($options=[])
     {
-
         if (isset($options['verify']) && ($options['verify'] == 'required' || strpos($options['verify'], 'required') !== false)) {
             return 'required';
         }
