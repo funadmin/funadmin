@@ -248,91 +248,13 @@ class Addon extends Backend
             $this->error(lang('addon name is not right'));
         }
         if($type =='upgrade'){
-            $this->upgrade();
+            if($this->doUpgrade($name)){
+                $this->success('upgrade success');
+            };
         }
-        //检查插件是否安装
-        $list = $this->isInstall($name);
-        if ($list && $list->status==1) {
-            $this->error(lang('addons %s is already installed', [$name]));
+        if( $this->doInstall( $name, $plugins_id, $version_id, $type)){
+            $this->success('install success');
         }
-        list($addons,$localNameArr) = $this->getLocalAddons();
-        //本地存在空和更新则请求后端
-        if(empty($type) || $type=='upgrade'){
-            //不存在或者
-            $postData = $this->getCloundData($name,$plugins_id,$version_id);
-            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
-            ){
-                $this->getCloundAddons($postData);
-            }
-            if($type =='upgrade'){
-                $this->getCloundAddons($postData);
-            }
-        }
-        $class = get_addons_instance($name);
-        if (empty($class)) {
-            $this->error(lang('addons %s is not ready', [$name]));
-        }
-        //添加数据库
-        try{
-            if($type!='upgrade'){
-                importsql($name);
-            }
-        } catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-        $addon_info = get_addons_info($name);
-        if($addon_info['depend']){
-            $depend = explode(',',$addon_info['depend']);
-            foreach ($depend as $v) {
-                $this->getCloundAddons($this->getCloundData($v));
-                $this->install($name);
-            }
-        }
-        // 安装菜单
-        $menu_config=get_addons_menu($name);
-        if(!empty($menu_config)){
-            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
-                $pid = 0;
-            }else{
-                $pid = $this->addonService->addAddonManager()->id;
-            }
-            $menu[] = $menu_config['menu'];
-            $this->addonService->addAddonMenu($menu,$pid,$name);
-        }
-
-        //安装插件
-        $class->install();
-        $addon_info['status'] = 1;
-        if($list){
-            if($list->delete_time > 0){
-                $this->modelClass->restore(['id'=>$list->id]);
-            }
-            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
-        }else{
-            $res =  $this->modelClass->save($addon_info);
-        }
-        if (!$res) {
-            $this->error(lang('addon install fail'));
-        }
-        Service::copyApp($name,$delete = true);
-        //复制文件到目录
-        if(Service::getCheckDirs()){
-            foreach (Service::getCheckDirs() as $k => $dir) {
-                $sourcedir = Service::getAddonsNamePath($name). $dir;
-                if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
-                }
-            }
-        }
-        try {
-            Service::updateAddonsInfo($name);
-            //刷新addon文件
-            refreshaddons();
-        }catch (\Exception $e){
-            $this->error($e->getMessage());
-        }
-        Cache::clear();
-        $this->success(lang('Install success'));
     }
     /**
      * @NodeAnnotation(title="离线安装")
@@ -550,16 +472,113 @@ class Addon extends Backend
     }
 
     /**
+     * 安装插件
+     * @param string $name
+     * @param int $plugins_id
+     * @param int $version_id
+     * @param string $type
+     * @return true
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    protected function doInstall(string $name,int $plugins_id=0,int $version_id=0,string $type=''){
+        //检查插件是否安装
+        $list = $this->isInstall($name);
+        if ($list && $list->status==1) {
+            $this->error(lang('addons %s is already installed', [$name]));
+        }
+        list($addons,$localNameArr) = $this->getLocalAddons();
+        //本地存在空和更新则请求后端
+        if(empty($type) || $type=='upgrade'){
+            //不存在或者
+            $postData = $this->getCloundData($name,$plugins_id,$version_id);
+            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
+            ){
+                $this->getCloundAddons($postData);
+            }
+            if($type =='upgrade'){
+                $this->getCloundAddons($postData);
+            }
+        }
+        $class = get_addons_instance($name);
+        if (empty($class)) {
+            $this->error(lang('addons %s is not ready', [$name]));
+        }
+        //添加数据库
+        try{
+            if($type!='upgrade'){
+                importsql($name);
+            }
+        } catch (Exception $e){
+            $this->error($e->getMessage());
+        }
+        $addon_info = get_addons_info($name);
+        if($addon_info['depend']){
+            $depend = explode(',',$addon_info['depend']);
+            foreach ($depend as $v) {
+                $this->getCloundAddons($this->getCloundData($v));
+                $this->doInstall($name);
+            }
+        }
+        // 安装菜单
+        $menu_config=get_addons_menu($name);
+        if(!empty($menu_config)){
+            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+                $pid = 0;
+            }else{
+                $pid = $this->addonService->addAddonManager()->id;
+            }
+            $menu[] = $menu_config['menu'];
+            $this->addonService->addAddonMenu($menu,$pid,$name);
+        }
+
+        //安装插件
+        $class->install();
+        $addon_info['status'] = 1;
+        if($list){
+            if($list->delete_time > 0){
+                $this->modelClass->restore(['id'=>$list->id]);
+            }
+            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
+        }else{
+            $res =  $this->modelClass->save($addon_info);
+        }
+        if (!$res) {
+            $this->error(lang('addon install fail'));
+        }
+        Service::copyApp($name,$delete = true);
+        //复制文件到目录
+        if(Service::getCheckDirs()){
+            foreach (Service::getCheckDirs() as $k => $dir) {
+                $sourcedir = Service::getAddonsNamePath($name). $dir;
+                if (is_dir($sourcedir)) {
+                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
+                }
+            }
+        }
+        try {
+            Service::updateAddonsInfo($name);
+            //刷新addon文件
+            refreshaddons();
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
+        Cache::clear();
+        return true;
+    }
+    /**
      * 更新 先卸载插件
      * @return bool
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    protected function upgrade()
+    protected function doUpgrade(string $name='')
     {
         set_time_limit(0);
-        $name = $this->request->param("name");
+        $name = $name?:$this->request->param("name");
         //获取插件信息
         $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if($info && $info->status==1){
