@@ -31,7 +31,7 @@ class CurdService
         'fileSuffix' => ['file', 'files', 'path', 'paths'],//识别为文件字段
         'priSuffix' => ['_id', '_ids'],//识别为别的表的主键
         'sortSuffix' => ['sort'],//排序
-        'imageSuffix' => ['image', 'images', 'thumb', 'thumbs', 'avatar', 'avatars'],//识别为图片字段
+        'imageSuffix' => ['image', 'images', 'thumb', 'thumbs', 'avatar', 'avatars','picture', 'pictures',''],//识别为图片字段
         'editorSuffix' => ['editor', 'content', 'detail', 'details', 'description'],//识别为编辑器字段
         'iconSuffix' => ['icon'],//识别为图标字段
         'colorSuffix' => ['color'],//颜色
@@ -903,6 +903,7 @@ class CurdService
                     $formFieldData .= "{:form_editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
             }
         }
+        var_dump($formFieldData);DIE;
         return $formFieldData;
     }
 
@@ -1067,7 +1068,14 @@ class CurdService
             if (in_array($v['DATA_TYPE'], ['time'])) {
                 $v['type'] = 'time';
             }
+            if (in_array($v['DATA_TYPE'], ['json'])) {
+                $v['type'] = 'array';
+            }
             $fieldsName = $v['COLUMN_NAME'];
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
+                    $v['type'] = "array";
+            }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
                 $comment = explode('=', $v['comment']);
