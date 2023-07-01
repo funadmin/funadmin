@@ -1,5 +1,5 @@
 <BR>
-<h3 align="center">FunAdmin5.X版本 在3.X的基础上优化了许多功能，还在测试阶段，并计划升级TP8</h3>
+<h3 align="center">FunAdmin5.X版本 在3.X的基础上优化了许多功能，还在测试阶段，并升级到了TP8，欢迎使用</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
@@ -7,7 +7,7 @@ funadmin docker 版本请移步docker仓库
 funadmin前端和webman开发的后台管理系统
     </a></h3>
 
-<h3 align="center">为梦想而创作：FunAdmin开发框架系统 系统支持PHP8.0</h3>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V5.0最低支持PHP8.0</h3>
 
 <h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
