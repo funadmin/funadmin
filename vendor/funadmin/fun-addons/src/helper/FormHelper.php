@@ -722,7 +722,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item"> {$this->label($name,$options)}
     <div class="layui-input-block">
-      <select {$this->getDataPropAttr($name,$value,$options)}  class="layui-select-url layui-select {$this->getClass($options)}'  {$multiple}    >
+      <select {$this->getDataPropAttr($name,$value,$options)}  class="layui-select-url layui-select {$this->getClass($options)}"  {$multiple}    >
         <option value="">{$this->__($default)}</option>
         {$op}
       </select>
@@ -976,7 +976,7 @@ EOF;
 
             $text = '';
             if (isset($options['textarea'])) {
-               $text= <<<EOF
+                $text= <<<EOF
  <textarea {$this->getNameValueAttr($name,$value,$options)} </textarea>
 EOF;
             }
