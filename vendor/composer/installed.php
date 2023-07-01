@@ -3,7 +3,7 @@
         'name' => 'funadmin/funadmin',
         'pretty_version' => '5.x-dev',
         'version' => '5.9999999.9999999.9999999-dev',
-        'reference' => '2d5b0b1162d22f85a450b30b2d152ce58198bc97',
+        'reference' => '278062943a8472cf5a729e26aa3161f298bf8a0d',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -55,6 +55,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'firebase/php-jwt' => array(
+            'pretty_version' => 'v6.7.0',
+            'version' => '6.7.0.0',
+            'reference' => '71278f20b0a623389beefe87a641d03948a38870',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../firebase/php-jwt',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'funadmin/fun-addons' => array(
             'pretty_version' => 'v5.2',
             'version' => '5.2.0.0',
@@ -67,7 +76,7 @@
         'funadmin/funadmin' => array(
             'pretty_version' => '5.x-dev',
             'version' => '5.9999999.9999999.9999999-dev',
-            'reference' => '2d5b0b1162d22f85a450b30b2d152ce58198bc97',
+            'reference' => '278062943a8472cf5a729e26aa3161f298bf8a0d',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

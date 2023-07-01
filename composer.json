@@ -37,7 +37,8 @@
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
     "guzzlehttp/guzzle": "^7.7",
-    "funadmin/fun-addons": "^5.2"
+    "funadmin/fun-addons": "^5.2",
+    "firebase/php-jwt": "^6.7"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
