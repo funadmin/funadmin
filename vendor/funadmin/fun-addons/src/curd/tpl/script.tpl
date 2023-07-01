@@ -1,0 +1,1 @@
+var {{$name}} = {:json_encode(${{$method}})};
