@@ -1103,7 +1103,7 @@ EOF;
             $options['select'] = $options['select'] ?? 'upload-select'; //可选upload-choose
             $css .= 'width:53%!important;';
             $select_container =  <<<EOF
-<button id="select-{$id}" type="button" class="layui-btn layui-btn-danger {$options['select']}"  lay-filter="{$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>;
+<button id="select-{$id}" type="button" class="layui-btn layui-btn-danger {$options['select']}"  lay-filter="{$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
 EOF;
         }
         $label = $this->label($name,$options) ;
