@@ -210,7 +210,7 @@ class FormHelper
         $disorread = $this->readonlyOrdisabled($options);
         if ($type == 'hidden') {
             return <<<EOF
-            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input { $this->getClass($options)}  {$disorread}/>;
+            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input { $this->getClass($options)}  {$disorread}/>
 EOF;
         }
         $str = <<<EOF
@@ -1055,7 +1055,7 @@ EOF;
                             break;
                         case 'images':
                             $li .= <<<EOF
-<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>;
+<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
 EOF;
                             break;
                         case 'image':
@@ -1070,7 +1070,7 @@ EOF;
                             break;
                         case 'office':
                             $li .= <<<EOF
-<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/office.jpg"></img> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>;
+<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/office.jpg"></img> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>
 EOF;
                             break;
                         default:
@@ -1244,7 +1244,6 @@ EOF;
             $tips = <<<EOF
 <div class="layui-form-mid layui-word-aux"> {$this->__($options['tips'])} </div>
 EOF;
-            ;
         }
         return $tips;
     }
