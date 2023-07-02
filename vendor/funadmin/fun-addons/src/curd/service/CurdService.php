@@ -903,7 +903,6 @@ class CurdService
                     $formFieldData .= "{:form_editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
             }
         }
-        var_dump($formFieldData);DIE;
         return $formFieldData;
     }
 
