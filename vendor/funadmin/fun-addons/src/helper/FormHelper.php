@@ -1014,16 +1014,12 @@ EOF;
         $li = '';
         $croper_container = '';
         if (isset($options['cropper'])) {
-            $options['width'] = $options['width'] ?? '300';
-            $options['height'] = $options['height'] ?? '300';
-            $options['mark'] =  $options['mark'] ?? '1';
-            $options['area'] = $options['area'] ?? '800px';
             $cops = ['name'=>$name,
                 'path' => $options['path'],
-                'width' => $options['width'],
-                'height' => $options['height'],
-                'mark' => $options['mark'],
-                'area' => $options['area'],
+                'width' => $options['saveW'] ?? '300',
+                'height' => $options['saveW'] ?? '300',
+                'mark' => $options['mark'] ?? 1,
+                'area' => $options['area'] ?? '800px',
                 'filter' => 'cropper',
             ];
             $data_value = $this->getOptionsAttr($name,$cops);
@@ -1098,17 +1094,19 @@ EOF;
             'chunk' =>  $options['chunk'] ?? false,
         ];
         $options = array_merge($op, $options);
-        $select_container = '';
-        if ((isset($options['select']) && $options['select']) || !isset($options['select'])) {
-            $options['select'] = $options['select'] ?? 'upload-select'; //可选upload-choose
-            $css .= 'width:53%!important;';
-            $select_container =  <<<EOF
-<button id="select-{$id}" type="button" class="layui-btn layui-btn-danger {$options['select']}"  lay-filter="{$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
-EOF;
-        }
         $label = $this->label($name,$options) ;
         $verify = $options['verify']??"";
         $options['verify'] = '';
+        $select_container = '';
+        if ((isset($options['select']) && $options['select']) || !isset($options['select'])) {
+            $select_options = $options;
+            $select_options['filter'] = $options['select'] ?? 'upload-select'; //可选upload-choose
+            $css .= 'width:53%!important;';
+            $select_container =  <<<EOF
+<button id="select-{$id}" type="button" {$this->getOptionsAttr($name,$select_options)} class="layui-btn layui-btn-danger {$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
+EOF;
+        }
+
         if (!isset($options['filter'])) $options['filter'] = 'upload'; //监听
         $str = <<<EOF
 <style>

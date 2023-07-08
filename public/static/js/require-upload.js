@@ -254,16 +254,11 @@ define(["jquery", 'croppers'], function($, croppers) {
                     var opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
-
                         var _that = $(this), _parent =_that.parents('.layui-upload'), id = _that.prop('id') || _that.data('id');
                         var data = _that.data();
                         if(typeof data.value == 'object') data = data.value;
-                        var saveW = data.width, saveH = data.height, mark = data.mark,
-                            area = data.area, uploadPath = data.path || 'upload';
-                        saveW = saveW || 300;
-                        saveH = saveH || 300;
-                        mark = mark || 1;
-                        area = area || '720px';
+                        var saveW = data.width || 300, saveH = data.height|| 300, mark = data.mark || 1,
+                            area = data.area || '720px', uploadPath = data.path || 'upload';
                         opt[i] = $.extend({
                             elem: $(this),
                             saveW: saveW, //保存宽度

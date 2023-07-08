@@ -980,16 +980,14 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             $(this).click(function(e){
                                 var data = $(this).data();
                                 if(typeof data.value == 'object') data = data.value;
-                                uploadType = data.type,width = data.width||800,height = data.height|| '100%'
-                                uploadNum = data.num, uploadMime = data.mime,
-                                    url  = data.selecturl, path = data.path;
-                                uploadMime = uploadMime || '';
-                                uploadType = uploadType ? uploadType : 'radio';
+                                uploadType = data.type, uploadNum = data.num, uploadMime = data.mime, url  = data.selecturl,path = data.path;
+                                uploadMime = uploadMime || '';uploadType = uploadType ? uploadType : 'radio';
                                 uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
                                 var input = $(this).parents('.layui-upload').find('input[type="text"]');
                                 var token = $(this).parents('form').find('input[name="__token__"]');
                                 var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                                 var id = $(this).attr('id');
+                                console.log(uploadType)
                                 url = url?url: Fun.url(Upload.init.requests.select_url + '?' +
                                     '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
                                     '&path='+path+'&type='+uploadType);
