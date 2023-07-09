@@ -18,7 +18,7 @@ funadmin前端和webman开发的后台管理系统
         <img src="https://img.shields.io/badge/layui-2.8.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
-        <img src="https://img.shields.io/badge/php-%3E%3D7.4-8892BF.svg" alt="PHP Version">
+        <img src="https://img.shields.io/badge/php-%3E%3D8.0-8892BF.svg" alt="PHP Version">
     </a>
     <a href='https://gitee.com/funadmin/funadmin'>
         <img src='https://img.shields.io/badge/Mysql-%3E%3D5.7-green' alt='MYSQL'></img>
