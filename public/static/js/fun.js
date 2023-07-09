@@ -429,7 +429,6 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                             data.rowindex = row.rowindex;
                             buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
                             buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
-                            console.log(buttons)
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
@@ -689,16 +688,22 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 table.reload(tableId,{},true);
             },
             //获取同步数据
-            getData: function (url,data,method,async) {
-                method = method?method:"GET";
-                async = typeof async!=='undefined'?async:true;
+            getData: function (url,data,method) {
+                method = method?method:"GET";data= data || {};
+                async = typeof async!=='undefined'?async:false;
                 if(!url) return false;
-                var returnData;
-                Fun.ajax({url:Fun.url(url),data:data,method:method,async:async},function(res){
-                    returnData = res.data;
-                },function(res){
-                    return false;
-                })
+                var returnData = {};
+                $.ajax({
+                    url:Fun.url(url),
+                    data: data,
+                    method: method,
+                    async: false, //此处必须要有这句话，否则任然会传值失败
+                    success: function(res) {
+                        if(res.data){
+                            returnData = res.data;
+                        }
+                    }
+                });
                 return returnData;
             },
             getButtons:function(buttons,buttonsindex){

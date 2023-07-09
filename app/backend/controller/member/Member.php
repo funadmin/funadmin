@@ -16,7 +16,6 @@ namespace app\backend\controller\member;
 use app\common\controller\Backend;
 use app\common\model\Provinces;
 use app\common\traits\Curd;
-use phpDocumentor\Reflection\DocBlock\Tags\Var_;
 use think\facade\Request;
 use think\facade\View;
 use app\backend\model\MemberLevel;
@@ -32,6 +31,7 @@ class Member extends Backend
     {
         parent::__construct($app);
         $this->modelClass = new MemberModel();
+        View::assign('memberLevel', MemberLevel::column('name','id'));
     }
 
     public function getcitys(){

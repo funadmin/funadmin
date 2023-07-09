@@ -832,13 +832,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     success = success ||
                         function(res) {
                             res.msg = res.msg || 'success';
-                            Fun.toastr.success(res.msg, function() {
-                                // 返回页面
-                                Form.api.closeOpen({
-                                    refreshTable: refresh,
-                                    refreshFrame: refresh
-                                });
-                            });
+                            Fun.toastr.success(res.msg);
+                            Form.api.closeOpen({refreshTable: refresh, refreshFrame: refresh});
                             return false;
                         };
                     error = error ||

@@ -3,7 +3,9 @@
     {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}
     {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}
     {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'])}
+    {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex','verify'=>'required'],1)}
     {:form_input('mobile','text',['verify'=>'phone'])}
+    {:form_input('email','text',['verify'=>'email'])}
     {:form_upload('avatar',['cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>'required'],$formData['avatar']??'')}
 
 <!--        {:form_textarea('group_id',['verify'=>'required','label'=>'Group','multiple'=>1] ,'434')}-->

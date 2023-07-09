@@ -716,15 +716,17 @@ trait Curd
         $where = [];
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
-                $name = $this->modelClass->getTable();
-                $tableName = $name . '.';
+                $class = get_class($this->modelClass);
+                $className =explode('\\',$class);
+                $modelName = parse_name(array_pop($className));
+                $tableName = $modelName.'.';
+                $sortArr = explode(',', $sort);
+                foreach ($sortArr as $index => & $item) {
+                    $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
+                }
+                unset($item);
+                $sort= implode(',', $sortArr);
             }
-            $sortArr = explode(',', $sort);
-            foreach ($sortArr as $index => & $item) {
-                $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
-            }
-            unset($item);
-            $sort= implode(',', $sortArr);
         }else{
             $sort = ["$sort"=>$order];
         }

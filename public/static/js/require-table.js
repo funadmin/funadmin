@@ -236,14 +236,24 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         case'select':
                             d.searchOp = '=';
                             var selectHtml = '';
-                            d.selectList = d.selectList || Fun.api.getData(d.url) || {};
-                            layui.each(d.selectList, function (i, v) {
+                            selectList = d.selectList || Fun.api.getData(d.url) || {};
+                            prop =  (d.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
+                            if(prop){ prop = prop[2];}else{prop = d.prop;}
+                            if (prop) {prop = prop.split(',');}
+                            selectListObj = {}
+                            layui.each(selectList, function (i, v) {
+                                if (prop && v[prop[1]]){
+                                        i = v[prop[0]]
+                                        v = v[prop[1]];
+                                        selectListObj[i] =v ;
+                                }
                                 var selected = '';
                                 if (i === d.searchValue) {
                                     selected = 'selected=""'
                                 }
                                 selectHtml += '<option value="' + i + '" ' + selected + '>' + __(v) + '</option>/n'
                             });
+                            d.selectList = selectListObj.length > 0 ? selectListObj:d.selectList;
                             formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<select ' +d.extend +'lay-search="" lay-filter="'+d.filter+'" class="layui-select '+d.class+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '"   data-searchop="' + d.searchOp + '" >\n' + '<option value="">-' + __("All") + ' -</option> \n' + selectHtml + '</select>\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                         case'between':
@@ -430,7 +440,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field), prop =  (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
-                if(prop){ prop = prop[2];}else{prop = ele.prop;}
+                if(prop){ prop = prop[2];}else{prop = ele.prop;}if(prop) prop = prop.split(',');
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};ops = {};
                 ops[ele.field] = op;
@@ -438,23 +448,25 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if (JSON.stringify(selectList) !== "{}" && content !== '' && content !== null) {
                     var reg = RegExp(/,/);
                     content = typeof content == 'string' && reg.test(content) ? content.split(',') : typeof content == 'object' ? content : [content];
-                    html = '';
+                    html = '';  selectListObj = {};
                     layui.each(content, function (i, v) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
                         if (prop) {
-                            prop = prop.split(',')
                             layui.each(selectList, function (ii, vv) {
+                                selectListObj[vv[prop[0]]] = vv[prop[1]];
                                 if(vv[prop[1]]==v){
-                                    html += Table.getBadge(d, ele, v, __(vv[prop[0]])) + ' '
+                                    html += Table.getBadge(d, ele, v, __(vv[prop[1]])) + ' '
                                 }
                             })
+
                         }else if (selectList[v]) {
                             html += Table.getBadge(d, ele, v, __(selectList[v])) + ' '
                         }
                     })
+                    ele.selectList = selectListObj.length>0 ?selectListObj:ele.selectList;
                     if(html){
-                        return html
+                        return html;
                     }
                 }
                 filter[ele.field] = content;
@@ -753,7 +765,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             type = type!==undefined?type:1;
             op = d.search ? d.searchOp : '%*%';
             var badge = [
-                '<span class="layui-badge-dot" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-blue" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-black" title="' + value + '"></span> ' + value,
@@ -766,11 +777,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 '<span class="layui-badge-dot layui-bg-brown" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-violet" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-gray" title="' + value + '"></span> ' + value,
+                '<span class="layui-badge-dot" title="' + value + '"></span> ' + value,
             ];
             if (type === 2) {
                 badge = [
 
-                    '<span class="layui-badge" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-blue" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-black" title="' + value + '">' + value + '</span>',
@@ -783,7 +794,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     '<span class="layui-badge layui-bg-brown" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-violet" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-gray" title="' + value + '">' + value + '</span>',
-
+                    '<span class="layui-badge" title="' + value + '">' + value + '</span>',
                 ]
             }
             var filter = {}, ops = {};
@@ -845,14 +856,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             return [ids, length]
         },
         getOptions:function (tableId){
-            return layui.table.getOptions(tableId);
+            return layui.table.getOptions(tableId) || layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId);
         },
         getTableObj:function(tableId){
             options = Table.getOptions(tableId);
-            if(options.tree){
-                return layui.treeTable;
+            if(options && options.tree){
+                return layui.treeTable || parent.layui.treeTable;
             }
-            return layui.table;
+            return layui.table || parent.layui.table;
         },
         events: {
             //链接
@@ -1059,10 +1070,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         curr: $page //重新从第 1 页开始
                     }
                 }
-                table = layui.table || layui.treeTable;
+                table = Table.getTableObj(tableId);
                 table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
-                    parent.table && parent.table.reloadData(tableId, {}, $deep);
+                    parent.layui.table.reloadData(tableId, {}, $deep) ||
+                    parent.layui.treeTable.reloadData(tableId, {}, $deep);
                 }
             },
             toolbar: function (options) {
