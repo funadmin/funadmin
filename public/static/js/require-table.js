@@ -210,7 +210,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if (d.field !== false && d.search !== false) {
                     formVal[d.field] = d.searchValue;
                     d.search = typeof d.search ==='string' ?d.search.toLowerCase():d.search;
-                    cls = 'layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3';
+                    cls = 'layui-col-xs12 layui-col-sm6 layui-col-md3 layui-col-lg2';
                     switch (d.search) {
                         case true:
                             formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
