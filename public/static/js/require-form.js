@@ -989,7 +989,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 var parentiframe = Fun.api.checkLayerIframe();
                                 options = {
                                     title:__('Filelist'),type:2,
-                                    url: Fun.url(url), width: width, height: height, method: 'get',
+                                    url: Fun.url(url), method: 'get',
                                     success: function(layero, index){
                                         var body = layui.layer.getChildFrame('body', index);
                                         if (parentiframe) {
