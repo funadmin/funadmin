@@ -44,12 +44,12 @@ trait Send
 
     /**
      * redis 对象
-     * @var 
+     * @var
      */
     public  $redis ;
     /**
      * 客户端对象
-     * @var 
+     * @var
      */
     public  $client ;
 
@@ -69,10 +69,10 @@ trait Send
     protected $appsecret = '';
     /**
      * JWT key
-     * @var string 
+     * @var string
      */
     public $key = '';
-    
+
     public $group = 'api';
 
     /**
@@ -198,6 +198,61 @@ trait Send
         return false;
     }
 
+    /**
+     * token
+     * @param $memberInfo
+     * @param $expires
+     * @return string
+     */
+    protected function buildAccessToken($memberInfo,$expires)
+    {
+        $time = time(); //签发时间
+        $expire = $time + $expires; //过期时间
+        $scopes = 'role_access';
+        if($expires==$this->refreshExpires)  $scopes = 'role_refresh';
+        $token = array(
+            "member_id" => $memberInfo['member_id'],
+            'appid'=>$this->appid,
+            'appsecret'=>$this->appsecret,
+            "iss" => "funadmin.com",//签发组织
+            "aud" => "funadmin", //签发作者
+            "scopes" => $scopes, //刷新
+            "iat" => $time,
+            "nbf" => $time,
+            "exp" => $expire,      //过期时间时间戳
+        );
+        return   JWT::encode($token,  $this->key, 'HS256');
+    }
+
+    /**
+     * @param $membername
+     * @param $password
+     * @return array|mixed|void
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    protected function getMember($membername, $password)
+    {
+        $member = Db::name($this->tableName)
+            ->where('status',1)
+            ->where('username', $membername)
+            ->whereOr('mobile', $membername)
+            ->whereOr('email', $membername)
+            ->field('id as member_id,password')
+            ->limit(1)
+            ->find();
+        if ($member) {
+            if (password_verify($password, $member['password'])) {
+                unset($member['password']);
+                return $member;
+            } else {
+                $this->error(lang('Password is not right'), [], 401);
+            }
+        } else {
+            $this->error(lang('Account is not exist'), [], 401);
+        }
+    }
 
 }
 
