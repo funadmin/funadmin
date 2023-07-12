@@ -33,12 +33,16 @@
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
     "topthink/think-filesystem": "^2.0",
+    "topthink/think-trace": "^1.6",
+    "topthink/think-queue": "^3.0",
+    "topthink/think-throttle": "^2.0",
     "doctrine/annotations": "^2.0.0",
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
     "guzzlehttp/guzzle": "^7.7",
     "funadmin/fun-addons": "^5.2",
     "firebase/php-jwt": "*"
+
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
