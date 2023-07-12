@@ -25,7 +25,7 @@
   "require": {
     "php": ">=8.0.0",
     "ext-json": "*",
-    "topthink/framework": "^8.0",
+    "topthink/framework": "^8.0.0",
     "topthink/think-orm": "3.0.*",
     "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",

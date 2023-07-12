@@ -433,17 +433,17 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v5.2",
-            "version_normalized": "5.2.0.0",
+            "version": "v5.2.2",
+            "version_normalized": "5.2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "cb5e413768fe314d2f86e77cb38e54e390c083be"
+                "reference": "74c111f2530c190841cfc7995bcdabcfe4b778f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/cb5e413768fe314d2f86e77cb38e54e390c083be",
-                "reference": "cb5e413768fe314d2f86e77cb38e54e390c083be",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/74c111f2530c190841cfc7995bcdabcfe4b778f6",
+                "reference": "74c111f2530c190841cfc7995bcdabcfe4b778f6",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -452,7 +452,7 @@
                     }
                 ]
             },
-            "time": "2023-07-01T02:18:49+00:00",
+            "time": "2023-07-12T15:51:52+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -488,7 +488,7 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v5.2"
+                "source": "https://github.com/funadmin/fun-addons/tree/v5.2.2"
             },
             "install-path": "../funadmin/fun-addons"
         },
@@ -2607,17 +2607,17 @@
         },
         {
             "name": "topthink/framework",
-            "version": "v8.0.0",
-            "version_normalized": "8.0.0.0",
+            "version": "v8.0.1",
+            "version_normalized": "8.0.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/framework.git",
-                "reference": "08a2201af6e6f9b153520fef448190a83f83c488"
+                "reference": "23101f0ad7581de32442553e045cffd7686a337b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/framework/zipball/08a2201af6e6f9b153520fef448190a83f83c488",
-                "reference": "08a2201af6e6f9b153520fef448190a83f83c488",
+                "url": "https://api.github.com/repos/top-think/framework/zipball/23101f0ad7581de32442553e045cffd7686a337b",
+                "reference": "23101f0ad7581de32442553e045cffd7686a337b",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2643,7 +2643,7 @@
                 "mockery/mockery": "^1.2",
                 "phpunit/phpunit": "^9.5"
             },
-            "time": "2023-06-30T10:27:53+00:00",
+            "time": "2023-07-09T09:12:43+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2675,7 +2675,7 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/framework/issues",
-                "source": "https://github.com/top-think/framework/tree/v8.0.0"
+                "source": "https://github.com/top-think/framework/tree/v8.0.1"
             },
             "install-path": "../topthink/framework"
         },

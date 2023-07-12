@@ -174,7 +174,7 @@ class RuleGroup extends Rule
             $result = $this->parseRule($request, '', $option['dispatcher'], $url, $option);
         } elseif ($miss = $this->getMissRule($method)) {
             // 未匹配所有路由的路由规则处理
-            $result = $this->parseRule($request, '', $miss->getRoute(), $url, $miss->getOption());
+            $result = $miss->parseRule($request, '', $miss->getRoute(), $url, $miss->getOption());
         } else {
             $result = false;
         }
@@ -263,8 +263,7 @@ class RuleGroup extends Rule
         $regex = [];
         $items = [];
 
-        foreach ($rules as $key => $val) {
-            $item = $val[1];
+        foreach ($rules as $key => $item) {
             if ($item instanceof RuleItem) {
                 $rule = $depr . str_replace('/', $depr, $item->getRule());
                 if ($depr == $rule && $depr != $url) {
