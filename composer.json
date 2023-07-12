@@ -33,7 +33,7 @@
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
     "topthink/think-filesystem": "^2.0",
-    "doctrine/annotations": "^1.14",
+    "doctrine/annotations": "^2.0.0",
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
     "guzzlehttp/guzzle": "^7.7",
