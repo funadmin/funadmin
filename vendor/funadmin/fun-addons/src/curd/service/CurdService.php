@@ -27,10 +27,10 @@ class CurdService
         'fields' => [],//显示的字段
         'ignoreFields' => ['create_time', 'status', 'update_time', 'delete_time'],//忽略字段
         'tagsSuffix' => ['tags', 'tag'],//识别为tag类型
-        'urlSuffix' => ['url', 'urls'],//识别为tag类型
+        'urlSuffix' => ['url', 'urls'],//识别为url类型
         'fileSuffix' => ['file', 'files', 'path', 'paths'],//识别为文件字段
         'priSuffix' => ['_id', '_ids'],//识别为别的表的主键
-        'sortSuffix' => ['sort'],//排序
+        'sortSuffix' => ['sort','orderby','weight'],//排序
         'imageSuffix' => ['image', 'images', 'thumb', 'thumbs', 'avatar', 'avatars','picture', 'pictures',''],//识别为图片字段
         'editorSuffix' => ['editor', 'content', 'detail', 'details', 'description'],//识别为编辑器字段
         'iconSuffix' => ['icon'],//识别为图标字段
