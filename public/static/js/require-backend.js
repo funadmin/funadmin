@@ -8,8 +8,9 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
+var urlArgs = '?v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
 require.config({
-    urlArgs: 'v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime())),
+    urlArgs: 'v=' + Config.site.site_version ,
     packages: [
         {
             name: 'dayjs',
@@ -92,7 +93,7 @@ require(["jquery"], function ($) {
             $(function () {
                 console.log(Config.jspath)
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require([BASE_URL+Config.jspath], function (Controller) {
+                    require([BASE_URL+Config.jspath+urlArgs], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {

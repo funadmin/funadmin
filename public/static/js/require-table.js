@@ -456,12 +456,15 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             layui.each(selectList, function (ii, vv) {
                                 selectListObj[vv[prop[0]]] = vv[prop[1]];
                                 if(vv[prop[1]]==v){
-                                    html += Table.getBadge(d, ele, v, __(vv[prop[1]])) + ' '
+                                    html += Table.getBadge(d, ele, ii, __(vv[prop[1]])) + ' '
                                 }
                             })
 
                         }else if (selectList[v]) {
                             html += Table.getBadge(d, ele, v, __(selectList[v])) + ' '
+                        }else{
+                            html += Table.getBadge(d, ele, i, __(v)) + ' '
+
                         }
                     })
                     ele.selectList = selectListObj.length>0 ?selectListObj:ele.selectList;
