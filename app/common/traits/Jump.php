@@ -120,7 +120,6 @@ trait Jump
             'time' => time(),
             'data' => $data,
         ];
-        $result = json_encode($result,JSON_UNESCAPED_UNICODE);
         $header['__token__'] = $this->request->buildToken();
         $type = $type ?: $this->getResponseType();
         $response = Response::create($result, $type)->header($header);
