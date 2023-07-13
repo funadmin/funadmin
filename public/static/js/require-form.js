@@ -154,7 +154,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
                                 clickClose = $(this).data('clickclose'), prop = $(this).data('prop') || $(this).data('attr'),
                                 max = $(this).data('max'), create = $(this).data('create'),on =$(this).data('on'), repeat = !! $(this).data('repeat'),
-                                theme = $(this).data('theme') || '#1890ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
+                                theme = $(this).data('theme') || '#4d70ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
                                 style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
                                 layVerify = $(this).attr('lay-verify') || $(this).data('verify') || '', layReqText = $(this).data('reqtext') || '';layVerType = $(this).data('vertype') || 'tips'
                             var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
@@ -521,21 +521,204 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         })
                     }
                 },
+                datepicker: function(formObj) {
+                    var list = formObj!=undefined?formObj.find("*[lay-filter='datePicker']"):$("*[lay-filter='datePicker']");
+                    if (list.length > 0) {
+                        layui.each(list, function() {
+                            var id = $(this).prop('id') || $(this).attr('id');
+                            window['datepicker-'+id] = layui.laydate.render({
+                                elem: this,
+                                type: "datetime",
+                                range: true,
+                                shortcuts : [
+                                    {
+                                        text: "今天", value: function () {
+                                            sTime = Dayjs().startOf("d");
+                                            eTime = Dayjs().endOf("d");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "昨天",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(1, "d").startOf("d");
+                                            eTime = Dayjs().subtract(1, "d").endOf("d");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "明天",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(-1, "d").startOf("d");
+                                            eTime = Dayjs().subtract(-1, "d").endOf("d");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "本周",
+                                        value: function () {
+                                            sTime = Dayjs().startOf("w");
+                                            eTime = Dayjs().endOf("w");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "上周",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(1, "w").startOf("w");
+                                            eTime = Dayjs().subtract(1, "w").endOf("w");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "下周",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(-1, "w").startOf("w");
+                                            eTime = Dayjs().subtract(-1, "w").endOf("w");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "近一周",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 7);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "本月",
+                                        value: function () {
+                                            sTime = Dayjs().startOf("M");
+                                            eTime = Dayjs().endOf("M");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "上月",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(1, "M").startOf("M");
+                                            eTime = Dayjs().subtract(1, "M").endOf("1 M");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "下月",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(-1, "M").startOf("M");
+                                            eTime = Dayjs().subtract(-1, "M").endOf("1 M");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "近三月",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 90);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    }, {
+                                        text: "近半年",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 180);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "本季度",
+                                        value: function () {
+                                            sTime = Dayjs().startOf("quarter");
+                                            eTime = Dayjs().endOf("quarter");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "上季度",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(1, "Q").startOf("Q");
+                                            eTime = Dayjs().subtract(1, "Q").endOf("Q");
+                                            return [sTime, eTime];
+                                        }()
+                                    }, {
+                                        text: "下季度",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(-1, "Q").startOf("Q");
+                                            eTime = Dayjs().subtract(-1, "Q").endOf("Q");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "近三季度",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 180);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "本年度",
+                                        value: function () {
+                                            sTime = Dayjs().startOf("y");
+                                            eTime = Dayjs().endOf("y");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "上年度",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(1, "y").startOf("y");
+                                            eTime = Dayjs().subtract(1, "y").endOf("y");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "下年度",
+                                        value: function () {
+                                            sTime = Dayjs().subtract(-1, "y").startOf("y");
+                                            eTime = Dayjs().subtract(-1, "y").endOf("y");
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "近一年",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 365 * 1);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    },
+                                    {
+                                        text: "近三年",
+                                        value: function () {
+                                            sTime = new Date();
+                                            sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 365 * 3);
+                                            eTime = Dayjs();
+                                            return [sTime, eTime];
+                                        }()
+                                    }
+                                ],
+                            })
+                        })
+                    }
+                },
                 date: function(formObj) {
                     var list = formObj!=undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var format = $(this).data('format'), type = $(this).data('type'),id= $(this).prop('id') || $(this).data('id'),
+                            var data = $(this).data(), format = $(this).data('format'), type = $(this).data('type'),id= $(this).prop('id') || $(this).data('id'),
                                 value = $(this).data('value') || $(this).val(), range = $(this).data('range');
-                            if (type === undefined || type === '' || type == null) {
-                                type = 'datetime'
-                            }
                             var options = {
                                 elem: this,
-                                type: type,
+                                type: data.type || 'datetime',
                                 trigger: 'click',
                                 calendar: true,
-                                theme: '#1890ff'
+                                theme: data.theme || '#4d70ff'
                             };
                             if (format !== undefined && format !== '' && format != null) {
                                 options['format'] = format
@@ -548,6 +731,9 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             }
                             if(value){
                                 options['value'] = value;
+                            }
+                            if(data.fullPanel!=false){
+                                options['fullPanel'] =  true;// 2.8+
                             }
                             laydate = layui.laydate ? layui.laydate : parent.layui.laydate;
                             window['date-'+id] = laydate.render(options)
@@ -1065,13 +1251,13 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     form = typeof form == 'object' ? form : $(form);
                     var events = Form.events;
                     events.submit(form, success, error, submit);
-                    events.required(form)
-                    events.verifys(form)
+                    events.required(form);
+                    events.verifys(form);
                     events.bindevent(form);
-                    events.uploads(form) //上传
-                    events.choosefiles(form) //选择文件
-                    events.selectfiles(form) //选择文件页面类型
-                    events.cropper(form) //上传
+                    events.uploads(form); //上传
+                    events.choosefiles(form) ;//选择文件
+                    events.selectfiles(form); //选择文件页面类型
+                    events.cropper(form); //上传
                     events.icon(form);
                     events.xmselect(form);
                     events.color(form);
@@ -1081,6 +1267,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     events.rate(form);
                     events.slider(form);
                     events.timepicker(form);
+                    events.datepicker(form);
                     events.editor(form);
                     events.region(form);
                     events.addInput(form);
@@ -1088,7 +1275,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     events.selectn(form);
                     events.selectpage(form);
                     events.removeInupt(form);
-                    events.events() //事件
+                    events.events();//事件
                     //初始化数据
                     this.initForm();
                 },

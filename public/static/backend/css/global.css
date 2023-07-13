@@ -1,6 +1,6 @@
-.layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color:#1890ff}
-.layui-form-onswitch,.layui-laypage .layui-laypage-curr .layui-laypage-em{background-color:#1890ff;}
-.layui-elem-quote{border-left: 5px solid #1890ff}
+.layui-form-radio:hover *, .layui-form-radioed, .layui-form-radioed>i{color:#4d70ff}
+.layui-form-onswitch,.layui-laypage .layui-laypage-curr .layui-laypage-em{background-color:#4d70ff;}
+.layui-elem-quote{border-left: 5px solid #4d70ff}
 .layui-bg-yellow{background-color:#E6A23C;}
 .layui-bg-pink{background-color:#FF69B4;}
 .layui-bg-purple{background-color:#A020F0;}
@@ -30,5 +30,8 @@
 .layui-bg-19{color: #fff;background-color: #1989fa;}
 .layui-bg-20{color: #fff;background-color: #ee0a24;}
 .layui-bg-21{color: #fff;background-color: #ff976a;}
-.layui-font-blue{color:#1890ff!important;}
+.layui-font-blue{color:#4d70ff!important;}
 input[hidden] { height:0!important}
+.layui-btn-normal,.layui-bg-blue{background-color:#4d70ff!important;}
+.layui-layer-btn .layui-layer-btn0{ border-color: #4d70ff;background-color: #4d70ff}
+.layui-laydate .layui-this, .layui-laydate .layui-this>div{background-color: #4d70ff!important;}
