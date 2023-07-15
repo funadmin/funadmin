@@ -720,11 +720,13 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     ' <div class="layui-form-item">' +
                     '        <label class="layui-form-label required">导航模式：</label>\n' +
                     '        <div class="layui-input-block layui-text-left" style="width:auto;">' +
-                    '            <input lay-filter="setTheme" type="radio" value="1" title="侧边" name="site_theme">' +
-                    '            <input lay-filter="setTheme" type="radio" value="2" title="水平" name="site_theme">' +
-                    '            <input lay-filter="setTheme" type="radio" value="3" title="顶部" name="site_theme">' +
-                    '            <input lay-filter="setTheme" type="radio" value="4" title="侧栏" name="site_theme">' +
-                    '            <input lay-filter="setTheme" type="radio" value="5" title="顶栏" name="site_theme">' +
+                    '        <select name="site_theme" id="" lay-filter="setTheme">' +
+                    '           <option value="1">侧边</option>' +
+                    '           <option value="2">水平</option>' +
+                    '           <option value="3">顶部</option>' +
+                    '           <option value="4">侧栏</option>' +
+                    '           <option value="5">顶栏</option>' +
+                    '        </select>' +
                     '        </div>\n' +
                     '</div>'+
                     ' <div class="layui-form-item">\n' +
@@ -970,7 +972,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
          */
         api: {
             bindEvent: function () {
-                layui.form.on('radio(setTheme)', function (data) {
+                layui.form.on('select(setTheme)', function (data) {
                     url = Fun.url('ajax/setConfig');
                     code = $(data.elem).attr('name');
                     Fun.ajax({url: url,data:{value:data.value,code:code}}, function (res) {
