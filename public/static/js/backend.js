@@ -253,16 +253,16 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 menuLeftfontColorHover: '#fff',
             },  {
                 headerBg: '#fff',
-                headerfontColor: '#777',
-                headerBgThis: '#fff',
+                headerfontColor: '#000',
+                headerBgThis: '#e2ebfb',
                 headerBgLogo: '#fff',
-                headerLogofontColor: '#777',
+                headerLogofontColor: '#000',
                 menuLeftBg: '#fff',
-                menuLeftBgThis: '#eee',
-                menuLeftBgHover: '#eee',
+                menuLeftBgThis: '#e2ebfb',
+                menuLeftBgHover: '#e2ebfb',
                 menuLeftDlBg: '#fff',
-                menuLeftfontColor: '#777',
-                menuLeftfontColorHover: '#000',
+                menuLeftfontColor: '#000',
+                menuLeftfontColorHover: '#e2ebfb',
             }
         ];
     var Backend = {

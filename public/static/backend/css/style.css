@@ -173,11 +173,11 @@ body .layui-form-onswitch{border:none;}
 #theme20.active .layui-form-radio:hover *,#theme20.active .layui-form-radioed,#theme20.active .layui-form-radioed>i{color: #4d70ff}
 
 #theme20 .layui-nav{color: #333;}
-#theme20 .layui-header .layui-layout-center li.layui-this{background: #eee;}
+#theme20 .layui-header .layui-layout-center li.layui-this{background: #e2ebfb;}
 #theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a {color:#333;}
 #theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{color: #333!important;}
 #theme20 .layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover{color: #333!important;}
-#theme20 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {background-color: #fff!important;}
+#theme20 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {background-color: #e2ebfb!important;}
 #theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#4d70ff!important}
 @media screen and (min-width:769px) {
 #theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#4d70ff!important}
