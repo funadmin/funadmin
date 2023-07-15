@@ -27,7 +27,7 @@ return [
     'Oprate'                    =>  '操作',
     'Edit'                      =>  '编辑',
     'Status'                    =>  '状态',
-    'Del'                       =>  '删除',
+    'Del'                       =>  '销毁',
     'Delete'                    =>  '销毁',
     'Destroy'                   =>  '删除',
     'Destory'                   =>  '删除',
