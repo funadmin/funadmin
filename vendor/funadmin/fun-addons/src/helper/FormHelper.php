@@ -210,7 +210,7 @@ class FormHelper
         $disorread = $this->readonlyOrdisabled($options);
         if ($type == 'hidden') {
             return <<<EOF
-            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input { $this->getClass($options)}  {$disorread}/>
+            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input {$this->getClass($options)}  {$disorread}/>
 EOF;
         }
         $str = <<<EOF
