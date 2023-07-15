@@ -23,7 +23,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 title: __('Add'),
                 // node:false,//不使用节点权限
                 // full: 1,
-                width:'800',
+                // width:'800',
             },
             edit_url:{
                 type: 'open',
@@ -34,7 +34,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 text: __('Edit'),
                 title: __('Edit'),
                 // full: 1,
-                width:'800',
+                // width:'800',
                 extend:'',
                 // btn:'close',
                 // hidden:function(row){

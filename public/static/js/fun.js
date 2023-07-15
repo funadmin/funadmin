@@ -270,7 +270,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var index = layui.layer.confirm(msg, {
                     title: __('Are you sure'),
                     icon: 3,
-                    btn: [__('Confirm'), __('Cancel')]
+                    btn: [__('Confirm'), __('Cancel')],
                 }, function () {
                     typeof success === 'function' && success.call(this);
                     Fun.toastr.close(index);
@@ -532,7 +532,7 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
-                width = width || '800';height = height || '100%';
+                width = width || '50%';height = height || '100%';
                 width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
                 height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
