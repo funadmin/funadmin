@@ -3,7 +3,6 @@ body{background-color:#F6F6F6;;-ms-text-size-adjust:100%;-webkit-text-size-adjus
 body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-filter:blur(3px);-moz-filter:blur(3px);-o-filter:blur(3px);-ms-filter:blur(3px);filter:blur(3px);position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1}
 .layui-form-item input,.layui-form-item label{transition:all .3s ease-in-out;-webkit-transition:all .3s ease-in-out}
 .layui-input{height:45px;}
-.layui-input:focus{border-color:#4d70ff!important}
 .layui-login-body{max-width:420px;margin:0 auto;}
 .layui-container{width:100%;height:100%;overflow:hidden}
 .layui-header{height: auto;border-radius: 15px 15px 0 0;padding:25px 0;background:#4d70ff}

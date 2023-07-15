@@ -35,3 +35,4 @@ input[hidden] { height:0!important}
 .layui-btn-normal,.layui-bg-blue{background-color:#4d70ff!important;}
 .layui-layer-btn .layui-layer-btn0{ border-color: #4d70ff;background-color: #4d70ff}
 .layui-laydate .layui-this, .layui-laydate .layui-this>div{background-color: #4d70ff!important;}
+.layui-input:focus, .layui-textarea:focus{ border-color: #4d70ff!important;}
