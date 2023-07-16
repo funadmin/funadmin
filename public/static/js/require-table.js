@@ -1254,12 +1254,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         var formatFilter = {}, formatOp = {};
                         formatFilter[name] = text;
                         formatOp[name] = $(this).data('searchop') || '%*%';
-                        where = {}
-                        if(text) {
-                            where = {
-                                filter: JSON.stringify(formatFilter),
-                                op: JSON.stringify(formatOp)
-                            }
+                        where = {
+                            filter: JSON.stringify(formatFilter),
+                            op: JSON.stringify(formatOp)
                         }
                         Table.api.reload(tableId, where, true, false);
                         return false
