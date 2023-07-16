@@ -5,6 +5,9 @@ define(['jquery', "form", 'toastr'], function ($, Form, Toastr) {
     var Controller = {
         index: function () {
             Controller.api.bindevent();
+            if(top.location!=self.location){
+                top.location.href = location.href;
+            }
 
         },
         password: function () {
