@@ -1,4 +1,4 @@
-define(['jquery', "form", 'toastr'], function ($, Form, Toastr) {
+define(["form", 'toastr'], function (Form, Toastr) {
     Toastr.options = {
         positionClass: "toast-top-center",//弹出的位置,
     };

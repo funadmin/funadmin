@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function (undefined,Table,Form) {
+define(['table','form'], function (Table,Form) {
     let Controller = {
         index: function () {
             Table.init = {

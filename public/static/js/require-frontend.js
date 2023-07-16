@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
-var urlArgs = '?v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
+var urlArgs = '?_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
 require.config({
     urlArgs:  'v=' + Config.site.site_version ,
     packages: [

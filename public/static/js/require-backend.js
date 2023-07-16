@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
-var urlArgs = '?v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
+var urlArgs = '?_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
 require.config({
     urlArgs: 'v=' + Config.site.site_version ,
     packages: [
@@ -20,7 +20,7 @@ require.config({
     ],
     baseUrl: BASE_URL,
     include: [
-        'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload','addons'],
+        'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -50,7 +50,6 @@ require.config({
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',
-        'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
     },
     map: {
         '*': {'css': 'plugins/require-css/css.min'}
@@ -89,7 +88,7 @@ require(["jquery"], function ($) {
     //直接使用$经常出现未定义
     $ = layui.jquery;
     $(function () {
-        require(['fun','backend','addons'], function (Fun,Backend) {
+        require(['fun','backend',BASE_URL+'js/require-addons.js'+urlArgs], function (Fun,Backend,Addon) {
             $(function () {
                 console.log(Config.jspath)
                 if ('undefined' != typeof Config.autojs && Config.autojs) {

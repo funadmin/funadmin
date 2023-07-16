@@ -1,4 +1,4 @@
-define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md5,Upload) {
+define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
     //表格重载失效的问题解决方案
     let Controller = {
         index: function () {

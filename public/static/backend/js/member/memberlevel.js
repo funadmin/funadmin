@@ -1,4 +1,4 @@
-define(['jquery','table','form','tableFilter'], function ($,Table,Form,tableFilter) {
+define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
     let Controller = {
         /**
          * 会员等级

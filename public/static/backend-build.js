@@ -50,7 +50,6 @@
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',
-        'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
         'backend'       : 'js/backend', // fun后台扩展
     },
     map: {

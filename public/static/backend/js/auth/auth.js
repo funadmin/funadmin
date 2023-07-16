@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function ($,Table, Form) {
+define(['table','form'], function (Table, Form) {
     var form = layui.form;
     var Controller = {
         index: function () {
