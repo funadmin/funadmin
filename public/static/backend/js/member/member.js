@@ -112,7 +112,7 @@ define(['table','form'], function (Table,Form) {
                     {field: 'username', title: __('memberName'), width: 120,
                         // searchValue:'测试'
                     },
-                    {field: 'email', title: __('Email'), width: 120,},
+                    {field: 'email', title: __('Email'), width: 180,},
                     {field: 'mobile', title: __('mobile'), width: 120,edit: 'text'},
                     {
                         field: 'sex',
@@ -147,7 +147,8 @@ define(['table','form'], function (Table,Form) {
                     {field: 'create_time', title: __('Registertime'),dateformat:'yyyy-MM-dd HH:mm:ss', width: 180,filter:'datePicker',search:'time',searchOp:'daterange'},
                     // {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
-                        minwidth: 250,
+                        fixed:'right',
+                        minWidth: 80,
                         align: 'center',
                         title: __('Operat'),
                         init: Table.init,
@@ -241,7 +242,7 @@ define(['table','form'], function (Table,Form) {
                     {field: 'create_time', title: __('Registertime'), width: 180,search:'range',},
                     // {field: 'last_login', title: __('Lastlogintime'), width: 180,search:'timerange', templet: Table.templet.time},
                     {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: 'center',
                         title: __('Operat'),
                         init: Table.init,

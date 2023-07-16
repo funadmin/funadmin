@@ -60,11 +60,10 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
-                lineStyle: 'height: 60px;', // 定义表格的多行样式
+                lineStyle: 'min-height: 100px;', // 定义表格的多行样式
                 search: true,
-                show:false,
+                // searchShow:true,
                 cols: [[
-                    // {checkbox: false,},
                     {
                         field: 'name',
                         title: __('ADDONAME'),
@@ -85,19 +84,19 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     },
                     {
                         field: 'title',
-                        title: __('Title'),
-                        // width: 150,
+                        title: __('插件信息'),
+                        minWidth: 150,
                         align:'left',
                         templet: function (d){
                             if(d.website){
-                                return '<a class="layui-btn-xs layui-btn layui-btn-normal" target="_blank" href="'+d.website+'">'+d.title+'</button>'+"<br>";
+                                return '标题: <a class="layui-btn-xs layui-font-blue" target="_blank" href="'+d.website+'">'+d.title+'</a>'+"<br>"+ '详情：'+d.description;
                             }else{
-                                return d.title +"<br>";
+                                return '标题：'+d.title +"<br>"+ '详情：'+d.description;
                             }
                         }
                     },
 
-                    {field: 'description', title: __('Description'), minWidth: 220,align:'left'},
+                    // {field: 'description', title: __('Description'), minWidth: 220,align:'left'},
                     {
                         field: 'version', title: __('Addon version'), width: 100, search: false,
                         templet: function (d) {
@@ -117,8 +116,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     },
                     {field: 'download', title: __('download'), width: 120,search: false},
                     {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,dateformat: 'yyyy-MM-dd',templet:Table.templet.time},
-                    {
-                        fixed:'right', minWidth: 170, align: 'left', init: Table.init, templet: function (d) {
+                    {title: __('Operat'), fixed:'right', minWidth: 180,init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install == 1 ) {
                                 if(d.lastVersion > d.localVersion){

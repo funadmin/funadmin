@@ -58,7 +58,7 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
                     {field: 'create_time', title: __('Createtime'), width: 180,search: 'range'},
                     {field: 'update_time', title: __('Updatetime'), width: 180,search: false},
                     {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: 'center',
                         title: '操作',
                         init: Table.init,
@@ -114,7 +114,7 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
                     {field: 'create_time', title: __('Createtime'), width: 180,search: false},
                     {field: 'update_time', title: __('Updatetime'), width: 180,search: false},
                     {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: 'center',
                         title: '操作',
                         init: Table.init,
