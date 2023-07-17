@@ -576,7 +576,37 @@ if (!function_exists('uninstallsql')) {
 if (!class_exists('Form')) {
     class_alias('fun\\Form', 'Form');
 }
+// Form别名
+if (!class_exists('FormBuilder')) {
+    class_alias('fun\\FormBuilder', 'FormBuilder');
+}
 
+if (!function_exists('form_js')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_js($name=[], array $options=[])
+    {
+        return Form::js($name, $options);
+    }
+}
+if (!function_exists('form_css')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_css($name=[],$options=[])
+    {
+        return Form::css($name, $options);
+    }
+}
 if (!function_exists('form_config')) {
     /**
      * @param string $name

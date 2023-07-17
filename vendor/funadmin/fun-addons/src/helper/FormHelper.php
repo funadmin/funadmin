@@ -20,6 +20,24 @@ use think\helper\Str;
 class FormHelper
 {
     /**
+     * 表单html
+     * @var array
+     */
+    protected static $instance;
+    /**
+     * 获取单例
+     * @param array $options
+     * @return static
+     */
+    public static function instance($options = [])
+    {
+        if (is_null(self::$instance)) {
+            self::$instance = new static($options);
+        }
+
+        return self::$instance;
+    }
+    /**
      * @param $name
      * @param $value
      * @param $options
@@ -185,16 +203,18 @@ class FormHelper
                 $form =  $this->input($name, 'text',$options,$value);
                 break;
         }
+
         return $form;
     }
 
 
     public  function token($name = '__token__', $type = 'md5')
     {
+        $str = '';
         if (function_exists('token')) {
-            return token($name, $type);
+            $str = token($name, $type);
         }
-        return '';
+        return $str;
     }
 
     /**
@@ -264,7 +284,7 @@ EOF;
     {
 
         $disorread = $this->readonlyOrdisabled($options);
-        return <<<EOF
+        $str =  <<<EOF
                 <div class="layui-form-item">{$this->label($name, $options)}
             <div class="layui-input-block">
               <div class="layui-input-inline" style="width: 100px;">
@@ -277,6 +297,8 @@ EOF;
             </div>
           </div>
 EOF;
+
+        return $str;
     }
 
     /**
@@ -374,6 +396,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -398,6 +421,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -437,6 +461,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -461,6 +486,7 @@ EOF;
             </div>
         </div>'
 EOF;
+
         return $str;
     }
 
@@ -522,6 +548,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -586,6 +613,7 @@ EOF;
             $i++;
         }
         $str = '<div id="' . $name . '">' . $arr . '</div>';
+
         return $str;
     }
 
@@ -606,6 +634,7 @@ EOF;
             {$this->tips($options)}
             </div></div>
 EOF;
+
         return $str;
     }
 
@@ -642,6 +671,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -677,6 +707,7 @@ EOF;
         </div>
     </div>
 EOF;
+
         return $str;
     }
     /**
@@ -730,6 +761,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -791,6 +823,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -834,6 +867,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -857,6 +891,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -879,6 +914,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -900,6 +936,7 @@ EOF;
     <input {$this->getDataPropAttr($name,$value,$options)}  class="layui-input {$this->getClass($options)}" type="text" />
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -925,6 +962,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -947,6 +985,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
 
@@ -993,6 +1032,7 @@ EOF;
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -1129,6 +1169,7 @@ width:65%
     </div>
 </div>
 EOF;
+
         return $str;
     }
     /**
@@ -1177,11 +1218,38 @@ EOF;
             {$reset}
         </div>
 EOF;
+
         return $str;
     }
 
     public function submit($reset=true, $options=[]){
+
         return $this->submitbtn($reset,$options);
+
+    }
+    public function js($name=[],$options=[]){
+        if(is_string){
+            $name = explode(',',$name);
+        }
+        $str = '';
+        $v = $options['version'] || $options['v'];
+        foreach ($name as $src) {
+            $src = $v?$src.'?v='.$v:$src;
+            $str .='<script src="'.$src.'"></script>';
+        }
+        return $str;
+    }
+    public function css($name=[],$options=[]){
+        if(is_string){
+            $name = explode(',',$name);
+        }
+        $str = '';
+        $v = $options['version'] || $options['v'];
+        foreach ($name as $src) {
+            $src = $v?$src.'?v='.$v:$src;
+            $str .='<link href="'.$src.'" />';
+        }
+        return $str;
     }
     /**
      * @param $label
@@ -1205,8 +1273,6 @@ EOF;
         }
         return $data;
     }
-
-
     /**
      * 将HTML字符串转换为实体
      *

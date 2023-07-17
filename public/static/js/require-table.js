@@ -7,7 +7,8 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'timePicker'], function ($, timePicker) {
+define(['timePicker'], function (timePicker) {
+    var $ = layui.$;
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
