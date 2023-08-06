@@ -298,12 +298,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;');
             }
             value = Fun.api.getStorage(name);
+            console.log(value)
             if(value && value == 1) {
-                top = 40;
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
-                    top: top
+                    top: '40px'
                 }, 100);
             }else if(value && value == 2){
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
