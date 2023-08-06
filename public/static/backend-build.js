@@ -9,16 +9,16 @@
         optimize: true
     },
     output: {
-        comments: false, // 去掉注释
+        comments: true, // 去掉注释
     },
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
-        'css','layCascader','tableSelect','tableFilter',
+        'jquery','css','layCascader','tableSelect','tableFilter',
         'iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
-        'regionCheckBox','timePicker','croppers',
+        'regionCheckBox','timePicker','croppers','autoComplete',
         'dayjs', 'md5','fun','form', 'table', 'upload', 'backend'
     ],
     paths: {
@@ -44,6 +44,7 @@
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'dayjs'         : 'plugins/dayjs/dayjs.min',
+        'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
         'md5'           : 'plugins/lay-module/md5/md5.min',
         //自定义 后台扩展
         'fun'           : 'js/fun', // api扩展
@@ -81,6 +82,8 @@
             exports: "cropper"
         }, "layCascader":{
             deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
+        },"autoComplete":{
+            deps: ['css!plugins/lay-module/autoComplete/autoComplete.css'], exports: "autoComplete"
         },
     },
 })

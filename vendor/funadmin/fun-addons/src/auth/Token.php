@@ -199,7 +199,7 @@ class Token
             if(empty($params['nonce']) || empty($params['sign'])){
                 $this->error(lang('sign or nonce cannot be empty'), [],401);
             }
-            if($params !=$this->buildSign($params)){
+            if($params['sign'] !=$this->buildSign($params)){
                 $this->error(lang('sign is not right'));
             }
         }

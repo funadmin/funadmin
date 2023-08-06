@@ -10,7 +10,7 @@
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
 var urlArgs = '?_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
 require.config({
-    urlArgs: 'v=' + Config.site.site_version ,
+    urlArgs: urlArgs ,
     packages: [
         {
             name: 'dayjs',
@@ -19,8 +19,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: [
-        'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
+    include: ['jquery', 'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect','autoComplete', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -44,6 +43,7 @@ require.config({
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
+        'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'backend'       : 'js/backend', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
@@ -74,19 +74,22 @@ require.config({
         "layCascader":{
             deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
         },
+        "autoComplete":{
+            deps: ['css!plugins/lay-module/autoComplete/autoComplete.css'], exports: "autoComplete"
+        },
     },
     waitSeconds: 30,
     charset: 'utf-8' // 文件编码
 });
 //初始化控制器对应的JS自动加载
-require(["jquery"], function ($) {
+require(['jquery'], function ($) {
     // 配置语言包的路径
     var paths = {};
     paths["lang"] = '/backend/ajax/lang?callback=define&app='+Config.appname+'&controllername=' + Config.controllername;
     // paths['backend/'] = 'backend/';
     require.config({paths:paths});
     //直接使用$经常出现未定义
-    $ = layui.jquery;
+    $ = layui.jquery || layui.$;
     $(function () {
         require(['fun','backend',BASE_URL+'js/require-addons.js'+urlArgs], function (Fun,Backend,Addon) {
             $(function () {
@@ -96,9 +99,17 @@ require(["jquery"], function ($) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('action'+ Config.actionname+' is not find')
+                            console.log('action '+ Config.actionname+' is not find')
                         }
                     });
+                }else{
+                    require(['/static/js/builder.js'], function (Controller) {
+                        if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
+                            Controller[Config.actionname]();
+                        } else {
+                            console.log('action '+ Config.actionname+' is not find')
+                        }
+                    })
                 }
             })
         })

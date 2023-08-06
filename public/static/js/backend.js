@@ -296,10 +296,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
             }
             value = Fun.api.getStorage(name);
             if(value && value == 1) {
+                top = 40;
+                if(Config.site_theme==0) top = 60;
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
-                    top: 40
+                    top: top
                 }, 100);
             }else if(value && value == 2){
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
@@ -364,6 +366,19 @@ layui.define(['layer','element','dropdown'], function (exports) {
             Backend.listenDeltab(options);
             Backend.listenFrameTheme();
         },
+        initNav: function (options) {
+            //菜单自适应
+            var nav = $('.layui-tab .layui-tab-title');
+            if(Config.site.site_theme<=0 ){
+                if( $(window).width()<=769)  {
+                    nav.width('100%'); return;
+                }
+                pagetab = $('.layui-pagetabs').outerWidth();
+                right = $('.layui-nav.layui-layout-right').outerWidth();
+                left = $('.layui-nav.layui-layout-left').outerWidth();
+                nav.width(pagetab - right- left);
+            }
+        },
         //全屏
         fullScreen: function () {
             var ele = document.documentElement
@@ -400,12 +415,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
         //侧边
         sideFlexible: function () {
             //侧边伸缩
-            console.log($(window).width())
             if($('body').hasClass('menu4') && $(window).width() > 768) return;
             $container.toggleClass(SIDE_SHRINK);
             $container.toggleClass(FUN_APP);
             $('.layui-header #layui-header-nav-pc,.layui-header #layui-header-nav-mobile').toggleClass('layui-layout-nav');
             $('.layui-side-shrink .layui-side-menu .layui-nav-item').removeClass("layui-nav-hover");
+            $(window).trigger("resize");
         },
         listenTabs: function (options) {
             var funTabInfo = layui.sessionData("funTabInfo");
@@ -429,6 +444,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     element.tabChange('layui-layout-tabs', layId);
                 }
             }
+            //菜单自适应
+            Backend.initNav();
         },
         /**
          * 删除tab窗口
@@ -507,6 +524,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             $('#layui-nav-righmenu').remove();
             layui.layer.close(loadindex);
             ele.tabChange('layui-layout-tabs', options.layId);
+            Backend.initNav();
         },
         //切换id
         changeSessioinTabId: function (layId) {
@@ -721,6 +739,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '        <label class="layui-form-label required">导航模式：</label>\n' +
                     '        <div class="layui-input-block layui-text-left" style="width:auto;">' +
                     '        <select name="site_theme" id="" lay-filter="setTheme">' +
+                    '           <option value="0">标准</option>' +
                     '           <option value="1">侧边</option>' +
                     '           <option value="2">水平</option>' +
                     '           <option value="3">顶部</option>' +
@@ -772,7 +791,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     'setTab':Fun.api.getStorage('setTab'),
                     'setFrameTheme':Fun.api.getStorage('setFrameTheme'),
                 }
-                data.site_theme?data.site_theme:1;
+                data.site_theme?data.site_theme:0;
                 layui.form.val("form", data);
                 layui.form.render()
                 layui.layer.close(loading);
@@ -1151,7 +1170,10 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 });
                 $(window).on("resize", function () {
                     Backend.initBodyTheme();
+                    Backend.initNav();
                 });
+                $(window).trigger('resize');
+                $('.layui-tab-title.layui-layout-center').smou
             },
         }
     };

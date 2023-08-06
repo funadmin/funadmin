@@ -12,7 +12,7 @@
  * Date: 2019/9/22
  */
 
-namespace fun\helper;
+namespace fun\builder;
 
 
 use fun\Form;
@@ -21,13 +21,37 @@ use think\helper\Str;
 
 class FormBuilder
 {
+
+    /**
+     * style
+     * @var array
+     */
+    protected $style = [];
+    /**
+     * css
+     * @var array
+     */
+    protected $css = [];
+    /**
+     * js
+     * @var array
+     */
+    protected $js = [];
+    /**
+     * script
+     * @var array
+     */
+    protected $script = [];
     /**
      * 表单html
      * @var array
      */
     protected $formHtml = [];
 
-    protected static $instance;
+    /**
+     * @var
+     */
+    private static $instance;
     /**
      * 获取单例
      * @param array $options
@@ -40,6 +64,19 @@ class FormBuilder
         }
 
         return self::$instance;
+    }
+    public function __construct($options=[])
+    {
+        $this->template = $options['template']??'../../../vendor/funadmin/fun-addons/src/builder/layout/add';
+;
+    }
+
+    /**
+     * 私有化clone函数
+     */
+    private function __clone()
+    {
+        // TODO: Implement __clone() method.
     }
     /**
      * @param $name
@@ -75,6 +112,11 @@ class FormBuilder
     public  function input(string $name = '', string $type = 'text',array $options = [], $value = '')
     {
         $this->formHtml[] = Form::input($name, $type,$options,$value);
+        return $this;
+    }
+    public  function autocomplete(string $name = '', array $list = [],array $options = [],$attr= [], $value = '')
+    {
+        $this->formHtml[] = Form::autocomplete($name, $list,$options,$attr,$value);
         return $this;
     }
 
@@ -484,20 +526,82 @@ class FormBuilder
      * @return void
      */
     public function js($name=[],$options=[]){
-        $this->formHtml[] = Form::js($reset,$options);
+        if(options['merge']){
+            $this->formHtml[] = Form::js($reset,$options);
+        }else{
+            $this->js[] = Form::js($reset,$options);
+        }
         return $this;
     }
     public function css($name=[],$options=[]){
-        $this->formHtml[] = Form::css($reset,$options);
+        if(options['merge']){
+            $this->formHtml[] = Form::css($reset,$options);
+        }else{
+            $this->css[] = Form::css($reset,$options);
+        }
+
+        return $this;
+    }
+    public function script(string $name,$options=[]){
+        if(options['merge']){
+            $this->formHtml[]= Form::script($name,$options);
+        }else{
+            $this->script[] = Form::script($name,$options);
+        }
+        return $this;
+    }
+    public function style(string $name,$options=[]){
+        if(options['merge']){
+            $this->formHtml[] = Form::style($name,$options);
+        }else{
+            $this->style[] = Form::style($name,$options);
+        }
         return $this;
     }
     /**
      * 渲染视图
      * @return string
      */
-    public function assign(){
+    public function assign($data=[]){
+        $form = $this;
+        View::assign([
+            'formBuilder'=>$form,
+            'formStyle'=>implode('',$this->style),
+            'formCss'=>implode('',$this->css),
+            'formScript'=>implode('',$this->script),
+            'formJs'=>implode('',$this->js),
+            'formHtml'=>implode('',$this->formHtml),
+            'formData'=>$data,
+        ]);
+        return $this;
+    }
 
-        View::assign(['formHtml'=>implode(',',$this->formHtml)]);
+    /**
+     * 渲染视图
+     * @param string $template
+     * @return \think\response\View
+     */
+    public function view(string $template=''){
+
+        $template = $template?:$this->template;
+        return view($template);
+    }
+
+    public function extraHtml($html,$position='bottom'){
+        if($position=='bottom'){
+            $this->formHtml[] = $html;
+        }else{
+            array_unshift($this->formHtml,$html);
+        }
+        return $this;
+    }
+    /**
+     * 额外的代码
+     * @param $html
+     * @return $this
+     */
+    public function html($html,$options=[]){
+        $this->formHtml[] = Form::html($html,$options);
         return $this;
     }
 
@@ -509,10 +613,10 @@ class FormBuilder
     public function formValue($formValue=[]){
         $formValue = json_encode($formValue);
         $this->formHtml[] = <<<EOF
-<script>
-  layui.form.val("form", {$formValue});
-  layui.form.render();
-  </script>;
+        <script>
+            layui.form.val("form", {$formValue});
+            layui.form.render();
+        </script>;
 EOF;
         return $this;
     }

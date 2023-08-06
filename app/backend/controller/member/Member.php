@@ -16,6 +16,8 @@ namespace app\backend\controller\member;
 use app\common\controller\Backend;
 use app\common\model\Provinces;
 use app\common\traits\Curd;
+use fun\builder\TableBuilder;
+use fun\FormBuilder;
 use think\facade\Request;
 use think\facade\View;
 use app\backend\model\MemberLevel;
@@ -67,6 +69,27 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
+        $cols = [
+            ['checkbox'=>true],
+            ['field' => 'sex',
+                'title' => __('Sex'),
+                'filter' => 'sex',
+                'width' => 120,
+                'search' => 'select',
+                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
+                'templet' => 'Table.templet.select',
+                'tips' => __('Female') . '|' . __('Male')
+            ],
+            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
+        ];
+//        $operat = [ 'fixed'=>'right',
+//                        'minWidth'=> 80,
+//                        'align'=> 'center',
+//                        'title'=> __('Operat'),
+//                        'init'=> 'Table.init',
+//                        'templet'=> 'Table.templet.operat',
+//                        'operat'=> ['edit_url', 'destroy',],];
+//        return TableBuilder::instance()->cols($cols)->operat($operat)->assign()->view();
         return view();
     }
 
@@ -190,7 +213,21 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
-        return view('index');
+
+        $cols = [
+            ['field' => 'sex',
+                'title' => __('Sex'),
+                'filter' => 'sex',
+                'width' => 120,
+                'search' => 'select',
+                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
+                'templet' => 'Table.templet.select',
+                'tips' => __('Female') . '|' . __('Male')
+            ],
+            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
+        ];
+//        return TableBuilder::instance()->cols($cols)->assign()->view();
+//        return view('index');
     }
 
 

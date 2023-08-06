@@ -27,10 +27,20 @@
     <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
     <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+
+    {if $formCss}{$formCss|raw}{/if}
+    {if $formStyle}{$formStyle|raw}}{/if}
+    {if $tableCss}{$tableCss|raw}}{/if}
+    {if $tableStyle}{$tableStyle|raw}}{/if}
+    {if $formJs}{$formJs|raw}}{/if}
+    {if $tableJs}{$tableJs}{/if}
 </head>
 <script>
     window.Config = {:json_encode($config)};
     window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
     window.STATIC ='__STATIC__'
     window.PLUGINS = '__PLUGINS__';
+    window.APP = '{$APP}';
+    window.CONTROLLER = '{$CONTROLLER}';
+    window.ACTION = '{$ACTION}';
 </script>

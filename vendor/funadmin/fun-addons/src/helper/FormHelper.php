@@ -199,6 +199,11 @@ class FormHelper
             case 'region':
                 $form =  $this->region($name,$options,$value);
                 break;
+            case 'autocomplete':
+                $attr = $options['attr']??['id','title'];
+                $list = ($options['list']??$extra);
+                $form =  $this->autocomplete($name,$list,$options,$attr,$value);
+                break;
             default :
                 $form =  $this->input($name, 'text',$options,$value);
                 break;
@@ -710,6 +715,23 @@ EOF;
 
         return $str;
     }
+
+    public function autocomplete($name='',$list=[],$options=[],$attr=[],$value=''){
+        list($name,$id)= $this->getNameId($name,$options);
+        $options['filter'] = 'autoComplete';
+        $data = json_encode($list);
+        $str = <<<EOF
+<div class="layui-form-item ">{$this->label($name, $options)}
+    <div class="layui-input-block">
+     <input data-data='{$data}'  type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" maxlength="2048" tabindex="1"
+        {$this->getDataPropAttr($name,$value,$options)} 
+      {$this->getStyle($options)}  class="layui-input  {$this->getClass($options)}  $disorread "/>
+     {$this->tips($options)} 
+    </div>
+ </div>
+EOF;
+    return $str;
+    }
     /**
      * @param $name
      * @param $select
@@ -958,7 +980,7 @@ EOF;
 <div class="layui-form-item">
 <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
     <div class="layui-input-block">
-        <input data-toggle="city-picker" {$this->getDataPropAttr($name,$value,$options)} type="hidden" autocomplete="on" class="layui-input {$this->getClass($options)} "  />
+        <input data-toggle="city-picker" {$this->getDataPropAttr($name,$value,$options)} type="hidden" autocomplete="off" class="layui-input {$this->getClass($options)} "  />
     </div>
 </div>
 EOF;
@@ -1227,6 +1249,39 @@ EOF;
         return $this->submitbtn($reset,$options);
 
     }
+
+    /**额外的代码
+     * @param $html
+     * @return string
+     */
+    public function html($html,$options=[]){
+        return $this->entities($html);
+    }
+
+    /**
+     * script
+     * @param $script
+     * @return string
+     */
+    public function script(string $script,$options=[]){
+        return $script;
+    }
+
+    /**
+     * 样式
+     * @param $style
+     * @return mixed
+     */
+    public function style(string $style,$options=[]){
+        return $style;
+    }
+
+    /**
+     * JS
+     * @param $name
+     * @param $options
+     * @return string
+     */
     public function js($name=[],$options=[]){
         if(is_string){
             $name = explode(',',$name);
@@ -1239,6 +1294,13 @@ EOF;
         }
         return $str;
     }
+
+    /**
+     * css
+     * @param $name
+     * @param $options
+     * @return string
+     */
     public function css($name=[],$options=[]){
         if(is_string){
             $name = explode(',',$name);

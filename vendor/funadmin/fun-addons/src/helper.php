@@ -32,7 +32,8 @@ define('DS', DIRECTORY_SEPARATOR);
     $console->addCommands([
         'addons:config' => '\\fun\\addons\\command\\SendConfig',
         'auth:config' => '\\fun\\auth\\command\\SendConfig',
-        'curd:config' => '\\fun\\auth\\command\\SendConfig'
+        'curd:config' => '\\fun\\auth\\curd\\SendConfig',
+        'builder:config' => '\\fun\\builder\\command\\SendConfig'
     ]);
 });
 
@@ -580,7 +581,35 @@ if (!class_exists('Form')) {
 if (!class_exists('FormBuilder')) {
     class_alias('fun\\FormBuilder', 'FormBuilder');
 }
-
+if (!class_exists('TableBuilder')) {
+    class_alias('fun\\TableBuilder', 'TableBuilder');
+}
+if (!function_exists('form_script')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_script($name=[], array $options=[])
+    {
+        return Form::script($name, $options);
+    }
+}
+if (!function_exists('form_style')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_style($name=[], array $options=[])
+    {
+        return Form::style($name, $options);
+    }
+}
 if (!function_exists('form_js')) {
     /**
      * @param string $name
@@ -1059,5 +1088,15 @@ if (!function_exists('form_selectpage')) {
     function form_selectpage($name = 'selectpage', $list = [], $options = [], $value=null)
     {
         return Form::selectpage($name, $list, $options, $value);
+    }
+}
+if (!function_exists('form_autocomplete')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_autocomplete($name = 'autocomplete', $list = [], $options = [], $value=null)
+    {
+        return Form::autocomplete( $name, $list ,  $options ,$attr ,$value) ;
     }
 }

@@ -12,9 +12,9 @@ define(['timePicker'], function (timePicker) {
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
+            options.init = options.init || Table.init;
             options.elem = options.elem || '#' + options.init.table_elem;
             options.primaryKey = options.primaryKey || $('#'+options.id).data('primarykey') || 'id';
-            options.init = options.init || Table.init;
             options.id = options.id || options.init.tableId;
             options.layFilter = options.id;options.autoSort = options.autoSort || false;
             options.url = options.url || window.location.href;
@@ -395,6 +395,9 @@ define(['timePicker'], function (timePicker) {
                 if (d.filter === undefined && d.templet === Table.templet.switch) {
                     newclos[i]['filter'] = d.field;
                 }
+                if (d.templet !== undefined && typeof (d.templet)=="string" &&  d.templet.indexOf('Table.templet') !== -1) {
+                    newclos[i]['templet'] = eval(d.templet);
+                }
                 if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
                     newclos[i]['imageHeight'] = 40;
                     newclos[i]['templet'] = Table.templet.image;
@@ -408,6 +411,7 @@ define(['timePicker'], function (timePicker) {
                 if (d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
                     newclos[i]['templet'] = Table.templet.resolution;
                 }
+
             })
             return [newclos]
         },

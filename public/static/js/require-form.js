@@ -7,8 +7,8 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus'],
-    function(Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus) {
+define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus','autoComplete'],
+    function(Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus,autoComplete) {
     var $ = layui.$;
     var Form = {
             init: {},
@@ -36,6 +36,54 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                     return true;
                                 }
                             })
+                        })
+                    }
+                },
+                autocomplete:function (formObj) {
+                    var list = formObj!=undefined ? formObj.find("*[lay-filter='autoComplete']") :$("*[lay-filter='autoComplete']");
+                    if (list.length > 0) {
+                        layui.each(list,function(i,v){
+                        var _t =$(this), data =_t.data('data'), src =_t.data('src') ||_t.data('url'),
+                            id=_t.attr('id') ||_t.data('id'), keys = _t.data('keys') || null;
+                        if(keys) keys = [keys];
+                        if(data.length==0){
+                            data = Fun.api.getData(src,{});
+                        }
+                        window['autoComplete-'+id] = new autoComplete({
+                            selector: "#"+id,
+                            placeHolder: "Search...",
+                            data: {
+                                src: data,
+                                keys: keys ,
+                                cache: true,
+                            },
+                            resultsList: {
+                                element: function(list, data)  {
+                                    if (!data.results.length) {
+                                        // Create "No Results" message element
+                                        var message = document.createElement("div");
+                                        // Add class to the created element
+                                        message.setAttribute("class", "autocomplete_no_result");
+                                        // Add message text content
+                                        message.innerHTML = '<span>Found No Results for "'+data.query+'"</span>';
+                                        // Append message element to the results list
+                                        list.prepend(message);
+                                    }
+                                },
+                                noResults: true,
+                            },
+                            resultItem: {
+                                highlight: true
+                            },
+                            events: {
+                                input: {
+                                    selection: function (event) {
+                                        const selection = event.detail.selection.value;
+                                        window['autoComplete-'+id].input.value = keys?selection[keys]:selection;
+                                    }
+                                }
+                            }
+                        });
                         })
                     }
                 },
@@ -1276,6 +1324,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     events.selectn(form);
                     events.selectpage(form);
                     events.removeInupt(form);
+                    events.autocomplete(form);
                     events.events();//事件
                     //初始化数据
                     this.initForm();

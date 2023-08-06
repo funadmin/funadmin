@@ -13,11 +13,11 @@
     // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [
-        'css','layCascader','tableSelect','tableFilter',
+        'jquery', 'css','layCascader','tableSelect','tableFilter',
         'iconPicker','iconFonts', 'toastr',
         'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
-        'regionCheckBox','timePicker','croppers',
+        'regionCheckBox','timePicker','croppers','autoComplete',
         'dayjs', 'md5', 'fun','form', 'table', 'upload'
     ],
     paths: {
@@ -43,6 +43,7 @@
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
+        'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
         'dayjs'         : 'plugins/dayjs/dayjs.min',
         // //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
@@ -81,6 +82,8 @@
             exports: "cropper"
         }, "layCascader":{
             deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
+        },"autoComplete":{
+            deps: ['css!plugins/lay-module/autoComplete/autoComplete.css'], exports: "autoComplete"
         },
     },
 })
