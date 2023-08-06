@@ -286,6 +286,9 @@ layui.define(['layer','element','dropdown'], function (exports) {
             Backend.api.bindEvent();
         },
         initBodyTheme:function (name){
+            if(Config.site.site_theme ==0){
+                return false;
+            }
             name = typeof name==='undefined'?'setTab':name;
             $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
             $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop').removeAttr('style');
