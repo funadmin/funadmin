@@ -297,7 +297,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
             value = Fun.api.getStorage(name);
             if(value && value == 1) {
                 top = 40;
-                if(Config.site_theme==0) top = 60;
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
@@ -758,8 +757,8 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     '<div class="layui-form-item">\n' +
                     '        <label class="layui-form-label" style="">选项卡：</label>\n' +
                     '        <div class="layui-input-block layui-text-left">' +
-                    '            <input lay-filter="setTab" type="radio" value="1" title="显示" name="setTab">' +
-                    '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" name="setTab">' +
+                    '            <input lay-filter="setTab" type="radio" value="1" title="显示" tips="标准模式不支持" name="setTab">' +
+                    '            <input lay-filter="setTab" type="radio" value="2" title="隐藏" tips="标准模式不支持" name="setTab">' +
                     '        </div>\n' +
                     '</div>'+
                     '</form>'+
@@ -1009,8 +1008,12 @@ layui.define(['layer','element','dropdown'], function (exports) {
                     if(v  && v === data.value){
                         return false;
                     }else{
+                        if(Config.site.site_theme ==0){
+                            Fun.toastr.error('标准模式不支持切换');
+                            return false;
+                        }
                         Fun.api.setStorage(name, data.value)
-                        Backend.initBodyTheme(name,value);
+                        Backend.initBodyTheme(name);
                     }
                 });
                 layui.form.on('radio(setFrameTheme)', function (data) {
