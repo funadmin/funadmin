@@ -267,7 +267,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
         ];
     var Backend = {
         /*** 版本*/
-        v: '2.4.0',
+        v: '5.0',
         /**
          * @param options
          */
