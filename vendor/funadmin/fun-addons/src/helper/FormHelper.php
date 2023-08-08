@@ -1081,7 +1081,7 @@ EOF;
                 'width' => $options['saveW'] ?? '300',
                 'height' => $options['saveW'] ?? '300',
                 'mark' => $options['mark'] ?? 1,
-                'area' => $options['area'] ?? '800px',
+                'area' => $options['area'] ?json_encode($options['area']): json_encode(['100%','100%']),
                 'filter' => 'cropper',
             ];
             $data_value = $this->getOptionsAttr($name,$cops);
@@ -1538,24 +1538,24 @@ EOF;
                         $attr.= $this->search($options);
                         break;
                     case 'value':
-                        $attr .=  $key.'="{$this->entities($val)}" data-'.$key.'="'.$this->entities($val).'" ';
+                        $attr .=  $key."='".$this->entities($val) ."' data-".$key."='".$this->entities($val)."' ";
                         break;
                     case 'attr':
                         if(is_object($val) || is_array($val)){
                             $val = (array)$val;
                             $val = implode(',',$val);
                         }
-                        $attr .= ' data-'.$key.'="'.$val.'" ';
+                        $attr .= " data-".$key."='".$val."' ";
                         break;
                     case 'skin':
-                        $attr.= "lay-'".$key.'"="'. $val.'" ';
+                        $attr.= " lay-'".$key.'"="'. $val.'" ';
                         break;
                     default:
                         if(is_object($val) || is_array($val)){
                             $val = (array)$val;
                             $val = $val[$name]?? json_encode($val, JSON_UNESCAPED_UNICODE);
                         }
-                        $attr .= ' data-'.$key.'="'.$val.'" ';
+                        $attr .= " data-".$key."='".$val."' ";
                         break;
 
                 }

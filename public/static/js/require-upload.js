@@ -258,7 +258,7 @@ define([ 'croppers'], function(croppers) {
                         var data = _that.data();
                         if(typeof data.value == 'object') data = data.value;
                         var saveW = data.width || 300, saveH = data.height|| 300, mark = data.mark || 1,
-                            area = data.area || '720px', uploadPath = data.path || 'upload';
+                            area = data.area, uploadPath = data.path || 'upload';
                         opt[i] = $.extend({
                             elem: $(this),
                             saveW: saveW, //保存宽度
