@@ -1,7 +1,7 @@
 {$extraStyle}
 {$html|raw}
 
-<table class="layui-table" id="list" lay-filter="list" data-primaryKey="id"
+<table class="layui-table" id="{$options[$ACTION]['id']}" lay-filter="{$options[$ACTION]['elem']}" data-primaryKey="{$options[$ACTION]['primaryKey']}"
        data-node-add="{:auth(__u('add'))}"
        data-node-edit="{:auth(__u('edit'))}"
        data-node-delete="{:auth(__u('delete'))}"
