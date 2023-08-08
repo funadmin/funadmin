@@ -15,9 +15,11 @@
 namespace fun;
 
 use think\Facade;
-
 /**
- * @see \fun\helper\FormHelper
+ * 表单元素生成
+ * @class   FormBuilder
+ * @mixin  \fun\builder\FormBuilder
+ * @see \fun\builder\FormBuilder
 */
 class FormBuilder extends Facade
 {
