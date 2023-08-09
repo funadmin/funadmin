@@ -7,9 +7,7 @@
     throwWhen: {
         optimize: true
     },
-    output: {
-        comments: false, // 去掉注释
-    },
+    preserveLicenseComments: false,
     // optimize: 'none', //压缩方式
     optimizeCss:'standard',
     include: [

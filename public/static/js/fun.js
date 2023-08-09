@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
+define(["lang",'toastr','dayjs','backend'], function (Lang,Toastr,Dayjs,Backend) {
     var $ = layui.jquery, layer = layui.layer, element = layui.element;layer = layer || parent.layer;
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
@@ -672,8 +672,8 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         return false;
                     }
                     options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    layui.Backend.addTab(options);
-                    if (layui.Backend.checkScreen()) {
+                    Backend.addTab(options);
+                    if (Backend.checkScreen()) {
                         $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                     }
                 }

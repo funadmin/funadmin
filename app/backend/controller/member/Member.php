@@ -69,6 +69,7 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
+        /*
         $cols = [
             ['checkbox'=>true],
             ['field' => 'sex',
@@ -82,14 +83,15 @@ class Member extends Backend
             ],
             ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
         ];
-//        $operat = [ 'fixed'=>'right',
-//                        'minWidth'=> 80,
-//                        'align'=> 'center',
-//                        'title'=> __('Operat'),
-//                        'init'=> 'Table.init',
-//                        'templet'=> 'Table.templet.operat',
-//                        'operat'=> ['edit_url', 'destroy',],];
-//        return TableBuilder::instance()->cols($cols)->operat($operat)->assign()->view();
+        $operat = [ 'fixed'=>'right',
+                        'minWidth'=> 80,
+                        'align'=> 'center',
+                        'title'=> __('Operat'),
+                        'init'=> 'Table.init',
+                        'templet'=> 'Table.templet.operat',
+                        'operat'=> ['edit_url', 'destroy',],];
+        return TableBuilder::instance()->cols($cols)->operat($operat)->assign()->view();
+         */
         return view();
     }
 
@@ -214,7 +216,8 @@ class Member extends Backend
             return json($result);
         }
 
-        $cols = [
+        /*
+         $cols = [
             ['field' => 'sex',
                 'title' => __('Sex'),
                 'filter' => 'sex',
@@ -226,8 +229,9 @@ class Member extends Backend
             ],
             ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
         ];
-//        return TableBuilder::instance()->cols($cols)->assign()->view();
-//        return view('index');
+        return TableBuilder::instance()->cols($cols)->assign()->view();
+        */
+        return view('index');
     }
 
 

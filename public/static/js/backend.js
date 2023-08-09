@@ -1,13 +1,7 @@
-layui.define(['layer','element','dropdown'], function (exports) {
-    var $ = layui.$, element = layui.element, layer = layui.layer,dropdown = layui.dropdown;
-    element.init();
-    if (!/http(s*):\/\//.test(location.href)) {
-        var tips = "请先将项目部署至web容器（Apache/Tomcat/Nginx/IIS/等），否则部分数据将无法显示";
-        return Fun.toastr.alert(tips);
-    }
+define([], function () {
+    var $ = layui.$, element = layui.element;
     var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
         THIS = 'layui-this', SIDE_SHRINK = 'layui-side-shrink',
-        LayerTitleBg='background: background:rgb(243, 246, 246);border-bottom: none;',
         //主题配置
         THEME = [
             {
@@ -326,7 +320,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                 $(document).find('.fun-loading').fadeOut();
                 if (Fun.api.getStorage('BackendLock')) {
 
-                    title = [__('Input Password'),LayerTitleBg];
+                    title = [__('Input Password')];
                     if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                     layui.layer.prompt({
                         btn: [__('Unlock Now')],
@@ -472,18 +466,6 @@ layui.define(['layer','element','dropdown'], function (exports) {
             element.tabChange('layui-layout-tabs', layId);
             Backend.changeSessioinTabId(layId);
             $('#layui-nav-righmenu').remove();
-        },
-        listenHeight:function(layId){
-            $item = $('#layui-side-left-menu a[lay-id="'+layId+'"]');
-            if($item.length>0){
-                $item.parents('li').siblings('li').removeClass('layui-nav-itemed')
-                $item.parents('li').siblings('li').find('dl').css({'display':'auto'});
-                $item.parents('li').animate({'height':'auto'})
-            }else{
-                $item.parents('li').removeAttr('style');
-                $item.parents('li').removeClass('layui-nav-itemed');
-                $item.parents('li').parents('ul').find('dl').css({'display':'auto'});
-            }
         },
         /**
          * 增加tab
@@ -814,7 +796,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
             lockScreen: function () {
                 var colorId = Backend.getColorId();
                 theme = Fun.api.getStorage('setFrameTheme');
-                title = [__('Set Password To Lock Screen'),LayerTitleBg];
+                title = [__('Set Password To Lock Screen')];
                 if(theme) title[1] =  'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                 layui.layer.prompt({
                     btn: [__('Lock Now'),__('Cancel')],
@@ -832,7 +814,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         } else {
                             Fun.api.setStorage('BackendLock',value);
                             layui.layer.close(index);
-                            title = [__('Input Password'),LayerTitleBg];
+                            title = [__('Input Password')];
                             if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                             layui.layer.prompt({
                                 btn: [__('Unlock')],
@@ -1078,7 +1060,7 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         }
                         Backend.listenFrameTheme();
                     }// 关闭其他展开的二级标签
-                    _that.parent("li").siblings().removeClass("layui-nav-itemed");
+                    // _that.parent("li").siblings().removeClass("layui-nav-itemed");
                 });
                 $('#layui-side-left-menu,.layui-nav-header,#layui-side-left-menu').on('click', '*[lay-id]', function (e) {
                     var _that = $(this);
@@ -1170,18 +1152,13 @@ layui.define(['layer','element','dropdown'], function (exports) {
                         Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
                     }
                 });
-                // //关闭右键菜单
-                $document.on('click', '.layui-body,.layui-header,.layui-side-menu,#layui-app-tabs .layui-tab,.layui-right-shade', function () {
-                    $('.layui-dropdown').remove();
-                });
                 $(window).on("resize", function () {
                     Backend.initBodyTheme();
                     Backend.initNav();
                 });
                 $(window).trigger('resize');
-                $('.layui-tab-title.layui-layout-center').smou
             },
         }
     };
-    exports("Backend", Backend);
+    return Backend;
 });

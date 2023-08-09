@@ -8,9 +8,7 @@
     throwWhen: {
         optimize: true
     },
-    output: {
-        comments: true, // 去掉注释
-    },
+    preserveLicenseComments: false,
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
