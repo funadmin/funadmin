@@ -92,15 +92,15 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     if (list.length > 0) {
                         selectPlus = layui.selectPlus || parent.layui.selectPlus;
                         layui.each(list, function(i) {
-                            var _that = $(this);
-                            var id =_that.prop('id'), name =_that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                                url =_that.data('url')||_that.data('request'),
-                                data =_that.data('data')||　[], type =_that.attr('multiple') ||_that.data('multiple') ?'checkbox':'radio',
-                                method =_that.data('method')?$(this).data('method'):'get',
-                                values =_that.data('value')?$(this).data('value'):'',
-                                attr =_that.data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
-                                where =_that.data('where'), delimiter =_that.data('delimiter') || ',',
-                                fielddelimiter =_that.data('fielddelimiter') || '、';
+                            var _t = $(this);
+                            var id =_t.prop('id'), name =_t.attr('name') || 'id',verify = _t.data('verify') || _t.attr('verify'),
+                                url =_t.data('url')||_t.data('request'),
+                                data =_t.data('data')||　[], type =_t.attr('multiple') ||_t.data('multiple') ?'checkbox':'radio',
+                                method =_t.data('method')?$(this).data('method'):'get',
+                                values =_t.data('value')?$(this).data('value'):'',
+                                attr =_t.data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
+                                where =_t.data('where'), delimiter =_t.data('delimiter') || ',',
+                                fielddelimiter =_t.data('fielddelimiter') || '、';
                             if(typeof values ==='string') {
                                 values = values.split(',')
                             }else if(typeof values ==='number'){
@@ -121,18 +121,18 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                         selectN = layui.selectN || parent.layui.selectN;
                         layui.each(list, function(i) {
                             console.log(this)
-                            var _that = $(this);
-                            var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                                url = _that.data('url') || _that.data('request'),
-                                data = _that.data('data')||　'',
-                                method = _that.data('method')?_that.data('method'):'get',
-                                last = _that.data('last')?_that.data('last'):'',
-                                values = _that.data('value')?_that.data('value'):'',
-                                search = _that.data('search')?_that.data('search'):'',
-                                attr = _that.data('attr'), attr= typeof attr ==='string' ?attr.split(','):['id','title'],
-                                num = _that.data('num')?_that.data('num'):3,
-                                pid = _that.data('pid') ||　'pid',
-                                delimiter = _that.data('delimiter') || ',',
+                            var _t = $(this);
+                            var id = _t.prop('id'), name = _t.attr('name') || 'id',verify = _t.data('verify') || _t.attr('verify'),
+                                url = _t.data('url') || _t.data('request'),
+                                data = _t.data('data')||　'',
+                                method = _t.data('method')?_t.data('method'):'get',
+                                last = _t.data('last')?_t.data('last'):'',
+                                values = _t.data('value')?_t.data('value'):'',
+                                search = _t.data('search')?_t.data('search'):'',
+                                attr = _t.data('attr'), attr= typeof attr ==='string' ?attr.split(','):['id','title'],
+                                num = _t.data('num')?_t.data('num'):3,
+                                pid = _t.data('pid') ||　'pid',
+                                delimiter = _t.data('delimiter') || ',',
                                 options = {
                                     elem: this, data: data, url: url, name: name,pid:pid,formFilter:id,
                                     field: attr, selected: values, method: method,search:search,num:num,
@@ -147,21 +147,21 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     if (list.length > 0) {
                         selectPage = layui.selectPage || parent.layui.selectPage;
                         layui.each(list, function(i) {
-                            var _that = $(this);value = _that.val() || _that.data("init");
-                            var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                                url = _that.data('url') || _that.data('request'),isTree = _that.data('istree') ,isHtml = _that.data('ishtml'),
-                                data = _that.data('data'), field = _that.data('field') ||　'title',pageSize = _that.data('pagesize') ||　12,
-                                primaryKey = _that.data('primarkey') ||　'id', selectOnly = _that.data('selectonly') ||　false,
-                                pagination = !(_that.data('pagination') == 'false' || _that.data('pagination') == 0), listSize = _that.data('listsize') ||　'15',
-                                multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton') ||　true,
-                                maxSelectLimit  = _that.data('maxselectlimit ') ||　0, searchField   = _that.data('searchfield') || field,
-                                searchKey =_that.data('searchkey') ||　primaryKey, orderBy    = _that.data('orderby') ||　false,
-                                method    = _that.data('method') ||　'GET', dbTable    = _that.data('dbtable'),
-                                selectToCloseList  =_that.data('selecttocloselist') ||　 true,disabled = _that.data('disabled') || false,
-                                andOr =_that.data('andor'),formatItem = _that.data('formatitem') || false,required = _that.data('required') || ''
-                            orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;isHtml!=undefined?isHtml:true;eSelect=_that.data('eselect');
+                            var _t = $(this);value = _t.val() || _t.data("init");
+                            var id = _t.prop('id'), name = _t.attr('name') || 'id',verify = _t.data('verify') || _t.attr('verify'),
+                                url = _t.data('url') || _t.data('request'),isTree = _t.data('istree') ,isHtml = _t.data('ishtml'),
+                                data = _t.data('data'), field = _t.data('field') ||　'title',pageSize = _t.data('pagesize') ||　12,
+                                primaryKey = _t.data('primarkey') ||　'id', selectOnly = _t.data('selectonly') ||　false,
+                                pagination = !(_t.data('pagination') == 'false' || _t.data('pagination') == 0), listSize = _t.data('listsize') ||　'15',
+                                multiple = _t.data('multiple') ||　false, dropButton  = _t.data('dropbutton') ||　true,
+                                maxSelectLimit  = _t.data('maxselectlimit ') ||　0, searchField   = _t.data('searchfield') || field,
+                                searchKey =_t.data('searchkey') ||　primaryKey, orderBy    = _t.data('orderby') ||　false,
+                                method    = _t.data('method') ||　'GET', dbTable    = _t.data('dbtable'),
+                                selectToCloseList  =_t.data('selecttocloselist') ||　 true,disabled = _t.data('disabled') || false,
+                                andOr =_t.data('andor'),formatItem = _t.data('formatitem') || false,required = _t.data('required') || ''
+                            orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;isHtml!=undefined?isHtml:true;eSelect=_t.data('eselect');
                             if(!value && Config.formData && Config.formData[name]) {
-                                _that.val( Config.formData[name]);
+                                _t.val( Config.formData[name]);
                             }
                             options = {
                                 showField : field, keyField :primaryKey,pageSize:pageSize,
@@ -184,8 +184,8 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                     data.totalRow = typeof row.count !== 'undefined' ? row.count : row.data.length;
                                     return data;
                                 }
-                            };window['selectpage-'+id] = _that.selectPage(options);
-                            if(disabled){_that.selectPageDisabled(true);}
+                            };window['selectpage-'+id] = _t.selectPage(options);
+                            if(disabled){_t.selectPageDisabled(true);}
                         })
                     }
                 },
@@ -193,24 +193,25 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='xmSelect']"):($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
                     if (list.length > 0) {
                         layui.each(list, function(i) {
-                            var id = $(this).prop('id'),
-                                url = $(this).data('url')|| $(this).data('request'), lang = $(this).data('lang'), value = $(this).data('value'),
-                                data = $(this).data('data')||　[], parentfield =  $(this).data('parentfield') || 'pid',
-                                tips = $(this).data('tips') ||  '请选择', searchTips = $(this).data('searchtips') || '请选择',
-                                empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
-                                paging = $(this).data('paging'), pageSize = $(this).data('pagesize'),
-                                remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
-                                radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
-                                clickClose = $(this).data('clickclose'), prop = $(this).data('prop') || $(this).data('attr'),
-                                max = $(this).data('max'), create = $(this).data('create'),on =$(this).data('on'), repeat = !! $(this).data('repeat'),
-                                theme = $(this).data('theme') || '#4d70ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
-                                style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
-                                layVerify = $(this).attr('lay-verify') || $(this).data('verify') || '', layReqText = $(this).data('reqtext') || '';layVerType = $(this).data('vertype') || 'tips'
-                            var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
-                            var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
-                            var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
+                            var _t = $(this);
+                            var id =_t.prop('id'),
+                                url =_t.data('url')||_t.data('request'), lang =_t.data('lang'), value =_t.data('value') ||_t.attr('value'),
+                                data =_t.data('data')||　[], parentfield = _t.data('parentfield') || 'pid',
+                                tips =_t.data('tips') ||  '请选择', searchTips =_t.data('searchtips') || '请选择',
+                                empty =_t.data('empty') || '呀,没有数据', height =_t.data('height') || 'auto',
+                                paging =_t.data('paging'), pageSize =_t.data('pagesize'),
+                                remoteMethod =_t.data('remotemethod'), content =_t.data('content') || '',
+                                radio =_t.data('radio'), disabled =_t.data('disabled'),autoRow = _t.data('autorow') !== false,
+                                clickClose =_t.data('clickclose'), prop =_t.data('prop') ||_t.data('attr'),
+                                max =_t.data('max'), create =_t.data('create'),on =$(this).data('on'), repeat = !!_t.data('repeat'),
+                                theme =_t.data('theme') || '#4d70ff', name =_t.attr('name') ||_t.data('name') || 'pid',
+                                style =_t.data('style') || {}, cascader =_t.data('cascader') ? {show: true, indent: 200, strict: false} : false,
+                                layVerify =_t.attr('lay-verify') ||_t.data('verify') || '', layReqText =_t.data('reqtext') || '';layVerType =_t.data('vertype') || 'tips'
+                            var size =_t.data('size') || 'medium' ;toolbar =_t.data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
+                            var filterable = !! ($(this).data('filterable') === undefined ||_t.data('filterable'));
+                            var remoteSearch = !!($(this).data('remotesearch') !== undefined &&_t.data('remotesearch'));
                             var pageRemote = !$(this).data('pageremote')?false:true, props, propArr, options;
-                            var tree = $(this).data('tree');
+                            var tree =_t.data('tree');
                             if(remoteSearch) toolbar.show=true;filterable=true;
                             if(typeof tree ==='object'){
                                 tree = tree;
@@ -306,11 +307,11 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                         const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                         const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
                         layui.each(list, function () {
-                            var _that = $(this);
-                            var id = _that.prop('id');var data = _that.data();
-                            var name = _that.prop('name');
-                            var path = _that.data('path');
-                            _that.html(Config.formData[name]);
+                            var _t = $(this);
+                            var id = _t.prop('id');var data = _t.data();
+                            var name = _t.prop('name');
+                            var path = _t.data('path');
+                            _t.html(Config.formData[name]);
                             var upload_url = (data.url?data.url:Fun.url(Upload.init.requests.upload_url))+'?editor=tinymce&path=' + path;
                             if ($(this).data('editor') == 'tinymce') {
                                 if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
@@ -424,11 +425,11 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='tags']"):$("*[lay-filter='tags']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var _that = $(this),
+                            var _t = $(this),
                                 content = [];
-                            var tag = _that.parents('.tags').find('input[type="hidden"]').val();
+                            var tag = _t.parents('.tags').find('input[type="hidden"]').val();
                             if (tag) content = tag.substring(0, tag.length - 1).split(',');
-                            var id = _that.prop('id');var data = _that.data();
+                            var id = _t.prop('id');var data = _t.data();
                             var inputTags = layui.inputTags ? layui.inputTags : parent.layui.inputTags;
                             window['tags-'+id] = inputTags.render({
                                 elem: this,
@@ -442,8 +443,8 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='iconPickers']"):$("*[lay-filter='iconPickers']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var _that = $(this);var data = _that.data();
-                            var id = _that.prop('id');
+                            var _t = $(this);var data = _t.data();
+                            var id = _t.prop('id');
                             window['icon-'+id] = layui.iconPicker.render({
                                 elem: this,
                                 type: 'fontClass',
@@ -451,7 +452,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                 page: true,
                                 limit: 12,
                                 click: function(data) {
-                                    _that.prev("input[type='hidden']").val(data.icon)
+                                    _t.prev("input[type='hidden']").val(data.icon)
                                 },
                                 success: data.done?eval(data.done(d)):function(d) {}
                             })
@@ -462,9 +463,9 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='colorPicker']"):$("*[lay-filter='colorPicker']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var _that = $(this),name= _that.data('name'),format = _that.data('format') || 'hex', data = _that.data();
-                            var id = _that.prop('id') || _that.data('id');
-                            var color = _that.prev('input').val();
+                            var _t = $(this),name= _t.data('name'),format = _t.data('format') || 'hex', data = _t.data();
+                            var id = _t.prop('id') || _t.data('id');
+                            var color = _t.prev('input').val();
                             window['color-'+id] = layui.colorpicker.render({
                                 elem: this,
                                 color: color,
@@ -473,7 +474,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                 format:format,
                                 change: function(color) {},
                                 done: data.done?eval(data.done(color)):function(color) {
-                                    _that.prev('input[name="' + name + '"]').val(color)
+                                    _t.prev('input[name="' + name + '"]').val(color)
                                 }
                             })
                         })
@@ -483,10 +484,10 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='region']"):$("*[lay-filter='region']");
                     if (list.length > 0) {
                         layui.each(list, function() {
-                            var _that = $(this);
-                            var id = _that.prop('id'),
-                                name = _that.attr('name');
-                            value = _that.data('value') || [];
+                            var _t = $(this);
+                            var id = _t.prop('id'),
+                                name = _t.attr('name');
+                            value = _t.data('value') || [];
                             if(value && typeof value === 'string'){
                                 value = value.split(',');
                             }
@@ -497,15 +498,15 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                 width: '550px',
                                 border: true,
                                 ready: function() {
-                                    _that.prev('input[type="hidden"]').val(getAllChecked())
+                                    _t.prev('input[type="hidden"]').val(getAllChecked())
                                 },
                                 change: function(result) {
-                                    _that.prev('input[name="'+name+'"]').val(getAllChecked())
+                                    _t.prev('input[name="'+name+'"]').val(getAllChecked())
                                 }
                             });
                             function getAllChecked() {
                                 var all = '';
-                                _that.find("input:checkbox[name='" + id + name + "']:checked").each(function() {
+                                _t.find("input:checkbox[name='" + id + name + "']:checked").each(function() {
                                     all += $(this).val() + ','
                                 });
                                 return all.substring(0, all.length - 1)
@@ -518,16 +519,17 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     if (list.length > 0) {
                         cityPicker = layui.cityPicker;
                         layui.each(list, function() {
-                            var id = $(this).prop('id'),
-                                name = $(this).prop('name');
-                            var provinceId = $(this).data('provinceid'),
-                                cityId = $(this).data('cityid');
+                            var _t = $(this);
+                            var id = _t.prop('id'),
+                                name = _t.prop('name');
+                            var provinceId = _t.data('provinceid'),
+                                cityId = _t.data('cityid');
                             var province, city, district;
                             if (Config.formData[name]) {
                                 var cityValue = Config.formData[name];
                                 province = cityValue.split('/')[0]; city = cityValue.split('/')[1];district = cityValue.split('/')[2];
                             }
-                            var districtId = $(this).data('districtid');
+                            var districtId = _t.data('districtid');
                             window['citypicker-'+id] = new cityPicker(this, {
                                 provincename: provinceId,
                                 cityname: cityId,
@@ -793,15 +795,15 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='rate']"):$("*[lay-filter='rate']");
                     if (list.length > 0) {
                         layui.each(list, function(i) {
-                            var _that = $(this),id = _that.prop('id'),name=_that.data('name')
-                            options = _that.data('options') || {};
+                            var _t = $(this),id = _t.prop('id'),name=_t.data('name')
+                            options = _t.data('options') || {};
                             options.elem =this;
-                            options.value = _that.data('value');
+                            options.value = _t.data('value');
                             options.length = options.length?options.length:5;
                             options.theme = options.theme==undefined?'#1E9FFF':options.length;
                             options.readonly = options.readonly || options.disabled ? true:false;
-                            if(_that.parent('div').find('input[name="'+name+'"]').length==0){
-                                _that.before('input[name="'+name+'"]');
+                            if(_t.parent('div').find('input[name="'+name+'"]').length==0){
+                                _t.before('input[name="'+name+'"]');
                             }
                             if(options.setText){
                                 options.setText = function(value){ //自定义文本的回调
@@ -810,7 +812,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                 }
                             }
                             options.choose = function(value){
-                                _that.parent('div').find('input[name="'+name+'"]').val(value)
+                                _t.parent('div').find('input[name="'+name+'"]').val(value)
                             }
                             window['rate-'+id] = layui.rate.render(options);
                         })
@@ -821,17 +823,17 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     var list = formObj!=undefined?formObj.find("*[lay-filter='slider']"):$("*[lay-filter='slider']");
                     if (list.length > 0) {
                         layui.each(list, function(i) {
-                            var _that = $(this),id = _that.prop('id'),name=_that.data('name');
-                            options = _that.data('options') || {};
+                            var _t = $(this),id = _t.prop('id'),name=_t.data('name');
+                            options = _t.data('options') || {};
                             options.elem = this;
-                            options.value = _that.data('value');
+                            options.value = _t.data('value');
                             options.max = options.max?options.max:100;
                             options.min = options.min?options.min:0;
                             options.disabled = options.readonly || options.disabled ? true:false;
                             options.input = options.input==undefined || options.input ?true:false;
                             options.theme = options.theme==undefined?'#1E9FFF':options.theme;
-                            if(_that.parent('div').find('input[name="'+name+'"]').length==0){
-                                _that.before('input[name="'+name+'"]');
+                            if(_t.parent('div').find('input[name="'+name+'"]').length==0){
+                                _t.before('input[name="'+name+'"]');
                             }
                             if(options.setTips){
                                 options.setTips = function(value){ //自定义文本的回调
@@ -839,7 +841,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                                 }
                             }
                             options.change = function(value){
-                                _that.parent('div').find('input[name="'+name+'"]').val(value)
+                                _t.parent('div').find('input[name="'+name+'"]').val(value)
                             }
                             window['slider-'+id] =  layui.slider.render(options)
                         })
@@ -1000,18 +1002,18 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                 },
                 bindevent: function(formObj) {
                     formObj.on('click', '[lay-event]', function() {
-                        var _that = $(this),
-                            attrEvent = _that.attr('lay-event');
+                        var _t = $(this),
+                            attrEvent = _t.attr('lay-event');
                         if (Form.events.hasOwnProperty(attrEvent)) {
-                            Form.events[attrEvent] && Form.events[attrEvent].call(this, _that);
+                            Form.events[attrEvent] && Form.events[attrEvent].call(this, _t);
                         }
                     });
                     require(['table'], function (Table) {
                         $('body').on('click', '[lay-event]', function () {
                             if ($('table').length > 0){
-                                var _that = $(this), attrEvent = _that.attr('lay-event');
+                                var _t = $(this), attrEvent = _t.attr('lay-event');
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
+                                    Table.events[attrEvent] && Table.events[attrEvent].call(this, _t);
                                 }
                             }
                         });

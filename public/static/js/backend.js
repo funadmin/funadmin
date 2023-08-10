@@ -292,7 +292,6 @@ define([], function () {
                 $('.layui-layout-admin .layui-body').attr('style','padding-bottom:'+(20+height)+'px!important;');
             }
             value = Fun.api.getStorage(name);
-            console.log(value)
             if(value && value == 1) {
                 $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
                     'layui-hide');
@@ -396,18 +395,6 @@ define([], function () {
                 document.msExitFullscreen();
             }
         },
-        checkScreen: function () {
-            //屏幕类型 大小
-            var ua = navigator.userAgent.toLocaleLowerCase();
-            var pl = navigator.platform.toLocaleLowerCase();
-            var isAndroid = (/android/i).test(ua) || ((/iPhone|iPod|iPad/i).test(ua) && (/linux/i).test(pl))
-                || (/ucweb.*linux/i.test(ua));
-            var isIOS = (/iPhone|iPod|iPad/i).test(ua) && !isAndroid;
-            var isWinPhone = (/Windows Phone|ZuneWP7/i).test(ua);
-            var $win = $(window);
-            var width = $win.width();
-            return !(!isAndroid && !isIOS && !isWinPhone && width > 768);
-        },
         //侧边
         sideFlexible: function () {
             //侧边伸缩
@@ -428,8 +415,6 @@ define([], function () {
                 if($menu.length>0){
                     var text = $menu.attr('data-tips') || $menu.attr('title'),
                         url = $menu.attr('data-url'), icon = $menu.find('i').attr('class');
-                    $menu.parents('.layui-nav-item').addClass('active');
-                    $menu.parents('.dl').css({"display":'block'});
                     Backend.addTab({
                         layId: layId,
                         url: url,
@@ -449,7 +434,6 @@ define([], function () {
          * @param isParent
          */
         delTab: function (layId, isParent) {
-
             var funTabInfo = layui.sessionData("funTabInfo");
             if (funTabInfo != null) {
                 layui.sessionData("funTabInfo", {key: layId, remove: true})
@@ -468,46 +452,10 @@ define([], function () {
             $('#layui-nav-righmenu').remove();
         },
         /**
-         * 增加tab
+         * 增加tab 公用接口
          */
         addTab: function (options) {
-            options.layId = options.layId || '';
-            options.url = options.url || '';
-            options.text = options.text || '';
-            options.icon = Config.site.site_tabicon>0 ? options.icon : 'layui-tab-icon-active';
-            options.iframe = options.iframe || null;
-            if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
-                Fun.toastr.error(__('window is create by maxnum'));
-                return false;
-            }
-            Backend.changeSessioinTabId(options.layId);
-            layui.sessionData('funTabInfo', {
-                key: options.layId,
-                value: options.layId,
-            });
-            var ele = element;
-            if (options.iframe) ele = top.layui.element;
-            var checkLayId = Backend.checkLayId(options.layId), loadindex;
-            if (!checkLayId) {
-                loadindex = layui.layer.load();
-                ele.tabAdd('layui-layout-tabs', {
-                    title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
-                    ,
-                    content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no" src="' + options.url + '"></iframe>'
-                    ,
-                    id: options.layId,
-                });
-            } else {
-                loadindex = layui.layer.load();
-                if(Config.site.site_reloadiframe){
-                    var current_iframe = window.$("#layui-app-tabs .layui-tab-content div").find("iframe[id='"+options.layId+"']");
-                    current_iframe.eq(0).attr('src',options.url)
-                    // current_iframe[0].contentWindow.location.reload();
-                }
-            }
-            $('#layui-nav-righmenu').remove();
-            layui.layer.close(loadindex);
-            ele.tabChange('layui-layout-tabs', options.layId);
+            Fun.api.addTab(options);
             Backend.initNav();
         },
         //切换id
@@ -658,26 +606,18 @@ define([], function () {
             /**
              * 左侧菜单的样式和多级菜单的展开
              */
-            $("#layui-side-left-menu").find("li,dd").removeClass("layui-this").removeClass("layui-nav-itemed");//关闭所有展开的菜单
-            $("#layui-side-left-menu > li dl.layui-nav-child").removeAttr('style');
             $menu = $("#layui-side-left-menu a[lay-id='"+layId+"']");
             if($menu.length){
-                $menu.parents("dd").addClass("layui-nav-itemed");
-                $menu.parents("li").addClass("layui-nav-itemed");
-                $menu.parents("li").removeAttr("style");
-                $menu.parent().removeClass("layui-nav-itemed").addClass("layui-this");
-                if($menu.parent('dd').length>0){
-                    $menu.parent('dd').addClass("active");
-                    $menu.parents('li').siblings('li').find("dd.active").removeClass("active");
-                }
-                index = $menu.parents('ul').attr("menu-id");
+                $menu.parents('dl').parent('dd').addClass("layui-nav-itemed");
+                $menu.parents('li').addClass("layui-nav-itemed");
+                $menu.addClass("layui-this");
+                index = $menu.parents('ul').attr("menu-id");//主题3/4
                 if(index){
                     $('#layui-header-nav-pc li a[menu-id="'+index+'"]').trigger('click');
                     $('#layui-header-nav-pc li a[menu-id="'+index+'"]').parent('li').addClass("layui-this")
                         .siblings('li').removeClass("layui-this");
                 }
             }
-
         },
         /**
          * 自动定位
@@ -1011,7 +951,7 @@ define([], function () {
                     var id  = $(this).attr('menu-id');
                     if(id){
                         var index = layui.layer.load()
-                        if(Backend.checkScreen()){
+                        if(Fun.api.checkScreen()){
                             if($(window).width()>768  && $(window).width()<=1024){
                                 $container.hasClass(SIDE_SHRINK)? $container.toggleClass(SIDE_SHRINK):$container.toggleClass(FUN_APP);
                             }else{
@@ -1055,37 +995,13 @@ define([], function () {
                         if(_that.data('url')){
                             Backend.addTab(options);
                         }
-                        if (Backend.checkScreen()) {
+                        if (Fun.api.checkScreen()) {
                             $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                         }
                         Backend.listenFrameTheme();
+
                     }// 关闭其他展开的二级标签
-                    // _that.parent("li").siblings().removeClass("layui-nav-itemed");
                 });
-                $('#layui-side-left-menu,.layui-nav-header,#layui-side-left-menu').on('click', '*[lay-id]', function (e) {
-                    var _that = $(this);
-                    if (!_that.attr("data-url")) {
-                        if(Config.site.site_theme==2) return false;
-                        var superEle = _that.parent(), ele = _that.next('.layui-nav-child'), height = ele.height();
-                        ele.css({"display": "block",height: "auto"});
-                        // 是否是展开状态
-                        if (superEle.is(".layui-nav-itemed")) {
-                            ele.height(0);ele.animate({height: height + "px"}, 240,function () {
-                                ele.css({height: "auto"});
-                            });
-                        } else {
-                            ele.animate({height: 0},240, function () {ele.removeAttr("style");});
-                        }
-                        var topLevelEle = _that.parents("li.layui-nav-item");
-                        var childs = $("#layui-side-left-menu > li > dl.layui-nav-child").not(topLevelEle.children("dl.layui-nav-child"));
-                        childs.animate({
-                            height: '0px'
-                        }, 240, function () {
-                            childs.removeAttr('style')
-                        });
-                    }
-                });
-                //点击事件
                 $document.on('click', '*[lay-event]', function () {
                     var _that = $(this), attrEvent = _that.attr('lay-event');
                     Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _that);
@@ -1093,7 +1009,7 @@ define([], function () {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-nav-tree>.layui-nav-item,.layui-side-shrink .layui-nav-itemed", function () {
                     var _that = $(this);
-                    if (!Backend.checkScreen()) {
+                    if (!Fun.api.checkScreen()) {
                         var top = _that.offset().top;
                         _that.removeClass('layui-nav-itemed');
                         _that.addClass('layui-nav-hover');
@@ -1111,7 +1027,7 @@ define([], function () {
                 //鼠标放上
                 $document.on("mouseenter", ".layui-side-shrink .layui-side-menu .layui-nav-hover dd", function () {
                     var _that = $(this);
-                    if (!Backend.checkScreen()) {
+                    if (!Fun.api.checkScreen()) {
                         if (_that.find('dl')) {
                             var top = _that.offset().top;
                             var left = _that.offset().left + _that.width();

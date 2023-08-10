@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["lang",'toastr','dayjs','backend'], function (Lang,Toastr,Dayjs,Backend) {
+define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
     var $ = layui.jquery, layer = layui.layer, element = layui.element;layer = layer || parent.layer;
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
@@ -672,11 +672,64 @@ define(["lang",'toastr','dayjs','backend'], function (Lang,Toastr,Dayjs,Backend)
                         return false;
                     }
                     options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    Backend.addTab(options);
-                    if (Backend.checkScreen()) {
+                    Fun.api.addTab(options);
+                    if (Fun.api.checkScreen()) {
                         $container.removeClass(SIDE_SHRINK).addClass('fun-app')
                     }
                 }
+            },
+            /**
+             * 增加tab
+             */
+            addTab: function (options) {
+                options.layId = options.layId || '';
+                options.url = options.url || '';
+                options.text = options.text || '';
+                options.icon = Config.site.site_tabicon>0 ? options.icon : 'layui-tab-icon-active';
+                options.iframe = options.iframe || null;
+                if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
+                    Fun.toastr.error(__('window is create by maxnum'));
+                    return false;
+                }
+                layId = options.layId;
+                if (options.layId) {
+                    layui.sessionData('tabLayId', {key: 'id', value: options.layId})
+                } else {
+                    layui.sessionData('tabLayId', null);
+                }
+                layui.sessionData('funTabInfo', {
+                    key: options.layId,
+                    value: options.layId,
+                });
+                var ele = layui.element;
+                if (options.iframe) ele = top.layui.element;
+                var checkId = false;
+                top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").each(function () {
+                    var checklayId = $(this).attr('lay-id');
+                    if (checklayId != null && checklayId === layId) {
+                        checkId = true;
+                    }
+                });
+                var checkLayId =  checkId !== false, loadindex;
+                if (!checkLayId) {
+                    loadindex = layui.layer.load();
+                    ele.tabAdd('layui-layout-tabs', {
+                        title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
+                        ,
+                        content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no" src="' + options.url + '"></iframe>'
+                        ,
+                        id: options.layId,
+                    });
+                } else {
+                    loadindex = layui.layer.load();
+                    if(Config.site.site_reloadiframe){
+                        var current_iframe = window.$("#layui-app-tabs .layui-tab-content div").find("iframe[id='"+options.layId+"']");
+                        current_iframe.eq(0).attr('src',options.url)
+                    }
+                }
+                $('#layui-nav-righmenu').remove();
+                layui.layer.close(loadindex);
+                ele.tabChange('layui-layout-tabs', options.layId);
             },
             refreshIframe: function () {
                 parent.location.reload();

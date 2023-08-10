@@ -8,6 +8,7 @@ define(['backend'], function (Backend) {
                 loadingTime: '',
                 theme:''
             })
+            // Backend.api.bindEvent();
             //刷新菜单事件
             $(document).on('refresh', '#layui-side-left-menu', function () {
                 var _that = $(this);
