@@ -120,7 +120,6 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     if (list.length > 0) {
                         selectN = layui.selectN || parent.layui.selectN;
                         layui.each(list, function(i) {
-                            console.log(this)
                             var _t = $(this);
                             var id = _t.prop('id'), name = _t.attr('name') || 'id',verify = _t.data('verify') || _t.attr('verify'),
                                 url = _t.data('url') || _t.data('request'),
