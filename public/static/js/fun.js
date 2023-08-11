@@ -330,15 +330,24 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 Fun.api.open(options);
             },
             iframe:function(othis){
-                var _that = othis
-                    , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
-                    , layId = _that.attr('data-id')
-                    , text =  _that.attr('title') || _that.data('text') || _that.attr('lay-tips')
-                    , icon = _that.find('i').attr('class') || 'layui-icon layui-icon-radio'
-                    , iframe = !!_that.has('data-iframe'),
-                    target = _that.prop('target') || '_self';
-                options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
-                Fun.api.iframe(options)
+                var _t = othis
+                    , url = _t.data('url') ? _t.data('url') : _t.data('iframe')
+                    , layId = _t.attr('data-id') ||  _t.attr('lay-id') || url
+                    , text =  _t.attr('title') ||  _t.data('text')  || _t.attr('lay-text') || _t.attr('lay-tips')
+                    , icon = _t.find('i').attr('class') || 'layui-icon layui-icon-radio'
+                    , iframe = !!_t.has('data-iframe'),
+                    target = _t.prop('target') || '_self';
+                url = Fun.url(url);
+                if (!layId) {
+                    return false;
+                } else {
+                    if (target === '_blank') {
+                        window.open(url, "_blank");
+                        return false;
+                    }
+                    options = {url: url, layId: layId, text: text, icon: icon, iframe: iframe, target: target,}
+                    Fun.api.iframe(options);
+                }
             },
             request: function (othis, options,Table) {
                 var data = othis.data(),value;
@@ -423,7 +432,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         }
                     })
                     var inst = layui.dropdown.render({
-                        elem: othis, show: true, data: dropdowndata, click: function (row, _that) {
+                        elem: othis, show: true, data: dropdowndata, click: function (row, _t) {
                             attrEvent = row.event;
                             data.title = row.textTitle;
                             data.rowindex = row.rowindex;
@@ -432,15 +441,15 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent].call(this, _that.find('button'),data,rowData,tableOption)
+                                    Table.events[attrEvent].call(this, _t.find('button'),data,rowData,tableOption)
                                 }else if(data.callback){
-                                    eval(data.callback)(_that,data,rowData,tableOption)
+                                    eval(data.callback)(_t,data,rowData,tableOption)
                                 }else if(typeof callback ==='function'){
-                                    callback(_that,data,rowData,tableOption)
+                                    callback(_t,data,rowData,tableOption)
                                 }else if(callback && typeof callback ==='string'){
-                                    eval(callback)(_that,data,rowData,tableOption)
+                                    eval(callback)(_t,data,rowData,tableOption)
                                 }else{
-                                    eval(data.event)(_that,data,rowData,tableOption)
+                                    eval(data.event)(_t,data,rowData,tableOption)
                                 }
                             })
 
@@ -657,79 +666,9 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             },
             //打开iframe
             iframe:function(options){
-                var url = options.url
-                    , layId = options.layId || options.url
-                    , text = options.tips || options.title || options.text
-                    , icon = options.icon || 'layui-icon layui-icon-radio'
-                    , iframe =  options.iframe || false,
-                    target = options.target || '_self';
-                url = Fun.url(url);
-                if (!layId) {
-                    return false;
-                } else {
-                    if (target === '_blank') {
-                        window.open(url, "_blank");
-                        return false;
-                    }
-                    options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    Fun.api.addTab(options);
-                    if (Fun.api.checkScreen()) {
-                        $container.removeClass(SIDE_SHRINK).addClass('fun-app')
-                    }
-                }
-            },
-            /**
-             * 增加tab
-             */
-            addTab: function (options) {
-                options.layId = options.layId || '';
-                options.url = options.url || '';
-                options.text = options.text || '';
-                options.icon = Config.site.site_tabicon>0 ? options.icon : 'layui-tab-icon-active';
-                options.iframe = options.iframe || null;
-                if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
-                    Fun.toastr.error(__('window is create by maxnum'));
-                    return false;
-                }
-                layId = options.layId;
-                if (options.layId) {
-                    layui.sessionData('tabLayId', {key: 'id', value: options.layId})
-                } else {
-                    layui.sessionData('tabLayId', null);
-                }
-                layui.sessionData('funTabInfo', {
-                    key: options.layId,
-                    value: options.layId,
-                });
-                var ele = layui.element;
-                if (options.iframe) ele = top.layui.element;
-                var checkId = false;
-                top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").each(function () {
-                    var checklayId = $(this).attr('lay-id');
-                    if (checklayId != null && checklayId === layId) {
-                        checkId = true;
-                    }
-                });
-                var checkLayId =  checkId !== false, loadindex;
-                if (!checkLayId) {
-                    loadindex = layui.layer.load();
-                    ele.tabAdd('layui-layout-tabs', {
-                        title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
-                        ,
-                        content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no" src="' + options.url + '"></iframe>'
-                        ,
-                        id: options.layId,
-                    });
-                } else {
-                    loadindex = layui.layer.load();
-                    if(Config.site.site_reloadiframe){
-                        var current_iframe = window.$("#layui-app-tabs .layui-tab-content div").find("iframe[id='"+options.layId+"']");
-                        current_iframe.eq(0).attr('src',options.url)
-                    }
-                }
-                $('#layui-nav-righmenu').remove();
-                layui.layer.close(loadindex);
-                ele.tabChange('layui-layout-tabs', options.layId);
+                    require(['backend'],function (Backend){
+                        Backend.addTab(options);
+                    })
             },
             refreshIframe: function () {
                 parent.location.reload();
