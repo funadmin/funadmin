@@ -40,7 +40,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 autocomplete:function (formObj) {
-                    var list = formObj!=undefined ? formObj.find("*[lay-filter='autoComplete']") :$("*[lay-filter='autoComplete']");
+                    var list = formObj!==undefined ? formObj.find("*[lay-filter='autoComplete']") :$("*[lay-filter='autoComplete']");
                     if (list.length > 0) {
                         layui.each(list,function(i,v){
                         var _t =$(this), data =_t.data('data'), src =_t.data('src') ||_t.data('url'),
@@ -88,7 +88,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 selectplus:function(formObj) {
-                    var selectplus ={},list = formObj!=undefined?formObj.find("*[lay-filter='selectPlus']"):$("*[lay-filter='selectPlus']");
+                    var selectplus ={},list = formObj!==undefined?formObj.find("*[lay-filter='selectPlus']"):$("*[lay-filter='selectPlus']");
                     if (list.length > 0) {
                         selectPlus = layui.selectPlus || parent.layui.selectPlus;
                         layui.each(list, function(i) {
@@ -116,7 +116,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 selectn:function(formObj) {
-                    var selectn ={},list = formObj!=undefined?formObj.find("*[lay-filter='selectN']"):$("*[lay-filter='selectN']");
+                    var selectn ={},list = formObj!==undefined?formObj.find("*[lay-filter='selectN']"):$("*[lay-filter='selectN']");
                     if (list.length > 0) {
                         selectN = layui.selectN || parent.layui.selectN;
                         layui.each(list, function(i) {
@@ -143,7 +143,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 selectpage:function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='selectPage']"):$("*[lay-filter='selectPage']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='selectPage']"):$("*[lay-filter='selectPage']");
                     if (list.length > 0) {
                         selectPage = layui.selectPage || parent.layui.selectPage;
                         layui.each(list, function(i) {
@@ -190,7 +190,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 xmselect: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='xmSelect']"):($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='xmSelect']"):($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
                     if (list.length > 0) {
                         layui.each(list, function(i) {
                             var _t = $(this);
@@ -302,7 +302,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 editor: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='editor']"):$("*[lay-filter='editor']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='editor']"):$("*[lay-filter='editor']");
                     if (list.length > 0) {
                         const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                         const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
@@ -422,7 +422,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 tags: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='tags']"):$("*[lay-filter='tags']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='tags']"):$("*[lay-filter='tags']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _t = $(this),
@@ -440,7 +440,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 icon: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='iconPickers']"):$("*[lay-filter='iconPickers']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='iconPickers']"):$("*[lay-filter='iconPickers']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _t = $(this);var data = _t.data();
@@ -460,7 +460,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 color: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='colorPicker']"):$("*[lay-filter='colorPicker']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='colorPicker']"):$("*[lay-filter='colorPicker']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _t = $(this),name= _t.data('name'),format = _t.data('format') || 'hex', data = _t.data();
@@ -481,7 +481,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 region: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='region']"):$("*[lay-filter='region']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='region']"):$("*[lay-filter='region']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var _t = $(this);
@@ -515,7 +515,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 city: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='cityPicker']"):$("*[lay-filter='cityPicker']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='cityPicker']"):$("*[lay-filter='cityPicker']");
                     if (list.length > 0) {
                         cityPicker = layui.cityPicker;
                         layui.each(list, function() {
@@ -557,7 +557,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 timepicker: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='timePicker']"):$("*[lay-filter='timePicker']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='timePicker']"):$("*[lay-filter='timePicker']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var id = $(this).prop('id');
@@ -573,7 +573,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 datepicker: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='datePicker']"):$("*[lay-filter='datePicker']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='datePicker']"):$("*[lay-filter='datePicker']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var id = $(this).prop('id') || $(this).attr('id');
@@ -759,7 +759,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 date: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
                     if (list.length > 0) {
                         layui.each(list, function() {
                             var data = $(this).data(), format = $(this).data('format'), type = $(this).data('type'),id= $(this).prop('id') || $(this).data('id'),
@@ -792,7 +792,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 rate: function(formObj) {
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='rate']"):$("*[lay-filter='rate']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='rate']"):$("*[lay-filter='rate']");
                     if (list.length > 0) {
                         layui.each(list, function(i) {
                             var _t = $(this),id = _t.prop('id'),name=_t.data('name')
@@ -820,7 +820,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                 },
                 slider: function(formObj) {
                     var sliderlist=[];
-                    var list = formObj!=undefined?formObj.find("*[lay-filter='slider']"):$("*[lay-filter='slider']");
+                    var list = formObj!==undefined?formObj.find("*[lay-filter='slider']"):$("*[lay-filter='slider']");
                     if (list.length > 0) {
                         layui.each(list, function(i) {
                             var _t = $(this),id = _t.prop('id'),name=_t.data('name');
@@ -848,7 +848,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     }
                 },
                 addInput: function(formObj) {
-                    formObj = formObj!=undefined ? formObj:$('body');
+                    formObj = formObj!==undefined ? formObj:$('body');
                     formObj.on('click', ".addInput", function() {
                         var name = $(this).data('name'), verify = $(this).data('verify'),
                             num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
@@ -857,7 +857,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     })
                 },
                 removeInupt: function(formObj) {
-                    formObj = formObj!=undefined ? formObj:$('body');
+                    formObj = formObj!==undefined ? formObj:$('body');
                     formObj.on('click', ".removeInupt", function() {
                         var parentEle = $(this).parent().parent();
                         parentEle.remove()
@@ -1107,7 +1107,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                  * 选择文件
                  */
                 chooseFiles: function(formObj) {
-                    var fileChooseList = formObj!=undefined ? formObj.find("*[lay-filter='upload-choose']") :$("*[lay-filter='upload-choose']");
+                    var fileChooseList = formObj!==undefined ? formObj.find("*[lay-filter='upload-choose']") :$("*[lay-filter='upload-choose']");
                     if (fileChooseList.length > 0) {
                         layui.each(fileChooseList, function(i, v) {
                             var data = $(this).data();
@@ -1206,7 +1206,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                  * 选择文件
                  */
                 selectFiles: function(formObj) {
-                    var fileSelectList = formObj!=undefined ? formObj.find("*[lay-filter='upload-select']") :$("*[lay-filter='upload-select']");
+                    var fileSelectList = formObj!==undefined ? formObj.find("*[lay-filter='upload-select']") :$("*[lay-filter='upload-select']");
                     if (fileSelectList.length > 0) {
                         layui.each(fileSelectList, function(i, v) {
                             $(this).click(function(e){
