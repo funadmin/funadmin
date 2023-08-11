@@ -186,6 +186,8 @@ return [
     'RuleEdit'                  =>  "权限编辑",
     'RuleModify'                =>  "权限修改",
     'Add ChildRule'             =>  "添加子权限",
+    'AttachGroup'               =>  "附件分组",
+    'attachGroup'               =>  "附件分组",
     'Attach'                    =>  "附件",
     'AttachAdd'                 =>  "附件",
     'AttachDelete'              =>  "附件",
