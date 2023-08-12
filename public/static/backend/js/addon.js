@@ -104,7 +104,10 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                         }
                     },
                     // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
-                    {field: 'author', title: __('Author'), width: 120,},
+                    {field: 'author', title: __('Author'), width: 120, templet: function (d) {
+                            return layui.util.unescape(d['author']);
+                        }
+                    },
                     {field: 'general_price', title: __('Price'), width: 120,search: false,
                         templet: function (d){
                             if(d.general_price>0){
