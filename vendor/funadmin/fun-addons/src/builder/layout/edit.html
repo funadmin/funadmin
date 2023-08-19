@@ -1,6 +1,4 @@
-{$formCss}
-{$formStyle}
-{$formJs}
+
 <form class="layui-form" lay-filter="form">
     {$formHtml|raw}
 </form>
@@ -9,5 +7,3 @@
 <script>
     var formData = {:json_encode($formData)};
 </script>
-
-{$formScript}
