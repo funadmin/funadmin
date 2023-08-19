@@ -14,6 +14,7 @@
 
 namespace fun\builder;
 
+use fun\Form;
 use think\facade\Config;
 use think\facade\Db;
 use think\facade\View;
@@ -29,9 +30,9 @@ class TableBuilder
     protected $node = [];
     protected $methods = [];
     protected $script = '';
-    protected $extraScript = '';
+    protected $js = '';
     protected $style = '';
-    protected $extraStyle = '';
+    protected $link = '';
     protected $html = '';
     protected $requests = [
         'index_url' => 'index',
@@ -454,25 +455,21 @@ class TableBuilder
         $this->style = $style;
         return $this;
     }
-
-    public function script($script = '', string $action = 'index')
+    public function link(string|array $link = '', string $action = 'index')
+    {
+        $this->link = Form::link($link,[]);
+        return $this;
+    }
+    public function js(string|array$js = '', string $action = 'index')
+    {
+        $this->js = Form::js($js,[]);
+        return $this;
+    }
+    public function script(string$script = '', string $action = 'index')
     {
         $this->script = $script;
         return $this;
     }
-
-    public function extraStyle($style = '', string $action = 'index')
-    {
-        $this->extraStyle = $style;
-        return $this;
-    }
-
-    public function extraScript($script = '', string $action = 'index')
-    {
-        $this->extraScript = $script;
-        return $this;
-    }
-
     /**
      * 设置额外HTML代码
      * @param string $html 额外HTML代码
@@ -565,9 +562,9 @@ class TableBuilder
             'requests' => $this->requests,
             'html' => $this->html,
             'tableScript' => $this->script,
-            'extraScript' => $this->extraScript,
+            'tableJs' => $this->js,
             'tableStyle' => $this->style,
-            'extraStyle' => $this->extraStyle,
+            'tableLink' => $this->link,
             'data' => $data,
         ]);
         return $this;

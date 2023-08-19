@@ -1,4 +1,6 @@
-{$extraStyle}
+{if $tableLink}{$tableLink|raw}}{/if}
+{if $tableStyle}{$tableStyle|raw}}{/if}
+{if $tableJs}{$tableJs}{/if}
 {$html|raw}
 
 <table class="layui-table" id="{$options[$ACTION]['id']}" lay-filter="{$options[$ACTION]['elem']}" data-primaryKey="{$options[$ACTION]['primaryKey']}"
@@ -18,4 +20,3 @@
     var requests        = {:json_encode($requests)};
     var data            = {:json_encode($data)};
 </script>
-{$extraScript}

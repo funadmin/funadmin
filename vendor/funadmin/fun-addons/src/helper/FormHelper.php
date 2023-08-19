@@ -1303,7 +1303,7 @@ EOF;
      * @param $options
      * @return string
      */
-    public function css($name=[],$options=[]){
+    public function link($name=[],$options=[]){
         if(is_string($name)){
             $name = explode(',',$name);
         }

@@ -623,7 +623,7 @@ if (!function_exists('form_js')) {
         return Form::js($name, $options);
     }
 }
-if (!function_exists('form_css')) {
+if (!function_exists('form_link')) {
     /**
      * @param string $name
      * @param string $type
@@ -631,9 +631,9 @@ if (!function_exists('form_css')) {
      * @param '' $value
      * @return string
      */
-    function form_css($name=[],$options=[])
+    function form_link($name=[],$options=[])
     {
-        return Form::css($name, $options);
+        return Form::link($name, $options);
     }
 }
 if (!function_exists('form_config')) {

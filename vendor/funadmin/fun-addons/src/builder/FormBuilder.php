@@ -31,7 +31,7 @@ class FormBuilder
      * css
      * @var array
      */
-    protected $css = [];
+    protected $link = [];
     /**
      * js
      * @var array
@@ -533,11 +533,11 @@ class FormBuilder
         }
         return $this;
     }
-    public function css($name=[],$options=[]){
+    public function link($name=[],$options=[]){
         if($options['merge']){
-            $this->formHtml[] = Form::css($name,$options);
+            $this->formHtml[] = Form::link($name,$options);
         }else{
-            $this->css[] = Form::css($name,$options);
+            $this->link[] = Form::link($name,$options);
         }
 
         return $this;
@@ -567,7 +567,7 @@ class FormBuilder
         View::assign([
             'formBuilder'=>$form,
             'formStyle'=>implode('',$this->style),
-            'formCss'=>implode('',$this->css),
+            'formLink'=>implode('',$this->link),
             'formScript'=>implode('',$this->script),
             'formJs'=>implode('',$this->js),
             'formHtml'=>implode('',$this->formHtml),
