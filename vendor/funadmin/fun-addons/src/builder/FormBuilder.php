@@ -21,7 +21,7 @@ use think\helper\Str;
 
 class FormBuilder
 {
-
+    use Builder;
     /**
      * style
      * @var array
@@ -526,24 +526,24 @@ class FormBuilder
      * @return void
      */
     public function js($name=[],$options=[]){
-        if(options['merge']){
-            $this->formHtml[] = Form::js($reset,$options);
+        if($options['merge']){
+            $this->formHtml[] = Form::js($name,$options);
         }else{
-            $this->js[] = Form::js($reset,$options);
+            $this->js[] = Form::js($name,$options);
         }
         return $this;
     }
     public function css($name=[],$options=[]){
-        if(options['merge']){
-            $this->formHtml[] = Form::css($reset,$options);
+        if($options['merge']){
+            $this->formHtml[] = Form::css($name,$options);
         }else{
-            $this->css[] = Form::css($reset,$options);
+            $this->css[] = Form::css($name,$options);
         }
 
         return $this;
     }
     public function script(string $name,$options=[]){
-        if(options['merge']){
+        if($options['merge']){
             $this->formHtml[]= Form::script($name,$options);
         }else{
             $this->script[] = Form::script($name,$options);
@@ -551,7 +551,7 @@ class FormBuilder
         return $this;
     }
     public function style(string $name,$options=[]){
-        if(options['merge']){
+        if($options['merge']){
             $this->formHtml[] = Form::style($name,$options);
         }else{
             $this->style[] = Form::style($name,$options);

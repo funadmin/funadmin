@@ -718,12 +718,14 @@ EOF;
 
     public function autocomplete($name='',$list=[],$options=[],$attr=[],$value=''){
         list($name,$id)= $this->getNameId($name,$options);
+        $disorread = $this->readonlyOrdisabled($options);
         $options['filter'] = 'autoComplete';
         $data = json_encode($list);
+        $attr = json_encode($attr);
         $str = <<<EOF
 <div class="layui-form-item ">{$this->label($name, $options)}
     <div class="layui-input-block">
-     <input data-data='{$data}'  type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" maxlength="2048" tabindex="1"
+     <input data-data='{$data}' data-attr="{$attr}" type="search" dir="ltr" spellcheck=false autocorrect="off" autocomplete="off" autocapitalize="off" maxlength="2048" tabindex="1"
         {$this->getDataPropAttr($name,$value,$options)} 
       {$this->getStyle($options)}  class="layui-input  {$this->getClass($options)}  $disorread "/>
      {$this->tips($options)} 
@@ -1283,7 +1285,7 @@ EOF;
      * @return string
      */
     public function js($name=[],$options=[]){
-        if(is_string){
+        if(is_string($name)){
             $name = explode(',',$name);
         }
         $str = '';
@@ -1302,7 +1304,7 @@ EOF;
      * @return string
      */
     public function css($name=[],$options=[]){
-        if(is_string){
+        if(is_string($name)){
             $name = explode(',',$name);
         }
         $str = '';

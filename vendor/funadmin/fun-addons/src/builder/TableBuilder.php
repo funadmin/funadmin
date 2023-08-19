@@ -20,7 +20,6 @@ use think\facade\View;
 
 class TableBuilder
 {
-
     private static $instance;
     protected $modelClass = '';
     protected $driver = 'mysql';
@@ -146,7 +145,7 @@ class TableBuilder
         return $this;
     }
 
-    public function data(array $data = [], string $action = 'index')
+    public function data(array $data=[], string $action = 'index')
     {
         $this->options[$action]['data'] = $data;
         return $this;
