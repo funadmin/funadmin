@@ -12,14 +12,14 @@
     optimizeCss:'standard',
     include: [
         'jquery', 'css','layCascader','tableSelect','tableFilter',
-        'iconPicker','iconFonts', 'toastr',
-        'step-lay','inputTags' ,'cityPicker',
+        'iconPicker','iconFonts', 'toastr', 'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
-        'regionCheckBox','timePicker','croppers','autoComplete',
+        'regionCheckBox','timePicker','croppers','autoComplete','Sortable',
         'dayjs', 'md5', 'fun','form', 'table', 'upload'
     ],
     paths: {
         'lang'          : 'empty:',
+        'dayjs'         : 'plugins/dayjs/dayjs.min',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
         //layui等组件
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
@@ -42,7 +42,7 @@
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
-        'dayjs'         : 'plugins/dayjs/dayjs.min',
+        'Sortable'      : 'plugins/lay-module/Sortable/Sortable.min',
         // //自定义
         'md5'           : 'plugins/lay-module/md5/md5.min', // md5扩展
         'fun'           : 'js/fun', // api扩展

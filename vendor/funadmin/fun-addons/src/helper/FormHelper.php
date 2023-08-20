@@ -179,6 +179,7 @@ class FormHelper
                 $form =  $this->slider($name,$options,$value);
                 break;
             case 'arrays':
+            case 'array':
                 $attr = $options['attr']??['id','title'];
                 $list = ($options['list']??$extra);
                 $form =  $this->arrays($name,$list,$options);
@@ -568,60 +569,77 @@ EOF;
     {
         list($name,$id) = $this->getNameId($name,$options);
         $arr = '';
-        $i = 0;
-        if (empty($list)) {
-            $arr .=<<<EOF
- <div class="layui-form-item" >
-{$this->label($name,$options)}
-    <div class="layui-input-inline">
-        <input {$this->verify($options)}  type="text"  name="{$name}[key][]"  value="" placeholder="{$this->__('key')}" autocomplete="off" class="layui-input input-double-width">
-        </div>
-        <div class="layui-input-inline">
-        <input {$this->verify($options)}  type="text"  name="{$name}[value][]"  value="" placeholder="{$this->__('value')}" autocomplete="off" class="layui-input input-double-width">
-        </div><div class="layui-input-inline" >
-        <button  data-name="{$name}" type="button" class="layui-btn layui-btn-warm layui-btn-sm addInput" lay-event="addInput">
-        <i class="layui-icon">&#xe654;</i>
-        </button>
-    </div>
-</div>
+        $tr = '';
+         if(!empty($list)){
+                   foreach($list as $key=>$val){
+                       $tr.=<<<EOF
+                       <tr class="tr sortable">
+                        <td>
+                        <div><input type="text" {$this->getDataPropAttr("{$name}[key][]",$key,$options)} placeholder="{$this->__('Key')}"  class="layui-input key">
+                        </div>
+                        </td>
+                        <td>
+                        <div><input type="text" {$this->getDataPropAttr("{$name}[value][]",$val,$options)}  placeholder="{$this->__('Value')}" class="layui-input value">
+                        </div>
+                        </td>
+                         <th>
+                            <div class="btn">
+                                <span class="add">
+                                <i class="layui-icon layui-icon-addition"></i>
+                                </span><span class="del">
+                                <i  class="layui-icon layui-icon-delete"></i></span>
+                                </div>
+                            </th>
+                    </tr>
 EOF;
-        }
-        foreach ($list as $key => $value) {
-            if ($i == 0) {
-                $arr .= <<<EOF
-            <div class="layui-form-item" >{$this->label($name, $options)}<div class="layui-input-inline">
-                    <input {$this->getDataPropAttr("{$name}[key][]",$key,$options)} type="text"   autocomplete="off" class="layui-input input-double-width">
-                </div>
-                <div class="layui-input-inline">
-                    <input {$this->getDataPropAttr("{$name}[value][]",$value,$options)} type="text" placeholder="{$this->__('value')}" autocomplete="off" class="layui-input input-double-width">
-                </div><div class="layui-input-inline" >
-                    <button  data-name="{$name}" type="button" class="layui-btn layui-btn-warm layui-btn-sm addInput" lay-event="addInput">
-                        <i class="layui-icon">&#xe654;</i>
-                    </button>
-                </div>
-            </div>
-EOF;
-            } else {
-                $arr .=<<<EOF
-<div class="layui-form-item">{$this->label($name, $options)}
-    <div class="layui-input-inline">
-    <input  {$this->verify($options)}  type="text" {$this->getDataPropAttr("{$name}[key][]",$key,$options)}  placeholder="' . $this->__('key') . '" autocomplete="off" class="layui-input input-double-width">
-    </div><div class="layui-input-inline">
-    <input {$this->verify($options)}  type="text" {$this->getDataPropAttr("{$name}[value][]",$value,$options)} placeholder="' . $this->__('value') . '" autocomplete="off" class="layui-input input-double-width">
-    </div><div class="layui-input-inline">
-    <button  data-name="' . $name . '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt" lay-event="removeInupt">
-    <i class="layui-icon">&#xe67e;</i>
-    </button>
-    </div></div>
-EOF;
-            }
-            $i++;
-        }
-        $str = '<div id="' . $name . '">' . $arr . '</div>';
 
+                   }
+
+}else{
+             $tr.=<<<EOF
+
+                        <tr class="tr">
+                        <td>
+                        <div><input type="text" name="{$name}[key][]" value="" placeholder="{$this->__('Key')}" class="layui-input key">
+                        </div>
+                        </td>
+                        <td>
+                        <div><input type="text" name="{$name}[value][]" value="" placeholder="{$this->__('Value')}" class="layui-input value">
+                        </div>
+                        </td>
+                         <th>
+                            <div class="btn">
+                                <span class="add">
+                                <i class="layui-icon layui-icon-addition"></i>
+                                </span><span class="del">
+                                <i  class="layui-icon layui-icon-delete"></i></span>
+                                </div>
+                            </th>
+                    </tr>
+EOF;
+        }
+            $arr .=<<<EOF
+     <div class="layui-form-item" >
+    {$this->label($name,$options)}
+        <div class="layui-input-block">
+                <table class="layui-table" filter="array">
+                    <thead>
+                    <tr>
+                        <th>{$this->__('Key')}</th>
+                        <th>{$this->__('Value')}</th>
+                        <td>{$this->__('Oprate')}</td>
+                    </tr>
+                    </thead>
+                    <tbody class="form-sortable">
+                   {$tr}
+                    </tbody>
+                </table>
+        </div>
+    </div>
+EOF;
+        $str = '<div class="form-array" id="' . $name . '">' . $arr . '</div>';
         return $str;
     }
-
     /**
      * 文本
      * @param null $name

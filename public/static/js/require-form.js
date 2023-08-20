@@ -7,8 +7,8 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus','autoComplete'],
-    function(Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus,autoComplete) {
+define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus','autoComplete','Sortable'],
+    function(Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus,autoComplete,Sortable) {
     var $ = layui.$;
     var Form = {
             init: {},
@@ -846,21 +846,31 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                         })
                     }
                 },
-                addInput: function(formObj) {
-                    formObj = formObj!==undefined ? formObj:$('body');
-                    formObj.on('click', ".addInput", function() {
-                        var name = $(this).data('name'), verify = $(this).data('verify'),
-                            num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
-                        var str = '<div class="layui-form-item">' + '<label class="layui-form-label"></label>' + '<div class="layui-input-inline">' + '<input type="text" name="' + name + '[key][' + num + ']" placeholder="key" class="layui-input input-double-width">' + '</div>' + '<div class="layui-input-inline">\n' + '<input type="text" id="" name="' + name + '[value][' + num + ']" lay-verify="'+verify+'" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' + '</div>' + '<div class="layui-input-inline">' + '<button data-name="' + name + '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' + '</div>' + '</div>';
-                        $(this).parents('.layui-form-item').after(str)
+                formarray: function(formObj) {
+                    formObj.on("click", ".form-array .del", function(){
+                        var tr =  $(this).parents('tr');
+                        var lawtable =  tr.parents('.layui-table');
+                        rows = lawtable.find('.tr');
+                        if(rows.length>1){
+                            $(this).parents('tr').remove();
+                        }else{
+                            Fun.toastr.error('至少保留一条记录!');
+                        }
+                    });
+                    //排序
+                    layui.each($('.form-sortable'), function() {
+                        new Sortable($(this)[0], {
+                            group: 'sortable',
+                            animation: 150
+                        })
                     })
-                },
-                removeInupt: function(formObj) {
-                    formObj = formObj!==undefined ? formObj:$('body');
-                    formObj.on('click', ".removeInupt", function() {
-                        var parentEle = $(this).parent().parent();
-                        parentEle.remove()
-                    })
+                    formObj.on("click", ".form-array .add", function(){
+                        var tr =  $(this).parents('tr');
+                        var html =  tr.html();
+                        html = '<tr>'+html+'</tr>';
+                        tr.after(html);
+                        tr.next('tr').find('input').val('');
+                    });
                 },
                 uploads: function(formObj) {
                     Upload.api.uploads();
@@ -1320,11 +1330,10 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     events.datepicker(form);
                     events.editor(form);
                     events.region(form);
-                    events.addInput(form);
+                    events.formarray(form);
                     events.selectplus(form);
                     events.selectn(form);
                     events.selectpage(form);
-                    events.removeInupt(form);
                     events.autocomplete(form);
                     events.events();//事件
                     //初始化数据

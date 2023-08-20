@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
-var urlArgs = '?_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
+var urlArgs = '_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
 require.config({
     urlArgs: urlArgs ,
     packages: [
@@ -19,7 +19,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery', 'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect','autoComplete', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
+    include: ['jquery', 'css','layCascader','tableSelect','tableFilter','iconPicker','iconFonts', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect','autoComplete','Sortable', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -44,6 +44,7 @@ require.config({
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
         'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
+        'Sortable'      : 'plugins/lay-module/Sortable/Sortable.min',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'backend'       : 'js/backend', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
@@ -91,11 +92,11 @@ require(['jquery'], function ($) {
     //直接使用$经常出现未定义
     $ = layui.jquery || layui.$;
     $(function () {
-        require(['fun','backend',BASE_URL+'js/require-addons.js'+urlArgs], function (Fun,Backend,Addon) {
+        require(['fun','backend',BASE_URL+'js/require-addons.js?'+urlArgs], function (Fun,Backend,Addon) {
             $(function () {
                 console.log(Config.jspath)
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require([BASE_URL+Config.jspath+urlArgs], function (Controller) {
+                    require([BASE_URL+Config.jspath+'?'+urlArgs], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
