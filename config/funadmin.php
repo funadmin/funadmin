@@ -11,7 +11,7 @@ return [
     //版本
     'version' => '5.0',
 
-    'version_data' => '20230819',
+    'version_data' => '20230820',
 
     'layui_version' => '2.8.15',
 
