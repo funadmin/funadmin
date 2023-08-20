@@ -598,7 +598,7 @@ EOF;
 }else{
              $tr.=<<<EOF
 
-                        <tr class="tr">
+                        <tr class="tr sortable">
                         <td>
                         <div><input type="text" name="{$name}[key][]" value="" placeholder="{$this->__('Key')}" class="layui-input key">
                         </div>
@@ -630,7 +630,7 @@ EOF;
                         <td>{$this->__('Oprate')}</td>
                     </tr>
                     </thead>
-                    <tbody class="form-sortable">
+                    <tbody class="form-sortable layui-table-tr">
                    {$tr}
                     </tbody>
                 </table>

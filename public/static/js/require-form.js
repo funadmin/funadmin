@@ -851,6 +851,7 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                         var tr =  $(this).parents('tr');
                         var lawtable =  tr.parents('.layui-table');
                         rows = lawtable.find('.tr');
+                        console.log(rows)
                         if(rows.length>1){
                             $(this).parents('tr').remove();
                         }else{
@@ -867,7 +868,8 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                     formObj.on("click", ".form-array .add", function(){
                         var tr =  $(this).parents('tr');
                         var html =  tr.html();
-                        html = '<tr>'+html+'</tr>';
+                        cls = tr.attr('class');
+                        html = '<tr class="'+cls+'">'+html+'</tr>';
                         tr.after(html);
                         tr.next('tr').find('input').val('');
                     });
