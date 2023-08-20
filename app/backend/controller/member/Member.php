@@ -69,29 +69,43 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
-        /*
-        $cols = [
-            ['checkbox'=>true],
-            ['field' => 'sex',
-                'title' => __('Sex'),
-                'filter' => 'sex',
-                'width' => 120,
-                'search' => 'select',
-                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
-                'templet' => 'Table.templet.select',
-                'tips' => __('Female') . '|' . __('Male')
-            ],
-            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
-        ];
-        $operat = [ 'fixed'=>'right',
-                        'minWidth'=> 80,
-                        'align'=> 'center',
-                        'title'=> __('Operat'),
-                        'init'=> 'Table.init',
-                        'templet'=> 'Table.templet.operat',
-                        'operat'=> ['edit_url', 'destroy',],];
-        return TableBuilder::instance()->cols($cols)->operat($operat)->assign()->view();
-         */
+//        $cols = [
+//            ['checkbox' => true],
+//            ['field' => 'id', 'title' => __('ID'),],
+//            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
+//            ['field' => 'email', 'title' => __('Email'), 'width' => 180,],
+//            ['field' => 'mobile', 'title' => __('mobile'), 'width' => 120, 'edit' => 'text'],
+//            [
+//                'field' => 'sex',
+//                'title' => __('Sex'),
+//                'filter' => 'sex',
+//                'width' => 120,
+//                'search' => 'select',
+//                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
+//                'templet' => 'Table.templet.select',
+//                'tips' => __('Female') . '|' . __('Male')
+//            ],
+//            [
+//                'field' => 'memberLevel.name',
+//                'title' => __('MemberLevel'),
+//                'width' => 120,
+//                'url' => 'member.memberLevel/index',
+//                // selectList=> memberLevel,
+//                'prop' => 'name,name',
+//                'search' => 'select',
+//                'templet' => 'Table.templet.tags'
+//            ],
+//        ];
+//        $operat = [
+//            'fixed' => 'right',
+//            'minWidth' => 80,
+//            'align' => 'center',
+//            'title' => __('Operat'),
+//            'init' => 'Table.init',
+//            'templet' => 'Table.templet.operat',
+//            'operat' => ['edit_url', 'destroy',]
+//        ];
+//        return TableBuilder::instance()->cols($cols)->operat($operat)->assign()->view();
         return view();
     }
 
