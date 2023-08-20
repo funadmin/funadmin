@@ -863,6 +863,17 @@ if (!function_exists('form_arrays')) {
     }
 }
 
+if (!function_exists('form_array')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_array($name='', $list = [], $option = [])
+    {
+        return Form::arrays($name, $list, $option);
+    }
+}
+
 
 if (!function_exists('form_textarea')) {
     /**
