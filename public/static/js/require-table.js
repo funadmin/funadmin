@@ -1169,7 +1169,7 @@ define(['timePicker'], function (timePicker) {
                 if(options.autoSort) return false;
                 Table.getTableObj(tableId).on('sort(' + tableId + ')', function (obj) {
                     $where ={
-                        field: obj.field
+                        sort: obj.field
                         ,order: obj.type //排序方式
                     };
                     Table.api.reload(tableId,$where);
