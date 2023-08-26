@@ -236,7 +236,7 @@ class FormHelper
         $disorread = $this->readonlyOrdisabled($options);
         if ($type == 'hidden') {
             return <<<EOF
-            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input {$this->getClass($options)}  {$disorread}/>
+            <input  type="{$type}" {$this->getDataPropAttr($name,$value,$options)} autocomplete="off"  class="layui-input {$this->getClass($options)}  {$disorread}"/>
 EOF;
         }
         $str = <<<EOF
@@ -1106,7 +1106,7 @@ EOF;
             ];
             $data_value = $this->getOptionsAttr($name,$cops);
             $croper_container = <<<EOF
-<button type="button" {$data_value}  class="layui-btn" id="cropper-{$id}"><i class="layui-icon layui-icon-upload"></i>
+<button type="button" {$data_value}  class="layui-btn layui-btn-sm" id="cropper-{$id}"><i class="layui-icon layui-icon-upload"></i>
                 {$this->__('Cropper')}                
 </button>
 EOF;
@@ -1183,9 +1183,8 @@ EOF;
         if ((isset($options['select']) && $options['select']) || !isset($options['select'])) {
             $select_options = $options;
             $select_options['filter'] = $options['select'] ?? 'upload-select'; //可选upload-choose
-            $css .= 'width:53%!important;';
             $select_container =  <<<EOF
-<button id="select-{$id}" type="button" {$this->getOptionsAttr($name,$select_options)} class="layui-btn layui-btn-danger {$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
+<button id="select-{$id}" type="button" {$this->getOptionsAttr($name,$select_options)} class="layui-btn layui-btn-sm layui-btn-danger {$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
 EOF;
         }
 
@@ -1194,7 +1193,6 @@ EOF;
 <style>
 .layui-input-upload{
 {$css};
-width:65% 
 }
 </style>
 <div class="layui-form-item">{$label}
@@ -1202,7 +1200,7 @@ width:65%
         <div class="layui-upload">
             <input {$this->getNameValueAttr($name,$value,$options)} lay-verify="{$verify}"  type="text"  class="layui-input layui-input-upload attach {$this->getClass($options)}" />
            {$croper_container}
-            <button id="upload-{$id}" type="button" {$this->getOptionsAttr($name,$options)} style="margin-left:0px" class="layui-btn layui-btn-normal"><i class="layui-icon layui-icon-upload-drag"></i>{$this->__('Uploads')}</button>
+            <button id="upload-{$id}" type="button" {$this->getOptionsAttr($name,$options)} style="margin-left:0px" class="layui-btn layui-btn-sm layui-btn-normal "><i class="layui-icon layui-icon-upload-drag"></i>{$this->__('Uploads')}</button>
             {$select_container}
             <div class="layui-upload-list">{$li}
             </div>

@@ -1036,6 +1036,7 @@ class CurdService
             $v['comment'] = str_replace('：', ':', $v['comment']);
             $v['name'] = $v['COLUMN_NAME'];
             $v['value'] = $v['COLUMN_DEFAULT'];
+            $v['DATA_TYPE'] = strtolower($v['DATA_TYPE']);
             if($v['COLUMN_KEY'] == 'PRI'){
                 $this->primaryKey = $v['name'];
             }
@@ -1086,7 +1087,7 @@ class CurdService
             }
             // 指定后缀结尾且类型为varchar || char,文件上传
             if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
-                (($v['DATA_TYPE'] == 'varchar') || $v['DATA_TYPE'] == 'char')) {
+                (in_array($v['DATA_TYPE'],['varchar','char','text','tinytext','mediumtext','longtext','json']))) {
                 $comment = explode('=', $v['comment']);
                 $v['comment'] = $comment[0];
                 $v['type'] = "image";
