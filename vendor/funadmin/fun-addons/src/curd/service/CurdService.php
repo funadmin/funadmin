@@ -1087,7 +1087,7 @@ class CurdService
             }
             // 指定后缀结尾且类型为varchar || char,文件上传
             if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
-                (in_array($v['DATA_TYPE'],['varchar','char','text','tinytext','mediumtext','longtext','json']))) {
+                (in_array($v['DATA_TYPE'],['varchar','char','text','smalltext','tinytext','mediumtext','longtext','json']))) {
                 $comment = explode('=', $v['comment']);
                 $v['comment'] = $comment[0];
                 $v['type'] = "image";
