@@ -1087,19 +1087,22 @@ define([], function () {
                     ,style: 'width: 130px' //定义宽度，默认自适应
                     ,id: 'layui-tab-header-menu' //定义唯一索引
                     ,data: [{
-                        title: '<a href="javascript:;" lay-event="refresh"><i class="layui-icon layui-icon-refresh"></i>  刷新当前页</a>'
+                        title: '  刷新当前页',
+                        templet: '<a href="javascript:;" lay-event="refresh"><i class="layui-icon layui-icon-refresh"></i>  {{d.title}}</a>'
                         ,id: 'refresh'
                     }, {type:'-'},{
-                        title: '<a href="javascript:;" lay-event="closeThisTabs">&nbsp;<i class="layui-icon layui-icon-close-fill"></i>  关闭当前页</a>'
+                        title: '  关闭当前页',
+                        templet: '<a href="javascript:;" lay-event="closeThisTabs">&nbsp;<i class="layui-icon layui-icon-close-fill"></i>  {{d.title}}</a>'
                         ,id: 'closeThisTabs'
                     },{type:'-'},{
-                        title: '<a href="javascript:;" lay-event="closeOtherTabs">&nbsp;<i class="layui-icon layui-icon-unlink"></i>  关闭其它页</a>'
+                        title: '  关闭其它页',
+                        templet: '<a href="javascript:;" lay-event="closeOtherTabs">&nbsp;<i class="layui-icon layui-icon-unlink"></i>  {{d.title}}</a>'
                         ,id: 'closeOtherTabs'
                     },{type:'-'},{
-                        title: '<a href="javascript:;" lay-event="closeAllTabs">&nbsp;<i class="layui-icon layui-icon-close"></i>  关闭全部页</a>'
+                        title: '  关闭全部页',
+                        templet: '<a href="javascript:;" lay-event="closeAllTabs">&nbsp;<i class="layui-icon layui-icon-close"></i>  {{d.title}}</a>'
                         ,id: 'closeAllTabs'
-                    }
-                    ],click:function (obj, othis) {
+                    }],click:function (obj, othis) {
                         var _t = othis.find('a'), attrEvent = obj.id;
                         Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _t);
                     }

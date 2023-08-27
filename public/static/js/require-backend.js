@@ -94,7 +94,6 @@ require(['jquery'], function ($) {
     $(function () {
         require(['fun','backend',BASE_URL+'js/require-addons.js?'+urlArgs], function (Fun,Backend,Addon) {
             $(function () {
-                console.log(Config.jspath)
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     require([BASE_URL+Config.jspath+'?'+urlArgs], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
@@ -108,7 +107,7 @@ require(['jquery'], function ($) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
-                            console.log('action '+ Config.actionname+' is not find')
+                            console.log('builder action '+ Config.actionname+' is not find')
                         }
                     })
                 }

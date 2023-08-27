@@ -408,7 +408,7 @@ define(['timePicker'], function (timePicker) {
                 if (d.selectList !== undefined && d.templet === undefined) {
                     newclos[i]['templet'] = Table.templet.select;
                 }
-                if (d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
+                if (d.field && d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
                     newclos[i]['templet'] = Table.templet.resolution;
                 }
 

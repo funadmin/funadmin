@@ -16,74 +16,89 @@ define(['table', 'form'], function (Table, Form) {
     };
     switch (ACTION) {
         case 'index':
-            if (typeof options !== "undefined" && options[ACTION]) {
-                Controller[ACTION] = function () {
-                    Table.init = {
-                        table_elem: options[ACTION]['elem'],
-                        tableId: options[ACTION]['id'],
-                        requests: requests,
-                    };
-                    options[ACTION]['elem'] = '#' + options[ACTION]['elem']
-                    options[ACTION]['init'] = Table.init;
-                    op = options[ACTION];
-                    console.log(op)
-                    var table = Table.render(options[ACTION]);
-                    Table.api.bindEvent(Table.init.tableId);
-                };
+            Controller[ACTION] = function () {
+                if (typeof tableOptions === "object") {
+                    layui.each(tableOptions, function (i, v) {
+                        Table.init[i] = init = {
+                            table_elem: tableOptions[i]['elem'],
+                            tableId: tableOptions[i]['id'],
+                            requests: requests,
+                        };
+                        tableOptions[i]['elem'] = '#' + tableOptions[i]['elem']
+                        tableOptions[i]['init'] = init;
+                        Table.render(tableOptions[i]);
+                        Table.api.bindEvent(tableOptions[i]['id']);
+                    })
+                }
+                if (typeof extraJs !=="undefined") {
+                    extraJs;
+                }
             }
             break;
         case 'add':
         case 'edit':
         case 'copy':
-            if (typeof options !== "undefined" && options[ACTION]) {
-                Controller[ACTION] = function () {
-                    Table.init = {
-                        table_elem: options[ACTION]['elem'],
-                        tableId: options[ACTION]['id'],
-                        requests: requests,
-                    };
-                    options[ACTION]['elem'] = '#' + options[ACTION]['elem'];
-                    options[ACTION]['init'] = Table.init;
-                    var table = Table.render(options[ACTION]);
-                    Table.api.bindEvent(options[ACTION]['id']);
-                };
-            }
             Controller[ACTION] = function () {
+                if (typeof tableOptions === "object") {
+                    layui.each(tableOptions, function (i, v) {
+                        Table.init[i] = {
+                            table_elem: tableOptions[i]['elem'],
+                            tableId: tableOptions[i]['id'],
+                            requests: requests,
+                        };
+                        tableOptions[i]['elem'] = '#' + tableOptions[i]['elem']
+                        tableOptions[i]['init'] = Table.init;
+                        Table.render(tableOptions[i]);
+                        Table.api.bindEvent(tableOptions[i]['id']);
+                    })
+                }
+                if (typeof extraJs !=="undefined") {
+                    extraJs;
+                }
                 Controller.api.bindevent()
-            };
+            }
             break;
         case 'recycle':
-            if (typeof options !== "undefined" && options[ACTION]) {
-                Controller[ACTION] = function () {
-                    Table.init = {
-                        table_elem: options[ACTION]['elem'],
-                        tableId: options[ACTION]['id'],
-                        requests: requests,
-                    };
-                    options[ACTION]['elem'] = '#' + options[ACTION]['elem'];
-                    options[ACTION]['init'] = Table.init;
-                    var table = Table.render(options[ACTION]);
-                    Table.api.bindEvent(Table.init.tableId);
-                };
+            Controller[ACTION] = function () {
+                if (typeof tableOptions === "object") {
+                    layui.each(tableOptions, function (i, v) {
+                        Table.init[i] = {
+                            table_elem: tableOptions[i]['elem'],
+                            tableId: tableOptions[i]['id'],
+                            requests: requests,
+                        };
+                        tableOptions[i]['elem'] = '#' + tableOptions[i]['elem']
+                        tableOptions[i]['init'] = Table.init;
+                        Table.render(tableOptions[i]);
+                        Table.api.bindEvent(tableOptions[i]['id']);
+                    })
+                }
+                if (typeof extraJs !=="undefined") {
+                    extraJs;
+                }
             }
+
             break;
         default:
-            if (typeof options !== "undefined" && options[ACTION]) {
-                Controller[ACTION] = function () {
-                    Table.init = {
-                        table_elem: options[ACTION]['elem'],
-                        tableId: options[ACTION]['id'],
-                        requests: requests,
-                    };
-                    options[ACTION]['elem'] = '#' + options[ACTION]['elem'];
-                    options[ACTION]['init'] = Table.init;
-                    var table = Table.render(options[ACTION]);
-                    Table.api.bindEvent(options[ACTION]['id']);
-                };
-            }
             Controller[ACTION] = function () {
+                if (typeof tableOptions === "object") {
+                    layui.each(tableOptions, function (i, v) {
+                        Table.init[i] = {
+                            table_elem: tableOptions[i]['elem'],
+                            tableId: tableOptions[i]['id'],
+                            requests: requests,
+                        };
+                        tableOptions[i]['elem'] = '#' + tableOptions[i]['elem']
+                        tableOptions[i]['init'] = Table.init;
+                        Table.render(tableOptions[i]);
+                        Table.api.bindEvent(tableOptions[i]['id']);
+                    })
+                }
+                if (typeof extraJs !=="undefined") {
+                    extraJs;
+                }
                 Controller.api.bindevent()
-            };
+            }
             break;
     }
     return Controller;

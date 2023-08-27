@@ -550,6 +550,16 @@ class FormBuilder
         }
         return $this;
     }
+
+    /**
+     * js 内js
+     * @param $js
+     * @return $this
+     */
+    public function extrajs($js,$options=[]){
+                $this->extrajs = $js;
+                return $this;
+    }
     public function style(string $name,$options=[]){
         if($options['merge']){
             $this->formHtml[] = Form::style($name,$options);

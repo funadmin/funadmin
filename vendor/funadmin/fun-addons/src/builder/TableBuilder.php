@@ -26,15 +26,16 @@ class TableBuilder
     protected $driver = 'mysql';
     protected $database = 'funadmin';
     protected $tablePrefix = 'fun_';
-    protected $fields = [];
-    protected $node = [];
-    protected $methods = [];
-    protected $script = '';
-    protected $js = '';
-    protected $style = '';
-    protected $link = '';
-    protected $html = '';
-    protected $requests = [
+    public $fields = [];
+    public $node = [];
+    public $methods = [];
+    public $script = '';
+    public $extraJs = '';
+    public $js = '';
+    public $style = '';
+    public $link = '';
+    public $html = '';
+    public $requests = [
         'index_url' => 'index',
         'add_url' => 'add',
         'edit_url' => 'edit',
@@ -47,50 +48,49 @@ class TableBuilder
         'import_url' => 'import',
         'recycle_url' => 'recycle',
     ];
-    protected $options = [
-        'index' => [
-            'elem' => 'list',
-            'id' => 'list',
-            'init' => '',
-            'url' => 'index',
-            'defaultToolbar' => ['filter', 'print', 'exports'],
-            'primaryKey' => 'id',
-            'page' => true,
-            'limits'=>[15, 30, 50, 100, 200, 500, 1000, 5000, 10000],
-            'limit'=> 15,
-            'searchInput' => true,
-            'searchShow' => false,
-            'searchTpl' => '',
-            'lineStyle' => '',
-            'rowDouble' => true,
-            'cols' => [
-                []
-            ],
-            'toolbar' => ['refresh', 'add', 'destroy', 'import', 'export', 'recycle'],
-            'operat' => ['restore', 'delete'],
+    public  $index = [
+        'elem' => 'list',
+        'id' => 'list',
+        'init' => '',
+        'url' => 'index',
+        'defaultToolbar' => ['filter', 'print', 'exports'],
+        'primaryKey' => 'id',
+        'page' => true,
+        'limits'=>[15, 30, 50, 100, 200, 500, 1000, 5000, 10000],
+        'limit'=> 15,
+        'searchInput' => true,
+        'searchShow' => false,
+        'searchTpl' => '',
+        'lineStyle' => '',
+        'rowDouble' => true,
+        'cols' => [
+            []
         ],
-        'recycle' => [
-            'elem' => 'list',
-            'id' => 'list',
-            'url' => 'recycle',
-            'defaultToolbar' => ['filter', 'print', 'exports'],
-            'toolbar' => ['refresh', 'delete', 'restore'],
-            'primaryKey' => 'id',
-            'page' => true,
-            'limits'=>[15, 30, 50, 100, 200, 500, 1000, 5000, 10000],
-            'limit'=> 15,
-            'searchInput' => true,
-            'searchShow' => false,
-            'searchTpl' => '',
-            'lineStyle' => '',
-            'rowDouble' => true,
-            'cols' => [
-                []
-            ],
-            'operat' => ['restore', 'delete'],
-
-        ],
+        'toolbar' => ['refresh', 'add', 'destroy', 'import', 'export', 'recycle'],
+        'operat' => ['edit', 'delete'],
     ];
+    public $recycle = [
+        'elem' => 'list',
+        'id' => 'list',
+        'url' => 'recycle',
+        'defaultToolbar' => ['filter', 'print', 'exports'],
+        'toolbar' => ['refresh', 'delete', 'restore'],
+        'primaryKey' => 'id',
+        'page' => true,
+        'limits'=>[15, 30, 50, 100, 200, 500, 1000, 5000, 10000],
+        'limit'=> 15,
+        'searchInput' => true,
+        'searchShow' => false,
+        'searchTpl' => '',
+        'lineStyle' => '',
+        'rowDouble' => true,
+        'cols' => [
+            []
+        ],
+        'operat' => ['restore', 'delete'],
+
+    ];
+    public $options = [];
     /**
      * @var
      */
@@ -119,19 +119,33 @@ class TableBuilder
     /**
      * 私有化构造函数
      */
-    private function __construct(array $options = [])
+    private function __construct(array $config = [])
     {
-        $this->fields = $options['fields'] ?? [];
+        $this->fields = $config['fields'] ?? [];
         // 初始化
-        $this->template = $options['template'] ?? '../../../vendor/funadmin/fun-addons/src/builder/layout/table';
-        $this->options['index']['url'] = __u('index');
-        $this->options['recycle']['url'] = __u('recycle');
-        $this->modelClass = $options['model'] ?? ($options['modelClass'] ?? '');
-        $this->driver = $options['driver'] ?? 'mysql';
+        $this->template = $config['template'] ?? '../../../vendor/funadmin/fun-addons/src/builder/layout/table';
+        $this->modelClass = $config['model'] ?? ($config['modelClass'] ?? '');
+        $this->driver = $config['driver'] ?? 'mysql';
         $this->tablePrefix = config('database.connections.' . $this->driver . '.prefix');
         $this->database = Config::get('database.connections' . '.' . $this->driver . '.database');
+        foreach ($this->requests as &$request) {
+                        $request = __u($request);
+                }
+        unset($request);
     }
-
+    // 表格options
+    public function options(array $data=[], string $tableId = 'list'){
+        if(request()->action()=='index' && empty($data)) {
+            $this->index['url'] = __u(request()->action());
+            $this->options[$tableId] = $this->index;
+        }elseif(request()->action()=='recycle' && empty($data)){
+            $this->index['url'] = __u(request()->action());
+            $this->options[$tableId] = $this->recycle;
+        }else{
+            $this->options[$tableId] = $data;
+        }
+        return $this;
+    }
     public function node(array $node = [])
     {
         foreach ($node as $item) {
@@ -140,39 +154,39 @@ class TableBuilder
         return $this;
     }
 
-    public function url(string|array|object $url, $action = 'index')
+    public function url(string|array|object $url, string $tableId = 'list')
     {
-        $this->options[$action]['url'] = $url;
+        $this->options[$tableId]['url'] = $url;
         return $this;
     }
 
-    public function data(array $data=[], string $action = 'index')
+    public function data(array $data=[], string $tableId = 'list')
     {
-        $this->options[$action]['data'] = $data;
+        $this->options[$tableId]['data'] = $data;
         return $this;
     }
 
-    public function searchShow(bool $show = false, string $action = 'index')
+    public function searchShow(bool $show = false, string $tableId = 'list')
     {
-        $this->options[$action]['searchShow'] = $show;
+        $this->options[$tableId]['searchShow'] = $show;
         return $this;
     }
 
-    public function searchTpl(string $tpl = '', string $action = 'index')
+    public function searchTpl(string $tpl = '', string $tableId = 'list')
     {
-        $this->options[$action]['searchTpl'] = $tpl;
+        $this->options[$tableId]['searchTpl'] = $tpl;
         return $this;
     }
 
-    public function rowDouble(bool $rowDouble = true, string $action = 'index')
+    public function rowDouble(bool $rowDouble = true, string $tableId = 'list')
     {
-        $this->options[$action]['rowDouble'] = $rowDouble;
+        $this->options[$tableId]['rowDouble'] = $rowDouble;
         return $this;
     }
 
-    public function searchInput($show = true, string $action = 'index')
+    public function searchInput($show = true, string $tableId = 'list')
     {
-        $this->options[$action]['searchInput'] = $show;
+        $this->options[$tableId]['searchInput'] = $show;
         return $this;
     }
 
@@ -180,9 +194,12 @@ class TableBuilder
      * @param $column
      * @return $this
      */
-    public function col(array $column = [], string $action = 'index')
+    public function col(array $column = [], string $tableId = 'list')
     {
-        array_push($this->options[$action]['cols'][0], $column);
+        if(!$this->options[$tableId]){
+            $this->options();
+        }
+        array_push($this->options[$tableId]['cols'][0], $column);
         return $this;
     }
 
@@ -190,226 +207,229 @@ class TableBuilder
      * @param $columns
      * @return $this
      */
-    public function cols($columns = [], string $action = 'index')
+    public function cols($columns = [], string $tableId = 'list')
     {
+        if(!$this->options[$tableId]){
+            $this->options();
+        }
         if (!empty($columns)) {
             foreach ($columns as $column) {
-                call_user_func_array([$this, 'col'], [$column, $action]);
+                call_user_func_array([$this, 'col'], [$column, $tableId]);
             }
         }
         return $this;
     }
 
-    public function width(string $width, string $action = 'index')
+    public function width(string $width, string $tableId = 'list')
     {
-        $this->options[$action]['width'] = $width;
+        $this->options[$tableId]['width'] = $width;
         return $this;
     }
 
-    public function height(string $height, string $action = 'index')
+    public function height(string $height, string $tableId = 'list')
     {
-        $this->options[$action]['height'] = $height;
-        return $this;
-
-    }
-
-    public function cellMinWidth(string $cellMinWidth, string $action = 'index')
-    {
-        $this->options[$action]['cellMinWidth'] = $cellMinWidth;
+        $this->options[$tableId]['height'] = $height;
         return $this;
 
     }
 
-    public function lineStyle(string $lineStyle, string $action = 'index')
+    public function cellMinWidth(string $cellMinWidth, string $tableId = 'list')
     {
-        $this->options[$action]['lineStyle'] = $lineStyle;
+        $this->options[$tableId]['cellMinWidth'] = $cellMinWidth;
         return $this;
 
     }
 
-    public function className(string $className, string $action = 'index')
+    public function lineStyle(string $lineStyle, string $tableId = 'list')
     {
-        $this->options[$action]['className'] = $className;
+        $this->options[$tableId]['lineStyle'] = $lineStyle;
+        return $this;
+
+    }
+
+    public function className(string $className, string $tableId = 'list')
+    {
+        $this->options[$tableId]['className'] = $className;
         return $this;
     }
 
-    public function css(string $css, string $action = 'index')
+    public function css(string $css, string $tableId = 'list')
     {
-        $this->options[$action]['css'] = $css;
+        $this->options[$tableId]['css'] = $css;
         return $this;
     }
 
-    public function escape(bool $escape, string $action = 'index')
+    public function escape(bool $escape, string $tableId = 'list')
     {
-        $this->options[$action]['escape'] = $escape;
+        $this->options[$tableId]['escape'] = $escape;
         return $this;
     }
 
-    public function totalRow(string $totalRow, string $action = 'index')
+    public function totalRow(string $totalRow, string $tableId = 'list')
     {
-        $this->options[$action]['totalRow'] = $totalRow;
+        $this->options[$tableId]['totalRow'] = $totalRow;
         return $this;
     }
 
-    public function page(bool $page = true, string $action = 'index')
+    public function page(bool $page = true, string $tableId = 'list')
     {
-        $this->options[$action]['page'] = $page;
+        $this->options[$tableId]['page'] = $page;
         return $this;
     }
 
-    public function pagebar(string $pagebar, string $action = 'index')
+    public function pagebar(string $pagebar, string $tableId = 'list')
     {
-        $this->options[$action]['pagebar'] = $pagebar;
+        $this->options[$tableId]['pagebar'] = $pagebar;
         return $this;
     }
 
-    public function limit(int $limit, string $action = 'index')
+    public function limit(int $limit, string $tableId = 'list')
     {
-        $this->options[$action]['limit'] = $limit;
+        $this->options[$tableId]['limit'] = $limit;
         return $this;
     }
 
-    public function limits(array $limits = [], string $action = 'index')
+    public function limits(array $limits = [], string $tableId = 'list')
     {
-        $this->options[$action]['limits'] = $limits;
+        $this->options[$tableId]['limits'] = $limits;
         return $this;
     }
 
-    public function loading(bool $loading, string $action = 'index')
+    public function loading(bool $loading, string $tableId = 'list')
     {
-        $this->options[$action]['loading'] = $loading;
+        $this->options[$tableId]['loading'] = $loading;
         return $this;
     }
 
-    public function scrollPos(string $scrollPos, string $action = 'index')
+    public function scrollPos(string $scrollPos, string $tableId = 'list')
     {
         //fixed 重载数据时，保持滚动条位置不变reset 重载数据时，滚动条位置恢复置顶default 默认方式，无需设置。即重载数据或切换分页
-        $this->options[$action]['scrollPos'] = $scrollPos;
+        $this->options[$tableId]['scrollPos'] = $scrollPos;
         return $this;
     }
 
     /**
      * dblclick|click
      * @param string $editTrigger
-     * @param string $action
+     * @param string $tableId
      * @return $this
      */
-    public function editTrigger(string $editTrigger, string $action = 'index')
+    public function editTrigger(string $editTrigger, string $tableId = 'list')
     {
-        $this->options[$action]['editTrigger'] = $editTrigger;
+        $this->options[$tableId]['editTrigger'] = $editTrigger;
         return $this;
     }
 
-    public function title(string $title, string $action = 'index')
+    public function title(string $title, string $tableId = 'list')
     {
-        $this->options[$action]['title'] = $title;
+        $this->options[$tableId]['title'] = $title;
         return $this;
     }
 
-    public function text(array $text, string $action = 'index')
+    public function text(array $text, string $tableId = 'list')
     {
-        $this->options[$action]['text'] = $text;
+        $this->options[$tableId]['text'] = $text;
         return $this;
     }
 
-    public function autoSort(bool $autoSort, string $action = 'index')
+    public function autoSort(bool $autoSort, string $tableId = 'list')
     {
-        $this->options[$action]['autoSort'] = $autoSort;
+        $this->options[$tableId]['autoSort'] = $autoSort;
         return $this;
     }
 
-    public function initSort(array $initSort, string $action = 'index')
+    public function initSort(array $initSort, string $tableId = 'list')
     {
-        $this->options[$action]['initSort'] = $initSort;
+        $this->options[$tableId]['initSort'] = $initSort;
         return $this;
     }
 
-    public function skin(string $skin, string $action = 'index')
+    public function skin(string $skin, string $tableId = 'list')
     {
-        $this->options[$action]['skin'] = $skin;//grid|line|row|nob
+        $this->options[$tableId]['skin'] = $skin;//grid|line|row|nob
         return $this;
     }
 
-    public function size(string $size, string $action = 'index')
+    public function size(string $size, string $tableId = 'list')
     {
-        $this->options[$action]['size'] = $size;//sm|md|lg
+        $this->options[$tableId]['size'] = $size;//sm|md|lg
         return $this;
     }
 
-    public function even(string $even, string $action = 'index')
+    public function even(string $even, string $tableId = 'list')
     {
-        $this->options[$action]['even'] = $even;
+        $this->options[$tableId]['even'] = $even;
         return $this;
     }
 
-    public function before(string $before, string $action = 'index')
+    public function before(string $before, string $tableId = 'list')
     {
-        $this->options[$action]['before'] = $before;
+        $this->options[$tableId]['before'] = $before;
         return $this;
     }
 
-    public function done(mixed $done, string $action = 'index')
+    public function done(mixed $done, string $tableId = 'list')
     {
-        $this->options[$action]['done'] = $done;
+        $this->options[$tableId]['done'] = $done;
         return $this;
     }
 
-    public function error(mixed $error, string $action = 'index')
+    public function error(mixed $error, string $tableId = 'list')
     {
-        $this->options[$action]['error'] = $error;
+        $this->options[$tableId]['error'] = $error;
         return $this;
     }
 
-    public function method(string $method = 'GET', string $action = 'index')
+    public function method(string $method = 'GET', string $tableId = 'list')
     {
-        $this->options[$action]['method'] = $method;
+        $this->options[$tableId]['method'] = $method;
         return $this;
     }
 
-    public function where(mixed $where, string $action = 'index')
+    public function where(mixed $where, string $tableId = 'list')
     {
-        $this->options[$action]['where'] = $where;
+        $this->options[$tableId]['where'] = $where;
         return $this;
     }
 
-    public function headers(mixed $headers, string $action = 'index')
+    public function headers(mixed $headers, string $tableId = 'list')
     {
-        $this->options[$action]['headers'] = $headers;
+        $this->options[$tableId]['headers'] = $headers;
         return $this;
     }
 
-    public function contentType(mixed $contentType, string $action = 'index')
+    public function contentType(mixed $contentType, string $tableId = 'list')
     {
-        $this->options[$action]['contentType'] = $contentType;
+        $this->options[$tableId]['contentType'] = $contentType;
         return $this;
     }
 
-    public function dataType(mixed $dataType, string $action = 'index')
+    public function dataType(mixed $dataType, string $tableId = 'list')
     {
-        $this->options[$action]['dataType'] = $dataType;
+        $this->options[$tableId]['dataType'] = $dataType;
         return $this;
     }
 
-    public function request(mixed $request, string $action = 'index')
+    public function request(mixed $request, string $tableId = 'list')
     {
-        $this->options[$action]['request'] = $request;
+        $this->options[$tableId]['request'] = $request;
         return $this;
     }
 
-    public function parseData(mixed $parseData, string $action = 'index')
+    public function parseData(mixed $parseData, string $tableId = 'list')
     {
-        $this->options[$action]['parseData'] = $parseData;
+        $this->options[$tableId]['parseData'] = $parseData;
         return $this;
     }
 
-    public function cellMaxWidth(string $cellMaxWidth, string $action = 'index')
+    public function cellMaxWidth(string $cellMaxWidth, string $tableId = 'list')
     {
-        $this->options[$action]['cellMaxWidth'] = $cellMaxWidth;
+        $this->options[$tableId]['cellMaxWidth'] = $cellMaxWidth;
     }
 
-    public function maxHeight(string $maxHeight, string $action = 'index')
+    public function maxHeight(string $maxHeight, string $tableId = 'list')
     {
-        $this->options[$action]['maxHeight '] = $maxHeight;
+        $this->options[$tableId]['maxHeight '] = $maxHeight;
     }
 
 
@@ -418,16 +438,16 @@ class TableBuilder
      * @param string $key 主键名称
      * @return $this
      */
-    public function primaryKey($key = 'id', string $action = 'index')
+    public function primaryKey($key = 'id', string $tableId = 'list')
     {
-        $this->options[$action]['primaryKey'] = $key;
+        $this->options[$tableId]['primaryKey'] = $key;
         return $this;
     }
 
-    public function pageSize($pageSize = [], string $action = 'index')
+    public function pageSize($pageSize = [], string $tableId = 'list')
     {
 
-        $this->options[$action]['pageSize'] = !empty($pageSize) ? $pageSize : [];
+        $this->options[$tableId]['pageSize'] = !empty($pageSize) ? $pageSize : [];
         return $this;
     }
 
@@ -436,38 +456,43 @@ class TableBuilder
      * @param $data
      * @return $this
      */
-    public function extra($data = [], string $action = 'index')
+    public function extra($data = [], string $tableId = 'list')
     {
-        $this->options[$action] = array_merge($this->options[$action], $data);
+        $this->options[$tableId] = array_merge($this->options[$tableId], $data);
         return $this;
     }
 
-    public function tree($data = [], string $action = 'index')
+    public function tree($data = [], string $tableId = 'list')
     {
         if (!empty($data)) {
-            $this->options[$action]['tree'] = $data;
+            $this->options[$tableId]['tree'] = $data;
         }
         return $this;
     }
 
-    public function style($style = '', string $action = 'index')
+    public function style($style = '', string $tableId = 'list')
     {
         $this->style = $style;
         return $this;
     }
-    public function link(string|array $link = '', string $action = 'index')
+    public function link(string|array $link = '', string $tableId = 'list')
     {
         $this->link = Form::link($link,[]);
         return $this;
     }
-    public function js(string|array$js = '', string $action = 'index')
+    public function js(string|array$js = '', string $tableId = 'list')
     {
         $this->js = Form::js($js,[]);
         return $this;
     }
-    public function script(string$script = '', string $action = 'index')
+    public function script(string$script = '', string $tableId = 'list')
     {
         $this->script = $script;
+        return $this;
+    }
+    public function extraJs(string$script = '', string $tableId = 'list')
+    {
+        $this->extraJs = $script;
         return $this;
     }
     /**
@@ -475,19 +500,19 @@ class TableBuilder
      * @param string $html 额外HTML代码
      * @return $this
      */
-    public function html($html = '', string $action = 'index')
+    public function html($html = '', string $tableId = 'list')
     {
         $this->html = $html;
         return $this;
     }
 
-    public function index(array $options = [], string $action = 'index')
+    public function index(array $options = [], string $tableId = 'list')
     {
-        $this->options[$action] = array_merge($this->options[$action], $options);
+        $this->options[$tableId] = array_merge($this->options[$tableId], $options);
         return $this;
     }
 
-    public function recycle(array $options = [], string $action = 'recycle')
+    public function recycle(array $options = [], string $tableId = 'recycle')
     {
         if ($options == false) {
             foreach ($this->options as $key => $value) {
@@ -497,7 +522,7 @@ class TableBuilder
                 unset($this->options['recycle']);
             }
         }
-        $this->options[$action] = array_merge($this->options[$action], $options);
+        $this->options[$tableId] = array_merge($this->options[$tableId], $options);
         return $this;
     }
 
@@ -505,9 +530,9 @@ class TableBuilder
      * @param array $request
      * @return $this
      */
-    public function requests(array $request = [], string $action = 'index')
+    public function requests(array $request = [], string $tableId = 'list')
     {
-        $this->options[$action]['requests'] = $request;
+        $this->options[$tableId]['requests'] = $request;
         $this->requests = array_merge($this->requests, $request);
         return $this;
     }
@@ -518,35 +543,35 @@ class TableBuilder
      * @param array $extra 扩展参数(待用)
      * @return $this
      */
-    public function operat(array $operat = [], $action = 'index')
+    public function operat(array $operat = [], string $tableId = 'list')
     {
-        array_push($this->options[$action]['cols'][0], $operat);
+        array_push($this->options[$tableId]['cols'][0], $operat);
         return $this;
     }
 
-    public function elem(string $elem,$action='index')
+    public function elem(string $elem,string $tableId = 'list')
     {
-        $this->options[$action]['elem'] = $elem;
+        $this->options[$tableId]['elem'] = $elem;
         return $this;
     }
 
-    public function id(string $id, string $action = 'index')
+    public function id(string $id, string $tableId = 'list')
     {
-        $this->options[$action]['id'] = $id;
+        $this->options[$tableId]['id'] = $id;
         return $this;
     }
 
-    public function defaultToolbar(array $default = ['filter', 'print', 'exports'], string $action = 'index')
+    public function defaultToolbar(array $default = ['filter', 'print', 'exports'], string $tableId = 'list')
     {
 
-        $this->options[$action]['defaultToolbar'] = $default;
+        $this->options[$tableId]['defaultToolbar'] = $default;
         return $this;
 
     }
 
-    public function toolbar($buttons = [], string $action = 'index')
+    public function toolbar($buttons = [], string $tableId = 'list')
     {
-        $this->options[$action]['toolbar'] = $buttons;
+        $this->options[$tableId]['toolbar'] = $buttons;
         return $this;
     }
 
@@ -562,7 +587,7 @@ class TableBuilder
             'requests' => $this->requests,
             'html' => $this->html,
             'tableScript' => $this->script,
-            'tableJs' => $this->js,
+            'extraJs' => $this->extraJs,
             'tableStyle' => $this->style,
             'tableLink' => $this->link,
             'data' => $data,

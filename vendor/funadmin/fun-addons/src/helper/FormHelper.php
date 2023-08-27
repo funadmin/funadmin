@@ -1421,7 +1421,7 @@ EOF;
     {
         $filter = '';
         if (isset($options['filter'])) {
-            $filter = 'lay-filter="' . $options['filter'] . '"';
+            $filter = ' lay-filter="' . $options['filter'] . '"';
         }
         return $filter;
     }
@@ -1433,7 +1433,7 @@ EOF;
     {
         $search = '';
         if (!isset($options['search']) || $options['search'] == true) {
-            $search = 'lay-search';
+            $search =  ' lay-search';
         }
         return $search;
     }
