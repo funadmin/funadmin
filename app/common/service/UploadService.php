@@ -117,7 +117,7 @@ class UploadService extends AbstractService
         //获取上传文件表单字段名
         $type = input('type', 'file');
         $savePath = input('path', 'uploads');
-        $savePath = $savePath =='undefined'?'uploads':$savePath;
+        $this->saveFilePath = $savePath =='undefined'?'uploads':$savePath;
         $editor = input('editor', '');
         $files = request()->file();
         foreach ($files as $k => $file) {
