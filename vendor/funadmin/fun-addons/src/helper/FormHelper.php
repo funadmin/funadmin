@@ -523,7 +523,7 @@ EOF;
                     $value_tmp = $k;
                     $name_tmp = $name[$v[0]];
                     $input .= <<<EOF
-<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox" {$check}  title="{$this->__($v[1])}"/>';
+<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox" {$check}  title="{$this->__($v[1])}"/>
 EOF;
                 } else {
                     $check = '';
@@ -535,7 +535,7 @@ EOF;
                     $value_tmp = $k;
                     $name_tmp =$name[$k];
                     $input .= <<<EOF
-<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox"  {$check}   title="{$this->__($v)}"/>';
+<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox"  {$check}   title="{$this->__($v)}"/>
 EOF;
                 }
             }
@@ -543,7 +543,7 @@ EOF;
             $value_tmp = $value;
             $name_tmp ="{$name}[]";
             $input .= <<<EOF
-<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox"  title="{$this->__($value)}"/>';
+<input {$this->getDataPropAttr($name_tmp,$value_tmp,$options)} class="{$this->getClass($options)}" type="checkbox"  title="{$this->__($value)}"/>
 EOF;
         }
         $str = <<<EOF
@@ -975,7 +975,7 @@ EOF;
 <div class="layui-form-item"> {$this->label($name, $options)}       
     <div class="layui-input-block layui-input-wrap">
     <div class="layui-input-prefix"><i class="layui-icon layui-icon-date"></i></div>
-    <input {$this->getDataPropAttr($name,$value,$options)}  class="layui-input {$this->getClass($options)}" type="text" />
+    <input {$this->getDataPropAttr($name,$value,$options)}  class="layui-input {$this->getClass($options)} {$this->readonlyOrdisabled($options)}" type="text" />
 </div>
 EOF;
 
