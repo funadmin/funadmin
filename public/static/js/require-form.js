@@ -785,6 +785,18 @@ define(['table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 
                             if(data.fullPanel!=false){
                                 options['fullPanel'] =  true;// 2.8+
                             }
+                            if(data.mark){
+                                options['mark'] = mark;
+                            }
+                            if(data.holidays){
+                                options['holidays'] = holidays;
+                            }
+                            if(data.min){
+                                options['min'] = min;
+                            }
+                            if(data.max){
+                                options['max'] = max;
+                            }
                             laydate = layui.laydate ? layui.laydate : parent.layui.laydate;
                             window['date-'+id] = laydate.render(options)
                         })
