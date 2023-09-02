@@ -8,7 +8,8 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
-var urlArgs = '_t=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
+var urlArgs = '_v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));
+var _t = '_t='+(new Date().getTime());
 require.config({
     urlArgs: urlArgs ,
     packages: [
@@ -95,7 +96,7 @@ require(['jquery'], function ($) {
         require(['fun','backend',BASE_URL+'js/require-addons.js?'+urlArgs], function (Fun,Backend,Addon) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    require([BASE_URL+Config.jspath+'?'+urlArgs], function (Controller) {
+                    require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {
@@ -103,7 +104,7 @@ require(['jquery'], function ($) {
                         }
                     });
                 }else{
-                    require(['/static/js/builder.js'], function (Controller) {
+                    require(['/static/js/builder.js?'+_t], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
                         } else {

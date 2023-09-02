@@ -557,8 +557,10 @@ class FormBuilder
      * @return $this
      */
     public function extrajs($js,$options=[]){
-                $this->extrajs = $js;
-                return $this;
+        $reg = '/<script.*?>([\s\S]*?)<\/script>/im';
+        preg_match($reg, $script,$match);
+        $this->extraJs = empty($match)?$script:$match[1];
+        return $this;
     }
     public function style(string $name,$options=[]){
         if($options['merge']){

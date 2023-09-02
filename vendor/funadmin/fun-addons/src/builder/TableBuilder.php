@@ -492,7 +492,9 @@ class TableBuilder
     }
     public function extraJs(string$script = '', string $tableId = 'list')
     {
-        $this->extraJs = $script;
+        $reg = '/<script.*?>([\s\S]*?)<\/script>/im';
+        preg_match($reg, $script,$match);
+        $this->extraJs = empty($match)?$script:$match[1];
         return $this;
     }
     /**

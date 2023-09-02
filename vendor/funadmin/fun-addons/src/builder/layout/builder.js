@@ -31,7 +31,7 @@ define(['table', 'form'], function (Table, Form) {
                     })
                 }
                 if (typeof extraJs !=="undefined") {
-                    extraJs;
+                    eval(extraJs);
                 }
             }
             break;
@@ -53,7 +53,7 @@ define(['table', 'form'], function (Table, Form) {
                     })
                 }
                 if (typeof extraJs !=="undefined") {
-                    extraJs;
+                    eval(extraJs);
                 }
                 Controller.api.bindevent()
             }
@@ -74,7 +74,7 @@ define(['table', 'form'], function (Table, Form) {
                     })
                 }
                 if (typeof extraJs !=="undefined") {
-                    extraJs;
+                    eval(extraJs);
                 }
             }
 
@@ -95,7 +95,7 @@ define(['table', 'form'], function (Table, Form) {
                     })
                 }
                 if (typeof extraJs !=="undefined") {
-                    extraJs;
+                    eval(extraJs);
                 }
                 Controller.api.bindevent()
             }
