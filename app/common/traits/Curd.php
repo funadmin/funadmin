@@ -14,6 +14,7 @@ namespace app\common\traits;
 use app\backend\model\Admin;
 use app\common\annotation\NodeAnnotation;
 use app\common\model\Member;
+use app\common\service\UploadService;
 use fun\helper\TreeHelper;
 use OpenAI\Responses\Images\VariationResponse;
 use think\facade\Cache;
@@ -294,7 +295,12 @@ trait Curd
      */
     public function import()
     {
-        $file = request()->param('file');
+        $file = request()->file('file');
+        $file= UploadService::instance()->uploads(session('member.id'),session('amdin.id'));
+        if(!$file['url']){
+            $this->error(lang("Upload failed"));
+        }
+        $file = $file['url'];
         $excelData = $this->getFileData($file);
         $tableField = $this->getTableField();
         try {
@@ -408,12 +414,10 @@ trait Curd
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
      */
     protected function getFileData($file=''){
-
-        $file = $file?:$this->request->param('file');
         if (!$file) {
             $this->error(lang("Parameter error"));
         }
-        $file = public_path(). $file;
+        $file = public_path(). trim($file,'/');
         //此处写导入逻辑
         $file = iconv("utf-8", "gb2312", $file);
         if (empty($file) || !file_exists($file)) {

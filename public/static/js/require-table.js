@@ -139,7 +139,7 @@ define(['timePicker'], function (timePicker) {
                         url = eval(('requests.' + v + '_url'))  ||　eval(('requests.' + v ))
                         if(!url) return ;
                         url = Fun.replaceurl(url, d);
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n';
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" data-title="'+v+'"><i class="layui-icon layui-icon-radio"></i>' + __(v) + '</a>\n';
                     }
                 } else if (typeof v === 'string' && typeof eval('requests.' + v) === 'object' || typeof v === 'object') {
                     if (typeof v === 'string') {
@@ -674,9 +674,9 @@ define(['timePicker'], function (timePicker) {
                                 va = {
                                     type: 'open',
                                     event: 'open',
-                                    class: 'layui-btn layui-btn-warm',
-                                    text: __('Open'),
-                                    title: __('Open'),
+                                    class: 'layui-btn layui-btn-normal',
+                                    text: __(v),
+                                    title: __(v),
                                     url: eval('requests.' + v + '_url') || eval('requests.' + v),
                                     icon: 'layui-icon layui-icon-radio',
                                     extend: "",tips: '',
