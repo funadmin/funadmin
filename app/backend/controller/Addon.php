@@ -654,7 +654,13 @@ class Addon extends Backend
         if (!is_dir($fileDir)) {
             FileHelper::mkdirs($fileDir);
         }
-        $content = file_get_contents($res['data']['file_url']);
+        $stream_opts = [
+            "ssl" => [
+                "verify_peer"=>false,
+                "verify_peer_name"=>false,
+            ]
+        ];
+        $content = file_get_contents($res['data']['file_url'],false,stream_context_create($stream_opts));
         $fileName = $fileDir . $params['name'] . '.zip';
         @touch($fileName);
         file_put_contents($fileName, $content);
