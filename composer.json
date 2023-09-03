@@ -42,7 +42,6 @@
     "guzzlehttp/guzzle": "^7.7",
     "funadmin/fun-addons": "^5.3.0",
     "firebase/php-jwt": "*"
-
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"
