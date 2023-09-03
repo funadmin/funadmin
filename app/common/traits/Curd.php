@@ -357,7 +357,7 @@ trait Curd
      */
     public function export()
     {
-
+        $this->relationSearch = false;//关联表格，如果要关联需要单独重写
         list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
         $tableName = $this->modelClass->getName();
         $tableName  = Str::snake($tableName);
