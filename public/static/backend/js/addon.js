@@ -137,8 +137,8 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                                 if (d.website !== '') {
                                     html += '<button  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</button>';
                                 }
-                                // if(d.web){
-                                //     html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
+                                // if(d.url){
+                                    html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='/addons/"+d.name+"'>前台</a>"
                                 // }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
