@@ -12,7 +12,7 @@
     optimizeCss:'standard',
     include: [
         'jquery', 'css','layCascader','tableSelect','tableFilter',
-        'iconPicker','iconFonts', 'toastr', 'step-lay','inputTags' ,'cityPicker',
+        'iconPicker', 'toastr', 'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers','autoComplete','Sortable',
         'dayjs', 'md5', 'fun','form', 'table', 'upload'
@@ -27,7 +27,6 @@
         // 'layui'         : 'plugins/layui/layui', // jquery
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
-        'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',

@@ -511,21 +511,21 @@ define(['upload'], function (Upload) {
                     }
                 },
                 icon: function (formObj) {
-                    var list = formObj !== undefined ? formObj.find("*[lay-filter='iconPickers']") : $("*[lay-filter='iconPickers']");
+                    var list = formObj !== undefined ? formObj.find("*[lay-filter='iconPicker']") : $("*[lay-filter='iconPicker']");
                     if (list.length > 0) {
                         require(['iconPicker'], function (iconPicker) {
                             layui.each(list, function () {
-                                var _t = $(this);
-                                var data = _t.data();
-                                var id = _t.prop('id');
+                                var _t = $(this);var url = _t.data('url');
+                                var data = _t.data();var id = _t.prop('id');
                                 window['icon-' + id] = layui.iconPicker.render({
                                     elem: this,
                                     type: 'fontClass',
+                                    value:_t.prop('value') || _t.data('value'),
                                     search: true,
                                     page: true,
                                     limit: 12,
                                     click: function (data) {
-                                        _t.prev("input[type='hidden']").val(data.icon)
+                                        _t.prev("input[type='hidden']").val('layui-icon '+data.icon)
                                     },
                                     success: data.done ? eval(data.done(d)) : function (d) {
                                     }

@@ -947,8 +947,8 @@ EOF;
     public  function icon($name = '', $options = [], $value = '')
     {
         list($name,$id) = $this->getNameId($name,$options);
-        $value = $value ?: 'layui-icon-app';
-        $options['filter'] = 'iconPickers';
+        $value = $value ?: 'layui-icon layui-icon-app';
+        $options['filter'] = 'iconPicker';
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name,$options)}
     <div class="layui-input-block">

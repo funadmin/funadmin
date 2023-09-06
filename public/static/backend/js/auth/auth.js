@@ -157,7 +157,7 @@ define(['table','form'], function (Table, Form) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         Fun.refreshmenu();
                         Fun.toastr.close();
-                        Form.api.closeOpen()
+                        parent.layui.layer.closeAll()
                     }, 0));
                     }, function (res) {
                         Fun.toastr.error(res.msg);

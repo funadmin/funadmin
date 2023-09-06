@@ -20,7 +20,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery','css','layCascader','tableSelect','iconPicker','iconFonts','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
+    include: ['jquery','css','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
@@ -29,7 +29,6 @@ require.config({
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
-        'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
