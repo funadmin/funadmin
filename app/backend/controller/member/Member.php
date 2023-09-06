@@ -69,7 +69,7 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
-        $cols = [
+/*        $cols = [
             ['checkbox' => true],
             ['field' => 'id', 'title' => __('ID'),],
             ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
@@ -111,12 +111,12 @@ $('.layui-btn').click(function (){
     alert('111')
 })
 
-</script>  
+</script>
 
 EOF;
 
         return TableBuilder::instance()->cols($cols)->operat($operat)->extraJs($js)->assign()->view();
-        return view();
+ */       return view();
     }
 
     public function add()
