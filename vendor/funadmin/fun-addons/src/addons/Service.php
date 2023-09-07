@@ -52,7 +52,7 @@ class Service extends \think\Service
         $this->loadLang();
         // 2.注册插件事件hook
         $this->loadEvent();
-        
+
         $this->loadService();
         // 4.自动加载全局的插件内部第三方类库
 
@@ -206,7 +206,7 @@ class Service extends \think\Service
         $config = Config::get('addons');
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
-        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled']);
+        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
         // 读取插件目录中的php文件
         foreach (glob($this->getAddonsPath() . '*/*.php') as $addons_file) {
             // 格式化路径信息

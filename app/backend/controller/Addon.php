@@ -417,6 +417,10 @@ class Addon extends Backend
                 unset($v);
                 $config_data = json_encode($config,JSON_UNESCAPED_UNICODE);
                 if($one->save(['config'=>$config_data])){
+                    $class = get_addons_instance($name);
+                    if(method_exists($class,'config')){
+                        $class->config();
+                    }
                     set_addons_config($name,$config);
                     refreshaddons();
                     $this->success(lang('operation success'));
