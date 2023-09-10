@@ -1057,9 +1057,16 @@ EOF;
 
             $text = '';
             if (isset($options['textarea'])) {
-                $text= <<<EOF
- <textarea {$this->getNameValueAttr($name,$value,$options)} </textarea>
+                $verify = '';
+                if(!empty($options['verify'])){
+                    $verify = 'lay-verify ="'.$options['verify'].'"';
+                }
+            $text= <<<EOF
+ <textarea {$verify} {$this->getNameValueAttr($name,$value,$options)} </textarea>
 EOF;
+            }
+            if(!empty($options['verify'])){
+                unset($options['verify']);
             }
             $content = <<<EOF
             <div {$this->getDataPropAttr($name,$value,$options)} lay-editor  type="text/plain" >

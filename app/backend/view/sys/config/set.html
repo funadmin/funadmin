@@ -19,7 +19,7 @@
                 {:form_textarea('site_seo_title',['label'=>'Site title','verify'=>"required"])}
                 {:form_textarea('site_seo_keywords',['label'=>'Meta keywords','verify'=>"required"])}
                 {:form_textarea('site_seo_desc',['label'=>'Meta description','verify'=>"required"])}
-                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2022 www.FunAdmin.com Apache2 license')}
+                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2023 www.FunAdmin.com Apache2 license')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
@@ -27,7 +27,13 @@
         <div class="layui-tab-item">
             <form class="layui-form " lay-filter="form">
                 {:form_select('upload_editor',
-                ['tinymce'=>'tinymce','ueditor'=>'ueditor','wangeditor'=>'wangeditor','ckeditor'=>"ckeditor"],
+                ['tinymce'=>'tinymce','ueditor'=>'ueditor',
+                'umeditor'=>"umeditor",'quill '=>'quill',
+                'wangeditor'=>'wangeditor','ckeditor'=>"ckeditor",
+                'summernote'=>"summernote",'vditor'=>'vditor',
+                'codemirror'=>'codemirror', 'jodit'=>"jodit",
+                'simditor '=>'simditor',
+                ],
                 ['label'=>'Editor'],$formData['upload_editor']??'')}
 
                 {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
