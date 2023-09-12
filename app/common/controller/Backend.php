@@ -25,6 +25,7 @@ use think\facade\Lang;
 use app\backend\middleware\CheckRole;
 use app\backend\middleware\ViewNode;
 use app\backend\middleware\SystemLog;
+use think\helper\Str;
 
 class Backend extends BaseController
 {
@@ -134,6 +135,9 @@ class Backend extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
+        if(Str::contains($lang,'../')){
+            return false;
+        }
         if($app && $app!=='backend'){
             $res =  Lang::load([
                 $this->app->getBasePath() .'backend'. DS . 'lang' . DS . $lang . '.php',

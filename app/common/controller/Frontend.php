@@ -24,6 +24,7 @@ use think\exception\ValidateException;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\View;
+use think\helper\Str;
 
 class Frontend extends BaseController
 {
@@ -115,6 +116,9 @@ class Frontend extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
+        if(Str::contains($lang,'../')){
+            return false;
+        }
         if($app){
             $res =  Lang::load([
                 $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',
