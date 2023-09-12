@@ -135,7 +135,7 @@ class Backend extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
-        if(Str::contains($lang,'../')){
+        if(!empty($lang) && Str::contains($lang,'../')){
             return false;
         }
         if($app && $app!=='backend'){
