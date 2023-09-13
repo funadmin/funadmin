@@ -59,10 +59,10 @@ define(['timePicker'], function (timePicker) {
                         }
                         cols.push(arr);
                     })
-                    Table.timeRender(cols);
+                    Table.timeRender(cols,options);
                     layui.form.render();
                     require(['form'], function (Form) {
-                        Form.events.xmselect();
+                        Form.events.xmselect($('#layui-form-'+options.id));
                     })
                 });
                 layui.form.render();
@@ -85,7 +85,6 @@ define(['timePicker'], function (timePicker) {
             Table.api.switch(options);
             Table.api.selects(options);
             Table.api.toolbar(options);
-            Table.api.sort(options);
             Table.api.tool(options);
             Table.api.toolDouble(options);
             Table.api.import(options);
@@ -298,21 +297,22 @@ define(['timePicker'], function (timePicker) {
                 Table.api.tableSearch(options);
                 layui.form.val('layui-form-'+tableId,formVal);
                 layui.form.render();
-                Table.timeRender(newCols)
+                Table.timeRender(newCols,options)
                 require(['form'], function (Form) {
-                    Form.events.xmselect();
-                    Form.events.selectpage();
+                    Form.events.xmselect($('#layui-form-'+tableId));
+                    Form.events.selectpage($('#layui-form-'+tableId));
                 })
             }
         },
-        timeRender: function (newCols) {
+        timeRender: function (newCols,options) {
+            var formId = '#layui-form-'+options.id;
             layui.each(newCols, function (ncI, ncV) {
                 if (ncV.search === 'range') {
                     switch (ncV.searchOp) {
                         case 'between':
                             layui.laydate.render({
-                                elem: '#field_'+ncV.field,
-                                range: ['#field_' + ncV.field + '_min', '#field_' + ncV.field + '_max'],
+                                elem: formId+' #field_'+ncV.field,
+                                range: [formId+' #field_' + ncV.field + '_min', formId+' #field_' + ncV.field + '_max'],
                                 rangeLinked: true,
                                 format: ncV.searchdateformat,
                                 type: ncV.timeType
@@ -320,12 +320,12 @@ define(['timePicker'], function (timePicker) {
                             break;
                         case 'daterange':
                             require(['form'], function (Form) {
-                                Form.events.datepicker($('form'));
+                                Form.events.datepicker($(formId));
                             })
                             break;
                         default:
                             layui.timePicker.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: ncV.timepickerformat},
                             })
                             break
@@ -335,8 +335,8 @@ define(['timePicker'], function (timePicker) {
                     switch (ncV.searchOp) {
                         case 'between':
                             layui.laydate.render({
-                                elem: '#field_'+ncV.field,
-                                range: ['#field_' + ncV.field + '_min', '#field_' + ncV.field + '_max'],
+                                elem:formId +' #field_'+ncV.field,
+                                range: [formId +' #field_' + ncV.field + '_min', formId +' #field_' + ncV.field + '_max'],
                                 rangeLinked: true,
                                 format: ncV.searchdateformat,
                                 type: ncV.timeType
@@ -344,18 +344,18 @@ define(['timePicker'], function (timePicker) {
                             break;
                         case 'daterange':
                             require(['form'], function (Form) {
-                                Form.events.datepicker($('form'));
+                                Form.events.datepicker($(formId));
                             })
                             break;
                         case 'range':
                             layui.timePicker.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: ncV.timepickerformat,},
                             })
                             break;
                         default:
                             layui.laydate.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 type: ncV.timeType,
                                 format: ncV.searchdateformat,
                                 fullPanel:true,
@@ -365,7 +365,7 @@ define(['timePicker'], function (timePicker) {
                 }
                 if (ncV.search === 'timerange') {
                     layui.laydate.render({
-                        elem: '[name="' + ncV.field + '"]',
+                        elem: formId +' [name="' + ncV.field + '"]',
                         range: true,
                         type: ncV.timeType,
                         format: ncV.searchdateformat,
@@ -1164,8 +1164,9 @@ define(['timePicker'], function (timePicker) {
                         })
                     })
             },
-            sort: function (options) {
-                tableId = options.id || Table.init.tableId;
+            sort: function (tableId,options) {
+                tableId = tableId ||  options.id || Table.init.tableId;
+                options = options || Table.getOptions(tableId)
                 if(options.autoSort) return false;
                 Table.getTableObj(tableId).on('sort(' + tableId + ')', function (obj) {
                     $where ={
@@ -1173,9 +1174,8 @@ define(['timePicker'], function (timePicker) {
                         ,order: obj.type //排序方式
                     };
                     Table.api.reload(tableId,$where);
-                    return false;
                 })
-
+                return false;
             },
             switch: function (options) {
                 layui.form.on('switch', function (obj) {
@@ -1223,6 +1223,7 @@ define(['timePicker'], function (timePicker) {
             },
             bindEvent: function (tableId) {
                 tableId = tableId || Table.init.tableId;
+                Table.api.sort(tableId);//排序
                 $(document).on('focus','*[lay-event]',function(){
                     var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
