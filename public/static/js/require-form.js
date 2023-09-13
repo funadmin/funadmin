@@ -134,10 +134,13 @@ define(['upload'], function (Upload) {
                                     verify = _t.data('verify') || _t.attr('verify'),
                                     url = _t.data('url') || _t.data('request'),
                                     data = _t.data('data') || '',
-                                    method = _t.data('method') ? _t.data('method') : 'get',
-                                    last = _t.data('last') ? _t.data('last') : '',
-                                    values = _t.data('value') ? _t.data('value') : '',
-                                    search = _t.data('search') ? _t.data('search') : '',
+                                    method = _t.data('method') ||  'get',
+                                    last = _t.data('last') ||  '',
+                                    values = _t.data('value') || '',
+                                    search = _t.data('search') || _t.attr('lay-search');
+                                    if (search !== undefined) {
+                                        search = true;
+                                    }
                                     attr = _t.data('attr'),
                                     attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
                                     num = _t.data('num') ? _t.data('num') : 3,
