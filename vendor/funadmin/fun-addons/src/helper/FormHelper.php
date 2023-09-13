@@ -1433,7 +1433,22 @@ EOF;
         }
         return $filter;
     }
-
+    protected  function affix($options = [])
+    {
+        $affix = '';
+        if (isset($options['affix'])) {
+            $affix = ' lay-affix="' . $options['affix'] . '"';
+        }
+        return $affix;
+    }
+    protected  function step($options = [])
+    {
+        $str = '';
+        if (isset($options['step'])) {
+            $str = ' step="' . $options['step'] . '"';
+        }
+        return $str;
+    }
     /**搜索
      * @return string
      */
@@ -1553,6 +1568,12 @@ EOF;
                         break;
                     case 'filter':
                         $attr.= $this->filter($options);
+                        break;
+                    case 'step':
+                        $attr.= $this->step($options);
+                        break;
+                    case 'affix':
+                        $attr.= $this->affix($options);
                         break;
                     case 'style':
                         $attr.= $this->getStyle($options);
