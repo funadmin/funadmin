@@ -484,10 +484,11 @@ EOF;
     {
         $switchArr = $this->getArray($name,$switch);
         $switchStr = $switchArr ? $this->__($switchArr[1]) . '|' . $this->__($switchArr[0]) : $this->__('open') . '|' . 'close';
+        $checked = $value?'checked="true"':'';
         $str = <<<EOF
         <div class="layui-form-item"> {$this->label($name, $options)} 
             <div class="layui-input-block">
-            <input {$this->getDataPropAttr($name,$value,$options)} class="{$this->getClass($options)}" type="checkbox" checked=""  lay-skin="switch" lay-text="{$switchStr}"  data-text="{$this->__($value)}"/>
+            <input {$this->getDataPropAttr($name,$value,$options)} class="{$this->getClass($options)}" type="checkbox" {$checked} lay-skin="switch" lay-text="{$switchStr}"  data-text="{$this->__($value)}"/>
             {$this->tips($options)} 
             </div>
         </div>'
