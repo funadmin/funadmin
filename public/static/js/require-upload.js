@@ -46,7 +46,7 @@ define([ 'croppers'], function(croppers) {
                         var _that= $(this), data = _that.data();
                         if(typeof data.value == 'object') data = data.value;
                         var uploadNum = data.num,id= _that.prop('id') || data.id,
-                            uploadMime = data.mime,
+                            uploadMime = data.mime,acceptMime = data.acceptmime || '',
                             uploadAccept = data.accept,
                             uploadPath = data.path || 'upload',
                             uploadSize = data.size,
@@ -243,6 +243,10 @@ define([ 'croppers'], function(croppers) {
                         if(uploadExts!=="*" && uploadExts){
                             opt[i]['exts'] = uploadExts
                         }
+                        if(acceptMime!==undefined){
+                            opt[i]['acceptMime'] = acceptMime;
+                        }
+                        console.log(opt[i])
                         window['upload-'+id] = layui.upload.render(opt[i]);
                         // Toastr.destroyAll();
                     })
