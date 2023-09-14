@@ -42,7 +42,7 @@ class Index extends BaseController
             'runtimePath' => runtime_path(),
             'lockFile' => $this->lockFile,
         ];
-
+        set_time_limit(0);
         if (request()->action() != 'step4' && file_exists($this->lockFile)) {
             $this->error('当前版本已经安装了，如果需要重新安装请先删除install.lock', '/');
         }
