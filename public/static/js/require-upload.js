@@ -246,7 +246,6 @@ define([ 'croppers'], function(croppers) {
                         if(acceptMime!==undefined){
                             opt[i]['acceptMime'] = acceptMime;
                         }
-                        console.log(opt[i])
                         window['upload-'+id] = layui.upload.render(opt[i]);
                         // Toastr.destroyAll();
                     })

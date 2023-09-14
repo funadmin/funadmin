@@ -864,7 +864,7 @@ define(['timePicker'], function (timePicker) {
             return [ids, length]
         },
         getOptions:function (tableId){
-            return layui.table.getOptions(tableId) || layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId);
+            return layui.table.getOptions(tableId) || layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || {};
         },
         getTableObj:function(tableId){
             options = Table.getOptions(tableId);
@@ -1071,6 +1071,8 @@ define(['timePicker'], function (timePicker) {
                 $parent = typeof $parent ==='undefined'?true:$parent;
                 $page = typeof $page ==='undefined'?1:$parent;
                 tableId = tableId ? tableId : Table.init.tableId;
+                options = Table.getOptions(tableId);
+                table = Table.getTableObj(tableId);
                 $where = $where || {};
                 $map = {where: $where};
                 if($page>=1){
@@ -1078,11 +1080,15 @@ define(['timePicker'], function (timePicker) {
                         curr: $page //重新从第 1 页开始
                     }
                 }
-                table = Table.getTableObj(tableId);
+                console.log(options.page)
+                if(options.page!==undefined && options.page==false){
+                    $map.page  = false;
+                }
+                console.log($map)
                 table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
-                    parent.layui.table.reloadData(tableId, {}, $deep) ||
-                    parent.layui.treeTable.reloadData(tableId, {}, $deep);
+                    parent.layui.table.reloadData(tableId, $map, $deep) ||
+                    parent.layui.treeTable.reloadData(tableId, $map, $deep);
                 }
             },
             toolbar: function (options) {
