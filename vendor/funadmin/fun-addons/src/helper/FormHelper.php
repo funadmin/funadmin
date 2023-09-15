@@ -689,7 +689,7 @@ EOF;
 <div class="layui-form-item layui-form" lay-filter="{$name}">{$this->label($name,$options)}
     <div class="layui-input-block">
       <div  data-verify ="{$this->labelRequire($options)}" 
-{$this->getDataPropAttr($name, $value, $options)}  class="{$this->getClass($options)}" {$this->search($options)} {$this->readonlyOrdisabled($options)} >
+{$this->getDataPropAttr($name, $value, $options)}  class="{$this->getClass($options)}" {$this->laysearch($options)} {$this->readonlyOrdisabled($options)} >
       </div>
       {$this->tips($options)}
     </div>
@@ -1404,7 +1404,7 @@ EOF;
      * @ 验证
      * @return string
      */
-    protected  function verify($options = [])
+    protected  function layverify($options = [])
     {
         $verify = '';
         if (isset($options['verify'])) {
@@ -1425,7 +1425,7 @@ EOF;
      * @param $options
      * @return string
      */
-    protected  function filter($options = [])
+    protected  function layfilter($options = [])
     {
         $filter = '';
         if (isset($options['filter'])) {
@@ -1433,7 +1433,7 @@ EOF;
         }
         return $filter;
     }
-    protected  function affix($options = [])
+    protected  function layaffix($options = [])
     {
         $affix = '';
         if (isset($options['affix'])) {
@@ -1441,9 +1441,33 @@ EOF;
         }
         return $affix;
     }
-    protected  function step($options = [])
+    protected  function layautocomplete($options = [])
     {
-        $str = '';
+        $affix = ' ';
+        if (isset($options['affix'])) {
+            $affix = ' autocomplete="'.$options['autocomplete'] .'"';
+        }
+        return $affix;
+    }
+    protected  function laysubmit($options = [])
+    {
+        $affix = ' ';
+        if (isset($options['submit'])) {
+            $affix = ' lay-submit="'.$options['submit'] .'"';
+        }
+        return $affix;
+    }
+    protected  function layignore($options = [])
+    {
+        $affix = ' ';
+        if (isset($options['ignore'])) {
+            $affix = ' lay-ignore="'.$options['ignore'] .'"';
+        }
+        return $affix;
+    }
+    protected  function laystep($options = [])
+    {
+        $str = ' ';
         if (isset($options['step'])) {
             $str = ' step="' . $options['step'] . '"';
         }
@@ -1452,11 +1476,20 @@ EOF;
     /**搜索
      * @return string
      */
-    protected  function search($options = [])
+    protected  function laysearch($options = [])
     {
         $search = '';
         if (!isset($options['search']) || $options['search'] == true) {
             $search =  ' lay-search';
+        }
+        return $search;
+    }
+
+    protected  function layskin($options = [])
+    {
+        $search = '';
+        if (isset($options['skin'])) {
+            $affix = ' lay-skin="'.$options['skin'] .'"';
         }
         return $search;
     }
@@ -1564,16 +1597,25 @@ EOF;
                         $attr.=  $key.'="'. $this->__($val).'" ';
                         break;
                     case 'verify':
-                        $attr.= $this->verify($options);
+                        $attr.= $this->layverify($options);
                         break;
                     case 'filter':
-                        $attr.= $this->filter($options);
+                        $attr.= $this->layfilter($options);
                         break;
                     case 'step':
-                        $attr.= $this->step($options);
+                        $attr.= $this->laystep($options);
                         break;
                     case 'affix':
-                        $attr.= $this->affix($options);
+                        $attr.= $this->layaffix($options);
+                        break;
+                    case 'autocomplete':
+                        $attr.= $this->layautocomplete($options);
+                        break;
+                    case 'submit':
+                        $attr.= $this->laysubmit($options);
+                        break;
+                    case 'ignore':
+                        $attr.= $this->layignore($options);
                         break;
                     case 'style':
                         $attr.= $this->getStyle($options);
@@ -1582,7 +1624,10 @@ EOF;
                         $attr.= $this->readonlyOrdisabled($options);
                         break;
                     case 'search':
-                        $attr.= $this->search($options);
+                        $attr.= $this->laysearch($options);
+                        break;
+                    case 'skin':
+                        $attr.= $this->layskin($options);
                         break;
                     case 'value':
                         $attr .=  $key."='".$this->entities($val) ."' data-".$key."='".$this->entities($val)."' ";
@@ -1593,9 +1638,6 @@ EOF;
                             $val = implode(',',$val);
                         }
                         $attr .= " data-".$key."='".$val."' ";
-                        break;
-                    case 'skin':
-                        $attr.= " lay-'".$key.'"="'. $val.'" ';
                         break;
                     default:
                         if(is_object($val) || is_array($val)){
