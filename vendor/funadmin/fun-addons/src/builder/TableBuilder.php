@@ -26,6 +26,8 @@ class TableBuilder
     protected $driver = 'mysql';
     protected $database = 'funadmin';
     protected $tablePrefix = 'fun_';
+    protected $templet = ['laydate', 'colorpicker', 'time', 'tags', 'image', 'content', 'text', 'dropdown', 'selects', 'switch', 'select', 'url', 'iframe', 'open','icon','number','operat'];
+
     public $fields = [];
     public $node = [];
     public $methods = [];
@@ -190,6 +192,7 @@ class TableBuilder
         return $this;
     }
 
+
     /**
      * @param $column
      * @return $this
@@ -199,10 +202,15 @@ class TableBuilder
         if(!$this->options[$tableId]){
             $this->options();
         }
+        foreach ($column as $key=>&$v){
+            if(!empty($v['templet']) && strpos($v['templet'],'Table.templet')===false){
+                $v['templet'] = $this->getColTemplet($v['templet']);
+            }
+        }
+        unset($v);
         array_push($this->options[$tableId]['cols'][0], $column);
         return $this;
     }
-
     /**
      * @param $columns
      * @return $this
@@ -606,5 +614,12 @@ class TableBuilder
     {
         $template = $template ?: $this->template;
         return view($template);
+    }
+
+    protected function getColTemplet($templet){
+        if($templet && in_array($templet,$this->templet)){
+            return 'templet:Table.templet.'+templet;
+        }
+        return $templet;
     }
 }
