@@ -574,7 +574,7 @@ CREATE TABLE `fun_member_account` (
                                       `status` tinyint DEFAULT '1' COMMENT '状态=[-1:删除;0:禁用;1启用]',
                                       `type` int DEFAULT '1' COMMENT '类型\r\n',
                                       `create_time` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '创建时间',
-                                      `update_time` int DEFAULT '0' COMMENT '跟新时间',
+                                      `update_time` int DEFAULT '0' COMMENT '更新时间',
                                       `delete_time` int DEFAULT '0' COMMENT '删除时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会员_账户统计表';
 
