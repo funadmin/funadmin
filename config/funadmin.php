@@ -9,11 +9,11 @@ return [
     //是否演示站点
     'isDemo'=>0,
     //版本
-    'version' => '5.0.1',
+    'version' => '5.0.2',
 
-    'version_data' => '20230903',
+    'version_data' => '20230917',
 
-    'layui_version' => '2.8.16',
+    'layui_version' => '2.8.1',
 
     'ip_check'=>false,
 
