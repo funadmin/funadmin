@@ -135,14 +135,14 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                                 }
                                 html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
                                 if (d.website !== '') {
-                                    html += '<button  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</button>';
+                                    html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</a>';
                                 }
                                 // if(d.url){
                                     html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='/addons/"+d.name+"'>前台</a>"
                                 // }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
-                                    html+="<button class=\"layui-btn  layui-btn-sm layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</button>"
+                                    html+="<a class=\"layui-btn  layui-btn-sm layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
                                 }else{
                                     html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
                                 }
