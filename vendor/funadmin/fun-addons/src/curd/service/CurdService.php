@@ -971,13 +971,13 @@ class CurdService
                             if (in_array($v['name'], ['update_time', 'delete_time'])) {
                                 break;
                             }
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         case 'year':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         case 'time':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         default :
                             $this->jsCols .= $space . "{field:'{$v['name']}', title: __('{$name}'),align: 'center'}," . PHP_EOL;

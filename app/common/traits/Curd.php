@@ -691,6 +691,14 @@ trait Curd
         $this->success('ok','',$result);
     }
 
+    protected function buildQuery($searchFields=null,$relationSearch=null){
+
+        return $this->buildParames($searchFields,$relationSearch);
+    }
+    protected function buildParams($searchFields=null,$relationSearch=null){
+
+        return $this->buildParames($searchFields,$relationSearch);
+    }
     /**
      * 组合参数
      * @param null $searchfields
