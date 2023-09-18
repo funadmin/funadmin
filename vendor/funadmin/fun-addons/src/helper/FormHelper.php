@@ -1143,21 +1143,25 @@ EOF;
                 if ($k + 1 <= $options['num']) {
                     switch ($options['mime']) {
                         case 'video':
+                            $v = $v?:'/static/backend/images/filetype/video.png';
                             $li .= <<<EOF
 <li><video lay-event="" class="layui-upload-img fl"  width="150" src="{$v}"></video>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="$v"></i></li>
 EOF;
                             break;
                         case 'audio':
+                            $v = $v?:'/static/backend/images/filetype/audio.jpg';
                             $li .= <<<EOF
 <li><audio lay-event="" class="layui-upload-img fl"  width="150" src="'{$v}"></audio> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>
 EOF;
                             break;
                         case 'images':
+                            $v = $v?:'/static/backend/images/filetype/image.jpg';
                             $li .= <<<EOF
 <li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
 EOF;
                             break;
                         case 'image':
+                            $v = $v?:'/static/backend/images/filetype/image.jpg';
                             $li .= <<<EOF
 <li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
 EOF;
