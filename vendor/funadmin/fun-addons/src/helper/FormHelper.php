@@ -753,6 +753,19 @@ EOF;
 EOF;
     return $str;
     }
+
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public  function select($name = '', $select=[], $options=[], $attr=[], $value='')
+    {
+       return $this->multiselect($name,$select,$options,$attr,$value);
+    }
     /**
      * @param $name
      * @param $select
