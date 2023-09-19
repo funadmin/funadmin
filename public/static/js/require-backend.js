@@ -98,16 +98,20 @@ require(['jquery'], function ($) {
                     require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
+                        } else if (Controller.hasOwnProperty('api')) {
+                            Controller.api.bindevent()
                         } else {
-                            console.log('action '+ Config.actionname+' is not find')
+                            console.log('action ' + Config.actionname + ' is not find')
                         }
                     });
                 }else{
                     require(['/static/js/builder.js?'+_t], function (Controller) {
                         if (typeof Controller!=undefined && Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
+                        } else if (Controller.hasOwnProperty('api')) {
+                            Controller.api.bindevent()
                         } else {
-                            console.log('builder action '+ Config.actionname+' is not find')
+                            console.log('action ' + Config.actionname + ' is not find')
                         }
                     })
                 }

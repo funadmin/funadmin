@@ -94,8 +94,10 @@ require(["jquery"], function ($) {
                     require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
+                        } else if (Controller.hasOwnProperty('api')) {
+                            Controller.api.bindevent()
                         } else {
-                            console.log('action is not find')
+                            console.log('action ' + Config.actionname + ' is not find')
                         }
                     });
                 }
