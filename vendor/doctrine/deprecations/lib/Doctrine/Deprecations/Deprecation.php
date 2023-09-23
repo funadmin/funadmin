@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 
 use function array_key_exists;
 use function array_reduce;
+use function assert;
 use function debug_backtrace;
 use function sprintf;
 use function strpos;
@@ -46,7 +47,7 @@ class Deprecation
     private const TYPE_TRIGGER_ERROR      = 2;
     private const TYPE_PSR_LOGGER         = 4;
 
-    /** @var self::TYPE_*|null */
+    /** @var int-mask-of<self::TYPE_*>|null */
     private static $type;
 
     /** @var LoggerInterface|null */
@@ -56,6 +57,9 @@ class Deprecation
     private static $ignoredPackages = [];
 
     /** @var array<string,int> */
+    private static $triggeredDeprecations = [];
+
+    /** @var array<string,bool> */
     private static $ignoredLinks = [];
 
     /** @var bool */
@@ -68,7 +72,7 @@ class Deprecation
      * deprecation. It is additionally used to de-duplicate the trigger of the
      * same deprecation during a request.
      *
-     * @param mixed $args
+     * @param float|int|string $args
      */
     public static function trigger(string $package, string $link, string $message, ...$args): void
     {
@@ -78,13 +82,17 @@ class Deprecation
             return;
         }
 
-        if (array_key_exists($link, self::$ignoredLinks)) {
-            self::$ignoredLinks[$link]++;
-        } else {
-            self::$ignoredLinks[$link] = 1;
+        if (isset(self::$ignoredLinks[$link])) {
+            return;
         }
 
-        if (self::$deduplication === true && self::$ignoredLinks[$link] > 1) {
+        if (array_key_exists($link, self::$triggeredDeprecations)) {
+            self::$triggeredDeprecations[$link]++;
+        } else {
+            self::$triggeredDeprecations[$link] = 1;
+        }
+
+        if (self::$deduplication === true && self::$triggeredDeprecations[$link] > 1) {
             return;
         }
 
@@ -116,7 +124,7 @@ class Deprecation
      * deprecation tracking is enabled even during deduplication, because it
      * needs to call {@link debug_backtrace()}
      *
-     * @param mixed $args
+     * @param float|int|string $args
      */
     public static function triggerIfCalledFromOutside(string $package, string $link, string $message, ...$args): void
     {
@@ -129,7 +137,7 @@ class Deprecation
         $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
 
         // first check that the caller is not from a tests folder, in which case we always let deprecations pass
-        if (strpos($backtrace[1]['file'], DIRECTORY_SEPARATOR . 'tests' . DIRECTORY_SEPARATOR) === false) {
+        if (isset($backtrace[1]['file'], $backtrace[0]['file']) && strpos($backtrace[1]['file'], DIRECTORY_SEPARATOR . 'tests' . DIRECTORY_SEPARATOR) === false) {
             $path = DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . $package . DIRECTORY_SEPARATOR;
 
             if (strpos($backtrace[0]['file'], $path) === false) {
@@ -141,13 +149,17 @@ class Deprecation
             }
         }
 
-        if (array_key_exists($link, self::$ignoredLinks)) {
-            self::$ignoredLinks[$link]++;
-        } else {
-            self::$ignoredLinks[$link] = 1;
+        if (isset(self::$ignoredLinks[$link])) {
+            return;
         }
 
-        if (self::$deduplication === true && self::$ignoredLinks[$link] > 1) {
+        if (array_key_exists($link, self::$triggeredDeprecations)) {
+            self::$triggeredDeprecations[$link]++;
+        } else {
+            self::$triggeredDeprecations[$link] = 1;
+        }
+
+        if (self::$deduplication === true && self::$triggeredDeprecations[$link] > 1) {
             return;
         }
 
@@ -161,7 +173,7 @@ class Deprecation
     }
 
     /**
-     * @param array<mixed> $backtrace
+     * @param list<array{function: string, line?: int, file?: string, class?: class-string, type?: string, args?: mixed[], object?: object}> $backtrace
      */
     private static function delegateTriggerToBackend(string $message, array $backtrace, string $link, string $package): void
     {
@@ -169,11 +181,13 @@ class Deprecation
 
         if (($type & self::TYPE_PSR_LOGGER) > 0) {
             $context = [
-                'file' => $backtrace[0]['file'],
-                'line' => $backtrace[0]['line'],
+                'file' => $backtrace[0]['file'] ?? null,
+                'line' => $backtrace[0]['line'] ?? null,
                 'package' => $package,
                 'link' => $link,
             ];
+
+            assert(self::$logger !== null);
 
             self::$logger->notice($message, $context);
         }
@@ -184,10 +198,10 @@ class Deprecation
 
         $message .= sprintf(
             ' (%s:%d called by %s:%d, %s, package %s)',
-            self::basename($backtrace[0]['file']),
-            $backtrace[0]['line'],
-            self::basename($backtrace[1]['file']),
-            $backtrace[1]['line'],
+            self::basename($backtrace[0]['file'] ?? 'native code'),
+            $backtrace[0]['line'] ?? 0,
+            self::basename($backtrace[1]['file'] ?? 'native code'),
+            $backtrace[1]['line'] ?? 0,
             $link,
             $package
         );
@@ -211,16 +225,19 @@ class Deprecation
 
     public static function enableTrackingDeprecations(): void
     {
+        self::$type  = self::$type ?? 0;
         self::$type |= self::TYPE_TRACK_DEPRECATIONS;
     }
 
     public static function enableWithTriggerError(): void
     {
+        self::$type  = self::$type ?? 0;
         self::$type |= self::TYPE_TRIGGER_ERROR;
     }
 
     public static function enableWithPsrLogger(LoggerInterface $logger): void
     {
+        self::$type   = self::$type ?? 0;
         self::$type  |= self::TYPE_PSR_LOGGER;
         self::$logger = $logger;
     }
@@ -235,9 +252,10 @@ class Deprecation
         self::$type          = self::TYPE_NONE;
         self::$logger        = null;
         self::$deduplication = true;
+        self::$ignoredLinks  = [];
 
-        foreach (self::$ignoredLinks as $link => $count) {
-            self::$ignoredLinks[$link] = 0;
+        foreach (self::$triggeredDeprecations as $link => $count) {
+            self::$triggeredDeprecations[$link] = 0;
         }
     }
 
@@ -249,13 +267,13 @@ class Deprecation
     public static function ignoreDeprecations(string ...$links): void
     {
         foreach ($links as $link) {
-            self::$ignoredLinks[$link] = 0;
+            self::$ignoredLinks[$link] = true;
         }
     }
 
     public static function getUniqueTriggeredDeprecationsCount(): int
     {
-        return array_reduce(self::$ignoredLinks, static function (int $carry, int $count) {
+        return array_reduce(self::$triggeredDeprecations, static function (int $carry, int $count) {
             return $carry + $count;
         }, 0);
     }
@@ -267,11 +285,11 @@ class Deprecation
      */
     public static function getTriggeredDeprecations(): array
     {
-        return self::$ignoredLinks;
+        return self::$triggeredDeprecations;
     }
 
     /**
-     * @return self::TYPE_*
+     * @return int-mask-of<self::TYPE_*>
      */
     private static function getTypeFromEnv(): int
     {
