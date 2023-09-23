@@ -173,7 +173,7 @@ return [
     'ConfigModify'              =>  "配置编辑",
     'ConfigSet'                 =>  "配置设置",
     'Blacklist'                 =>  "黑名单",
-    'AuthBoard'                 =>  "权限管理",
+    'AuthBoard'                 =>  "权限",
     'Auth'                      =>  "菜单",
     'AuthGroup'                 =>  "角色组",
     'AuthGroupAdd'              =>  "角色组添加",
