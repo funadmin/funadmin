@@ -1215,7 +1215,7 @@ define(['upload'], function (Upload) {
                  * 初始化表格数据
                  */
                 initForm: function () {
-                    if (Config.formData) {
+                    if (Config!==undefined && Config.formData) {
                         layui.form.val("form", Config.formData);
                         layui.form.render();
                     }
