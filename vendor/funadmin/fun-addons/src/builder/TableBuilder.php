@@ -126,7 +126,7 @@ class TableBuilder
         $this->fields = $config['fields'] ?? [];
         // 初始化
         $this->template = $config['template'] ?? '../../../vendor/funadmin/fun-addons/src/builder/layout/table';
-        $this->modelClass = $config['model'] ?? ($config['modelClass'] ?? '');
+        $this->modelClass = $this->modelClass?: ($config['model'] ?? ($config['modelClass'] ?? ''));
         $this->driver = $config['driver'] ?? 'mysql';
         $this->tablePrefix = config('database.connections.' . $this->driver . '.prefix');
         $this->database = Config::get('database.connections' . '.' . $this->driver . '.database');
@@ -591,7 +591,7 @@ class TableBuilder
      */
     public function assign(array $data = [])
     {
-        View::assign([
+        View::assign(array_merge([
             'node' => implode(' ', $this->node),
             'options' => $this->options,
             'requests' => $this->requests,
@@ -600,8 +600,7 @@ class TableBuilder
             'extraJs' => $this->extraJs,
             'tableStyle' => $this->style,
             'tableLink' => $this->link,
-            'data' => $data,
-        ]);
+        ],$data));
         return $this;
     }
 
