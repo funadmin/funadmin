@@ -21,7 +21,6 @@ use think\helper\Str;
 
 class FormBuilder
 {
-    use Builder;
     /**
      * style
      * @var array
