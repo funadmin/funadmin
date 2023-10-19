@@ -151,6 +151,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-child {
     padding-top: 0;
     padding-bottom: 0;
+    background: none;
 }
 .layui-nav-tree > .layui-nav-item:hover > a:before {
     bottom: 0

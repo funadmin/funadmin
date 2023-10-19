@@ -11,9 +11,9 @@ return [
     //版本
     'version' => '5.0.2',
 
-    'version_data' => '20230924',
+    'version_data' => '202301019',
 
-    'layui_version' => '2.8.17',
+    'layui_version' => '2.8.18',
 
     'ip_check'=>false,
 

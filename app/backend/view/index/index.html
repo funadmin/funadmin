@@ -62,32 +62,3 @@
 </html>
 <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
 <script defer src="__CDN____STATIC__/require.min.js?v={:syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
-<script>
-    //由于兼容性问题，导航菜单的特效写在这里
-    var $ = layui.$;
-    function animNav(accordion) {
-        $("#layui-side-left-menu a,.layui-nav-header a").on("click", function (e) {
-            var ITEMED = "layui-nav-itemed";
-            var opened = $(this).parent().hasClass(ITEMED)
-            var anim = function (elem) {
-                var othis = $(elem), parent = othis.parent(),child = othis.siblings(".layui-nav-child");
-                if (parent.hasClass(ITEMED)) {
-                    //close
-                    child.css({ display: "block"}).slideUp(200, "swing", function () {parent.removeClass(ITEMED);});
-                } else {
-                    //open
-                    child.slideDown(200, "swing", function () {parent.addClass(ITEMED);});
-                }
-            };
-            anim(this)
-            // 手风琴模式
-            if (opened || !accordion) return;
-            $(this).parent().siblings('.layui-nav-itemed').each(function (_, item) {
-                anim($(item).children()[0])
-            })
-
-        });
-
-    }
-    animNav(true)
-</script>

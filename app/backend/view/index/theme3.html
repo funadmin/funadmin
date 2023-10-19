@@ -8,10 +8,10 @@
             </a>
         </li>
     </ul>
-    <ul class="layui-nav layui-layout-center layui-hide-xs" id="layui-header-nav-pc">
+    <ul class="layui-nav layui-layout-center layui-hide-xs"  lay-accordion id="layui-header-nav-pc">
         {$menulist.nav|raw}
     </ul>
-    <ul class="layui-nav layui-layout-center layui-hide-sm" id="layui-header-nav-mobile">
+    <ul class="layui-nav layui-layout-center layui-hide-sm"  lay-accordion id="layui-header-nav-mobile">
         {$menulist.navm|raw}
     </ul>
     <ul class="layui-nav layui-layout-right">
@@ -76,7 +76,7 @@
         <div id="layui-side-left-menu">
             {$menulist.menu|raw}
         </div>
-        <ul data-rel="external" class="layui-nav layui-nav-tree header" style="margin-top: auto" lay-filter="test">
+        <ul data-rel="external" class="layui-nav layui-nav-tree header"  lay-accordion style="margin-top: auto" lay-filter="test">
             <li class="layui-nav-item" style="margin-left: 15px;" data-tips="相关链接">相关链接</li>
             <li class="layui-nav-item" data-tips="系统官网">
                 <a href="http://www.FunAdmin.com" target="_blank">
