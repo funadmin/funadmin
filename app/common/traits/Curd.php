@@ -759,6 +759,12 @@ trait Curd
                 case '=':
                     $where[] = [$key, '=', $val];
                     break;
+                case '>':
+                case '>=':
+                case '<':
+                case '<=':
+                    $where[] = [$key, $op, $val];
+                    break;
                 case 'IN':
                     $val = is_array($val)?$val:explode(',',$val);
                     $where[] = [$key, 'IN', $val];
