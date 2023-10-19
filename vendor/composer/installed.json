@@ -436,17 +436,17 @@
         },
         {
             "name": "funadmin/fun-addons",
-            "version": "v5.3.2",
-            "version_normalized": "5.3.2.0",
+            "version": "v5.3.3",
+            "version_normalized": "5.3.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/funadmin/fun-addons.git",
-                "reference": "e1c2e568d1414235f7096ab2502d6d1398c64d65"
+                "reference": "f7246be44868aff2907334e393488f631d779152"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/e1c2e568d1414235f7096ab2502d6d1398c64d65",
-                "reference": "e1c2e568d1414235f7096ab2502d6d1398c64d65",
+                "url": "https://api.github.com/repos/funadmin/fun-addons/zipball/f7246be44868aff2907334e393488f631d779152",
+                "reference": "f7246be44868aff2907334e393488f631d779152",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -455,7 +455,7 @@
                     }
                 ]
             },
-            "time": "2023-09-23T13:04:00+00:00",
+            "time": "2023-10-19T15:36:28+00:00",
             "type": "library",
             "extra": {
                 "think": {
@@ -491,7 +491,7 @@
             "description": "fun-addons是一个基于TP6的插件扩展,适用于FunAmin框架",
             "support": {
                 "issues": "https://github.com/funadmin/fun-addons/issues",
-                "source": "https://github.com/funadmin/fun-addons/tree/v5.3.2"
+                "source": "https://github.com/funadmin/fun-addons/tree/v5.3.3"
             },
             "install-path": "../funadmin/fun-addons"
         },
@@ -3406,17 +3406,17 @@
         },
         {
             "name": "topthink/think-orm",
-            "version": "v3.0.13",
-            "version_normalized": "3.0.13.0",
+            "version": "v3.0.14",
+            "version_normalized": "3.0.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-orm.git",
-                "reference": "e676e172d54055266005986d05685bdac5ac66b7"
+                "reference": "7b0b8ea6ca5e020217f6ba7ae34d547e148a675b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-orm/zipball/e676e172d54055266005986d05685bdac5ac66b7",
-                "reference": "e676e172d54055266005986d05685bdac5ac66b7",
+                "url": "https://api.github.com/repos/top-think/think-orm/zipball/7b0b8ea6ca5e020217f6ba7ae34d547e148a675b",
+                "reference": "7b0b8ea6ca5e020217f6ba7ae34d547e148a675b",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3436,7 +3436,7 @@
             "require-dev": {
                 "phpunit/phpunit": "^8|^9.5|^10"
             },
-            "time": "2023-09-01T09:08:49+00:00",
+            "time": "2023-09-24T13:15:07+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3464,7 +3464,7 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/think-orm/issues",
-                "source": "https://github.com/top-think/think-orm/tree/v3.0.13"
+                "source": "https://github.com/top-think/think-orm/tree/v3.0.14"
             },
             "install-path": "../topthink/think-orm"
         },
