@@ -547,9 +547,9 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
                 height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
-                offset = options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
-                offset = Config.site.site_layer_offset ?  Config.site.site_layer_offset:offset;
-                anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:anim;
+                offset = Config.site.site_layer_offset ?  Config.site.site_layer_offset:options.offset;
+                anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:options.anim;
+                offset = offset? offset :'r'; anim = anim? anim : 'slideLeft';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn == undefined) {
