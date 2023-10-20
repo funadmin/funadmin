@@ -75,6 +75,32 @@
             <form class="layui-form " lay-filter="form">
                 {:form_radio('app_debug',[1=>'是',0=>'否'],['label'=>'Debug'])}
                 {:form_input('site_version','text',['label'=>'Version'])}
+                {:form_input('site_layer_width','text',['label'=>'弹窗宽度'],'50%')}
+                {:form_input('site_layer_height','text',['label'=>'弹窗高度'],'100%')}
+                {:form_radio('site_layer_offset',[
+                'r'=> '右边缘(默认)',
+                'auto'=>'坐标始终垂直水平居中',
+                't'=>'上边缘',
+                'b' =>'下边缘',
+                'l'=> '左边缘',
+                'rt'=> '右上角',
+                'rb'=> '右下角',
+                'lt'=> '左上角',
+                'lb' =>'左下角',
+                ],['label'=>'弹窗位置'],'r')}
+                {:form_radio('site_layer_anim',[
+                'slideLeft'=>'从右边缘往左(默认)',
+                'slideDown'=>'从上边缘往下',
+                'slideUp'=>'从下边缘往上',
+                'slideRight'=>'从左边缘往右',
+                '0'=>'平滑放大',
+                '1'=>'从上掉落',
+                '2'=>' 从最底部往上滑入',
+                '3'=>'从左滑入',
+                '4'=>'从左翻滚',
+                '5'=>' 渐显',
+                '6'=>' 抖动',
+                ],['label'=>'Offset'],'弹窗特效')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>

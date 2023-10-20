@@ -541,11 +541,15 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
+                width = Config.site.site_layer_width?  Config.site.site_layer_width : width;
+                height = Config.site.site_layer_height?  Config.site.site_layer_height : height;
                 width = width || '50%';height = height || '100%';
                 width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
                 height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
-                offset= options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
+                offset = options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
+                offset = Config.site.site_layer_offset ?  Config.site.site_layer_offset:offset;
+                anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:anim;
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn == undefined) {
