@@ -7,7 +7,7 @@ funadmin docker 版本请移步docker仓库
 funadmin前端和webman开发的后台管理系统
     </a></h3>
 
-<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V5.0最低支持PHP8.0</h3>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V5.X最低支持PHP8.0</h3>
 
 <h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
@@ -46,7 +46,7 @@ funadmin前端和webman开发的后台管理系统
 
 ### 帮助文档：https://doc.funadmin.com 正在持续更新中...
 
-### 后台演示（用户名:admin 密码:123456）演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/backend)
+### 后台演示 加群获取 演示地址：[http://fundemo.funadmin.com/](http://fundemo.funadmin.com/backend) 
 
 ### QQ群1：[775616363](https://jq.qq.com/?_wv=1027&k=GOakxsp6)
 
@@ -64,7 +64,7 @@ FunAdmin 基于thinkphp8.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 + 自适应前端，桌面和移动端访问界面友好简洁，模块清晰
 + 兼容ie11 + firefox + Chrome +360 等浏览器
 + UI组件化，只需要写函数就可以成就后台表单
-+ 内置`CURD` 命令行模式，帮助助您快速开发系统
++ 内置 `CURD` 命令行模式，帮助助您快速开发系统
 + 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
 + 强大的表单管理，只需要使用函数即可成就表单
 + layui采用最新layui2.8.X 框架
@@ -79,7 +79,8 @@ FunAdmin 基于thinkphp8.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 * PDO PHP Extension
 * MBstring PHP Extension
 * CURL PHP Extension
-* 开启静态重写
+* ZIP PHP Extension
+* 开启静态重写 (必须)
 * 要求环境支持pathinfo
 * Mysql 5.7及以上
 * Apache 或 Nginx
@@ -145,7 +146,7 @@ Github：https://github.com/funadmin/funadmin
 
 初始的目录结构如下：
 
-~~~
+```
 www  WEB部署目录（或者子目录）
 ├─addons           插件目录
 ├─app           目录
@@ -171,7 +172,7 @@ www  WEB部署目录（或者子目录）
 │  ├─app_name           应用配置目录
 │  │  ├─database.php    数据库配置
 │  │  ├─cache           缓存配置
-│  │  └─ ...      
+│  │  └─ ...  
 │  │
 │  ├─app.php            应用配置
 │  ├─cache.php          缓存配置
@@ -204,8 +205,4 @@ www  WEB部署目录（或者子目录）
 ├─LICENSE.txt           授权说明文件
 ├─README.md             README 文件
 ├─think                 命令行入口文件
-
-
-
-
-~~~
+```
