@@ -541,13 +541,13 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
-                width = Config.site.site_layer_width?  Config.site.site_layer_width : width;
-                height = Config.site.site_layer_height?  Config.site.site_layer_height : height;
+                width = width || Config.site.site_layer_width  ;
+                height = height ||  Config.site.site_layer_height;
                 width = width || '50%';height = height || '100%';
                 width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
                 height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
-                offset = Config.site.site_layer_offset ?  Config.site.site_layer_offset:options.offset;
+                offset = options.offset ||  Config.site.site_layer_offset ;
                 anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:options.anim;
                 offset = offset? offset :'r'; anim = anim? anim : 'slideLeft';
                 if (isFull) {width = '100%';height = '100%';}
