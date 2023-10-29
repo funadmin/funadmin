@@ -334,3 +334,17 @@ if (!function_exists('format_bytes')) {
         return round($size, 2) . $delimiter . $units[$i];
     }
 }
+
+
+if(!function_exists('password')){
+    /**
+     * 密码
+     * @param $password
+     * @return string
+     */
+    function password($password,$typ=PASSWORD_DEFAULT)
+    {
+        return password_hash($password, $typ);
+    }
+
+}
