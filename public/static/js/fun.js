@@ -265,6 +265,29 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             loading: function (msg, callback,duration,position,showClose) {
                 return Toastr.loading(msg,callback,duration,position,showClose);
             },
+            //确认提示框
+            popconfirm: function (othis,msg, success, error,complete) {
+                 var index = layui.layer.tips(msg ? __(msg) : __("Are you sure"), othis, {
+                    tips: 1,
+                    time: 3500,
+                    btn: [__('Confirm'), __('Cancel')],
+                    btn1:function(index) {
+                        typeof success === 'function' && success.call(this);
+                        Fun.toastr.close(index);
+                    },
+                    btn2:function(index) {
+                        typeof error === 'function' && error.call(this);
+                    },
+                    success: function (layero, index, that) {
+                        if (typeof complete === 'function') {
+                            complete.call(this)
+                        } else {
+                            $('.layui-layer-tips .layui-layer-btn').css('background-color', '#000');
+                        }
+                    },
+                })
+                return false;
+            },
             // 对话框
             confirm: function (msg, success, error) {
                 var index = layui.layer.confirm(msg, {
@@ -348,6 +371,51 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     options = {url: url, layId: layId, text: text, icon: icon, iframe: iframe, target: target,}
                     Fun.api.iframe(options);
                 }
+            },
+            popconfirm:function(othis, options,Table){
+                var data = othis.data(),value;
+                if (options) {
+                    title = options.title;
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId
+                } else {
+                    var title = data.confirm ||  othis.prop('confirm') ||  othis.prop('text') || data.text || othis.prop('title') || data.title  , url = data.url ? data.url : data.href,
+                        tableId = data.tableid;
+                    title = title || 'Are you sure to do this';
+                    url = url !== undefined ? url : window.location.href;
+                    tableId = tableId || Table.init.tableId, value = data.value;
+                }
+                ids = '';
+                if(Table){
+                    arr = Table.getIds(url, tableId);
+                    ids = arr[0];
+                    length = arr[1];
+                }
+                postdata = {ids:ids};if(value){postdata.value = value}
+                Fun.toastr.popconfirm(othis,__(title), function () {
+                    Fun.ajax({url: url, data: postdata}, function (res) {
+                        Fun.toastr.success(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    }, function (res) {
+                        Fun.toastr.error(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    })
+                    Fun.toastr.close()
+                }, function (res) {
+                    if (res === undefined) {
+                        Fun.toastr.close();
+                        return false
+                    }
+                    Fun.toastr.success(res.msg, function () {
+                        Table && Table.api.reload(tableId)
+                    })
+                });
+                return false
+            },
+            confirm:function(othis, options,Table){
+                return Fun.events.request(othis, options,Table);
             },
             request: function (othis, options,Table) {
                 var data = othis.data(),value;

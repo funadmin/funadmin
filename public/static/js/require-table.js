@@ -933,6 +933,10 @@ define(['timePicker'], function (timePicker) {
                 window.open(Fun.url(url + where), '_blank')
             },request: function (othis,data,tableOptions) {
                 Fun.events.request(othis, null, Table)
+            },confirm: function (othis,data,tableOptions) {
+                Fun.events.confirm(othis, null, Table)
+            },popconfirm: function (othis,data,tableOptions) {
+                Fun.events.popconfirm(othis, null, Table);
             }, delete: function (othis,data,tableOptions) {
                 var tableId = othis.data('tableid');
                 url = othis.data('url');
@@ -1119,6 +1123,12 @@ define(['timePicker'], function (timePicker) {
                         case'export':
                             Table.events.export(othis);
                             break;
+                        case'confirm':
+                            Table.events.confirm(othis);
+                            break;
+                        case'popconfirm':
+                            Table.events.popconfirm(othis);
+                            break;
                         case'request':
                             Table.events.request(othis);
                             break;
@@ -1232,15 +1242,6 @@ define(['timePicker'], function (timePicker) {
             bindEvent: function (tableId) {
                 tableId = tableId || Table.init.tableId;
                 Table.api.sort(tableId);//排序
-                $(document).on('focus','*[lay-event]',function(){
-                    var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
-                    if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
-                    } else {
-                        Table.events.common(_that);
-                    }
-                    return false;
-                })
                 $(document).on('click','*[lay-event]',function(obj){
                     var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
