@@ -580,7 +580,7 @@ trait Curd
         if(input('selectFields') && input('showField')){
             return $this->selectpage();
         }
-        $fields = input('selectFields/a');
+        $fields = input('selectFields/a','htmlspecialchars,strip_tags');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
         $parentField = input('parentField/s','','htmlspecialchars,strip_tags');
