@@ -28,11 +28,11 @@ use think\helper\{
 
 define('DS', DIRECTORY_SEPARATOR);
 
-\think\Console::starting(function (\thingk\Console $console) {
+\think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
+        'curd:config' => '\\fun\\curd\\command\\Config',
         'addons:config' => '\\fun\\addons\\command\\Config',
         'auth:config' => '\\fun\\auth\\command\\Config',
-        'curd:config' => '\\fun\\auth\\curd\\Config',
         'builder:config' => '\\fun\\builder\\command\\Config'
     ]);
 });

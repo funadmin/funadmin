@@ -56,13 +56,24 @@
       "extend/fun/helper.php"
     ]
   },
+  "extra": {
+    "think": {
+      "services": [
+        "fun\\addons\\Service"
+      ]
+    }
+  },
   "config": {
     "preferred-install": "dist"
   },
   "scripts": {
     "post-autoload-dump": [
       "@php think service:discover",
-      "@php think vendor:publish"
+      "@php think vendor:publish",
+      "@php think curd:config",
+      "@php think addons:config",
+      "@php think builder:config",
+      "@php think auth:config"
     ]
   }
 }

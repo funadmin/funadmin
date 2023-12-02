@@ -33,7 +33,7 @@ class Config extends Command
         $content = file_get_contents(root_path() . 'extend/fun/auth/config.php');
 
         $configPath = config_path() ;
-        $configFile = $configPath . '/api.php';
+        $configFile = $configPath . 'api.php';
 
         //判断目录是否存在
         if (!file_exists($configPath)) {
@@ -42,11 +42,11 @@ class Config extends Command
 
         //判断文件是否存在
         if (is_file($configFile)) {
-            throw new \InvalidArgumentException(sprintf('The config file "%s" already exists', $configFile));
+            $output->info(sprintf('The config file "%s" already exists', $configFile));
         }
 
         if (false === file_put_contents($configFile, $content)) {
-            throw new \RuntimeException(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
+            $output->info(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
         }
 
         $output->writeln('create api config ok');

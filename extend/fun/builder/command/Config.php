@@ -36,11 +36,11 @@ class Config extends Command
 
         //判断文件是否存在
         if (is_file($builderFile)) {
-            throw new \InvalidArgumentException(sprintf('The builder js file "%s" already exists', $builderFile));
+            $output->info(sprintf('The builder js file "%s" already exists', $builderFile));
         }
 
         if (false === file_put_contents($builderFile, $content)) {
-            throw new \RuntimeException(sprintf('The builder file "%s" could not be written to "%s"', $builderFile,$builderPath));
+            $output->info(sprintf('The builder file "%s" could not be written to "%s"', $builderFile,$builderPath));
         }
 
         $output->writeln('create builder js ok');

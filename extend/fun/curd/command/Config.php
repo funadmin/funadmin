@@ -41,11 +41,11 @@ class Config extends Command
 
         //判断文件是否存在
         if (is_file($configFile)) {
-            throw new \InvalidArgumentException(sprintf('The config file "%s" already exists', $configFile));
+            $output->info(sprintf('The config file "%s" already exists', $configFile));
         }
 
         if (false === file_put_contents($configFile, $content)) {
-            throw new \RuntimeException(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
+            $output->info(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
         }
 
         $output->writeln('create console config ok');
@@ -61,11 +61,11 @@ class Config extends Command
 
         //判断文件是否存在
         if (is_file($configFile)) {
-            throw new \InvalidArgumentException(sprintf('The config file "%s" already exists', $configFile));
+            $output->info(sprintf('The config file "%s" already exists', $configFile));
         }
 
         if (false === file_put_contents($configFile, $content)) {
-            throw new \RuntimeException(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
+            $output->info(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
         }
 
         $output->writeln('create console config ok');
