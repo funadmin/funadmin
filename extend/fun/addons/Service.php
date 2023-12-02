@@ -4,14 +4,7 @@ declare(strict_types=1);
 namespace fun\addons;
 
 use fun\helper\FileHelper;
-use think\addons\Url;
-use think\App;
-use think\Console;
-use think\Exception;
-use think\facade\View;
-use think\facade\Request;
 use think\Route;
-use think\helper\Str;
 use think\facade\Config;
 use think\facade\Lang;
 use think\facade\Cache;

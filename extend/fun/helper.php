@@ -28,7 +28,7 @@ use think\helper\{
 
 define('DS', DIRECTORY_SEPARATOR);
 
-\think\Console::starting(function (\think\Console $console) {
+\think\Console::starting(function (\thingk\Console $console) {
     $console->addCommands([
         'addons:config' => '\\fun\\addons\\command\\Config',
         'auth:config' => '\\fun\\auth\\command\\Config',
@@ -74,10 +74,10 @@ if (!function_exists('hook')) {
      * @param bool $once 是否只返回一个结果
      * @return mixed
      */
-    function hook($event, $params = null, bool $once = false)
+    function hook(string|array $event, $params = null, bool $once = false)
     {
         $event  =  Event::trigger($event, $params, $once);
-        return $event[0];
+        return $event;
     }
 }
 
