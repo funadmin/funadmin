@@ -218,7 +218,7 @@ if (!function_exists('get_addons_class')) {
      * @param string $class 当前类名
      * @return string
      */
-    function get_addons_class($name, $type = 'hook', $class = null, $module = 'backend')
+    function get_addons_class($name, $type = 'hook', $class = null)
     {
         $name = trim($name);
         // 处理多级控制器情况
@@ -232,14 +232,11 @@ if (!function_exists('get_addons_class')) {
         }
         switch ($type) {
             case 'controller':
-                if($module){
-                    $namespace = '\\addons\\' . $name . '\\' . $module . '\\controller\\' . $class;
-                }else{
-                    $namespace = '\\addons\\' . $name .  '\\controller\\' . $class;
-                }
+                $namespace = '\\addons\\' . $name .  '\\controller\\' . $class;
                 break;
             default:
                 $namespace = '\\addons\\' . $name . '\\Plugin';
+                break;
         }
 
         return class_exists($namespace) ? $namespace : '';
