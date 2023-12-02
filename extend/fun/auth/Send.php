@@ -182,16 +182,16 @@ trait Send
      * @param array $arr 需要验证权限的数组
      * @return boolean
      */
-    public function match($arr = [])
+    public function match($action = [])
     {
         $request = Request::instance();
-        $arr = is_array($arr) ? $arr : explode(',', $arr);
-        if (!$arr) {
+        $action = is_array($action) ? $action : explode(',', $action);
+        if (empty($action)) {
             return false;
         }
-        $arr = array_map('strtolower', $arr);
+        $action = array_map('strtolower', $action);
         // 是否存在
-        if (in_array(strtolower($request->action()), $arr) || in_array('*', $arr)) {
+        if (in_array(strtolower($request->action()), $action) || in_array('*', $action)) {
             return true;
         }
         // 没找到匹配

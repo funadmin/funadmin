@@ -84,12 +84,4 @@ class SimpleOauth
         return '';
        
     }
-
-    /**
-     * 解密
-     * @param $authorizationHeader
-     * @return array
-     * @throws \Exception
-     */
-   
 }

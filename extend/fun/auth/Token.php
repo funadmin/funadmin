@@ -48,7 +48,7 @@ class Token
     public function __construct($options=[])
     {
         header('Access-Control-Allow-Origin:*');
-        header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
+        header('Access-Control-Allow-Headers:Authorization,jwt,bearer.token, Content-Type, If-Match, If-Modified-Since, If-None-Match, If-Unmodified-Since, X-CSRF-TOKEN, X-Requested-With');
         header('Access-Control-Allow-Credentials:true');
         header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
         $this->request = Request::instance();

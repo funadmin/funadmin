@@ -12,18 +12,16 @@
  */
 namespace fun\auth;
 
+use app\BaseController;
 use think\exception\HttpResponseException;
 use think\App;
 use think\facade\Config;
 use think\facade\Request;
-use fun\auth\Send;
-use fun\auth\Oauth;
-use think\Response;
 
 /**
  * api 入口文件基类，需要控制权限的控制器都应该继承该类
  */
-class Api
+class Api extends BaseController
 {
     use Send;
     /**
