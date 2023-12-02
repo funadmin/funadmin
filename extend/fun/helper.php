@@ -30,10 +30,10 @@ define('DS', DIRECTORY_SEPARATOR);
 
 \think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
-        'addons:config' => '\\fun\\addons\\command\\SendConfig',
-        'auth:config' => '\\fun\\auth\\command\\SendConfig',
-        'curd:config' => '\\fun\\auth\\curd\\SendConfig',
-        'builder:config' => '\\fun\\builder\\command\\SendConfig'
+        'addons:config' => '\\fun\\addons\\command\\Config',
+        'auth:config' => '\\fun\\auth\\command\\Config',
+        'curd:config' => '\\fun\\auth\\curd\\Config',
+        'builder:config' => '\\fun\\builder\\command\\Config'
     ]);
 });
 
@@ -236,7 +236,6 @@ if (!function_exists('get_addons_class')) {
                 break;
             default:
                 $namespace = '\\addons\\' . $name . '\\Plugin';
-                break;
         }
 
         return class_exists($namespace) ? $namespace : '';

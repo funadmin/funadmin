@@ -17,12 +17,12 @@ class ComposerStaticInit4c6c91878f122ccaab07fad51ced8420
         '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '25072dd6e2470089de65ae7bf11d3109' => __DIR__ . '/..' . '/symfony/polyfill-php72/bootstrap.php',
-        '1bc034da698be0d15f839c8342e87418' => __DIR__ . '/..' . '/funadmin/fun-addons/src/helper.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
         '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         '1cfd2761b63b0a29ed23657ea394cb2d' => __DIR__ . '/..' . '/topthink/think-captcha/src/helper.php',
         'cc56288302d9df745d97c934d6a6e5f0' => __DIR__ . '/..' . '/topthink/think-queue/src/common.php',
+        '8ab20330a5eba7351f0079e3f962caad' => __DIR__ . '/../..' . '/extend/fun/helper.php',
     );
 
     public static $prefixLengthsPsr4 = array (
@@ -34,10 +34,6 @@ class ComposerStaticInit4c6c91878f122ccaab07fad51ced8420
             'think\\captcha\\' => 14,
             'think\\app\\' => 10,
             'think\\' => 6,
-        ),
-        'f' => 
-        array (
-            'fun\\' => 4,
         ),
         'a' => 
         array (
@@ -138,13 +134,9 @@ class ComposerStaticInit4c6c91878f122ccaab07fad51ced8420
             1 => __DIR__ . '/..' . '/topthink/think-filesystem/src',
             2 => __DIR__ . '/..' . '/topthink/think-helper/src',
             3 => __DIR__ . '/..' . '/topthink/think-image/src',
-            4 => __DIR__ . '/..' . '/topthink/think-queue/src',
-            5 => __DIR__ . '/..' . '/topthink/think-template/src',
-            6 => __DIR__ . '/..' . '/topthink/think-orm/src',
-        ),
-        'fun\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/funadmin/fun-addons/src',
+            4 => __DIR__ . '/..' . '/topthink/think-orm/src',
+            5 => __DIR__ . '/..' . '/topthink/think-queue/src',
+            6 => __DIR__ . '/..' . '/topthink/think-template/src',
         ),
         'app\\' => 
         array (

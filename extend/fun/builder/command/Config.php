@@ -19,7 +19,7 @@ use think\console\input\Option;
 use think\console\Output;
 use think\facade\Env;
 
-class SendConfig extends Command
+class Config extends Command
 {
 
     public function configure()
@@ -30,7 +30,7 @@ class SendConfig extends Command
     public function execute(Input $input, Output $output)
     {
         //获取默认配置文件
-        $content = file_get_contents(root_path() . 'vendor/funadmin/fun-addons/src/builder/layout/builder.js');
+        $content = file_get_contents(root_path() . 'extend/fun/builder/layout/builder.js');
         $builderPath = public_path() . 'static/js';
         $builderFile =  $builderPath .'/builder.js';
 

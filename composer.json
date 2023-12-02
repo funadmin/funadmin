@@ -1,6 +1,6 @@
 {
   "name": "funadmin/funadmin",
-  "description": "FunAdmin是一个基于thinkphp8,layui,requirejs的k开发应用框架",
+  "description": "FunAdmin是一个基于thinkphp8,Layui,requirejs的k开发应用框架",
   "type": "project",
   "license": "Apache-2.0",
   "keywords": [
@@ -25,7 +25,7 @@
   "require": {
     "php": ">=8.0.0",
     "ext-json": "*",
-    "topthink/framework": "^8.0.2",
+    "topthink/framework": "^8.0.3",
     "topthink/think-orm": "3.0.*",
     "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",
@@ -40,7 +40,6 @@
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
     "guzzlehttp/guzzle": "^7.7",
-    "funadmin/fun-addons": "^5.3.2",
     "firebase/php-jwt": "*"
   },
   "require-dev": {
@@ -54,7 +53,7 @@
       "": "extend/"
     },
     "files": [
-
+      "extend/fun/helper.php"
     ]
   },
   "config": {
