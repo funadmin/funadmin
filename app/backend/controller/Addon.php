@@ -119,7 +119,7 @@ class Addon extends Backend
                 try {
                     $addonsInstalled =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
                     //$list = array_merge($localAddons,$addons,$list?$list:[]);
-                    if($param['cateid'] == 'local'){
+                    if(!empty($param['cateid']) && $param['cateid'] == 'local'){
                         $list= $localAddons;
                         foreach ($list as $key=>$item) {
                             if(in_array($key,$addonNameArrAll)) {
@@ -127,7 +127,7 @@ class Addon extends Backend
                             }
                         }
                         $count = 1;
-                    }elseif($param['cateid'] =='installed'){
+                    }elseif(!empty($param['cateid']) && $param['cateid'] =='installed'){
                         $list= $addonsInstalled;
                         $count =1;
                     }
