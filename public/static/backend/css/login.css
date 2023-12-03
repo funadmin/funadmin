@@ -1,16 +1,17 @@
 body,html{height:100%}
 body{background-color:#F6F6F6;;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;width:100%;overflow:hidden;color:#999;background-size:cover;background-position-x:initial;background-position-y:initial;background-attachment:initial;background-origin:initial;background-clip:initial;}
 body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-filter:blur(3px);-moz-filter:blur(3px);-o-filter:blur(3px);-ms-filter:blur(3px);filter:blur(3px);position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1}
+.layui-row{padding:20px;background: #fff;border-radius:10px;}
+.layui-main{max-width: 960px;height: 500px; position: absolute;top: 0;bottom: 0;left: 0;right: 0;margin: auto;}
+.flex{display:flex;justify-content: center}
+.layui-login-body,.layui-panel-body{background-color:#fff;background-image: url(/static/backend/images/login-picture.svg);background-repeat: no-repeat;background-position: center 60px;background-size: contain; }
+.layui-panel-body .layui-logo{ font-size: 28px;margin-left: 15px;color:#4d70ff;vertical-align: middle}
+.layui-panel-body .layui-slogan{font-size: 14px;line-height: 20px;text-align: right;color: #333}
 .layui-form-item input,.layui-form-item label{transition:all .3s ease-in-out;-webkit-transition:all .3s ease-in-out}
 .layui-input{height:45px;}
-.layui-login-body{max-width:420px;margin:0 auto;}
 .layui-container{width:100%;height:100%;overflow:hidden}
-.layui-header{height: auto;border-radius: 15px 15px 0 0;padding:25px 0;background:#4d70ff}
-.layui-card-header{font-family:emoji;color:#fff;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:36px;border-bottom:none}
-.layui-card-body{background:#fff;line-height:normal;border:none;border-radius:18px;padding:0 0 14px 0;
-    /*box-shadow:0 0 8px #eee*/
-}
-.layui-card-body .layui-form{padding:25px 25px;}
+.layui-card-header{font-family:'layui-icon';letter-spacing:2px;font-weight:400;font-size:1.875rem;border-bottom:none}
+.layui-card-body{background:#fff;line-height:normal;border:none;}
 .layui-card-body .layui-form-item{position:relative;margin-bottom:20px; }
 .layui-card-body .layui-input-wrap{height:45px;line-height:45px;}
 .layui-card-body .layui-form-item .layui-input-prefix i{color: #4d70ff !important}
@@ -27,27 +28,23 @@ input::-webkit-input-placeholder{color: #bdcada
 input:-moz-placeholder{color:#bdcada}
 input::-moz-placeholder{color: #bdcada;}
 input:-ms-input-placeholder{color:#bdcada}
-@media screen and (min-width:4200px){.layui-login-body{max-width:420px;margin-top:180px}
+
+
+@media screen and (min-width:4200px){.layui-main{max-width:1200px}
 }
-@media screen and (max-width:1200px){.layui-login-body{max-width:420px;margin-top:180px}
+@media screen and (max-width:1200px){.layui-main{max-width:960px}
 }
-@media screen and (max-width:1024px){.layui-login-body{max-width:420px;margin-top:150px}
+@media screen and (max-width:1024px){.layui-main{max-width:960px}
 }
-@media screen and (max-width:992px){.layui-login-body{max-width:360px;margin-top:180px}
+@media screen and (max-width:992px){.layui-main{max-width:800px}
 }
-@media screen and (max-width:768px){.layui-login-body{max-width:360px;margin-top:120px}
+@media screen and (max-width:768px){.layui-main{max-width:600px}
 }
-@media screen and (max-width:400px){.layui-login-body{max-width:300px;margin-top:130px}.layui-card-body .layui-form-item{margin-bottom:15px; }
+@media screen and (max-width:540px){.layui-main{max-width:420px}
 }
-@media screen and (max-width:360px){.layui-login-body{max-width:300px;margin-top:85px}.layui-card-body .layui-form-item{margin-bottom:15px; }
+@media screen and (max-width:420px){.layui-main{max-width:360px}
 }
-@media screen and (max-width:320px){.layui-login-body{max-width:300px;margin-top:50px
-}.layui-card-body .layui-form-item{margin-bottom:15px; }
+@media screen and (max-width:360px){.layui-main{max-width:320px; }
 }
-/*适应高度*/
-@media screen and (min-height: 901px) and (max-height: 1080px) {  .layui-login-body {margin-top: 180px}
-}
-@media screen and (min-height: 801px) and (max-height: 900px) {  .layui-login-body {margin-top: 150px}
-}
-@media screen and (min-height:400px) and (max-height: 800px) {  .layui-login-body { margin-top: 50px}
+@media screen and (max-width:320px){.layui-main{max-width:300px;}
 }

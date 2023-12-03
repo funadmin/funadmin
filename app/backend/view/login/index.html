@@ -29,77 +29,88 @@
     window.PLUGINS = '__PLUGINS__';
 </script>
 <style>
-    body{background:url("{$bg}") 0% 0% / cover no-repeat}
+    body{background:url("{$bg}") 0% 0% / cover no-repeat;-webkit-backdrop-filter: blur(25px);
+        backdrop-filter: blur(25px);}
 </style>
-<div class="layui-container">
-    <div class="layui-login-body">
-        <div class="layui-form layui-card-body ">
-            <div class="layui-header">
-<!--                <div class="layui-icon-header"><i class="layui-icon">&#xe770;</i></div>-->
-                <div class="layui-card-header">
-                    FunAdmin系统
+<div class="layui-container ">
+    <div class="layui-main" style="">
+
+    <div class="layui-row ">
+        <div class="layui-content flex">
+            <div class="layui-panel-body layui-hide-xs layui-col-lg6 layui-col-sm6 layui-col-md6">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <img src="/logo.png" width="40" alt="FunAdmin"> <span class="layui-logo">FunAdmin</span>
+                    </div>
+                    <div >
+                        <h2 class="layui-slogan"> --- 开箱即用的高质量中后台管理系统</h2>
+                    </div>
                 </div>
             </div>
-            <form class="layui-form" action="">
-                {:token_field()}
-                <div class="layui-form-item">
-                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
-                        <div class="layui-input-prefix">
-                            <i class="layui-icon layui-icon-username"></i>
+            <div class="layui-login-body layui-col-lg6 layui-col-sm6 layui-col-md6 layui-col-xs12">
+                    <div class="layui-form layui-card-body ">
+                        <div class="layui-header">
+                            <!--                <div class="layui-icon-header"><i class="layui-icon">&#xe770;</i></div>-->
+                            <div class="layui-card-header">
+                                登陆 <span class="layui-hide-lg layui-hide-md">FunAdmin</span>
+                            </div>
                         </div>
-                        <input type="text" name="username" lay-reqtext="用户名不能为空"  lay-vertype="tips" value="" lay-verify="required" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" lay-affix="clear">
-                    </div>
-                </div>
+                        <form class="layui-form" action="">
+                            {:token_field()}
+                            <div class="layui-form-item">
+                                <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                                    <div class="layui-input-prefix">
+                                        <i class="layui-icon layui-icon-username"></i>
+                                    </div>
+                                    <input type="text" name="username" lay-reqtext="用户名不能为空"  lay-vertype="tips" value="" lay-verify="required" placeholder="{:lang('UserName Or Email')}" autocomplete="off" class="layui-input" lay-affix="clear">
+                                </div>
+                            </div>
 
-                <div class="layui-form-item">
-                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
-                        <div class="layui-input-prefix">
-                            <i class="layui-icon layui-icon-password"></i>
-                        </div>
-                        <input type="password" name="password" lay-vertype="tips" lay-verify="pass" value="" lay-verify="required"  placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" lay-affix="eye">
-                    </div>
-                </div>
-                {if config('captcha.check')}
-                <div class="layui-form-item">
+                            <div class="layui-form-item">
+                                <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                                    <div class="layui-input-prefix">
+                                        <i class="layui-icon layui-icon-password"></i>
+                                    </div>
+                                    <input type="password" name="password" lay-vertype="tips" lay-verify="pass" value="" lay-verify="required"  placeholder="{:lang('Password')}" autocomplete="off" class="layui-input" lay-affix="eye">
+                                </div>
+                            </div>
+                            {if config('captcha.check')}
+                            <div class="layui-form-item">
 
-                    <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
-                        <div class="layui-input-prefix">
-                            <i class="layui-icon layui-icon-vercode"></i>
-                        </div>
-                        <input type="text" name="captcha" lay-vertype="tips" lay-reqtext="验证码不能为空" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" lay-affix="clear">
-                    </div>
+                                <div class="layui-inline-block layui-input-wrap layui-input-wrap-prefix">
+                                    <div class="layui-input-prefix">
+                                        <i class="layui-icon layui-icon-vercode"></i>
+                                    </div>
+                                    <input type="text" name="captcha" lay-vertype="tips" lay-reqtext="验证码不能为空" lay-verify="required" placeholder="{:lang('Verify')}" autocomplete="off" class="layui-input verification captcha" lay-affix="clear">
+                                </div>
 
-                </div>
-                {/if}
-                <div class="layui-form-item layui-clear">
-                    <div class="layui-row layui-col-space10">
-                        <div class="layui-col-xs5">
-                            <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">
-                        </div>
-                        {if config('captcha.check')}
-                        <div class="captcha-img layui-col-xs7">
-                            <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
-                        </div>
-                        {/if}
+                            </div>
+                            {/if}
+                            <div class="layui-form-item layui-clear">
+                                <div class="layui-row layui-col-space10">
+                                    <div class="layui-col-xs5">
+                                        <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">
+                                    </div>
+                                    {if config('captcha.check')}
+                                    <div class="captcha-img layui-col-xs7">
+                                        <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
+                                    </div>
+                                    {/if}
+                                </div>
+                            </div>
+                            <div class="layui-form-item">
+                                <button class="layui-btn layui-btn-normal layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
+                            </div>
+                            <div class="layui-form-item copyright">
+                                © 2018-{:date('Y')} <a href="http://www.FunAdmin.com" target="_blank">FunAdmin</a> All Rights Reserved.
+                            </div>
+                        </form>
                     </div>
                 </div>
-<!--                <div class="layui-form-item layui-col-lg4 layui-clear">-->
-<!--                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">-->
-<!--                    {if config('captcha.check')}-->
-<!--                    <div class="captcha-img">-->
-<!--                        <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>-->
-<!--                    </div>-->
-<!--                    {/if}-->
-<!--                </div>-->
-                <div class="layui-form-item">
-                    <button class="layui-btn layui-btn-normal layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
-                </div>
-                <div class="layui-form-item copyright">
-                    © 2018-2028 <a href="http://www.FunAdmin.com" target="_blank">FunAdmin</a> All Rights Reserved.
-                </div>
-            </form>
         </div>
     </div>
+    </div>
+
 </div>
 
 <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>

@@ -6,10 +6,10 @@
     {:form_radio('sex',['Secrecy','Man','Female'],['filter'=>'sex','verify'=>'required'],1)}
     {:form_input('mobile','text',['verify'=>'phone'])}
     {:form_input('email','text',['verify'=>'email'])}
-    {:form_upload('avatar',['cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>'required'],$formData['avatar']??'')}
-    <!--    {:form_autocomplete('email',[],['url'=>'index','keys'=>'username','verify'=>'a'])}-->
+    {:form_upload('avatar',['cropper'=>1,'width'=>150,'height'=>300,'mark'=>1,'verify'=>''],$formData['avatar']??'')}
+<!--        {:form_autocomplete('email',[],['url'=>'index','keys'=>'username','verify'=>'a'])}-->
 <!--        {:form_textarea('group_id',['verify'=>'required','label'=>'Group','multiple'=>1] ,'434')}-->
-    <!--    {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}-->
+<!--        {:form_select('group_id',$memberGroup,['verify'=>'required','label'=>'Group','multiple'=>1] ,'id,name')}-->
 <!--    {:form_select('level_id',$memberLevel,['verify'=>'required','label'=>'Level'] ,'id,name')}-->
 <!--    {:form_input('username','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'])}-->
 <!--    {:form_input('mobile','text',['verify'=>'phone'])}-->
@@ -22,7 +22,7 @@
 <!--     {:form_editor('content',['verify'=>'required'],$formData['content']??'')}-->
 <!--     {:form_editor('content2',['verify'=>'required'],$formData['content2']??'')}-->
 
-    <!--    示例-->
+<!--&lt;!&ndash;示例&ndash;&gt;-->
 <!-- {:form_tel('mobile',['verify'=>''])}-->
 <!-- {:form_number('number',['verify'=>''])}-->
 <!-- {:form_url('url',['verify'=>''])}-->
@@ -30,7 +30,7 @@
 <!-- {:form_hidden('hidden',['verify'=>''])}-->
 <!-- {:Form::range('range',['verify'=>'required'])}-->
 <!-- {:form_password('password',['verify'=>'SSS'])}-->
-<!--{{:form_upload('attach_file', ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio','exts'=>'jpg,jpeg','mime' => 'images', 'path' =>'my', 'num' => '1'],$formData?$formData['attach_file']:'')}-->
+<!-- {:form_upload('attach_file', ['label' => 'AttachFile', 'verify' => 'required', 'type' => 'radio','exts'=>'jpg,jpeg','mime' => 'images', 'path' =>'my', 'num' => '1'],$formData?$formData['attach_file']:'')}-->
 <!-- {:Form::selectpage('group_id',[],['url'=>'member.member/index','field'=>'username','multiple'=>true,'verify'=>'required'])}-->
 <!-- {:Form::selectpage('group_id2',[],['url'=>'member.member/index','field'=>'username','multiple'=>true,'verify'=>'required'])}-->
 <!-- {:form_slider('slider',['verify'=>'required',])}-->

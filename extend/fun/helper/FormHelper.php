@@ -1124,7 +1124,7 @@ EOF;
                 'width' => $options['saveW'] ?? '300',
                 'height' => $options['saveW'] ?? '300',
                 'mark' => $options['mark'] ?? 1,
-                'area' => $options['area'] ?json_encode($options['area']): json_encode(['100%','100%']),
+                'area' => !empty($options['area']) ?json_encode($options['area']): json_encode(['100%','100%']),
                 'filter' => 'cropper',
             ];
             $data_value = $this->getOptionsAttr($name,$cops);
