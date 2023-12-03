@@ -1210,6 +1210,7 @@ EOF;
         if ((isset($options['select']) && $options['select']) || !isset($options['select'])) {
             $select_options = $options;
             $select_options['filter'] = $options['select'] ?? 'upload-select'; //可选upload-choose
+            $options['select'] = $select_options['filter'];
             $select_container =  <<<EOF
 <button id="select-{$id}" type="button" {$this->getOptionsAttr($name,$select_options)} class="layui-btn layui-btn-sm layui-btn-danger {$options['select']}"><i class="layui-icon layui-icon-radio"></i>{$this->__('Choose')}</button>
 EOF;
