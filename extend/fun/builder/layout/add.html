@@ -1,6 +1,6 @@
-{if $formLink}{$formLink|raw}{/if}
-{if $formStyle}{$formStyle|raw}}{/if}
-{if $formJs}{$formJs|raw}}{/if}
+{if !empty($formLink)}{$formLink|raw}{/if}
+{if !empty($formStyle)}{$formStyle|raw}{/if}
+{if !empty($formJs)}{$formJs|raw}{/if}
 
 <form class="layui-form" lay-filter="form">
     {$formHtml|raw}
@@ -12,5 +12,5 @@
     var tableOptions         = {:json_encode($tableOptions)};
     var requests        = {:json_encode($requests)};
     var data            = {:json_encode($data)};
-    var extraJs         = `{$extraJs}`;
+    var extraJs         = `{:empty($extraJs)?"":$extraJs}`;
 </script>

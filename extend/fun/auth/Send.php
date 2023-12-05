@@ -88,9 +88,9 @@ trait Send
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public  function success($msg = '', $data = null, $code = 200, $type = null, array $header = [])
+    public  function success($msg = '', $data = null, $code = 200, $type = null, array $header = [], $options= [])
     {
-        $this->result($msg, $data, $code, $type, $header);
+        $this->result($msg, $data, $code, $type, $header,$options);
     }
 
     /**
@@ -101,12 +101,12 @@ trait Send
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public function error($msg = '', $data = null, $code = 404, $type = null, array $header = [])
+    public function error($msg = '', $data = null, $code = 404, $type = null, $header = [], $options=[])
     {
-        $this->result($msg, $data, $code, $type, $header);
+        $this->result($msg, $data, $code, $type, $header,$options);
     }
 
-    protected  function result($msg, $data = null, $code = 404, $type = null, array $header = [])
+    protected  function result($msg, $data = null, $code = 404, $type = null,  $header = [], $options = [])
     {
         $result = [
             'code' => $code,
@@ -124,8 +124,7 @@ trait Send
                 header($name . ':' . $val);
             }
         }
-        $response = Response::create($result, $type)->header($header);
-        throw new HttpResponseException($response);
+        return Response::create($data, $type)->header($header)->options($options);
     }
 
     protected function getClientData($where=[],$field='*'){
