@@ -18,8 +18,7 @@ body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-
 .layui-form-checked span, .layui-form-checked:hover span{background-color: #4d70ff !important}
 .layui-form-checked i, .layui-form-checked:hover i{color: #4d70ff}
 .layui-form-checked:hover>div, .layui-form-checked>div{background-color:#4d70ff}
-.layui-form-item .captcha-img{text-align:right;}
-.layui-form-item .captcha-img img{border:1px solid #e6e6e6;width:120px;height:40px;vertical-align:middle;}
+.layui-form-item .captcha-img img{height:40px;vertical-align:middle;}
 .layui-form-item.copyright{font-size:12px;color:#999;text-align:center}
 .layui-form-item.copyright a{color:#999}
 /*.layui-form-checked[lay-skin=primary] i{border-color: #e699c6!important;}*/
