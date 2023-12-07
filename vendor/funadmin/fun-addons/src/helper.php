@@ -1105,6 +1105,6 @@ if (!function_exists('form_autocomplete')) {
      */
     function form_autocomplete($name = 'autocomplete', $list = [], $options = [], $value=null)
     {
-        return Form::autocomplete( $name, $list ,  $options ,$attr ,$value) ;
+        return Form::autocomplete( $name, $list ,  $options ,$value) ;
     }
 }
