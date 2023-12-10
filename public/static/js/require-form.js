@@ -187,8 +187,8 @@ define(['upload'], function (Upload) {
                                 orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                 isHtml != undefined ? isHtml : true;
                                 eSelect = _t.data('eselect');
-                                if (!value && Config.formData && Config.formData[name]) {
-                                    _t.val(Config.formData[name]);
+                                if (!value && formData && formData[name]) {
+                                    _t.val(formData[name]);
                                 }
                                 options = {
                                     showField: field, keyField: primaryKey, pageSize: pageSize,
@@ -381,7 +381,7 @@ define(['upload'], function (Upload) {
                             var data = _t.data();
                             var name = _t.prop('name');
                             var path = _t.data('path');
-                            _t.html(Config.formData[name]);
+                            _t.html(formData[name]);
                             var upload_url = (data.url ? data.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
                             if ($(this).data('editor') == 'tinymce') {
                                 if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
@@ -610,8 +610,8 @@ define(['upload'], function (Upload) {
                                 var provinceId = _t.data('provinceid'),
                                     cityId = _t.data('cityid');
                                 var province, city, district;
-                                if (Config.formData[name]) {
-                                    var cityValue = Config.formData[name];
+                                if (formData[name]) {
+                                    var cityValue = formData[name];
                                     province = cityValue.split('/')[0];
                                     city = cityValue.split('/')[1];
                                     district = cityValue.split('/')[2];
@@ -627,19 +627,19 @@ define(['upload'], function (Upload) {
                                     district: district
                                 });
                                 var str = '';
-                                if (Config.formData.hasOwnProperty(provinceId)) {
-                                    str += ChineseDistricts[886][Config.formData[provinceId]]
+                                if (formData.hasOwnProperty(provinceId)) {
+                                    str += ChineseDistricts[886][formData[provinceId]]
                                 }
-                                if (Config.formData.hasOwnProperty(cityId) && Config.formData[[cityId]] && Config.formData.hasOwnProperty(provinceId)) {
-                                    str += '/' + ChineseDistricts[Config.formData[provinceId]][Config.formData[cityId]]
+                                if (formData.hasOwnProperty(cityId) && formData[[cityId]] && formData.hasOwnProperty(provinceId)) {
+                                    str += '/' + ChineseDistricts[formData[provinceId]][formData[cityId]]
                                 }
-                                if (Config.formData.hasOwnProperty(cityId) && Config.formData[districtId] && Config.formData.hasOwnProperty(districtId)) {
-                                    str += '/' + ChineseDistricts[Config.formData[cityId]][Config.formData[districtId]]
+                                if (formData.hasOwnProperty(cityId) && formData[districtId] && formData.hasOwnProperty(districtId)) {
+                                    str += '/' + ChineseDistricts[formData[cityId]][formData[districtId]]
                                 }
                                 if (!str) {
-                                    str = Config.formData.hasOwnProperty(name) ? Config.formData['name'] : ''
+                                    str = formData.hasOwnProperty(name) ? formData['name'] : ''
                                 }
-                                window['citypicker-' + id].setValue(Config.formData[name] ? Config.formData[name] : str)
+                                window['citypicker-' + id].setValue(formData[name] ? formData[name] : str)
                             })
                         })
                     }
@@ -1215,8 +1215,8 @@ define(['upload'], function (Upload) {
                  * 初始化表格数据
                  */
                 initForm: function () {
-                    if (Config!==undefined && Config.formData) {
-                        layui.form.val("form", Config.formData);
+                    if (Config!==undefined && formData) {
+                        layui.form.val("form", formData);
                         layui.form.render();
                     }
                     require(['multiSelect'], function (multiSelect) {
