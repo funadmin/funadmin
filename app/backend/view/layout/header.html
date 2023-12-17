@@ -30,7 +30,7 @@
 </head>
 <script>
     window.Config = {:json_encode($config)};
-    window.formData = {:isset($formData)?(json_encode($formData)):'""'},
+    window.FormData = {:isset($formData)?(json_encode($formData)):'""'},
     window.STATIC ='__STATIC__'
     window.PLUGINS = '__PLUGINS__';
     window.APP = '{$APP}';

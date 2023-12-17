@@ -1,5 +1,5 @@
 // +----------------------------------------------------------------------
-// | FunAdmin极速开发框架 [基于layui开发]
+// | FunAdmin全栈开发框架 [基于thinkphp8+layui开发]
 // +----------------------------------------------------------------------
 // | Copyright (c) 2020-2030 http://www.funadmin.com
 // +----------------------------------------------------------------------
@@ -187,8 +187,8 @@ define(['upload'], function (Upload) {
                                 orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                 isHtml != undefined ? isHtml : true;
                                 eSelect = _t.data('eselect');
-                                if (!value && formData && formData[name]) {
-                                    _t.val(formData[name]);
+                                if (!value && window.FormData && window.FormData[name]) {
+                                    _t.val(window.FormData[name]);
                                 }
                                 options = {
                                     showField: field, keyField: primaryKey, pageSize: pageSize,
@@ -381,7 +381,7 @@ define(['upload'], function (Upload) {
                             var data = _t.data();
                             var name = _t.prop('name');
                             var path = _t.data('path');
-                            _t.html(formData[name]);
+                            _t.html(window.FormData[name]);
                             var upload_url = (data.url ? data.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
                             if ($(this).data('editor') == 'tinymce') {
                                 if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
@@ -610,8 +610,8 @@ define(['upload'], function (Upload) {
                                 var provinceId = _t.data('provinceid'),
                                     cityId = _t.data('cityid');
                                 var province, city, district;
-                                if (formData[name]) {
-                                    var cityValue = formData[name];
+                                if (window.FormData[name]) {
+                                    var cityValue = window.FormData[name];
                                     province = cityValue.split('/')[0];
                                     city = cityValue.split('/')[1];
                                     district = cityValue.split('/')[2];
@@ -627,19 +627,19 @@ define(['upload'], function (Upload) {
                                     district: district
                                 });
                                 var str = '';
-                                if (formData.hasOwnProperty(provinceId)) {
-                                    str += ChineseDistricts[886][formData[provinceId]]
+                                if (FormData.hasOwnProperty(provinceId)) {
+                                    str += ChineseDistricts[886][window.FormData[provinceId]]
                                 }
-                                if (formData.hasOwnProperty(cityId) && formData[[cityId]] && formData.hasOwnProperty(provinceId)) {
-                                    str += '/' + ChineseDistricts[formData[provinceId]][formData[cityId]]
+                                if (FormData.hasOwnProperty(cityId) && window.FormData[[cityId]] && window.FormData.hasOwnProperty(provinceId)) {
+                                    str += '/' + ChineseDistricts[window.FormData[provinceId]][window.FormData[cityId]]
                                 }
-                                if (formData.hasOwnProperty(cityId) && formData[districtId] && formData.hasOwnProperty(districtId)) {
-                                    str += '/' + ChineseDistricts[formData[cityId]][formData[districtId]]
+                                if (FormData.hasOwnProperty(cityId) && window.FormData[districtId] && window.FormData.hasOwnProperty(districtId)) {
+                                    str += '/' + ChineseDistricts[window.FormData[cityId]][window.FormData[districtId]]
                                 }
                                 if (!str) {
-                                    str = formData.hasOwnProperty(name) ? formData['name'] : ''
+                                    str = FormData.hasOwnProperty(name) ? window.FormData['name'] : ''
                                 }
-                                window['citypicker-' + id].setValue(formData[name] ? formData[name] : str)
+                                window['citypicker-' + id].setValue(window.FormData[name] ? window.FormData[name] : str)
                             })
                         })
                     }
@@ -1215,8 +1215,8 @@ define(['upload'], function (Upload) {
                  * 初始化表格数据
                  */
                 initForm: function () {
-                    if (Config!==undefined && formData) {
-                        layui.form.val("form", formData);
+                    if (window.FormData) {
+                        layui.form.val("form", window.FormData);
                         layui.form.render();
                     }
                     require(['multiSelect'], function (multiSelect) {
