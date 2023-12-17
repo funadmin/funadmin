@@ -1267,7 +1267,7 @@ EOF;
         }
         $str = <<<EOF
 <div class="layui-btn-center  {$show}">
-        <button  {$this->getStyle($options)} type="close" class="layui-btn  {$this->getClass($options)} " onclick="parent.layui.layer.closeAll();">{ $this->__('Close') }
+        <button  {$this->getStyle($options)} type="close" class="layui-btn  {$this->getClass($options)} " onclick="parent.layui.layer.closeAll();">{$this->__('Close')}
     </button>
 </div>
 EOF;
