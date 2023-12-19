@@ -6,7 +6,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.funadmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6 + layui 实现
+ * 采用最新Thinkphp8 + layui 实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/9/22
@@ -1470,47 +1470,47 @@ EOF;
      */
     protected function layfilter($options = [])
     {
-        $filter = '';
+        $str = '';
         if (isset($options['filter'])) {
-            $filter = ' lay-filter="' . $options['filter'] . '"';
+            $str = ' lay-filter="' . $options['filter'] . '"';
         }
-        return $filter;
+        return $str;
     }
 
     protected function layaffix($options = [])
     {
-        $affix = '';
+        $str = '';
         if (isset($options['affix'])) {
-            $affix = ' lay-affix="' . $options['affix'] . '"';
+            $str = ' lay-affix="' . $options['affix'] . '"';
         }
-        return $affix;
+        return $str;
     }
 
     protected function layautocomplete($options = [])
     {
-        $affix = ' ';
-        if (isset($options['affix'])) {
-            $affix = ' autocomplete="' . $options['autocomplete'] . '"';
+        $str = ' ';
+        if (isset($options['autocomplete'])) {
+            $str = ' autocomplete="' . $options['autocomplete'] . '"';
         }
-        return $affix;
+        return $str;
     }
 
     protected function laysubmit($options = [])
     {
-        $affix = ' ';
+        $str = ' ';
         if (isset($options['submit'])) {
-            $affix = ' lay-submit="' . $options['submit'] . '"';
+            $str = ' lay-submit="' . $options['submit'] . '"';
         }
-        return $affix;
+        return $str;
     }
 
     protected function layignore($options = [])
     {
-        $affix = ' ';
+        $str = ' ';
         if (isset($options['ignore'])) {
-            $affix = ' lay-ignore="' . $options['ignore'] . '"';
+            $str = ' lay-ignore="' . $options['ignore'] . '"';
         }
-        return $affix;
+        return $str;
     }
 
     protected function laystep($options = [])
@@ -1527,20 +1527,20 @@ EOF;
      */
     protected function laysearch($options = [])
     {
-        $search = '';
+        $str = '';
         if (!isset($options['search']) || $options['search'] == true) {
-            $search = ' lay-search';
+            $str = ' lay-search';
         }
-        return $search;
+        return $str;
     }
 
     protected function layskin($options = [])
     {
-        $affix = '';
+        $str = '';
         if (isset($options['skin'])) {
-            $affix = ' lay-skin="' . $options['skin'] . '"';
+            $str = ' lay-skin="' . $options['skin'] . '"';
         }
-        return $affix;
+        return $str;
     }
 
     /**
