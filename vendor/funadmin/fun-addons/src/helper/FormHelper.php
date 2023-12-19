@@ -939,6 +939,7 @@ EOF;
         list($name,$id) = $this->getNameId($name,$options);
         $format = $options['format'] ?? 'hex';
         $options['filter']  = $options['filter']??'colorPicker';
+        $options['verify'] = $options['verify']??'';
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name,$options)}
     <div class="layui-input-block">
