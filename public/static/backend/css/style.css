@@ -4,9 +4,9 @@ body .layui-form-onswitch{border:none;}
 #theme0.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme0.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme0.active .layui-form-onswitch,
-#theme0.active .fun-layer-class .layui-layer-title {background:#b8279f  !important;color: #fff;}
-#theme0.active blockquote{border-left-color:#b8279f ;}
-#theme0.active .layui-form-radio:hover *,#theme0.active .layui-form-radioed,#theme0.active .layui-form-radioed>i{color: #b8279f}
+#theme0.active .fun-layer-class .layui-layer-title {background:#4d70ff   !important;color: #fff;}
+#theme0.active blockquote{border-left-color:#4d70ff  ;}
+#theme0.active .layui-form-radio:hover *,#theme0.active .layui-form-radioed,#theme0.active .layui-form-radioed>i{color: #4d70ff }
 
 #theme1.active .layui-btn,
 #theme1.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
@@ -36,9 +36,9 @@ body .layui-form-onswitch{border:none;}
 #theme4.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme4.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme4.active .layui-form-onswitch,
-#theme4.active .fun-layer-class .layui-layer-title {background:#20b598  !important;color: #fff;}
-#theme4.active blockquote{border-left-color:#20b598 ;}
-#theme4.active .layui-form-radio:hover *,#theme4.active .layui-form-radioed,#theme4.active .layui-form-radioed>i{color: #20b598}
+#theme4.active .fun-layer-class .layui-layer-title {background:#16b777  !important;color: #fff;}
+#theme4.active blockquote{border-left-color:#16b777 ;}
+#theme4.active .layui-form-radio:hover *,#theme4.active .layui-form-radioed,#theme4.active .layui-form-radioed>i{color: #16b777}
 
 #theme5.active .layui-btn,
 #theme5.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
