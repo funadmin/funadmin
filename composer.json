@@ -59,7 +59,6 @@
   "extra": {
     "think": {
       "services": [
-        "fun\\addons\\Service"
       ]
     }
   },

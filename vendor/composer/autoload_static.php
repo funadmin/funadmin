@@ -282,10 +282,6 @@ class ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd
         ),
     );
 
-    public static $fallbackDirsPsr4 = array (
-        0 => __DIR__ . '/../..' . '/extend',
-    );
-
     public static $prefixesPsr0 = array (
         'H' => 
         array (
@@ -294,6 +290,10 @@ class ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd
                 0 => __DIR__ . '/..' . '/ezyang/htmlpurifier/library',
             ),
         ),
+    );
+
+    public static $fallbackDirsPsr0 = array (
+        0 => __DIR__ . '/../..' . '/extend',
     );
 
     public static $classMap = array (
@@ -312,8 +312,8 @@ class ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$prefixDirsPsr4;
-            $loader->fallbackDirsPsr4 = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$fallbackDirsPsr4;
             $loader->prefixesPsr0 = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$fallbackDirsPsr0;
             $loader->classMap = ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd::$classMap;
 
         }, null, ClassLoader::class);
