@@ -511,7 +511,7 @@ class Addon extends Backend
             $this->error(lang('addons %s is not ready', [$name]));
         }
         $addon_info = get_addons_info($name);
-        if($addon_info['depend']){
+        if(!empty($addon_info['depend'])){
             $depend = explode(',',$addon_info['depend']);
             foreach ($depend as $v) {
                 $dependAddon  = get_addons_info($v);
