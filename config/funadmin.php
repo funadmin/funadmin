@@ -9,7 +9,7 @@ return [
     //是否演示站点
     'isDemo'=>0,
     //版本
-    'version' => '5.0.5',
+    'version' => '5.0.6',
 
     'version_data' => '202301224',
 
