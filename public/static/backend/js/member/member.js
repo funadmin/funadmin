@@ -69,9 +69,7 @@ define(['table','form'], function (Table,Form) {
                         ,url: 'member.member/add'
                         ,icon: 'layui-icon layui-icon-edit'
                         ,callback: function(obj){
-                            console.log("eee");
-                            console.log(obj);
-                            $.get("member.member/index", function(res){
+                            $.get(Fun.url("member.member/index"), function(res){
                                 console.log(res)
                                 Fun.toastr.error("ok")
                             });
@@ -158,9 +156,9 @@ define(['table','form'], function (Table,Form) {
                         ,url: 'member.member/add'
                         ,icon: 'layui-icon layui-icon-edit'
                         ,callback: function(obj){
-                            console.log("eee");
+                            console.log(Fun.url("member.member/index"));
                             console.log(obj);
-                            $.get("member.member/index", function(res){
+                            $.get(Fun.url("member.member/index"), function(res){
                                 console.log(res)
                                 Fun.toastr.error("ok")
                             });

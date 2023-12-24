@@ -337,8 +337,9 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             },
             open: function (othis) {
                 var data = othis.data();
+                if(!othis.data('url') && !othis.data('href')) return ;
                 var options = {
-                    title: othis.prop('title') ? othis.prop('title') : data.title,
+                    title: othis.prop('title') ? othis.prop('title') : (data.title || '') ,
                     url: data.url ? data.url : data.href,
                     width: data.width,
                     height: data.height,
@@ -509,7 +510,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent].call(this, _t.find('button'),data,rowData,tableOption)
+                                    Table.events[attrEvent].call(this, _t.find('a'),data,rowData,tableOption)
                                 }else if(data.callback){
                                     eval(data.callback)(_t,data,rowData,tableOption)
                                 }else if(typeof callback ==='function'){
