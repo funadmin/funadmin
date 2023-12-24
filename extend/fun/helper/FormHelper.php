@@ -538,7 +538,7 @@ EOF;
                         $check = 'checked';
                     }
                     $value_tmp = $k;
-                    $name_tmp = $name[$k];
+                    $name_tmp = $name.'['.$k.']';
                     $input .= <<<EOF
 <input {$this->getDataPropAttr($name_tmp, $value_tmp, $options)} class="{$this->getClass($options)}" type="checkbox"  {$check}   title="{$this->__($v)}"/>
 EOF;
