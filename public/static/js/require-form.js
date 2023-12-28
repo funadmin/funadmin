@@ -1040,6 +1040,9 @@ define(['upload'], function (Upload) {
                                 }
                             }
                         });
+
+                        //div标签不需要lay-verify验证
+                        $("div[lay-verify]").removeAttr('lay-verify');
                     }
                 },
                 submit: function (formObj, success, error, submit) {
