@@ -719,7 +719,7 @@ EOF;
         $options['delimiter'] = $options['delimiter'] ?? '';
         $options['fielddelimiter'] = $options['fielddelimiter'] ?? '';
         $options['verify'] = $options['verify'] ?? '';
-        $multiple = empty($options['multiple']) ? 'multiple="multiple"' : '';
+        $multiple = !empty($options['multiple']) ? 'multiple="multiple"' : '';
 
         $options['multiple'] = $multiple ? 1 : '';
         if ($attr) {
