@@ -397,7 +397,7 @@ EOF;
 <div class='layui-form-item {$this->getClass($options)}' > 
     {$this->label($name, $options)}
     <div class='layui-input-block'>
-        <input  type='hidden' {$this->getNameValueAttr($name, $value, $options)} class='layui-input'>
+        <input  type='hidden' {$this->layverify($options)} {$this->getNameValueAttr($name, $value, $options)} class='layui-input'>
         <div {$this->getOptionsAttr($name, $options)}  {$this->getStyle($options)} class='{$this->getClass($options)}'>
         {$this->tips($options)} 
         </div>
@@ -423,7 +423,7 @@ EOF;
         $str = <<<EOF
 <div class='layui-form-item {$this->getClass($options)}'>{$this->label($name, $options)}
     <div class='layui-input-block' >
-        <input  type='hidden' {$this->getNameValueAttr($name, $value, $options)} class='layui-input layui-input-inline'>
+        <input  type='hidden' {$this->layverify($options)} {$this->getNameValueAttr($name, $value, $options)} class='layui-input layui-input-inline'>
         <div {$this->getOptionsAttr($name, $options)}  style='top:16px'   class='{$disorread} {$this->getClass($options)}'>
         {$this->tips($options)}
         </div>
@@ -923,11 +923,18 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $options['filter'] = $options['filter'] ?? 'tags';
         $options['placeholder'] = $options['placeholder'] ?? 'Space To Generate Tags';
+
+        $verify = '';
+        if (isset($options['verify'])) {
+            $verify = $this->layverify($options);
+            unset($options['verify']);
+        }
+
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
         <div class="tags" >
-            <input type="hidden" name="{$name}" value="{$value}" />
+            <input type="hidden" name="{$name}" value="{$value}" {$verify} />
             <input id="{$id}" {$this->getOptionsAttr($name, $options)} class="{$this->getClass($options)}"   type="text"  />
         </div>
     </div>
