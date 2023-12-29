@@ -208,7 +208,7 @@ class Index extends BaseController
             }
             if($this->app_debug){
                 $putEnv = str_replace(
-                    ['%app_debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
                     [$this->app_debug,$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
                     file_get_contents($this->envTpl));
                 $putConfig = @file_put_contents($this->envFile, $putEnv);
