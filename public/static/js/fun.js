@@ -509,7 +509,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent].call(this, _t.find('button'),data,rowData,tableOption)
+                                    Table.events[attrEvent].call(this, _t.find('a'),data,rowData,tableOption)
                                 }else if(data.callback){
                                     eval(data.callback)(_t,data,rowData,tableOption)
                                 }else if(typeof callback ==='function'){

@@ -9,9 +9,9 @@ return [
     //是否演示站点
     'isDemo'=>0,
     //版本
-    'version' => '5.0.6',
+    'version' => '5.0.7',
 
-    'version_data' => '202301224',
+    'version_data' => '202301229',
 
     'layui_version' => '2.9.2',
 
