@@ -1627,7 +1627,7 @@ EOF;
     {
         list($name, $id) = $this->getNameId($name, $options);
         $value = $this->getValue($name, $value);
-        $value =  $value?'data-value="'.$value.'"':'';
+        $value =  $value?'data-value="'.$value.'" value="'.$value.'"':'';
         return <<<EOF
 name="{$name}" {$value} id="{$id}"
 EOF;
