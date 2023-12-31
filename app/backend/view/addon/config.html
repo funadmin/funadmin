@@ -6,13 +6,13 @@
     {php}$name = "params[".$k."]";{/php}
     {switch name="$vo.type"}
     {case value="text"}
-    {:form_input($name,'text',['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:form_text($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="textarea"}
     {:form_textarea($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="password"}
-    {:form_input($name,'password',['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:form_password($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="tel"}
     {:form_tel($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}

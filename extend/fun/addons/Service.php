@@ -48,7 +48,6 @@ class Service extends \think\Service
 
         $this->loadService();
         // 4.自动加载全局的插件内部第三方类库
-
     }
     public function boot()
     {
@@ -70,37 +69,55 @@ class Service extends \think\Service
                 if (!$val) {
                     continue;
                 }
+                $rules = [];
                 if (is_array($val)) {
-                    $domain = $val['domain'];
-                    $rules = [];
-                    foreach ($val['rule'] as $k => $rule) {
-                        [$addon, $controller, $action] = explode('/', $rule);
-                        $rules[$k] = [
-                            'addons'        => $addon,
-                            'controller'    => $controller,
-                            'action'        => $action,
-                            'indomain'      => 1,
-                        ];
+                    if(!empty($val['app_domain'])){
+                        if(!empty($val['app_rule'])){
+                            \think\facade\Route::domain($val['app_domain'], function () use ($val){
+                                // 动态注册域名的路由规则
+                                foreach ($val['app_rule'] as $k => $rule) {
+                                    \think\facade\Route::rule($k,$rule);
+                                }
+                            });
+                        }
                     }
-                    $route->domain($domain, function () use ($rules, $route, $execute) {
-                        // 动态注册域名的路由规则
+                    $domain = !empty($val['domain'])?$val['domain']:'';
+                    if($domain){
+                        foreach ($val['rule'] as $k => $rule) {
+                            [$addon, $controller, $action] = explode('/', $rule);
+                            $rules[$k] = [
+                                'addons'        => $addon,
+                                'controller'    => $controller,
+                                'action'        => $action,
+                                'indomain'      => 1,
+                            ];
+                        }
+                        $route->domain($domain, function () use ($rules, $route, $execute) {
+                            // 动态注册域名的路由规则
+                            foreach ($rules as $k => $rule) {
+                                $route->rule($k, $execute)
+                                    ->name($k)
+                                    ->completeMatch(true)
+                                    ->append($rule);
+                            }
+                        });
+                    }else{
+                        foreach ($val['rule'] as $k => $rule) {
+                            [$addon, $controller, $action] = explode('/', $rule);
+                            $rules[$k] = [
+                                'addons'        => $addon,
+                                'controller'    => $controller,
+                                'action'        => $action,
+                            ];
+                        }
                         foreach ($rules as $k => $rule) {
                             $route->rule($k, $execute)
                                 ->name($k)
                                 ->completeMatch(true)
                                 ->append($rule);
                         }
-                    });
-                } else {
-                    list($addon, $controller, $action) = explode('/', $val);
-                    $route->rule($key, $execute)
-                        ->name($key)
-                        ->completeMatch(true)
-                        ->append([
-                            'addons' => $addon,
-                            'controller' => $controller,
-                            'action' => $action
-                        ]);
+                    }
+
                 }
             }
         });
@@ -154,6 +171,18 @@ class Service extends \think\Service
             $bind = array_merge($bind, $services);
         }
         $this->app->bind($bind);
+
+        $routes = (array) Config::get('addons.route', []);
+        foreach ($routes as $key => $val) {
+            if (!$val) {
+                continue;
+            }
+            if (is_array($val)) {
+                if (!empty($val['app_domain'])) {
+                    \config(['domain_bind' =>[$val['app_domain']=>$val['addons']]],'app');
+                }
+            }
+        }
     }
     /**
      * 插件事件

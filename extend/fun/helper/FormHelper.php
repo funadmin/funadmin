@@ -454,7 +454,7 @@ EOF;
 EOF;
                 } else {
                     $input .= <<<EOF
-<input {$this->getDataPropAttr($name, $k, $options)} class="{$this->getClass($options)}"  type="radio" {$this->selectedOrchecked($value, $k, 2)}   title="{$this->__($v)}" />
+<input {$this->getDataPropAttr($name, $k, $options)} class="{$this->getClass($options)}" {$this->getNameValueAttr($name, $value, $options)} type="radio" {$this->selectedOrchecked($value, $k, 2)}   title="{$this->__($v)}" />
 EOF;
                 }
             }
@@ -1627,7 +1627,7 @@ EOF;
     {
         list($name, $id) = $this->getNameId($name, $options);
         $value = $this->getValue($name, $value);
-        $value =  $value?'data-value="'.$value.'"':'';
+        $value =  $value?'data-value="'.$value.'" value="'.$value.'"':'';
         return <<<EOF
 name="{$name}" {$value} id="{$id}"
 EOF;

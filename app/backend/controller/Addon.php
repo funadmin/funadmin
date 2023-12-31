@@ -409,7 +409,15 @@ class Addon extends Backend
                             $v['content'] = $value;
                             $v['value'] = $value;
                         } else {
-                            $value =  $params[$k];
+                                $value =  $params[$k];
+                            if($v['type']=='radio'){
+                                if($value=='on'){
+                                    $value = 1;
+                                }
+                                if($value=='off'){
+                                    $value = 0;
+                                }
+                            }
                         }
                         $v['value'] = $value;
                     }

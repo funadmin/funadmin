@@ -395,7 +395,6 @@ if (!function_exists('get_addons_autoload_config')) {
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
         $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
-
         $url_domain_deploy = Config::get('route.url_domain_deploy');
         $addons = get_addons_list();
         $domain = [];
@@ -422,13 +421,15 @@ if (!function_exists('get_addons_autoload_config')) {
             }
             $conf = get_addons_config($addon['name']);
             if ($conf) {
-                $conf['rewrite'] = isset($conf['rewrite']) && is_array($conf['rewrite']) ? $conf['rewrite'] : [];
-                $rule = $conf['rewrite'] ? $conf['rewrite']['value'] : [];
-                if ($url_domain_deploy && isset($conf['domain']) && $conf['domain']) {
+                $rule = !empty($conf['rewrite']['value'])?$conf['rewrite']['value']:[];
+                $app_rule = !empty($conf['app_rewrite']['value'])?$conf['app_rewrite']['value']:[];
+                if ($url_domain_deploy) {
                     $domain[] = [
                         'addons' => $addon['name'],
-                        'domain' => $conf['domain']['value'],
-                        'rule' => $rule
+                        'domain' => !empty($conf['domain']['value']) ?$conf['domain']['value']:'',
+                        'app_domain' => !empty($conf['app_domain']['value'])?$conf['app_domain']['value']:'',
+                        'rule' => $rule,
+                        'app_rule' => $app_rule
                     ];
                 } else {
                     $route = array_merge($route, $rule);
