@@ -207,7 +207,7 @@ layui.define(['jquery'],function(exports) {
 
             method :'GET',
             //是否必须
-            required :'',
+            verify :'',
         }
 
         /**
@@ -715,7 +715,8 @@ layui.define(['jquery'],function(exports) {
             elem.hidden = $('<input type="hidden" class="sp_hidden" />')
                 .attr({
                     name: hidden_name,
-                    id: hidden_id
+                    id: hidden_id,
+                    'lay-verify':this.option.verify,
                 })
                 .val('')
             elem.combo_input.attr({

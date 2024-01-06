@@ -183,7 +183,7 @@ define(['upload'], function (Upload) {
                                     selectToCloseList = _t.data('selecttocloselist') || true,
                                     disabled = _t.data('disabled') || false,
                                     andOr = _t.data('andor'), formatItem = _t.data('formatitem') || false,
-                                    required = _t.data('required') || ''
+                                    verify = _t.attr('lay-verify') || '';
                                 orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                 isHtml != undefined ? isHtml : true;
                                 eSelect = _t.data('eselect');
@@ -192,10 +192,10 @@ define(['upload'], function (Upload) {
                                 }
                                 options = {
                                     showField: field, keyField: primaryKey, pageSize: pageSize,
-                                    selectFileds: searchField, searchKey: searchKey, isTree: isTree, isHtml: isHtml,
+                                    selectFields: searchField, searchKey: searchKey, isTree: isTree, isHtml: isHtml,
                                     data: data || Fun.url(url), dbTable: dbTable, andOr: andOr, method: method,
                                     //仅选择模式，不允许输入查询关键字
-                                    selectOnly: selectOnly, required: required, selectToCloseList: selectToCloseList,
+                                    selectOnly: selectOnly, verify: verify, selectToCloseList: selectToCloseList,
                                     //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
                                     pagination: pagination, maxSelectLimit: maxSelectLimit, orderBy: orderBy,
                                     //关闭分页的状态下，列表显示的项目个数，其它的项目以滚动条滚动方式展现（默认10个）
