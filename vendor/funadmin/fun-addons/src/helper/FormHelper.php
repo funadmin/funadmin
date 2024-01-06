@@ -924,17 +924,11 @@ EOF;
         $options['filter'] = $options['filter'] ?? 'tags';
         $options['placeholder'] = $options['placeholder'] ?? 'Space To Generate Tags';
 
-        $verify = '';
-        if (isset($options['verify'])) {
-            $verify = $this->layverify($options);
-            unset($options['verify']);
-        }
-
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
         <div class="tags" >
-            <input type="hidden" name="{$name}" value="{$value}" {$verify} />
+            <input type="hidden" name="{$name}" value="{$value}" />
             <input id="{$id}" {$this->getOptionsAttr($name, $options)} class="{$this->getClass($options)}"   type="text"  />
         </div>
     </div>
