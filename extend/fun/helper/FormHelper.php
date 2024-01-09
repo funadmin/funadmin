@@ -397,7 +397,7 @@ EOF;
 <div class='layui-form-item {$this->getClass($options)}' > 
     {$this->label($name, $options)}
     <div class='layui-input-block'>
-        <input  type='hidden' {$this->layverify($options)} {$this->getNameValueAttr($name, $value, $options)} class='layui-input'>
+        <input readonly type='text' {$this->layverify($options)} {$this->getNameValueAttr($name, $value, $options)} class='layui-input'>
         <div {$this->getOptionsAttr($name, $options)}  {$this->getStyle($options)} class='{$this->getClass($options)}'>
         {$this->tips($options)} 
         </div>
@@ -423,8 +423,7 @@ EOF;
         $str = <<<EOF
 <div class='layui-form-item {$this->getClass($options)}'>{$this->label($name, $options)}
     <div class='layui-input-block' >
-        <input  type='hidden' {$this->layverify($options)} {$this->getNameValueAttr($name, $value, $options)} class='layui-input layui-input-inline'>
-        <div {$this->getOptionsAttr($name, $options)}  style='top:16px'   class='{$disorread} {$this->getClass($options)}'>
+        <div {$this->getDataPropAttr($name,$value, $options)} style='top:16px'   class='{$disorread} {$this->getClass($options)}'>
         {$this->tips($options)}
         </div>
     </div>
@@ -454,7 +453,7 @@ EOF;
 EOF;
                 } else {
                     $input .= <<<EOF
-<input {$this->getDataPropAttr($name, $k, $options)} class="{$this->getClass($options)}" {$this->getNameValueAttr($name, $value, $options)} type="radio" {$this->selectedOrchecked($value, $k, 2)}   title="{$this->__($v)}" />
+<input {$this->getDataPropAttr($name, $k, $options)} class="{$this->getClass($options)}" {$this->getNameValueAttr($name, $value, $options)} type="radio" {$this->selectedOrchecked($value, $k, 2)}  title="{$this->__($v)}" />
 EOF;
                 }
             }
@@ -693,7 +692,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item layui-form" lay-filter="{$name}">{$this->label($name, $options)}
     <div class="layui-input-block">
-      <div  data-verify ="{$this->labelRequire($options)}" 
+      <div  
 {$this->getDataPropAttr($name, $value, $options)}  class="{$this->getClass($options)}" {$this->laysearch($options)} {$this->readonlyOrdisabled($options)} >
       </div>
       {$this->tips($options)}
@@ -731,7 +730,7 @@ EOF;
         $str = <<<EOF
     <div class="layui-form-item">{$this->label($name, $options)}
         <div class="layui-input-block">
-          <div class="{$this->getClass($options)}" {$this->getDataPropAttr($name, $value, $options)}  data-verify ="{$options['verify']}"   {$multiple} >
+          <div class="{$this->getClass($options)}" {$this->getDataPropAttr($name, $value, $options)}    {$multiple} >
           </div>
            {$this->tips($options)} 
         </div>
@@ -866,7 +865,9 @@ EOF;
         $options['pageSize'] = $options['pageSize'] ?? '';
         $options['pageRemote'] = $options['pageRemote'] ?? '';
         $options['clickClose'] = $options['clickClose'] ?? '';
-        $options['reqext'] = $options['reqtext'] ?? '';
+        $options['layReqText'] = $options['reqText'] ?? ($options['layReqText']??'');
+        $options['layVerify'] = $options['verify'] ?? ($options['layVerify']??'');
+        $options['layVerType'] = $options['layVerType']?? ($options['verType']??($options['vertype']??''));
         $options['radio'] = $options['radio'] ?? '';
         $options['url'] = $options['url'] ?? '';
         $options['tree'] = $options['tree'] ?? '';
@@ -878,7 +879,7 @@ EOF;
         $options['create'] = $options['create'] ?? '';
         $options['theme'] = $options['theme'] ?? '';
         $options['value'] = $options['value'] ?? '';
-        $options['autorow'] = $options['autorow'] ?? '';
+        $options['autorow'] = $options['autorow'] ?? ($options['autoRow']??'');
         $options['filter'] = 'xmSelect';
         $options['toolbar'] = isset($options['toolbar']) ? json_encode($options['toolbar'], JSON_UNESCAPED_UNICODE) : '';
         $str = <<<EOF
@@ -905,7 +906,7 @@ EOF;
         $options['filter'] = 'selectPage';
         $options['data'] = empty($lists) ? '' : json_encode($lists);
         $options['field'] = $options['field'] ?? 'title';
-        $options['primarykey'] = $options['field'] ?? 'id';
+        $options['primaryKey'] = $options['field'] ?? 'id';
         $options['multiple'] = $options['multiple'] ?? '';
         $options['init'] = $value;
         return $this->input($name, 'text', $options, $value);
@@ -923,19 +924,18 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $options['filter'] = $options['filter'] ?? 'tags';
         $options['placeholder'] = $options['placeholder'] ?? 'Space To Generate Tags';
-
+        $labelOptions = $options;
         $verify = '';
         if (isset($options['verify'])) {
             $verify = $this->layverify($options);
             unset($options['verify']);
         }
-
         $str = <<<EOF
-<div class="layui-form-item">{$this->label($name, $options)}
+<div class="layui-form-item">{$this->label($name, $labelOptions)}
     <div class="layui-input-block">
         <div class="tags" >
-            <input type="hidden" name="{$name}" value="{$value}" {$verify} />
             <input id="{$id}" {$this->getOptionsAttr($name, $options)} class="{$this->getClass($options)}"   type="text"  />
+            <input type="text" class="layui-input layui-form-required-hidden" name="{$name}" value="{$value}" {$verify} />
         </div>
     </div>
 </div>
@@ -960,7 +960,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
-        <input {$this->getNameValueAttr($name, $value, $options)} lay-verify="{$options['verify']}" class="layui-input layui-input-inline {$this->getClass($options)}"  type="text" />
+        <input {$this->getNameValueAttr($name, $value, $options)} lay-verify="{$options['verify']}" lay-vertype="tips" class="layui-input layui-input-inline {$this->getClass($options)}"  type="text" />
         <div {$this->getOptionsAttr($name, $options)}   data-format = "{$format}" ></div>
     </div>
 </div>
@@ -983,7 +983,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
-        <input {$this->getDataPropAttr($name, $value, $options)} type="hidden" name="' class="hide {$this->getClass($options)}" />
+        <input {$this->getDataPropAttr($name, $value, $options)} type="text" name="' class="hide layui-input layui-hide {$this->getClass($options)}" />
     </div>
 </div>
 EOF;
@@ -1035,7 +1035,7 @@ EOF;
 <div class="layui-form-item">
 <label class="layui-form-label width_auto text-r" style="margin-top:2px">省市县：</label>
     <div class="layui-input-block">
-        <input data-toggle="city-picker" {$this->getDataPropAttr($name, $value, $options)} type="hidden" autocomplete="off" class="layui-input {$this->getClass($options)} "  />
+        <input data-toggle="city-picker" {$this->getDataPropAttr($name, $value, $options)} type="text" autocomplete="off" class="layui-input layui-form-required-hidden {$this->getClass($options)} "  />
     </div>
 </div>
 EOF;
@@ -1056,7 +1056,7 @@ EOF;
         $str = <<<EOF
  <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
-        <input type="hidden" name="{$name}" value="{$value}" />
+        <input type="text" class="layui-input" name="{$name}" value="{$value}" {$this->layverify($options)} />
         <div {$this->getOptionsAttr($name, $options)}  class="{$this->getClass($options)}" id="{$id}" name="{$name}">
         </div>
     </div>
@@ -1085,7 +1085,7 @@ EOF;
         if ($options['editor'] == 'tinymce') {
             // tinyedit
             $content = <<<EOF
-            <textarea {$this->getDataPropAttr($name, $value, $options)} lay-editor type="text/plain">{$value}</textarea>
+            <textarea class="layui-form-required-hidden" {$this->getDataPropAttr($name, $value, $options)} lay-editor type="text/plain">{$value}</textarea>
 EOF;
         } else {
             //百度。quill wangeditor ckeditor,editormd
@@ -1458,11 +1458,13 @@ EOF;
     {
         $verify = '';
         if (isset($options['verify'])) {
-            $verify .= ' lay-verify="' . $options['verify'] . '"';
+            $verify .= 'data-verify="' . $options['verify'] . '" lay-verify="' . $options['verify'] . '"';
         }
         $type = 'tips';
         if (isset($options['verType']) && $options['verType']) {
             $type = $options['verType'];
+        }else if (isset($options['vertype']) && $options['vertype']) {
+            $type = $options['vertype'];
         }
         $verify .= ' lay-verType="' . $type . '" ';
         if (isset($options['reqText']) && $options['reqText']) {
@@ -1627,7 +1629,7 @@ EOF;
     {
         list($name, $id) = $this->getNameId($name, $options);
         $value = $this->getValue($name, $value);
-        $value =  $value?'data-value="'.$value.'" value="'.$value.'"':'';
+        $value = isset($value) ? 'data-value="'.$value.'" value="'.$value.'"':'';
         return <<<EOF
 name="{$name}" {$value} id="{$id}"
 EOF;
