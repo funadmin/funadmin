@@ -36,3 +36,5 @@ input[hidden] { height:0!important}
 .layui-layer-btn .layui-layer-btn0{ border-color: #4d70ff;background-color: #4d70ff}
 .layui-laydate .layui-this, .layui-laydate .layui-this>div{background-color: #4d70ff!important;}
 .layui-input:focus, .layui-textarea:focus{ border-color: #4d70ff!important;}
+.layui-form-required-hidden{opacity: 0;position: absolute;height: 0;width: 0;border: 0;}
+.layui-form-danger+.layui-form-select .layui-input, .layui-form-danger:focus{border-color: #ff5722!important;box-shadow: 0 0 0 3px rgba(255,87,34,.08);}

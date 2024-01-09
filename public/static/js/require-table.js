@@ -598,7 +598,7 @@ define(['timePicker'], function (timePicker) {
             }, number: function (d) {
                 var ele = $(this)[0];
                 var toFixed = ele.toFixed || 2;
-                value = Table.templet.resolution(d, ele);
+                var value = Table.templet.resolution(d, ele);
                 var display = value === '-' ? value : parseFloat(value).toFixed(toFixed);
                 if (ele.unit) display += ele.unit;//增加单位显示
                 return display;
