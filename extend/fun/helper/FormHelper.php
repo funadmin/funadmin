@@ -241,6 +241,7 @@ class FormHelper
             <input  type="{$type}" {$this->getDataPropAttr($name, $value, $options)} autocomplete="off"  class="layui-input {$this->getClass($options)}  {$disorread}"/>
 EOF;
         }
+        $options['affix'] = $options['affix']??'clear';
         $str = <<<EOF
 <div class="layui-form-item ">{$this->label($name, $options)}
         <div class="layui-input-block">

@@ -2,6 +2,7 @@
 /app/mocms
 /app/curd
 /app/test
+/app/demo
 /.idea
 /.vscode
 /.DS_Store
