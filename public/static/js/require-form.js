@@ -8,7 +8,7 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 define(['upload'], function (Upload) {
-    var FormData = window.Config.formData;
+    window.FormData = window.Config.formData || window.FormData || '';
     var $ = layui.$;
     var Form = {
         init: {},
