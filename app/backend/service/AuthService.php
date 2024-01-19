@@ -17,6 +17,7 @@ namespace app\backend\service;
 use app\backend\model\Admin as AdminModel;
 use app\backend\model\AuthGroup as AuthGroupModel;
 use app\backend\model\AuthRule;
+use app\common\model\Blacklist;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
@@ -453,6 +454,10 @@ class AuthService extends AbstractService
     public function checkLogin($username, $password, $rememberMe)
     {
         try {
+            $ip = request()->ip();
+            if(Blacklist::where('ip',$ip)->where('status',1)->find()){
+                throw new \Exception(lang('You dont have permission'));
+            }
             $where['username|email'] = strip_tags(trim($username));
             $password = strip_tags(trim($password));
             $admin = AdminModel::where($where)->find();

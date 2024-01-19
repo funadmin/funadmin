@@ -316,8 +316,8 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `title`, `type`, 
 
 CREATE TABLE `fun_blacklist` (
                                  `id` int NOT NULL,
-                                 `ip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'IP',
-                                 `remark` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+                                 `ip` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'IP',
+                                 `remark` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
                                  `status` tinyint(1) NOT NULL DEFAULT '1',
                                  `create_time` int NOT NULL DEFAULT '0',
                                  `update_time` int NOT NULL DEFAULT '0',
