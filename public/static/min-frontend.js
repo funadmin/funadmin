@@ -36,7 +36,7 @@
     paths: {
         'lang'          : 'empty:',
         'dayjs'         : 'plugins/dayjs/dayjs.min',
-        'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
+        'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
         //layui等组件
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
