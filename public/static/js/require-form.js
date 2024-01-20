@@ -1219,8 +1219,11 @@
                     /**
                      * 初始化表格数据
                      */
-                    initForm: function () {
-                        if (window.FormData) {
+                    initForm: function (data) {
+                        if(data){
+                            layui.form.val("form", data);
+                            layui.form.render();
+                        }else if (window.FormData) {
                             layui.form.val("form", window.FormData);
                             layui.form.render();
                         }
@@ -1433,7 +1436,6 @@
                     bindEvent: function (form, success, error, submit) {
                         form = typeof form == 'object' ? form : $(form);
                         var events = Form.events;
-    
                         events.uploads(form); //上传
                         events.choosefiles(form);//选择文件
                         events.selectfiles(form); //选择文件页面类型
