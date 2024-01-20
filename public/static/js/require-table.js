@@ -179,7 +179,7 @@ define(['timePicker'], function (timePicker) {
                 }
             });
             if (searchInput) {
-                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;height:30px;">\n';
+                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;height:32px;">\n';
             }
             return '<div>' + toolbarHtml + '</div>';
         },

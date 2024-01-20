@@ -88,7 +88,17 @@ class Frontend extends BaseController
      */
     protected $selectpageFields = ['*'];
 
+    /**
+     * 隐藏字段
+     * @var array
+     */
+    protected $hiddenFields = [];
 
+    /**
+     * 可见字段
+     * @var array
+     */
+    protected $visibleFields = [];
 
     public function __construct(App $app)
     {
