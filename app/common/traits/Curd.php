@@ -45,14 +45,23 @@ trait Curd
             if (request()->param('selectFields')) {
                 $this->selectList();
             }
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $list = $this->modelClass
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
+            $list = $this->modelClass->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->hiddenFields);
+            }
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
 //            $count = $this->modelClass
 //                ->where($where)
@@ -257,14 +266,25 @@ trait Curd
     public function recycle()
     {
         if (request()->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
             $list = $this->modelClass->onlyTrashed()
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+                ->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->visibleFields);
+            }
+
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
@@ -852,7 +872,7 @@ trait Curd
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
-        return [$page, $limit,$sort,$where];
+        return [$page, $limit,$sort,$where,$tableName];
     }
 
 }

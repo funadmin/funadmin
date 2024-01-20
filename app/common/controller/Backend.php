@@ -90,7 +90,17 @@ class Backend extends BaseController
      */
     protected $selectpageFields = ['*'];
 
+    /**
+     * 隐藏字段
+     * @var array
+     */
+    protected $hiddenFields = [];
 
+    /**
+     * 可见字段
+     * @var array
+     */
+    protected $visibleFields = [];
     /**
      * @param App $app
      */
