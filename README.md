@@ -14,8 +14,8 @@ funadmin前端和webman开发的后台管理系统
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
     </a>
-    <a href="https://www.layui.com/">
-        <img src="https://img.shields.io/badge/layui-2.8.*-green.svg" alt="layui">
+    <a href="https://layui.dev/">
+        <img src="https://img.shields.io/badge/layui-2.9.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/php-%3E%3D8.0-8892BF.svg" alt="PHP Version">
@@ -117,7 +117,7 @@ FunAdmin 基于thinkphp8.X +Layui2.8.*+requirejs开发权限(RBAC)管理框架�
 
 - [Thinkphp](http://thinkphp.cn)
 - [JQuery](http://jquery.com)
-- [Layui](http://www.layuion.com)
+- [Layui](https://layui.dev/)
 - [Requirejs](https://requirejs.org)
 
 ## 版权信息
