@@ -277,6 +277,7 @@ EOF;
     {
         $options['verify'] = $options['verify'] ?? 'pass';
         $options['type'] = 'password';
+        $options['affix'] = $options['affix'] ?? 'eye';
         return $this->input($name, 'password', $options, $value);
     }
 
@@ -366,6 +367,7 @@ EOF;
     public function number($name, $options = [], $value = null)
     {
         $options['verify'] = $options['verify'] ?? 'number';
+        $options['affix'] = $options['affix'] ?? 'number';
         return $this->input($name, 'number', $options, $value);
     }
 
@@ -1532,6 +1534,14 @@ EOF;
         return $str;
     }
 
+    protected function layprecision($options = [])
+    {
+        $str = ' ';
+        if (isset($options['precision'])) {
+            $str = ' lay-precision="' . $options['precision'] . '"';
+        }
+        return $str;
+    }
     /**搜索
      * @return string
      */
@@ -1682,6 +1692,9 @@ EOF;
                         break;
                     case 'ignore':
                         $attr .= $this->layignore($options);
+                        break;
+                    case 'precision':
+                        $attr .= $this->layprecision($options);
                         break;
                     case 'style':
                         $attr .= $this->getStyle($options);
