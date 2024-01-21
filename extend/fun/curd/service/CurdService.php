@@ -113,7 +113,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
+        $this->tplPath = $this->rootPath . 'extend' . '/' . 'fun' . '/' . 'curd' . '/' . 'tpl' . '/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -1243,8 +1243,8 @@ class CurdService
             $this->tplPath . 'attrmutiget.tpl',
             $this->tplPath . 'attrmutiset.tpl',
         ];
-        $fieldList = $fieldsList?:$this->fieldsList;
-        foreach ($fieldsList as $k => $vo) {
+        $fieldList = $fieldList?:$this->fieldsList;
+        foreach ($fieldList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name'] != 'status') continue;
             $name = Str::studly($vo['name']);
