@@ -1,5 +1,5 @@
 <BR>
-<h3 align="center">FunAdmin5.X版本 在3.X的基础上优化了许多功能，并升级到了TP8，欢迎使用</h3>
+<h3 align="center">FunAdmin6.X版本 在5.X的基础上优化了许多功能，优化了插件功能，欢迎使用</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
