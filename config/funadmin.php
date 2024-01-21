@@ -13,7 +13,7 @@ return [
 
     'version_data' => '20230114',
 
-    'layui_version' => '2.9.3',
+    'layui_version' => '2.9.4',
 
     'ip_check'=>false,
 
