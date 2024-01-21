@@ -23,7 +23,7 @@ require.config({
     include: ['jquery','css','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
-        'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
+        'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
         //layui等组件
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
