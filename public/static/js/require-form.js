@@ -187,8 +187,8 @@
                                     orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                     isHtml != undefined ? isHtml : true;
                                     eSelect = _t.data('eselect');
-                                    if (!value && window.FormData && window.FormData[name]) {
-                                        _t.val(window.FormData[name]);
+                                    if (!value && window.FormArray && window.FormArray[name]) {
+                                        _t.val(window.FormArray[name]);
                                     }
                                     var options = {
                                         showField: field, keyField: primaryKey, pageSize: pageSize,
@@ -381,7 +381,7 @@
                                 var data = _t.data();
                                 var name = _t.prop('name');
                                 var path = _t.data('path');
-                                _t.html(window.FormData[name]);
+                                _t.html(window.FormArray[name]);
                                 var upload_url = (data.url ? data.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
                                 if ($(this).data('editor') == 'tinymce') {
                                     if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
@@ -610,8 +610,8 @@
                                     var provinceId = _t.data('provinceid'),
                                         cityId = _t.data('cityid');
                                     var province, city, district;
-                                    if (window.FormData[name]) {
-                                        var cityValue = window.FormData[name];
+                                    if (window.FormArray[name]) {
+                                        var cityValue = window.FormArray[name];
                                         province = cityValue.split('/')[0];
                                         city = cityValue.split('/')[1];
                                         district = cityValue.split('/')[2];
@@ -627,19 +627,19 @@
                                         district: district
                                     });
                                     var str = '';
-                                    if (FormData.hasOwnProperty(provinceId)) {
-                                        str += ChineseDistricts[886][window.FormData[provinceId]]
+                                    if (window.FormArray.hasOwnProperty(provinceId)) {
+                                        str += ChineseDistricts[886][window.FormArray[provinceId]]
                                     }
-                                    if (FormData.hasOwnProperty(cityId) && window.FormData[[cityId]] && window.FormData.hasOwnProperty(provinceId)) {
-                                        str += '/' + ChineseDistricts[window.FormData[provinceId]][window.FormData[cityId]]
+                                    if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[[cityId]] && window.FormArray.hasOwnProperty(provinceId)) {
+                                        str += '/' + ChineseDistricts[window.FormArray[provinceId]][window.FormArray[cityId]]
                                     }
-                                    if (FormData.hasOwnProperty(cityId) && window.FormData[districtId] && window.FormData.hasOwnProperty(districtId)) {
-                                        str += '/' + ChineseDistricts[window.FormData[cityId]][window.FormData[districtId]]
+                                    if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[districtId] && window.FormArray.hasOwnProperty(districtId)) {
+                                        str += '/' + ChineseDistricts[window.FormArray[cityId]][window.FormArray[districtId]]
                                     }
                                     if (!str) {
-                                        str = FormData.hasOwnProperty(name) ? window.FormData['name'] : ''
+                                        str = window.FormArray.hasOwnProperty(name) ? window.FormArray['name'] : ''
                                     }
-                                    window['citypicker-' + id].setValue(window.FormData[name] ? window.FormData[name] : str)
+                                    window['citypicker-' + id].setValue(window.FormArray[name] ? window.FormArray[name] : str)
                                 })
                             })
                         }
@@ -1223,8 +1223,8 @@
                         if(data){
                             layui.form.val("form", data);
                             layui.form.render();
-                        }else if (window.FormData) {
-                            layui.form.val("form", window.FormData);
+                        }else if (window.FormArray) {
+                            layui.form.val("form", window.FormArray);
                             layui.form.render();
                         }
                         require(['multiSelect'], function (multiSelect) {
