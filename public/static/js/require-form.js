@@ -464,7 +464,7 @@ define(['upload'], function (Upload) {
                                     input.click();
                                     input.onchange = function () {
                                         var file = this.files[0];
-                                        var xhr, FormArray;
+                                        var xhr;
                                         xhr = new XMLHttpRequest();
                                         xhr.withCredentials = false;
                                         xhr.open('POST', upload_url);
