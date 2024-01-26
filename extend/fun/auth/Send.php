@@ -124,7 +124,8 @@ trait Send
                 header($name . ':' . $val);
             }
         }
-        return Response::create($data, $type)->header($header)->options($options);
+        $response =  Response::create($result, $type)->header($header)->options($options);
+        throw new HttpResponseException($response);
     }
 
     protected function getClientData($where=[],$field='*'){

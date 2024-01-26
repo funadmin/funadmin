@@ -75,6 +75,7 @@ class SimpleOauth
         if (!$match || ($match && Request::header(config('api.authentication')))) {               //请求方法白名单
             try {
                 $data = $this->getClient();
+                var_dump($data);
             }catch (\Exception $e) {
                 if(!$match) $this->error($e->getMessage(),[],401);
             }
