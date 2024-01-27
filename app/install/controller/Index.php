@@ -26,6 +26,7 @@ class Index extends BaseController
      */
     protected $sqlFiles = [
         'funadmin.sql',
+        'update.sql',
     ];
     //mysql版本
     protected $mysqlVersion = '5.6';
