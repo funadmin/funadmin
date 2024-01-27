@@ -986,7 +986,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item">{$this->label($name, $options)}
     <div class="layui-input-block">
-        <input {$this->getDataPropAttr($name, $value, $options)} type="text" name="' class="hide layui-input layui-hide {$this->getClass($options)}" />
+        <input {$this->getDataPropAttr($name, $value, $options)} type="text" class="hide layui-input layui-hide {$this->getClass($options)}" />
     </div>
 </div>
 EOF;
