@@ -1359,7 +1359,7 @@ class CurdService
     {
         $suffix = is_array($suffix) ? $suffix : explode(',', $suffix);
         foreach ($suffix as $v) {
-            if (strpos($field, $v) !== false) {
+            if (Str::endsWith($field, $v)) {
                 return true;
             }
         }
