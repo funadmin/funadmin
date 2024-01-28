@@ -27,9 +27,7 @@ class Index extends BaseController
      * 安装中要执行的 SQL 脚本文件清单.
      * 自定义的SQL脚本放在controller同级的sql文件夹,将文件名添加到这个数组中,务必注意脚本依赖顺序,因为系统会按照数组里的顺序依次执行.
      */
-    protected $sqlFiles = [
-        'funadmin.sql',
-    ];
+    protected $sqlFileDir = '';
     //mysql版本
     protected $mysqlVersion = '5.6';
     //database模板
@@ -43,6 +41,7 @@ class Index extends BaseController
         $this->lockFile = public_path() . "install.lock";
         $this->databaseTpl = app_path() . "view/tpl/database.tpl";
         $this->envTpl = app_path() . "view/tpl/env.example";
+        $this->sqlFileDir = app_path() . "sql";
         $this->config = [
             'siteName' => "FunAdmin",
             'siteVersion' => config('app.version'),
@@ -172,15 +171,14 @@ class Index extends BaseController
             try {
                 $instance = Db::connect();
                 $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
-
                 //逐个执行SQL脚本
-                foreach ($this->sqlFiles as $i => $value) {
-                    $sqlFile = app_path() . "sql/{$value}";
-
+                $sqlFiles = glob($this->sqlFileDir. '/*');
+                foreach ($sqlFiles as $i => $value) {
+                    if(!is_file($value)) continue;
                     //检测能否读取安装文件
-                    $sql = @file_get_contents($sqlFile);
+                    $sql = @file_get_contents($value);
                     if (!$sql) {
-                        $this->error("无法读取{$sqlFile}文件，请检查是否有读权限");
+                        $this->error("无法读取{$value}文件，请检查是否有读权限");
                     }
 
                     //替换数据表前缀
@@ -188,7 +186,6 @@ class Index extends BaseController
                     $instance->getPdo()->exec($sql);
                     sleep(2);
                 }
-
                 $password = password($admin['password']);
                 $instance->execute("UPDATE {$db['prefix']}admin SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
                 $instance->execute("UPDATE {$db['prefix']}member SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
