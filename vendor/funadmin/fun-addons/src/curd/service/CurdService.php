@@ -110,6 +110,7 @@ class CurdService
 
     public function __construct(array $config)
     {
+        $config['driver'] = $config['driver']??$this->driver;
         $this->tablePrefix = config('database.connections.' . $config['driver'] . '.prefix');
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
@@ -160,36 +161,36 @@ class CurdService
      */
     protected function setArg()
     {
-        $this->table = $this->config['table'];
+        $this->table = !empty($this->config['table'])?$this->config['table']:'';
         $this->table = str_replace($this->tablePrefix, '', $this->table);
-        $this->addon = isset($this->config['addon']) && $this->config['addon'] ? $this->config['addon'] : '';
-        $this->force = $this->config['force'];
-        $this->app = $this->config['app'];
-        $this->title = $this->config['title']?:$this->addon;
-        $this->description = $this->config['description']?:$this->addon;
-        $this->requires = $this->config['requires']?:3.0;
-        $this->author = $this->config['author']?:$this->addon;
-        $this->version = $this->config['version']?:1.0;
-        $this->jump = $this->config['jump'];
-        $this->limit = $this->config['limit'] ?: 15;
-        $this->page = ($this->config['page']==null ||  $this->config['page'] == 1) ? "true" : 'false';
-        $this->joinTable = $this->config['joinTable'];
+        $this->addon = $this->config['addon']?? '';
+        $this->force = $this->config['force']??$this->force;
+        $this->app = $this->config['app']??$this->app;
+        $this->title = $this->config['title']??$this->addon;
+        $this->description = $this->config['description']??$this->addon;
+        $this->requires = $this->config['requires']??'3.0';
+        $this->author = $this->config['author']??$this->addon;
+        $this->version = $this->config['version']??'1.0';
+        $this->jump = $this->config['jump']??$this->jump;
+        $this->limit = $this->config['limit']?? 15;
+        $this->page = (!isset($this->config['page']) ||  $this->config['page']==null ||  $this->config['page'] == 1 ) ? "true" : 'false';
+        $this->joinTable = $this->config['joinTable']??[];
         foreach ($this->joinTable as $k => $v) {
             $this->joinTable[$k] = str_replace($this->tablePrefix, '', $v);
         }
-        $this->joinName = $this->config['joinName'] ?: $this->joinTable;
-        $this->joinModel = $this->config['joinModel'] ?: $this->joinTable;
-        $this->joinMethod = $this->config['joinMethod'];
-        $this->joinForeignKey = $this->config['joinForeignKey'];
+        $this->joinName = $this->config['joinName'] ?? $this->joinTable;
+        $this->joinModel = $this->config['joinModel'] ?? $this->joinTable;
+        $this->joinMethod = $this->config['joinMethod']??'';
+        $this->joinForeignKey = $this->config['joinForeignKey']??'';
         if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
             $this->joinForeignKey = array_filter(explode(',', ($this->joinForeignKey[0])));
         }
-        $this->joinPrimaryKey = $this->config['joinPrimaryKey'];
+        $this->joinPrimaryKey = $this->config['joinPrimaryKey']??'';
         if ($this->joinForeignKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
             $this->joinPrimaryKey = array_filter(explode(',', ($this->joinPrimaryKey[0])));
         }
-        $this->selectFields = $this->config['selectFields'];
-        $controllerStr = $this->config['controller'] ?: Str::studly($this->table);
+        $this->selectFields = !empty($this->config['selectFields'])?$this->config['selectFields']:'';
+        $controllerStr = !empty($this->config['controller']) ? $this->config['controller'] : Str::studly($this->table);
         $controllerArr = explode('/', $controllerStr);
         foreach ($controllerArr as $k => &$v) {
             $v = ucfirst(Str::studly($v));
@@ -197,7 +198,7 @@ class CurdService
         unset($v);
         $this->controllerName = array_pop($controllerArr);
         $this->controllerArr = $controllerArr;
-        $modelStr = $this->config['model'] ?: Str::studly($this->table);
+        $modelStr = !empty($this->config['model']) ?$this->config['model']: Str::studly($this->table);
         $modelArr = explode('/', $modelStr);
         foreach ($modelArr as $k => &$v) {
             $v = ucfirst(Str::studly($v));
@@ -206,7 +207,7 @@ class CurdService
         $this->modelName = array_pop($modelArr);
         $modelArr ? $modelArr[0] = Str::lower($modelArr[0]) : '';
         $this->modelArr = $modelArr;
-        $this->validateName = $this->config['validate'] ?: $this->modelName;
+        $this->validateName = !empty($this->config['validate']) ? $this->config['validate'] : $this->modelName;
         $this->validateName = Str::studly($this->validateName);
         $this->controllerUrl = $controllerArr ? Str::lower($controllerArr[0]) . '.' . Str::camel($this->controllerName) : Str::camel($this->controllerName);
         if (isset($this->config['method']) and $this->config['method']) {
