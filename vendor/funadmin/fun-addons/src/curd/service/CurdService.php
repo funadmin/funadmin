@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2017/8/2
@@ -25,6 +25,7 @@ class CurdService
     protected $config = [
         'keepField' => ['admin_id', 'member_id'],//保留字段
         'fields' => [],//显示的字段
+        'formFields' => [],//添加的字段
         'ignoreFields' => ['create_time', 'status', 'update_time', 'delete_time'],//忽略字段
         'tagsSuffix' => ['tags', 'tag'],//识别为tag类型
         'urlSuffix' => ['url', 'urls'],//识别为url类型
@@ -113,7 +114,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
+        $this->tplPath = $this->rootPath . 'extend' . '/' . 'fun' . '/' . 'curd' . '/' . 'tpl' . '/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -819,88 +820,88 @@ class CurdService
             $name = Str::studly($vo['name']);
             switch ($vo['type']) {
                 case "text":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "tags":
-                    $formFieldData .= "{:form_tags('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::tags('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "number":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'number', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'number', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "switch":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
 //                    $formFieldData .= "{:form_switch('{$vo['name']}', \${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
-                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "array":
-                    $formFieldData .= "{:form_textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
                     break;
                 case "checkbox":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                    $formFieldData .= "{:form_checkbox('{$vo['name']}', \${$vo['name_list']}List,['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::checkbox('{$vo['name']}', \${$vo['name_list']}List,['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "radio":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "_id":
                     if ($this->joinTable) {
                         $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                         if (strpos($vo['name'], '_ids') and in_array($vo['name'], $this->joinForeignKey)) {
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         } elseif (strpos($vo['name'], '_id') and in_array($vo['name'], $this->joinForeignKey)) {
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         } else {
-                            $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                         }
                     } else {
-                        $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "select":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                     if (in_array($vo['DATA_TYPE'], ['set', 'varchar', 'char'])) {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     } else {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "color":
-                    $formFieldData .= "{:form_color('{$vo['name']}',['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::color('{$vo['name']}',['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1])}" . PHP_EOL;
                     break;
                 case "timestamp":
                 case "datetime":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
                     break;
                 case "year":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'year'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'year'])}" . PHP_EOL;
                     break;
                 case "date":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'date'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'date'])}" . PHP_EOL;
                     break;
                 case "time":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'time'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'time'])}" . PHP_EOL;
                     break;
                 case "range":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}','range' => 'range'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}','range' => 'range'])}" . PHP_EOL;
                     break;
                 case "textarea":
-                    $formFieldData .= "{:form_textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}',], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}',], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "image":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "images":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "file":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "files":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "editor":
-                    $formFieldData .= "{:form_editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
             }
         }
         return $formFieldData;
@@ -1074,7 +1075,7 @@ class CurdService
             $fieldsName = $v['COLUMN_NAME'];
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
-                    $v['type'] = "array";
+                $v['type'] = "array";
             }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
