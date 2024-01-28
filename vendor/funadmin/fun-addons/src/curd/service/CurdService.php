@@ -1314,6 +1314,7 @@ class CurdService
         $optionsArrStr = "[";
         $optionObjStr = '{';
         foreach ($option as $k => $v) {
+            $v= str_replace("=", ':', $v);
             $ops = explode(":", $v);
             $optionsArrStr .= "'" . $ops[0] . "'=>'" . $name . ' ' . $ops[0] . "',";
             $optionObjStr .= "'" . $ops[0] . "':'" . $name . ' ' . $ops[0] . "',";
