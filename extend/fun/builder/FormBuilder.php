@@ -559,8 +559,8 @@ class FormBuilder
      */
     public function extrajs($js,$options=[]){
         $reg = '/<script.*?>([\s\S]*?)<\/script>/im';
-        preg_match($reg, $script,$match);
-        $this->extraJs = empty($match)?$script:$match[1];
+        preg_match($reg, $js,$match);
+        $this->extraJs = empty($match)?$js:$match[1];
         return $this;
     }
     public function style(string $name,$options=[]){
