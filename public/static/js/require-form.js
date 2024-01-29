@@ -529,7 +529,7 @@
                                         page: true,
                                         limit: 12,
                                         click: function (data) {
-                                            _t.prev("input[type='hidden']").val('layui-icon '+data.icon)
+                                            _t.val('layui-icon '+data.icon)
                                         },
                                         success: data.done ? eval(data.done(d)) : function (d) {
                                         }
