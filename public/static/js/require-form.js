@@ -529,7 +529,7 @@
                                         page: true,
                                         limit: 12,
                                         click: function (data) {
-                                            _t.val('layui-icon '+data.icon)
+                                            _t.val(data.icon)
                                         },
                                         success: data.done ? eval(data.done(d)) : function (d) {
                                         }
