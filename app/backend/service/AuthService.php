@@ -205,6 +205,9 @@ class AuthService extends AbstractService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
+        if($this->request->isPost() && $cfg['isDemo'] == 1){
+            $this->error(lang('Demo is not allow to change data'));
+        }
         $adminId = session('admin.id');
         if ($adminId != $cfg['superAdminId']) {
             if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
