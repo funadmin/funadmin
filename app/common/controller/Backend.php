@@ -90,6 +90,13 @@ class Backend extends BaseController
      */
     protected $selectpageFields = ['*'];
 
+    /**
+     * 是否开启数据限制
+     * 表示按权限判断/仅限个人
+     * 默认为禁用,若启用请务必保证表中存在admin_id字段
+     */
+    protected $dataLimit = false;
+
 
     /**
      * @param App $app

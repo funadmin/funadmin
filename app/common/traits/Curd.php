@@ -742,6 +742,13 @@ trait Curd
         }else{
             $sort = ["$sort"=>$order];
         }
+        if($this->dataLimit){
+            if(is_bool($this->dataLimit)){
+                $where[] = [$tableName.'admin_id'=>session('admin.id')];
+            }else{
+                $where[] = [$tableName.'admin_id','in',is_array($this->dataLimit)?$this->dataLimit:explode(',',$this->dataLimit)];
+            }
+        }
         if ($search) {
             $searcharr = is_array($searchName) ? $searchName : explode(',', $searchName);
             foreach ($searcharr as $k => &$v) {
