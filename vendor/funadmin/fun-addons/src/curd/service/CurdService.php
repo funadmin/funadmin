@@ -178,8 +178,8 @@ class CurdService
         foreach ($this->joinTable as $k => $v) {
             $this->joinTable[$k] = str_replace($this->tablePrefix, '', $v);
         }
-        $this->joinName = $this->config['joinName'] ?? $this->joinTable;
-        $this->joinModel = $this->config['joinModel'] ?? $this->joinTable;
+        $this->joinName = empty($this->config['joinName']) ? $this->joinTable:$this->config['joinName'];
+        $this->joinModel = empty( $this->config['joinModel']) ? $this->joinTable: $this->config['joinModel'];
         $this->joinMethod = $this->config['joinMethod']??'';
         $this->joinForeignKey = $this->config['joinForeignKey']??'';
         if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
