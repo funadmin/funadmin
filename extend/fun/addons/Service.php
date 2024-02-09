@@ -200,7 +200,8 @@ class Service extends \think\Service
                     $values = (array)$values;
                 }
                 $hooks[$key] = array_filter(array_map(function ($v) use ($key) {
-                    return [get_addons_class($v),$key];
+                    $addon = get_addons_class($v);
+                    return $addon?[$addon,$key]:[];
                 }, $values));
             }
             Cache::set('hooks', $hooks);
