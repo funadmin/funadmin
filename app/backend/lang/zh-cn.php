@@ -13,7 +13,7 @@
  */
 
 return [
-    'Home'                      =>'主页',
+    'Home'                      =>  '主页',
     'UserName or Email'         =>  '用户名或邮箱',
     'password'                  =>  '密码',
     'Login In'                  =>  '登入',
@@ -28,9 +28,9 @@ return [
     'Edit'                      =>  '编辑',
     'Status'                    =>  '状态',
     'Del'                       =>  '销毁',
-    'Delete'                    =>  '销毁',
-    'Destroy'                   =>  '删除',
-    'Destory'                   =>  '删除',
+    'delete'                    => '删除',
+    'destroy'                   => '伪删除',
+    'Destory'                   =>  '伪删除',
     'Restore'                   =>  '还原',
     'recycle'                   =>  '回收站',
     'Import'                    =>  '导入',
@@ -45,7 +45,7 @@ return [
     'Access'                    =>  '分配',
     'AddChild'                  =>  '添加子类',
     'Back'                      =>  '返回',
-    'Confirm'                   =>'确定',
+    'Confirm'                   =>  '确定',
     'Cancel'                    =>  '取消',
     'Remark'                    =>  '备注',
     'Reset'                     =>  '重置',
