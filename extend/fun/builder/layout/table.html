@@ -40,8 +40,8 @@
 </table>
 {/if}
 <script>
-    var tableOptions    = {:json_encode($options)};
-    var requests        = {:json_encode($requests)};
-    var data            = {:json_encode($data)};
-    var extraJs         = `{$extraJs}`;
+    var tableOptions = {:empty($tableOptions)?'':json_encode($tableOptions)};
+    var requests = {:empty($requests)?'':json_encode($requests)};
+    var data = {:empty($data)?'':json_encode($data)};
+    var extraJs = {:empty($extraJs)?'':json_encode($extraJs)};
 </script>
