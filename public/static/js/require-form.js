@@ -17,7 +17,8 @@
                         list = $("*[lay-event]");
                         if (list.length > 0) {
                             layui.each(list, function () {
-                                $(this).click(function () {
+                                $(this).click(function (e) {
+                                    e.stopPropagation();
                                     if ($(this).attr('lay-event') === 'open') {
                                         Fun.events.open($(this));
                                         return true;
