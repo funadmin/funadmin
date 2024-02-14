@@ -617,7 +617,7 @@ class TableBuilder
 
     protected function getColTemplet($templet){
         if($templet && in_array($templet,$this->templet)){
-            return 'templet:Table.templet.'+templet;
+            return 'templet:Table.templet.'+$templet;
         }
         return $templet;
     }

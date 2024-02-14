@@ -3,12 +3,14 @@
 {if !empty($formJs)}{$formJs|raw}{/if}
 
 <form class="layui-form" lay-filter="form">
+    {if(empty($formHtml))}
     {$formHtml|raw}
+    {/if}
 </form>
 
 
 <script>
-    var formData = {:json_encode($formData)};
+    var formArray = {:json_encode($formData)};
     var tableOptions         = {:json_encode($tableOptions)};
     var requests        = {:json_encode($requests)};
     var data            = {:json_encode($data)};

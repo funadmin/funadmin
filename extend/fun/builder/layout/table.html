@@ -1,7 +1,15 @@
-{if $tableLink}{$tableLink|raw}}{/if}
-{if $tableStyle}{$tableStyle|raw}}{/if}
-{if $tableJs}{$tableJs}{/if}
+{if !empty($tableLink)}
+{$tableLink|raw}
+{/if}
+{if !empty($tableStyle)}
+{$tableStyle|raw}
+{/if}
+{if !empty($tableJs)}
+{$tableJs}
+{/if}
+{if !empty($html)}
 {$html|raw}
+{/if}
 {if (!empty($options))}
 {volist name="options" id="vo"}
 <table class="layui-table" id="{$vo.id}" lay-filter="{$vo['elem']}" data-primaryKey="{$vo['primaryKey']}"

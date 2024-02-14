@@ -581,6 +581,15 @@ if (!class_exists('FormBuilder')) {
 if (!class_exists('TableBuilder')) {
     class_alias('fun\\TableBuilder', 'TableBuilder');
 }
+
+// Form别名
+if (!class_exists('BuilderTable')) {
+    class_alias('fun\\BuilderTable', 'BuilderTable');
+}
+if (!class_exists('BuilderForm')) {
+    class_alias('fun\\BuilderForm', 'BuilderForm');
+}
+
 if (!function_exists('form_script')) {
     /**
      * @param string $name
