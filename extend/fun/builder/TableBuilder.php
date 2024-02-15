@@ -125,7 +125,7 @@ class TableBuilder
     {
         $this->fields = $config['fields'] ?? [];
         // 初始化
-        $this->template = $config['template'] ?? '../../../vendor/funadmin/fun-addons/src/builder/layout/table';
+        $this->template = $config['template'] ?? '../../../extend/fun/builder/layout/table';
         $this->modelClass = $this->modelClass?: ($config['model'] ?? ($config['modelClass'] ?? ''));
         $this->driver = $config['driver'] ?? 'mysql';
         $this->tablePrefix = config('database.connections.' . $this->driver . '.prefix');

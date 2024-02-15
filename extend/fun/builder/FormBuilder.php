@@ -67,7 +67,7 @@ class FormBuilder
     }
     public function __construct($options=[])
     {
-        $this->template = $options['template']??'../../../vendor/funadmin/fun-addons/src/builder/layout/add';
+        $this->template = $options['template']??'../../../extend/fun/builder/layout/add';
         $this->modelClass = $this->modelClass?: ($config['model'] ?? ($config['modelClass'] ?? ''));
 
     }
