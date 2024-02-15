@@ -791,10 +791,14 @@ EOF;
         if ($select) {
             foreach ($select as $k => $v) {
                 $selected = '';
-                if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value) || (is_array($attr) && !empty($attr) && $v[$attr[0]] == $value))) {
+                if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value)
+                        || (is_array($attr) && !empty($attr) && $v[$attr[0]] == $value))) {
                     $selected = 'selected';
                 }
-                if (is_array($value) && in_array($k, $value) && !$attr) {
+                if (is_array($value) && in_array($k, $value) && empty($attr)) {
+                    $selected = 'selected';
+                }
+                if ((is_string($value) || is_numeric($value))  && in_array($k, explode(',',$value)) && empty($attr)) {
                     $selected = 'selected';
                 }
                 if (is_string($v)) {
