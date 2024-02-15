@@ -121,7 +121,7 @@ class TableBuilder
     /**
      * 私有化构造函数
      */
-    private function __construct(array $config = [])
+    public function __construct(array $config = [])
     {
         $this->fields = $config['fields'] ?? [];
         // 初始化
