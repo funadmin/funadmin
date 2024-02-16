@@ -348,3 +348,10 @@ if(!function_exists('password')){
     }
 
 }
+// Form别名
+if (!class_exists('BuilderTable')) {
+    class_alias('app\\builder\\facade\\BuilderTable', 'BuilderTable');
+}
+if (!class_exists('BuilderForm')) {
+    class_alias('app\\builder\\facade\\BuilderForm', 'BuilderForm');
+}
