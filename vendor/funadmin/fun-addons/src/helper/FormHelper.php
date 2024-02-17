@@ -789,6 +789,7 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
+            $attr = is_string($attr)?explode(',',$attr):[];
             foreach ($select as $k => $v) {
                 $selected = '';
                 if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value)
