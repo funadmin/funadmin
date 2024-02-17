@@ -18,20 +18,23 @@ define(['upload'], function (Upload) {
                 if (list.length > 0) {
                     layui.each(list, function () {
                         $(this).click(function (e) {
-                            e.stopPropagation();
                             if ($(this).attr('lay-event') === 'open') {
+                                e.stopPropagation();
                                 Fun.events.open($(this));
                                 return true;
                             }
                             if ($(this).attr('lay-event') === 'request') {
+                                e.stopPropagation();
                                 Fun.events.request($(this));
                                 return true;
                             }
                             if ($(this).attr('lay-event') === 'iframe') {
+                                e.stopPropagation();
                                 Fun.events.iframe($(this));
                                 return true;
                             }
                             if ($(this).attr('lay-event') === 'dropdown') {
+                                e.stopPropagation();
                                 Fun.events.dropdown($(this));
                                 return true;
                             }
