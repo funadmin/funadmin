@@ -23,6 +23,8 @@ class Index extends BaseController
     //数据库
     protected $databaseConfigFile;
     protected $envFile;
+    //模版
+    protected $envTpl;
     /**
      * 安装中要执行的 SQL 脚本文件清单.
      * 自定义的SQL脚本放在controller同级的sql文件夹,将文件名添加到这个数组中,务必注意脚本依赖顺序,因为系统会按照数组里的顺序依次执行.
