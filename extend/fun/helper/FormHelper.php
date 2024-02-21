@@ -789,7 +789,7 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
-            $attr = is_string($attr)?explode(',',$attr):[];
+            $attr = is_string($attr)?explode(',',$attr):(empty($attr)?[]:$attr);
             foreach ($select as $k => $v) {
                 $selected = '';
                 if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value)
@@ -930,8 +930,8 @@ EOF;
     public function tags($name = '', $options = [], $value = '')
     {
         list($name, $id) = $this->getNameId($name, $options);
-        $options['filter'] = $options['filter'] ?? 'tags';
-        $options['placeholder'] = $options['placeholder'] ?? 'Space To Generate Tags';
+        $options['filter'] = $options['filter'] ?? 'inputtags';
+        $options['placeholder'] = $options['placeholder'] ?? '';
         $labelOptions = $options;
         $verify = '';
         if (isset($options['verify'])) {
@@ -941,9 +941,10 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $labelOptions)}
     <div class="layui-input-block">
-        <div class="tags" >
-            <input id="{$id}" {$this->getOptionsAttr($name, $options)} class="{$this->getClass($options)}"   type="text"  />
-            <input type="text" class="layui-input layui-form-required-hidden" name="{$name}" value="{$value}" {$verify} />
+        <div class="layui-tag-container">
+            <input type="text" {$this->getOptionsAttr($name,$options)}  class="layui-input layui-tag-input {$this->getClass($options)}" type="text" />
+            <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}" {$verify}>
+
         </div>
     </div>
 </div>
