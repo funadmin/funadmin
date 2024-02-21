@@ -464,7 +464,7 @@ define(['upload'], function (Upload) {
                                     input.click();
                                     input.onchange = function () {
                                         var file = this.files[0];
-                                        var xhr;
+                                        var xhr, formData;
                                         xhr = new XMLHttpRequest();
                                         xhr.withCredentials = false;
                                         xhr.open('POST', upload_url);
@@ -494,22 +494,25 @@ define(['upload'], function (Upload) {
                 }
             },
             tags: function (formObj) {
-                var list = formObj !== undefined ? formObj.find("*[lay-filter='tags']") : $("*[lay-filter='tags']");
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='inputtags']") : $("*[lay-filter='inputtags']");
                 if (list.length > 0) {
                     require(['inputTags'], function (inputTags) {
                         layui.each(list, function () {
-                            var _t = $(this),
-                                content = [];
-                            var tag = _t.parents('.tags').find('input[type="hidden"]').val();
-                            if (tag) content = tag.substring(0, tag.length - 1).split(',');
+                            var _t = $(this), data = [],value = _t.next('input').val();
+                            if (value) data = value.substring(0, value.length - 1).split(',');
                             var id = _t.prop('id');
-                            var data = _t.data();
-                            var inputTags = layui.inputTags ? layui.inputTags : parent.layui.inputTags;
                             window['tags-' + id] = inputTags.render({
                                 elem: this,
-                                content: content,
-                                done: (data.done ? eval(data.done(value)) : function (value) {
-                                })
+                                data: data,//初始值
+                                permanentData: [],//不允许删除的值
+                                removeKeyNum: 8,//删除按键编号 默认，BackSpace 键
+                                createKeyNum: 32,//创建按键编号 默认，space 键
+                                beforeCreate: function (data, value) {//添加前操作，必须返回字符串才有效
+                                    return value;
+                                },
+                                onChange: function (data, value, type) {
+                                    _t.next('input').val(data.join(','));
+                                }
                             })
                         })
                     })
@@ -634,11 +637,11 @@ define(['upload'], function (Upload) {
                             if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[[cityId]] && window.FormArray.hasOwnProperty(provinceId)) {
                                 str += '/' + ChineseDistricts[window.FormArray[provinceId]][window.FormArray[cityId]]
                             }
-                            if (FormArray.hasOwnProperty(cityId) && window.FormArray[districtId] && window.FormArray.hasOwnProperty(districtId)) {
+                            if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[districtId] && window.FormArray.hasOwnProperty(districtId)) {
                                 str += '/' + ChineseDistricts[window.FormArray[cityId]][window.FormArray[districtId]]
                             }
                             if (!str) {
-                                str = FormArray.hasOwnProperty(name) ? window.FormArray['name'] : ''
+                                str = window.FormArray.hasOwnProperty(name) ? window.FormArray['name'] : ''
                             }
                             window['citypicker-' + id].setValue(window.FormArray[name] ? window.FormArray[name] : str)
                         })
@@ -1220,11 +1223,13 @@ define(['upload'], function (Upload) {
             /**
              * 初始化表格数据
              */
-            initForm: function () {
-                if (window.FormArray) {
+            initForm: function (data) {
+                if(data){
+                    layui.form.val("form", data);
+                }else if (window.FormArray) {
                     layui.form.val("form", window.FormArray);
-                    layui.form.render();
                 }
+                layui.form.render();
                 require(['multiSelect'], function (multiSelect) {
                     multiSelect = layui.multiSelect ? layui.multiSelect : parent.layui.multiSelect;
                     multiSelect.render();
@@ -1434,7 +1439,6 @@ define(['upload'], function (Upload) {
             bindEvent: function (form, success, error, submit) {
                 form = typeof form == 'object' ? form : $(form);
                 var events = Form.events;
-
                 events.uploads(form); //上传
                 events.choosefiles(form);//选择文件
                 events.selectfiles(form); //选择文件页面类型
