@@ -962,7 +962,6 @@ define(['upload'], function (Upload) {
                     var tr = $(this).parents('tr');
                     var lawtable = tr.parents('.layui-table');
                     rows = lawtable.find('.tr');
-                    console.log(rows)
                     if (rows.length > 1) {
                         $(this).parents('tr').remove();
                     } else {
@@ -1357,7 +1356,6 @@ define(['upload'], function (Upload) {
                             var token = $(this).parents('form').find('input[name="__token__"]');
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
-                            console.log(uploadType)
                             url = url ? url : Fun.url(Upload.init.requests.select_url + '?' +
                                 '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime +
                                 '&path=' + path + '&type=' + uploadType);
