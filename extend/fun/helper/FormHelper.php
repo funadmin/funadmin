@@ -686,8 +686,8 @@ EOF;
         $options['search'] = isset($options['search']) ? true : '';
         $options['num'] = $options['num'] ?? 3;
         $options['last'] = $options['last'] ?? '';
-        if ($attr) {
-            $attr = is_array($attr) ? implode(',', $attr) : $attr;
+        if (!empty($attr)) {
+            $attr = is_string($attr) ? implode(',', $attr) : $attr;
         }
         $options['filter'] = $options['filter'] ?? 'selectN';
         $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
@@ -724,8 +724,8 @@ EOF;
         $multiple = !empty($options['multiple']) ? 'multiple="multiple"' : '';
 
         $options['multiple'] = $multiple ? 1 : '';
-        if ($attr) {
-            $attr = is_array($attr) ? implode(',', $attr) : $attr;
+        if (!empty($attr)) {
+            $attr = is_string($attr) ? implode(',', $attr) : $attr;
         }
         $options['attr'] = $attr;
         $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
@@ -789,7 +789,7 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
-            $attr = is_string($attr)?explode(',',$attr):(empty($attr)?[]:$attr);
+            $attr = is_string($attr)?explode(',',$attr):$attr;
             foreach ($select as $k => $v) {
                 $selected = '';
                 if (is_array($v) && (is_array($value) && is_array($attr) && !empty($attr) && in_array($v[$attr[0]], $value)
