@@ -768,10 +768,12 @@ class CurdService
                     $menu->restore();
                 }
             } else {
-                $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
-                    ->where('pid', $menu['id'])->where('module', $module)->find();
-                if (!$child) {
-                    $menu && $menu->delete();
+                if($menu){
+                   $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
+                        ->where('pid', $menu['id'])->where('module', $module)->find();
+                    if (!$child) {
+                        $menu && $menu->delete();
+                    }
                 }
             }
             foreach ($v['menulist'] as $kk => $vv) {
@@ -1076,7 +1078,7 @@ class CurdService
             $fieldsName = $v['COLUMN_NAME'];
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
-                $v['type'] = "array";
+                    $v['type'] = "array";
             }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
@@ -1209,10 +1211,10 @@ class CurdService
                 $space = $k == 0 ? '' : '                    ';
                 if (!in_array($v, ['restore'])) {
                     $space = $k == 0 ? '' : '                    ';
-                    $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL;
+                    $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . '+location.search,' . PHP_EOL;
                 }
                 if (in_array($v, ['recycle', 'restore', 'delete'])) {
-                    $requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL . $space;
+                    $requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . '+location.search,' . PHP_EOL . $space;
                 }
             }
         }
