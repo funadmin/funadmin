@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2021/8/2
@@ -347,4 +347,60 @@ if(!function_exists('password')){
         return password_hash($password, $typ);
     }
 
+}
+
+// Form别名
+if (!class_exists('BuilderTable')) {
+    class_alias('app\\builder\\facade\\BuilderTable', 'BuilderTable');
+}
+if (!class_exists('BuilderForm')) {
+    class_alias('app\\builder\\facade\\BuilderForm', 'BuilderForm');
+}
+
+if (!function_exists('getSystemTable')) {
+    /**
+     * @param $table
+     * @param $shift
+     * @return array|string[]
+     * 获取系统表格
+     */
+    function getSystemTable($table=[],$shift= [])
+    {
+        $tableList =  [
+            'addon',
+            'admin',
+            'admin_log',
+            'attach',
+            'attach_group',
+            'auth_group',
+            'auth_rule',
+            'blacklist',
+            'builder',
+            'builder_dict',
+            'builder_dict_value',
+            'builder_field',
+            'builder_with',
+            'config',
+            'config_group',
+            'field_type',
+            'field_verify',
+            'languages',
+            'member',
+            'member_account',
+            'member_address',
+            'member_group',
+            'member_level',
+            'member_third',
+            'oauth2_access_token',
+            'oauth2_client',
+            'provinces',
+        ];
+        if(!empty($table)){
+            $tableList =  array_merge($tableList,$table);
+        }
+        if(!empty($shift)){
+            $tableList = array_diff($tableList, $shift);
+        }
+        return $tableList;
+    }
 }
