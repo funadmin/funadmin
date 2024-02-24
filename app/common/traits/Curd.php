@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2017/8/2
@@ -45,14 +45,23 @@ trait Curd
             if (request()->param('selectFields')) {
                 $this->selectList();
             }
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $list = $this->modelClass
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
+            $list = $this->modelClass->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->hiddenFields);
+            }
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
 //            $count = $this->modelClass
 //                ->where($where)
@@ -257,14 +266,25 @@ trait Curd
     public function recycle()
     {
         if (request()->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
             $list = $this->modelClass->onlyTrashed()
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+                ->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->visibleFields);
+            }
+
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
@@ -742,13 +762,15 @@ trait Curd
         }else{
             $sort = ["$sort"=>$order];
         }
-        if($this->dataLimit){
+
+        if($this->dataLimit && !empty($this->dataLimitField)){
             if(is_bool($this->dataLimit)){
-                $where[] = [$tableName.'admin_id'=>session('admin.id')];
+                $where[] = [$tableName.$this->dataLimitField=>session('admin.id')];
             }else{
-                $where[] = [$tableName.'admin_id','in',is_array($this->dataLimit)?$this->dataLimit:explode(',',$this->dataLimit)];
+                $where[] = [$tableName.$this->dataLimitField,'in',is_array($this->dataLimit)?$this->dataLimit:explode(',',$this->dataLimit)];
             }
         }
+
         if ($search) {
             $searcharr = is_array($searchName) ? $searchName : explode(',', $searchName);
             foreach ($searcharr as $k => &$v) {
@@ -859,7 +881,7 @@ trait Curd
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
-        return [$page, $limit,$sort,$where];
+        return [$page, $limit,$sort,$where,$tableName];
     }
 
 }
