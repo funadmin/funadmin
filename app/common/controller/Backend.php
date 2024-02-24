@@ -109,6 +109,11 @@ class Backend extends BaseController
      * 默认为禁用,若启用请务必保证表中存在admin_id字段
      */
     protected $dataLimit = false;
+
+    /**
+     * @var string
+     */
+    protected $dataLimitField = 'admin_id';
     /**
      * @param App $app
      */
