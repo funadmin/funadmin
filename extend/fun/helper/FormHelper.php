@@ -692,6 +692,9 @@ EOF;
         $options['filter'] = $options['filter'] ?? 'selectN';
         $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
         $options['attr'] = $attr;
+        if(!isset($options['search'])){
+            $options['search'] = true;
+        }
         $str = <<<EOF
 <div class="layui-form-item layui-form {$this->getClass($options,'outclass')}" lay-filter="{$name}">{$this->label($name, $options)}
     <div class="layui-input-block">
