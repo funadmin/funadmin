@@ -821,6 +821,9 @@ EOF;
         }
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
+        if(!isset($options['search'])){
+            $options['search'] = true;
+        }
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
