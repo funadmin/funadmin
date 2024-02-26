@@ -60,7 +60,7 @@ trait Curd
                 foreach ($this->visibleFields as $key=>$field){
                     $this->visibleFields[$key] = $tableName.$field;
                 }
-                $list = $list->visible($this->hiddenFields);
+                $list = $list->visible($this->visibleFields);
             }
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
 //            $count = $this->modelClass
