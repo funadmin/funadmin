@@ -1,14 +1,17 @@
 /app/cms
 /app/mocms
+/app/curd
 /app/test
 /.idea
 /.vscode
 /.DS_Store
 *.log
 .env
+./composer.lock
 /addons
 /runtime
 /public/static/addons
 /public/static/cms
 /public/static/mocms
+/public/static/curd
 /public/static/storage

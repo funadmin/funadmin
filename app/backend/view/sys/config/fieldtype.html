@@ -47,19 +47,19 @@
 {:form_textarea('value',['label'=>$formData.value,'verify'=>$formData.verify,'tips'=>$formData.remark],$formData.value)}
 {/case}
 {case value="image"}
-{:form_upload('value',$formData,['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mime'=>'images','num'=>'1'])}
+{:form_upload('value',['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mime'=>'images','num'=>'1'],$formData.value)}
 {/case}
 {case value="images"}
-{:form_upload('value',$formData,['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mime'=>'images'])}
+{:form_upload('value',['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mime'=>'images'],$formData.value)}
 {/case}
 {case value="file"}
-{:form_upload('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mime'=>'file','num'=>'1'])}
+{:form_upload('value',['label'=>'value','verify'=>$formData.verify,'type'=>'radio','mime'=>'file','num'=>'1'],$formData.value)}
 {/case}
 {case value="files"}
-{:form_upload('value',$formData.value,['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mime'=>'file','num'=>'*'])}
+{:form_upload('value',['label'=>'value','verify'=>$formData.verify,'type'=>'checkbox','mime'=>'file','num'=>'*'],$formData.value)}
 {/case}
 {case value="editor"}
-{:form_editor('value',2,['verify'=>$formData.verify])}
+{:form_editor('value',['verify'=>$formData.verify])}
 {/case}
 {/switch}
 {/if}

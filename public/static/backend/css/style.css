@@ -150,7 +150,7 @@ body .layui-form-onswitch{border:none;}
 #theme18.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme18.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme18.active .layui-form-onswitch,
-#theme18.active .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;} 
+#theme18.active .fun-layer-class .layui-layer-title {background:#e82121  !important;color: #fff;}
 #theme18.active blockquote{border-left-color:#e82121 ;}
 #theme18 .layui-header .layui-layout-center li.layui-this{background: #a22222;}
 #theme18.active .layui-form-radio:hover *,#theme18.active  .layui-form-radioed,#theme18.active .layui-form-radioed>i{color: #e82121}
@@ -168,18 +168,18 @@ body .layui-form-onswitch{border:none;}
 #theme20.active .fun-layer-class .layui-layer-btn .layui-layer-btn0,
 #theme20.active .layui-laypage .layui-laypage-curr .layui-laypage-em,
 #theme20.active .layui-form-onswitch,
-#theme20.active .fun-layer-class .layui-layer-title {background:#1890ff  !important;color: #fff;}
-#theme20.active blockquote{border-left-color:#1890ff ;}
-#theme20.active .layui-form-radio:hover *,#theme20.active .layui-form-radioed,#theme20.active .layui-form-radioed>i{color: #1890ff}
+#theme20.active .fun-layer-class .layui-layer-title {background:#4d70ff !important;color: #fff;}
+#theme20.active blockquote{border-left-color:#4d70ff;}
+#theme20.active .layui-form-radio:hover *,#theme20.active .layui-form-radioed,#theme20.active .layui-form-radioed>i{color: #4d70ff}
 
 #theme20 .layui-nav{color: #333;}
-#theme20 .layui-header .layui-layout-center li.layui-this{background: #eee;}
+#theme20 .layui-header .layui-layout-center li.layui-this{background: #e2ebfb;}
 #theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a {color:#333;}
 #theme20 .layui-layout-admin .layui-side-scroll .layui-nav-tree .layui-nav-item>a:hover{color: #333!important;}
 #theme20 .layui-nav-itemed>a, .layui-nav-tree .layui-nav-title a, .layui-nav-tree .layui-nav-title a:hover{color: #333!important;}
 #theme20 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-itemed>.layui-nav-child {background-color: #fff!important;}
-#theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#1890ff!important}
+#theme20 .layui-pagetabs .layui-tab-title li:hover,#theme20 .layui-pagetabs .layui-tab-title li.layui-this{color:#4d70ff!important}
 @media screen and (min-width:769px) {
-#theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#1890ff!important}
+#theme20 .layui-side-shrink .layui-side-menu .layui-nav-item.layui-nav-hover cite{color:#4d70ff!important}
 }
 

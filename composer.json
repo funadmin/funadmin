@@ -1,12 +1,12 @@
 {
   "name": "funadmin/funadmin",
-  "description": "FunAdmin是一个基于thinkphp6,layui,requirejs的k开发应用框架",
+  "description": "FunAdmin是一个基于thinkphp8,layui,requirejs的k开发应用框架",
   "type": "project",
   "license": "Apache-2.0",
   "keywords": [
-    "FunAdmin","CMS","CMF","Layui",
-    "easywechat", "framework","TP6",
-    "thinkphp", "thinkphp6", "ORM"
+    "FunAdmin","CMS","CMF","LowCode","Layui","TP8",
+    "easywechat", "framework","TP6","ORM",
+    "thinkphp", "thinkphp6","thinkphp8"
   ],
   "homepage": "https://www.funadmin.com",
   "authors": [
@@ -17,29 +17,31 @@
   ],
   "support": {
     "email": "994927909@qq.com",
-    "issues": "https://github.com/funadmin/funadmin/issues",
+    "issues": "https://gitee.com/funadmin/funadmin/issues",
     "forum": "https://bbs.funadmin.com/",
     "wiki": "https://doc.funadmin.com",
-    "source": "https://github.com/funadmin/funadmin"
+    "source": "https://gitee.com/funadmin/funadmin"
   },
   "require": {
-    "php": ">=7.4.0",
+    "php": ">=8.0.0",
     "ext-json": "*",
-    "topthink/framework": "^6.1.2",
-    "topthink/think-orm": "2.0.*",
-    "topthink/think-view": "^1.0",
+    "topthink/framework": "^8.0.2",
+    "topthink/think-orm": "3.0.*",
+    "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",
-    "topthink/think-queue": "^3.0",
-    "topthink/think-captcha": "^3.0.7",
+    "topthink/think-captcha": "^3.0.9",
     "topthink/think-helper": "^3.1",
     "topthink/think-multi-app": "^1.0",
-    "topthink/think-ide-helper": "^1.0",
-    "topthink/think-throttle": "^1.3",
     "topthink/think-filesystem": "^2.0",
-    "doctrine/annotations": "^1.14",
-    "ramsey/uuid": "^4.2",
+    "topthink/think-trace": "^1.6",
+    "topthink/think-queue": "^3.0",
+    "topthink/think-throttle": "^2.0",
+    "doctrine/annotations": "^2.0.0",
+    "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^1.28",
-    "funadmin/fun-addons": "^5.1.10"
+    "guzzlehttp/guzzle": "^7.7",
+    "funadmin/fun-addons": "^5.3.2",
+    "firebase/php-jwt": "*"
   },
   "require-dev": {
     "symfony/var-dumper": "^4.4"

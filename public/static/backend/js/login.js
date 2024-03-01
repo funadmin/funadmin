@@ -1,10 +1,13 @@
-define(['jquery', "form", 'toastr'], function ($, Form, Toastr) {
+define(["form", 'toastr'], function (Form, Toastr) {
     Toastr.options = {
         positionClass: "toast-top-center",//弹出的位置,
     };
     var Controller = {
         index: function () {
             Controller.api.bindevent();
+            if(top.location!=self.location){
+                top.location.href = location.href;
+            }
 
         },
         password: function () {

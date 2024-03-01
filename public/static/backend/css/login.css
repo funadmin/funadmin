@@ -3,10 +3,9 @@ body{background-color:#F6F6F6;;-ms-text-size-adjust:100%;-webkit-text-size-adjus
 body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-filter:blur(3px);-moz-filter:blur(3px);-o-filter:blur(3px);-ms-filter:blur(3px);filter:blur(3px);position:absolute;top:0;left:0;right:0;bottom:0;z-index:-1}
 .layui-form-item input,.layui-form-item label{transition:all .3s ease-in-out;-webkit-transition:all .3s ease-in-out}
 .layui-input{height:45px;}
-.layui-input:focus{border-color:#1e9fff!important}
 .layui-login-body{max-width:420px;margin:0 auto;}
 .layui-container{width:100%;height:100%;overflow:hidden}
-.layui-header{height: auto;border-radius: 15px 15px 0 0;padding:25px 0;background:#1e9fff}
+.layui-header{height: auto;border-radius: 15px 15px 0 0;padding:25px 0;background:#4d70ff}
 .layui-card-header{font-family:emoji;color:#fff;text-align:center;letter-spacing:2px;padding:14px 0;font-weight:700;font-size:36px;border-bottom:none}
 .layui-card-body{background:#fff;line-height:normal;border:none;border-radius:18px;padding:0 0 14px 0;
     /*box-shadow:0 0 8px #eee*/
@@ -14,12 +13,12 @@ body:after{content:'';background-repeat:no-repeat;background-size:cover;-webkit-
 .layui-card-body .layui-form{padding:25px 25px;}
 .layui-card-body .layui-form-item{position:relative;margin-bottom:20px; }
 .layui-card-body .layui-input-wrap{height:45px;line-height:45px;}
-.layui-card-body .layui-form-item .layui-input-prefix i{color: #1e9fff !important}
-.layui-form-checked span, .layui-form-checked:hover span{background-color: #1e9fff !important}
-.layui-form-checked i, .layui-form-checked:hover i{color: #1e9fff}
-.layui-form-checked:hover>div, .layui-form-checked>div{background-color:#1e9fff}
-.layui-form-item .captcha-img{display:inline-block;width:50%;float:right}
-.layui-form-item .captcha-img img{border:1px solid #e6e6e6;height:43px;width:100%}
+.layui-card-body .layui-form-item .layui-input-prefix i{color: #4d70ff !important}
+.layui-form-checked span, .layui-form-checked:hover span{background-color: #4d70ff !important}
+.layui-form-checked i, .layui-form-checked:hover i{color: #4d70ff}
+.layui-form-checked:hover>div, .layui-form-checked>div{background-color:#4d70ff}
+.layui-form-item .captcha-img{text-align:right;}
+.layui-form-item .captcha-img img{border:1px solid #e6e6e6;width:120px;height:40px;vertical-align:middle;}
 .layui-form-item.copyright{font-size:12px;color:#999;text-align:center}
 .layui-form-item.copyright a{color:#999}
 /*.layui-form-checked[lay-skin=primary] i{border-color: #e699c6!important;}*/

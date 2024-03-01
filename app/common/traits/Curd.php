@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2017/8/2
@@ -14,6 +14,7 @@ namespace app\common\traits;
 use app\backend\model\Admin;
 use app\common\annotation\NodeAnnotation;
 use app\common\model\Member;
+use app\common\service\UploadService;
 use fun\helper\TreeHelper;
 use OpenAI\Responses\Images\VariationResponse;
 use think\facade\Cache;
@@ -44,14 +45,23 @@ trait Curd
             if (request()->param('selectFields')) {
                 $this->selectList();
             }
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            $list = $this->modelClass
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
+            $list = $this->modelClass->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->visibleFields);
+            }
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
 //            $count = $this->modelClass
 //                ->where($where)
@@ -256,14 +266,25 @@ trait Curd
     public function recycle()
     {
         if (request()->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
+            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
             $list = $this->modelClass->onlyTrashed()
-                ->where($where)
-                ->order($sort)
-                ->paginate([
-                    'list_rows'=> $this->pageSize,
-                    'page' => $this->page,
-                ]);
+                ->where($where)->order($sort)->paginate([
+                'list_rows'=> $this->pageSize,
+                'page' => $this->page,
+            ]);
+            if(!empty($this->hiddenFields) ){
+                foreach ($this->hiddenFields as $key=>$field){
+                    $this->hiddenFields[$key] = $tableName.$field;
+                }
+                $list = $list->hidden($this->hiddenFields);
+            }
+            if(!empty($this->visibleFields) ){
+                foreach ($this->visibleFields as $key=>$field){
+                    $this->visibleFields[$key] = $tableName.$field;
+                }
+                $list = $list->visible($this->visibleFields);
+            }
+
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
@@ -294,7 +315,12 @@ trait Curd
      */
     public function import()
     {
-        $file = request()->param('file');
+        $file = request()->file('file');
+        $file= UploadService::instance()->uploads(session('member.id'),session('amdin.id'));
+        if(!$file['url']){
+            $this->error(lang("Upload failed"));
+        }
+        $file = $file['url'];
         $excelData = $this->getFileData($file);
         $tableField = $this->getTableField();
         try {
@@ -351,7 +377,7 @@ trait Curd
      */
     public function export()
     {
-
+        $this->relationSearch = false;//关联表格，如果要关联需要单独重写
         list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
         $tableName = $this->modelClass->getName();
         $tableName  = Str::snake($tableName);
@@ -408,12 +434,10 @@ trait Curd
      * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
      */
     protected function getFileData($file=''){
-
-        $file = $file?:$this->request->param('file');
         if (!$file) {
             $this->error(lang("Parameter error"));
         }
-        $file = public_path(). $file;
+        $file = public_path(). trim($file,'/');
         //此处写导入逻辑
         $file = iconv("utf-8", "gb2312", $file);
         if (empty($file) || !file_exists($file)) {
@@ -576,7 +600,7 @@ trait Curd
         if(input('selectFields') && input('showField')){
             return $this->selectpage();
         }
-        $fields = input('selectFields/a');
+        $fields = input('selectFields/a','htmlspecialchars,strip_tags');
         $tree = input('tree');
         $field = $fields['name'].','.$fields['value'];
         $parentField = input('parentField/s','','htmlspecialchars,strip_tags');
@@ -687,6 +711,14 @@ trait Curd
         $this->success('ok','',$result);
     }
 
+    protected function buildQuery($searchFields=null,$relationSearch=null){
+
+        return $this->buildParames($searchFields,$relationSearch);
+    }
+    protected function buildParams($searchFields=null,$relationSearch=null){
+
+        return $this->buildParames($searchFields,$relationSearch);
+    }
     /**
      * 组合参数
      * @param null $searchfields
@@ -716,18 +748,29 @@ trait Curd
         $where = [];
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
-                $name = $this->modelClass->getTable();
-                $tableName = $name . '.';
+                $class = get_class($this->modelClass);
+                $className =explode('\\',$class);
+                $modelName = parse_name(array_pop($className));
+                $tableName = $modelName.'.';
+                $sortArr = explode(',', $sort);
+                foreach ($sortArr as $index => & $item) {
+                    $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
+                }
+                unset($item);
+                $sort= implode(',', $sortArr);
             }
-            $sortArr = explode(',', $sort);
-            foreach ($sortArr as $index => & $item) {
-                $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
-            }
-            unset($item);
-            $sort= implode(',', $sortArr);
         }else{
             $sort = ["$sort"=>$order];
         }
+
+        if($this->dataLimit && !empty($this->dataLimitField)){
+            if(is_bool($this->dataLimit)){
+                $where[] = [$tableName.$this->dataLimitField=>session('admin.id')];
+            }else{
+                $where[] = [$tableName.$this->dataLimitField,'in',is_array($this->dataLimit)?$this->dataLimit:explode(',',$this->dataLimit)];
+            }
+        }
+
         if ($search) {
             $searcharr = is_array($searchName) ? $searchName : explode(',', $searchName);
             foreach ($searcharr as $k => &$v) {
@@ -744,6 +787,12 @@ trait Curd
             switch (strtoupper($op)) {
                 case '=':
                     $where[] = [$key, '=', $val];
+                    break;
+                case '>':
+                case '>=':
+                case '<':
+                case '<=':
+                    $where[] = [$key, $op, $val];
                     break;
                 case 'IN':
                     $val = is_array($val)?$val:explode(',',$val);
@@ -832,7 +881,7 @@ trait Curd
                     $where[] = [$key, $op, "%{$val}%"];
             }
         }
-        return [$page, $limit,$sort,$where];
+        return [$page, $limit,$sort,$where,$tableName];
     }
 
 }

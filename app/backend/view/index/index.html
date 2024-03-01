@@ -28,7 +28,7 @@
     window.PLUGINS = '__PLUGINS__';
 </script>
 
-{php} $site_theme = syscfg('site','site_theme'); $theme = "index/theme".$site_theme;{/php}
+{php} $site_theme = syscfg('site','site_theme')?:0; $theme = "index/theme".$site_theme;{/php}
 
 
 <body class="layui-layout-body  menu{$site_theme}">

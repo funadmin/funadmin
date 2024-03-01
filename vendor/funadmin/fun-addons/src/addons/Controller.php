@@ -58,7 +58,7 @@ class Controller extends BaseController
         $this->action = $this->request->action();
         $this->addon =  $this->addon ? call_user_func($filter,  $this->addon) : app()->http->getName();
         $this->addon_path = $app->addons->getAddonsPath() . $this->addon;
-        $this->controller = $controller ? call_user_func($filter, $controller) : 'index';
+        $this->controller = $this->controller ? call_user_func($filter, $this->controller) : 'index';
         $this->action = $this->action ? call_user_func($filter, $this->action) : 'index';
         // 父类的调用必须放在设置模板路径之后
         $this->_initialize();

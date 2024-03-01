@@ -112,7 +112,7 @@ class Member extends Frontend {
             $repass = strip_tags($data['repassword']);
             if(!password_verify($old,$member['password']))   $this->error(lang('Old password error'));
             if($pass!=$repass) $this->error(lang('Repeat password error'));
-            $member->password =   password_hash($data['password'],PASSWORD_BCRYPT);
+            $member->password =   password($data['password']);
             if(!$member->save()) $this->error(lang('edit failed'));
             $this->success(lang('edit successful'));
         }

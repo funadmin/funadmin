@@ -1,0 +1,39 @@
+{if $tableLink}{$tableLink|raw}}{/if}
+{if $tableStyle}{$tableStyle|raw}}{/if}
+{if $tableJs}{$tableJs}{/if}
+{$html|raw}
+{if (!empty($options))}
+{volist name="options" id="vo"}
+<table class="layui-table" id="{$vo.id}" lay-filter="{$vo['elem']}" data-primaryKey="{$vo['primaryKey']}"
+       data-node-add="{:auth(__u('add'))}"
+       data-node-edit="{:auth(__u('edit'))}"
+       data-node-delete="{:auth(__u('delete'))}"
+       data-node-destroy="{:auth(__u('destroy'))}"
+       data-node-modify="{:auth(__u('modify'))}"
+       data-node-recycle="{:auth(__u('recycle'))}"
+       data-node-restore="{:auth(__u('restore'))}"
+       data-node-import="{:auth(__u('import'))}"
+       data-node-export="{:auth(__u('export'))}"
+       {$node}
+</table>
+{/volist}
+{else /}
+<table class="layui-table" id="list" lay-filter="list" data-primaryKey="id"
+       data-node-add="{:auth(__u('add'))}"
+       data-node-edit="{:auth(__u('edit'))}"
+       data-node-delete="{:auth(__u('delete'))}"
+       data-node-destroy="{:auth(__u('destroy'))}"
+       data-node-modify="{:auth(__u('modify'))}"
+       data-node-recycle="{:auth(__u('recycle'))}"
+       data-node-restore="{:auth(__u('restore'))}"
+       data-node-import="{:auth(__u('import'))}"
+       data-node-export="{:auth(__u('export'))}"
+       {$node}
+</table>
+{/if}
+<script>
+    var tableOptions    = {:json_encode($options)};
+    var requests        = {:json_encode($requests)};
+    var data            = {:json_encode($data)};
+    var extraJs         = `{$extraJs}`;
+</script>

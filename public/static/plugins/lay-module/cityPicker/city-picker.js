@@ -33,10 +33,10 @@ layui.define(["jquery"], function (exports) {
             })
         }, render: function () {
             var p = this.getPosition(), placeholder = this.$element.attr("placeholder") || this.options.placeholder,
-                textspan = '<span class="city-picker-span" style="' + this.getWidthStyle(p.width) + "height:" + (p.height - 2) + "px;line-height:" + (p.height - 1) + 'px;">' + (placeholder ? '<span class="placeholder">' + placeholder + "</span>" : "") + '<span class="title"></span><div class="arrow"></div>' + '<i class="icon_ca"></i></span>',
+                textspan = '<span class="city-picker-span" style="' + this.getWidthStyle(p.width) + 'height:36px;line-height:36px;top:'+ -(p.height)+'px">' + (placeholder ? '<span class="placeholder">' + placeholder + "</span>" : "") + '<span class="title"></span><div class="arrow"></div>' + '<i class="icon_ca"></i></span>',
                 dropdown = '<div class="city-picker-dropdown" style="left:0px;top:100%;' + this.getWidthStyle(p.width, true) + '">' + '<div class="city-select-wrap">' + '<div class="city-select-tab">' + '<a class="active" data-count="' + this.PROVINCE + '">省份</a>' + (this.includeDem(this.CITY) ? '<a data-count="' + this.CITY + '">城市</a>' : "") + (this.includeDem(this.DISTRICT) ? '<a data-count="' + this.DISTRICT + '">区县</a>' : "") + "</div>" + '<div class="city-select-content">' + '<div class="city-select province ' + this.PROVINCE + '" data-count="' + this.PROVINCE + '"></div>' + (this.includeDem(this.CITY) ? '<div class="city-select ' + this.CITY + '" data-count="' + this.CITY + '"></div>' : "") + (this.includeDem(this.DISTRICT) ? '<div class="city-select ' + this.DISTRICT + '" data-count="' + this.DISTRICT + '"></div>' : "") + "</div></div>";
             this.$element.addClass("city-picker-input");
-            this.$textspan = $(textspan).insertAfter(this.$element);
+            this.$textspan = $(textspan).insertBefore(this.$element);
             this.$dropdown = $(dropdown).insertAfter(this.$textspan);
             var $select = this.$dropdown.find(".city-select");
             $.each(this.dems, $.proxy(function (i, type) {
@@ -114,6 +114,7 @@ layui.define(["jquery"], function (exports) {
             }
             return sizes
         }, getWidthStyle: function (w, dropdown) {
+            w= '100%';
             if (this.options.responsive && !$.isNumeric(w)) {
                 return "width:" + w + ";"
             } else {

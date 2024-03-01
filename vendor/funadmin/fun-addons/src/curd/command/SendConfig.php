@@ -32,8 +32,8 @@ class SendConfig extends Command
         //获取默认配置文件
         $content = file_get_contents(root_path() . 'vendor/funadmin/fun-addons/src/console.php');
 
-        $configPath = config_path() . '/';
-        $configFile = $configPath . 'console.php';
+        $configPath = config_path() ;
+        $configFile = $configPath . '/console.php';
 
         //判断目录是否存在
         if (!file_exists($configPath)) {

@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="__CDN____STATIC__/backend/css/theme4.css?v={:time()}" media="all">
+<link rel="stylesheet" href="__CDN____STATIC__/backend/css/theme4.css" media="all">
 
 <div class="layui-header layui-bg-green">
   <!-- 头部区域（可配合layui已有的水平导航） -->
@@ -77,10 +77,10 @@
         <cite>{:syscfg('site','site_name')}</cite></a>
     </div>
     <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
-    <ul style="display: block" class="layui-nav layui-nav-tree" lay-filter="menulist"  lay-shrink="all" id="layui-side-nav">
+    <ul style="display: block" class="layui-nav layui-nav-tree"  lay-accordion lay-filter="menulist"  lay-shrink="all" id="layui-side-nav">
       {$menulist.nav|raw}
     </ul>
-    <ul data-rel="external" class="layui-nav layui-nav-tree header" style="margin-top: auto" lay-filter="test">
+    <ul data-rel="external" class="layui-nav layui-nav-tree header"  lay-accordion style="margin-top: auto" lay-filter="test">
       <li class="layui-nav-item" style="margin-left: 15px;" data-tips="相关链接">相关链接</li>
       <li class="layui-nav-item" data-tips="系统官网">
         <a href="http://www.FunAdmin.com" target="_blank">

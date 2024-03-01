@@ -50,4 +50,6 @@ return [
     'var_jsonp_handler'     => 'callback',
     //跨应用路由
     'cross_app_route'	=>	true,
+    //域名
+    'url_domain_deploy'      => true,
 ];

@@ -16,16 +16,20 @@
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:syscfg('site','site_version')}" media="all">
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/global.css?v={:syscfg('site','site_version')}" media="all" />
-    <script src="__CDN____STATIC__/plugins/jquery/jquery-3.6.0.min.js"></script>
+<!--    <script src="__CDN____STATIC__/plugins/jquery/jquery-3.7.1.min.js"></script>-->
     <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
     {:token_meta()}
+    <script>
+        window.Config = {:json_encode($config)};
+        window.FormArray = {:isset($formData)?(json_encode($formData)):'""'};
+        window.STATIC ='__STATIC__'
+        window.PLUGINS = '__PLUGINS__';
+        window.APP = '{$APP}';
+        window.CONTROLLER = '{$CONTROLLER}';
+        window.ACTION = '{$ACTION}';
+    </script>
 </head>
-<script>
-    window.Config = {:json_encode($config)};
-    window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
-    window.STATIC ='__STATIC__'
-    window.PLUGINS = '__PLUGINS__';
-</script>
+
 <body style="padding: 10px;background: #fff">
 
 <div class="fun-container" id="app" style="">
@@ -39,5 +43,7 @@
 <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
 <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
+<script defer src="__CDN____STATIC__/require.min.js?v={:syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','site_version')}" charset="utf-8"></script>
 
-<script defer src="__CDN____STATIC__/require.min.js?v={:syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
+{if !empty($formScript)}{$formScript}{/if}
+{if !empty($tableScript)}{$tableScript}{/if}

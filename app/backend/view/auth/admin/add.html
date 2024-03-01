@@ -52,10 +52,10 @@
                         <div class="layui-tab-content">
                             <div class="layui-tab-item layui-show">
                                 <form class="layui-form" lay-filter="form">
-                                    {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
+                                    {:form_input('username','text',['verify'=>'required','disabled'=>true,])}
                                     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
                                     {:form_input('password','password',['verify'=>'','tips'=>'If you do not fill in, you will not change the password'])}
-                                    {:form_upload('avatar',$formData,['mime'=>'images'])}
+                                    {:form_upload('avatar',['mime'=>'images'],$formData['avatar']??'')}
                                     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval please fill in carefully'] )}
                                     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
                                     {if(input('type'))}
@@ -83,7 +83,7 @@
     {if !$formData}
     {:form_input('password','password',['verify'=>'required','tips'=>'Password must be greater than 6 characters and less than 15 characters'] )}
     {/if}
-    {:form_upload('avatar',$formData,['mime'=>'images'])}
+    {:form_upload('avatar',['mime'=>'images'],$formData?$formData['avatar']:'')}
     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval please fill in carefully'] )}
     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}
     {if(input('type'))}

@@ -72,7 +72,7 @@ class Config extends Backend {
      */
     public function add(){
         if($this->request->isPost()){
-            $post = $this->request->param();
+            $post = $this->request->post();
             $rule = ['code|编码'=>"require|unique:config"];
             $this->validate($post, $rule);
             if($this->modelClass->save($post)){

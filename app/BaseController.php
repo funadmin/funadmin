@@ -14,6 +14,7 @@ namespace app;
 
 use think\App;
 use think\exception\ValidateException;
+use think\facade\View;
 use think\Validate;
 
 
@@ -62,6 +63,9 @@ abstract class BaseController
     // 初始化
     protected function initialize()
     {
+        View::assign('ACTION',request()->action());
+        View::assign('CONTROLLER',request()->controller());
+        View::assign('APP',app('http')->getName());
 
     }
 

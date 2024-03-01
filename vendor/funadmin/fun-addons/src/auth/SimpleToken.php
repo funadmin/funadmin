@@ -14,13 +14,11 @@
 namespace fun\auth;
 
 use app\common\service\PredisService;
-use Firebase\JWT\Key;
 use think\facade\Config;
 use think\facade\Request;
 use fun\auth\Send;
 use think\facade\Db;
 use think\Lang;
-use Firebase\JWT\JWT;
 /**
  * 生成token
  */
@@ -95,52 +93,5 @@ class SimpleToken
         }
         $accessToken =  $this->buildAccessToken($memberInfo,$this->expires);
         $this->success(lang('success'), ['access_token'=>$accessToken]);
-    }
-
-    /**
-     * 生成AccessToken
-     * @return string
-     */
-    protected function buildAccessToken($memberInfo,$expires)
-    {
-        $time = time(); //签发时间
-        $expire = $time + $expires; //过期时间
-        $scopes = 'role_access';
-        if($expires==$this->refreshExpires)  $scopes = 'role_refresh';
-        $token = array(
-            "member_id" => $memberInfo['member_id'],
-            'appid'=>$this->appid,
-            'appsecret'=>$this->appsecret,
-            "iss" => "https://www.funadmin.com",//签发组织
-            "aud" => "https://www.funadmin.com", //签发作者
-            "scopes" => $scopes, //刷新
-            "iat" => $time,
-            "nbf" => $time,
-            "exp" => $expire,      //过期时间时间戳
-        );
-        return   JWT::encode($token,  $this->key, 'HS256');
-    }
-
-
-    protected function getMember($membername, $password)
-    {
-        $member = Db::name($this->tableName)
-            ->where('status',1)
-            ->where('username', $membername)
-            ->whereOr('mobile', $membername)
-            ->whereOr('email', $membername)
-            ->field('id as member_id,password')
-//            ->cache($this->appid.$membername,3600)
-            ->find();
-        if ($member) {
-            if (password_verify($password, $member['password'])) {
-                unset($member['password']);
-                return $member;
-            } else {
-                $this->error(lang('Password is not right'), [], 401);
-            }
-        } else {
-            $this->error(lang('Account is not exist'), [], 401);
-        }
     }
 }

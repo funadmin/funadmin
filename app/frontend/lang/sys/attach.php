@@ -23,5 +23,6 @@ return [
     'Height'=>'高',
     'Group List'=>'分组',
     'ALL OR DEFAULT CAN NOT DELETE'=>"默认或全部不能删除",
+    'Editor'=>"编辑器"
 
 ];

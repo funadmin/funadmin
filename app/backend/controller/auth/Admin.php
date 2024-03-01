@@ -150,11 +150,9 @@ class Admin extends Backend
         $id = $this->request->param('id');
         if ($this->request->isPost()) {
             $post = $this->request->post();
-            $rule = ['group_id'=>'require'];
-            $this->validate($post, $rule);
             if(session('admin.id'))
                 if($post['password']){
-                    $post['password'] = password_hash($post['password'],PASSWORD_BCRYPT);
+                    $post['password'] = password($post['password']);
                 }else{
                     unset($post['password']);
                 }
@@ -196,7 +194,7 @@ class Admin extends Backend
             $this->validate($post, $rule);
             if(session('admin.id'))
             if($post['password']){
-                $post['password'] = password_hash($post['password'],PASSWORD_BCRYPT);
+                $post['password'] = password($post['password']);
             }else{
                 unset($post['password']);
             }

@@ -180,7 +180,7 @@ class Login extends Frontend
             if ($data['vercode'] != cookie('forget_code')) {
                 $this->error('验证码错误！');
             }
-            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            $data['password'] = password($data['password']);
             $member = $this->modelClass->find($data['id']);
             $member->password = $data['password'];
             $res = $member->save();

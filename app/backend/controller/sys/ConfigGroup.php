@@ -41,7 +41,7 @@ class ConfigGroup extends Backend {
      */
     public function add(){
         if($this->request->isPost()){
-            $post = $this->request->param();
+            $post = $this->request->post();
             $rule = ['name|组名'=>'unique:config_group'];
             $this->validate($post, $rule);
             try {

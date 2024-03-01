@@ -336,7 +336,7 @@ class AuthService extends AbstractService
                 if($theme==4){
                     $hide = 'layui-hide';
                 }
-                $html['menu'] .= '<ul style="display:block" class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
+                $html['menu'] .= '<ul style="display:block"  lay-accordion class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
                 if ($val['child'] and count($val['child']) > 0) {
                     $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
                     foreach ($val['child'] as $k => $v) {

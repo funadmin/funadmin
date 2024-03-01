@@ -2,13 +2,13 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2021 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2023 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace think\response;
 
@@ -45,7 +45,7 @@ class Redirect extends Response
     /**
      * 处理数据
      * @access protected
-     * @param mixed $data 要处理的数据
+     * @param  mixed $data 要处理的数据
      * @return string
      */
     protected function output($data): string
@@ -56,8 +56,8 @@ class Redirect extends Response
     /**
      * 重定向传值（通过Session）
      * @access protected
-     * @param string|array $name 变量名或者数组
-     * @param mixed $value 值
+     * @param  string|array  $name 变量名或者数组
+     * @param  mixed         $value 值
      * @return $this
      */
     public function with($name, $value = null)

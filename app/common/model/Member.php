@@ -25,7 +25,7 @@ class  Member extends BaseModel{
     use SoftDelete;
 
 
-    
+
     protected $deleteTime = 'delete_time';
     protected $defaultSoftDelete = 0;
 
@@ -68,7 +68,7 @@ class  Member extends BaseModel{
         if (strlen($data['password']) < 6)  throw new \Exception('password length cannot be less than 6 characters');
         if (!captcha_check($data['vercode']))  throw new \Exception('verification_code_error');
         if (!password_verify($data['password'], $member->password))  throw new \Exception('wrong_password');
-        $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+        $data['password'] = password($data['password']);
         $member->login_num = $member->login_num + 1;
         $member->last_ip = $_SERVER['REMOTE_ADDR'];
         $member->last_login = time();
@@ -105,7 +105,7 @@ class  Member extends BaseModel{
             if (!captcha_check($data['vercode'])) throw new \Exception('验证码错误');
             $num = rand(0, 13);
             $data['avatar'] = '/static/frontend/images/avatar/' . $num . '.jpg';
-            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            $data['password'] = password($data['password']);
             session('regData', $data);
             self::create($data);
             Db::commit();

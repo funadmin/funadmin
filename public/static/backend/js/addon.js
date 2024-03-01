@@ -1,4 +1,4 @@
-define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md5,Upload) {
+define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
     //表格重载失效的问题解决方案
     let Controller = {
         index: function () {
@@ -14,7 +14,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     logout_url: 'addon/logout',
                     localinstall:{
                         type: 'upload',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-btn-danger',
                         url: 'addon/localinstall',
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
@@ -23,7 +23,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                     },
                     plugins:{
                         type: 'href',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-bg-5',
                         url: 'https://www.funadmin.com/frontend/plugins',
                         icon: 'layui-icon layui-icon-app',
                         text: __('plugins'),
@@ -39,7 +39,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         extend:"id='Create' ",
                     },account:{
                         type: 'account',
-                        class: 'layui-btn-sm layui-btn-normal',
+                        class: 'layui-btn-sm layui-bg-10',
                         url: 'addon/add',
                         icon: 'layui-icon layui-icon-user',
                         text: __('Account'),
@@ -60,10 +60,10 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                 toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
                 searchName:'name',
+                lineStyle: 'min-height: 100px;', // 定义表格的多行样式
                 search: true,
-                show:false,
+                // searchShow:true,
                 cols: [[
-                    {checkbox: true,},
                     {
                         field: 'name',
                         title: __('ADDONAME'),
@@ -73,90 +73,92 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         hide:true
                     },
                     {
-                        field: 'title',
-                        title: __('Title'),
-                        // width: 150,
-                        templet: function (d){
-                            if(d.website){
-                                return '<a class="layui-btn-xs layui-btn layui-btn-normal" target="_blank" href="'+d.website+'">'+d.title+'</a>';
-                            }else{
-                                return d.title;
-                            }
-                        }
-                    },
-                    {
                         field: 'thumb',
                         title: __('Logo'),
-                        width: 100,
-                        imageHeight: 40,
+                        width: 90,
+                        imageHeight: 50,
+                        imageWidth: 50,
                         search: false,
                         align: "center",
                         templet: Table.templet.image
                     },
-                    {field: 'description', title: __('Description'), minWidth: 220, },
                     {
-                        field: 'version', title: __('Addon version'), width: 160, search: false,
+                        field: 'title',
+                        title: __('插件信息'),
+                        minWidth: 150,
+                        align:'left',
+                        templet: function (d){
+                            if(d.website){
+                                return '标题: <a class="layui-btn-xs layui-font-blue" target="_blank" href="'+d.website+'">'+d.title+'</a>'+"<br>"+ '详情：'+d.description;
+                            }else{
+                                return '标题：'+d.title +"<br>"+ '详情：'+d.description;
+                            }
+                        }
+                    },
+
+                    // {field: 'description', title: __('Description'), minWidth: 220,align:'left'},
+                    {
+                        field: 'version', title: __('Addon version'), width: 100, search: false,
                         templet: function (d) {
                             return d['pluginsVersion'] ? d['pluginsVersion'] ['0']['version'] : d.version;
                         }
                     },
                     // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
-                    {field: 'author', title: __('Author'), width: 120,},
+                    {field: 'author', title: __('Author'), width: 120, templet: function (d) {
+                            return layui.util.unescape(d['author']);
+                        }
+                    },
                     {field: 'general_price', title: __('Price'), width: 120,search: false,
                         templet: function (d){
                             if(d.general_price>0){
-                                return '<span class="layui-badge">￥'+d.general_price+'</span>';
+                                return '<span class="layui-btn layui-btn-sm layui-btn-danger layui-font-14">￥'+d.general_price+'</span>';
                             }else{
-                                return '<span class="layui-badge layui-bg-blue">免费</span>';
+                                return '<span class="layui-btn layui-btn-sm layui-btn-normal">免费</span>';
                             }
                         }
                     },
                     {field: 'download', title: __('download'), width: 120,search: false},
-                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,templet:Table.templet.time},
-                    {
-                        minwidth: 250, align: 'center', init: Table.init, templet: function (d) {
+                    {field: 'publish_time', title: __('Publishtime'), width: 180, search: false,dateformat: 'yyyy-MM-dd',templet:Table.templet.time},
+                    {title: __('Operat'), fixed:'right', minWidth: 180,init: Table.init, templet: function (d) {
                             var html = '';
                             if (d.install && d.install == 1 ) {
                                 if(d.lastVersion > d.localVersion){
-                                    html += "<a data-auth='"+auth+"' href='javascript:;' " +
-                                        "class='layui-btn layui-btn-normal layui-btn-xs '"   +
-                                        "title='+__('upgrade')+'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
+                                    html += "<button data-auth='"+auth+"' class='layui-btn layui-btn-normal layui-btn-sm ' title='"+ __('Upgrade') +"'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
                                         'data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
-                                        __('Upgrade')+"</a>";
+                                        __('Upgrade')+"</button>";
                                 }
-                                html += '<a  data-auth="'+auth+'" href="javascript:;" class="layui-btn  layui-btn-xs"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</a>'
+                                html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-sm"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
                                 if (d.status == 1 ) {
-                                    html += '<a lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</a>'
+                                    html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
                                 } else {
-                                    html += '<a data-auth="'+auth+'" class="layui-btn layui-btn-xs layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</a>'
+                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</button>'
                                 }
-                                html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</a>'
+                                html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
                                 if (d.website !== '') {
-                                    html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-xs">demo</a>';
+                                    html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</a>';
                                 }
-                                if(d.web){
-                                    html+="<a data-auth=\"'+auth+'\" class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.web+"'>前台</a>"
-                                }
+                                // if(d.url){
+                                    html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='/addons/"+d.name+"'>前台</a>"
+                                // }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
-                                    html+="<a class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
+                                    html+="<a class=\"layui-btn  layui-btn-sm layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
                                 }else{
-                                    html += '<a data-auth="'+auth+'" href="javascript:;" class="layui-btn layui-btn-danger layui-btn-xs"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</a>'
+                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
                                 }
                             }
                             return html;
                         }
                     }
                 ]],
-                limits: [10, 15, 20, 25, 50, 100],
+                limits: [15, 20, 25, 50, 100],
                 limit: 15,
-                page: false
+                page: true
             });
             Table.api.bindEvent(Table.init.tableId);
-            layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
-                var url = $(this).data('url'),auth = $(this).data('auth');
+            var tableObj = layui.table.on('tool(' + Table.init.table_elem + ')', function (obj) {
+                var  _that = $(this), url = _that.data('url')   ,auth = _that.data('auth');
                 url = Fun.url(url);var event = obj.event;
-                if(event ==='open'){ return this.call();}
                 if (event === 'install') {
                     if (auth) {
                         Fun.toastr.confirm(__('Are you sure you want to install it'), function () {
@@ -235,7 +237,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         });
                     }
                 }
-                if (event === 'uninstall') {
+                else if (event === 'uninstall') {
                     Fun.toastr.confirm(__('Are you sure you want to uninstall it'), function () {
                         Fun.ajax({
                             url: url,
@@ -252,7 +254,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         })
                     });
                 }
-                if (event === 'status') {
+                else if (event === 'status') {
                     Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
                         Fun.ajax({
                             url: url,
@@ -265,7 +267,7 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         })
                     });
                 }
-                if(event === 'more') {
+                else if(event === 'more') {
                     if (auth) {
                         //更多下拉菜单
                         jsondata = $(this).data('value');
@@ -339,6 +341,9 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
                         });
                     }
                 }
+                else {
+                     return  _that.trigger("click");
+                }
                 return false;
             })
             //指定允许上传的文件类型
@@ -379,7 +384,6 @@ define(['jquery', 'table', 'form', 'md5','upload'], function ($, Table, Form, Md
             AccountClick = function(e){
                 console.log()
                 let funadmin_memberinfo =  Fun.api.getStorage('funadmin_memberinfo')
-                console.log(funadmin_memberinfo)
                 if(typeof funadmin_memberinfo !=='undefined' && funadmin_memberinfo!=''){
                     layer.open({
                         type: 1,

@@ -2,13 +2,13 @@
 // +----------------------------------------------------------------------
 // | ThinkPHP [ WE CAN DO IT JUST THINK ]
 // +----------------------------------------------------------------------
-// | Copyright (c) 2006~2021 http://thinkphp.cn All rights reserved.
+// | Copyright (c) 2006~2023 http://thinkphp.cn All rights reserved.
 // +----------------------------------------------------------------------
 // | Licensed ( http://www.apache.org/licenses/LICENSE-2.0 )
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace think;
 
@@ -57,6 +57,8 @@ class Route
         'url_lazy_route'        => false,
         // 是否强制使用路由
         'url_route_must'        => false,
+        // 是否区分大小写
+        'url_case_sensitive'    => false,
         // 合并路由规则
         'route_rule_merge'      => false,
         // 路由是否完全匹配
@@ -84,12 +86,6 @@ class Route
         // 非路由变量是否使用普通参数方式（用于URL生成）
         'url_common_param'      => true,
     ];
-
-    /**
-     * 当前应用
-     * @var App
-     */
-    protected $app;
 
     /**
      * 请求对象
@@ -139,12 +135,6 @@ class Route
     protected $lazy = false;
 
     /**
-     * 路由是否测试模式
-     * @var bool
-     */
-    protected $isTest = false;
-
-    /**
      * （分组）路由规则是否合并解析
      * @var bool
      */
@@ -156,9 +146,8 @@ class Route
      */
     protected $removeSlash = false;
 
-    public function __construct(App $app)
+    public function __construct(protected App $app)
     {
-        $this->app      = $app;
         $this->ruleName = new RuleName();
         $this->setDefaultDomain();
 
@@ -187,7 +176,7 @@ class Route
         // 注册全局MISS路由
         $this->miss(function () {
             return Response::create('', 'html', 204)->header(['Allow' => 'GET, POST, PUT, DELETE']);
-        }, 'options')->allowCrossDomain();
+        }, 'options');
     }
 
     public function config(string $name = null)
@@ -209,27 +198,6 @@ class Route
     {
         $this->lazy = $lazy;
         return $this;
-    }
-
-    /**
-     * 设置路由为测试模式
-     * @access public
-     * @param bool $test 路由是否测试模式
-     * @return void
-     */
-    public function setTestMode(bool $test): void
-    {
-        $this->isTest = $test;
-    }
-
-    /**
-     * 检查路由是否为测试模式
-     * @access public
-     * @return bool
-     */
-    public function isTest(): bool
-    {
-        return $this->isTest;
     }
 
     /**
@@ -317,7 +285,7 @@ class Route
      * @param mixed        $rule 路由规则
      * @return Domain
      */
-    public function domain($name, $rule = null): Domain
+    public function domain(string|array $name, $rule = null): Domain
     {
         // 支持多个域名使用相同路由规则
         $domainName = is_array($name) ? array_shift($name) : $name;
@@ -399,14 +367,14 @@ class Route
     {
         if (is_null($domain)) {
             $domain = $this->host;
-        } elseif (false === strpos($domain, '.') && $this->request) {
+        } elseif (!str_contains($domain, '.') && $this->request) {
             $domain .= '.' . $this->request->rootDomain();
         }
 
         if ($this->request) {
             $subDomain = $this->request->subDomain();
 
-            if (strpos($subDomain, '.')) {
+            if (str_contains($subDomain, '.')) {
                 $name = '*' . strstr($subDomain, '.');
             }
         }
@@ -518,12 +486,6 @@ class Route
      */
     public function rule(string $rule, $route = null, string $method = '*'): RuleItem
     {
-        if ($route instanceof Response) {
-            // 兼容之前的路由到响应对象，感觉不需要，使用场景很少，闭包就能实现
-            $route = function () use ($route) {
-                return $route;
-            };
-        }
         return $this->group->addRule($rule, $route, $method);
     }
 
@@ -547,11 +509,11 @@ class Route
     /**
      * 注册路由分组
      * @access public
-     * @param string|\Closure $name  分组名称或者参数
+     * @param string|Closure $name  分组名称或者参数
      * @param mixed           $route 分组路由
      * @return RuleGroup
      */
-    public function group($name, $route = null): RuleGroup
+    public function group(string|Closure $name, $route = null): RuleGroup
     {
         if ($name instanceof Closure) {
             $route = $name;
@@ -726,7 +688,7 @@ class Route
      * @param array|bool   $resource 资源
      * @return $this
      */
-    public function rest($name, $resource = [])
+    public function rest(string|array $name, array|bool $resource = [])
     {
         if (is_array($name)) {
             $this->rest = $resource ? $name : array_merge($this->rest, $name);
@@ -759,7 +721,7 @@ class Route
      * @param string         $method 请求类型
      * @return RuleItem
      */
-    public function miss($route, string $method = '*'): RuleItem
+    public function miss(string|Closure $route, string $method = '*'): RuleItem
     {
         return $this->group->miss($route, $method);
     }
@@ -770,7 +732,7 @@ class Route
      * @param Closure|bool $withRoute
      * @return Response
      */
-    public function dispatch(Request $request, $withRoute = true)
+    public function dispatch(Request $request, Closure|bool $withRoute = true)
     {
         $this->request = $request;
         $this->host    = $this->request->host(true);
