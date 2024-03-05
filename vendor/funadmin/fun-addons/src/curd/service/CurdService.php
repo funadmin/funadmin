@@ -49,7 +49,7 @@ class CurdService
      * 表前缀
      * @var string
      */
-    protected $tablePrefix = 'fun_';
+    protected $tablePrefix = '';
     /**
      * 数据库名
      * @var string
@@ -115,7 +115,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'extend' . '/' . 'fun' . '/' . 'curd' . '/' . 'tpl' . '/';
+        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -540,7 +540,7 @@ class CurdService
                     } else {
                         $value = isset($this->selectFields[$i]) ? $this->selectFields[$i] : 'title';
                     }
-                    $k = str_replace(['_id', '_ids'], ['', ''], $k);
+                    $kk = str_replace(['_id', '_ids'], ['', ''], $k);
                     $joinTplStr .= str_replace(['{{$method}}', '{{$values}}', '{{$joinModel}}'],
                             ['get' . ucfirst($kk), $value, ucfirst(Str::studly($model))],
                             file_get_contents($joinAttrTpl)) . PHP_EOL;

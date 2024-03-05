@@ -1551,6 +1551,7 @@ EOF;
         }
         return $str;
     }
+
     /**搜索
      * @return string
      */
@@ -1572,6 +1573,15 @@ EOF;
         return $str;
     }
 
+    protected function laycreatable($options = [])
+    {
+        $str = '';
+        if (!isset($options['creatable']) || $options['creatable'] == true) {
+            $str = ' lay-creatable';
+        }
+        return $str;
+
+    }
     /**
      * @param $ops
      * @param $val
@@ -1713,6 +1723,9 @@ EOF;
                         break;
                     case 'search':
                         $attr .= $this->laysearch($options);
+                        break;
+                    case 'creatable':
+                        $attr .= $this->laycreatable($options);
                         break;
                     case 'skin':
                         $attr .= $this->layskin($options);

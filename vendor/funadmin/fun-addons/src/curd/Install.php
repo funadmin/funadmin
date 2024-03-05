@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: https://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2020/9/21
@@ -30,7 +30,7 @@ class Install extends Command
     //sql 文件
     protected $sqlFile = '';
     //mysql版本
-    protected $mysqlVersion = '5.6';
+    protected $mysqlVersion = '5.7';
     //database模板
     protected $databaseTpl = '';
 
@@ -160,10 +160,11 @@ class Install extends Command
             $db["username"] = $env['DATABASE']['USERNAME']  ;
             $db["password"] = $env['DATABASE']['PASSWORD']  ;
         }
+        $prefix = env('DB_PREFIX');
         $db["host"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostname default(127.0.01)'))?:$db["host"];
         $db["port"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostport default (3306)'))?:$db["port"] ;
         $db['database'] = strtolower($this->output->ask($this->input, '👉 Set mysql database default (funadmin)'))?:$db["database"];
-        $db['prefix'] = strtolower($this->output->ask($this->input, '👉 Set mysql table prefix default (fun_)'))?:$db["prefix"];
+        $db['prefix'] = strtolower($this->output->ask($this->input, "👉 Set mysql table prefix default( $prefix )"))?:$db["prefix"];
         $db["charset"] = strtolower($this->output->ask($this->input, '👉 Set mysql table charset default (utf8mb4)'))?:$db["charset"];
         $db['username'] = strtolower($this->output->ask($this->input, '👉 Set mysql username default (root)'))?:$db["username"];
         $db['password'] = strtolower($this->output->ask($this->input, '👉 Set mysql password required'))?: $db["password"];

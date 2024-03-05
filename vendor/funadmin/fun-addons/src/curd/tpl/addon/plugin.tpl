@@ -46,23 +46,4 @@ class Plugin extends Addons
     {
         return true;
     }
-
-    /**
-     * 实现初始化钩子方法
-     * @return mixed
-     */
-    public function AddonsInit($param)
-    {
-
-    }
-
-    /**
-     * 实现化钩子方法
-     * @return mixed
-     */
-    public function demoHook($param)
-    {
-        return true;
-    }
-
 }
