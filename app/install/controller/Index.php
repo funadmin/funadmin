@@ -31,7 +31,7 @@ class Index extends BaseController
      */
     protected $sqlFileDir = '';
     //mysql版本
-    protected $mysqlVersion = '5.6';
+    protected $mysqlVersion = '5.7';
     //database模板
     protected $databaseTpl = '';
 
@@ -101,8 +101,7 @@ class Index extends BaseController
             $db['username'] = request()->post('username') ?: 'root';
             $db['password'] = request()->post('password') ?: 'root';
             $db['database'] = request()->post('database') ?: 'funadmin';
-            $db['prefix'] = request()->post('prefix') ?: $this->config['tablePrefix'];
-            $db['prefix'] = rtrim($db['prefix'], "_") . "_";
+            $db['prefix'] = request()->post('prefix');
             $admin['username'] = request()->post('adminUserName') ?: 'admin';
             $admin['password'] = request()->post('adminPassword') ?: '123456';
             $admin['repassword'] = request()->post('rePassword') ?: '123456';

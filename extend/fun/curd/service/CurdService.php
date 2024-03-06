@@ -49,7 +49,7 @@ class CurdService
      * 表前缀
      * @var string
      */
-    protected $tablePrefix = 'fun_';
+    protected $tablePrefix = '';
     /**
      * 数据库名
      * @var string

@@ -824,6 +824,9 @@ EOF;
         }
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
+        if(!isset($options['search'])){
+            $options['search'] = true;
+        }
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
@@ -1551,6 +1554,7 @@ EOF;
         }
         return $str;
     }
+
     /**搜索
      * @return string
      */
@@ -1572,6 +1576,15 @@ EOF;
         return $str;
     }
 
+    protected function laycreatable($options = [])
+    {
+        $str = '';
+        if (!isset($options['creatable']) || $options['creatable'] == true) {
+            $str = ' lay-creatable';
+        }
+        return $str;
+
+    }
     /**
      * @param $ops
      * @param $val
@@ -1713,6 +1726,9 @@ EOF;
                         break;
                     case 'search':
                         $attr .= $this->laysearch($options);
+                        break;
+                    case 'creatable':
+                        $attr .= $this->laycreatable($options);
                         break;
                     case 'skin':
                         $attr .= $this->layskin($options);
