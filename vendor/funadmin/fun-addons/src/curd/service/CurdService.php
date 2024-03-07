@@ -86,9 +86,9 @@ class CurdService
     protected $joinName;
     protected $joinModel;
     protected $joinTable;
-    protected $joinForeignKey;
+    protected $joinForeignKey = [];
     protected $primaryKey = 'id';
-    protected $joinPrimaryKey;
+    protected $joinPrimaryKey = [] ;
     protected $selectFields;
     protected $jsCols;
     protected $jsColsRecycle;
@@ -115,7 +115,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
+        $this->tplPath = $this->rootPath . 'extend' . '/' . 'fun' . '/' . 'curd' . '/' . 'tpl' . '/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -181,12 +181,12 @@ class CurdService
         $this->joinName = empty($this->config['joinName']) ? $this->joinTable:$this->config['joinName'];
         $this->joinModel = empty( $this->config['joinModel']) ? $this->joinTable: $this->config['joinModel'];
         $this->joinMethod = $this->config['joinMethod']??'';
-        $this->joinForeignKey = $this->config['joinForeignKey']??'';
+        $this->joinForeignKey = $this->config['joinForeignKey']??[];
         if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
             $this->joinForeignKey = array_filter(explode(',', ($this->joinForeignKey[0])));
         }
-        $this->joinPrimaryKey = $this->config['joinPrimaryKey']??'';
-        if ($this->joinForeignKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
+        $this->joinPrimaryKey = $this->config['joinPrimaryKey']??[];
+        if ($this->joinPrimaryKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
             $this->joinPrimaryKey = array_filter(explode(',', ($this->joinPrimaryKey[0])));
         }
         $this->selectFields = !empty($this->config['selectFields'])?$this->config['selectFields']:'';
@@ -420,13 +420,14 @@ class CurdService
         $scriptStr = '<script>';
         foreach ($this->assign as $k => $v) {
             $kk = Str::studly($k);
-            if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+            $tempKey = $k;
+            if(Str::endsWith($k,'List')){
+                $tempKey = substr($k, 0, strlen($k) - 4);
+            }
+            if ($v) {
                 $assignStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), 'get' . $kk], $assignTpl) . PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), lcfirst($kk)], $scriptTpl) . PHP_EOL;
-            } elseif ($this->hasSuffix($k, $this->config['priSuffix'])
-                and $this->joinTable
-                and in_array(substr($k, 0, strlen($k) - 4), $this->joinForeignKey)
-            ) {
+            } elseif (in_array($tempKey, $this->joinForeignKey) && !$v) {
                 $assignStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), 'get' . $kk], $assignTpl) . PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), lcfirst($kk)], $scriptTpl) . PHP_EOL;
             }
@@ -499,9 +500,9 @@ class CurdService
             foreach ($this->joinTable as $k => $v) {
                 $method = 'hasOne';
                 if (isset($this->joinMethod[$k])) $method = $this->joinMethod[$k];
-                if ($method == 'hasOne') {
+                if (in_array($method,['hasOne','hasMany']) ) {
                     list($joinPrimaryKey, $joinForeignKey) = array($this->joinForeignKey[$k], $this->joinPrimaryKey[$k]);
-                } else {
+                } elseif('belongsTo') {
                     list($joinPrimaryKey, $joinForeignKey) = array($this->joinPrimaryKey[$k], $this->joinForeignKey[$k]);
                 }
                 $joinTpl = $this->tplPath . 'join.tpl';
@@ -521,30 +522,25 @@ class CurdService
             }
         }
         //变量分配
-        $i = 0;
         if ($this->assign) {
             foreach ($this->assign as $k => $v) {
                 $kk = Str::studly($k);
-                if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+                $tempKey = $k;
+                if(Str::endsWith($k,'List')){
+                    $tempKey = substr($k, 0, strlen($k) - 4);
+                }
+                if ($v) {
                     $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
                             ['get' . $kk, $v],
                             file_get_contents($attrTpl)) . PHP_EOL;
-                } elseif ($this->hasSuffix($k, $this->config['priSuffix'])
-                    and  $this->joinTable
-                    and in_array(substr($k, 0, strlen($k) - 4), $this->joinForeignKey)
-                ) {
+                } elseif (in_array($tempKey, $this->joinForeignKey) && !$v) {
                     //关联模型搜索属性
-                    $model = isset($this->joinModel[$i]) ? $this->joinModel[$i] : $this->joinModel[0];
-                    if ($this->joinTable && count($this->joinTable) == 1) {
-                        $value = isset($this->selectFields[0]) ? $this->selectFields[0] : 'title';
-                    } else {
-                        $value = isset($this->selectFields[$i]) ? $this->selectFields[$i] : 'title';
-                    }
-                    $kk = str_replace(['_id', '_ids'], ['', ''], $k);
+                    $index = array_search($tempKey,$this->joinForeignKey);
+                    $model = $this->joinModel[$index];
+                    $value = isset($this->selectFields[$index]) ? $this->selectFields[$index] : 'title';
                     $joinTplStr .= str_replace(['{{$method}}', '{{$values}}', '{{$joinModel}}'],
                             ['get' . ucfirst($kk), $value, ucfirst(Str::studly($model))],
                             file_get_contents($joinAttrTpl)) . PHP_EOL;
-                    $i++;
                 }
             }
         }
