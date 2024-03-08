@@ -310,7 +310,7 @@ class CurdService
         $relationSearch = '';
         $statusResult = Db::connect($this->driver)->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name ='" . $this->tablePrefix . $this->table . "' AND column_name ='status'");
         $status = $statusResult[0]['COUNT(*)'];
-        if ($this->joinTable) {
+        if (!empty($this->joinTable)) {
             $relationSearch = '$this->relationSearch = true;';
             $joinIndexMethod = "withJoin([";
             foreach ($this->joinTable as $k => $v) {
@@ -496,7 +496,7 @@ class CurdService
         $joinAttrTpl = $this->tplPath . 'joinAttr.tpl';
         //单模型
         $joinTplStr = '';
-        if ($this->joinTable) {
+        if (!empty($this->joinTable)) {
             foreach ($this->joinTable as $k => $v) {
                 $method = 'hasOne';
                 if (isset($this->joinMethod[$k])) $method = $this->joinMethod[$k];
@@ -844,7 +844,7 @@ class CurdService
                     $formFieldData .= "{:Form::radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "_id":
-                    if ($this->joinTable) {
+                    if (!empty($this->joinTable)) {
                         $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                         if (strpos($vo['name'], '_ids') and in_array($vo['name'], $this->joinForeignKey)) {
                             $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
@@ -923,7 +923,7 @@ class CurdService
                     $listName = lcfirst(Str::studly($v['name']));
                     switch ($v['type']) {
                         case '_id':
-                            if ($this->joinTable and in_array($v['name'], $this->joinForeignKey)) { //
+                            if (!empty($this->joinTable) and in_array($v['name'], $this->joinForeignKey)) { //
                                 $this->jsCols .= $space . "{field:'{$v['name']}',search: true,title: __('{$name}'),selectList:{$listName}List,sort:true,templet: Table.templet.tags}," . PHP_EOL;;
                             } else {
                                 $this->jsCols .= $space . "{field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:true}," . PHP_EOL;
