@@ -182,11 +182,11 @@ class CurdService
         $this->joinModel = empty( $this->config['joinModel']) ? $this->joinTable: $this->config['joinModel'];
         $this->joinMethod = $this->config['joinMethod']??'';
         $this->joinForeignKey = $this->config['joinForeignKey']??[];
-        if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
+        if (!empty($this->joinForeignKey) && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
             $this->joinForeignKey = array_filter(explode(',', ($this->joinForeignKey[0])));
         }
         $this->joinPrimaryKey = $this->config['joinPrimaryKey']??[];
-        if ($this->joinPrimaryKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
+        if (!empty($this->joinPrimaryKey) && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
             $this->joinPrimaryKey = array_filter(explode(',', ($this->joinPrimaryKey[0])));
         }
         $this->selectFields = !empty($this->config['selectFields'])?$this->config['selectFields']:'';
