@@ -82,8 +82,8 @@ class Install extends Command
     protected function detectionEnv(): void
     {
         $this->output->info('environment begin to check...');
-        if (version_compare(PHP_VERSION, '7.4.0', '<')) {
-            $this->output->error('php version should >= 7.4.0');
+        if (version_compare(PHP_VERSION, '8.0', '<')) {
+            $this->output->error('php version should >= 8.0');
             exit();
         }
         $this->output->info('php version ' . PHP_VERSION);
