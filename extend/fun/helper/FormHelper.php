@@ -827,6 +827,9 @@ EOF;
         if(!isset($options['search'])){
             $options['search'] = true;
         }
+        if(!isset($options['create'])){
+            $options['create'] = true;
+        }
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
@@ -1370,6 +1373,9 @@ EOF;
      */
     public function js($name = [], $options = [])
     {
+        if(Str::contains($name,'</script>')){
+            return $name;
+        }
         if (is_string($name)) {
             $name = explode(',', $name);
         }
@@ -1390,6 +1396,9 @@ EOF;
      */
     public function link($name = [], $options = [])
     {
+        if(Str::contains($name,'<link')){
+            return $name;
+        }
         if (is_string($name)) {
             $name = explode(',', $name);
         }

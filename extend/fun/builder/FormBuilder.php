@@ -6,7 +6,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.funadmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6 + layui 实现
+ * 采用最新Thinkphp8 + layui 实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/9/22
@@ -504,7 +504,16 @@ class FormBuilder
         return $this;
     }
 
-
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    public  function close($reset = true, $options = [])
+    {
+        $this->formHtml[] = Form::closebtn($reset,$options);
+        return $this;
+    }
     /**
      * @param bool $reset
      * @param array $options
