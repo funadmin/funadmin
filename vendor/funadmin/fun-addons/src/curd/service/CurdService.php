@@ -765,7 +765,7 @@ class CurdService
                 }
             } else {
                 if($menu){
-                   $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
+                    $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
                         ->where('pid', $menu['id'])->where('module', $module)->find();
                     if (!$child) {
                         $menu && $menu->delete();
@@ -1074,7 +1074,7 @@ class CurdService
             $fieldsName = $v['COLUMN_NAME'];
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
-                    $v['type'] = "array";
+                $v['type'] = "array";
             }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
