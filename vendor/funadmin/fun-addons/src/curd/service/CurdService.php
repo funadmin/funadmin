@@ -115,7 +115,7 @@ class CurdService
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor/funadmin/fun-addons/scr/curd/tpl/';
+        $this->tplPath = $this->rootPath . 'vendor/funadmin/fun-addons/src/curd/tpl/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
