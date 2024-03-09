@@ -305,6 +305,7 @@ class CurdService
         $controllerTpl = $this->tplPath . 'controller.tpl';
         $modelTpl = $this->tplPath . 'model.tpl';
         $attrTpl = $this->tplPath . 'attr.tpl';
+        $joinTpl = $this->tplPath . 'join.tpl';
         $indexTpl = '';
         $recycleTpl = '';
         $relationSearch = '';
@@ -335,21 +336,21 @@ class CurdService
                 $joinclass = str_replace(DS, '\\', $joinclass);
                 if (file_exists($joinModelFile)) include_once $joinModelFile;
                 if ($assign) {
-                    foreach ($assign as $key => $val) {
-                        $kk = Str::studly($key);
-                        if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+                    foreach ($assign as $k => $v) {
+                        $kk = Str::studly($k);
+                        $tempKey = $k;
+                        if(Str::endsWith($k,'List')){
+                            $tempKey = substr($k, 0, strlen($k) - 4);
+                        }
+                        if ($v) {
                             $joinMethod = 'get' . $kk;
                             if (class_exists($joinclass)) {
                                 $joinClassMethods = get_class_methods($joinclass);
                                 if(!in_array($joinMethod,$joinClassMethods)){
-                                    $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
-                                            ['get' . $kk, $val],
-                                            file_get_contents($attrTpl)) . PHP_EOL;
+                                    $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'], ['get' . $kk, $v], file_get_contents($attrTpl)) . PHP_EOL;
                                 }
                             }else{
-                                $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
-                                        ['get' . $kk, $val],
-                                        file_get_contents($attrTpl)) . PHP_EOL;
+                                $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'], ['get' . $kk, $v], file_get_contents($attrTpl)) . PHP_EOL;
                             }
                         }
                     }
@@ -357,7 +358,7 @@ class CurdService
                 $attrStr = $this->modifyAttr($fieldsList);
                 //生成关联表的模型
                 $connection = $this->driver == 'mysql' ? "" : "protected \$connection = '" . $this->driver . "';";
-                if (!$this->force && class_exists($joinclass) && $joinTplStr) {
+                if (class_exists($joinclass) && $joinTplStr) {
                     $content = str_replace('?>','',file_get_contents($joinModelFile));
                     $content = substr($content,0,strrpos($content,'}',0)).$joinTplStr .PHP_EOL .'}';
                     file_put_contents($joinModelFile,$content);
