@@ -504,7 +504,16 @@ class FormBuilder
         return $this;
     }
 
-
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    public  function close($reset = true, $options = [])
+    {
+        $this->formHtml[] = Form::closebtn($reset,$options);
+        return $this;
+    }
     /**
      * @param bool $reset
      * @param array $options

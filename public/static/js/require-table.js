@@ -54,7 +54,7 @@ define(['timePicker'], function (timePicker) {
                             search: O.data('search'),
                             searchOp: O.data('searchop'),
                             timepickerformat: Fun.param(O.data('timepickerformat'), 'YYYY-MM-DD HH:mm:ss'),
-                            searchdateformat: Fun.param(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss'),
+                            searchdateformat: Fun.param(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss').replaceAll('Y','y'),
                             timeType: Fun.param(O.data('timetype'), 'datetime'),
                         }
                         cols.push(arr);
@@ -179,7 +179,7 @@ define(['timePicker'], function (timePicker) {
                 }
             });
             if (searchInput) {
-                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n';
+                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;height:32px;">\n';
             }
             return '<div>' + toolbarHtml + '</div>';
         },
@@ -203,8 +203,10 @@ define(['timePicker'], function (timePicker) {
                 d.searchOp = d.searchOp.toLowerCase();
                 d.timeType = d.timeType || 'datetime';
                 d.dateformat = d.dateformat || 'yyyy-MM-dd HH:mm:ss';
+                d.dateformat = d.dateformat.replaceAll('Y','y');
                 d.timepickerformat = d.timepickerformat || 'YYYY-MM-DD HH:mm:ss';
                 d.searchdateformat = d.searchdateformat || d.dateformat;
+                d.searchdateformat = d.searchdateformat.replaceAll('Y','y');
                 d.extend = d.extend || '';
                 d.extend = typeof d.extend === "object" ? "data-extend='" + JSON.stringify(d.extend) + "'" : d.extend;
                 if (d.field !== false && d.search !== false) {

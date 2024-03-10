@@ -867,7 +867,7 @@ define(['upload'], function (Upload) {
                             theme: data.theme || '#4d70ff'
                         };
                         if (format !== undefined && format !== '' && format != null) {
-                            options['format'] = format
+                            options['format'] = format.replaceAll('Y','y');
                         }
                         if (range !== undefined) {
                             if (range != null || range === '') {
