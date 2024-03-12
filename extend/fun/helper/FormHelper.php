@@ -690,7 +690,7 @@ EOF;
         $options['num'] = $options['num'] ?? 3;
         $options['last'] = $options['last'] ?? '';
         if (!empty($attr)) {
-            $attr = is_array($attr) ? $attr : implode(',', $attr);
+            $attr = is_array($attr) ? implode(',', $attr) : $attr ;
         }
         $options['filter'] = $options['filter'] ?? 'selectN';
         $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
@@ -734,7 +734,7 @@ EOF;
 
         $options['multiple'] = $multiple ? 1 : '';
         if (!empty($attr)) {
-            $attr = is_array($attr) ? $attr : implode(',', $attr);
+            $attr = is_array($attr) ?implode(',', $attr)  : $attr;
         }
         $options['attr'] = $attr;
         $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
@@ -869,7 +869,7 @@ EOF;
             $op .= " data-data='" . json_encode((array)$select, JSON_UNESCAPED_UNICODE) . "'";
         }
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
-        $value = is_array($value) ? implode($value) : $value;
+        $value = is_array($value) ? implode(',',$value) : $value;
         $options['attr'] = $options['attr'] ?? $attr;
         $options['lang'] = $options['lang'] ?? '';
         $options['tips'] = $options['tips'] ?? '';
