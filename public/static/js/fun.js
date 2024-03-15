@@ -533,6 +533,13 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
         接口
          */
         api: {
+            mergeFunc:function(func1, func2) {
+                // 返回一个新的函数，该函数执行时会依次调用 func1 和 func2
+                return function() {
+                    func1.apply(this, arguments); // 调用 func1，并传入当前的上下文和参数
+                    func2.apply(this, arguments); // 调用 func2，并传入当前的上下文和参数
+                };
+            },
             setStorage: function(key,value) {
                 if (value != null && value !== "undefined") {
                     layui.data(key,{
