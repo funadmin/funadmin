@@ -902,6 +902,10 @@ class CurdService
                     break;
                 case "editor":
                     $formFieldData .= "{:Form::editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    break;
+                default :
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    break;
             }
         }
         return $formFieldData;
