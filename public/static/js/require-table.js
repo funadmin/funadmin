@@ -76,7 +76,11 @@ define(['timePicker'], function (timePicker) {
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var format = Table.getSearchField(layui.form.val('layui-form-'+options.id));
             options.where =  options.where || {filter:JSON.stringify(format.formatFilter), op:JSON.stringify(format.formatOp)};
-            options.done = options.done || Table.done;
+            if(options.done){
+                options.done = Fun.api.mergeFunc(options.done,Table.done)
+            }else{
+                options.done = Table.done;
+            }
             if(options.tree){
                 var newTable = layui.treeTable.render(options);
             }else{

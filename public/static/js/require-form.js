@@ -1116,10 +1116,10 @@ define(['upload'], function (Upload) {
                     var input_temp;
                     if (othis.parents('li').index() === 0) {
                         input_temp = inputVal.replace(fileurl, '');
-                        input.val(input_temp);
+                        input.val(input_temp.replace(/^,|,$/g, ''));
                     } else {
                         input_temp = inputVal.replace(',' + fileurl, '');
-                        input.val(input_temp);
+                        input.val(input_temp.replace(/^,|,$/g, ''));
                     }
                     othis.parents('li').remove();
                     Fun.toastr.close(confirm);
