@@ -80,7 +80,8 @@ define(['timePicker'], function (timePicker) {
                 options.done = Fun.api.mergeFunc(options.done,Table.done)
             }else{
                 options.done = Table.done;
-            }            if(options.tree){
+            }
+            if(options.tree){
                 var newTable = layui.treeTable.render(options);
             }else{
                 var newTable = layui.table.render(options);
@@ -143,7 +144,7 @@ define(['timePicker'], function (timePicker) {
                         url = Fun.replaceurl(url, d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" data-title="'+v+'"><i class="layui-icon layui-icon-radio"></i>' + __(v) + '</a>\n';
                     }
-                } else if (typeof v === 'string' && typeof eval('requests.' + v) === 'object' || typeof v === 'object') {
+                } else if (typeof v === 'object' || (typeof v === 'string' && typeof eval('requests.' + v) === 'object') ) {
                     if (typeof v === 'string') {
                         v = eval('requests.' + v);
                     }
@@ -689,7 +690,7 @@ define(['timePicker'], function (timePicker) {
                                     extend: "",tips: '',
                                 }
                             }
-                        } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof eval('requests.' + v + '_url') === "object" || typeof v === 'object') {
+                        } else if (typeof v === 'object' || (typeof v === 'string' && typeof eval('requests.' + v) === "object") || typeof eval('requests.' + v + '_url') === "object" ) {
                             if (typeof v === 'string') {
                                 va = eval('requests.' + v) ||  eval('requests.' + v + '_url')
                             } else {

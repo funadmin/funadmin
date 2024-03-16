@@ -60,7 +60,7 @@ class Index extends BaseController
 
     public function index()
     {
-        return redirect('index/step1');
+        return view('step1');
     }
 
     public function step1()
