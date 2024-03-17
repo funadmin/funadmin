@@ -63,10 +63,10 @@ class Index extends BaseController
         return view('step1');
     }
 
-    public function step1()
+   /* public function step1()
     {
         return view('step1');
-    }
+    }*/
 
     public function step2()
     {
