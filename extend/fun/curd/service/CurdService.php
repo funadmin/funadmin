@@ -37,6 +37,7 @@ class CurdService
         'iconSuffix' => ['icon'],//识别为图标字段
         'colorSuffix' => ['color'],//颜色
         'jsonSuffix' => ['json'],//识别为json字段
+        'formSuffix' => ['_form'],//识别为json字段
         'timeSuffix' => ['time', 'date', 'datetime'],//识别为日期时间字段
         'checkboxSuffix' => ['checkbox'],//多选
         'selectSuffix' => ['select', 'selects'],//下拉框
@@ -1058,7 +1059,7 @@ class CurdService
             if (in_array($v['DATA_TYPE'], ['enum', 'set'])) {
                 $v['type'] = 'select';
             }
-            if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext', 'json'])) {
+            if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext'])) {
                 $v['type'] = 'textarea';
             }
             if (in_array($v['DATA_TYPE'], ['timestamp', 'datetime'])) {
@@ -1074,11 +1075,14 @@ class CurdService
                 $v['type'] = 'time';
             }
             if (in_array($v['DATA_TYPE'], ['json'])) {
-                $v['type'] = 'array';
+                $v['type'] = 'json';
             }
             $fieldsName = $v['COLUMN_NAME'];
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
+                $v['type'] = "json";
+            }
+            if ($this->hasSuffix($fieldsName, $this->config['formSuffix'])) {
                 $v['type'] = "array";
             }
             // 指定后缀说明也是个时间字段
