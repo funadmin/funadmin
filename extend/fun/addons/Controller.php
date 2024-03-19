@@ -69,7 +69,7 @@ class Controller extends BaseController
             $this->error(__('You dont have role'));
         }
         if($this->noNeedLogin!=['*'] && !in_array($this->action,$this->noNeedLogin) && (!session('admin') && !session('member'))){
-            $this->error('You must login in first',__u('login/index'));
+            $this->error('You must login in first',__u('/'));
         }
     }
 
