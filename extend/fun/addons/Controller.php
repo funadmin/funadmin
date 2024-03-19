@@ -3,6 +3,7 @@
 namespace fun\addons;
 
 use app\BaseController;
+use app\common\traits\Jump;
 use think\App;
 use think\facade\Lang;
 use think\facade\View;
@@ -21,6 +22,7 @@ class Controller extends BaseController
     protected $action = null;
     protected $param;
 
+    use Jump;
     /**
      * 无需登录的方法,同时也就不需要鉴权了.
      *
@@ -48,6 +50,7 @@ class Controller extends BaseController
      */
     public function __construct(App $app)
     {
+        parent::__construct($app);
         $this->request = app()->request;
         // 是否自动转换控制器和操作名
         $convert = Config::get('url_convert');
@@ -62,11 +65,17 @@ class Controller extends BaseController
         $this->action = $this->action ? call_user_func($filter, $this->action) : 'index';
         // 父类的调用必须放在设置模板路径之后
         $this->_initialize();
-        parent::__construct($app);
+        if($this->noNeedRight!=['*'] && !in_array($this->action,$this->noNeedRight)){
+            $this->error(__('You dont have role'));
+        }
+        if($this->noNeedLogin!=['*'] && !in_array($this->action,$this->noNeedLogin) && (!session('admin') && !session('member'))){
+            $this->error('You must login in first',__u('login/index'));
+        }
     }
 
     protected function _initialize()
     {
+        parent::initialize();
         $view_config = Config::get('view');
          // 渲染配置到视图中
         if($this->addon){
@@ -91,7 +100,6 @@ class Controller extends BaseController
         Lang::load([
             $this->addon_path . 'lang' . DS . Lang::getLangset() . '.php',
         ]);
-        parent::initialize();
 
     }
 

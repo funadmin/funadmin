@@ -37,7 +37,7 @@ class CurdService
         'iconSuffix' => ['icon'],//识别为图标字段
         'colorSuffix' => ['color'],//颜色
         'jsonSuffix' => ['json'],//识别为json字段
-        'formSuffix' => ['_form'],//识别为json字段
+        'formSuffix' => ['_form','_array'],//识别为json字段
         'timeSuffix' => ['time', 'date', 'datetime'],//识别为日期时间字段
         'checkboxSuffix' => ['checkbox'],//多选
         'selectSuffix' => ['select', 'selects'],//下拉框
@@ -1037,18 +1037,21 @@ class CurdService
         $tableComment = $tableComment[0]['TABLE_COMMENT'];
         foreach ($tableField as $k => &$v) {
             $v['required'] = $v['IS_NULLABLE'] == 'NO' ? 'required' : "";
-            $v['comment'] = trim($v['COLUMN_COMMENT'], ' ');
-            $v['comment'] = str_replace(array("\r\n", "\r", "\n"), "", $v['COLUMN_COMMENT']);
-            $v['comment'] = str_replace('：', ':', $v['comment']);
+            $v['COLUMN_COMMENT'] = trim($v['COLUMN_COMMENT'], ' ');
+            $v['COLUMN_COMMENT'] = str_replace(array("\r\n", "\r", "\n"), "", $v['COLUMN_COMMENT']);
+            $v['COLUMN_COMMENT'] = str_replace('：', ':', $v['COLUMN_COMMENT']);
             $v['name'] = $v['COLUMN_NAME'];
             $v['value'] = $v['COLUMN_DEFAULT'];
             $v['DATA_TYPE'] = strtolower($v['DATA_TYPE']);
             if($v['COLUMN_KEY'] == 'PRI'){
                 $this->primaryKey = $v['name'];
             }
-            if (!$v['COLUMN_COMMENT']) {
-                $v['comment'] = $v['name'];
+            $comment = $v['COLUMN_COMMENT'] ? explode('=', $v['COLUMN_COMMENT']) : [Str::studly($v['name']),''];
+            $v['comment'] = $comment[0];
+            if(in_array($v['DATA_TYPE'],['set', 'enum']) && empty($comment[1])){
+                $comment[1] = str_replace([$v['DATA_TYPE'].'(',"'"],['(',""],$v['COLUMN_TYPE']);
             }
+            $v['COMMENT_DATA'] = $comment;
             $v['type'] = 'text';
             if (in_array($v['DATA_TYPE'], ['tinyint', 'smallint', 'int', 'mediumint', 'bigint'])) {
                 $v['type'] = 'number';
@@ -1059,7 +1062,7 @@ class CurdService
             if (in_array($v['DATA_TYPE'], ['enum', 'set'])) {
                 $v['type'] = 'select';
             }
-            if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext'])) {
+            if (in_array($v['DATA_TYPE'], ['tinytext', 'smalltext', 'text', 'mediumtext', 'longtext', 'json'])) {
                 $v['type'] = 'textarea';
             }
             if (in_array($v['DATA_TYPE'], ['timestamp', 'datetime'])) {
@@ -1087,8 +1090,6 @@ class CurdService
             }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
-                $comment = explode('=', $v['comment']);
-                $v['comment'] = $comment[0];
                 $v['type'] = "file";
                 if (isset($comment[1]) and $comment[1] > 1) {
                     $v['type'] = "files";
@@ -1097,8 +1098,6 @@ class CurdService
             // 指定后缀结尾且类型为varchar || char,文件上传
             if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
                 (in_array($v['DATA_TYPE'],['varchar','char','text','smalltext','tinytext','mediumtext','longtext','json']))) {
-                $comment = explode('=', $v['comment']);
-                $v['comment'] = $comment[0];
                 $v['type'] = "image";
                 if (isset($comment[1]) and $comment[1] > 1) {
                     $v['type'] = "images";
@@ -1173,23 +1172,27 @@ class CurdService
                 $assign[$v['name'] . 'List'] = '';
             }
             $lang .= $this->getlangStr($v);
+
             if (in_array($v['DATA_TYPE'], ['tinyint', 'set', 'enum']) and $v['type'] != '_id') {
-                $comment = explode('=', $v['comment']);
                 if (!in_array($v['name'], $this->config['ignoreFields'])) {
-                    if ($comment && count($comment) != 2) {
-                        $v['type'] = 'text';
-                    } else {
-                        if ($v['DATA_TYPE'] == 'tinyint') $v['type'] = 'radio';
-                        $v['comment'] = $comment[0];
+                    if($v['DATA_TYPE'] =='tinyint' && empty($comment[1])){
+                        if($v['type']=='radio'){
+                            $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
+                            $v['option'] = '{0:__("disabled"),1:__("enabled")}';
+                        }else{
+                            $v['type'] = 'text';
+                        }
+                    }else{
                         list($assign[$v['name'] . 'List'], $v['option']) = $this->getOptionStr($v['name'], $comment[1]);
                     }
                 } else {
                     if ($v['name'] == 'status') {
-                        $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
-                        $v['option'] = '{0:__("disabled"),1:__("enabled")}';
-                        if (isset($comment[1])) list($assign[$v['name'] . 'List'], $v['option']) = $this->getOptionStr($v['name'], $comment[1]);
+                        if ($v['name'] == 'status') {
+                            $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
+                            $v['option'] = '{0:__("disabled"),1:__("enabled")}';
+                            if (isset($comment[1])) list($assign[$v['name'] . 'List'], $v['option']) = $this->getOptionStr($v['name'], $comment[1]);
+                        }
                     }
-                    $v['comment'] = $comment[0];
                 }
             }
             if ($v['name'] == 'delete_time') {
@@ -1339,9 +1342,9 @@ class CurdService
     protected function getLangStr($v)
     {
         $optionsLangStr = "";
-        $comment = explode('=', $v['comment']);
+        $comment = $v['COMMENT_DATA'];
         $optionsLangStr .= "'" . Str::studly($v['name']) . "'=>'" . $comment[0] . "'," . PHP_EOL;
-        if (isset($comment[1])) {
+        if (!empty($comment[1])) {
             if (strpos($comment[1], ':') !== false) { //判断是否是枚举等类型
                 $op = trim(trim($comment[1], '('), ')');
                 $option = explode(',', (trim(trim($op, '['), ']')));

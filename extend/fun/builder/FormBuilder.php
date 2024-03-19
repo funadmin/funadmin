@@ -65,7 +65,7 @@ class FormBuilder
 
         return self::$instance;
     }
-    public function __construct($options=[])
+    protected function __construct($options=[])
     {
         $this->template = $options['template']??'../../../extend/fun/builder/layout/add';
         $this->modelClass = $this->modelClass?: ($config['model'] ?? ($config['modelClass'] ?? ''));
