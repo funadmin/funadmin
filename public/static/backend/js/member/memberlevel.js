@@ -16,8 +16,8 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
                     edit_url: 'member.memberLevel/edit',
                     destroy_url: 'member.memberLevel/destroy',
                     delete_url: 'member.memberLevel/delete',
-                    recycle_url: 'member.member/recycle',
-                    export_url: 'member.member/export',
+                    recycle_url: 'member.memberLevel/recycle',
+                    export_url: 'member.memberLevel/export',
                 }
             };
             //表格过滤示例

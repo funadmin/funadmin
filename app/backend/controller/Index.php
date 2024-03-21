@@ -48,7 +48,7 @@ class Index extends Backend
                 ->where('type', 1)
                 ->where('status', 1)
                 ->order('sort asc')->cache(3600)->select()->toArray();
-            $menulist = (new AuthService())->menuhtml($cate, false);
+            $menulist = AuthService::instance()->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }
         $languages = Db::name('languages')->cache(3600)->select();

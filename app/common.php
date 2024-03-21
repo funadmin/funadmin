@@ -269,11 +269,37 @@ if (!function_exists('timeAgo')) {
 if (!function_exists('auth')) {
     function auth($url)
     {
-        $auth = new \app\backend\service\AuthService();
-        return $auth->authNode($url);
+        return node($url);
     }
 }
 
+
+/**
+ * 权限 文件内容
+ * @param $key
+ * @param $value
+ * @return bool|int
+ */
+if (!function_exists('node')) {
+    function node($url)
+    {
+        return \app\backend\service\AuthService::instance()->checkNode($url);
+    }
+}
+
+
+/**
+ * 获取权限信息
+ * @param $key
+ * @param $value
+ * @return bool|int
+ */
+if (!function_exists('Auths')) {
+    function Auths($url)
+    {
+        return \app\backend\service\AuthService::instance();
+    }
+}
 
 /**
  * 是否登录

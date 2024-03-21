@@ -145,7 +145,7 @@ class Auth extends Backend
             $id = $this->request->param('id');
             $model = $this->findModel($id);
             if($post['pid'] && $post['pid'] == $id)  $this->error(lang('The superior cannot be set as himself'));
-            $childIds = array_filter(explode(',',(new AuthService())->getAllIdsBypid($id)));
+            $childIds = array_filter(explode(',',AuthService::instance()->getAllIdsBypid($id)));
             if($childIds && in_array($post['pid'],$childIds)) $this->error(lang('Parent menu cannot be modified to submenu'));
             if ($model->save($post)) {
                 Cache::clear();

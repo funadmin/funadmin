@@ -339,6 +339,7 @@ trait Curd
                 foreach ($newValue as $k=>$v){
                     if ($k && in_array(strtolower(trim($k)),$tableComment)) {
                         $field = array_search($k,$tableField);
+                        if($this->importFields!=['*'] && !in_array($field,$this->importFields)) continue;
                         if($field=='admin_id' && is_string($v)){
                             $admin = Admin::where('username|realname',$v)->find();
                             if($admin){
@@ -394,13 +395,14 @@ trait Curd
         }
         $headerArr = [];
         foreach ($fieldList as $vo) {
+            if($this->exportFields !=['*'] && !in_array($vo['Field'],$this->exportFields)) continue;
             $comment = !empty($vo['Comment']) ? $vo['Comment'] : $vo['Field'];
             $comment = explode('=',$comment)[0];
-            if(!in_array($vo['Field'],['update_time','delete_time','status'])) {
+            if(!in_array($vo['Field'],['update_time','delete_time'])) {
                 $headerArr[$vo['Field']] =$comment;
             } ;
         }
-        $list = $this->modelClass->where($where)->order($sort)->select()->toArray();
+        $list = $this->modelClass->where($where)->field($this->exportFields)->order($sort)->select()->toArray();
         $tableChName =  $tableInfo[0]['Comment']? $tableInfo[0]['Comment']:$tableName;
         $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
         $param  = [

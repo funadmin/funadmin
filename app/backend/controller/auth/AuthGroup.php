@@ -259,7 +259,7 @@ class AuthGroup extends Backend
                         ->order('sort asc')
                         ->select()->toArray();
                 }
-                $list = (new AuthService())->authChecked($admin_rule, $pid = 0, $rules,$group_id);
+                $list = AuthService::instance()->authChecked($admin_rule, $pid = 0, $rules,$group_id);
                 $view = [
                     'code'=>1,
                     'msg'=>'ok',
@@ -276,7 +276,7 @@ class AuthGroup extends Backend
                     $this->error(lang('please choose rule'));
                 }
                 $rules = json_decode($rules,true);
-                $rules = (new AuthService())->authNormal($rules);
+                $rules = AuthService::instance()->authNormal($rules);
                 $rules = array_column($rules, 'id');
                 $rls = '';
                 $childIndexId='';

@@ -114,6 +114,17 @@ class Backend extends BaseController
      */
     protected $dataLimitField = 'admin_id';
     /**
+     * 导出字段
+     * @var string[]
+     */
+
+    protected $exportFields = ['*'];
+    /**
+     * 导入字段
+     * @var string[]
+     */
+    protected $importFields = ['*'];
+    /**
      * @param App $app
      */
     public function __construct(App $app)

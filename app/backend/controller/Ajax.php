@@ -69,7 +69,7 @@ class Ajax extends Backend
             ->where('type',1)
             ->order('sort asc')
             ->select()->toArray();
-        $menulsit = (new AuthService())->menuhtml($cate);
+        $menulsit = AuthService::instance()->menuhtml($cate);
         $this->success('ok','',$menulsit);
     }
     /**

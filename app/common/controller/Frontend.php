@@ -106,6 +106,22 @@ class Frontend extends BaseController
      */
     protected $dataLimit = false;
 
+
+    protected $dataLimitField = 'member_id';
+
+    /**
+     * 导出字段
+     * @var string[]
+     */
+
+    protected $exportFields = ['*'];
+    /**
+     * 导入字段
+     * @var string[]
+     */
+    protected $importFields = ['*'];
+
+
     public function __construct(App $app)
     {
         parent::__construct($app);

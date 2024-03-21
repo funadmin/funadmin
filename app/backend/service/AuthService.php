@@ -59,6 +59,16 @@ class AuthService extends AbstractService
      */
     protected $hrefId;
 
+    /**
+     * 获取用户信息
+     * @param $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        return Session::get('admin.' . $name);
+    }
+
     public function __construct()
     {
         if ($auth = Config::get('auth')) {

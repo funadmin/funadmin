@@ -23,7 +23,7 @@ class CheckRole
 
             $this->redirect(__u('backend/login/index'));
         }
-        $auth = new AuthService();
+        $auth = AuthService::instance();
         $auth->checkNode();
         //中间件handle方法的返回值必须是一个Response对象。
         return $next($request);

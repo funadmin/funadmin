@@ -57,7 +57,7 @@ class Login extends Backend {
             $this->validate($post, $rule);
             // 用户信息验证
             try {
-                $auth = new AuthService();
+                $auth = AuthService::instance();
                 $auth->checkLogin($username, $password, $rememberMe);
             } catch (Exception $e) {
                 $this->error(lang('Login Failed')."：{$e->getMessage()}");
