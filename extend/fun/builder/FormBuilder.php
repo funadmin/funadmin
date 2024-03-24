@@ -48,6 +48,8 @@ class FormBuilder
      */
     protected $formHtml = [];
 
+    protected $extraJs = '';
+
     /**
      * @var
      */
@@ -607,6 +609,7 @@ class FormBuilder
             'formScript'=>implode('',$this->script),
             'formJs'=>implode('',$this->js),
             'formHtml'=>implode('',$this->formHtml),
+            'extraJs'=>implode('',$this->extraJs),
         ],$data));
         return $this;
     }
@@ -647,6 +650,11 @@ class FormBuilder
      */
     public function formValue($formValue=[]){
         $formValue = json_encode($formValue);
+        foreach ($formValue as $k=>$item) {
+            if(empty($item)){
+                unset($formValue[$k]);
+            }
+        }
         $this->formHtml[] = <<<EOF
         <script>
             layui.form.val("form", {$formValue});
