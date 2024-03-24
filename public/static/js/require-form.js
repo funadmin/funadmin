@@ -1443,7 +1443,7 @@
                                     // 配置参数
                                     var id = $(this).attr('id');
                                     window['json-'+id] = new JSONEditor(this,  {
-                                        mode: 'tree',
+                                        mode: _t.data('mode') || 'tree',
                                         modes: ['code', 'form', 'text', 'tree', 'view', 'preview'], // allowed modes
                                         // onEvent:function (node, event){
                                         // },
