@@ -1000,7 +1000,10 @@
                     selectfiles: function (formObj) {
                         Form.api.selectFiles(formObj)
                     },
-    
+                    json:function (formObj){
+                        Form.api.json(formObj)
+
+                    },
                     //验证
                     verifys: function (formObj) {
                         layui.form.verify({
@@ -1427,6 +1430,55 @@
                             });
                         }
                     },
+
+                    /**
+                     * json
+                     */
+                    json: function (formObj) {
+                        var jsonList = formObj !== undefined ? formObj.find("*[lay-filter='json']") : $("*[lay-filter='json']");
+                        if (jsonList.length > 0) {
+                            require(['jsoneditor'],function(JSONEditor){
+                                layui.each(jsonList, function (i, v) {
+                                    var _t = $(this);
+                                    // 配置参数
+                                    var id = $(this).attr('id');
+                                    window['json-'+id] = new JSONEditor(this,  {
+                                        mode: 'tree',
+                                        modes: ['code', 'form', 'text', 'tree', 'view', 'preview'], // allowed modes
+                                        // onEvent:function (node, event){
+                                        // },
+                                        onModeChange: function (newMode, oldMode) {
+                                            console.log('Mode switched from', oldMode, 'to', newMode)
+                                        }  ,
+                                        onChangeJSON:function (json) {
+
+                                        },
+                                        onChangeText:function (text) {
+                                            // 数据发生变化，改变之后的字符串
+                                            _t.prev('input').val(text)
+                                        }, onError:function (error) {
+                                            // 主动的修改已触发发生错误时
+                                        },
+                                    });
+                                    // window['json-'+id].on('change',function(text) {
+                                    //     // Do something
+                                    //     console.log(text)
+                                    //     _t.prev('input').val(text)
+                                    // });
+
+                                    // 显示的数据
+                                    var initialJson = $(this).prev('input').val() ;
+                                    if(initialJson){
+                                        initialJson  = JSON.parse(initialJson);
+                                    }else{
+                                        initialJson  = {}
+                                    }
+                                    window['json-'+id].set(initialJson)
+                                });
+
+                            })
+                        }
+                    },
                     /**
                      * 绑定事件
                      * @param form
@@ -1438,6 +1490,7 @@
                         form = typeof form == 'object' ? form : $(form);
                         var events = Form.events;
                         events.uploads(form); //上传
+                        events.json(form); //上传
                         events.choosefiles(form);//选择文件
                         events.selectfiles(form); //选择文件页面类型
                         events.cropper(form); //上传

@@ -1144,6 +1144,26 @@ EOF;
     }
 
     /**
+     * json编辑器
+     * @return void
+     */
+    public function json($name = 'json', $options = [], $value = '')
+    {
+        $options['id'] = $options['id'] ?? $name;
+        $options['filter'] = $options['filter'] ?? 'json';
+        $value = (is_array($value)|| is_object($value))?json_encode((array)$value,JSON_UNESCAPED_UNICODE):$value;
+        $str = <<<EOF
+<div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
+     <div class="layui-input-block">
+     <input type="text" {$this->getOptionsAttr($name,$options)}  class="layui-input layui-form-required-hidden {$this->getClass($options)}" type="text" name="{$name}" value="{$value}"/>
+     <div {$this->getOptionsAttr($name, $options)}  class="{$this->getClass($options)}" id="{$options['id']}"></div>
+    </div>
+</div>
+EOF;
+
+        return $str;
+    }
+    /**
      * 上传
      * @param string $name
      * @param string $formData

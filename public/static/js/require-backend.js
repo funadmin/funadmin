@@ -20,13 +20,14 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery', 'css','layCascader','tableSelect','tableFilter','iconPicker', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect','autoComplete','Sortable', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
+    include: ['jquery', 'css','jsoneditor','layCascader','tableSelect','tableFilter','iconPicker', 'toastr','step-lay','inputTags', 'timeago','multiSelect','cityPicker', 'selectPlus','selectN','selectPage','xmSelect','autoComplete','Sortable', 'regionCheckBox','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
         //layui等组件
         // 'cardTable'     : 'plugins/lay-module/cardTable/cardTable',
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
+        'jsoneditor'      : 'plugins/lay-module/jsoneditor/jsoneditor.min',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
@@ -62,6 +63,9 @@ require.config({
         'cityPicker':{
             deps: ['plugins/lay-module/cityPicker/city-picker-data',
                 'css!plugins/lay-module/cityPicker/city-picker.css'],
+        },
+        'jsoneditor':{
+            deps: ['css!plugins/lay-module/jsoneditor/jsoneditor.min.css'],
         },
         'tableFilter':{
             deps: ['css!plugins/lay-module/tableFilter/tableFilter.css'],

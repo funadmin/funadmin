@@ -29,7 +29,7 @@
     optimizeCss:'standard',
     //下面的复制require-backend.js
     include: [
-        'jquery','css','layCascader','tableSelect','tableFilter',
+        'jquery','css','layCascader','jsoneditor','tableSelect','tableFilter',
         'iconPicker', 'toastr', 'step-lay','inputTags' ,'cityPicker',
         'timeago','multiSelect','xmSelect','selectPlus','selectN','selectPage',
         'regionCheckBox','timePicker','croppers','autoComplete','Sortable',
@@ -41,6 +41,7 @@
         'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
         //layui等组件
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
+        'jsoneditor'      : 'plugins/lay-module/jsoneditor/jsoneditor.min',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
@@ -82,6 +83,9 @@
             deps: [
                 'plugins/lay-module/cityPicker/city-picker-data',
                 'css!plugins/lay-module/cityPicker/city-picker.css'],
+        },
+        'jsoneditor':{
+            deps: ['css!plugins/lay-module/jsoneditor/jsoneditor.min.css'],
         },
         'tableFilter':{
             deps: ['css!plugins/lay-module/tableFilter/tableFilter.css'],

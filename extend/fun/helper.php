@@ -1089,6 +1089,17 @@ if (!function_exists('form_editor')) {
         return Form::editor($name, $options, $value);
     }
 }
+if (!function_exists('form_json')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_json($name = 'json', $options = [], $value = '')
+    {
+        return Form::json($name, $options, $value);
+    }
+}
+
 if (!function_exists('form_selectpage')) {
     /**
      * @param $name
