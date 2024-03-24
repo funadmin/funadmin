@@ -533,6 +533,16 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
         接口
          */
         api: {
+            //删除空数据
+            removeEmptyData: function (obj) {
+                $.each(obj, function(key, value) {
+                    if (value === null || value === undefined || value === '') {
+                        delete obj[key];
+                    } else if (typeof value === 'object') {
+                        this.removeEmptyData(value); // 递归删除子对象中的空数据
+                    }
+                });
+            },
             mergeFunc:function(func1, func2) {
                 // 返回一个新的函数，该函数执行时会依次调用 func1 和 func2
                 return function() {
@@ -760,7 +770,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 table.reload(tableId,{},true);
             },
             //获取同步数据
-            getData: function (url,data,method) {
+            getData: function (url,data,method,async) {
                 method = method?method:"GET";data= data || {};
                 async = typeof async!=='undefined'?async:false;
                 if(!url) return false;
@@ -769,7 +779,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     url:Fun.url(url),
                     data: data,
                     method: method,
-                    async: false, //此处必须要有这句话，否则任然会传值失败
+                    async: async, //此处必须要有这句话，否则任然会传值失败
                     success: function(res) {
                         if(res.data){
                             returnData = res.data;

@@ -1226,8 +1226,10 @@
                      */
                     initForm: function (data) {
                         if(data){
+                            Fun.api.removeEmptyData(data);
                             layui.form.val("form", data);
                         }else if (window.FormArray) {
+                            window.FormArray =     Fun.api.removeEmptyData(window.FormArray);
                             layui.form.val("form", window.FormArray);
                         }
                         layui.form.render();
