@@ -542,6 +542,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         this.removeEmptyData(value); // 递归删除子对象中的空数据
                     }
                 });
+                return obj;
             },
             mergeFunc:function(func1, func2) {
                 // 返回一个新的函数，该函数执行时会依次调用 func1 和 func2
