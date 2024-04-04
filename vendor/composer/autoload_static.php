@@ -70,6 +70,10 @@ class ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd
             'Psr\\Cache\\' => 10,
             'PhpOffice\\PhpSpreadsheet\\' => 25,
         ),
+        'O' => 
+        array (
+            'Overtrue\\Pinyin\\' => 16,
+        ),
         'M' => 
         array (
             'MyCLabs\\Enum\\' => 13,
@@ -219,6 +223,10 @@ class ComposerStaticInit0ba30fb4fedbe36c23977f2e78936acd
         'PhpOffice\\PhpSpreadsheet\\' => 
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpspreadsheet/src/PhpSpreadsheet',
+        ),
+        'Overtrue\\Pinyin\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/overtrue/pinyin/src',
         ),
         'MyCLabs\\Enum\\' => 
         array (
