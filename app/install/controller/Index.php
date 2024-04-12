@@ -169,6 +169,29 @@ class Index extends BaseController
                 'charset'   => 'utf8mb4'
             ];
             Config::set($config, 'database');
+            //替换数据库相关配置
+            $putDatabase = str_replace(
+                ['%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                [$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+                file_get_contents($this->databaseTpl));
+            $putConfig = @file_put_contents($this->databaseConfigFile, $putDatabase);
+            if (!$putConfig) {
+                $this->error('安装失败、请确定database.php是否有写入权限');
+            }
+            if($this->app_debug){
+                $putEnv = str_replace(
+                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                    [$this->app_debug,$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+                    file_get_contents($this->envTpl));
+                $putConfig = @file_put_contents($this->envFile, $putEnv);
+                if (!$putConfig) {
+                    $this->error('安装失败、请确定目录是否有写入权限');
+                }
+            }
+            $result = @touch($this->lockFile);
+            if (!$result) {
+                $this->error("安装失败、请确定install.lock是否有写入权限");
+            }
             try {
                 $instance = Db::connect();
                 $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
@@ -194,29 +217,6 @@ class Index extends BaseController
                 $this->error($e->getMessage());
             }catch(\Exception $e){
                 $this->error($e->getMessage());
-            }
-            //替换数据库相关配置
-            $putDatabase = str_replace(
-                ['%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-                [$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-                file_get_contents($this->databaseTpl));
-            $putConfig = @file_put_contents($this->databaseConfigFile, $putDatabase);
-            if (!$putConfig) {
-                $this->error('安装失败、请确定database.php是否有写入权限');
-            }
-            if($this->app_debug){
-                $putEnv = str_replace(
-                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-                    [$this->app_debug,$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-                    file_get_contents($this->envTpl));
-                $putConfig = @file_put_contents($this->envFile, $putEnv);
-                if (!$putConfig) {
-                    $this->error('安装失败、请确定目录是否有写入权限');
-                }
-            }
-            $result = @touch($this->lockFile);
-            if (!$result) {
-                $this->error("安装失败、请确定install.lock是否有写入权限");
             }
             $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
