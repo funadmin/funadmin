@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2021/8/2
@@ -317,5 +317,99 @@ if (!function_exists('getTpVersion')) {
     function getTpVersion()
     {
         return App::VERSION;
+    }
+}
+
+/**
+ * PHP格式化字节大小
+ * @param number $size      字节数
+ * @param string $delimiter 数字和单位分隔符
+ * @return string            格式化后的带单位的大小
+ */
+if (!function_exists('format_bytes')) {
+    function format_bytes($size, $delimiter = '')
+    {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB', 'PB');
+        for ($i = 0; $size >= 1024 && $i < 5; $i++) $size /= 1024;
+        return round($size, 2) . $delimiter . $units[$i];
+    }
+}
+
+
+if(!function_exists('password')){
+    /**
+     * 密码
+     * @param $password
+     * @return string
+     */
+    function password($password,$typ=PASSWORD_DEFAULT)
+    {
+        return password_hash($password, $typ);
+    }
+
+}
+
+// Form别名
+if (!class_exists('BuilderTable')) {
+    if(class_exists('app\builder\facade\BuilderTable')){
+        class_alias('app\\builder\\facade\\BuilderTable', 'BuilderTable');
+    }
+}
+if (!class_exists('BuilderForm')) {
+    if(class_exists('app\builder\facade\BuilderForm')) {
+        class_alias('app\\builder\\facade\\BuilderForm', 'BuilderForm');
+    }
+}
+if (!class_exists('BuilderMaker')) {
+    if(class_exists('app\builder\facade\BuilderMaker')) {
+        class_alias('app\\builder\\facade\\BuilderMaker', 'BuilderMaker');
+    }
+}
+
+if (!function_exists('getSystemTable')) {
+    /**
+     * @param $table
+     * @param $shift
+     * @return array|string[]
+     * 获取系统表格
+     */
+    function getSystemTable($table=[],$shift= [])
+    {
+        $tableList =  [
+            'addon',
+            'admin',
+            'admin_log',
+            'attach',
+            'attach_group',
+            'auth_group',
+            'auth_rule',
+            'blacklist',
+            'builder',
+            'builder_dict',
+            'builder_dict_value',
+            'builder_field',
+            'builder_with',
+            'config',
+            'config_group',
+            'field_type',
+            'field_verify',
+            'languages',
+            'member',
+            'member_account',
+            'member_address',
+            'member_group',
+            'member_level',
+            'member_third',
+            'oauth2_access_token',
+            'oauth2_client',
+            'provinces',
+        ];
+        if(!empty($table)){
+            $tableList =  array_merge($tableList,$table);
+        }
+        if(!empty($shift)){
+            $tableList = array_diff($tableList, $shift);
+        }
+        return $tableList;
     }
 }

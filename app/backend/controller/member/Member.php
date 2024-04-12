@@ -16,7 +16,8 @@ namespace app\backend\controller\member;
 use app\common\controller\Backend;
 use app\common\model\Provinces;
 use app\common\traits\Curd;
-use phpDocumentor\Reflection\DocBlock\Tags\Var_;
+use fun\builder\TableBuilder;
+use fun\FormBuilder;
 use think\facade\Request;
 use think\facade\View;
 use app\backend\model\MemberLevel;
@@ -32,6 +33,7 @@ class Member extends Backend
     {
         parent::__construct($app);
         $this->modelClass = new MemberModel();
+        View::assign('memberLevel', MemberLevel::column('name','id'));
     }
 
     public function getcitys(){
@@ -67,7 +69,54 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
             return json($result);
         }
-        return view();
+/*        $cols = [
+            ['checkbox' => true],
+            ['field' => 'id', 'title' => __('ID'),],
+            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
+            ['field' => 'email', 'title' => __('Email'), 'width' => 180,],
+            ['field' => 'mobile', 'title' => __('mobile'), 'width' => 120, 'edit' => 'text'],
+            [
+                'field' => 'sex',
+                'title' => __('Sex'),
+                'filter' => 'sex',
+                'width' => 120,
+                'search' => 'select',
+                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
+                'templet' => 'Table.templet.select',
+                'tips' => __('Female') . '|' . __('Male')
+            ],
+            [
+                'field' => 'memberLevel.name',
+                'title' => __('MemberLevel'),
+                'width' => 120,
+//                'url' => 'member.memberLevel/index',
+                // selectList=> memberLevel,
+                'prop' => 'name,name',
+                'search' => 'select',
+                'templet' => 'Table.templet.tags'
+            ],
+        ];
+        $operat = [
+            'fixed' => 'right',
+            'minWidth' => 80,
+            'align' => 'center',
+            'title' => __('Operat'),
+            'init' => 'Table.init',
+            'templet' => 'Table.templet.operat',
+            'operat' => ['edit', 'destroy',]
+        ];
+        $js = <<<EOF
+<script>
+$('.layui-btn').click(function (){
+    alert('111')
+})
+
+</script>
+
+EOF;
+
+        return TableBuilder::instance()->cols($cols)->operat($operat)->extraJs($js)->assign()->view();
+ */       return view();
     }
 
     public function add()
@@ -190,6 +239,22 @@ class Member extends Backend
             $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list, 'count' => $count];
             return json($result);
         }
+
+        /*
+         $cols = [
+            ['field' => 'sex',
+                'title' => __('Sex'),
+                'filter' => 'sex',
+                'width' => 120,
+                'search' => 'select',
+                'selectList' => [0 => __('Secret'), 1 => __('Male'), 2 => __('Female')],
+                'templet' => 'Table.templet.select',
+                'tips' => __('Female') . '|' . __('Male')
+            ],
+            ['field' => 'username', 'title' => __('memberName'), 'width' => 120,],
+        ];
+        return TableBuilder::instance()->cols($cols)->assign()->view();
+        */
         return view('index');
     }
 

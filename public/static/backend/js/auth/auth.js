@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function ($,Table, Form) {
+define(['table','form'], function (Table, Form) {
     var form = layui.form;
     var Controller = {
         index: function () {
@@ -78,8 +78,8 @@ define(['jquery','table','form'], function ($,Table, Form) {
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
                     {field: 'icons',title: __("icon"), width: 60,templet: Table.templet.icon},
-                    {field: 'title', title: __('Auth Name'), minwidth: 120,align: 'left'},
-                    {field: 'href', title: __('Module/Controller/Action'),align: 'left', minwidth: 200,templet: function (d){
+                    {field: 'title', title: __('Auth Name'), minWidth: 120,align: 'left'},
+                    {field: 'href', title: __('Module/Controller/Action'),align: 'left', minWidth: 200,templet: function (d){
                             return d.module +'@'+ d.href;
                         }},
                     {
@@ -157,6 +157,7 @@ define(['jquery','table','form'], function ($,Table, Form) {
                     Fun.toastr.success(res.msg, setTimeout(function () {
                         Fun.refreshmenu();
                         Fun.toastr.close();
+                        parent.layui.layer.closeAll()
                     }, 0));
                     }, function (res) {
                         Fun.toastr.error(res.msg);

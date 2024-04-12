@@ -56,7 +56,7 @@ class ZipHelper
     {
         // Initialize archive object
         if (!class_exists('ZipArchive')) {
-            throw new \Exception('ZinArchive not find');
+            throw new \Exception('ZipArchive not find');
         }
         $zip = new \ZipArchive();
         try {

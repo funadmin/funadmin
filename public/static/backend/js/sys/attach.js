@@ -1,4 +1,4 @@
-define(['jquery','table','upload','form'], function (undefined,Table,Upload,Form) {
+define(['table','upload','form'], function (Table,Upload,Form) {
     Table.init = {
         table_elem: 'list',
         tableId: 'list',

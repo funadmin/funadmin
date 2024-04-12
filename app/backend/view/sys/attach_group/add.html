@@ -1,8 +1,7 @@
 <form class="layui-form" method="post" action="">
-
     {:form_select('pid',$groupTreeList,['verify'=>''],['id','ltitle'],$formData?$formData.pid:'')}
-    {:form_input('title','text',['label'=>'title','verify'=>"required"])}
-    {:form_upload('thumb',[],['label'=>'Thumb'])}
+    {:form_input('title','text',['label'=>'title','verify'=>"required"],$formData?$formData.title:"")}
+    {:form_upload('thumb',['label'=>'Thumb']),$formData?$formData.thumb:""}
     {:form_radio('status',[0=>'close',1=>'open'],['verify'=>'required'],1)}
     {:form_submitbtn()}
 </form>

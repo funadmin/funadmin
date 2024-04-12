@@ -8,8 +8,10 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
 var BASE_URL = location.protocol+'//'+location.host+'/static/';
+var urlArgs = '_v=' + (Config.site.app_debug == 0 ? Config.site.site_version :(new Date().getTime()));var _t = '_t='+(new Date().getTime());
+var _t = '_t='+(new Date().getTime());
 require.config({
-    urlArgs: 'v=' + (!Config.site.app_debug ? Config.site.site_version :(new Date().getTime())),
+    urlArgs:  urlArgs ,
     packages: [
         {
             name: 'dayjs',
@@ -18,17 +20,15 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: [
-        'css','layCascader','tableSelect','iconPicker','iconFonts','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','croppers', 'md5','fun','form','table','upload','addons'],
+    include: ['jquery','css','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
-        'jquery'        : 'plugins/jquery/jquery-3.6.0.min', // jquery
+        'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
         //layui等组件
         'layCascader'      : 'plugins/lay-module/cascader/cascader',
         'tableFilter'   : 'plugins/lay-module/tableFilter/tableFilter',
         'tableSelect'   : 'plugins/lay-module/tableSelect/tableSelect',
         'iconPicker'    : 'plugins/lay-module/iconPicker/iconPicker',
-        'iconFonts'     : 'plugins/lay-module/iconPicker/iconFonts',
         'toastr'        : 'plugins/lay-module/toastr/toastr',//提示框
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
@@ -42,6 +42,8 @@ require.config({
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',
+        'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
+        'Sortable'      : 'plugins/lay-module/Sortable/Sortable.min',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
         'fun'           : 'js/fun', // api扩展
         'form'          : 'js/require-form',
@@ -70,6 +72,9 @@ require.config({
         "layCascader":{
             deps: ['css!plugins/lay-module/cascader/cascader.css'], exports: "layCascader"
         },
+        "autoComplete":{
+            deps: ['css!plugins/lay-module/autoComplete/autoComplete.css'], exports: "autoComplete"
+        },
     },
     waitSeconds: 30,
     charset: 'utf-8' // 文件编码
@@ -86,12 +91,13 @@ require(["jquery"], function ($) {
         require(['fun','addons'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
-                    console.log(Config.jspath)
-                    require([BASE_URL+Config.jspath], function (Controller) {
+                    require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {
                         if (Controller.hasOwnProperty(Config.actionname)) {
                             Controller[Config.actionname]();
+                        } else if (Controller.hasOwnProperty('api')) {
+                            Controller.api.bindevent()
                         } else {
-                            console.log('action is not find')
+                            console.log('action ' + Config.actionname + ' is not find')
                         }
                     });
                 }

@@ -10,7 +10,7 @@ use think\facade\Config;
 use think\facade\Request;
 use think\file\UploadedFile;
 use think\Image;
-use think\Filesystem;
+use think\facade\Filesystem;
 
 class UploadService extends AbstractService
 {
@@ -76,7 +76,7 @@ class UploadService extends AbstractService
      */
     protected $height = 0;
 
-
+    protected $rule  = '';
     /**
      * Service constructor.
      * @param App $app
@@ -94,10 +94,11 @@ class UploadService extends AbstractService
      */
     protected function initialize()
     {
+        $this->rule = syscfg('upload','upload_file_rule')?:'';
         $this->driver = syscfg('upload','upload_driver');
         $this->fileExt = syscfg('upload','upload_file_type');
         $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
-        $this->filesystem = new Filesystem($this->app);
+        $this->filesystem =  Filesystem::instance();
         $this->disksdriver = Config::get('filesystem.default','public');
         $this->disksurl = Config::get('filesystem.disks.'.$this->disksdriver.'.url','/storage');
         $this->ossService = OssService::instance();
@@ -116,7 +117,7 @@ class UploadService extends AbstractService
         //获取上传文件表单字段名
         $type = input('type', 'file');
         $savePath = input('path', 'uploads');
-        $savePath = $savePath =='undefined'?'uploads':$savePath;
+        $this->saveFilePath = $savePath =='undefined'?'uploads':$savePath;
         $editor = input('editor', '');
         $files = request()->file();
         foreach ($files as $k => $file) {
@@ -330,7 +331,7 @@ class UploadService extends AbstractService
 
         $this->file = $file?:$this->file;
         $saveFilePath = input('path','uploads') =='undefined'?:$this->saveFilePath;
-        $savename = $this->filesystem->disk($this->disksdriver)->putFile($saveFilePath, $this->file);
+        $savename = $this->filesystem->disk($this->disksdriver)->putFile($saveFilePath, $this->file,$this->rule);
         $savename = str_replace('\\','/',$savename);
         $path = $this->disksurl . "/" . $savename;
         $attach = AttachModel::where('md5',$this->file->md5())->find();
@@ -399,10 +400,9 @@ class UploadService extends AbstractService
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制
-        if ($this->fileExt !='*' && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
+        if ($this->fileExt !='*' && $this->file->extension() && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
             throw new Exception(lang('File type is limited'));
         }
-        $file_ext = $this->file->extension();
         if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
             $imgInfo = getimagesize($this->file->getPathname());
             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {

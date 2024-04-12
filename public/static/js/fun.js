@@ -8,8 +8,8 @@
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 // |  后台总控制API
 
-define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
-    var layer = layui.layer, element = layui.element;layer = layer || parent.layer;
+define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
+    var $ = layui.jquery, layer = layui.layer, element = layui.element;layer = layer || parent.layer;
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
         url: function (url) {
@@ -265,12 +265,35 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             loading: function (msg, callback,duration,position,showClose) {
                 return Toastr.loading(msg,callback,duration,position,showClose);
             },
+            //确认提示框
+            popconfirm: function (othis,msg, success, error,complete) {
+                 var index = layui.layer.tips(msg ? __(msg) : __("Are you sure"), othis, {
+                    tips: 1,
+                    time: 3500,
+                    btn: [__('Confirm'), __('Cancel')],
+                    btn1:function(index) {
+                        typeof success === 'function' && success.call(this);
+                        Fun.toastr.close(index);
+                    },
+                    btn2:function(index) {
+                        typeof error === 'function' && error.call(this);
+                    },
+                    success: function (layero, index, that) {
+                        if (typeof complete === 'function') {
+                            complete.call(this)
+                        } else {
+                            $('.layui-layer-tips .layui-layer-btn').css('background-color', '#000');
+                        }
+                    },
+                })
+                return false;
+            },
             // 对话框
             confirm: function (msg, success, error) {
                 var index = layui.layer.confirm(msg, {
                     title: __('Are you sure'),
                     icon: 3,
-                    btn: [__('Confirm'), __('Cancel')]
+                    btn: [__('Confirm'), __('Cancel')],
                 }, function () {
                     typeof success === 'function' && success.call(this);
                     Fun.toastr.close(index);
@@ -330,15 +353,69 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 Fun.api.open(options);
             },
             iframe:function(othis){
-                var _that = othis
-                    , url = _that.data('url') ? _that.data('url') : _that.data('iframe')
-                    , layId = _that.attr('data-id')
-                    , text =  _that.attr('title') || _that.data('text') || _that.attr('lay-tips')
-                    , icon = _that.find('i').attr('class') || 'layui-icon layui-icon-radio'
-                    , iframe = !!_that.has('data-iframe'),
-                    target = _that.prop('target') || '_self';
-                options = {url:url, layId:layId, text:text, icon:icon, iframe:iframe, target:target,}
-                Fun.api.iframe(options)
+                var _t = othis
+                    , url = _t.data('url') ? _t.data('url') : _t.data('iframe')
+                    , layId = _t.attr('data-id') ||  _t.attr('lay-id') || url
+                    , text =  _t.attr('title') ||  _t.data('text')  || _t.attr('lay-text') || _t.attr('lay-tips')
+                    , icon = _t.find('i').attr('class') || 'layui-icon layui-icon-radio'
+                    , iframe = !!_t.has('data-iframe'),
+                    target = _t.prop('target') || '_self';
+                url = Fun.url(url);
+                if (!layId) {
+                    return false;
+                } else {
+                    if (target === '_blank') {
+                        window.open(url, "_blank");
+                        return false;
+                    }
+                    options = {url: url, layId: layId, text: text, icon: icon, iframe: iframe, target: target,}
+                    Fun.api.iframe(options);
+                }
+            },
+            popconfirm:function(othis, options,Table){
+                var data = othis.data(),value;
+                if (options) {
+                    title = options.title;
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId
+                } else {
+                    var title = data.confirm ||  othis.prop('confirm') ||  othis.prop('text') || data.text || othis.prop('title') || data.title  , url = data.url ? data.url : data.href,
+                        tableId = data.tableid;
+                    title = title || 'Are you sure to do this';
+                    url = url !== undefined ? url : window.location.href;
+                    tableId = tableId || Table.init.tableId, value = data.value;
+                }
+                ids = '';
+                if(Table){
+                    arr = Table.getIds(url, tableId);
+                    ids = arr[0];
+                    length = arr[1];
+                }
+                postdata = {ids:ids};if(value){postdata.value = value}
+                Fun.toastr.popconfirm(othis,__(title), function () {
+                    Fun.ajax({url: url, data: postdata}, function (res) {
+                        Fun.toastr.success(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    }, function (res) {
+                        Fun.toastr.error(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    })
+                    Fun.toastr.close()
+                }, function (res) {
+                    if (res === undefined) {
+                        Fun.toastr.close();
+                        return false
+                    }
+                    Fun.toastr.success(res.msg, function () {
+                        Table && Table.api.reload(tableId)
+                    })
+                });
+                return false
+            },
+            confirm:function(othis, options,Table){
+                return Fun.events.request(othis, options,Table);
             },
             request: function (othis, options,Table) {
                 var data = othis.data(),value;
@@ -423,25 +500,24 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                         }
                     })
                     var inst = layui.dropdown.render({
-                        elem: othis, show: true, data: dropdowndata, click: function (row, _that) {
+                        elem: othis, show: true, data: dropdowndata, click: function (row, _t) {
                             attrEvent = row.event;
                             data.title = row.textTitle;
                             data.rowindex = row.rowindex;
                             buttons = rowData?rowData['data']['buttons']:tableOption['buttons'];
                             buttons = Fun.api.getButtons(buttons ,data.buttonsindex,data.rowindex);
-                            console.log(buttons)
                             callback = buttons.extend[data.rowindex].callback;
                             require(['table'], function (Table) {
                                 if (Table.events.hasOwnProperty(attrEvent)) {
-                                    Table.events[attrEvent].call(this, _that.find('button'),data,rowData,tableOption)
+                                    Table.events[attrEvent].call(this, _t.find('a'),data,rowData,tableOption)
                                 }else if(data.callback){
-                                    eval(data.callback)(_that,data,rowData,tableOption)
+                                    eval(data.callback)(_t,data,rowData,tableOption)
                                 }else if(typeof callback ==='function'){
-                                    callback(_that,data,rowData,tableOption)
+                                    callback(_t,data,rowData,tableOption)
                                 }else if(callback && typeof callback ==='string'){
-                                    eval(callback)(_that,data,rowData,tableOption)
+                                    eval(callback)(_t,data,rowData,tableOption)
                                 }else{
-                                    eval(data.event)(_that,data,rowData,tableOption)
+                                    eval(data.event)(_t,data,rowData,tableOption)
                                 }
                             })
 
@@ -456,6 +532,13 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
         接口
          */
         api: {
+            mergeFunc:function(func1, func2) {
+                // 返回一个新的函数，该函数执行时会依次调用 func1 和 func2
+                return function() {
+                    func1.apply(this, arguments); // 调用 func1，并传入当前的上下文和参数
+                    func2.apply(this, arguments); // 调用 func2，并传入当前的上下文和参数
+                };
+            },
             setStorage: function(key,value) {
                 if (value != null && value !== "undefined") {
                     layui.data(key,{
@@ -533,11 +616,15 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
-                width = width || '800';height = height || '100%';
+                width = width || Config.site.site_layer_width  ;
+                height = height ||  Config.site.site_layer_height;
+                width = width || '50%';height = height || '100%';
                 width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
                 height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
                 autoheight = autoheight ? true:false;
-                offset= options.offset!==undefined? options.offset :'r'; anim = options.anim!==undefined?options.anim : 'slideLeft';
+                offset = options.offset ||  Config.site.site_layer_offset ;
+                anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:options.anim;
+                offset = offset? offset :'r'; anim = anim? anim : 'slideLeft';
                 if (isFull) {width = '100%';height = '100%';}
                 var btns = [];
                 if (options.btn == undefined) {
@@ -658,26 +745,9 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
             },
             //打开iframe
             iframe:function(options){
-                var url = options.url
-                    , layId = options.layId || options.url
-                    , text = options.tips || options.title || options.text
-                    , icon = options.icon || 'layui-icon layui-icon-radio'
-                    , iframe =  options.iframe || false,
-                    target = options.target || '_self';
-                url = Fun.url(url);
-                if (!layId) {
-                    return false;
-                } else {
-                    if (target === '_blank') {
-                        window.open(url, "_blank");
-                        return false;
-                    }
-                    options = {layId: layId, text: text, url: url, icon: icon, iframe: iframe};
-                    layui.Backend.addTab(options);
-                    if (layui.Backend.checkScreen()) {
-                        $container.removeClass(SIDE_SHRINK).addClass('fun-app')
-                    }
-                }
+                    require(['backend'],function (Backend){
+                        Backend.addTab(options);
+                    })
             },
             refreshIframe: function () {
                 parent.location.reload();
@@ -689,16 +759,22 @@ define(["jquery", "lang",'toastr','dayjs'], function ($, Lang,Toastr,Dayjs) {
                 table.reload(tableId,{},true);
             },
             //获取同步数据
-            getData: function (url,data,method,async) {
-                method = method?method:"GET";
-                async = typeof async!=='undefined'?async:true;
+            getData: function (url,data,method) {
+                method = method?method:"GET";data= data || {};
+                async = typeof async!=='undefined'?async:false;
                 if(!url) return false;
-                var returnData;
-                Fun.ajax({url:Fun.url(url),data:data,method:method,async:async},function(res){
-                    returnData = res.data;
-                },function(res){
-                    return false;
-                })
+                var returnData = {};
+                $.ajax({
+                    url:Fun.url(url),
+                    data: data,
+                    method: method,
+                    async: false, //此处必须要有这句话，否则任然会传值失败
+                    success: function(res) {
+                        if(res.data){
+                            returnData = res.data;
+                        }
+                    }
+                });
                 return returnData;
             },
             getButtons:function(buttons,buttonsindex){

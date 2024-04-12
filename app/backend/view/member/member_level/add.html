@@ -2,7 +2,7 @@
             {:form_input('name','text',['verify'=>'required','tips'=>'Between 4 and 25 characters'])}
             {:form_input('amount','text',['verify'=>'required|number','tips'=>'Integer'])}
             {:form_input('discount','text',['verify'=>'required|number','tips'=>'100 not discounted 90% off'],'100')}
-            {:form_upload('thumb',$formData,['cropper'=>1,'mime'=>'images'])}
+            {:form_upload('thumb',['cropper'=>1,'mime'=>'images'],$formData['thumb']??'')}
             {:form_radio('status',['Close','Open'],['filter'=>'status'],1)}
             {:form_input('description','text')}
             {:form_submitbtn()}

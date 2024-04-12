@@ -24,6 +24,7 @@ use think\exception\ValidateException;
 use think\facade\Cookie;
 use think\facade\Lang;
 use think\facade\View;
+use think\helper\Str;
 
 class Frontend extends BaseController
 {
@@ -87,6 +88,24 @@ class Frontend extends BaseController
      */
     protected $selectpageFields = ['*'];
 
+    /**
+     * 隐藏字段
+     * @var array
+     */
+    protected $hiddenFields = [];
+
+    /**
+     * 可见字段
+     * @var array
+     */
+    protected $visibleFields = [];
+
+
+    /**
+     * 是否开启数据限制
+     * 表示按权限判断/仅限个人
+     */
+    protected $dataLimit = false;
 
 
     public function __construct(App $app)
@@ -115,6 +134,9 @@ class Frontend extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
+        if(!empty($lang) && Str::contains($lang,'../')){
+            return false;
+        }
         if($app){
             $res =  Lang::load([
                 $this->app->getBasePath() .$app. DS . 'lang' . DS . $lang . DS . str_replace('.', DS, $name) . '.php',

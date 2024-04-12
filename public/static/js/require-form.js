@@ -1,5 +1,5 @@
 // +----------------------------------------------------------------------
-// | FunAdmin极速开发框架 [基于layui开发]
+// | FunAdmin全栈开发框架 [基于thinkphp8+layui开发]
 // +----------------------------------------------------------------------
 // | Copyright (c) 2020-2030 http://www.funadmin.com
 // +----------------------------------------------------------------------
@@ -7,17 +7,18 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'iconPicker', 'cityPicker', 'inputTags', 'timePicker', 'regionCheckBox','multiSelect','selectN','selectPlus'],
-    function($,Table, tableSelect, Upload, selectPage, xmSelect, iconPicker, cityPicker, inputTags, timePicker, regionCheckBox, multiSelect, selectN,selectPlus) {
+define(['upload'], function (Upload) {
+    window.FormArray = window.FormArray || window.Config.FormArray || {};
+    var $ = layui.$;
     var Form = {
         init: {},
         //事件
         events: {
-            events:function (){
+            events: function () {
                 list = $("*[lay-event]");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        $(this).click(function(){
+                    layui.each(list, function () {
+                        $(this).click(function (e) {
                             if ($(this).attr('lay-event') === 'open') {
                                 Fun.events.open($(this));
                                 return true;
@@ -38,241 +39,362 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            selectplus:function(formObj) {
-                var selectplus ={},list = formObj!=undefined?formObj.find("*[lay-filter='selectPlus']"):$("*[lay-filter='selectPlus']");
+            autocomplete: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='autoComplete']") : $("*[lay-filter='autoComplete']");
                 if (list.length > 0) {
-                    selectPlus = layui.selectPlus || parent.layui.selectPlus;
-                    layui.each(list, function(i) {
-                        var _that = $(this);
-                        var id =_that.prop('id'), name =_that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                            url =_that.data('url')||_that.data('request'),
-                            data =_that.data('data')||　[], type =_that.attr('multiple') ||_that.data('multiple') ?'checkbox':'radio',
-                            method =_that.data('method')?$(this).data('method'):'get',
-                            values =_that.data('value')?$(this).data('value'):'',
-                            attr =_that.data('attr'), attr = typeof attr ==='string' ?attr.split(','):['id','title'],
-                            where =_that.data('where'), delimiter =_that.data('delimiter') || ',',
-                            fielddelimiter =_that.data('fielddelimiter') || '、';
-                        if(typeof values ==='string') {
-                            values = values.split(',')
-                        }else if(typeof values ==='number'){
-                            values = [values];
-                        }
-                        options = {
-                            el: '#' + id, data:data, url: url, type: type,  name: name,
-                            field: attr, values: values, method: method, where: where,
-                            delimiter: delimiter, fielddelimiter: fielddelimiter,verify:verify,
-                        };
-                        selectplus[i] = selectPlus.render(options);
-                    })
-                }
-            },
-            selectn:function(formObj) {
-                var selectn ={},list = formObj!=undefined?formObj.find("*[lay-filter='selectN']"):$("*[lay-filter='selectN']");
-                if (list.length > 0) {
-                    selectN = layui.selectN || parent.layui.selectN;
-                    layui.each(list, function(i) {
-                        var _that = $(this);
-                        var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                            url = _that.data('url') || _that.data('request'),
-                            data = _that.data('data')||　'',
-                            method = _that.data('method')?_that.data('method'):'get',
-                            last = _that.data('last')?_that.data('last'):'',
-                            values = _that.data('value')?_that.data('value'):'',
-                            search = _that.data('search')?_that.data('search'):'',
-                            attr = _that.data('attr'), attr= typeof attr ==='string' ?attr.split(','):['id','title'],
-                            num = _that.data('num')?_that.data('num'):3,
-                            pid = _that.data('pid') ||　'pid',
-                            delimiter = _that.data('delimiter') || ',',
-                            options = {
-                                elem: '#' + id, data: data, url: url, name: name,pid:pid,formFilter:id,
-                                field: attr, selected: values, method: method,search:search,num:num,
-                                delimiter: delimiter,last:last,verify:verify,
-                            };
-                        selectn[i] =  selectN(options).render();
-                    })
-                }
-            },
-            selectpage:function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='selectPage']"):$("*[lay-filter='selectPage']");
-                if (list.length > 0) {
-                    selectPage = layui.selectPage || parent.layui.selectPage;
-                    layui.each(list, function(i) {
-                        var _that = $(this);value = _that.val() || _that.data("init");
-                        var id = _that.prop('id'), name = _that.attr('name') || 'id',verify = _that.data('verify') || _that.attr('verify'),
-                            url = _that.data('url') || _that.data('request'),isTree = _that.data('istree') ,isHtml = _that.data('ishtml'),
-                            data = _that.data('data'), field = _that.data('field') ||　'title',pageSize = _that.data('pagesize') ||　12,
-                            primaryKey = _that.data('primarkey') ||　'id', selectOnly = _that.data('selectonly') ||　false,
-                            pagination = !(_that.data('pagination') == 'false' || _that.data('pagination') == 0), listSize = _that.data('listsize') ||　'15',
-                            multiple = _that.data('multiple') ||　false, dropButton  = _that.data('dropbutton') ||　true,
-                            maxSelectLimit  = _that.data('maxselectlimit ') ||　0, searchField   = _that.data('searchfield') || field,
-                            searchKey =_that.data('searchkey') ||　primaryKey, orderBy    = _that.data('orderby') ||　false,
-                            method    = _that.data('method') ||　'GET', dbTable    = _that.data('dbtable'),
-                            selectToCloseList  =_that.data('selecttocloselist') ||　 false,disabled = _that.data('disabled') || false,
-                            andOr =_that.data('andor'),formatItem = _that.data('formatitem') || false,required = _that.data('required') || ''
-                        orderBy = layui.type(orderBy)=='string'?[orderBy]:orderBy;isHtml!=undefined?isHtml:true;
-                        if(!value && Config.formData && Config.formData[name]) {
-                            _that.val( Config.formData[name]);
-                        }
-                        console.log(isTree)
-                        options = {
-                            showField : field, keyField :primaryKey,pageSize:pageSize,
-                            selectFileds:searchField,searchKey:searchKey,isTree:isTree,isHtml:isHtml,
-                            data : data || Fun.url(url), dbTable : dbTable, andOr : andOr, method:method,
-                            //仅选择模式，不允许输入查询关键字
-                            selectOnly : selectOnly,required : required, selectToCloseList:selectToCloseList,
-                            //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
-                            pagination : pagination, maxSelectLimit : maxSelectLimit, orderBy : orderBy,
-                            //关闭分页的状态下，列表显示的项目个数，其它的项目以滚动条滚动方式展现（默认10个）
-                            listSize : listSize, multiple : multiple, dropButton : dropButton,
-                            formatItem : function(res){
-                                if(formatItem)  return eval(formatItem);
-                                return res[this.showField];
-                            },
-                            eSelect : function(res){},
-                            selectToCloseList:function(res){},
-                            eAjaxSuccess: function(res) {
-                                row = res.data;data={};
-                                data.list = typeof row.data !== 'undefined' ? row.data : [];
-                                data.totalRow = typeof row.count !== 'undefined' ? row.count : row.data.length;
-                                return data;
+                    require(['autoComplete'], function (autoComplete) {
+                        layui.each(list, function (i, v) {
+                            var _t = $(this), data = _t.data('data'), src = _t.data('src') || _t.data('url'),
+                                id = _t.attr('id') || _t.data('id'), keys = _t.data('keys') || null;
+                            if (keys) keys = [keys];
+                            if (data.length == 0) {
+                                data = Fun.api.getData(src, {});
                             }
-                        };_that.selectPage(options);
-                        if(disabled){_that.selectPageDisabled(true);}
-                    })
-                }
-            },
-            xmSelect: function(formObj) {
-                var xmselectobj ={},list = formObj!=undefined?formObj.find("*[lay-filter='xmSelect']"):$("*[lay-filter='xmSelect']");
-                if (list.length > 0) {
-                    layui.each(list, function(i) {
-                        var id = $(this).prop('id'),
-                            url = $(this).data('url')|| $(this).data('request'), lang = $(this).data('lang'), value = $(this).data('value'),
-                            data = $(this).data('data')||　[], parentfield =  $(this).data('parentfield') || 'pid',
-                            tips = $(this).data('tips') ||  '请选择', searchTips = $(this).data('searchtips') || '请选择',
-                            empty = $(this).data('empty') || '呀,没有数据', height = $(this).data('height') || 'auto',
-                            paging = $(this).data('paging'), pageSize = $(this).data('pagesize'),
-                            remoteMethod = $(this).data('remotemethod'), content = $(this).data('content') || '',
-                            radio = $(this).data('radio'), disabled = $(this).data('disabled'),autoRow =  $(this).data('autorow') !== false,
-                            clickClose = $(this).data('clickclose'), prop = $(this).data('prop') || $(this).data('attr'),
-                            max = $(this).data('max'), create = $(this).data('create'),on =$(this).data('on'), repeat = !! $(this).data('repeat'),
-                            theme = $(this).data('theme') || '#1890ff', name = $(this).attr('name') || $(this).data('name') || 'pid',
-                            style = $(this).data('style') || {}, cascader = $(this).data('cascader') ? {show: true, indent: 200, strict: false} : false,
-                            layVerify = $(this).attr('lay-verify') || $(this).data('verify') || '', layReqText = $(this).data('reqtext') || '';layVerType = $(this).data('vertype') || 'tips'
-                        var size = $(this).data('size') || 'medium' ;toolbar = $(this).data('toolbar')==false ?{show: false}: {show: true, list: ['ALL', 'CLEAR', 'REVERSE']}
-                        var filterable = !! ($(this).data('filterable') === undefined || $(this).data('filterable'));
-                        var remoteSearch = !!($(this).data('remotesearch') !== undefined && $(this).data('remotesearch'));
-                        var pageRemote = !$(this).data('pageremote')?false:true, props, propArr, options;
-                        var tree = $(this).data('tree');
-                        if(remoteSearch) toolbar.show=true;filterable=true;
-                        if(typeof tree ==='object'){
-                            tree = tree;
-                        }else{
-                            tree = tree ?{show: true,showFolderIcon: true, showLine: true, indent: 20, expandedKeys: [], strict: false, simple: false, clickExpand: true, clickCheck: true, }:false;
-                        }
-                        if (typeof value != 'object' && value) {
-                            value = typeof value === "number" ? [value] : value.split(',')
-                        };props = {
-                            name: 'title',
-                            value: "id"
-                        };selelectFields = {
-                            name: 'title',
-                            value: "id"
-                        };if (prop) {
-                            propArr = prop.split(',');
-                            props.name = propArr[0];
-                            props.value = propArr[1];
-                            selelectFields = {name:props.name}
-                            selelectFields.value = propArr[1]== props.name  ?'id': propArr[1];
-                        };lang = lang ? lang : 'zh';paging = paging === undefined || paging !== 'false';
-                        pageSize = pageSize ? pageSize : 10;radio = !! radio;disabled = !! disabled;max = max ? max : 0;
-                        clickClose = clickClose ? clickClose : false;
-                        xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
-                        options = {
-                            el: '#' + id, language: lang, data: data, initValue: value, name: name,prop: props,
-                            tips: tips, empty: empty, searchTips: searchTips, disabled: disabled,
-                            filterable: filterable,remoteSearch: remoteSearch,
-                            remoteMethod: function(val, cb, show) {
-                                if (remoteMethod && remoteMethod !== undefined) {
-                                    eval(remoteMethod)(val, cb, show)
-                                } else {
-                                    var formatFilter = {},
-                                        formatOp = {};
-                                    formatFilter[props.name] = val;
-                                    formatOp[props.name] = '%*%';
-                                    Fun.ajax({
-                                        method:'get',
-                                        url: Fun.url(url?url: window.location.href),
-                                        data: {
-                                            filter: JSON.stringify(formatFilter),
-                                            op: JSON.stringify(formatOp),
-                                            selectFields:selelectFields
+                            window['autoComplete-' + id] = new autoComplete({
+                                selector: "#" + id,
+                                placeHolder: "Search...",
+                                data: {
+                                    src: data,
+                                    keys: keys,
+                                    cache: true,
+                                },
+                                resultsList: {
+                                    element: function (list, data) {
+                                        if (!data.results.length) {
+                                            // Create "No Results" message element
+                                            var message = document.createElement("div");
+                                            // Add class to the created element
+                                            message.setAttribute("class", "autocomplete_no_result");
+                                            // Add message text content
+                                            message.innerHTML = '<span>Found No Results for "' + data.query + '"</span>';
+                                            // Append message element to the results list
+                                            list.prepend(message);
                                         }
-                                    }, function(res) {
-                                        cb(res.data)
-                                    }, function(res) {
-                                        cb([])
-                                    })
+                                    },
+                                    noResults: true,
+                                },
+                                resultItem: {
+                                    highlight: true
+                                },
+                                events: {
+                                    input: {
+                                        selection: function (event) {
+                                            const selection = event.detail.selection.value;
+                                            window['autoComplete-' + id].input.value = keys ? selection[keys] : selection;
+                                        }
+                                    }
                                 }
-                            },
-                            paging: paging, pageSize: pageSize, autoRow: autoRow, size: size,
-                            repeat: repeat, height: height, max: max,
-                            pageRemote: pageRemote,
-                            toolbar: toolbar, theme: {
-                                color: theme,
-                            }, radio: radio, layVerify: layVerify, clickClose: clickClose,
-                            maxMethod: function(val) {
-                            }, on:function(data) {
-                                return eval(on)?eval(on)(data):false;
-                            }, create: function(val, arr) {
-                                return eval(create)?eval(create)(val, arr): {name: val, value: val}
-                            } ,
-                        }
-                        if (tree) options.tree = tree;
-                        if (cascader) options.cascader = cascader;
-                        if (style) options.style = style;
-                        if (layReqText) options.layReqText = layReqText;
-                        if (layVerType) options.layVerType = layVerType;
-                        if (content) options.content = content;
-                        xmselectobj[i] = xmSelect.render(options);
-                        if(data.toString()==='' && url){
-                            searchData = {selectFields:selelectFields,tree:tree.show,parentField:parentfield}
-                            Fun.ajax({
-                                method:'GET',
-                                url: Fun.url(url?url: window.location.href),
-                                data:searchData
-                            },function (res) {
-                                xmselectobj[i].update({
-                                    data: res.data,
-                                    autoRow: autoRow,
-                                })
-                            },function(res){
-                                console.log(res);
-                            })
-                        }
+                            });
+                        })
                     })
                 }
             },
-            editor: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='editor']"):$("*[lay-filter='editor']");
+            selectplus: function (formObj) {
+                var selectplus = {},
+                    list = formObj !== undefined ? formObj.find("*[lay-filter='selectPlus']") : $("*[lay-filter='selectPlus']");
+                if (list.length > 0) {
+                    require(['selectPlus'], function (selectPlus) {
+                        selectPlus = layui.selectPlus || parent.layui.selectPlus;
+                        layui.each(list, function (i) {
+                            var _t = $(this);
+                            var id = _t.prop('id'), name = _t.attr('name') || 'id',
+                                verify = _t.data('verify') || _t.attr('verify'),
+                                url = _t.data('url') || _t.data('request'),
+                                data = _t.data('data') || [],
+                                type = _t.attr('multiple') || _t.data('multiple') ? 'checkbox' : 'radio',
+                                method = _t.data('method') ? $(this).data('method') : 'get',
+                                values = _t.data('value') ? $(this).data('value') : '',
+                                attr = _t.data('attr'),
+                                attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
+                                where = _t.data('where'), delimiter = _t.data('delimiter') || ',',
+                                fielddelimiter = _t.data('fielddelimiter') || '、';
+                            if (typeof values === 'string') {
+                                values = values.split(',')
+                            } else if (typeof values === 'number') {
+                                values = [values];
+                            }
+                            options = {
+                                el: this, data: data, url: url, type: type, name: name,
+                                field: attr, values: values, method: method, where: where,
+                                delimiter: delimiter, fielddelimiter: fielddelimiter, verify: verify,
+                            };
+                            window['selectplus-' + id] = selectPlus.render(options);
+                        })
+                    })
+                }
+            },
+            selectn: function (formObj) {
+                var selectn = {},
+                    list = formObj !== undefined ? formObj.find("*[lay-filter='selectN']") : $("*[lay-filter='selectN']");
+                if (list.length > 0) {
+                    require(['selectN'], function (selectN) {
+                        selectN = layui.selectN || parent.layui.selectN;
+                        layui.each(list, function (i) {
+                            var _t = $(this);
+                            var id = _t.prop('id'), name = _t.attr('name') || 'id',
+                                verify = _t.data('verify') || _t.attr('verify'),
+                                url = _t.data('url') || _t.data('request'),
+                                data = _t.data('data') || '',
+                                method = _t.data('method') ||  'get',
+                                last = _t.data('last') ||  '',
+                                values = _t.data('value') || '',
+                                search = _t.data('search') || _t.attr('lay-search');
+                            if (search !== undefined) {
+                                search = true;
+                            }
+                            attr = _t.data('attr'),
+                                attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
+                                num = _t.data('num') ? _t.data('num') : 3,
+                                pid = _t.data('pid') || 'pid',
+                                delimiter = _t.data('delimiter') || ',',
+                                options = {
+                                    elem: this, data: data, url: url, name: name, pid: pid, formFilter: id,
+                                    field: attr, selected: values, method: method, search: search, num: num,
+                                    delimiter: delimiter, last: last, verify: verify,
+                                };
+                            window['selectn-' + id] = selectN(options).render();
+                        })
+                    })
+                }
+            },
+            selectpage: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='selectPage']") : $("*[lay-filter='selectPage']");
+                if (list.length > 0) {
+                    require(["selectPage"], function (selectPage) {
+                        selectPage = layui.selectPage || parent.layui.selectPage;
+                        layui.each(list, function (i) {
+                            var _t = $(this);
+                            value = _t.val() || _t.data("init");
+                            var id = _t.prop('id'), name = _t.attr('name') || 'id',
+                                verify = _t.data('verify') || _t.attr('verify'),
+                                url = _t.data('url') || _t.data('request'), isTree = _t.data('istree'),
+                                isHtml = _t.data('ishtml'),
+                                data = _t.data('data'), field = _t.data('field') || 'title',
+                                pageSize = _t.data('pagesize') || 12,
+                                primaryKey = _t.data('primarkey') || 'id',
+                                selectOnly = _t.data('selectonly') || false,
+                                pagination = !(_t.data('pagination') == 'false' || _t.data('pagination') == 0),
+                                listSize = _t.data('listsize') || '15',
+                                multiple = _t.data('multiple') || false, dropButton = _t.data('dropbutton') || true,
+                                maxSelectLimit = _t.data('maxselectlimit ') || 0,
+                                searchField = _t.data('searchfield') || field,
+                                searchKey = _t.data('searchkey') || primaryKey,
+                                orderBy = _t.data('orderby') || false,
+                                method = _t.data('method') || 'GET', dbTable = _t.data('dbtable'),
+                                selectToCloseList = _t.data('selecttocloselist') || true,
+                                disabled = _t.data('disabled') || false,
+                                andOr = _t.data('andor'), formatItem = _t.data('formatitem') || false,
+                                verify = _t.attr('lay-verify') || '';
+                            orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
+                            isHtml != undefined ? isHtml : true;
+                            eSelect = _t.data('eselect');
+                            if (!value && window.FormArray && window.FormArray[name]) {
+                                _t.val(window.FormArray[name]);
+                            }
+                            var options = {
+                                showField: field, keyField: primaryKey, pageSize: pageSize,
+                                selectFields: searchField, searchKey: searchKey, isTree: isTree, isHtml: isHtml,
+                                data: data || Fun.url(url), dbTable: dbTable, andOr: andOr, method: method,
+                                //仅选择模式，不允许输入查询关键字
+                                selectOnly: selectOnly, verify: verify, selectToCloseList: selectToCloseList,
+                                //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
+                                pagination: pagination, maxSelectLimit: maxSelectLimit, orderBy: orderBy,
+                                //关闭分页的状态下，列表显示的项目个数，其它的项目以滚动条滚动方式展现（默认10个）
+                                listSize: listSize, multiple: multiple, dropButton: dropButton,
+                                formatItem: function (res) {
+                                    if (formatItem) return eval(formatItem);
+                                    return res[this.showField];
+                                },
+                                eSelect: eSelect ? eval(eSelect)(res) : function (res) {
+                                },
+                                eAjaxSuccess: function (res) {
+                                    row = res.data;
+                                    data = {};
+                                    data.list = typeof row.data !== 'undefined' ? row.data : [];
+                                    data.totalRow = typeof row.count !== 'undefined' ? row.count : row.data.length;
+                                    return data;
+                                }
+                            };
+                            window['selectpage-' + id] = _t.selectPage(options);
+                            if (disabled) {
+                                _t.selectPageDisabled(true);
+                            }
+                        })
+                    })
+                }
+            },
+            xmselect: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='xmSelect']") : ($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
+                if (list.length > 0) {
+                    require(["xmSelect"], function (xmSelect) {
+                        layui.each(list, function (i) {
+                            var _t = $(this);
+                            var id = _t.prop('id'),
+                                url = _t.data('url') || _t.data('request'), lang = _t.data('lang'),
+                                value = _t.data('value') || _t.attr('value'),
+                                data = _t.data('data') || [], parentfield = _t.data('parentfield') || 'pid',
+                                tips = _t.data('tips') || '请选择', searchTips = _t.data('searchtips') || '请选择',
+                                empty = _t.data('empty') || '呀,没有数据', height = _t.data('height') || 'auto',
+                                paging = _t.data('paging'), pageSize = _t.data('pagesize'),
+                                remoteMethod = _t.data('remotemethod'), content = _t.data('content') || '',
+                                radio = _t.data('radio'), disabled = _t.data('disabled'),
+                                autoRow = _t.data('autorow') !== false,
+                                clickClose = _t.data('clickclose'), prop = _t.data('prop') || _t.data('attr'),
+                                max = _t.data('max'), create = _t.data('create'), on = $(this).data('on'),
+                                repeat = !!_t.data('repeat'),
+                                theme = _t.data('theme') || '#4d70ff',
+                                name = _t.attr('name') || _t.data('name') || 'pid',
+                                style = _t.data('style') || {},
+                                cascader = _t.data('cascader') ? {show: true, indent: 200, strict: false} : false,
+                                layVerify = _t.attr('lay-verify') || _t.data('layverify') || '',
+                                layReqText = _t.attr('lay-reqtext') ||  _t.data('layreqtext') || '';
+                            layVerType = _t.attr('lay-vertype') ||  _t.data('layvertype')  || 'tips'
+                            var size = _t.data('size') || 'medium';
+                            toolbar = _t.data('toolbar') == false ? {show: false} : {
+                                show: true,
+                                list: ['ALL', 'CLEAR', 'REVERSE']
+                            }
+                            var filterable = !!($(this).data('filterable') === undefined || _t.data('filterable'));
+                            var remoteSearch = !!($(this).data('remotesearch') !== undefined && _t.data('remotesearch'));
+                            var pageRemote = !$(this).data('pageremote') ? false : true, props, propArr, options;
+                            var tree = _t.data('tree');
+                            if (remoteSearch) toolbar.show = true;
+                            filterable = true;
+                            if (typeof tree === 'object') {
+                                tree = tree;
+                            } else {
+                                tree = tree ? {
+                                    show: true,
+                                    showFolderIcon: true,
+                                    showLine: true,
+                                    indent: 20,
+                                    expandedKeys: [],
+                                    strict: false,
+                                    simple: false,
+                                    clickExpand: true,
+                                    clickCheck: true,
+                                } : false;
+                            }
+                            if (typeof value != 'object' && value) {
+                                value = typeof value === "number" ? [value] : value.split(',')
+                            }
+                            ;props = {
+                                name: 'title',
+                                value: "id"
+                            };
+                            selelectFields = {
+                                name: 'title',
+                                value: "id"
+                            };
+                            if (prop) {
+                                propArr = prop.split(',');
+                                props.name = propArr[0];
+                                props.value = propArr[1];
+                                selelectFields = {name: props.name}
+                                selelectFields.value = propArr[1] == props.name ? 'id' : propArr[1];
+                            }
+                            ;lang = lang ? lang : 'zh';
+                            paging = paging === undefined || paging !== 'false';
+                            pageSize = pageSize ? pageSize : 10;
+                            radio = !!radio;
+                            disabled = !!disabled;
+                            max = max ? max : 0;
+                            clickClose = clickClose ? clickClose : false;
+                            xmSelect = window.xmSelect ? window.xmSelect : parent.window.xmSelect;
+                            options = {
+                                el: this, language: lang, data: data, initValue: value, name: name, prop: props,
+                                tips: tips, empty: empty, searchTips: searchTips, disabled: disabled,
+                                filterable: filterable, remoteSearch: remoteSearch,
+                                remoteMethod: function (val, cb, show) {
+                                    if (remoteMethod && remoteMethod !== undefined) {
+                                        eval(remoteMethod)(val, cb, show)
+                                    } else {
+                                        var formatFilter = {},
+                                            formatOp = {};
+                                        formatFilter[props.name] = val;
+                                        formatOp[props.name] = '%*%';
+                                        Fun.ajax({
+                                            method: 'get',
+                                            url: Fun.url(url ? url : window.location.href),
+                                            data: {
+                                                filter: JSON.stringify(formatFilter),
+                                                op: JSON.stringify(formatOp),
+                                                selectFields: selelectFields
+                                            }
+                                        }, function (res) {
+                                            cb(res.data)
+                                        }, function (res) {
+                                            cb([])
+                                        })
+                                    }
+                                },
+                                paging: paging, pageSize: pageSize, autoRow: autoRow, size: size,
+                                repeat: repeat, height: height, max: max,
+                                pageRemote: pageRemote,
+                                toolbar: toolbar, theme: {
+                                    color: theme,
+                                }, radio: radio, layVerify: layVerify, clickClose: clickClose,
+                                maxMethod: function (val) {
+                                }, on: function (data) {
+                                    return eval(on) ? eval(on)(data) : false;
+                                }, create: function (val, arr) {
+                                    return eval(create) ? eval(create)(val, arr) : {name: val, value: val}
+                                },
+                            }
+                            if (tree) options.tree = tree;
+                            if (cascader) options.cascader = cascader;
+                            if (style) options.style = style;
+                            if (layReqText) options.layReqText = layReqText;
+                            if (layVerType) options.layVerType = layVerType;
+                            if (content) options.content = content;
+                            window['xmselect-' + id] = xmSelect.render(options);
+                            if (data.toString() === '' && url) {
+                                searchData = {
+                                    selectFields: selelectFields,
+                                    tree: tree.show,
+                                    parentField: parentfield
+                                }
+                                Fun.ajax({
+                                    method: 'GET',
+                                    url: Fun.url(url ? url : window.location.href),
+                                    data: searchData
+                                }, function (res) {
+                                    window['xmselect-' + id].update({
+                                        data: res.data,
+                                        autoRow: autoRow,
+                                    })
+                                }, function (res) {
+                                    console.log(res);
+                                })
+                            }
+                        })
+                    })
+                }
+            },
+            editor: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='editor']") : $("*[lay-filter='editor']");
                 if (list.length > 0) {
                     const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                     const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
                     layui.each(list, function () {
-                        var id = $(this).prop('id');data = $(this).data();
-                        var name = $(this).prop('name');
-                        var path = $(this).data('path');
-                        $(this).html(Config.formData[name]);
-                        var upload_url = data.url?data.url:Fun.url(Upload.init.requests.upload_url) + '?editor=tinymce&path=' + path
-                        if ($(this).data('editor') == 2) {
+                        var _t = $(this);
+                        var id = _t.prop('id');
+                        var data = _t.data();
+                        var name = _t.prop('name');
+                        var path = _t.data('path');
+                        _t.html(window.FormArray[name]);
+                        var upload_url = (data.url ? data.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
+                        if ($(this).data('editor') == 'tinymce') {
                             if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
                                 $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
                             }
-                            window['editor' + id] = tinymce.init({
-                                selector: '#' + id,
-                                language: 'zh-Hans',
-                                plugins: 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
+                            window['editor-' + id] = tinymce.init({
+                                selector: '#' + id + '[lay-editor]',
+                                language: data.language ||  'zh-Hans',
+                                plugins: data.plugins ? data.plugins : 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
+                                editimage_cors_hosts: ['picsum.photos'],
                                 menubar: 'file edit view insert format tools table help',
-                                toolbar: 'undo redo  bold italic underline strikethrough  fontfamily fontsize | blocks  alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  insertfile image media preview  template link  | print  anchor codesample save  ltr rtl ',
+                                toolbar: data.toolbar ? data.toobar : 'undo redo  bold italic underline strikethrough  fontfamily fontsize | blocks  alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  insertfile image media preview  template link  | print  anchor codesample save  ltr rtl ',
                                 toolbar_sticky: false,
                                 toolbar_sticky_offset: isSmallScreen ? 102 : 108,
                                 autosave_ask_before_unload: true,
@@ -281,8 +403,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                 autosave_restore_when_empty: false,
                                 autosave_retention: '20m',
                                 image_advtab: true,
-                                height: 650, //编辑器高度
-                                min_height: 400,
+                                height: (data.height ? data.height : 650), //编辑器高度
+                                min_height: (data.maxheight ? data.maxheight : 400),
                                 content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:16px } img {max-width:100%;}",
                                 fontsize_formats: '12px 14px 16px 18px 24px 36px 48px 56px 72px,128px',
                                 font_formats: '微软雅黑=Microsoft YaHei,Helvetica Neue,PingFang SC,sans-serif;苹果苹方=PingFang SC,Microsoft YaHei,sans-serif;宋体=simsun,serif;仿宋体=FangSong,serif;黑体=SimHei,sans-serif;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;',
@@ -296,8 +418,8 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     {title: 'None', value: ''},
                                     {title: 'Some class', value: 'class-name'}],
                                 //动态改变值
-                                init_instance_callback:function (editor){
-                                    editor.on('change', function(e) {
+                                init_instance_callback: function (editor) {
+                                    editor.on('change', function (e) {
                                         var val = editor.contentDocument.body.innerHTML;
                                         $('textarea[name="' + name + '"]').val(val);
                                     });
@@ -371,175 +493,381 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                     })
                 }
             },
-            tags: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='tags']"):$("*[lay-filter='tags']");
+            tags: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='inputtags']") : $("*[lay-filter='inputtags']");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        var _that = $(this),
-                            content = [];
-                        var tag = _that.parents('.tags').find('input[type="hidden"]').val();
-                        if (tag) content = tag.substring(0, tag.length - 1).split(',');
-                        var id = _that.prop('id');
-                        var inputTags = layui.inputTags ? layui.inputTags : parent.layui.inputTags;
-                        inputTags.render({
-                            elem: '#' + id,
-                            content: content,
-                            done: function(value) {}
+                    require(['inputTags'], function (inputTags) {
+                        layui.each(list, function () {
+                            var _t = $(this), data = [],value = _t.next('input').val();
+                            if (value) data = value.substring(0, value.length - 1).split(',');
+                            var id = _t.prop('id');
+                            window['tags-' + id] = inputTags.render({
+                                elem: this,
+                                data: data,//初始值
+                                permanentData: [],//不允许删除的值
+                                removeKeyNum: 8,//删除按键编号 默认，BackSpace 键
+                                createKeyNum: 32,//创建按键编号 默认，space 键
+                                beforeCreate: function (data, value) {//添加前操作，必须返回字符串才有效
+                                    return value;
+                                },
+                                onChange: function (data, value, type) {
+                                    _t.next('input').val(data.join(','));
+                                }
+                            })
                         })
                     })
                 }
             },
-            icon: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='iconPickers']"):$("*[lay-filter='iconPickers']");
+            icon: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='iconPicker']") : $("*[lay-filter='iconPicker']");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        var _that = $(this);
-                        var id = _that.prop('id');
-                        layui.iconPicker.render({
-                            elem: '#' + id,
-                            type: 'fontClass',
-                            search: true,
-                            page: true,
-                            limit: 12,
-                            click: function(data) {
-                                _that.prev("input[type='hidden']").val(data.icon)
-                            },
-                            success: function(d) {}
+                    require(['iconPicker'], function (iconPicker) {
+                        layui.each(list, function () {
+                            var _t = $(this);var url = _t.data('url');
+                            var data = _t.data();var id = _t.prop('id');
+                            window['icon-' + id] = layui.iconPicker.render({
+                                elem: this,
+                                type: 'fontClass',
+                                value:_t.prop('value') || _t.data('value'),
+                                search: true,
+                                page: true,
+                                limit: 12,
+                                click: function (data) {
+                                    _t.val(data.icon)
+                                },
+                                success: data.done ? eval(data.done(d)) : function (d) {
+                                }
+                            })
                         })
                     })
                 }
             },
-            color: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='colorPicker']"):$("*[lay-filter='colorPicker']");
+            color: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='colorPicker']") : $("*[lay-filter='colorPicker']");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        var _that = $(this),name= _that.data('name'),format = _that.data('format') || 'hex';
-                        var id = _that.prop('id');
-                        var color = _that.prev('input').val();
-                        layui.colorpicker.render({
-                            elem: '#' + id,
+                    layui.each(list, function () {
+                        var _t = $(this), name = _t.data('name'), format = _t.data('format') || 'hex',
+                            data = _t.data();
+                        var id = _t.prop('id') || _t.data('id');
+                        var color = _t.prev('input').val();
+                        window['color-' + id] = layui.colorpicker.render({
+                            elem: this,
                             color: color,
                             predefine: true,
                             alpha: true,
-                            format:format,
-                            change: function(color) {},
-                            done: function(color) {
-                                _that.prev('input[name="' + name + '"]').val(color)
+                            format: format,
+                            change: function (color) {
+                            },
+                            done: data.done ? eval(data.done(color)) : function (color) {
+                                _t.prev('input[name="' + name + '"]').val(color)
                             }
                         })
                     })
                 }
             },
-            regionCheck: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='regionCheck']"):$("*[lay-filter='regionCheck']");
+            region: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='region']") : $("*[lay-filter='region']");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        var _that = $(this);
-                        var id = _that.attr('id'),
-                            name = _that.attr('name');
-                        value = _that.data('value') || [];
-                        if(value && typeof value === 'string'){
-                            value = value.split(',');
-                        }
-                        layui.regionCheckBox.render({
-                            elem: '#' + id,
-                            name: name,
-                            value: value,
-                            width: '550px',
-                            border: true,
-                            ready: function() {
-                                _that.prev('input[type="hidden"]').val(getAllChecked())
-                            },
-                            change: function(result) {
-                                _that.prev('input[name="'+name+'"]').val(getAllChecked())
+                    require(['regionCheckBox'], function (regionCheckBox) {
+                        layui.each(list, function () {
+                            var _t = $(this);
+                            var id = _t.prop('id'),
+                                name = _t.attr('name');
+                            value = _t.data('value') || [];
+                            if (value && typeof value === 'string') {
+                                value = value.split(',');
                             }
-                        });
-                        function getAllChecked() {
-                            var all = '';
-                            _that.find("input:checkbox[name='" + id + name + "']:checked").each(function() {
-                                all += $(this).val() + ','
+                            window['region-' + id] = layui.regionCheckBox.render({
+                                elem: this,
+                                name: name,
+                                value: value,
+                                width: '550px',
+                                border: true,
+                                ready: function () {
+                                    _t.prev('input[type="hidden"]').val(getAllChecked())
+                                },
+                                change: function (result) {
+                                    _t.prev('input[name="' + name + '"]').val(getAllChecked())
+                                }
                             });
-                            return all.substring(0, all.length - 1)
-                        }
-                    })
-                }
-            },
-            city: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='cityPicker']"):$("*[lay-filter='cityPicker']");
-                if (list.length > 0) {
-                    cityPicker = layui.cityPicker;
-                    layui.each(list, function() {
-                        var id = $(this).prop('id'),
-                            name = $(this).prop('name');
-                        var provinceId = $(this).data('provinceid'),
-                            cityId = $(this).data('cityid');
-                        var province, city, district;
-                        if (Config.formData[name]) {
-                            var cityValue = Config.formData[name];
-                            province = cityValue.split('/')[0]; city = cityValue.split('/')[1];district = cityValue.split('/')[2];
-                        }
-                        var districtId = $(this).data('districtid');
-                        currentPicker = new cityPicker("#" + id, {
-                            provincename: provinceId,
-                            cityname: cityId,
-                            districtname: districtId,
-                            level: 'districtId',
-                            province: province,
-                            city: city,
-                            district: district
-                        });
-                        var str = '';
-                        if (Config.formData.hasOwnProperty(provinceId)) {
-                            str += ChineseDistricts[886][Config.formData[provinceId]]
-                        }
-                        if (Config.formData.hasOwnProperty(cityId) && Config.formData[[cityId]] && Config.formData.hasOwnProperty(provinceId)) {
-                            str += '/' + ChineseDistricts[Config.formData[provinceId]][Config.formData[cityId]]
-                        }
-                        if (Config.formData.hasOwnProperty(cityId) && Config.formData[districtId] && Config.formData.hasOwnProperty(districtId)) {
-                            str += '/' + ChineseDistricts[Config.formData[cityId]][Config.formData[districtId]]
-                        }
-                        if (!str) {
-                            str = Config.formData.hasOwnProperty(name) ? Config.formData['name'] : ''
-                        }
-                        currentPicker.setValue(Config.formData[name] ? Config.formData[name] : str)
-                    })
-                }
-            },
-            timepicker: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='timePicker']"):$("*[lay-filter='timePicker']");
-                if (list.length > 0) {
-                    layui.each(list, function() {
-                        var id = $(this).prop('id');
-                        layui.timePicker.render({
-                            elem: '#' + id,
-                            trigger: 'click',
-                            options: {
-                                timeStamp: false,
-                                format: 'YYYY-MM-DD HH:ss:mm',
-                            },
+
+                            function getAllChecked() {
+                                var all = '';
+                                _t.find("input:checkbox[name='" + id + name + "']:checked").each(function () {
+                                    all += $(this).val() + ','
+                                });
+                                return all.substring(0, all.length - 1)
+                            }
                         })
                     })
                 }
             },
-            date: function(formObj) {
-                var list = formObj!=undefined?formObj.find("*[lay-filter='date']"):$("*[lay-filter='date']");
+            city: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='cityPicker']") : $("*[lay-filter='cityPicker']");
                 if (list.length > 0) {
-                    layui.each(list, function() {
-                        var format = $(this).data('format'), type = $(this).data('type'),
-                            value=$(this).data('value') || $(this).val(),
-                            range = $(this).data('range');
-                        if (type === undefined || type === '' || type == null) {
-                            type = 'datetime'
-                        }
+                    require(['cityPicker'], function (cityPicker) {
+                        cityPicker = layui.cityPicker;
+                        layui.each(list, function () {
+                            var _t = $(this);
+                            var id = _t.prop('id'),
+                                name = _t.prop('name');
+                            var provinceId = _t.data('provinceid'),
+                                cityId = _t.data('cityid');
+                            var province, city, district;
+                            if (window.FormArray[name]) {
+                                var cityValue = window.FormArray[name];
+                                province = cityValue.split('/')[0];
+                                city = cityValue.split('/')[1];
+                                district = cityValue.split('/')[2];
+                            }
+                            var districtId = _t.data('districtid');
+                            window['citypicker-' + id] = new cityPicker(this, {
+                                provincename: provinceId,
+                                cityname: cityId,
+                                districtname: districtId,
+                                level: 'districtId',
+                                province: province,
+                                city: city,
+                                district: district
+                            });
+                            var str = '';
+                            if (window.FormArray.hasOwnProperty(provinceId)) {
+                                str += ChineseDistricts[886][window.FormArray[provinceId]]
+                            }
+                            if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[[cityId]] && window.FormArray.hasOwnProperty(provinceId)) {
+                                str += '/' + ChineseDistricts[window.FormArray[provinceId]][window.FormArray[cityId]]
+                            }
+                            if (window.FormArray.hasOwnProperty(cityId) && window.FormArray[districtId] && window.FormArray.hasOwnProperty(districtId)) {
+                                str += '/' + ChineseDistricts[window.FormArray[cityId]][window.FormArray[districtId]]
+                            }
+                            if (!str) {
+                                str = window.FormArray.hasOwnProperty(name) ? window.FormArray['name'] : ''
+                            }
+                            window['citypicker-' + id].setValue(window.FormArray[name] ? window.FormArray[name] : str)
+                        })
+                    })
+                }
+            },
+            timepicker: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='timePicker']") : $("*[lay-filter='timePicker']");
+                if (list.length > 0) {
+                    require(['timePicker'], function (timePicker) {
+                        layui.each(list, function () {
+                            var id = $(this).prop('id');
+                            window['timepicker-' + id] = layui.timePicker.render({
+                                elem: this,
+                                trigger: 'click',
+                                options: {
+                                    timeStamp: false,
+                                    format: 'YYYY-MM-DD HH:ss:mm',
+                                },
+                            })
+                        })
+                    })
+                }
+            },
+            datepicker: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='datePicker']") : $("*[lay-filter='datePicker']");
+                if (list.length > 0) {
+                    layui.each(list, function () {
+                        var id = $(this).prop('id') || $(this).attr('id');
+                        window['datepicker-' + id] = layui.laydate.render({
+                            elem: this,
+                            type: "datetime",
+                            range: true,
+                            shortcuts: [
+                                {
+                                    text: "今天", value: function () {
+                                        sTime = Dayjs().startOf("d");
+                                        eTime = Dayjs().endOf("d");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "昨天",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(1, "d").startOf("d");
+                                        eTime = Dayjs().subtract(1, "d").endOf("d");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "明天",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(-1, "d").startOf("d");
+                                        eTime = Dayjs().subtract(-1, "d").endOf("d");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "本周",
+                                    value: function () {
+                                        sTime = Dayjs().startOf("w");
+                                        eTime = Dayjs().endOf("w");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "上周",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(1, "w").startOf("w");
+                                        eTime = Dayjs().subtract(1, "w").endOf("w");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "下周",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(-1, "w").startOf("w");
+                                        eTime = Dayjs().subtract(-1, "w").endOf("w");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "近一周",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 7);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "本月",
+                                    value: function () {
+                                        sTime = Dayjs().startOf("M");
+                                        eTime = Dayjs().endOf("M");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "上月",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(1, "M").startOf("M");
+                                        eTime = Dayjs().subtract(1, "M").endOf("1 M");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "下月",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(-1, "M").startOf("M");
+                                        eTime = Dayjs().subtract(-1, "M").endOf("1 M");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "近三月",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 90);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                }, {
+                                    text: "近半年",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 180);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "本季度",
+                                    value: function () {
+                                        sTime = Dayjs().startOf("quarter");
+                                        eTime = Dayjs().endOf("quarter");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "上季度",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(1, "Q").startOf("Q");
+                                        eTime = Dayjs().subtract(1, "Q").endOf("Q");
+                                        return [sTime, eTime];
+                                    }()
+                                }, {
+                                    text: "下季度",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(-1, "Q").startOf("Q");
+                                        eTime = Dayjs().subtract(-1, "Q").endOf("Q");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "近三季度",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 180);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "本年度",
+                                    value: function () {
+                                        sTime = Dayjs().startOf("y");
+                                        eTime = Dayjs().endOf("y");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "上年度",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(1, "y").startOf("y");
+                                        eTime = Dayjs().subtract(1, "y").endOf("y");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "下年度",
+                                    value: function () {
+                                        sTime = Dayjs().subtract(-1, "y").startOf("y");
+                                        eTime = Dayjs().subtract(-1, "y").endOf("y");
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "近一年",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 365 * 1);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                },
+                                {
+                                    text: "近三年",
+                                    value: function () {
+                                        sTime = new Date();
+                                        sTime.setTime(new Date().getTime() - 3600 * 1000 * 24 * 365 * 3);
+                                        eTime = Dayjs();
+                                        return [sTime, eTime];
+                                    }()
+                                }
+                            ],
+                        })
+                    })
+                }
+            },
+            date: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='date']") : $("*[lay-filter='date']");
+                if (list.length > 0) {
+                    layui.each(list, function () {
+                        var data = $(this).data(), format = $(this).data('format'), type = $(this).data('type'),
+                            id = $(this).prop('id') || $(this).data('id'),
+                            value = $(this).data('value') || $(this).val(), range = $(this).data('range');
                         var options = {
                             elem: this,
-                            type: type,
+                            type: data.type || 'datetime',
                             trigger: 'click',
                             calendar: true,
-                            theme: '#1890ff'
+                            theme: data.theme || '#4d70ff'
                         };
                         if (format !== undefined && format !== '' && format != null) {
-                            options['format'] = format
+                            options['format'] = format.replaceAll('Y','y');
                         }
                         if (range !== undefined) {
                             if (range != null || range === '') {
@@ -547,106 +875,137 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             }
                             options['range'] = range
                         }
-                        if(value){
+                        if (value) {
                             options['value'] = value;
                         }
+                        if (data.fullPanel != false) {
+                            options['fullPanel'] = true;// 2.8+
+                        }
+                        if (data.mark) {
+                            options['mark'] = mark;
+                        }
+                        if (data.holidays) {
+                            options['holidays'] = holidays;
+                        }
+                        if (data.min) {
+                            options['min'] = min;
+                        }
+                        if (data.max) {
+                            options['max'] = max;
+                        }
                         laydate = layui.laydate ? layui.laydate : parent.layui.laydate;
-                        laydate.render(options)
+                        window['date-' + id] = laydate.render(options)
                     })
                 }
             },
-            rate: function(formObj) {
-                var ratelist=[];
-                var list = formObj!=undefined?formObj.find("*[lay-filter='rate']"):$("*[lay-filter='rate']");
+            rate: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='rate']") : $("*[lay-filter='rate']");
                 if (list.length > 0) {
-                    layui.each(list, function(i) {
-                        var _that = $(this),id = _that.prop('id'),name=_that.data('name')
-                        options = _that.data('options') || {};
-                        options.elem = '#' + id;
-                        options.value = _that.data('value');
-                        options.length = options.length?options.length:5;
-                        options.theme = options.theme==undefined?'#1E9FFF':options.length;
-                        options.readonly = options.readonly || options.disabled ? true:false;
-                        if(_that.parent('div').find('input[name="'+name+'"]').length==0){
-                            _that.before('input[name="'+name+'"]');
+                    layui.each(list, function (i) {
+                        var _t = $(this), id = _t.prop('id'), name = _t.data('name')
+                        options = _t.data('options') || {};
+                        options.elem = this;
+                        options.value = _t.data('value');
+                        options.length = options.length ? options.length : 5;
+                        options.theme = options.theme == undefined ? '#1E9FFF' : options.length;
+                        options.readonly = options.readonly || options.disabled ? true : false;
+                        if (_t.parent('div').find('input[name="' + name + '"]').length == 0) {
+                            _t.before('input[name="' + name + '"]');
                         }
-                        if(options.setText){
-                            options.setText = function(value){ //自定义文本的回调
+                        if (options.setText) {
+                            options.setText = function (value) { //自定义文本的回调
                                 var arrs = options.setText;
-                                this.span.text(arrs[value] || ( value + __("Star")));
+                                this.span.text(arrs[value] || (value + __("Star")));
                             }
                         }
-                        options.choose = function(value){
-                            _that.parent('div').find('input[name="'+name+'"]').val(value)
+                        options.choose = function (value) {
+                            _t.parent('div').find('input[name="' + name + '"]').val(value)
                         }
-                        ratelist[i] = layui.rate.render(options);
+                        window['rate-' + id] = layui.rate.render(options);
                     })
                 }
             },
-            slider: function(formObj) {
-                var sliderlist=[];
-                var list = formObj!=undefined?formObj.find("*[lay-filter='slider']"):$("*[lay-filter='slider']");
+            slider: function (formObj) {
+                var list = formObj !== undefined ? formObj.find("*[lay-filter='slider']") : $("*[lay-filter='slider']");
                 if (list.length > 0) {
-                    layui.each(list, function(i) {
-                        var _that = $(this),id = _that.prop('id'),name=_that.data('name');
-                        options = _that.data('options') || {};
-                        options.elem = '#' + id;
-                        options.value = _that.data('value');
-                        options.max = options.max?options.max:100;
-                        options.min = options.min?options.min:0;
-                        options.disabled = options.readonly || options.disabled ? true:false;
-                        options.input = options.input==undefined || options.input ?true:false;
-                        options.theme = options.theme==undefined?'#1E9FFF':options.theme;
-                        if(_that.parent('div').find('input[name="'+name+'"]').length==0){
-                            _that.before('input[name="'+name+'"]');
-                        }
-                        if(options.setTips){
-                            options.setTips = function(value){ //自定义文本的回调
-                                return value +  options.setTips;
+                    layui.each(list, function (i) {
+                        var _t = $(this), id = _t.prop('id'), name = _t.data('name');
+                        options = _t.data('options') || {};
+                        options.elem = this;
+                        options.value = _t.data('value');
+                        options.type = _t.data('type') || 'default';
+                        options.step = _t.data('step') || 1;
+                        options.range = _t.data('range') || false;
+                        options.max = options.max ? options.max : 100;
+                        options.min = options.min ? options.min : 0;
+                        options.disabled = options.readonly || options.disabled ? true : false;
+                        options.input = options.input == undefined || options.input ? true : false;
+                        options.theme = options.theme == undefined ? '#1E9FFF' : options.theme;
+                        if (options.setTips) {
+                            options.setTips = function (value) { //自定义文本的回调
+                                return value + options.setTips;
                             }
                         }
-                        options.change = function(value){
-                            _that.parent('div').find('input[name="'+name+'"]').val(value)
+                        options.change = function (value) {
                         }
-                        sliderlist[i] = layui.slider.render(options)
+                        options.done = function (value) {
+                        }
+                        window['slider-' + id] = layui.slider.render(options);
+                        _t.find('.layui-slider-input .layui-input').attr('name',_t.attr('name'))
+                        _t.find('.layui-slider-input .layui-input').attr('lay-vertype',_t.attr('lay-vertype'))
+                        _t.find('.layui-slider-input .layui-input').attr('lay-verify',_t.attr('lay-verify'))
                     })
                 }
             },
-            addInput: function(formObj) {
-                formObj = formObj!=undefined ? formObj:$('body');
-                formObj.on('click', ".addInput", function() {
-                    var name = $(this).data('name'), verify = $(this).data('verify'),
-                        num = $(this).parents('.layui-form-item').siblings('.layui-form-item').length + 1;
-                    var str = '<div class="layui-form-item">' + '<label class="layui-form-label"></label>' + '<div class="layui-input-inline">' + '<input type="text" name="' + name + '[key][' + num + ']" placeholder="key" class="layui-input input-double-width">' + '</div>' + '<div class="layui-input-inline">\n' + '<input type="text" id="" name="' + name + '[value][' + num + ']" lay-verify="'+verify+'" placeholder="value" autocomplete="off" class="layui-input input-double-width">\n' + '</div>' + '<div class="layui-input-inline">' + '<button data-name="' + name + '" type="button" class="layui-btn layui-btn-danger layui-btn-sm removeInupt"><i class="layui-icon">&#xe67e;</i></button>' + '</div>' + '</div>';
-                    $(this).parents('.layui-form-item').after(str)
+            formarray: function (formObj) {
+                formObj.on("click", ".form-array .del", function () {
+                    var tr = $(this).parents('tr');
+                    var lawtable = tr.parents('.layui-table');
+                    rows = lawtable.find('.tr');
+                    if (rows.length > 1) {
+                        $(this).parents('tr').remove();
+                    } else {
+                        Fun.toastr.error('至少保留一条记录!');
+                    }
+                });
+                require(['Sortable'], function (Sortable) {
+                    //排序
+                    layui.each($('.form-sortable'), function () {
+                        new Sortable($(this)[0], {
+                            group: 'sortable',
+                            animation: 150
+                        })
+                    })
                 })
+
+                formObj.on("click", ".form-array .add", function () {
+                    var tr = $(this).parents('tr');
+                    var html = tr.html();
+                    cls = tr.attr('class');
+                    html = '<tr class="' + cls + '">' + html + '</tr>';
+                    tr.after(html);
+                    tr.next('tr').find('input').val('');
+                });
             },
-            removeInupt: function(formObj) {
-                formObj = formObj!=undefined ? formObj:$('body');
-                formObj.on('click', ".removeInupt", function() {
-                    var parentEle = $(this).parent().parent();
-                    parentEle.remove()
-                })
-            },
-            uploads: function(formObj) {
+            uploads: function (formObj) {
                 Upload.api.uploads();
             },
-            cropper: function(formObj) {
+            cropper: function (formObj) {
                 Upload.api.cropper();
             },
             //选择文件
-            chooseFiles: function(formObj) {
+            choosefiles: function (formObj) {
                 Form.api.chooseFiles(formObj)
             },
             //选择文件
-            selectFiles: function(formObj) {
+            selectfiles: function (formObj) {
                 Form.api.selectFiles(formObj)
             },
 
             //验证
-            verifys: function(formObj) {
+            verifys: function (formObj) {
                 layui.form.verify({
-                    user: function(value) { //value：表单的值、item：表单的DOM对象
+                    user: function (value) { //value：表单的值、item：表单的DOM对象
                         if (!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)) {
                             return '用户名不能有特殊字符';
                         }
@@ -668,13 +1027,13 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 });
             },
             //必填项
-            required: function(formObj) {
+            required: function (formObj) {
                 var vfList = $("[lay-verify]");
                 if (vfList.length > 0) {
-                    layui.each(vfList, function() {
+                    layui.each(vfList, function () {
                         var verify = $(this).attr('lay-verify');
                         // todo 必填项处理
-                        if (verify === 'required') {
+                        if (verify && verify.indexOf("required")>=0) {
                             var label = $(this).parent().prev();
                             if (label.is('label') && !label.hasClass('required')) {
                                 label.addClass('required');
@@ -687,17 +1046,19 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             }
                         }
                     });
+                    //div标签不需要lay-verify验证
+                    $("div[lay-verify]").removeAttr('lay-verify');
                 }
             },
-            submit: function(formObj, success, error, submit) {
+            submit: function (formObj, success, error, submit) {
                 var formList = $("[lay-submit]");
                 // 表单提交自动处理
                 if (formList.length > 0) {
-                    layui.each(formList, function(i) {
+                    layui.each(formList, function (i) {
                         var filter = $(this).attr('lay-filter'),
                             type = $(this).data('type'),
                             refresh = $(this).data('refresh'),
-                            url =   $(this).data('request') || $(this).data('url') || $('form[lay-filter="'+filter+'"]').attr('action');
+                            url = $(this).data('request') || $(this).data('url') || $('form[lay-filter="' + filter + '"]').attr('action');
                         // 表格搜索不做自动提交
                         if (type === 'tableSearch') {
                             return false;
@@ -714,13 +1075,13 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                         if (url === undefined || url === '' || url == null) {
                             url = location.href;
                         }
-                        layui.form.on('submit(' + filter + ')', function(data) {
+                        layui.form.on('submit(' + filter + ')', function (data) {
                             if ($('select[multiple]').length > 0) {
                                 var $select = $("select[multiple]");
-                                layui.each($select, function() {
+                                layui.each($select, function () {
                                     var field = $(this).attr('name');
                                     var vals = [];
-                                    $(this).children('option:selected').each(function() {
+                                    $(this).children('option:selected').each(function () {
                                         vals.push($(this).val());
                                     })
                                     data.field[field] = vals.join(',');
@@ -741,45 +1102,45 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
             },
 
             //图片
-            photos: function(otihs) {
+            photos: function (otihs) {
                 Fun.events.photos(otihs)
             },
             //删除
-            filedelete: function(othis) {
+            filedelete: function (othis) {
                 var fileurl = othis.data('fileurl'),
                     that;
-                var confirm = Fun.toastr.confirm(__('Are you sure？'), function() {
+                var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
                     that = othis.parents('.layui-upload-list').parents('.layui-upload');
                     var input = that.find('input[type="text"]');
                     var inputVal = input.val();
                     var input_temp;
                     if (othis.parents('li').index() === 0) {
                         input_temp = inputVal.replace(fileurl, '');
-                        input.val(input_temp);
+                        input.val(input_temp.replace(/^,|,$/g, ''));
                     } else {
                         input_temp = inputVal.replace(',' + fileurl, '');
-                        input.val(input_temp);
+                        input.val(input_temp.replace(/^,|,$/g, ''));
                     }
                     othis.parents('li').remove();
                     Fun.toastr.close(confirm);
                 });
                 return false;
             },
-            bindevent: function(formObj) {
-                formObj.on('click', '[lay-event]', function() {
-                    var _that = $(this),
-                        attrEvent = _that.attr('lay-event');
+            bindevent: function (formObj) {
+                formObj.on('click', '[lay-event]', function () {
+                    var _t = $(this),
+                        attrEvent = _t.attr('lay-event');
                     if (Form.events.hasOwnProperty(attrEvent)) {
-                        Form.events[attrEvent] && Form.events[attrEvent].call(this, _that);
+                        Form.events[attrEvent] && Form.events[attrEvent].call(this, _t);
                     }
                 });
                 require(['table'], function (Table) {
                     $('body').on('click', '[lay-event]', function () {
-                        if ($('table').length > 0){
-                            var _that = $(this), attrEvent = _that.attr('lay-event');
-                        if (Table.events.hasOwnProperty(attrEvent)) {
-                            Table.events[attrEvent] && Table.events[attrEvent].call(this, _that);
-                        }
+                        if ($('table').length > 0) {
+                            var _t = $(this), attrEvent = _t.attr('lay-event');
+                            if (Table.events.hasOwnProperty(attrEvent)) {
+                                Table.events[attrEvent] && Table.events[attrEvent].call(this, _t);
+                            }
                         }
                     });
                 })
@@ -791,7 +1152,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
              * @param option
              * @returns {boolean}
              */
-            closeOpen: function(option) {
+            closeOpen: function (option) {
                 option = option || {};
                 option.refreshTable = option.refreshTable || false;
                 option.refreshFrame = option.refreshFrame || false;
@@ -816,7 +1177,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 if (!option.refreshFrame) {
                     return false;
                 }
-                setTimeout(function() {
+                setTimeout(function () {
                     location.reload();
                 }, 2000)
                 return false;
@@ -830,30 +1191,26 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
              * @param refresh
              * @returns {boolean}
              */
-            formSubmit: function(url, data, success, error, refresh) {
+            formSubmit: function (url, data, success, error, refresh) {
                 success = success ||
-                    function(res) {
+                    function (res) {
                         res.msg = res.msg || 'success';
-                        Fun.toastr.success(res.msg, function() {
-                            // 返回页面
-                            Form.api.closeOpen({
-                                refreshTable: refresh,
-                                refreshFrame: refresh
-                            });
-                        });
+                        Fun.toastr.success(res.msg);
+                        Form.api.closeOpen({refreshTable: refresh, refreshFrame: refresh});
                         return false;
                     };
                 error = error ||
-                    function(res) {
+                    function (res) {
                         res.msg = res.msg || 'error';
-                        Fun.toastr.error(res.msg, function() {});
+                        Fun.toastr.error(res.msg, function () {
+                        });
                         return false;
                     };
                 Fun.ajax({
                     url: url,
                     data: data,
                     // tips:__('loading'),
-                    complete: function(xhr) {
+                    complete: function (xhr) {
                         var token = xhr.getResponseHeader('__token__');
                         if (token) {
                             $("input[name='__token__']").val(token);
@@ -865,109 +1222,118 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
             /**
              * 初始化表格数据
              */
-            initForm: function() {
-                if (Config.formData) {
-                    layui.form.val("form", Config.formData);
-                    layui.form.render();
+            initForm: function (data) {
+                if(data){
+                    layui.form.val("form", data);
+                }else if (window.FormArray) {
+                    layui.form.val("form", window.FormArray);
                 }
-                multiSelect = layui.multiSelect ? layui.multiSelect : parent.layui.multiSelect;
-                multiSelect.render();
+                layui.form.render();
+                require(['multiSelect'], function (multiSelect) {
+                    multiSelect = layui.multiSelect ? layui.multiSelect : parent.layui.multiSelect;
+                    multiSelect.render();
+                })
             },
             /**
              * 选择文件
              */
-            chooseFiles: function(formObj) {
-                var fileChooseList = formObj!=undefined ? formObj.find("*[lay-filter='upload-choose']") :$("*[lay-filter='upload-choose']");
+            chooseFiles: function (formObj) {
+                var fileChooseList = formObj !== undefined ? formObj.find("*[lay-filter='upload-choose']") : $("*[lay-filter='upload-choose']");
                 if (fileChooseList.length > 0) {
-                    layui.each(fileChooseList, function(i, v) {
-                        var data = $(this).data();
-                        if(typeof data.value == 'object') data = data.value;
-                        var uploadType = data.type, uploadNum = data.num, uploadMime = data.mime, url = data.tableurl, path = data.path;
-                        uploadMime = uploadMime || '*';uploadType = uploadType ? uploadType : 'radio';
-                        uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
-                        var input = $(this).parents('.layui-upload').find('input[type="text"]');
-                        var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
-                        var id = $(this).attr('id');
-                        tableSelect = layui.tableSelect ||  parent.layui.tableSelect;
-                        url = url?url: Fun.url(Upload.init.requests.attach_url + '?' +
-                            '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+ '&path='+path+'&type='+uploadType);
-                        tableSelect.render({
-                            elem: '[lay-filter=\"upload-choose\"]',
-                            checkedKey: 'id',
-                            searchType: 2,
-                            searchList: [{
-                                searchKey: 'original_name',
-                                searchPlaceholder: __('FileName')
-                            }, ],
-                            table: {
-                                url:url,
-                                cols: [
-                                    [{
-                                        type: uploadType
-                                    }, {
-                                        field: 'id',
-                                        title: 'ID'
-                                    }, {
-                                        field: 'url',
-                                        minWidth: 80,
-                                        search: false,
-                                        title: __('Path'),
-                                        imageHeight: 40,
-                                        align: "center",
-                                        templet: Table.templet.image,
-                                    }, {
-                                        field: 'original_name',
-                                        width: 150,
-                                        title: __('OriginalName'),
-                                        align: "center"
-                                    }, {
-                                        field: 'mime',
-                                        width: 120,
-                                        title: __('MimeType'),
-                                        align: "center"
-                                    }, {
-                                        field: 'create_time',
-                                        width: 200,
-                                        title: __('CreateTime'),
-                                        align: "center",
-                                        search: 'range'
-                                    }, ]
-                                ]
-                            },
-                            done: function(elem, data) {
-                                var fileArr = [];
-                                var html = '';
-                                layui.each(data.data, function(index, val) {
-                                    if (uploadMime === 'images') {
-                                        html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
-                                    } else if (uploadMime === 'video') {
-                                        html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
-                                    } else if (uploadMime === 'audio') {
-                                        html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
-                                    } else {
-                                        html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
-                                    }
-                                    fileArr.push(val.path)
-                                });
-                                var fileurl = fileArr.join(',');
-                                Fun.toastr.loading();
-                                Fun.toastr.success(__('Choose Success'), function() {
-                                    var inptVal = input.val();
-                                    if (uploadNum === 1) {
-                                        input.val(fileurl)
-                                        uploadList.html(html)
-                                    } else {
-                                        if (inptVal) {
-                                            input.val(inptVal + ',' + fileurl);
+                    require(['tableSelect', 'table'], function (tableSelect, Table) {
+                        layui.each(fileChooseList, function (i, v) {
+                            var data = $(this).data();
+                            if (typeof data.value == 'object') data = data.value;
+                            var uploadType = data.type, uploadNum = data.num, uploadMime = data.mime,
+                                url = data.tableurl, path = data.path;
+                            uploadMime = uploadMime || '*';
+                            uploadType = uploadType ? uploadType : 'radio';
+                            uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
+                            var input = $(this).parents('.layui-upload').find('input[type="text"]');
+                            var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
+                            var id = $(this).attr('id');
+                            tableSelect = layui.tableSelect || parent.layui.tableSelect;
+                            url = url ? url : Fun.url(Upload.init.requests.attach_url + '?' +
+                                '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime + '&path=' + path + '&type=' + uploadType);
+                            tableSelect.render({
+                                elem: this,
+                                checkedKey: 'id',
+                                searchType: 2,
+                                searchList: [{
+                                    searchKey: 'original_name',
+                                    searchPlaceholder: __('FileName')
+                                },],
+                                table: {
+                                    url: url,
+                                    cols: [
+                                        [{
+                                            type: uploadType
+                                        }, {
+                                            field: 'id',
+                                            title: 'ID'
+                                        }, {
+                                            field: 'url',
+                                            minWidth: 80,
+                                            search: false,
+                                            title: __('Path'),
+                                            imageHeight: 40,
+                                            align: "center",
+                                            templet: Table.templet.image,
+                                        }, {
+                                            field: 'original_name',
+                                            width: 150,
+                                            title: __('OriginalName'),
+                                            align: "center"
+                                        }, {
+                                            field: 'mime',
+                                            width: 120,
+                                            title: __('MimeType'),
+                                            align: "center"
+                                        }, {
+                                            field: 'create_time',
+                                            width: 200,
+                                            title: __('CreateTime'),
+                                            align: "center",
+                                            search: 'range'
+                                        },]
+                                    ]
+                                },
+                                done: function (elem, data) {
+                                    var fileArr = [];
+                                    var html = '';
+                                    layui.each(data.data, function (index, val) {
+                                        if (uploadMime === 'images') {
+                                            html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + val.path + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        } else if (uploadMime === 'video') {
+                                            html += '<li><video controls class="layui-upload-img fl" width="150" src="' + val.path + '"></video><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
+                                        } else if (uploadMime === 'audio') {
+                                            html += '<li><audio controls class="layui-upload-img fl"  src="' + val.path + '"></audio><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                         } else {
-                                            input.val(fileurl)
+                                            html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + val.path + '"></i></li>\n';
                                         }
-                                        uploadList.append(html)
-                                    }
-                                    Fun.toastr.close()
-                                });
-                            }
+                                        fileArr.push(val.path)
+                                    });
+                                    var fileurl = fileArr.join(',');
+                                    Fun.toastr.loading();
+                                    Fun.toastr.success(__('Choose Success'), function () {
+                                        var inptVal = input.val();
+                                        if (uploadNum === 1) {
+                                            input.val(fileurl)
+                                            uploadList.html(html)
+                                        } else {
+                                            if (inptVal) {
+                                                input.val(inptVal + ',' + fileurl);
+                                            } else {
+                                                input.val(fileurl)
+                                            }
+                                            uploadList.append(html)
+                                        }
+                                        Fun.toastr.close()
+                                    });
+                                }
+                            })
                         })
+
                     });
                 }
             },
@@ -975,16 +1341,14 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
             /**
              * 选择文件
              */
-            selectFiles: function(formObj) {
-                var fileSelectList = formObj!=undefined ? formObj.find("*[lay-filter='upload-select']") :$("*[lay-filter='upload-select']");
+            selectFiles: function (formObj) {
+                var fileSelectList = formObj !== undefined ? formObj.find("*[lay-filter='upload-select']") : $("*[lay-filter='upload-select']");
                 if (fileSelectList.length > 0) {
-                    layui.each(fileSelectList, function(i, v) {
-                        $(this).click(function(e){
+                    layui.each(fileSelectList, function (i, v) {
+                        $(this).click(function (e) {
                             var data = $(this).data();
-                            if(typeof data.value == 'object') data = data.value;
-                            uploadType = data.type,width = data.width||800,height = data.height|| '100%'
-                                uploadNum = data.num, uploadMime = data.mime,
-                                url  = data.selecturl, path = data.path;
+                            if (typeof data.value == 'object') data = data.value;
+                            uploadType = data.type, uploadNum = data.num, uploadMime = data.mime, url = data.selecturl, path = data.path;
                             uploadMime = uploadMime || '';
                             uploadType = uploadType ? uploadType : 'radio';
                             uploadNum = uploadType === 'checkbox' ? uploadNum : 1;
@@ -992,14 +1356,14 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                             var token = $(this).parents('form').find('input[name="__token__"]');
                             var uploadList = $(this).parents('.layui-upload').find('.layui-upload-list');
                             var id = $(this).attr('id');
-                            url = url?url: Fun.url(Upload.init.requests.select_url + '?' +
-                                '&elem_id='+id+'&num='+uploadNum+'&type='+uploadType+'&mime=' + uploadMime+
-                                '&path='+path+'&type='+uploadType);
+                            url = url ? url : Fun.url(Upload.init.requests.select_url + '?' +
+                                '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime +
+                                '&path=' + path + '&type=' + uploadType);
                             var parentiframe = Fun.api.checkLayerIframe();
                             options = {
-                                title:__('Filelist'),type:2,
-                                url: Fun.url(url), width: width, height: height, method: 'get',
-                                success: function(layero, index){
+                                title: __('Filelist'), type: 2,
+                                url: Fun.url(url), method: 'get',
+                                success: function (layero, index) {
                                     var body = layui.layer.getChildFrame('body', index);
                                     if (parentiframe) {
                                         body = parent.layui.layer.getChildFrame('body', index);
@@ -1008,7 +1372,7 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                     //token失效
                                     token.val(__token__)
                                 },
-                                yes:  function (index, layero) {
+                                yes: function (index, layero) {
                                     try {
                                         $(document).ready(function () {
                                             // 父页面获取子页面的iframe
@@ -1017,15 +1381,15 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                                                 body = parent.layui.layer.getChildFrame('body', index);
                                             }
                                             li = body.find('.box-body .file-list-item li.active');
-                                            if(li.length===0){
+                                            if (li.length === 0) {
                                                 Fun.toastr.error(__('please choose file'));
                                                 return false;
                                             }
-                                            var fileArr=[],html='';
-                                            layui.each(li, function(index, val) {
-                                                var type = $(this).data('type'), url =  $(this).data('path');
-                                                if (type.indexOf('image') >=0)  {
-                                                    html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' +url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
+                                            var fileArr = [], html = '';
+                                            layui.each(li, function (index, val) {
+                                                var type = $(this).data('type'), url = $(this).data('path');
+                                                if (type.indexOf('image') >= 0) {
+                                                    html += '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + url + '" alt=""><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('video') >= 0) {
                                                     html += '<li><img  alt="" class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + url + '"></i></li>\n';
                                                 } else if (type.indexOf('audio') >= 0) {
@@ -1070,19 +1434,15 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
              * @param error
              * @param submit
              */
-            bindEvent: function(form, success, error, submit) {
+            bindEvent: function (form, success, error, submit) {
                 form = typeof form == 'object' ? form : $(form);
                 var events = Form.events;
-                events.submit(form, success, error, submit);
-                events.required(form)
-                events.verifys(form)
-                events.bindevent(form);
-                events.uploads(form) //上传
-                events.chooseFiles(form) //选择文件
-                events.selectFiles(form) //选择文件页面类型
-                events.cropper(form) //上传
+                events.uploads(form); //上传
+                events.choosefiles(form);//选择文件
+                events.selectfiles(form); //选择文件页面类型
+                events.cropper(form); //上传
                 events.icon(form);
-                events.xmSelect(form);
+                events.xmselect(form);
                 events.color(form);
                 events.tags(form);
                 events.city(form);
@@ -1090,14 +1450,20 @@ define(['jquery', 'table','tableSelect', 'upload', 'selectPage','xmSelect', 'ico
                 events.rate(form);
                 events.slider(form);
                 events.timepicker(form);
+                events.datepicker(form);
                 events.editor(form);
-                events.regionCheck(form);
-                events.addInput(form);
+                events.region(form);
+                events.formarray(form);
                 events.selectplus(form);
                 events.selectn(form);
                 events.selectpage(form);
-                events.removeInupt(form);
-                events.events() //事件
+                events.autocomplete(form);
+                events.verifys(form);
+                events.required(form);
+                events.submit(form, success, error, submit);
+                events.bindevent(form);
+                events.events();//事件
+
                 //初始化数据
                 this.initForm();
             },

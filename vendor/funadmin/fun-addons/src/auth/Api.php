@@ -39,7 +39,7 @@ class Api
      * 不需要鉴权方法
      */
     protected $noAuth = [];
-    
+
     protected $member_id = '';
 
     protected $type ='simple';
@@ -50,7 +50,7 @@ class Api
      */
     public function __construct(App $app)
     {
-        $this->type  = Config::get('api.type','simple');
+        $this->type  = Config::get('api.type')?:"simple";
         $this->request = Request::instance();
         $this->request->filter('trim,strip_tags,htmlspecialchars');
         $this->group =  $this->request->param('group')?$this->request->param('group'):'api';

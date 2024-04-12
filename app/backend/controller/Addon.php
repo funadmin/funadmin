@@ -86,10 +86,16 @@ class Addon extends Backend
                 $param = $this->request->param();
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
-                $map['cateid'] = $param['cateid']??0;
+                if(empty($param['cateid'])){
+                    $map['cateid'] = 0;
+                }elseif(is_numeric($param['cateid'])){
+                    $map['cateid'] = $param['cateid'];
+                }
                 $map['app_version'] = $this->app_version;
+                $map['page'] = $param['page'];
+                $map['limit'] = $param['limit'];
                 unset($map['status']);
-                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/index')->setMethod('GET')
+                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/getList')->setMethod('GET')
                     ->setParams($map);
                 if($this->authCloudService->getAuth()){
                     $res = $auth->setHeader()->run();
@@ -97,51 +103,66 @@ class Addon extends Backend
                     $res = $auth->run();
                 }
                 $list = [];
+                $addonNameArr = [];
+                $addonNameArrAll = [];
+                $count = 1;
                 if($res['code']==200){
-                    $list = $res['data'];
+                    $list = $res['data']['list'];
+                    $allList = $res['data']['allList'];
+                    $addonNameArr = $res['data']['searchNameList'];
+                    $addonNameArrAll = $res['data']['nameList'];
+                    $count = count($addonNameArr);
                 }else if($res['code']==401){
                     Cookie::set('auth_account','');
                 }
                 list($localAddons,$localNameArr) = $this->getLocalAddons();
-                $addonNameArr = $list?array_keys($list):[];
-                $where = [];
-                if(isset($param['cateid']) && $param['cateid']){
-                    $where[] = ['name','in',$addonNameArr];
-                }
-                if(empty($addonNameArr)){
-                    $where[] = ['name','not in',$addonNameArr];
-                }
                 try {
-                    $addons =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
-                    $list = array_merge($localAddons,$addons,$list?$list:[]);
+                    $addonsInstalled =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
+                    //$list = array_merge($localAddons,$addons,$list?$list:[]);
+                    if(!empty($param['cateid']) && $param['cateid'] == 'local'){
+                        $list= $localAddons;
+                        foreach ($list as $key=>$item) {
+                            if(in_array($key,$addonNameArrAll)) {
+                                unset($list[$key]);
+                            }
+                        }
+                        $count = 1;
+                    }elseif(!empty($param['cateid']) && $param['cateid'] =='installed'){
+                        $list= $addonsInstalled;
+                        $count =1;
+                    }
+                    $addons = [];
                     foreach ($list as $key => &$value) {
+                        if(in_array($key,$addonNameArrAll)){
+                            $value = $allList[$key];
+                        }
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
                             $config = get_addons_config($key);
                             $info = get_addons_info($key);
-                            if ($addons && !isset($addons[$key]) || !$addons) {
+                            if (empty($addonsInstalled[$key])) {
                                 $class = get_addons_instance($key);
                                 $addons["$key"] = $class->getInfo();
                                 if ($addons[$key]) {
                                     $addons[$key]['install'] = 0;
-                                    $addons[$key]['status'] = 0;
+                                    $addons[$key]['status'] = 1;
                                 }
                                 $addons[$key] = $value;
                             } else {
-                                $addons[$key] = array_merge($value,$addons[$key]);
+                                $addons[$key] = array_merge($value,$addonsInstalled[$key]);
                                 $addons[$key]['install'] = 1;
                             }
                             $addons[$key]['localVersion'] = $info['version'];
-                            if(isset($config['domain']) && $config['domain']['value']){
-                                $index = strpos($_SERVER['HTTP_HOST'],'.');
-                                $domain = explode(',', $config['domain']['value'])[0];
-                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
-                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
-                            }else{
-                                $addons[$key]['web'] = $info['url'];
-                            }
+//                            if(isset($config['domain']) && $config['domain']['value']){
+//                                $index = strpos($_SERVER['HTTP_HOST'],'.');
+//                                $domain = explode(',', $config['domain']['value'])[0];
+//                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
+////                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
+//                            }else{
+////                                $addons[$key]['web'] =(string) addons_url($info['url']);
+//                            }
                         }else{
                             $addons[$key] = $value;
                             $addons[$key]['insatll'] = 0;
@@ -158,7 +179,7 @@ class Addon extends Backend
                     }
                     unset($value);
                     $result = ['code' => 0, 'msg' => lang('Get Data Success'),
-                        'data' => $addons, 'count' => count($addons)];
+                        'data' => $addons, 'count' => $count];
                 }catch (\Exception $e){
                     $this->error($e->getMessage());
                 }
@@ -211,7 +232,7 @@ class Addon extends Backend
      * @NodeAnnotation(title="安装")
      * @throws Exception
      */
-    public function install($name='',$type='')
+    public function install(string $name='',string $type='')
     {
         set_time_limit(0);
         $name = $this->request->param("name")??$name;
@@ -227,91 +248,13 @@ class Addon extends Backend
             $this->error(lang('addon name is not right'));
         }
         if($type =='upgrade'){
-            $this->upgrade();
+            if(!$this->doUpgrade($name)){
+                $this->error('upgrade failed');
+            };
         }
-        //检查插件是否安装
-        $list = $this->isInstall($name);
-        if ($list && $list->status==1) {
-            $this->error(lang('addons %s is already installed', [$name]));
+        if( $this->doInstall( $name, $plugins_id, $version_id, $type)){
+            $this->success('install success');
         }
-        list($addons,$localNameArr) = $this->getLocalAddons();
-        //本地存在空和更新则请求后端
-        if(empty($type) || $type=='upgrade'){
-            //不存在或者
-            $params = [
-                'plugins_id'=>$plugins_id,
-                'name'=>$name,
-                'version_id'=>$version_id,
-                'version'=> '',
-                'app_version'=>$this->app_version,
-                "ip" => request()->ip(),
-                "domain" => request()->domain(),
-            ];
-            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
-            ){
-                $this->getCloundAddons($params);
-            }
-            if($type =='upgrade'){
-                $this->getCloundAddons($params);
-            }
-        }
-        $class = get_addons_instance($name);
-        if (empty($class)) {
-            $this->error(lang('addons %s is not ready', [$name]));
-        }
-        //添加数据库
-        try{
-            if($type!='upgrade'){
-                importsql($name);
-            }
-        } catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-        // 安装菜单
-        $menu_config=get_addons_menu($name);
-        if(!empty($menu_config)){
-            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
-                $pid = 0;
-            }else{
-                $pid = $this->addonService->addAddonManager()->id;
-            }
-            $menu[] = $menu_config['menu'];
-            $this->addonService->addAddonMenu($menu,$pid,$name);
-        }
-        //安装插件
-        $class->install();
-        $addon_info = get_addons_info($name);
-        $addon_info['status'] = 1;
-        if($list){
-            if($list->delete_time > 0){
-                $this->modelClass->restore(['id'=>$list->id]);
-            }
-            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
-        }else{
-            $res =  $this->modelClass->save($addon_info);
-        }
-        if (!$res) {
-            $this->error(lang('addon install fail'));
-        }
-        Service::copyApp($name,$delete = true);
-        //复制文件到目录
-        if(Service::getCheckDirs()){
-            foreach (Service::getCheckDirs() as $k => $dir) {
-                $sourcedir = Service::getAddonsNamePath($name). $dir;
-                if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
-                }
-            }
-        }
-        try {
-            Service::updateAddonsInfo($name);
-            //刷新addon文件
-            refreshaddons();
-        }catch (\Exception $e){
-            $this->error($e->getMessage());
-        }
-        Cache::clear();
-        $this->success(lang('Install success'));
     }
     /**
      * @NodeAnnotation(title="离线安装")
@@ -474,6 +417,10 @@ class Addon extends Backend
                 unset($v);
                 $config_data = json_encode($config,JSON_UNESCAPED_UNICODE);
                 if($one->save(['config'=>$config_data])){
+                    $class = get_addons_instance($name);
+                    if(method_exists($class,'config')){
+                        $class->config();
+                    }
                     set_addons_config($name,$config);
                     refreshaddons();
                     $this->success(lang('operation success'));
@@ -529,16 +476,116 @@ class Addon extends Backend
     }
 
     /**
+     * 安装插件
+     * @param string $name
+     * @param int $plugins_id
+     * @param int $version_id
+     * @param string $type
+     * @return true
+     * @throws Exception
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\DbException
+     * @throws \think\db\exception\ModelNotFoundException
+     */
+    protected function doInstall(string $name,int $plugins_id=0,int $version_id=0,string $type=''){
+        //检查插件是否安装
+        $list = $this->isInstall($name);
+        if ($list && $list->status==1) {
+            $this->error(lang('addons %s is already installed', [$name]));
+        }
+        list($addons,$localNameArr) = $this->getLocalAddons();
+        //本地存在空和更新则请求后端
+        if(empty($type) || $type=='upgrade'){
+            //不存在或者
+            $postData = $this->getCloundData($name,$plugins_id,$version_id);
+            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
+            ){
+                $this->getCloundAddons($postData);
+            }
+            if($type =='upgrade'){
+                $this->getCloundAddons($postData);
+            }
+        }
+        $class = get_addons_instance($name);
+        if (empty($class)) {
+            $this->error(lang('addons %s is not ready', [$name]));
+        }
+        $addon_info = get_addons_info($name);
+        if(!empty($addon_info['depend'])){
+            $depend = explode(',',$addon_info['depend']);
+            foreach ($depend as $v) {
+                $dependAddon  = get_addons_info($v);
+                if(empty($dependAddon)){
+                    $this->error('Please install the dependent plugin first: '.$addon_info['depend']);
+                }
+            }
+        }
+        //添加数据库
+        try{
+            if($type!='upgrade'){
+                importsql($name);
+            }
+        } catch (Exception $e){
+            $this->error($e->getMessage());
+        }
+
+        // 安装菜单
+        $menu_config=get_addons_menu($name);
+        if(!empty($menu_config)){
+            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+                $pid = 0;
+            }else{
+                $pid = $this->addonService->addAddonManager()->id;
+            }
+            $menu[] = $menu_config['menu'];
+            $this->addonService->addAddonMenu($menu,$pid,$name);
+        }
+
+        //安装插件
+        $class->install();
+        $addon_info['status'] = 1;
+        if($list){
+            if($list->delete_time > 0){
+                $this->modelClass->restore(['id'=>$list->id]);
+            }
+            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
+        }else{
+            $res =  $this->modelClass->save($addon_info);
+        }
+        if (!$res) {
+            $this->error(lang('addon install fail'));
+        }
+        Service::copyApp($name,$delete = true);
+        //复制文件到目录
+        if(Service::getCheckDirs()){
+            foreach (Service::getCheckDirs() as $k => $dir) {
+                $sourcedir = Service::getAddonsNamePath($name). $dir;
+                if (is_dir($sourcedir)) {
+                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
+                }
+            }
+        }
+        try {
+            Service::updateAddonsInfo($name);
+            //刷新addon文件
+            refreshaddons();
+        }catch (\Exception $e){
+            $this->error($e->getMessage());
+        }
+        Cache::clear();
+        return true;
+    }
+    /**
      * 更新 先卸载插件
      * @return bool
      * @throws \think\db\exception\DataNotFoundException
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    protected function upgrade()
+    protected function doUpgrade(string $name='')
     {
         set_time_limit(0);
-        $name = $this->request->param("name");
+        $name = $name?:$this->request->param("name");
         //获取插件信息
         $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if($info && $info->status==1){
@@ -593,7 +640,7 @@ class Addon extends Backend
      * @return void
      * @throws \Exception
      */
-    protected function getCloundAddons($params){
+    protected function getCloundAddons(array $params=[]){
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
             ->setParams($params)->setHeader()->setOptions()->run();
         if($res['code'] == 401){
@@ -611,7 +658,13 @@ class Addon extends Backend
         if (!is_dir($fileDir)) {
             FileHelper::mkdirs($fileDir);
         }
-        $content = file_get_contents($res['data']['file_url']);
+        $stream_opts = [
+            "ssl" => [
+                "verify_peer"=>false,
+                "verify_peer_name"=>false,
+            ]
+        ];
+        $content = file_get_contents($res['data']['file_url'],false,stream_context_create($stream_opts));
         $fileName = $fileDir . $params['name'] . '.zip';
         @touch($fileName);
         file_put_contents($fileName, $content);
@@ -620,6 +673,24 @@ class Addon extends Backend
 
     }
 
+    /**
+     * 获取远程请求参数
+     * @param $name
+     * @param $plugins_id
+     * @param $version_id
+     * @return array
+     */
+    protected  function getCloundData(string $name,int $plugins_id=0,int $version_id=0){
+        return  [
+            'plugins_id'=>$plugins_id,
+            'name'=>$name,
+            'version_id'=>$version_id,
+            'version'=> '',
+            'app_version'=>$this->app_version,
+            "ip" => request()->ip(),
+            "domain" => request()->domain(),
+        ];
+    }
     /**
      * 退出云平台
      * @return void

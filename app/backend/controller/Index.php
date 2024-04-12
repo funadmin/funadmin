@@ -46,6 +46,7 @@ class Index extends Backend
         if (!$menulist) {
             $cate = AuthRule::where('menu_status', 1)
                 ->where('type', 1)
+                ->where('status', 1)
                 ->order('sort asc')->cache(3600)->select()->toArray();
             $menulist = (new AuthService())->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);

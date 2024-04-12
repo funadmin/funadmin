@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2017/8/2
@@ -25,13 +25,14 @@ class CurdService
     protected $config = [
         'keepField' => ['admin_id', 'member_id'],//保留字段
         'fields' => [],//显示的字段
+        'formFields' => [],//添加的字段
         'ignoreFields' => ['create_time', 'status', 'update_time', 'delete_time'],//忽略字段
         'tagsSuffix' => ['tags', 'tag'],//识别为tag类型
-        'urlSuffix' => ['url', 'urls'],//识别为tag类型
+        'urlSuffix' => ['url', 'urls'],//识别为url类型
         'fileSuffix' => ['file', 'files', 'path', 'paths'],//识别为文件字段
         'priSuffix' => ['_id', '_ids'],//识别为别的表的主键
-        'sortSuffix' => ['sort'],//排序
-        'imageSuffix' => ['image', 'images', 'thumb', 'thumbs', 'avatar', 'avatars'],//识别为图片字段
+        'sortSuffix' => ['sort','orderby','weight'],//排序
+        'imageSuffix' => ['image', 'images', 'thumb', 'thumbs', 'avatar', 'avatars','picture', 'pictures'],//识别为图片字段
         'editorSuffix' => ['editor', 'content', 'detail', 'details', 'description'],//识别为编辑器字段
         'iconSuffix' => ['icon'],//识别为图标字段
         'colorSuffix' => ['color'],//颜色
@@ -48,7 +49,7 @@ class CurdService
      * 表前缀
      * @var string
      */
-    protected $tablePrefix = 'fun_';
+    protected $tablePrefix = '';
     /**
      * 数据库名
      * @var string
@@ -85,9 +86,9 @@ class CurdService
     protected $joinName;
     protected $joinModel;
     protected $joinTable;
-    protected $joinForeignKey;
+    protected $joinForeignKey = [];
     protected $primaryKey = 'id';
-    protected $joinPrimaryKey;
+    protected $joinPrimaryKey = [] ;
     protected $selectFields;
     protected $jsCols;
     protected $jsColsRecycle;
@@ -109,11 +110,12 @@ class CurdService
 
     public function __construct(array $config)
     {
+        $config['driver'] = $config['driver']??$this->driver;
         $this->tablePrefix = config('database.connections.' . $config['driver'] . '.prefix');
         $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
-        $this->tplPath = $this->rootPath . 'vendor' . '/' . 'funadmin' . '/' . 'fun-addons' . '/' . 'src' . '/' . 'curd' . '/' . 'tpl' . '/';
+        $this->tplPath = $this->rootPath . 'vendor/funadmin/fun-addons/src/curd/tpl/';
         $this->setParam($config);
         $this->driver = $config['driver'];
         return $this;
@@ -159,36 +161,36 @@ class CurdService
      */
     protected function setArg()
     {
-        $this->table = $this->config['table'];
+        $this->table = !empty($this->config['table'])?$this->config['table']:'';
         $this->table = str_replace($this->tablePrefix, '', $this->table);
-        $this->addon = isset($this->config['addon']) && $this->config['addon'] ? $this->config['addon'] : '';
-        $this->force = $this->config['force'];
-        $this->app = $this->config['app'];
-        $this->title = $this->config['title']?:$this->addon;
-        $this->description = $this->config['description']?:$this->addon;
-        $this->requires = $this->config['requires']?:3.0;
-        $this->author = $this->config['author']?:$this->addon;
-        $this->version = $this->config['version']?:1.0;
-        $this->jump = $this->config['jump'];
-        $this->limit = $this->config['limit'] ?: 15;
-        $this->page = ($this->config['page']==null ||  $this->config['page'] == 1) ? "true" : 'false';
-        $this->joinTable = $this->config['joinTable'];
+        $this->addon = $this->config['addon']?? '';
+        $this->force = $this->config['force']??$this->force;
+        $this->app = $this->config['app']??$this->app;
+        $this->title = $this->config['title']??$this->addon;
+        $this->description = $this->config['description']??$this->addon;
+        $this->requires = $this->config['requires']??'3.0';
+        $this->author = $this->config['author']??$this->addon;
+        $this->version = $this->config['version']??'1.0';
+        $this->jump = $this->config['jump']??$this->jump;
+        $this->limit = $this->config['limit']?? 15;
+        $this->page = (!isset($this->config['page']) ||  $this->config['page']==null ||  $this->config['page'] == 1 ) ? "true" : 'false';
+        $this->joinTable = $this->config['joinTable']??[];
         foreach ($this->joinTable as $k => $v) {
             $this->joinTable[$k] = str_replace($this->tablePrefix, '', $v);
         }
-        $this->joinName = $this->config['joinName'] ?: $this->joinTable;
-        $this->joinModel = $this->config['joinModel'] ?: $this->joinTable;
-        $this->joinMethod = $this->config['joinMethod'];
-        $this->joinForeignKey = $this->config['joinForeignKey'];
-        if ($this->joinForeignKey && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
+        $this->joinName = empty($this->config['joinName']) ? $this->joinTable:$this->config['joinName'];
+        $this->joinModel = empty( $this->config['joinModel']) ? $this->joinTable: $this->config['joinModel'];
+        $this->joinMethod = $this->config['joinMethod']??'';
+        $this->joinForeignKey = $this->config['joinForeignKey']??[];
+        if (!empty($this->joinForeignKey) && count($this->joinForeignKey) == 1 && strpos($this->joinForeignKey[0], ',')) {
             $this->joinForeignKey = array_filter(explode(',', ($this->joinForeignKey[0])));
         }
-        $this->joinPrimaryKey = $this->config['joinPrimaryKey'];
-        if ($this->joinForeignKey && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
+        $this->joinPrimaryKey = $this->config['joinPrimaryKey']??[];
+        if (!empty($this->joinPrimaryKey) && count($this->joinPrimaryKey) == 1 && strpos($this->joinPrimaryKey[0], ',')) {
             $this->joinPrimaryKey = array_filter(explode(',', ($this->joinPrimaryKey[0])));
         }
-        $this->selectFields = $this->config['selectFields'];
-        $controllerStr = $this->config['controller'] ?: Str::studly($this->table);
+        $this->selectFields = !empty($this->config['selectFields'])?$this->config['selectFields']:'';
+        $controllerStr = !empty($this->config['controller']) ? $this->config['controller'] : Str::studly($this->table);
         $controllerArr = explode('/', $controllerStr);
         foreach ($controllerArr as $k => &$v) {
             $v = ucfirst(Str::studly($v));
@@ -196,7 +198,7 @@ class CurdService
         unset($v);
         $this->controllerName = array_pop($controllerArr);
         $this->controllerArr = $controllerArr;
-        $modelStr = $this->config['model'] ?: Str::studly($this->table);
+        $modelStr = !empty($this->config['model']) ?$this->config['model']: Str::studly($this->table);
         $modelArr = explode('/', $modelStr);
         foreach ($modelArr as $k => &$v) {
             $v = ucfirst(Str::studly($v));
@@ -205,7 +207,7 @@ class CurdService
         $this->modelName = array_pop($modelArr);
         $modelArr ? $modelArr[0] = Str::lower($modelArr[0]) : '';
         $this->modelArr = $modelArr;
-        $this->validateName = $this->config['validate'] ?: $this->modelName;
+        $this->validateName = !empty($this->config['validate']) ? $this->config['validate'] : $this->modelName;
         $this->validateName = Str::studly($this->validateName);
         $this->controllerUrl = $controllerArr ? Str::lower($controllerArr[0]) . '.' . Str::camel($this->controllerName) : Str::camel($this->controllerName);
         if (isset($this->config['method']) and $this->config['method']) {
@@ -303,12 +305,13 @@ class CurdService
         $controllerTpl = $this->tplPath . 'controller.tpl';
         $modelTpl = $this->tplPath . 'model.tpl';
         $attrTpl = $this->tplPath . 'attr.tpl';
+        $joinTpl = $this->tplPath . 'join.tpl';
         $indexTpl = '';
         $recycleTpl = '';
         $relationSearch = '';
         $statusResult = Db::connect($this->driver)->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_name ='" . $this->tablePrefix . $this->table . "' AND column_name ='status'");
         $status = $statusResult[0]['COUNT(*)'];
-        if ($this->joinTable) {
+        if (!empty($this->joinTable)) {
             $relationSearch = '$this->relationSearch = true;';
             $joinIndexMethod = "withJoin([";
             foreach ($this->joinTable as $k => $v) {
@@ -333,21 +336,21 @@ class CurdService
                 $joinclass = str_replace(DS, '\\', $joinclass);
                 if (file_exists($joinModelFile)) include_once $joinModelFile;
                 if ($assign) {
-                    foreach ($assign as $key => $val) {
-                        $kk = Str::studly($key);
-                        if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+                    foreach ($assign as $k => $v) {
+                        $kk = Str::studly($k);
+                        $tempKey = $k;
+                        if(Str::endsWith($k,'List')){
+                            $tempKey = substr($k, 0, strlen($k) - 4);
+                        }
+                        if ($v) {
                             $joinMethod = 'get' . $kk;
                             if (class_exists($joinclass)) {
                                 $joinClassMethods = get_class_methods($joinclass);
                                 if(!in_array($joinMethod,$joinClassMethods)){
-                                    $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
-                                            ['get' . $kk, $val],
-                                            file_get_contents($attrTpl)) . PHP_EOL;
+                                    $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'], ['get' . $kk, $v], file_get_contents($attrTpl)) . PHP_EOL;
                                 }
                             }else{
-                                $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
-                                        ['get' . $kk, $val],
-                                        file_get_contents($attrTpl)) . PHP_EOL;
+                                $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'], ['get' . $kk, $v], file_get_contents($attrTpl)) . PHP_EOL;
                             }
                         }
                     }
@@ -355,7 +358,7 @@ class CurdService
                 $attrStr = $this->modifyAttr($fieldsList);
                 //生成关联表的模型
                 $connection = $this->driver == 'mysql' ? "" : "protected \$connection = '" . $this->driver . "';";
-                if (!$this->force && class_exists($joinclass) && $joinTplStr) {
+                if (class_exists($joinclass) && $joinTplStr) {
                     $content = str_replace('?>','',file_get_contents($joinModelFile));
                     $content = substr($content,0,strrpos($content,'}',0)).$joinTplStr .PHP_EOL .'}';
                     file_put_contents($joinModelFile,$content);
@@ -418,13 +421,14 @@ class CurdService
         $scriptStr = '<script>';
         foreach ($this->assign as $k => $v) {
             $kk = Str::studly($k);
-            if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+            $tempKey = $k;
+            if(Str::endsWith($k,'List')){
+                $tempKey = substr($k, 0, strlen($k) - 4);
+            }
+            if ($v) {
                 $assignStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), 'get' . $kk], $assignTpl) . PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), lcfirst($kk)], $scriptTpl) . PHP_EOL;
-            } elseif ($this->hasSuffix($k, $this->config['priSuffix'])
-                and $this->joinTable
-                and in_array(substr($k, 0, strlen($k) - 4), $this->joinForeignKey)
-            ) {
+            } elseif (in_array($tempKey, $this->joinForeignKey) && !$v) {
                 $assignStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), 'get' . $kk], $assignTpl) . PHP_EOL;
                 $scriptStr .= str_replace(['{{$name}}', '{{$method}}'], [lcfirst($kk), lcfirst($kk)], $scriptTpl) . PHP_EOL;
             }
@@ -493,13 +497,13 @@ class CurdService
         $joinAttrTpl = $this->tplPath . 'joinAttr.tpl';
         //单模型
         $joinTplStr = '';
-        if ($this->joinTable) {
+        if (!empty($this->joinTable)) {
             foreach ($this->joinTable as $k => $v) {
                 $method = 'hasOne';
                 if (isset($this->joinMethod[$k])) $method = $this->joinMethod[$k];
-                if ($method == 'hasOne') {
+                if (in_array($method,['hasOne','hasMany']) ) {
                     list($joinPrimaryKey, $joinForeignKey) = array($this->joinForeignKey[$k], $this->joinPrimaryKey[$k]);
-                } else {
+                } elseif('belongsTo') {
                     list($joinPrimaryKey, $joinForeignKey) = array($this->joinPrimaryKey[$k], $this->joinForeignKey[$k]);
                 }
                 $joinTpl = $this->tplPath . 'join.tpl';
@@ -519,30 +523,25 @@ class CurdService
             }
         }
         //变量分配
-        $i = 0;
         if ($this->assign) {
             foreach ($this->assign as $k => $v) {
                 $kk = Str::studly($k);
-                if (!$this->hasSuffix($k, $this->config['priSuffix'])) {
+                $tempKey = $k;
+                if(Str::endsWith($k,'List')){
+                    $tempKey = substr($k, 0, strlen($k) - 4);
+                }
+                if ($v) {
                     $joinTplStr .= str_replace(['{{$method}}', '{{$values}}'],
                             ['get' . $kk, $v],
                             file_get_contents($attrTpl)) . PHP_EOL;
-                } elseif ($this->hasSuffix($k, $this->config['priSuffix'])
-                    and  $this->joinTable
-                    and in_array(substr($k, 0, strlen($k) - 4), $this->joinForeignKey)
-                ) {
+                } elseif (in_array($tempKey, $this->joinForeignKey) && !$v) {
                     //关联模型搜索属性
-                    $model = isset($this->joinModel[$i]) ? $this->joinModel[$i] : $this->joinModel[0];
-                    if ($this->joinTable && count($this->joinTable) == 1) {
-                        $value = isset($this->selectFields[0]) ? $this->selectFields[0] : 'title';
-                    } else {
-                        $value = isset($this->selectFields[$i]) ? $this->selectFields[$i] : 'title';
-                    }
-                    $k = str_replace(['_id', '_ids'], ['', ''], $k);
+                    $index = array_search($tempKey,$this->joinForeignKey);
+                    $model = $this->joinModel[$index];
+                    $value = isset($this->selectFields[$index]) ? $this->selectFields[$index] : 'title';
                     $joinTplStr .= str_replace(['{{$method}}', '{{$values}}', '{{$joinModel}}'],
                             ['get' . ucfirst($kk), $value, ucfirst(Str::studly($model))],
                             file_get_contents($joinAttrTpl)) . PHP_EOL;
-                    $i++;
                 }
             }
         }
@@ -766,10 +765,12 @@ class CurdService
                     $menu->restore();
                 }
             } else {
-                $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
-                    ->where('pid', $menu['id'])->where('module', $module)->find();
-                if (!$child) {
-                    $menu && $menu->delete();
+                if($menu){
+                    $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
+                        ->where('pid', $menu['id'])->where('module', $module)->find();
+                    if (!$child) {
+                        $menu && $menu->delete();
+                    }
                 }
             }
             foreach ($v['menulist'] as $kk => $vv) {
@@ -819,88 +820,92 @@ class CurdService
             $name = Str::studly($vo['name']);
             switch ($vo['type']) {
                 case "text":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "tags":
-                    $formFieldData .= "{:form_tags('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::tags('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "number":
-                    $formFieldData .= "{:form_input('{$vo['name']}', 'number', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'number', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "switch":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
 //                    $formFieldData .= "{:form_switch('{$vo['name']}', \${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}') }" . PHP_EOL;
-                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "array":
-                    $formFieldData .= "{:form_textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
                     break;
                 case "checkbox":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                    $formFieldData .= "{:form_checkbox('{$vo['name']}', \${$vo['name_list']}List,['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::checkbox('{$vo['name']}', \${$vo['name_list']}List,['label' => '{$name}', 'verify' => '{$vo['required']}'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "radio":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
-                    $formFieldData .= "{:form_radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::radio('{$vo['name']}' ,\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "_id":
-                    if ($this->joinTable) {
+                    if (!empty($this->joinTable)) {
                         $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                         if (strpos($vo['name'], '_ids') and in_array($vo['name'], $this->joinForeignKey)) {
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}','multiple'=>1, 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         } elseif (strpos($vo['name'], '_id') and in_array($vo['name'], $this->joinForeignKey)) {
-                            $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                         } else {
-                            $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                            $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                         }
                     } else {
-                        $formFieldData .= "{:form_input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "select":
                     $vo['name_list'] = lcfirst(Str::studly($vo['name']));
                     if (in_array($vo['DATA_TYPE'], ['set', 'varchar', 'char'])) {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'multiple'=>1,'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     } else {
-                        $formFieldData .= "{:form_select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
+                        $formFieldData .= "{:Form::select('{$vo['name']}',\${$vo['name_list']}List, ['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1], [], '{$vo['value']}')}" . PHP_EOL;
                     }
                     break;
                 case "color":
-                    $formFieldData .= "{:form_color('{$vo['name']}',['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::color('{$vo['name']}',['label' => '{$name}', 'verify' => '{$vo['required']}', 'search' => 1])}" . PHP_EOL;
                     break;
                 case "timestamp":
                 case "datetime":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}'])}" . PHP_EOL;
                     break;
                 case "year":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'year'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'year'])}" . PHP_EOL;
                     break;
                 case "date":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'date'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'date'])}" . PHP_EOL;
                     break;
                 case "time":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'time'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'time'])}" . PHP_EOL;
                     break;
                 case "range":
-                    $formFieldData .= "{:form_date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}','range' => 'range'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::date('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}','range' => 'range'])}" . PHP_EOL;
                     break;
                 case "textarea":
-                    $formFieldData .= "{:form_textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}',], '{$vo['value']}')}" . PHP_EOL;
+                    $formFieldData .= "{:Form::textarea('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}',], '{$vo['value']}')}" . PHP_EOL;
                     break;
                 case "image":
-                    $formFieldData .= "{:form_upload('{$vo['name']}',\$formData?\$formData['{$vo['name']}']:'{$vo['value']}' ,['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'image', 'path' => '{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "images":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'image', 'path' =>'{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "file":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'radio', 'mime' => 'file', 'path' =>'{$this->modelName}', 'num' => '1'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "files":
-                    $formFieldData .= "{:form_upload('{$vo['name']}', \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::upload('{$vo['name']}', ['label' => '{$name}', 'verify' => '{$vo['required']}', 'type' => 'checkbox', 'mime' => 'file', 'path' => '{$this->modelName}', 'num' => '*'], \$formData?\$formData['{$vo['name']}']:'{$vo['value']}', )}" . PHP_EOL;
                     break;
                 case "editor":
-                    $formFieldData .= "{:form_editor('{$vo['name']}', 2,['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    $formFieldData .= "{:Form::editor('{$vo['name']}', ['label'=>'{$name}','verify' => '{$vo['required']}'])}" . PHP_EOL;
+                    break;
+                default :
+                    $formFieldData .= "{:Form::input('{$vo['name']}', 'text', ['label' => '{$name}', 'verify' => '{$vo['required']}'], '{$vo['value']}')}" . PHP_EOL;
+                    break;
             }
         }
         return $formFieldData;
@@ -923,7 +928,7 @@ class CurdService
                     $listName = lcfirst(Str::studly($v['name']));
                     switch ($v['type']) {
                         case '_id':
-                            if ($this->joinTable and in_array($v['name'], $this->joinForeignKey)) { //
+                            if (!empty($this->joinTable) and in_array($v['name'], $this->joinForeignKey)) { //
                                 $this->jsCols .= $space . "{field:'{$v['name']}',search: true,title: __('{$name}'),selectList:{$listName}List,sort:true,templet: Table.templet.tags}," . PHP_EOL;;
                             } else {
                                 $this->jsCols .= $space . "{field:'{$v['name']}', title: __('{$name}'),align: 'center',sort:true}," . PHP_EOL;
@@ -964,20 +969,20 @@ class CurdService
                                 break;
                             }
                         case 'date':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy-MM-dd',searchdateformat:'yyyy-MM-dd',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy-MM-dd',searchdateformat:'yyyy-MM-dd',search:'timerange',templet: Table.templet.time,sort:true}," . PHP_EOL;;
                             break;
                         case 'timestamp':
                         case 'datetime':
                             if (in_array($v['name'], ['update_time', 'delete_time'])) {
                                 break;
                             }
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',timeType:'datetime',dateformat:'yyyy-MM-dd HH:mm:ss',searchdateformat:'yyyy-MM-dd HH:mm:ss',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         case 'year':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'yyyy',searchdateformat:'yyyy',timeType:'year',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         case 'time':
-                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'time',templet: Table.templet.time,sort:true}," . PHP_EOL;;
+                            $this->jsCols .= $space . "{field:'{$v['name']}',title: __('{$name}'),align: 'center',dateformat:'HH:mm:ss',searchdateformat:'HH:mm:ss',timeType:'time',search:'timerange',templet: Table.templet.time,sort:true,searchOp:'daterange'}," . PHP_EOL;;
                             break;
                         default :
                             $this->jsCols .= $space . "{field:'{$v['name']}', title: __('{$name}'),align: 'center'}," . PHP_EOL;
@@ -1036,6 +1041,7 @@ class CurdService
             $v['comment'] = str_replace('：', ':', $v['comment']);
             $v['name'] = $v['COLUMN_NAME'];
             $v['value'] = $v['COLUMN_DEFAULT'];
+            $v['DATA_TYPE'] = strtolower($v['DATA_TYPE']);
             if($v['COLUMN_KEY'] == 'PRI'){
                 $this->primaryKey = $v['name'];
             }
@@ -1067,7 +1073,14 @@ class CurdService
             if (in_array($v['DATA_TYPE'], ['time'])) {
                 $v['type'] = 'time';
             }
+            if (in_array($v['DATA_TYPE'], ['json'])) {
+                $v['type'] = 'array';
+            }
             $fieldsName = $v['COLUMN_NAME'];
+            // 指定后缀说明也是个时间字段
+            if ($this->hasSuffix($fieldsName, $this->config['jsonSuffix'])) {
+                $v['type'] = "array";
+            }
             // 指定后缀说明也是个时间字段
             if ($this->hasSuffix($fieldsName, $this->config['fileSuffix'])) {
                 $comment = explode('=', $v['comment']);
@@ -1079,7 +1092,7 @@ class CurdService
             }
             // 指定后缀结尾且类型为varchar || char,文件上传
             if ($this->hasSuffix($fieldsName, $this->config['imageSuffix']) &&
-                (($v['DATA_TYPE'] == 'varchar') || $v['DATA_TYPE'] == 'char')) {
+                (in_array($v['DATA_TYPE'],['varchar','char','text','smalltext','tinytext','mediumtext','longtext','json']))) {
                 $comment = explode('=', $v['comment']);
                 $v['comment'] = $comment[0];
                 $v['type'] = "image";
@@ -1194,15 +1207,15 @@ class CurdService
         $requests = '';
         $requestsRecycle = '';
         foreach ($methodArr as $k => $v) {
-            if (!$this->softDelete && $v == 'recycle') continue;
+            if (!$softDelete && $v == 'recycle') continue;
             if ($v != 'refresh') {
                 $space = $k == 0 ? '' : '                    ';
                 if (!in_array($v, ['restore'])) {
                     $space = $k == 0 ? '' : '                    ';
-                    $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL;
+                    $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . '+location.search,' . PHP_EOL;
                 }
                 if (in_array($v, ['recycle', 'restore', 'delete'])) {
-                    $requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . ',' . PHP_EOL . $space;
+                    $requestsRecycle .= $v . '_url:' . "'{$prefix_url}/{$v}'" . '+location.search,' . PHP_EOL . $space;
                 }
             }
         }
@@ -1235,8 +1248,8 @@ class CurdService
             $this->tplPath . 'attrmutiget.tpl',
             $this->tplPath . 'attrmutiset.tpl',
         ];
-        $fieldList = $fieldsList?:$this->fieldsList;
-        foreach ($fieldsList as $k => $vo) {
+        $fieldList = $fieldList?:$this->fieldsList;
+        foreach ($fieldList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name'] != 'status') continue;
             $name = Str::studly($vo['name']);
@@ -1350,7 +1363,7 @@ class CurdService
     {
         $suffix = is_array($suffix) ? $suffix : explode(',', $suffix);
         foreach ($suffix as $v) {
-            if (strpos($field, $v) !== false) {
+            if (Str::endsWith($field, $v)) {
                 return true;
             }
         }

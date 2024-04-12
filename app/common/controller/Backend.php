@@ -5,7 +5,7 @@
  * 版权所有 2017-2028 FunAdmin，并保留所有权利。
  * 网站地址: http://www.FunAdmin.com
  * ----------------------------------------------------------------------------
- * 采用最新Thinkphp6实现
+ * 采用最新Thinkphp8实现
  * ============================================================================
  * Author: yuege
  * Date: 2019/9/21
@@ -25,6 +25,7 @@ use think\facade\Lang;
 use app\backend\middleware\CheckRole;
 use app\backend\middleware\ViewNode;
 use app\backend\middleware\SystemLog;
+use think\helper\Str;
 
 class Backend extends BaseController
 {
@@ -89,7 +90,29 @@ class Backend extends BaseController
      */
     protected $selectpageFields = ['*'];
 
+    /**
+     * 隐藏字段
+     * @var array
+     */
+    protected $hiddenFields = [];
 
+    /**
+     * 可见字段
+     * @var array
+     */
+    protected $visibleFields = [];
+
+
+    /**
+     * 是否开启数据限制
+     * 表示按权限判断/仅限个人
+     */
+    protected $dataLimit = false;
+
+    /**
+     * @var string
+     */
+    protected $dataLimitField = 'admin_id';
     /**
      * @param App $app
      */
@@ -134,6 +157,9 @@ class Backend extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
+        if(!empty($lang) && Str::contains($lang,'../')){
+            return false;
+        }
         if($app && $app!=='backend'){
             $res =  Lang::load([
                 $this->app->getBasePath() .'backend'. DS . 'lang' . DS . $lang . '.php',

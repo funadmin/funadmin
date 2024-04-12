@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function ($,Table,Form) {
+define(['table','form'], function (Table,Form) {
     Table.init = {
         table_elem: 'list',
         tableId: 'list',
@@ -24,8 +24,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'name', title: __('GroupName'), minwidth: 120,},
-                    {field: 'rules', title: __('Rules'), minwidth: 120,},
+                    {field: 'name', title: __('GroupName'), minWidth: 120,},
+                    {field: 'rules', title: __('Rules'), minWidth: 120,},
                     {
                         field: 'status',
                         title: __('Status'),
@@ -37,7 +37,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     },
                     {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
                     {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: 'center',
                         title: __('Operat'),
                         init: Table.init,
@@ -69,8 +69,8 @@ define(['jquery','table','form'], function ($,Table,Form) {
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
-                    {field: 'name', title: __('GroupName'), minwidth: 120,},
-                    {field: 'rules', title: __('Rules'), minwidth: 120,},
+                    {field: 'name', title: __('GroupName'), minWidth: 120,},
+                    {field: 'rules', title: __('Rules'), minWidth: 120,},
                     {
                         field: 'status',
                         title: __('Status'),
@@ -82,7 +82,7 @@ define(['jquery','table','form'], function ($,Table,Form) {
                     },
                     {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
                     {
-                        minwidth: 250,
+                        minWidth: 250,
                         align: 'center',
                         title: __('Operat'),
                         init: Table.init,

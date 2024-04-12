@@ -12,7 +12,7 @@ body .layui-layer-content, .layui-layer.layui-layer-dialog .layui-layer-btn {
 }
 
 body .layui-blue {
-    color: #1890ff !important
+    color: #4d70ff !important
 }
 
 body .layui-red {
@@ -151,6 +151,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 .layui-layout-admin .layui-side-menu .layui-nav .layui-nav-child {
     padding-top: 0;
     padding-bottom: 0;
+    background: none;
 }
 .layui-nav-tree > .layui-nav-item:hover > a:before {
     bottom: 0
@@ -235,16 +236,12 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     padding-left: 95px
 }
 
-.layui-side-menu .layui-nav-tree .layui-this, .layui-side-menu .layui-nav-tree .layui-this > a, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this, .layui-side-menu .layui-nav-tree .layui-nav-child dd.layui-this a {
-    background-color: #009688 !important
-}
 
 .layui-header .layui-nav .layui-this::after {
     background-color: transparent !important
 }
 
 .layui-header .layui-nav-bar {
-    background-color: #191a23;
     height: 2px;
     top: 0 !important
 }
@@ -426,7 +423,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     margin-right: 5px;
 }
 .layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active {
-    background-color: #1890ff;
+    background-color: #4d70ff;
 }
 .layui-pagetabs .layui-tab-title li:first-child {
     padding-right: 15px
@@ -651,7 +648,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 }
 
 .fun-loading .loading > span, .signal-loader > span {
-    background-color: #1890ff;
+    background-color: #4d70ff;
     display: inline-block
 }
 

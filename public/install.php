@@ -13,9 +13,9 @@
 namespace think;
 
 // 检查PHP版本
-if (version_compare("7.4", PHP_VERSION, ">=")) {
+if (version_compare("8.0", PHP_VERSION, ">=")) {
     header("Content-type: text/html; charset=utf-8");
-    die('PHP 7.4.0 及以上版本系统才可运行~ ');
+    die('PHP 8.0.0 及以上版本系统才可运行~ ');
 }
 
 require __DIR__ . '/../vendor/autoload.php';

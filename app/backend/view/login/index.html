@@ -19,11 +19,12 @@
     <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all">
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/login.css" media="all">
+    <link rel="stylesheet" href="__CDN____STATIC__/backend/css/global.css" media="all">
 </head>
 <body>
 <script>
     window.Config = {:json_encode($config)};
-    window.Config.formData = {:isset($formData)?(json_encode($formData)):'""'},
+    window.FormArray = {:isset($formData)?(json_encode($formData)):'""'};
     window.STATIC ='__STATIC__'
     window.PLUGINS = '__PLUGINS__';
 </script>
@@ -71,13 +72,25 @@
                 </div>
                 {/if}
                 <div class="layui-form-item layui-clear">
-                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">
-                    {if config('captcha.check')}
-                    <div class="captcha-img">
-                        <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
+                    <div class="layui-row layui-col-space10">
+                        <div class="layui-col-xs5">
+                            <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">
+                        </div>
+                        {if config('captcha.check')}
+                        <div class="captcha-img layui-col-xs7">
+                            <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>
+                        </div>
+                        {/if}
                     </div>
-                    {/if}
                 </div>
+<!--                <div class="layui-form-item layui-col-lg4 layui-clear">-->
+<!--                    <input type="checkbox" name="rememberMe" checked value="true" lay-skin="tag" title="{:lang('Keep Login')}">-->
+<!--                    {if config('captcha.check')}-->
+<!--                    <div class="captcha-img">-->
+<!--                        <img  id="captchaPic" src="{:__u('verify')}?{:time()}" alt="captcha" onclick="this.src='{:__u("verify")}?'+'id='+Math.random()"/>-->
+<!--                    </div>-->
+<!--                    {/if}-->
+<!--                </div>-->
                 <div class="layui-form-item">
                     <button class="layui-btn layui-btn-normal layui-btn-fluid" lay-submit="" lay-filter="login">{:lang('Login In')}</button>
                 </div>
@@ -90,5 +103,4 @@
 </div>
 
 <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
-<script defer src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" charset="utf-8"></script>
-
+<script defer src="__CDN____STATIC__/require{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','app_debug')?time():syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','site_version')}" charset="utf-8"></script>

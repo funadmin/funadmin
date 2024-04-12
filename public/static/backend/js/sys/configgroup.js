@@ -1,4 +1,4 @@
-define(['jquery','table','form'], function (undefined,Table,Form) {
+define(['table','form'], function (Table,Form) {
 
     let Controller = {
 
@@ -23,8 +23,8 @@ define(['jquery','table','form'], function (undefined,Table,Form) {
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80, sort: true},
-                    {field: 'title', title: __('Group Title'), minwidth: 250, sort: true},
-                    {field: 'name', title: __('Group Name'), minwidth: 120, sort: true},
+                    {field: 'title', title: __('Group Title'), minWidth: 150, sort: true},
+                    {field: 'name', title: __('Group Name'), minWidth: 120, sort: true},
                     {
                         field: 'status',
                         title: __('Status'),

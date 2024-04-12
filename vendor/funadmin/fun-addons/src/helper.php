@@ -32,7 +32,8 @@ define('DS', DIRECTORY_SEPARATOR);
     $console->addCommands([
         'addons:config' => '\\fun\\addons\\command\\SendConfig',
         'auth:config' => '\\fun\\auth\\command\\SendConfig',
-        'curd:config' => '\\fun\\auth\\command\\SendConfig'
+        'curd:config' => '\\fun\\auth\\curd\\SendConfig',
+        'builder:config' => '\\fun\\builder\\command\\SendConfig'
     ]);
 });
 
@@ -217,7 +218,7 @@ if (!function_exists('get_addons_class')) {
      * @param string $class 当前类名
      * @return string
      */
-    function get_addons_class($name, $type = 'hook', $class = null, $module = 'backend')
+    function get_addons_class($name, $type = 'hook', $class = null)
     {
         $name = trim($name);
         // 处理多级控制器情况
@@ -231,14 +232,11 @@ if (!function_exists('get_addons_class')) {
         }
         switch ($type) {
             case 'controller':
-                if($module){
-                    $namespace = '\\addons\\' . $name . '\\' . $module . '\\controller\\' . $class;
-                }else{
-                    $namespace = '\\addons\\' . $name .  '\\controller\\' . $class;
-                }
+                $namespace = '\\addons\\' . $name .  '\\controller\\' . $class;
                 break;
             default:
                 $namespace = '\\addons\\' . $name . '\\Plugin';
+                break;
         }
 
         return class_exists($namespace) ? $namespace : '';
@@ -397,7 +395,7 @@ if (!function_exists('get_addons_autoload_config')) {
         $route = [];
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
-        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled']);
+        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
 
         $url_domain_deploy = Config::get('route.url_domain_deploy');
         $addons = get_addons_list();
@@ -576,7 +574,65 @@ if (!function_exists('uninstallsql')) {
 if (!class_exists('Form')) {
     class_alias('fun\\Form', 'Form');
 }
-
+// Form别名
+if (!class_exists('FormBuilder')) {
+    class_alias('fun\\FormBuilder', 'FormBuilder');
+}
+if (!class_exists('TableBuilder')) {
+    class_alias('fun\\TableBuilder', 'TableBuilder');
+}
+if (!function_exists('form_script')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_script($name=[], array $options=[])
+    {
+        return Form::script($name, $options);
+    }
+}
+if (!function_exists('form_style')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_style($name=[], array $options=[])
+    {
+        return Form::style($name, $options);
+    }
+}
+if (!function_exists('form_js')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_js($name=[], array $options=[])
+    {
+        return Form::js($name, $options);
+    }
+}
+if (!function_exists('form_link')) {
+    /**
+     * @param string $name
+     * @param string $type
+     * @param array $options
+     * @param '' $value
+     * @return string
+     */
+    function form_link($name=[],$options=[])
+    {
+        return Form::link($name, $options);
+    }
+}
 if (!function_exists('form_config')) {
     /**
      * @param string $name
@@ -804,6 +860,17 @@ if (!function_exists('form_arrays')) {
     }
 }
 
+if (!function_exists('form_array')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_array($name='', $list = [], $option = [])
+    {
+        return Form::arrays($name, $list, $option);
+    }
+}
+
 
 if (!function_exists('form_textarea')) {
     /**
@@ -977,6 +1044,18 @@ if (!function_exists('form_submitbtn')) {
         return Form::submitbtn($reset, $options);
     }
 }
+
+if (!function_exists('form_submit')) {
+    /**
+     * @param bool $reset
+     * @param array $options
+     * @return string
+     */
+    function form_submit($reset = true, $options = [])
+    {
+        return Form::submit($reset, $options);
+    }
+}
 if (!function_exists('form_closebtn')) {
     /**
      * @param bool $reset
@@ -994,9 +1073,9 @@ if (!function_exists('form_upload')) {
      * @param '' $formdata
      * @return string
      */
-    function form_upload($name = '', $formdata = [], $options = [], $value = '')
+    function form_upload($name = '',  $options = [], $value = '')
     {
-        return Form::upload($name, $formdata, $options, $value);
+        return Form::upload($name, $options, $value);
     }
 }
 if (!function_exists('form_editor')) {
@@ -1004,9 +1083,9 @@ if (!function_exists('form_editor')) {
      * @param $name
      * @return string
      */
-    function form_editor($name = 'content', $type = 1, $options = [], $value = '')
+    function form_editor($name = 'content', $options = [], $value = '')
     {
-        return Form::editor($name, $type, $options, $value);
+        return Form::editor($name, $options, $value);
     }
 }
 if (!function_exists('form_selectpage')) {
@@ -1017,5 +1096,15 @@ if (!function_exists('form_selectpage')) {
     function form_selectpage($name = 'selectpage', $list = [], $options = [], $value=null)
     {
         return Form::selectpage($name, $list, $options, $value);
+    }
+}
+if (!function_exists('form_autocomplete')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_autocomplete($name = 'autocomplete', $list = [], $options = [], $value=null)
+    {
+        return Form::autocomplete( $name, $list ,  $options ,$value) ;
     }
 }

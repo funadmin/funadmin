@@ -1,5 +1,4 @@
 define(['backend'], function (Backend) {
-    var  Backend = layui.Backend;
     return controller=  {
         index: function () {
             Backend.render(options =  {

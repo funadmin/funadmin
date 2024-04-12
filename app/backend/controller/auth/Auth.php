@@ -70,7 +70,7 @@ class Auth extends Backend
                     ->select()->toArray();
                 foreach ($list as $k => &$v) {
                     $v['title'] = lang($v['title']);
-                    $v['icons'] = lang($v['icon']);
+                    $v['icons'] = $v['icon'];
                     unset($v['icon']);
                 }
                 unset($v);
@@ -100,7 +100,7 @@ class Auth extends Backend
             if (empty($post['sort'])) {
                 $this->error(lang('sort') . lang(' cannot null'));
             }
-            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
+            $post['icon'] = $post['icon'] ?: 'layui-icon layui-icon-circle-dot';
             $post['href'] = trim($post['href'], '/');
             $where = [
                 'module'=>$post['module'],
@@ -141,7 +141,7 @@ class Auth extends Backend
     {
         if (request()->isAjax()) {
             $post = $this->request->post();
-            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
+            $post['icon'] = $post['icon'] ?  : 'layui-icon layui-icon-circle-dot';
             $id = $this->request->param('id');
             $model = $this->findModel($id);
             if($post['pid'] && $post['pid'] == $id)  $this->error(lang('The superior cannot be set as himself'));
@@ -161,7 +161,6 @@ class Auth extends Backend
             $list = TreeHelper::getTree($list);
             $id = $this->request->param('id');
             $one = $this->modelClass->find($id)->toArray();
-            $one['icon'] = $one['icon'] ? trim(substr($one['icon'],10),' ') : 'layui-icon layui-icon-diamond';
             $view = [
                 'formData' => $one,
                 'ruleList' => $list,
@@ -182,7 +181,7 @@ class Auth extends Backend
     {
         if (request()->isAjax()) {
             $post = $this->request->post();
-            $post['icon'] = $post['icon'] ? 'layui-icon '.$post['icon'] : 'layui-icon layui-icon-diamond';
+            $post['icon'] = $post['icon'] ? : 'layui-icon layui-icon-circle-dot';
             $where = [
                 'module'=>$post['module'],
                 'href'=>$post['href'],

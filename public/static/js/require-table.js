@@ -7,15 +7,16 @@
 // +----------------------------------------------------------------------
 // | Author: yuege <994927909@qq.com> Apache 2.0 License Code
 
-define(['jquery', 'timePicker'], function ($, timePicker) {
+define(['timePicker'], function (timePicker) {
+    var $ = layui.$;
     var Table = {
         init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
         render: function (options) {
+            options.init = options.init || Table.init;
             options.elem = options.elem || '#' + options.init.table_elem;
             options.primaryKey = options.primaryKey || $('#'+options.id).data('primarykey') || 'id';
-            options.init = options.init || Table.init;
             options.id = options.id || options.init.tableId;
-            options.layFilter = options.id;
+            options.layFilter = options.id;options.autoSort = options.autoSort || false;
             options.url = options.url || window.location.href;
             options.toolbar = options.toolbar || '#toolbar';
             options.search = Fun.param(options.search, true);
@@ -53,15 +54,15 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             search: O.data('search'),
                             searchOp: O.data('searchop'),
                             timepickerformat: Fun.param(O.data('timepickerformat'), 'YYYY-MM-DD HH:mm:ss'),
-                            searchdateformat: Fun.param(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss'),
+                            searchdateformat: Fun.param(O.data('searchdateformat'), 'yyyy-MM-dd HH:mm:ss').replaceAll('Y','y'),
                             timeType: Fun.param(O.data('timetype'), 'datetime'),
                         }
                         cols.push(arr);
                     })
-                    Table.timeRender(cols);
+                    Table.timeRender(cols,options);
                     layui.form.render();
                     require(['form'], function (Form) {
-                        Form.events.xmSelect();
+                        Form.events.xmselect($('#layui-form-'+options.id));
                     })
                 });
                 layui.form.render();
@@ -75,7 +76,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             options.toolbar = typeof options.toolbar === 'string' ? options.toolbar : Table.renderToolbar(options);
             var format = Table.getSearchField(layui.form.val('layui-form-'+options.id));
             options.where =  options.where || {filter:JSON.stringify(format.formatFilter), op:JSON.stringify(format.formatOp)};
-            options.done = options.done || Table.done;
+            if(options.done){
+                options.done = Fun.api.mergeFunc(options.done,Table.done)
+            }else{
+                options.done = Table.done;
+            }
             if(options.tree){
                 var newTable = layui.treeTable.render(options);
             }else{
@@ -84,7 +89,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             Table.api.switch(options);
             Table.api.selects(options);
             Table.api.toolbar(options);
-            Table.api.sort(options);
             Table.api.tool(options);
             Table.api.toolDouble(options);
             Table.api.import(options);
@@ -138,7 +142,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         url = eval(('requests.' + v + '_url'))  ||　eval(('requests.' + v ))
                         if(!url) return ;
                         url = Fun.replaceurl(url, d);
-                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-warm" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-set-sm"></i>' + __(v) + '</a>\n';
+                        toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" data-title="'+v+'"><i class="layui-icon layui-icon-radio"></i>' + __(v) + '</a>\n';
                     }
                 } else if (typeof v === 'string' && typeof eval('requests.' + v) === 'object' || typeof v === 'object') {
                     if (typeof v === 'string') {
@@ -179,7 +183,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 }
             });
             if (searchInput) {
-                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;float: right;\n' + 'margin:2px 25px 0 0;height:30px;">\n';
+                toolbarHtml += '<input id="layui-input-search-'+options.id+'" data-searchop="'+options.searchOp+'" name="' + options.searchName + '" value="" placeholder="' + __('Search') + '" class="layui-input layui-hide-xs" style="display:inline-block;width:auto;height:32px;">\n';
             }
             return '<div>' + toolbarHtml + '</div>';
         },
@@ -203,14 +207,17 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 d.searchOp = d.searchOp.toLowerCase();
                 d.timeType = d.timeType || 'datetime';
                 d.dateformat = d.dateformat || 'yyyy-MM-dd HH:mm:ss';
+                d.dateformat = d.dateformat.replaceAll('Y','y');
                 d.timepickerformat = d.timepickerformat || 'YYYY-MM-DD HH:mm:ss';
                 d.searchdateformat = d.searchdateformat || d.dateformat;
+                d.searchdateformat = d.searchdateformat.replaceAll('Y','y');
                 d.extend = d.extend || '';
                 d.extend = typeof d.extend === "object" ? "data-extend='" + JSON.stringify(d.extend) + "'" : d.extend;
                 if (d.field !== false && d.search !== false) {
                     formVal[d.field] = d.searchValue;
                     d.search = typeof d.search ==='string' ?d.search.toLowerCase():d.search;
-                    cls = 'layui-col-xs12 layui-col-sm6 layui-col-md4 layui-col-lg3';
+                    cls = 'layui-col-xs12  layui-col-sm6 layui-col-md3 layui-col-lg3 layui-col-xl2';
+                    var filter = d.formFilter || d.filter;
                     switch (d.search) {
                         case true:
                             formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
@@ -218,33 +225,43 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                 d.searchOp = 'in';
                                 formHtml += '<div ' + d.extend + ' lay-filter="xmSelect" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             }else{
-                                formHtml += '<input ' +d.extend +' lay-filter="'+d.filter+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
+                                formHtml += '<input ' +d.extend +' lay-filter="'+filter+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
                             }
                             formHtml+= '</div>\n' + '</div>' + '</div>';
                             break;
                         case 'xmselect':
-                            formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
+                            formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
                             d.searchOp = 'in';
                             formHtml += '<div ' + d.extend + ' lay-filter="xmSelect" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" style="height:32px;" class="' + d.class + '"></div>\n';
                             formHtml+= '</div>\n' + '</div>' + '</div>';
                             break;
                         case 'selectpage':
-                            formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
+                            formHtml += '<div class="'+cls+'">' + '<div class="layui-form-item layui-inline ">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n';
                             formHtml += "<input " +d.extend + " data-url='"+ (d.url!==undefined?d.url:"")  + "'" + 'lay-filter="selectPage" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '" data-searchop="' + d.searchOp + '" value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n';
                             formHtml+= '</div>\n' + '</div>' + '</div>';
                             break;
                         case'select':
                             d.searchOp = '=';
                             var selectHtml = '';
-                            d.selectList = d.selectList || Fun.api.getData(d.url) || {};
-                            layui.each(d.selectList, function (i, v) {
+                            selectList = d.selectList || Fun.api.getData(d.url) || {};
+                            prop =  (d.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
+                            if(prop){ prop = prop[2];}else{prop = d.prop;}
+                            if (prop) {prop = prop.split(',');}
+                            selectListObj = {}
+                            layui.each(selectList, function (i, v) {
+                                if (prop && v[prop[1]]){
+                                        i = v[prop[0]]
+                                        v = v[prop[1]];
+                                        selectListObj[i] =v ;
+                                }
                                 var selected = '';
                                 if (i === d.searchValue) {
                                     selected = 'selected=""'
                                 }
                                 selectHtml += '<option value="' + i + '" ' + selected + '>' + __(v) + '</option>/n'
                             });
-                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<select ' +d.extend +' lay-filter="'+d.filter+'" class="layui-select '+d.class+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '"   data-searchop="' + d.searchOp + '" >\n' + '<option value="">-' + __("All") + ' -</option> \n' + selectHtml + '</select>\n' + '</div>\n' + '</div>' + '</div>';
+                            d.selectList = selectListObj.length > 0 ? selectListObj:d.selectList;
+                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<select ' +d.extend +'lay-search="" lay-filter="'+filter+'" class="layui-select '+d.class+'" id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" data-search="' + d.search + '"   data-searchop="' + d.searchOp + '" >\n' + '<option value="">-' + __(d.title) + ' -</option> \n' + selectHtml + '</select>\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                         case'between':
                             d.searchOp = 'between';
@@ -252,66 +269,69 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             break;
                         case'not between':
                             d.searchOp = 'not between';
-                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_min" name="' + eval(d.fieldAlias + '[]') + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_max" name="' + eval(d.fieldAlias + '[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_min" name="' + eval(d.fieldAlias + '[]') + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_max" name="' + eval(d.fieldAlias + '[]') + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                         case'range':
                             if (d.searchOp && d.searchOp === 'between') {
-                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +'  id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '"  data-searchdateformat="' + d.searchdateformat + '"  data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"   data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="time"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                                formHtml += '\t<div class="'+cls+'">' + '<div id="field_'+d.field+'" class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +'  id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="'+filter+'" data-timetype="' + d.timeType + '"  data-searchdateformat="' + d.searchdateformat + '"  data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"   data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="'+filter+'"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             } else {
-                                d.searchOp = 'range';
-                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +'  id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>'
+                                d.searchOp =d.searchOp?d.searchOp:'range';
+                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +'  id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="'+filter+'" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>'
                             }
                             break;
                         case'time':
                             if (d.searchOp && d.searchOp === 'between') {
-                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="time"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                                formHtml += '\t<div class="'+cls+'">' + '<div id="field_'+d.field+'" class="layui-form-item layui-inline layui-between">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '_min" name="' + d.fieldAlias + '" lay-filter="'+filter+'" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '<div class="layui-input-inline layui-col-xs4">\n' + '<input id="field_' + d.fieldAlias + '_max" name="' + d.fieldAlias + '" lay-filter="'+filter+'"  data-searchop="between"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             } else {
-                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '"  lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                                formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '"  lay-filter="'+filter+'" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             }
                             break;
                         case'timerange':
-                            d.searchOp = 'range';
-                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                            d.searchOp =d.searchOp?d.searchOp:'range';
+                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="'+filter+'" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                         case'date':
-                            d.searchOp = 'daterange';
-                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="time" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
+                            d.searchOp = d.searchOp?d.searchOp:'daterange';
+                            formHtml += '\t<div class="'+cls+'">' + '<div class="layui-form-item layui-inline">\n' + '<label class="layui-form-label layui-col-xs4 ">' + __(d.title) + '</label>\n' + '<div class="layui-input-inline layui-col-xs8">\n' + '<input ' +d.extend +' id="field_' + d.fieldAlias + '" name="' + d.fieldAlias + '" lay-filter="'+filter+'" data-timetype="' + d.timeType + '" data-searchdateformat="' + d.searchdateformat + '" data-timepickerformat="' + d.timepickerformat + '" data-search="' + d.search + '"  data-searchop="' + d.searchOp + '"  value="' + d.searchValue + '" placeholder="' + d.searchTip + '" class="layui-input '+d.class+'">\n' + '</div>\n' + '</div>' + '</div>';
                             break;
                     }
                     newCols.push(d);
                 }
             });
             if (formHtml !== '') {
-                $('#' + tableId).before('<fieldset id="layui-search-field-' + tableId + '" class="layui-elem-field layui-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" lay-filter="layui-form-' + tableId + '" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '_filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '_filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
+                $('#' + tableId).before('<fieldset id="layui-search-field-' + tableId + '" class="layui-elem-field layui-search-fieldset ' + show + '">\n' + '<legend>' + __('Search') + '</legend>\n' + '<form class="layui-form" lay-filter="layui-form-' + tableId + '" id="layui-form-' + tableId + '"><div class="layui-row">\n' + formHtml + '<div class="layui-form-item layui-inline" style="margin-left: 80px;">\n' + '<button type="submit" class="layui-btn layui-btn-normal" data-type="tableSearch" data-tableid="' + tableId + '" lay-submit="submit" lay-filter="' + tableId + '-filter">' + __('Search') + '</button>\n' + '<button type="reset" class="layui-btn layui-btn-primary" data-type="tableReset"  data-tableid="' + tableId + '" lay-filter="' + tableId + '-filter">' + __('Reset') + '</button>\n' + '</div>' + '</div>' + '</form>' + '</fieldset>');
                 Table.api.tableSearch(options);
                 layui.form.val('layui-form-'+tableId,formVal);
                 layui.form.render();
-                Table.timeRender(newCols)
+                Table.timeRender(newCols,options)
                 require(['form'], function (Form) {
-                    Form.events.xmSelect();
-                    Form.events.selectpage();
+                    Form.events.xmselect($('#layui-form-'+tableId));
+                    Form.events.selectpage($('#layui-form-'+tableId));
                 })
             }
         },
-        timeRender: function (newCols) {
+        timeRender: function (newCols,options) {
+            var formId = '#layui-form-'+options.id;
             layui.each(newCols, function (ncI, ncV) {
                 if (ncV.search === 'range') {
                     switch (ncV.searchOp) {
                         case 'between':
                             layui.laydate.render({
-                                elem: '[id="field_' + ncV.field + '_min"]',
+                                elem: formId+' #field_'+ncV.field,
+                                range: [formId+' #field_' + ncV.field + '_min', formId+' #field_' + ncV.field + '_max'],
+                                rangeLinked: true,
                                 format: ncV.searchdateformat,
                                 type: ncV.timeType
                             });
-                            layui.laydate.render({
-                                elem: '[id="field_' + ncV.field + '_max"]',
-                                format: ncV.searchdateformat,
-                                type: ncV.timeType
+                            break;
+                        case 'daterange':
+                            require(['form'], function (Form) {
+                                Form.events.datepicker($(formId));
                             })
                             break;
                         default:
                             layui.timePicker.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: ncV.timepickerformat},
                             })
                             break
@@ -321,43 +341,40 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     switch (ncV.searchOp) {
                         case 'between':
                             layui.laydate.render({
-                                elem: '[id="field_' + ncV.field + '_min"]',
+                                elem:formId +' #field_'+ncV.field,
+                                range: [formId +' #field_' + ncV.field + '_min', formId +' #field_' + ncV.field + '_max'],
+                                rangeLinked: true,
                                 format: ncV.searchdateformat,
                                 type: ncV.timeType
                             });
-                            layui.laydate.render({
-                                elem: '[id="field_' + ncV.field + '_max"]',
-                                format: ncV.searchdateformat,
-                                type: ncV.timeType
-                            })
                             break;
                         case 'daterange':
-                            layui.timePicker.render({
-                                elem: '[name="' + ncV.field + '"]',
-                                options: {timeStamp: false, format: ncV.timepickerformat,},
-                            });
+                            require(['form'], function (Form) {
+                                Form.events.datepicker($(formId));
+                            })
                             break;
                         case 'range':
                             layui.timePicker.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: ncV.timepickerformat,},
                             })
                             break;
                         default:
                             layui.laydate.render({
-                                elem: '[name="' + ncV.field + '"]',
+                                elem: formId +' [name="' + ncV.field + '"]',
                                 type: ncV.timeType,
-                                format: ncV.searchdateformat
+                                format: ncV.searchdateformat,
+                                fullPanel:true,
                             })
                             break
                     }
                 }
                 if (ncV.search === 'timerange') {
                     layui.laydate.render({
-                        elem: '[name="' + ncV.field + '"]',
+                        elem: formId +' [name="' + ncV.field + '"]',
                         range: true,
                         type: ncV.timeType,
-                        format: ncV.searchdateformat
+                        format: ncV.searchdateformat,
                     })
                 }
             })
@@ -384,6 +401,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if (d.filter === undefined && d.templet === Table.templet.switch) {
                     newclos[i]['filter'] = d.field;
                 }
+                if (d.templet !== undefined && typeof (d.templet)=="string" &&  d.templet.indexOf('Table.templet') !== -1) {
+                    newclos[i]['templet'] = eval(d.templet);
+                }
                 if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
                     newclos[i]['imageHeight'] = 40;
                     newclos[i]['templet'] = Table.templet.image;
@@ -394,9 +414,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if (d.selectList !== undefined && d.templet === undefined) {
                     newclos[i]['templet'] = Table.templet.select;
                 }
-                if (d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
+                if (d.field && d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
                     newclos[i]['templet'] = Table.templet.resolution;
                 }
+
             })
             return [newclos]
         },
@@ -430,7 +451,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field), prop =  (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
-                if(prop){ prop = prop[2];}else{prop = ele.prop;}
+                if(prop){ prop = prop[2];}else{prop = ele.prop;}if(prop) prop = prop.split(',');
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};ops = {};
                 ops[ele.field] = op;
@@ -438,23 +459,28 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 if (JSON.stringify(selectList) !== "{}" && content !== '' && content !== null) {
                     var reg = RegExp(/,/);
                     content = typeof content == 'string' && reg.test(content) ? content.split(',') : typeof content == 'object' ? content : [content];
-                    html = '';
+                    html = '';  selectListObj = {};
                     layui.each(content, function (i, v) {
                         filter[ele.field] = v;
                         filter = JSON.stringify(filter);
                         if (prop) {
-                            prop = prop.split(',')
                             layui.each(selectList, function (ii, vv) {
+                                selectListObj[vv[prop[0]]] = vv[prop[1]];
                                 if(vv[prop[1]]==v){
-                                    html += Table.getBadge(d, ele, v, __(vv[prop[0]])) + ' '
+                                    html += Table.getBadge(d, ele, ii, __(vv[prop[1]])) + ' '
                                 }
                             })
+
                         }else if (selectList[v]) {
                             html += Table.getBadge(d, ele, v, __(selectList[v])) + ' '
+                        }else{
+                            html += Table.getBadge(d, ele, i, __(v)) + ' '
+
                         }
                     })
+                    ele.selectList = selectListObj.length>0 ?selectListObj:ele.selectList;
                     if(html){
-                        return html
+                        return html;
                     }
                 }
                 filter[ele.field] = content;
@@ -468,7 +494,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.title = ele.title || ele.field;
                 var src = eval('d.' + ele.field);
                 src = src ? src : '/static/common/images/image.png';
-                title = d[ele.title] || src;
+                title = d[ele.title] || d[ele.name] || src;
                 src = src.split(',');
                 var html = [];
                 layui.each(src, function (i, v) {
@@ -497,18 +523,17 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     }
                     extend.push({
                         field:ele.field,value:i,id:d[ele.primaryKey], url: url, title: ele.selectList[i] || v.title,
-                        event: ele.event || v.event || 'request', icon: ele.icon || v.icon || "",class:ele.class,
+                        event: ele.event || v.event || 'request', icon: ele.icon || v.icon || "",class:ele.class,tableid:ele.init.tableId,
                         callback: ele.callback || v.callback || '',templet:v.templet||ele.templet,
                     })
                 })
-                alert(1)
                 return $html = "<a class= '' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
             },selects: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
                 ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 value = Table.templet.resolution(d, ele)
-                $html = '<select class="layui-border" data-url="'+ ele.saveurl +'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"   lay-search="">\n' +
+                $html = '<select class="layui-border" data-url="'+ ele.saveurl +'" data-tableid="'+ele.init.tableId+'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"   lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
                 layui.each(ele.selectList, function (i, v) {
                     selected = value === i ? 'selected="selected"' : '';
@@ -523,7 +548,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 ele.tips = ele.tips || 'switch';
                 var value = Table.templet.resolution(d, ele);
                 var checked = value > 0 ? 'checked="checked"' : '';
-                return '<input data-url="' + ele.saveurl  + '" data-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[ele.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
+                return '<input data-tableid="'+ele.init.tableId+'" data-url="' + ele.saveurl  + '" data-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[ele.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             },select: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 ele.selectList = ele.selectList || Fun.api.getData((ele.url)) || {};
@@ -552,7 +577,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     value = value.split(',');
                     for(var i=0;i<value.length;i++){
                         url = url.indexOf('?')!==-1?(url+"&"+ele.primaryKey+"="+id+"&value="+value[i]):(url+"?"+ele.primaryKey+"="+id+"&value="+value[i]);
-                        html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] + '" lay-event="iframe" data-event="iframe" data-type="iframe" data-url="' + url + '"  class="label bg-green"> '+ value[i] +' </a>'
+                        html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] + '" data-tableid="'+ele.init.tableId+'" lay-event="iframe" data-event="iframe" data-id="'+url+'" lay-id="'+url+'" data-type="iframe" data-url="' + url + '"  class="label bg-green"> '+ value[i] +' </a>'
                     }
                 }
                 return html;
@@ -564,7 +589,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     value = value.split(',');
                     for(var i=0;i<value.length;i++){
                         url = url.indexOf('?')!==-1?(url+"&"+ele.primaryKey+"="+id+"&value="+value[i]):(url+"?"+ele.primaryKey+"="+id+"&value="+value[i]);
-                        html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] +'" lay-event="open" data-event="open" data-type="open" data-url="' + url + '"  class="label bg-green">'+ value[i] +'</a>'
+                        html+='<a class="layui-table-url layui-font-blue" data-title="' + value[i] +'" data-tableid="'+ele.init.tableId+'" lay-event="open" data-event="open" data-type="open" data-url="' + url + '"  class="label bg-green">'+ value[i] +'</a>'
                     }
                 }
                 return html;
@@ -579,8 +604,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             }, number: function (d) {
                 var ele = $(this)[0];
                 var toFixed = ele.toFixed || 2;
-                value = Table.templet.resolution(d, ele)
-                return value === '-' ? value : parseFloat(value).toFixed(toFixed)
+                var value = Table.templet.resolution(d, ele);
+                var display = value === '-' ? value : parseFloat(value).toFixed(toFixed);
+                if (ele.unit) display += ele.unit;//增加单位显示
+                return display;
             }, operat: function (d) {
                 var ele = $(this)[0];init = ele.init;
                 d.primaryKey = ele.primaryKey ||'id';
@@ -604,7 +631,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Add'),
                                     url: requests.add_url,
                                     icon: 'layui-icon layui-icon-add-circle-fine',
-                                    extend: "", width: '800', height: '100%', tips: 'add',
+                                    extend: "",  tips: 'add',
                                 }
                             } else if (v === 'edit' || v==='copy') {
                                 icon = v==='edit'? 'layui-icon-edit': 'layui-icon-file-b';
@@ -616,7 +643,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __(v),
                                     url: requests[v+'_url'],
                                     icon: 'layui-icon '+icon,
-                                    extend: "", width: '800', height: '100%', tips: v,
+                                    extend: "", tips: v,
                                 }
                             } else if (v === 'delete') {
                                 va = {
@@ -627,7 +654,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Delete'),
                                     url: requests.delete_url,
                                     icon: 'layui-icon layui-icon-delete',
-                                    extend: "", width: '800', height: '100%',tips: 'delete',
+                                    extend: "",tips: 'delete',
                                 }
                             } else if (v === 'destroy') {
                                 va = {
@@ -638,7 +665,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Destroy'),
                                     url: requests.destroy_url,
                                     icon: 'layui-icon layui-icon-fonts-clear',
-                                    extend: "", width: '800', height: '100%',tips: 'destroy',
+                                    extend: "",tips: 'destroy',
                                 }
                             } else if (v === 'restore') {
                                 va = {
@@ -649,23 +676,23 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                                     title: __('Restore'),
                                     url: requests.restore_url,
                                     icon: 'layui-icon layui-icon-refresh-1',
-                                    extend: "", width: '800', height: '100%',tips: 'restore',
+                                    extend: "",tips: 'restore',
                                 }
                             } else {
                                 va = {
                                     type: 'open',
                                     event: 'open',
-                                    class: 'layui-btn layui-btn-warm',
-                                    text: __('Open'),
-                                    title: __('Open'),
+                                    class: 'layui-btn layui-btn-normal',
+                                    text: __(v),
+                                    title: __(v),
                                     url: eval('requests.' + v + '_url') || eval('requests.' + v),
                                     icon: 'layui-icon layui-icon-radio',
-                                    extend: "", width: '800', height: '100%',tips: '',
+                                    extend: "",tips: '',
                                 }
                             }
-                        } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof v === 'object') {
+                        } else if (typeof v === 'string' && typeof eval('requests.' + v) === "object" || typeof eval('requests.' + v + '_url') === "object" || typeof v === 'object') {
                             if (typeof v === 'string') {
-                                va = eval('requests.' + v)
+                                va = eval('requests.' + v) ||  eval('requests.' + v + '_url')
                             } else {
                                 va = v
                             }
@@ -754,7 +781,6 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             type = type!==undefined?type:1;
             op = d.search ? d.searchOp : '%*%';
             var badge = [
-                '<span class="layui-badge-dot" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-blue" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-green" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-black" title="' + value + '"></span> ' + value,
@@ -767,11 +793,11 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 '<span class="layui-badge-dot layui-bg-brown" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-violet" title="' + value + '"></span> ' + value,
                 '<span class="layui-badge-dot layui-bg-gray" title="' + value + '"></span> ' + value,
+                '<span class="layui-badge-dot" title="' + value + '"></span> ' + value,
             ];
             if (type === 2) {
                 badge = [
 
-                    '<span class="layui-badge" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-blue" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-green" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-black" title="' + value + '">' + value + '</span>',
@@ -784,7 +810,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                     '<span class="layui-badge layui-bg-brown" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-violet" title="' + value + '">' + value + '</span>',
                     '<span class="layui-badge layui-bg-gray" title="' + value + '">' + value + '</span>',
-
+                    '<span class="layui-badge" title="' + value + '">' + value + '</span>',
                 ]
             }
             var filter = {}, ops = {};
@@ -846,14 +872,14 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             return [ids, length]
         },
         getOptions:function (tableId){
-            return layui.table.getOptions(tableId);
+            return layui.table.getOptions(tableId) || layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || parent.layui.treeTable.getOptions(tableId) || {};
         },
         getTableObj:function(tableId){
             options = Table.getOptions(tableId);
-            if(options.tree){
-                return layui.treeTable;
+            if(options && options.tree){
+                return layui.treeTable || parent.layui.treeTable;
             }
-            return layui.table;
+            return layui.table || parent.layui.table;
         },
         events: {
             //链接
@@ -915,6 +941,10 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 window.open(Fun.url(url + where), '_blank')
             },request: function (othis,data,tableOptions) {
                 Fun.events.request(othis, null, Table)
+            },confirm: function (othis,data,tableOptions) {
+                Fun.events.confirm(othis, null, Table)
+            },popconfirm: function (othis,data,tableOptions) {
+                Fun.events.popconfirm(othis, null, Table);
             }, delete: function (othis,data,tableOptions) {
                 var tableId = othis.data('tableid');
                 url = othis.data('url');
@@ -1038,7 +1068,7 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 });
             },
             tableSearch: function (options) {
-                layui.form.on('submit(' + options.id + '_filter)', function (data) {
+                layui.form.on('submit(' + options.id + '-filter)', function (data) {
                     var dataField = data.field;
                     var format = Table.getSearchField(dataField);
                     Table.api.reload(options.id, {
@@ -1053,6 +1083,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                 $parent = typeof $parent ==='undefined'?true:$parent;
                 $page = typeof $page ==='undefined'?1:$parent;
                 tableId = tableId ? tableId : Table.init.tableId;
+                options = Table.getOptions(tableId);
+                table = Table.getTableObj(tableId);
                 $where = $where || {};
                 $map = {where: $where};
                 if($page>=1){
@@ -1060,10 +1092,13 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         curr: $page //重新从第 1 页开始
                     }
                 }
-                table = layui.table || layui.treeTable;
+                if(options.page!==undefined && options.page==false){
+                    $map.page  = false;
+                }
                 table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
-                    parent.table.reloadData(tableId, {}, $deep);
+                    parent.layui.table.reloadData(tableId, $map, $deep) ||
+                    parent.layui.treeTable.reloadData(tableId, $map, $deep);
                 }
             },
             toolbar: function (options) {
@@ -1095,6 +1130,12 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                             break;
                         case'export':
                             Table.events.export(othis);
+                            break;
+                        case'confirm':
+                            Table.events.confirm(othis);
+                            break;
+                        case'popconfirm':
+                            Table.events.popconfirm(othis);
                             break;
                         case'request':
                             Table.events.request(othis);
@@ -1145,20 +1186,25 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         })
                     })
             },
-            sort: function (options) {
-                tableId = options.id || Table.init.tableId;
+            sort: function (tableId,options) {
+                tableId = tableId ||  options.id || Table.init.tableId;
+                options = options || Table.getOptions(tableId)
+                if(options.autoSort) return false;
                 Table.getTableObj(tableId).on('sort(' + tableId + ')', function (obj) {
                     $where ={
-                        field: obj.field
+                        sort: obj.field
                         ,order: obj.type //排序方式
                     };
-                    Table.api.reload(tableId,$where)
+                    Table.api.reload(tableId,$where);
                 })
+                return false;
             },
             switch: function (options) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
                     url = $(this).attr('data-url') || options.init.requests.modify_url || false;
+                    tableid = $(this).attr('data-tableid');
+                    if(options.id!==tableid) return ;
                     if(!url || url=='undefined') return ;
                     var filter = $(this).attr('lay-filter');
                     if(!filter) return ;
@@ -1179,6 +1225,8 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             selects: function (options) {
                 layui.form.on('select', function (obj) {
                     url = $(obj.elem).attr('data-url') || options.init.requests.modify_url || false;
+                    tableid = $(obj.elem).attr('data-tableid');
+                    if(options.id!==tableid) return ;
                     if(!url || url=='undefined') return ;
                     tableId = options.id || Table.init.tableId;
                     filter = $(obj.elem).attr('lay-filter');
@@ -1201,18 +1249,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
             },
             bindEvent: function (tableId) {
                 tableId = tableId || Table.init.tableId;
-                $(document).on('focus','*[lay-event]',function(){
-                    var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
-                    if (Table.events.hasOwnProperty(attrEvent)) {
-                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
-                    } else {
-                        Table.events.common(_that);
-                    }
-                    return false;
-                })
+                Table.api.sort(tableId);//排序
                 $(document).on('click','*[lay-event]',function(obj){
-
-                    var _that = $(this),attrEvent = _that.attr('lay-event'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
+                    var _that = $(this),attrEvent = _that.attr('lay-event') || _that.attr('lay-on'); //获得 lay-event 对应的值（也可以是表头的 event 参数对应的值）
                     if (Table.events.hasOwnProperty(attrEvent)) {
                         Table.events[attrEvent] && Table.events[attrEvent].call(this, _that)
                     } else {
@@ -1238,12 +1277,9 @@ define(['jquery', 'timePicker'], function ($, timePicker) {
                         var formatFilter = {}, formatOp = {};
                         formatFilter[name] = text;
                         formatOp[name] = $(this).data('searchop') || '%*%';
-                        where = {}
-                        if(text) {
-                            where = {
-                                filter: JSON.stringify(formatFilter),
-                                op: JSON.stringify(formatOp)
-                            }
+                        where = {
+                            filter: JSON.stringify(formatFilter),
+                            op: JSON.stringify(formatOp)
                         }
                         Table.api.reload(tableId, where, true, false);
                         return false

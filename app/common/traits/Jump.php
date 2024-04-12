@@ -23,7 +23,7 @@ trait Jump
      * @var \think\Request
      */
     protected $request;
-    
+
     public function __construct()
     {
         $this->request = Request::instance();

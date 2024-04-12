@@ -15,17 +15,27 @@
                 {:form_input('site_name','text',['label'=>"Site name",'verify'=>"required"])}
                 {:form_input('site_domain','text',['label'=>"Site Domain",'verify'=>"required|url"])}
                 {:form_input('site_email','text',['label'=>"Site Email"])}
-                {:form_upload('site_logo',$formData,['type'=>'checkbox'])}
+                {:form_upload('site_logo',['type'=>'checkbox'],$formData?$formData['site_logo']:'')}
                 {:form_textarea('site_seo_title',['label'=>'Site title','verify'=>"required"])}
                 {:form_textarea('site_seo_keywords',['label'=>'Meta keywords','verify'=>"required"])}
                 {:form_textarea('site_seo_desc',['label'=>'Meta description','verify'=>"required"])}
-                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2022 www.FunAdmin.com Apache2 license')}
+                {:form_textarea('site_copyright',['label'=>'All right','verify'=>"required"],'2023 www.FunAdmin.com Apache2 license')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
         <!--上传配置-->
         <div class="layui-tab-item">
             <form class="layui-form " lay-filter="form">
+                {:form_select('upload_editor',
+                ['tinymce'=>'tinymce','ueditor'=>'ueditor',
+                'umeditor'=>"umeditor",'quill '=>'quill',
+                'wangeditor'=>'wangeditor','ckeditor'=>"ckeditor",
+                'summernote'=>"summernote",'vditor'=>'vditor',
+                'codemirror'=>'codemirror', 'jodit'=>"jodit",
+                'simditor '=>'simditor',
+                ],
+                ['label'=>'Editor'],$formData['upload_editor']??'')}
+
                 {:form_input('upload_file_type','text',['label'=>"File Type"],'bmp|png|gif|jpg|jpeg|zip|rar|txt|ppt|xls|doc|mp3|mp4')}
                 {:form_input('upload_file_max','text',['label'=>"Maxfilesize",'verify'=>'number','tips'=>"M"],'50')}
                 {:form_radio('upload_chunk',[1=>'是',0=>'否'],['label'=>'是否分片'])}
@@ -57,7 +67,7 @@
                 {:form_input('upload_water_alpha','text',['label'=>"wateralpha",'verify'=>'number','tips'=>"0-100"],'50')}
                 {:form_input('upload_water_size','text',['label'=>"waterSize",'verify'=>'number','tips'=>""],'50')}
                 {:form_color('upload_water_color',['label'=>"watercolor"])}
-                {:form_upload('upload_water_thumb',$formData,['label'=>'image/text'])}
+                {:form_upload('upload_water_thumb',['label'=>'image/text'],$formData['upload_water_thumb']??'')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
@@ -65,6 +75,32 @@
             <form class="layui-form " lay-filter="form">
                 {:form_radio('app_debug',[1=>'是',0=>'否'],['label'=>'Debug'])}
                 {:form_input('site_version','text',['label'=>'Version'])}
+                {:form_input('site_layer_width','text',['label'=>'弹窗宽度'],'50%')}
+                {:form_input('site_layer_height','text',['label'=>'弹窗高度'],'100%')}
+                {:form_radio('site_layer_offset',[
+                'r'=> '右边缘(默认)',
+                'auto'=>'坐标始终垂直水平居中',
+                't'=>'上边缘',
+                'b' =>'下边缘',
+                'l'=> '左边缘',
+                'rt'=> '右上角',
+                'rb'=> '右下角',
+                'lt'=> '左上角',
+                'lb' =>'左下角',
+                ],['label'=>'弹窗位置'],'r')}
+                {:form_radio('site_layer_anim',[
+                'slideLeft'=>'从右边缘往左(默认)',
+                'slideDown'=>'从上边缘往下',
+                'slideUp'=>'从下边缘往上',
+                'slideRight'=>'从左边缘往右',
+                '0'=>'平滑放大',
+                '1'=>'从上掉落',
+                '2'=>' 从最底部往上滑入',
+                '3'=>'从左滑入',
+                '4'=>'从左翻滚',
+                '5'=>' 渐显',
+                '6'=>' 抖动',
+                ],['label'=>'弹窗特效'],'slideLeft')}
                 {:form_submitbtn(true,['show'=>1])}
             </form>
         </div>
