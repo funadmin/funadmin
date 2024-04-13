@@ -783,7 +783,7 @@ EOF;
     public function select($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
         if(isset($options['multiple'])){
-            return $this->multiselect($name = '', $select = [], $options = [], $attr = [], $value = '');
+            return $this->multiselect($name, $select , $options, $attr, $value);
         }
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';

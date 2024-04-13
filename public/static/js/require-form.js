@@ -39,6 +39,319 @@
                         }
                     },
                     autocomplete: function (formObj) {
+                        Form.api.autocomplete(formObj)
+                    },
+                    multiselect: function (formObj) {
+                        Form.api.multiselect(formObj);
+                    },
+                    selectplus: function (formObj) {
+                        Form.api.selectplus(formObj)
+                    },
+                    selectn: function (formObj) {
+                        Form.api.selectn(formObj)
+                    },
+                    selectpage: function (formObj) {
+                        Form.api.selectpage(formObj)
+                    },
+                    xmselect: function (formObj) {
+                        Form.api.xmselect(formObj)
+                    },
+                    editor: function (formObj) {
+                        Form.api.editor(formObj)
+                    },
+                    tags: function (formObj) {
+                        Form.api.tags(formObj)
+                    },
+                    icon: function (formObj) {
+                        Form.api.icon(formObj)
+                    },
+                    color: function (formObj) {
+                        Form.api.color(formObj)
+                    },
+                    region: function (formObj) {
+                        Form.api.region(formObj)
+                    },
+                    city: function (formObj) {
+                        Form.api.city(formObj)
+                    },
+                    timepicker: function (formObj) {
+                        Form.api.timepicker(formObj)
+                    },
+                    datepicker: function (formObj) {
+                        Form.api.datepicker(formObj)
+
+                    },
+                    date: function (formObj) {
+                        Form.api.date(formObj)
+                    },
+                    rate: function (formObj) {
+                        Form.api.rate(formObj)
+                    },
+                    slider: function (formObj) {
+                        Form.api.slider(formObj)
+                    },
+                    formarray: function (formObj) {
+                        Form.api.formarray(formObj)
+
+                    },
+                    uploads: function (formObj) {
+                        Upload.api.uploads();
+                    },
+                    cropper: function (formObj) {
+                        Upload.api.cropper();
+                    },
+                    //选择文件
+                    choosefiles: function (formObj) {
+                        Form.api.chooseFiles(formObj)
+                    },
+                    //选择文件
+                    selectfiles: function (formObj) {
+                        Form.api.selectFiles(formObj)
+                    },
+                    json:function (formObj){
+                        Form.api.json(formObj)
+                    },
+                    //验证
+                    verifys: function (formObj) {
+                        Form.api.verifys(formObj)
+                    },
+                    //必填项
+                    required: function (formObj) {
+                        Form.api.required(formObj)
+                    },
+                    submit: function (formObj, success, error, submit) {
+                        var formList = $("[lay-submit]");
+                        // 表单提交自动处理
+                        if (formList.length > 0) {
+                            layui.each(formList, function (i) {
+                                var filter = $(this).attr('lay-filter'),
+                                    type = $(this).data('type'),
+                                    refresh = $(this).data('refresh'),
+                                    url = $(this).data('request') || $(this).data('url') || $('form[lay-filter="' + filter + '"]').attr('action');
+                                // 表格搜索不做自动提交
+                                if (type === 'tableSearch') {
+                                    return false;
+                                }
+                                // 判断是否需要刷新表格
+                                if (refresh === undefined) refresh = true;
+                                if (refresh === 'false') refresh = false;
+                                if (refresh === '') refresh = false;
+                                // 自动添加layui事件过滤器
+                                if (filter === undefined || filter === '') {
+                                    filter = 'form-' + (i + 1);
+                                    $(this).attr('lay-filter', filter)
+                                }
+                                if (url === undefined || url === '' || url == null) {
+                                    url = location.href;
+                                }
+                                layui.form.on('submit(' + filter + ')', function (data) {
+                                    if ($('select[multiple]').length > 0) {
+                                        var $select = $("select[multiple]");
+                                        layui.each($select, function () {
+                                            var field = $(this).attr('name');
+                                            var vals = [];
+                                            $(this).children('option:selected').each(function () {
+                                                vals.push($(this).val());
+                                            })
+                                            data.field[field] = vals.join(',');
+                                        })
+                                    }
+                                    var dataField = data.field;
+                                    if (typeof formObj == 'function') {
+                                        formObj(url, dataField);
+                                    } else if (typeof submit == 'function') {
+                                        submit(url, dataField);
+                                    } else {
+                                        Form.api.formSubmit(url, dataField, success, error, refresh);
+                                    }
+                                    return false;
+                                });
+                            })
+                        }
+                    },
+                    //图片
+                    photos: function (otihs) {
+                        Fun.events.photos(otihs)
+                    },
+                    //删除
+                    filedelete: function (othis) {
+                        Form.api.filedelete(othis)
+                    },
+                    bindevent: function (formObj) {
+                        formObj.on('click', '[lay-event]', function () {
+                            var _t = $(this),
+                                attrEvent = _t.attr('lay-event');
+                            if (Form.events.hasOwnProperty(attrEvent)) {
+                                Form.events[attrEvent] && Form.events[attrEvent].call(this, _t);
+                            }
+                        });
+                        require(['table'], function (Table) {
+                            $('body').on('click', '[lay-event]', function () {
+                                if ($('table').length > 0) {
+                                    var _t = $(this), attrEvent = _t.attr('lay-event');
+                                    if (Table.events.hasOwnProperty(attrEvent)) {
+                                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _t);
+                                    }
+                                }
+                            });
+                        })
+                    },
+                },
+                api: {
+                    /**
+                     * 关闭窗口
+                     * @param option
+                     * @returns {boolean}
+                     */
+                    closeOpen: function (option) {
+                        option = option || {};
+                        option.refreshTable = option.refreshTable || false;
+                        option.refreshFrame = option.refreshFrame || false;
+    
+                        var index = parent.layui.layer.getFrameIndex(window.name);
+                        if (index) {
+                            parent.layui.layer.close(index);
+                        }
+                        if (option.refreshTable === true) {
+                            require(['table'], function (Table) {
+                                option.refreshTable = option.tableid || Table.init.tableId;
+                                if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
+                                    Table.api.reload(option.refreshTable)
+                                } else {
+                                    setTimeout(function () {
+                                        location.reload();
+                                    }, 2000)
+                                    return false;
+                                }
+                            })
+                        }
+                        if (!option.refreshFrame) {
+                            return false;
+                        }
+                        setTimeout(function () {
+                            location.reload();
+                        }, 2000)
+                        return false;
+                    },
+                    /**
+                     * 提交
+                     * @param url
+                     * @param data
+                     * @param success
+                     * @param error
+                     * @param refresh
+                     * @returns {boolean}
+                     */
+                    formSubmit: function (url, data, success, error, refresh) {
+                        success = success ||
+                            function (res) {
+                                res.msg = res.msg || 'success';
+                                Fun.toastr.success(res.msg);
+                                Form.api.closeOpen({refreshTable: refresh, refreshFrame: refresh});
+                                return false;
+                            };
+                        error = error ||
+                            function (res) {
+                                res.msg = res.msg || 'error';
+                                Fun.toastr.error(res.msg, function () {
+                                });
+                                return false;
+                            };
+                        Fun.ajax({
+                            url: url,
+                            data: data,
+                            // tips:__('loading'),
+                            complete: function (xhr) {
+                                var token = xhr.getResponseHeader('__token__');
+                                if (token) {
+                                    $("input[name='__token__']").val(token);
+                                }
+                            },
+                        }, success, error);
+                        return false;
+                    },
+                    //必填项
+                    required: function (formObj) {
+                        var vfList = $("[lay-verify]");
+                        if (vfList.length > 0) {
+                            layui.each(vfList, function () {
+                                var verify = $(this).attr('lay-verify');
+                                // todo 必填项处理
+                                if (verify && verify.indexOf("required")>=0) {
+                                    var label = $(this).parent().prev();
+                                    if (label.is('label') && !label.hasClass('required')) {
+                                        label.addClass('required');
+                                    }
+                                    if (typeof $(this).attr('lay-reqtext') === 'undefined' && typeof $(this).attr('placeholder') !== 'undefined') {
+                                        $(this).attr('lay-reqtext', $(this).attr('placeholder'));
+                                    }
+                                    if (typeof $(this).attr('placeholder') === 'undefined' && typeof $(this).attr('lay-reqtext') !== 'undefined') {
+                                        $(this).attr('placeholder', $(this).attr('layreqtext'));
+                                    }
+                                }
+                            });
+                            //div标签不需要lay-verify验证
+                            $("div[lay-verify]").removeAttr('lay-verify');
+                        }
+                    },
+                    verifys: function (formObj) {
+                        layui.form.verify({
+                            user: function (value) { //value：表单的值、item：表单的DOM对象
+                                if (!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)) {
+                                    return '用户名不能有特殊字符';
+                                }
+                                if (/(^\_)|(\__)|(\_+$)/.test(value)) {
+                                    return '用户名首尾不能出现下划线\'_\'';
+                                }
+                                if (/^\d+\d+\d$/.test(value)) {
+                                    return '用户名不能全为数字';
+                                }
+                            },
+                            pass: [/^[\S]{6,18}$/, '密码必须6到18位，且不能出现空格'],
+                            zipcode: [/^\d{6}$/, "请检查邮政编码格式"],
+                            chinese: [/^[\u0391-\uFFE5]+$/, "请填写中文字符"] //包含字母
+                            ,
+                            money: [/(^[1-9]([0-9]+)?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)/, "请输入正确的金额,且最多两位小数!"],
+                            letters: [/^[a-z]+$/i, "请填写字母"],
+                            digits: [/^\d+$/, '请填入数字'],
+                            qq: [/^[1-9]\d{4,}$/, "请填写有效的QQ号"]
+                        });
+                    },
+                    /**
+                     * 初始化表格数据
+                     */
+                    initForm: function (data) {
+                        if(data){
+                            Fun.api.removeEmptyData(data);
+                            layui.form.val("form", data);
+                        }else if (window.FormArray) {
+                            window.FormArray =     Fun.api.removeEmptyData(window.FormArray);
+                            layui.form.val("form", window.FormArray);
+                        }
+                        layui.form.render();
+                    },
+
+                    filedelete:function (othis){
+                        var fileurl = othis.data('fileurl'),
+                            that;
+                        var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
+                            that = othis.parents('.layui-upload-list').parents('.layui-upload');
+                            var input = that.find('input[type="text"]');
+                            var inputVal = input.val();
+                            var input_temp;
+                            if (othis.parents('li').index() === 0) {
+                                input_temp = inputVal.replace(fileurl, '');
+                                input.val(input_temp.replace(/^,|,$/g, ''));
+                            } else {
+                                input_temp = inputVal.replace(',' + fileurl, '');
+                                input.val(input_temp.replace(/^,|,$/g, ''));
+                            }
+                            othis.parents('li').remove();
+                            Fun.toastr.close(confirm);
+                        });
+                        return false;
+                    },
+                    autocomplete: function (formObj) {
                         var list = formObj !== undefined ? formObj.find("*[lay-filter='autoComplete']") : $("*[lay-filter='autoComplete']");
                         if (list.length > 0) {
                             require(['autoComplete'], function (autoComplete) {
@@ -109,9 +422,26 @@
                                         attrs.selected = attr[2]?attr[2]:'selected';
                                     }
                                     var  opt = {
-                                        elem: $(this),
-                                        keywordPlaceholder: '关键词',
+                                        elem: this,
+                                        keywordPlaceholder: '请输入关键词',
+                                        // 搜索时，没有匹配结果时显示的文字
                                         unfilteredText: '没有匹配的选项',
+                                        // 值分隔符
+                                        valueSeparator: ',',
+                                        /* customName: {
+                                             id: 'id',
+                                             title: 'title',
+                                             selected: 'selected',
+                                         },*/
+                                        options: [],
+                                        // 搜索时，如果不能匹配时，是否允许新增
+                                        allowCreate: true,
+                                        // 是否折叠已选择的选项
+                                        collapseSelected: false,
+                                        // 远程获取options的url
+                                        url: undefined,
+                                        // 通过url获取options的解析函数
+                                        parseOptions: undefined,
                                     };
                                     if(attrs){
                                         opt.customName =  attrs;
@@ -178,10 +508,10 @@
                                         last = _t.data('last') ||  '',
                                         values = _t.data('value') || '',
                                         search = _t.data('search') || _t.attr('lay-search');
-                                        if (search !== undefined) {
-                                            search = true;
-                                        }
-                                        attr = _t.data('attr'),
+                                    if (search !== undefined) {
+                                        search = true;
+                                    }
+                                    attr = _t.data('attr'),
                                         attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
                                         num = _t.data('num') ? _t.data('num') : 3,
                                         pid = _t.data('pid') || 'pid',
@@ -523,11 +853,11 @@
                                                 formData = new FormData();
                                                 formData.append('file', file, file.name);
                                                 xhr.send(formData);
-    
+
                                             };
                                         },
                                     });
-    
+
                                 }
                             })
                         }
@@ -547,7 +877,7 @@
                                         removeKeyNum: 8,//删除按键编号 默认，BackSpace 键
                                         createKeyNum: 32,//创建按键编号 默认，space 键
                                         beforeCreate: function (data, value) {//添加前操作，必须返回字符串才有效
-                                           return value;
+                                            return value;
                                         },
                                         onChange: function (data, value, type) {
                                             _t.next('input').val(data.join(','));
@@ -629,7 +959,7 @@
                                             _t.prev('input[name="' + name + '"]').val(getAllChecked())
                                         }
                                     });
-    
+
                                     function getAllChecked() {
                                         var all = '';
                                         _t.find("input:checkbox[name='" + id + name + "']:checked").each(function () {
@@ -997,6 +1327,7 @@
                         }
                     },
                     formarray: function (formObj) {
+                        var list = formObj !== undefined ? formObj.find("*[lay-filter='slider']") : $("*[lay-filter='slider']");
                         formObj.on("click", ".form-array .del", function () {
                             var tr = $(this).parents('tr');
                             var lawtable = tr.parents('.layui-table');
@@ -1016,7 +1347,7 @@
                                 })
                             })
                         })
-    
+
                         formObj.on("click", ".form-array .add", function () {
                             var tr = $(this).parents('tr');
                             var html = tr.html();
@@ -1025,254 +1356,6 @@
                             tr.after(html);
                             tr.next('tr').find('input').val('');
                         });
-                    },
-                    uploads: function (formObj) {
-                        Upload.api.uploads();
-                    },
-                    cropper: function (formObj) {
-                        Upload.api.cropper();
-                    },
-                    //选择文件
-                    choosefiles: function (formObj) {
-                        Form.api.chooseFiles(formObj)
-                    },
-                    //选择文件
-                    selectfiles: function (formObj) {
-                        Form.api.selectFiles(formObj)
-                    },
-                    json:function (formObj){
-                        Form.api.json(formObj)
-
-                    },
-                    //验证
-                    verifys: function (formObj) {
-                        layui.form.verify({
-                            user: function (value) { //value：表单的值、item：表单的DOM对象
-                                if (!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)) {
-                                    return '用户名不能有特殊字符';
-                                }
-                                if (/(^\_)|(\__)|(\_+$)/.test(value)) {
-                                    return '用户名首尾不能出现下划线\'_\'';
-                                }
-                                if (/^\d+\d+\d$/.test(value)) {
-                                    return '用户名不能全为数字';
-                                }
-                            },
-                            pass: [/^[\S]{6,18}$/, '密码必须6到18位，且不能出现空格'],
-                            zipcode: [/^\d{6}$/, "请检查邮政编码格式"],
-                            chinese: [/^[\u0391-\uFFE5]+$/, "请填写中文字符"] //包含字母
-                            ,
-                            money: [/(^[1-9]([0-9]+)?(\.[0-9]{1,2})?$)|(^(0){1}$)|(^[0-9]\.[0-9]([0-9])?$)/, "请输入正确的金额,且最多两位小数!"],
-                            letters: [/^[a-z]+$/i, "请填写字母"],
-                            digits: [/^\d+$/, '请填入数字'],
-                            qq: [/^[1-9]\d{4,}$/, "请填写有效的QQ号"]
-                        });
-                    },
-                    //必填项
-                    required: function (formObj) {
-                        var vfList = $("[lay-verify]");
-                        if (vfList.length > 0) {
-                            layui.each(vfList, function () {
-                                var verify = $(this).attr('lay-verify');
-                                // todo 必填项处理
-                                if (verify && verify.indexOf("required")>=0) {
-                                    var label = $(this).parent().prev();
-                                    if (label.is('label') && !label.hasClass('required')) {
-                                        label.addClass('required');
-                                    }
-                                    if (typeof $(this).attr('lay-reqtext') === 'undefined' && typeof $(this).attr('placeholder') !== 'undefined') {
-                                        $(this).attr('lay-reqtext', $(this).attr('placeholder'));
-                                    }
-                                    if (typeof $(this).attr('placeholder') === 'undefined' && typeof $(this).attr('lay-reqtext') !== 'undefined') {
-                                        $(this).attr('placeholder', $(this).attr('layreqtext'));
-                                    }
-                                }
-                            });
-                            //div标签不需要lay-verify验证
-                            $("div[lay-verify]").removeAttr('lay-verify');
-                        }
-                    },
-                    submit: function (formObj, success, error, submit) {
-                        var formList = $("[lay-submit]");
-                        // 表单提交自动处理
-                        if (formList.length > 0) {
-                            layui.each(formList, function (i) {
-                                var filter = $(this).attr('lay-filter'),
-                                    type = $(this).data('type'),
-                                    refresh = $(this).data('refresh'),
-                                    url = $(this).data('request') || $(this).data('url') || $('form[lay-filter="' + filter + '"]').attr('action');
-                                // 表格搜索不做自动提交
-                                if (type === 'tableSearch') {
-                                    return false;
-                                }
-                                // 判断是否需要刷新表格
-                                if (refresh === undefined) refresh = true;
-                                if (refresh === 'false') refresh = false;
-                                if (refresh === '') refresh = false;
-                                // 自动添加layui事件过滤器
-                                if (filter === undefined || filter === '') {
-                                    filter = 'form-' + (i + 1);
-                                    $(this).attr('lay-filter', filter)
-                                }
-                                if (url === undefined || url === '' || url == null) {
-                                    url = location.href;
-                                }
-                                layui.form.on('submit(' + filter + ')', function (data) {
-                                    if ($('select[multiple]').length > 0) {
-                                        var $select = $("select[multiple]");
-                                        layui.each($select, function () {
-                                            var field = $(this).attr('name');
-                                            var vals = [];
-                                            $(this).children('option:selected').each(function () {
-                                                vals.push($(this).val());
-                                            })
-                                            data.field[field] = vals.join(',');
-                                        })
-                                    }
-                                    var dataField = data.field;
-                                    if (typeof formObj == 'function') {
-                                        formObj(url, dataField);
-                                    } else if (typeof submit == 'function') {
-                                        submit(url, dataField);
-                                    } else {
-                                        Form.api.formSubmit(url, dataField, success, error, refresh);
-                                    }
-                                    return false;
-                                });
-                            })
-                        }
-                    },
-    
-                    //图片
-                    photos: function (otihs) {
-                        Fun.events.photos(otihs)
-                    },
-                    //删除
-                    filedelete: function (othis) {
-                        var fileurl = othis.data('fileurl'),
-                            that;
-                        var confirm = Fun.toastr.confirm(__('Are you sure？'), function () {
-                            that = othis.parents('.layui-upload-list').parents('.layui-upload');
-                            var input = that.find('input[type="text"]');
-                            var inputVal = input.val();
-                            var input_temp;
-                            if (othis.parents('li').index() === 0) {
-                                input_temp = inputVal.replace(fileurl, '');
-                                input.val(input_temp.replace(/^,|,$/g, ''));
-                            } else {
-                                input_temp = inputVal.replace(',' + fileurl, '');
-                                input.val(input_temp.replace(/^,|,$/g, ''));
-                            }
-                            othis.parents('li').remove();
-                            Fun.toastr.close(confirm);
-                        });
-                        return false;
-                    },
-                    bindevent: function (formObj) {
-                        formObj.on('click', '[lay-event]', function () {
-                            var _t = $(this),
-                                attrEvent = _t.attr('lay-event');
-                            if (Form.events.hasOwnProperty(attrEvent)) {
-                                Form.events[attrEvent] && Form.events[attrEvent].call(this, _t);
-                            }
-                        });
-                        require(['table'], function (Table) {
-                            $('body').on('click', '[lay-event]', function () {
-                                if ($('table').length > 0) {
-                                    var _t = $(this), attrEvent = _t.attr('lay-event');
-                                    if (Table.events.hasOwnProperty(attrEvent)) {
-                                        Table.events[attrEvent] && Table.events[attrEvent].call(this, _t);
-                                    }
-                                }
-                            });
-                        })
-                    },
-                },
-                api: {
-                    /**
-                     * 关闭窗口
-                     * @param option
-                     * @returns {boolean}
-                     */
-                    closeOpen: function (option) {
-                        option = option || {};
-                        option.refreshTable = option.refreshTable || false;
-                        option.refreshFrame = option.refreshFrame || false;
-    
-                        var index = parent.layui.layer.getFrameIndex(window.name);
-                        if (index) {
-                            parent.layui.layer.close(index);
-                        }
-                        if (option.refreshTable === true) {
-                            require(['table'], function (Table) {
-                                option.refreshTable = option.tableid || Table.init.tableId;
-                                if (self !== top && parent.$('#' + option.refreshTable).length > 0) {
-                                    Table.api.reload(option.refreshTable)
-                                } else {
-                                    setTimeout(function () {
-                                        location.reload();
-                                    }, 2000)
-                                    return false;
-                                }
-                            })
-                        }
-                        if (!option.refreshFrame) {
-                            return false;
-                        }
-                        setTimeout(function () {
-                            location.reload();
-                        }, 2000)
-                        return false;
-                    },
-                    /**
-                     * 提交
-                     * @param url
-                     * @param data
-                     * @param success
-                     * @param error
-                     * @param refresh
-                     * @returns {boolean}
-                     */
-                    formSubmit: function (url, data, success, error, refresh) {
-                        success = success ||
-                            function (res) {
-                                res.msg = res.msg || 'success';
-                                Fun.toastr.success(res.msg);
-                                Form.api.closeOpen({refreshTable: refresh, refreshFrame: refresh});
-                                return false;
-                            };
-                        error = error ||
-                            function (res) {
-                                res.msg = res.msg || 'error';
-                                Fun.toastr.error(res.msg, function () {
-                                });
-                                return false;
-                            };
-                        Fun.ajax({
-                            url: url,
-                            data: data,
-                            // tips:__('loading'),
-                            complete: function (xhr) {
-                                var token = xhr.getResponseHeader('__token__');
-                                if (token) {
-                                    $("input[name='__token__']").val(token);
-                                }
-                            },
-                        }, success, error);
-                        return false;
-                    },
-                    /**
-                     * 初始化表格数据
-                     */
-                    initForm: function (data) {
-                        if(data){
-                            Fun.api.removeEmptyData(data);
-                            layui.form.val("form", data);
-                        }else if (window.FormArray) {
-                            window.FormArray =     Fun.api.removeEmptyData(window.FormArray);
-                            layui.form.val("form", window.FormArray);
-                        }
-                        layui.form.render();
                     },
                     /**
                      * 选择文件
@@ -1468,7 +1551,6 @@
                             });
                         }
                     },
-
                     /**
                      * json
                      */
