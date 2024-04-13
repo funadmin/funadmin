@@ -539,7 +539,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     if (value === null || value === undefined || value === '') {
                         delete obj[key];
                     } else if (typeof value === 'object') {
-                        this.removeEmptyData(value); // 递归删除子对象中的空数据
+                        Fun.api.removeEmptyData(value); // 递归删除子对象中的空数据
                     }
                 });
                 return obj;

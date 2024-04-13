@@ -88,6 +88,46 @@
                             })
                         }
                     },
+                    multiselect: function (formObj) {
+                        var multiselect = {},
+                            list = formObj !== undefined ? formObj.find("*[lay-filter='multiSelect']") : $("*[lay-filter='multiSelect']");
+                        if (list.length > 0) {
+                            require(['multiSelect'], function (multiSelect) {
+                                multiSelect = layui.multiSelect || parent.layui.multiSelect;
+                                layui.each(list, function (i) {
+                                    var _t = $(this);
+                                    var id = _t.prop('id'), name = _t.attr('name') || 'id',
+                                        url = _t.data('url') || _t.data('request'),
+                                        data = _t.data('data') || [],
+                                        values = _t.data('value') ? $(this).data('value') : '',
+                                        attr = _t.data('attr'),
+                                        attr = typeof attr === 'string' ? attr.split(','):['id','title'];
+                                    attrs  = {}
+                                    if(layui.isArray(attr)){
+                                        attrs.id = attr[0];
+                                        attrs.title = attr[1];
+                                        attrs.selected = attr[2]?attr[2]:'selected';
+                                    }
+                                    var  opt = {
+                                        elem: $(this),
+                                        keywordPlaceholder: '关键词',
+                                        unfilteredText: '没有匹配的选项',
+                                    };
+                                    if(attrs){
+                                        opt.customName =  attrs;
+                                    }
+                                    if(data){
+                                        opt.options  = data;
+                                    }
+                                    if(url){
+                                        opt.options = Fun.api.getData(url);
+                                    }
+                                    window['multiselect-' + id] = multiSelect.render(opt);
+                                    window['multiselect-' + id].val(String(values))
+                                })
+                            })
+                        }
+                    },
                     selectplus: function (formObj) {
                         var selectplus = {},
                             list = formObj !== undefined ? formObj.find("*[lay-filter='selectPlus']") : $("*[lay-filter='selectPlus']");
@@ -1233,10 +1273,6 @@
                             layui.form.val("form", window.FormArray);
                         }
                         layui.form.render();
-                        require(['multiSelect'], function (multiSelect) {
-                            multiSelect = layui.multiSelect ? layui.multiSelect : parent.layui.multiSelect;
-                            multiSelect.render();
-                        })
                     },
                     /**
                      * 选择文件
@@ -1515,6 +1551,7 @@
                         events.autocomplete(form);
                         events.verifys(form);
                         events.required(form);
+                        events.multiselect(form);
                         events.submit(form, success, error, submit);
                         events.bindevent(form);
                         events.events();//事件

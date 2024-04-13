@@ -89,7 +89,7 @@ class FormHelper
             case 'select':
                 $attr = $options['attr'] ?? ['id', 'title'];
                 $list = ($options['list'] ?? $extra);
-                $form = $this->multiselect($name, $list, $options, $attr, $value);
+                $form = $this->select($name, $list, $options, $attr, $value);
                 break;
             case 'selects':
                 $options['multiple'] = 'multiple';
@@ -782,19 +782,9 @@ EOF;
      */
     public function select($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
-        return $this->multiselect($name, $select, $options, $attr, $value);
-    }
-
-    /**
-     * @param $name
-     * @param $select
-     * @param $options
-     * @param $attr
-     * @param $value
-     * @return string
-     */
-    public function multiselect($name = '', $select = [], $options = [], $attr = [], $value = '')
-    {
+        if(isset($options['multiple'])){
+            return $this->multiselect($name = '', $select = [], $options = [], $attr = [], $value = '');
+        }
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
@@ -818,10 +808,10 @@ EOF;
                 }
             }
         }
-        $multiple = '';
+       /* $multiple = '';
         if (isset($options['multiple'])) {
             $multiple = 'multiple="multiple"';
-        }
+        }*/
         if (isset($options['default'])) {
             $default = $this->__($options['default']);
         } else {
@@ -838,10 +828,45 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
-      <select {$this->getDataPropAttr($name, $value, $options)}  class="layui-select-url layui-select {$this->getClass($options)}"  {$multiple}    >
+      <select {$this->getDataPropAttr($name, $value, $options)}  class="layui-select-url layui-select {$this->getClass($options)}"   >
         <option value="">{$this->__($default)}</option>
         {$op}
       </select>
+      {$this->tips($options)}
+    </div>
+</div>
+EOF;
+
+        return $str;
+    }
+
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public function multiselect($name = '', $select = [], $options = [], $attr = [], $value = '')
+    {
+        list($name, $id) = $this->getNameId($name, $options);
+
+        $attr = is_array($attr) ? implode(',', $attr) : $attr;
+        $options['attr'] = $attr;
+        $options['filter'] = 'multiSelect';
+        if(!isset($options['search'])){
+            $options['search'] = true;
+        }
+        if(!isset($options['create'])){
+            $options['create'] = true;
+        }
+        $options['data'] =   (is_array($select)|| is_object($select))?json_encode((array)$select,JSON_UNESCAPED_UNICODE):$select;
+
+        $str = <<<EOF
+<div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
+    <div class="layui-input-block">
+        <input id="{$id}" name="{$name}" class="layui-input"   {$this->readonlyOrdisabled($options)} {$this->getDataPropAttr($name, $value, $options)} placeholder="" />
       {$this->tips($options)}
     </div>
 </div>
