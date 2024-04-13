@@ -693,7 +693,7 @@ EOF;
             $attr = is_array($attr) ? implode(',', $attr) : $attr ;
         }
         $options['filter'] = $options['filter'] ?? 'selectN';
-        $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
+        $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
         $options['attr'] = $attr;
         if(!isset($options['search'])){
             $options['search'] = true;
@@ -737,7 +737,7 @@ EOF;
             $attr = is_array($attr) ?implode(',', $attr)  : $attr;
         }
         $options['attr'] = $attr;
-        $options['data'] = json_encode((array)$select, JSON_UNESCAPED_UNICODE);
+        $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
         $options['filter'] = $options['filter'] ?? "selectPlus";
         $str = <<<EOF
     <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
@@ -861,7 +861,7 @@ EOF;
         if(!isset($options['create'])){
             $options['create'] = true;
         }
-        $options['data'] =   (is_array($select)|| is_object($select))?json_encode((array)$select,JSON_UNESCAPED_UNICODE):$select;
+        $options['data'] =   (is_array($select)|| is_object($select))?json_encode($select,JSON_UNESCAPED_UNICODE):$select;
 
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
@@ -891,7 +891,7 @@ EOF;
             $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
         }
         if (is_object($select)) {
-            $op .= " data-data='" . json_encode((array)$select, JSON_UNESCAPED_UNICODE) . "'";
+            $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
         }
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $value = is_array($value) ? implode(',',$value) : $value;
@@ -1176,7 +1176,7 @@ EOF;
     {
         $options['id'] = $options['id'] ?? $name;
         $options['filter'] = $options['filter'] ?? 'json';
-        $value = (is_array($value)|| is_object($value))?json_encode((array)$value,JSON_UNESCAPED_UNICODE):$value;
+        $value = (is_array($value)|| is_object($value))?json_encode($value,JSON_UNESCAPED_UNICODE):$value;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
      <div class="layui-input-block">
