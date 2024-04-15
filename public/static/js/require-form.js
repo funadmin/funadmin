@@ -404,6 +404,7 @@
                     multiselect: function (formObj) {
                         var multiselect = {},
                             list = formObj !== undefined ? formObj.find("*[lay-filter='multiSelect']") : $("*[lay-filter='multiSelect']");
+                        console.log(list)
                         if (list.length > 0) {
                             require(['multiSelect'], function (multiSelect) {
                                 multiSelect = layui.multiSelect || parent.layui.multiSelect;
@@ -414,11 +415,11 @@
                                         data = _t.data('data') || [],
                                         values = _t.data('value') ? $(this).data('value') : '',
                                         attr = _t.data('attr'),
-                                        attr = typeof attr === 'string' ? attr.split(','):['id','title'];
+                                        attr =  attr && typeof attr == 'string' ? attr.split(','):['id','title'];
                                     attrs  = {}
                                     if(layui.isArray(attr)){
-                                        attrs.id = attr[0];
-                                        attrs.title = attr[1];
+                                        attrs.id = attr.shift();
+                                        attrs.title = attr.shift();
                                         attrs.selected = attr[2]?attr[2]:'selected';
                                     }
                                     var  opt = {
@@ -447,6 +448,13 @@
                                         opt.customName =  attrs;
                                     }
                                     if(data){
+                                        datas = [];
+                                        for (k in data){
+                                            if(!data[k].hasOwnProperty('id')){
+                                                datas[i] = {id:k,title:data[k]};
+                                            }
+                                        }
+                                        data = datas.length>0?datas:data;
                                         opt.options  = data;
                                     }
                                     if(url){
