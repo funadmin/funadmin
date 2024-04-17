@@ -577,20 +577,27 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $arr = '';
         $tr = '';
+
         if (!empty($list)) {
             foreach ($list as $key => $val) {
                 if(is_array($val)){
                     $key = array_key_first($val);
                     $val = $val[$key];
                 }
+                $_key_ = '<input type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">';
+                $_val_ = '<input type="text" '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">';
+                if($options['type'] && $options['type']=='textarea'){
+//                   $_key_ = '<textarea type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">'.$key.'</textarea>';
+                   $_val_ = '<textarea '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">'.$val.'</textarea>';
+                }
                 $tr .= <<<EOF
                        <tr class="tr sortable">
                         <td>
-                        <div><input type="text" {$this->getDataPropAttr("{$name}[key][]", $key, $options)} placeholder="{$this->__('Key')}"  class="layui-input key">
+                        <div>{$_key_}
                         </div>
                         </td>
                         <td>
-                        <div><input type="text" {$this->getDataPropAttr("{$name}[value][]", $val, $options)}  placeholder="{$this->__('Value')}" class="layui-input value">
+                        <div>{$_val_}
                         </div>
                         </td>
                          <th>
