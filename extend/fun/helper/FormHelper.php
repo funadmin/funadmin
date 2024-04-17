@@ -579,6 +579,10 @@ EOF;
         $tr = '';
         if (!empty($list)) {
             foreach ($list as $key => $val) {
+                if(is_array($val)){
+                    $key = array_key_first($val);
+                    $val = $val[$key];
+                }
                 $tr .= <<<EOF
                        <tr class="tr sortable">
                         <td>
