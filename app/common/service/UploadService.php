@@ -403,7 +403,7 @@ class UploadService extends AbstractService
         if ($this->fileExt !='*' && $this->file->extension() && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
             throw new Exception(lang('File type is limited'));
         }
-        if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($file_ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+        if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($this->fileExt, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
             $imgInfo = getimagesize($this->file->getPathname());
             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
                 throw new Exception(lang('Uploaded file is not a valid image'));
