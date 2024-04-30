@@ -750,10 +750,8 @@ trait Curd
         $where = [];
         if ($relationSearch) {
             if (!empty($this->modelClass)) {
-                $class = get_class($this->modelClass);
-                $className =explode('\\',$class);
-                $modelName = parse_name(array_pop($className));
-                $tableName = $modelName.'.';
+                $tableName = $this->modelClass->getName();
+                $tableName = $tableName.'.';
                 $sortArr = explode(',', $sort);
                 foreach ($sortArr as $index => & $item) {
                     $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
