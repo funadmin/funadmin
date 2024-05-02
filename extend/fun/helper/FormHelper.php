@@ -625,10 +625,10 @@ EOF;
             }
 
         } else {
-            $key =0;
+            $key = '';
             $val ='';
-            $_key_ = '<input type="text" name="{$name}[key][]" value="" placeholder="'.$this->__('Key').'" class="layui-input key">';
-            $_val_ = '<input type="text" name="{$name}[value][]" value="" placeholder="'.$this->__('Value').'" class="layui-input value">';
+            $_key_ = '<input type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">';
+            $_val_ = '<input type="text" '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">';
             if($options['type'] && $options['type']=='textarea'){
                 $_val_ = '<textarea '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">'.$val.'</textarea>';
             }
