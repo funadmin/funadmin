@@ -798,7 +798,7 @@
                                         init_instance_callback: function (editor) {
                                             editor.on('change', function (e) {
                                                 var val = editor.contentDocument.body.innerHTML;
-                                                $('textarea[name="' + name + '"]').val(val);
+                                                _t.parent('div').find('textarea[name="' + name + '"]').val(val);
                                             });
                                         },
                                         importcss_append: true,
@@ -1363,6 +1363,7 @@
                             html = '<tr class="' + cls + '">' + html + '</tr>';
                             tr.after(html);
                             tr.next('tr').find('input').val('');
+                            Upload.api.uploads();
                         });
                     },
                     /**
