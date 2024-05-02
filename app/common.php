@@ -18,6 +18,21 @@ use think\facade\Cookie;
 use think\facade\Session;
 use think\facade\Db;
 
+
+if (!function_exists('getKeyVal')) {
+    /**
+     * 获取Form::arrays()键值对
+     */
+    function getKeyVal($kv){
+        $data = [];
+        if (!empty($kv)) {
+            foreach ($kv['key'] as $i => $item) {
+                $data[$i][$item] = $kv['value'][$i];
+            }
+        }
+        return $data;
+    }
+}
 if (!function_exists('syscfg')) {
     /**
      * @param $group
@@ -391,6 +406,8 @@ if (!class_exists('BuilderMaker')) {
         class_alias('app\\builder\\facade\\BuilderMaker', 'BuilderMaker');
     }
 }
+
+
 
 if (!function_exists('getSystemTable')) {
     /**
