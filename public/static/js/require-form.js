@@ -808,7 +808,7 @@
                                             {
                                                 title: 'New Table',
                                                 description: 'creates a new table',
-                                                content: '<div class="mceTmpl"><table width="98%%"  border="0" cellspacing="0" cellpadding="0"><tr><th scope="col"> </th><th scope="col"> </th></tr><tr><td> </td><td> </td></tr></table></div>'
+                                                content: '<div class="mceTmpl"><table width="98%"  border="0" cellspacing="0" cellpadding="0"><tr><th scope="col"> </th><th scope="col"> </th></tr><tr><td> </td><td> </td></tr></table></div>'
                                             },
                                             {
                                                 title: 'Starting my story',
@@ -1335,7 +1335,6 @@
                         }
                     },
                     formarray: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='slider']") : $("*[lay-filter='slider']");
                         formObj.on("click", ".form-array .del", function () {
                             var tr = $(this).parents('tr');
                             var lawtable = tr.parents('.layui-table');
