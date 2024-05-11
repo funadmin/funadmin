@@ -754,7 +754,7 @@ trait Curd
                 $tableName = $tableName.'.';
                 $sortArr = explode(',', $sort);
                 foreach ($sortArr as $index => & $item) {
-                    $item = stripos($item, ".") === false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
+                    $item = stripos($item, ".") !== false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
                 }
                 unset($item);
                 $sort= implode(',', $sortArr);
