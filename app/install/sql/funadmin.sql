@@ -169,6 +169,7 @@ CREATE TABLE `fun_auth_rule` (
                                  `module` char(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'backend' COMMENT '模块',
                                  `target` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '_self' COMMENT '默认窗口',
                                  `href` char(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '链接',
+                                 `query` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '参数',
                                  `title` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '名字',
                                  `type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '类型=[1:菜单,0:非菜]单',
                                  `status` tinyint(1) NOT NULL DEFAULT '1' COMMENT '状态=[1:可用,0:不可用]',
@@ -4567,7 +4568,7 @@ ALTER TABLE `fun_auth_group`
 ALTER TABLE `fun_auth_rule`
     ADD PRIMARY KEY (`id`),
     ADD UNIQUE KEY `id` (`id`),
-    ADD UNIQUE KEY `href` (`href`,`module`),
+    ADD UNIQUE KEY `href` (`href`,`module`,`query`),
     ADD KEY `pid` (`pid`);
 
 --
