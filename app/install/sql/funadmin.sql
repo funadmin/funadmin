@@ -339,7 +339,7 @@ CREATE TABLE `fun_config` (
                               `remark` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
                               `verfiy` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '验证',
                               `type` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'text' COMMENT '类型',
-                              `group` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'site' COMMENT '分组',
+                              `group` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'site' COMMENT '分组',
                               `status` tinyint(1) DEFAULT '1' COMMENT '状态',
                               `is_system` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否系统必须',
                               `create_time` int NOT NULL DEFAULT '0',
