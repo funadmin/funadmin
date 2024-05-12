@@ -607,7 +607,6 @@ EOF;
                 $_val_data = implode(' ',$_val_data);
                 $tr .= <<<EOF
                        <tr class="tr sortable">
-                        <td>
                         {$_val_data}
                          <th>
                             <div class="btn">
@@ -664,6 +663,10 @@ EOF;
                     </tr>
 EOF;
         }
+        $_op_ = '';
+        foreach ($attr as $k=>$v){
+            $_op_ .= '<th>'.__($v['title']).'</th>';
+        }
         $arr .= <<<EOF
      <div class="layui-form-item {$this->getClass($options,'outclass')}" >
     {$this->label($name, $options)}
@@ -671,9 +674,7 @@ EOF;
                 <table class="layui-table" filter="array">
                     <thead>
                     <tr>
-                        <th>{$this->__('Key')}</th>
-                        <th>{$this->__('Value')}</th>
-                        <td>{$this->__('Oprate')}</td>
+                      {$_op_}
                     </tr>
                     </thead>
                     <tbody class="form-sortable layui-table-tr">
