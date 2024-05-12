@@ -7,6 +7,7 @@
     {:form_input('title','text',['verify'=>'required','label'=>"Name"])}
     {:form_input('href','text',['verify'=>'required','tips'=>'Controller/Action'])}
     {:form_input('module','text',['verify'=>'required','tips'=>'module (backend || appname)'],'backend')}
+    {:form_input('query','text',['verify'=>'','tips'=>'参数例如：a=b')}
     {:form_icon('icon',[],$formData?$formData.icon:'')}
     {:form_radio('type',['NO(-节点)','YES(-菜单)'],['filter'=>'type','label'=>'IsMenu'],0)}
     {:form_radio('menu_status',['Close','Open'],['filter'=>'menu_status','label'=>'Menu Status'],0)}

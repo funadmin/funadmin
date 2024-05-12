@@ -106,6 +106,9 @@ class Auth extends Backend
                 'module'=>$post['module'],
                 'href'=>$post['href'],
             ];
+            if($post['query']){
+                $where['query'] = $post['query'];
+            }
             if($this->modelClass->where($where)->find()){
                 $this->error(lang('module href has exist'));
             }

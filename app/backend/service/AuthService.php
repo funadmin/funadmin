@@ -84,6 +84,9 @@ class AuthService extends AbstractService
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
             $this->requesturl = rtrim($this->requesturl, '.' .config('view.view_suffix'));
         }
+        if (Str::contains($this->requesturl, '.' . config('view.view_suffix').'?')) {
+            $this->requesturl = str_replace( '.' .config('view.view_suffix').'?','.' .config('view.view_suffix'),$this->requesturl);
+        }
         $this->requesturl = trim($this->requesturl, '/');
     }
 
@@ -256,6 +259,7 @@ class AuthService extends AbstractService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
+        $url = parse_url($url)['path'];
         if(Str::endsWith($url,'.' . config('view.view_suffix'))){
             $this->requesturl = (string)$url;
         }else{
@@ -554,16 +558,21 @@ class AuthService extends AbstractService
         $list = array();
         foreach ($menu as $v) {
             $href = $v['href'];
-            if ($v['menu_status'] == 1) {
-                $v['href'] = trim($v['href'], '/');
-                if (!Str::endsWith($v['href'], '/index')) {
-                    $v['href'] = $v['href'] . '/index';
-                }
-            }
-            if (preg_match("/^http(s)?:\\/\\/.+/", $href)) {
-                $v['href'] = $href;
-            }else{
+            $url = parse_url($href);
+            if (empty($url['host'])){
                 $v['href'] = "/" . $v['module']. '/' . trim($v['href'], '/');
+                $url = parse_url($v['href']);
+                $path = $url['path'];
+                $query = $url['query']??'';
+                $query = trim($query.'&'.$v['query'],'&');
+                $query = $query?'?'.$query :'';
+                if ($v['menu_status'] == 1) {
+                    $v['href'] = trim($path, '/').$query;
+                    if (!Str::endsWith($path, '/index')) {
+                        $v['href'] = $path . '/index'.$query;
+                        var_dump( $v['href']);
+                    }
+                }
             }
             if ($v['pid'] == $pid) {
                 if (session('admin.id') != 1) {

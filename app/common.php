@@ -298,7 +298,7 @@ if (!function_exists('auth')) {
 if (!function_exists('node')) {
     function node($url)
     {
-        return \app\backend\service\AuthService::instance()->checkNode($url);
+        return \app\backend\service\AuthService::instance()->authNode($url);
     }
 }
 
