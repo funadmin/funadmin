@@ -572,45 +572,43 @@ EOF;
      * @param array $list
      * @return string
      */
-    public function arrays($name = '', $list = [], $options = [])
+    public function arrays($name = '', $list = [], $options = [],$attr=[['key'=>'key','title'=>'key','type'=>'text'],['key'=>'value','title'=>'value','type'=>'text']])
     {
         list($name, $id) = $this->getNameId($name, $options);
         $arr = '';
         $tr = '';
-
         if (!empty($list)) {
-            foreach ($list as $key => $val) {
-                if(is_array($val)){
-                    $key = array_key_first($val);
-                    $val = $val[$key];
+            $data = $list[$attr[0]['key']];
+            foreach ($data as $k => $val) {
+                $_val_data = [];
+                foreach ($attr as $it=>$item) {
+                    $key = $list[$item['key']][$k];
+                    $val  = $list[$item['key']][$k];
+                    $_val_ = '<td><div><input type="text" '.$this->getDataPropAttr("{$name}[{$item['key']}][]", $val, $options).' placeholder="'.__($item['title']).'"  class="layui-input value"></div></td>';
+                    if($item['type'] && $item['type']=='textarea'){
+                        $_val_ = '<td><div><textarea '.$this->getDataPropAttr("{$name}[{$item['key']}][]", $val, $options).' placeholder="'.__($item['title']).'"  class="layui-input value">'.$val.'</textarea></div></td>';
+                    }
+                    if($item['type'] && $item['type']=='upload'){
+                        $options['filter'] = 'upload';
+                        $options['class'] = 'value';
+                        $options['title'] = $item['title'];
+                        $options['id'] = 'val_'.$key .md5("{$name}[{$item['key']}][]");
+                        $_val_ ='<td><div>'. $this->upload("{$name}[{$item['key']}][]",$options,$val).'</td></div>';
+                    }
+                    if($item['type'] && $item['type']=='editor'){
+                        $options['filter'] = 'editor';
+                        $options['class'] = 'value';
+                        $options['title'] = $item['title'];
+                        $options['id'] = 'val_'.$key .md5("{$name}[{$item['key']}][]");
+                        $_val_ = '<td><div>'.$this->editor("{$name}[{$item['key']}][]",$options,$val).'</td></div>';
+                    }
+                    $_val_data[] = $_val_;
                 }
-                $_key_ = '<input type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">';
-                $_val_ = '<input type="text" '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">';
-                if($options['type'] && $options['type']=='textarea'){
-                    $_val_ = '<textarea '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">'.$val.'</textarea>';
-                }
-                if($options['type'] && $options['type']=='upload'){
-                    $options['filter'] = 'upload';
-                    $options['class'] = 'value';
-                    $options['id'] = 'val_'.$key .md5("{$name}[value][]");
-                    $_val_ = $this->upload("{$name}[value][]",$options,$val);
-                }
-                if($options['type'] && $options['type']=='editor'){
-                    $options['filter'] = 'upload';
-                    $options['class'] = 'value';
-                    $options['id'] = 'val_'.$key .md5("{$name}[value][]");
-                    $_val_ = $this->editor("{$name}[value][]",$options,$val);
-                }
+                $_val_data = implode(' ',$_val_data);
                 $tr .= <<<EOF
                        <tr class="tr sortable">
                         <td>
-                        <div>{$_key_}
-                        </div>
-                        </td>
-                        <td>
-                        <div>{$_val_}
-                        </div>
-                        </td>
+                        {$_val_data}
                          <th>
                             <div class="btn">
                                 <span class="add">
@@ -626,37 +624,35 @@ EOF;
 
         } else {
             $key = '';
-            $val ='';
-            $_key_ = '<input type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">';
-            $_val_ = '<input type="text" '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">';
-            if($options['type'] && $options['type']=='textarea'){
-                $_val_ = '<textarea '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'"  class="layui-input value">'.$val.'</textarea>';
+            $_val_data = [];
+            foreach ($attr as $it=>$item) {
+                $val  = '';
+                $_val_ = '<td><div><input type="text" '.$this->getDataPropAttr("{$name}[{$item['key']}][]", $val, $options).' placeholder="'.__($item['title']).'"  class="layui-input value"></div></td>';
+                if($item['type'] && $options['type']=='textarea'){
+                    $_val_ = '<td><div><textarea '.$this->getDataPropAttr("{$name}[{$item['key']}][]", $val, $options).' placeholder="'.__($item['title']).'"  class="layui-input value">'.$val.'</textarea></div></td>';
+                }
+                if($item['type'] && $item['type']=='upload'){
+                    $options['filter'] = 'upload';
+                    $options['class'] = 'value';
+                    $options['title'] = $item['title'];
+                    $options['id'] = 'val_'.$key .md5("{$name}[{$item['key']}][]");
+                    $_val_ ='<td><div>'. $this->upload("{$name}[{$item['key']}][]",$options,$val).'</td></div>';
+                }
+                if($item['type'] && $item['type']=='editor'){
+                    $options['filter'] = 'editor';
+                    $options['class'] = 'value';
+                    $options['title'] = $item['title'];
+                    $options['id'] = 'val_'.$key .md5("{$name}[{$item['key']}][]");
+                    $_val_ = '<td><div>'.$this->editor("{$name}[{$item['key']}][]",$options,$val).'</td></div>';
+                }
+                $_val_data[] = $_val_;
             }
-            if($options['type'] && $options['type']=='upload'){
-                $options['filter'] = 'upload';
-                $options['class'] = 'value';
-                $options['id'] = 'val_'.$key .md5("{$name}[value][]");
-                $_val_ = $this->upload("{$name}[value][]",$options,$val);
-            }
-            if($options['type'] && $options['type']=='editor'){
-//                   $_key_ = '<textarea type="text" '.$this->getDataPropAttr("{$name}[key][]", $key, $options).' placeholder="'.__('Key').'"  class="layui-input key">'.$key.'</textarea>';
-                //'<input type="text" '.$this->getDataPropAttr("{$name}[value][]", $val, $options).' placeholder="'.__('Value').'" class="layui-input value">';
-                $options['filter'] = 'upload';
-                $options['class'] = 'value';
-                $options['id'] = 'val_'.$key .md5("{$name}[value][]");
-                $_val_ = $this->editor("{$name}[value][]",$options,$val);
-            }
+            $_val_data = implode(' ',$_val_data);
+
             $tr .= <<<EOF
 
                         <tr class="tr sortable">
-                        <td>
-                        <div>{$_key_}
-                        </div>
-                        </td>
-                        <td>
-                        <div>{$_val_}
-                        </div>
-                        </td>
+                        {$_val_data}
                          <th>
                             <div class="btn">
                                 <span class="add">

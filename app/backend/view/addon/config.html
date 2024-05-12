@@ -81,10 +81,26 @@
     {:form_editor($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {case value="array"}
-    {:form_arrays($name,$vo.value?$vo.value:$vo.content,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
+        {php}
+            $list = [];
+            $data = $vo['value']?$vo['value']:$vo['content'];
+            foreach($data as $k=>$v){
+                $list['key'][] = $k;
+                $list['value'][] = $v;
+            }
+        {/php}
+    {:form_arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {case value="arrays"}
-    {:form_arrays($name,$vo.value?$vo.value:$vo.content,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
+        {php}
+        $list = [];
+        $data = $vo['value']?$vo['value']:$vo['content'];
+        foreach($data as $k=>$v){
+            $list['key'][] = $k;
+            $list['value'][] = $v;
+        }
+        {/php}
+    {:form_arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {/switch}
     {/foreach}

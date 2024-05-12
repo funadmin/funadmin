@@ -40,7 +40,7 @@ use think\Facade;
  * @method static string upload(string $name, array $options = [], string $value = null) 文件上传组件
  * @method static string textarea(string $name, array $options = [], string $value = null) 多行文本框
  * @method static string editor(string $name, array $options = [], string $value = null) 富文本编辑器
- * @method static string arrays(string $name, array $list = [],  array $options = []) 数组
+ * @method static string arrays(string $name, array $list = [],  array $options = [],$attr= []) 数组
  * @method static string select(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string selects(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string selectplus(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件

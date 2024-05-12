@@ -855,9 +855,9 @@ if (!function_exists('form_arrays')) {
      * @param $name
      * @return string
      */
-    function form_arrays($name='', $list = [], $option = [])
+    function form_arrays($name='', $list = [], $option = [],$attr=[['key'=>'key','title'=>'key','type'=>'text'],['key'=>'value','title'=>'value','type'=>'text']])
     {
-        return Form::arrays($name, $list, $option);
+        return Form::arrays($name, $list, $option,$attr);
     }
 }
 
@@ -866,9 +866,9 @@ if (!function_exists('form_array')) {
      * @param $name
      * @return string
      */
-    function form_array($name='', $list = [], $option = [])
+    function form_array($name='', $list = [], $option = [],$attr=[['key'=>'key','title'=>'key','type'=>'text'],['key'=>'value','title'=>'value','type'=>'text']])
     {
-        return Form::arrays($name, $list, $option);
+        return Form::arrays($name, $list, $option,$attr);
     }
 }
 
