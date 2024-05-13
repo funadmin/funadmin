@@ -73,7 +73,7 @@ class Service extends \think\Service
                 if (is_array($val)) {
                     if(!empty($val['app_domain'])){
                         if(!empty($val['app_rule'])){
-                            \think\facade\Route::domain($val['app_domain'], function () use ($val){
+                            \think\facade\Route::domain(((string)$val['app_domain']), function () use ($val){
                                 // 动态注册域名的路由规则
                                 foreach ($val['app_rule'] as $k => $rule) {
                                     \think\facade\Route::rule($k,$rule);
@@ -92,7 +92,7 @@ class Service extends \think\Service
                                 'indomain'      => 1,
                             ];
                         }
-                        $route->domain($domain, function () use ($rules, $route, $execute) {
+                        $route->domain((string)$domain, function () use ($rules, $route, $execute) {
                             // 动态注册域名的路由规则
                             foreach ($rules as $k => $rule) {
                                 $route->rule($k, $execute)
