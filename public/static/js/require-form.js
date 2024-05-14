@@ -1079,24 +1079,24 @@
                                         {
                                             text: "本周",
                                             value: function () {
-                                                sTime = Dayjs().startOf("w");
-                                                eTime = Dayjs().endOf("w");
+                                                sTime = Dayjs().startOf("w").add(1,'day');
+                                                eTime = Dayjs().endOf("w").add(1,'day');
                                                 return [sTime, eTime];
                                             }()
                                         },
                                         {
                                             text: "上周",
                                             value: function () {
-                                                sTime = Dayjs().subtract(1, "w").startOf("w");
-                                                eTime = Dayjs().subtract(1, "w").endOf("w");
+                                                sTime = Dayjs().subtract(1, "w").startOf("w").add(1,'day');
+                                                eTime = Dayjs().subtract(1, "w").endOf("w").add(1,'day');
                                                 return [sTime, eTime];
                                             }()
                                         },
                                         {
                                             text: "下周",
                                             value: function () {
-                                                sTime = Dayjs().subtract(-1, "w").startOf("w");
-                                                eTime = Dayjs().subtract(-1, "w").endOf("w");
+                                                sTime = Dayjs().subtract(-1, "w").startOf("w").add(1,'day');
+                                                eTime = Dayjs().subtract(-1, "w").endOf("w").add(1,'day');
                                                 return [sTime, eTime];
                                             }()
                                         },
