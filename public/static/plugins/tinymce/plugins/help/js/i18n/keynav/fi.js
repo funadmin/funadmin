@@ -11,8 +11,11 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '  <dt>Siirrä kohdistus alatunnisteeseen</dt>\n' +
   '  <dd>Windows tai Linux: Alt+F11</dd>\n' +
   '  <dd>macOS: &#x2325;F11</dd>\n' +
+  '  <dt>Keskitä ilmoitukseen</dt>\n' +
+  '  <dd>Windows ja Linux: Alt + F12</dd>\n' +
+  '  <dd>macOS: &#x2325;F12</dd>\n' +
   '  <dt>Siirrä kohdistus kontekstuaaliseen työkalupalkkiin</dt>\n' +
-  '  <dd>Windows, Linux tai macOS: Ctrl+F9\n' +
+  '  <dd>Windows, Linux tai macOS: Ctrl+F9</dd>\n' +
   '</dl>\n' +
   '\n' +
   '<p>Navigointi aloitetaan ensimmäisestä käyttöliittymän kohteesta, joka joko korostetaan tai alleviivataan, jos\n' +
@@ -24,7 +27,7 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '\n' +
   '<p>Jos haluat siirtyä edelliseen käyttöliittymän osaan, paina <strong>Shift+sarkainnäppäin</strong>.</p>\n' +
   '\n' +
-  '<p><strong>Sarkainnäppäin</strong> siirtää sinua näissä käyttöliittymän osissa tässä järjestyksessä:\n' +
+  '<p><strong>Sarkainnäppäin</strong> siirtää sinua näissä käyttöliittymän osissa tässä järjestyksessä:</p>\n' +
   '\n' +
   '<ol>\n' +
   '  <li>Valikkopalkki</li>\n' +
@@ -39,7 +42,7 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '<p>Jos jotakin käyttöliittymän osaa ei ole, se ohitetaan.</p>\n' +
   '\n' +
   '<p>Jos kohdistus on siirretty alatunnisteeseen näppäimistönavigoinnilla eikä sivupalkkia ole näkyvissä, <strong>Shift+sarkainnäppäin</strong>\n' +
-  '  siirtää kohdistuksen työkalupalkin ensimmäiseen ryhmään, eikä viimeiseen.\n' +
+  '  siirtää kohdistuksen työkalupalkin ensimmäiseen ryhmään, eikä viimeiseen.</p>\n' +
   '\n' +
   '<h1>Käyttöliittymän eri osien sisällä navigointi</h1>\n' +
   '\n' +
@@ -54,7 +57,7 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '  <li>siirtävät sinua kohteiden välillä alatunnisteen elementin polussa.</li>\n' +
   '</ul>\n' +
   '\n' +
-  '<p><strong>Alas</strong>- ja <strong>Ylös</strong>-nuolinäppäimet\n' +
+  '<p><strong>Alas</strong>- ja <strong>Ylös</strong>-nuolinäppäimet</p>\n' +
   '\n' +
   '<ul>\n' +
   '  <li>siirtävät sinua valikon valikkokohteiden välillä.</li>\n' +
@@ -63,7 +66,7 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '\n' +
   '<p><strong>Nuolinäppäimet</strong> siirtävät sinua käyttöliittymän korostetun osan sisällä syklissä.</p>\n' +
   '\n' +
-  '<p>Paina <strong>Esc</strong>-näppäintä sulkeaksesi avoimen valikon, avataksesi alavalikon tai avataksesi ponnahdusvalikon.\n' +
+  '<p>Paina <strong>Esc</strong>-näppäintä sulkeaksesi avoimen valikon, avataksesi alavalikon tai avataksesi ponnahdusvalikon.</p>\n' +
   '\n' +
   '<p>Jos kohdistus on käyttöliittymän tietyn osion ylälaidassa, <strong>Esc</strong>-näppäimen painaminen\n' +
   '  poistuu myös näppäimistönavigoinnista kokonaan.</p>\n' +
@@ -71,7 +74,7 @@ tinymce.Resource.add('tinymce.html-i18n.help-keynav.fi',
   '<h1>Suorita valikkokohde tai työkalupalkin painike</h1>\n' +
   '\n' +
   '<p>Kun haluamasi valikkokohde tai työkalupalkin painike on korostettuna, paina <strong>Return</strong>-, <strong>Enter</strong>-\n' +
-  '  tai <strong>välilyöntinäppäintä</strong> suorittaaksesi kohteen.\n' +
+  '  tai <strong>välilyöntinäppäintä</strong> suorittaaksesi kohteen.</p>\n' +
   '\n' +
   '<h1>Välilehdittömissä valintaikkunoissa navigointi</h1>\n' +
   '\n' +

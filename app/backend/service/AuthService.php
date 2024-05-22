@@ -569,7 +569,7 @@ class AuthService extends AbstractService
                 if ($v['menu_status'] == 1) {
                     $v['href'] = trim($path, '/').$query;
                     if (!Str::endsWith($path, '/index')) {
-                        $v['href'] = '/'.$path . '/index'.$query;
+                        $v['href'] = '/'.trim($path, '/') . '/index'.$query;
                     }
                 }
             }
