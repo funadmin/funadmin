@@ -1170,19 +1170,20 @@ define(['timePicker'], function (timePicker) {
                 var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 tableId = options.id || Table.init.tableId;
                 if(!url || url=='undefined') return ;
+                var page = Table.getOptions(tableId).page.curr || 1;
                 Table.getTableObj(tableId).on('edit(' + options.layFilter + ')', function (obj) {
                         var value = obj.value, data = obj.data, id = data[options.primaryKey], field = obj.field;
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                Table.api.reload(tableId,{},true,true,0)
+                                Table.api.reload(tableId,{},true,true,page)
                             })
                         }, function (res) {
                             Fun.toastr.error(res.msg, function () {
-                                Table.api.reload(tableId)
+                                Table.api.reload(tableId,{},true,true,page)
                             })
                         }, function () {
-                            Table.api.reload(tableId)
+                            Table.api.reload(tableId,{},true,true,page)
                         })
                     })
             },
@@ -1210,9 +1211,10 @@ define(['timePicker'], function (timePicker) {
                     if(!filter) return ;
                     var checked = obj.elem.checked ? 1 : 0;
                     var data = {id: this.value, field: this.name, value: checked};
+                    var page = Table.getOptions(tableId).page.curr || 1;
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg);
-                        Table.api.reload(tableId,{},true,true,0)
+                        Table.api.reload(tableId,{},true,true,page)
                     }, function (res) {
                         obj.elem.checked = !checked;
                         layui.form.render();
