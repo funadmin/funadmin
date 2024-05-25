@@ -719,9 +719,7 @@ EOF;
      */
     public function selectn($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
-        if(is_object($select)){
-            $select = json_decode(json_encode($select),true);
-        }
+        $select = ArrayHelper::getArray($select);
         $name = $options['formname'] ?? $name;
         $label = $options['label'] ?? $name;
         $options['url'] = $options['url'] ?? '';
@@ -762,9 +760,7 @@ EOF;
      */
     public function selectplus($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
-        if(is_object($select)){
-            $select = json_decode(json_encode($select),true);
-        }
+        $select = ArrayHelper::getArray($select);
         list($name, $id) = $this->getNameId($name, $select);
         $options['url'] = $options['url'] ?? '';
         $options['delimiter'] = $options['delimiter'] ?? '';
@@ -797,8 +793,9 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $disorread = $this->readonlyOrdisabled($options);
         $options['filter'] = 'autoComplete';
-        $data = json_encode($list);
-        $attr = json_encode($attr);
+        $list = ArrayHelper::getArray($list);
+        $data = json_encode($list,JSON_UNESCAPED_UNICODE);
+        $attr = json_encode($attr,JSON_UNESCAPED_UNICODE);
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
     <div class="layui-input-block">
@@ -822,18 +819,13 @@ EOF;
      */
     public function select($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
+        $select = ArrayHelper::getArray($select);
         if(isset($options['multiple'])){
             return $this->multiselect($name, $select , $options, $attr, $value);
         }
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
-            if($select[0] && is_object($select[0])){
-                $select = json_decode(json_encode($select),true);
-            }
-            if(is_object($select)){
-                $select = json_decode(json_encode($select),true);
-            }
             $attr = is_array($attr)?$attr:explode(',',$attr);
             $value = is_array($value)?$value:explode(',',$value);
             foreach ($select as $k => $v) {
@@ -893,6 +885,7 @@ EOF;
      */
     public function multiselect($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
+        $select = ArrayHelper::getArray($select);
         list($name, $id) = $this->getNameId($name, $options);
 
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
@@ -904,7 +897,7 @@ EOF;
         if(!isset($options['create'])){
             $options['create'] = true;
         }
-        $options['data'] =   (is_array($select)|| is_object($select))?json_encode($select,JSON_UNESCAPED_UNICODE):$select;
+        $options['data'] =   json_encode($select,JSON_UNESCAPED_UNICODE);
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
@@ -928,13 +921,9 @@ EOF;
     public function xmselect($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
         list($name, $id) = $this->getNameId($name, $options);
+        $select = ArrayHelper::getArray($select);
         $op = '';
-        if (is_array($select)) {
-            $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
-        }
-        if (is_object($select)) {
-            $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
-        }
+        $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $value = is_array($value) ? implode(',',$value) : $value;
         $options['attr'] = $options['attr'] ?? $attr;
@@ -991,6 +980,7 @@ EOF;
      */
     public function selectpage(string $name, array $lists = [], array $options = [], $value = null)
     {
+        $lists = ArrayHelper::getArray($lists);
         list($name, $id) = $this->getNameId($name, $options);
         $options['filter'] = 'selectPage';
         $options['data'] = empty($lists) ? '' : json_encode($lists,JSON_UNESCAPED_UNICODE);
@@ -1932,5 +1922,6 @@ EOF;
     {
         return $this->__(Str::title($string));
     }
+
 
 }

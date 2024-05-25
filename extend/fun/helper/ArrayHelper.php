@@ -123,4 +123,23 @@ class ArrayHelper
         }
         return $value;
     }
+
+    /**
+     * 转换为数组
+     * @param $data
+     * @return mixed
+     */
+    public static function getArray($data)
+    {
+        if(is_object($data)){
+            $data = json_decode(json_encode($data),true);
+        }
+        if(is_array($data) && is_object(reset($data))){
+            $data = json_decode(json_encode($data),true);
+        }
+        if(is_string($data)){
+            $data = json_decode($data,true);
+        }
+        return $data;
+    }
 }
