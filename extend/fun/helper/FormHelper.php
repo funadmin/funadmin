@@ -828,6 +828,9 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
+            if($select[0] && is_object($select[0])){
+                $select = json_decode(json_encode($select),true);
+            }
             if(is_object($select)){
                 $select = json_decode(json_encode($select),true);
             }
@@ -902,7 +905,6 @@ EOF;
             $options['create'] = true;
         }
         $options['data'] =   (is_array($select)|| is_object($select))?json_encode($select,JSON_UNESCAPED_UNICODE):$select;
-
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
