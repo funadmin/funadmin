@@ -721,14 +721,13 @@ EOF;
     {
         $select = ArrayHelper::getArray($select);
         $name = $options['formname'] ?? $name;
-        $label = $options['label'] ?? $name;
         $options['url'] = $options['url'] ?? '';
         $options['delimiter'] = $options['delimiter'] ?? '';
         $options['search'] = isset($options['search']) ? true : '';
         $options['num'] = $options['num'] ?? 3;
         $options['last'] = $options['last'] ?? '';
         if (!empty($attr)) {
-            $attr = is_array($attr) ? implode(',', $attr) : $attr ;
+            $attr = array_filter(is_array($attr) ? implode(',', $attr) : $attr );
         }
         $options['filter'] = $options['filter'] ?? 'selectN';
         $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
@@ -770,7 +769,7 @@ EOF;
 
         $options['multiple'] = $multiple ? 1 : '';
         if (!empty($attr)) {
-            $attr = is_array($attr) ?implode(',', $attr)  : $attr;
+            $attr = array_filter( is_array($attr) ?implode(',', $attr)  : $attr);
         }
         $options['attr'] = $attr;
         $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
@@ -795,6 +794,9 @@ EOF;
         $options['filter'] = 'autoComplete';
         $list = ArrayHelper::getArray($list);
         $data = json_encode($list,JSON_UNESCAPED_UNICODE);
+        if (!empty($attr)) {
+            $attr = array_filter( is_array($attr) ?implode(',', $attr)  : $attr);
+        }
         $attr = json_encode($attr,JSON_UNESCAPED_UNICODE);
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
@@ -826,7 +828,7 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
-            $attr = is_array($attr)?$attr:explode(',',$attr);
+            $attr = array_filter(is_array($attr)?$attr:explode(',',$attr));
             $value = is_array($value)?$value:explode(',',$value);
             foreach ($select as $k => $v) {
                 $selected = '';
@@ -949,7 +951,7 @@ EOF;
         $select = ArrayHelper::getArray($select);
         $op = '';
         $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
-        $attr = is_array($attr) ? implode(',', $attr) : $attr;
+        $attr = array_filter(is_array($attr) ? implode(',', $attr) : $attr);
         $value = is_array($value) ? implode(',',$value) : $value;
         $options['attr'] = $options['attr'] ?? $attr;
         $options['lang'] = $options['lang'] ?? '';
