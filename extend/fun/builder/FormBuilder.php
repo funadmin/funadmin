@@ -367,7 +367,21 @@ class FormBuilder
      */
     public  function multiselect($name = '', $select=[], $options=[], $attr=[], $value='')
     {
-        $this->formHtml[] = Form::multiselect($name,$select,$options,$attr,$value);
+        $this->formHtml[] = Form::selects($name,$select,$options,$attr,$value);
+        return $this;
+    }
+
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public  function selects($name = '', $select=[], $options=[], $attr=[], $value='')
+    {
+        $this->formHtml[] = Form::selects($name,$select,$options,$attr,$value);
         return $this;
     }
     /**

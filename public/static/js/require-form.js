@@ -41,8 +41,8 @@
                     autocomplete: function (formObj) {
                         Form.api.autocomplete(formObj)
                     },
-                    multiselect: function (formObj) {
-                        Form.api.multiselect(formObj);
+                    selects: function (formObj) {
+                        Form.api.selects(formObj);
                     },
                     selectplus: function (formObj) {
                         Form.api.selectplus(formObj)
@@ -401,10 +401,9 @@
                             })
                         }
                     },
-                    multiselect: function (formObj) {
+                    selects: function (formObj) {
                         var multiselect = {},
-                            list = formObj !== undefined ? formObj.find("*[lay-filter='multiSelect']") : $("*[lay-filter='multiSelect']");
-                        console.log(list)
+                            list = formObj !== undefined ? formObj.find("*[lay-filter='selects']") : $("*[lay-filter='selects']");
                         if (list.length > 0) {
                             require(['multiSelect'], function (multiSelect) {
                                 multiSelect = layui.multiSelect || parent.layui.multiSelect;
@@ -458,7 +457,10 @@
                                         opt.options  = data;
                                     }
                                     if(url){
-                                        opt.options = Fun.api.getData(url);
+                                        opt.url = Fun.url(url);
+                                        opt.parseOptions = function (res){
+                                            return res.data;
+                                        }
                                     }
                                     window['multiselect-' + id] = multiSelect.render(opt);
                                     window['multiselect-' + id].val(String(values))
@@ -1642,7 +1644,7 @@
                         events.autocomplete(form);
                         events.verifys(form);
                         events.required(form);
-                        events.multiselect(form);
+                        events.selects(form);
                         events.submit(form, success, error, submit);
                         events.bindevent(form);
                         events.events();//事件

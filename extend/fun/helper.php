@@ -896,6 +896,22 @@ if (!function_exists('form_select')) {
         return Form::select($name, $select, $options, $attr, $value);
     }
 }
+
+if (!function_exists('form_selects')) {
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    function form_selects($name = '', $select = [], $options = [], $attr = '', $value = '')
+    {
+        if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
+        return Form::selects($name, $select, $options, $attr, $value);
+    }
+}
 if (!function_exists('form_multiselect')) {
     /**
      * @param $name
@@ -908,7 +924,7 @@ if (!function_exists('form_multiselect')) {
     function form_multiselect($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return Form::multiselect($name, $select, $options, $attr, $value);
+        return Form::selects($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_selectplus')) {

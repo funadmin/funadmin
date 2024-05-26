@@ -95,7 +95,7 @@ class FormHelper
                 $options['multiple'] = 'multiple';
                 $attr = $options['attr'] ?? ['id', 'title'];
                 $list = ($options['list'] ?? $extra);
-                $form = $this->multiselect($name, $list, $options, $attr, $value);
+                $form = $this->selects($name, $list, $options, $attr, $value);
                 break;
             case 'xmselect':
                 $attr = $options['attr'] ?? ['id', 'title'];
@@ -821,7 +821,7 @@ EOF;
     {
         $select = ArrayHelper::getArray($select);
         if(isset($options['multiple'])){
-            return $this->multiselect($name, $select , $options, $attr, $value);
+            return $this->selects($name, $select , $options, $attr, $value);
         }
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
@@ -885,12 +885,25 @@ EOF;
      */
     public function multiselect($name = '', $select = [], $options = [], $attr = [], $value = '')
     {
+        return $this->selects($name, $select , $options , $attr, $value );
+    }
+
+    /**
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return string
+     */
+    public function selects($name = '', $select = [], $options = [], $attr = [], $value = '')
+    {
         $select = ArrayHelper::getArray($select);
         list($name, $id) = $this->getNameId($name, $options);
 
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
-        $options['filter'] = 'multiSelect';
+        $options['filter'] = $options['filter']??'selects';
         if(!isset($options['search'])){
             $options['search'] = true;
         }
