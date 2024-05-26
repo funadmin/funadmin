@@ -900,7 +900,19 @@ EOF;
     {
         $select = ArrayHelper::getArray($select);
         list($name, $id) = $this->getNameId($name, $options);
-
+        $attr = is_string($attr)? explode(',', $attr) : $attr;
+        $attr = array_filter($attr);
+        if(!empty($select) && empty($attr)){
+            $arr = $select;
+            $select = [];
+            $i = 0;
+            foreach ($arr as $key=>$item) {
+                $select[$i]['id'] = $key;
+                $select[$i]['title'] = $item;
+                $i++;
+            }
+            $attr = ['id','title'];
+        }
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
         $options['filter'] = $options['filter']??'selects';
