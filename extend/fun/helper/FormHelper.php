@@ -928,7 +928,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
-        <input id="{$id}" name="{$name}" class="layui-input"   {$this->readonlyOrdisabled($options)} {$this->getDataPropAttr($name, $value, $options)} placeholder="" />
+        <input id="{$id}" name="{$name}" class="layui-input {$this->getClass($options)}"   {$this->readonlyOrdisabled($options)} {$this->getDataPropAttr($name, $value, $options)} placeholder="" />
       {$this->tips($options)}
     </div>
 </div>

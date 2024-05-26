@@ -462,8 +462,8 @@
                                             return res.data;
                                         }
                                     }
-                                    window['multiselect-' + id] = multiSelect.render(opt);
-                                    window['multiselect-' + id].val(String(values))
+                                    window['selects-' + id] = multiSelect.render(opt);
+                                    window['selects-' + id].val(String(values))
                                 })
                             })
                         }
