@@ -260,5 +260,6 @@ return [
     "modify success"=>'修改成功',
     "modify failed"=>'修改失败',
     'are you sure you want to close this window'=>"确定关闭窗口吗？",
-    'key'=>'键'
+    'key'=>'键',
+    'Query'=>'参数'
 ];
