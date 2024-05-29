@@ -1074,26 +1074,30 @@ define(['timePicker'], function (timePicker) {
                     Table.api.reload(options.id, {
                         filter: JSON.stringify(format.formatFilter),
                         op: JSON.stringify(format.formatOp)
-                    }, true, false);
+                    }, true, false,1);
                     return false;
                 })
             },
             reload: function (tableId, $where, $deep, $parent,$page) {
                 $deep = typeof $deep ==='undefined'?true:$deep;
                 $parent = typeof $parent ==='undefined'?true:$parent;
-                $page = typeof $page ==='undefined'?1:$parent;
+                $page = typeof $page ==='undefined'?false:$page;
                 tableId = tableId ? tableId : Table.init.tableId;
                 options = Table.getOptions(tableId);
                 table = Table.getTableObj(tableId);
                 $where = $where || {};
                 $map = {where: $where};
+                if(options.page!==undefined && options.page==false){
+                    $map.page  = false;
+                }else if (options.page.curr){
+                    $map.page = {
+                        curr: options.page.curr //重新从第 1 页开始
+                    }
+                }
                 if($page>=1){
                     $map.page = {
                         curr: $page //重新从第 1 页开始
                     }
-                }
-                if(options.page!==undefined && options.page==false){
-                    $map.page  = false;
                 }
                 table.reloadData(tableId, $map, $deep);
                 if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
@@ -1170,20 +1174,19 @@ define(['timePicker'], function (timePicker) {
                 var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
                 tableId = options.id || Table.init.tableId;
                 if(!url || url=='undefined') return ;
-                var page = Table.getOptions(tableId).page.curr || 1;
                 Table.getTableObj(tableId).on('edit(' + options.layFilter + ')', function (obj) {
                         var value = obj.value, data = obj.data, id = data[options.primaryKey], field = obj.field;
                         var _data = {id: id, field: field, value: value,};
                         Fun.ajax({url: url, prefix: true, data: _data,}, function (res) {
                             Fun.toastr.success(res.msg, function () {
-                                Table.api.reload(tableId,{},true,true,page)
+                                Table.api.reload(tableId,{},true,true)
                             })
                         }, function (res) {
                             Fun.toastr.error(res.msg, function () {
-                                Table.api.reload(tableId,{},true,true,page)
+                                Table.api.reload(tableId,{},true,true)
                             })
                         }, function () {
-                            Table.api.reload(tableId,{},true,true,page)
+                            Table.api.reload(tableId,{},true,true)
                         })
                     })
             },
@@ -1211,10 +1214,9 @@ define(['timePicker'], function (timePicker) {
                     if(!filter) return ;
                     var checked = obj.elem.checked ? 1 : 0;
                     var data = {id: this.value, field: this.name, value: checked};
-                    var page = Table.getOptions(tableId).page.curr || 1;
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg);
-                        Table.api.reload(tableId,{},true,true,page)
+                        Table.api.reload(tableId,{},true,true)
                     }, function (res) {
                         obj.elem.checked = !checked;
                         layui.form.render();
@@ -1240,7 +1242,7 @@ define(['timePicker'], function (timePicker) {
                     var data = {id: id, field: name, value: obj.value};
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg)
-                        Table.api.reload(tableId,{},true,true,0)
+                        Table.api.reload(tableId,{},true,true)
                     }, function (res) {
                         layui.form.render();
                         Fun.toastr.error(res.msg);
@@ -1263,7 +1265,7 @@ define(['timePicker'], function (timePicker) {
                 });
                 //重置按钮，重新刷新表格
                 $(document).on('click', 'button[type="reset"]', function () {
-                    Table.api.reload($(this).data('tableid') || tableId, {}, false);
+                    Table.api.reload($(this).data('tableid') || tableId, {}, false,false,1);
                 });
                 /**
                  * tips
@@ -1283,10 +1285,10 @@ define(['timePicker'], function (timePicker) {
                             filter: JSON.stringify(formatFilter),
                             op: JSON.stringify(formatOp)
                         }
-                        Table.api.reload(tableId, where, true, false);
+                        Table.api.reload(tableId, where, true, false,1);
                         return false
                     } else {
-                        Table.api.reload(tableId, {search: text, searchName: name}, true, true);
+                        Table.api.reload(tableId, {search: text, searchName: name}, true, true,1);
                         return false
                     }
                 }).unbind('blur', '#layui-input-search-'+tableId, function (event) {

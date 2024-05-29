@@ -215,8 +215,8 @@ define(['table','form'], function (Table,Form) {
                         field: 'memberLevel.name',
                         title: __('MemberLevel'),
                         width: 120,
-                        url:'member.memberLevel/index',
-                        // selectList: memberLevel,
+                        // url:'member.memberLevel/index',
+                        selectList: memberLevel,
                         prop:'name,name',
                         search: 'select',
                         templet: Table.templet.tags
