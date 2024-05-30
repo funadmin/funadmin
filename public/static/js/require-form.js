@@ -111,6 +111,9 @@
                     json:function (formObj){
                         Form.api.json(formObj)
                     },
+                    transfer:function (formObj){
+                        Form.api.transfer(formObj)
+                    },
                     //验证
                     verifys: function (formObj) {
                         Form.api.verifys(formObj)
@@ -1610,6 +1613,45 @@
                             })
                         }
                     },
+                    transfer: function (formObj) {
+                        var transferList = formObj !== undefined ? formObj.find("*[lay-filter='transfer']") : $("*[lay-filter='transfer']");
+                        if (transferList.length > 0) {
+                            transfer = layui.transfer || parent.layui.transfer;
+                            layui.each(transferList, function (i, v) {
+                                    var _t = $(this);
+                                    // 配置参数
+                                    var id = $(this).attr('id');
+                                    console.log( id)
+                                    window['transfer-'+id] = transfer.render({
+                                        elem:this,
+                                        id:id,
+                                        data:_t.data('data'),
+                                        title:_t.data('title'),
+                                        value:_t.data('value'),
+                                        showSearch:_t.data('search') || _t.data('showsearch') ||true ,
+                                        width:_t.data('width') || 200 ,
+                                        height:_t.data('width') || 360 ,
+                                        text: {
+                                            none: '无数据', // 没有数据时的文案
+                                            searchNone: '无匹配数据' // 搜索无匹配数据时的文案
+                                        },onchange: function(data, index){
+                                            var datas = transfer.getData(id);
+                                            var ids = datas.map(function(item){
+                                                return item.value;
+                                            })
+                                            _t.parent('div').find('input[name="'+_t.data('name')+'"]').val(ids)
+                                        }, parseData: function(res){ // 解析成规定的 data 格式
+                                            return {
+                                                "value": res['id'], // 数据值
+                                                "title":res['title'] || res['name'], // 数据标题
+                                                "disabled": res['disabled'] || false,  // 是否禁用
+                                                "checked": res['checked'] || false // 是否选中
+                                            };
+                                        }
+                                    })
+                                });
+                        }
+                    },
                     /**
                      * 绑定事件
                      * @param form
@@ -1645,6 +1687,7 @@
                         events.verifys(form);
                         events.required(form);
                         events.selects(form);
+                        events.transfer(form);
                         events.submit(form, success, error, submit);
                         events.bindevent(form);
                         events.events();//事件

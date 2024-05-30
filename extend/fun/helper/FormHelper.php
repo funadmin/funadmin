@@ -1176,7 +1176,6 @@ EOF;
 
     /**
      * @param string $name
-     * @param $id
      * @param int $type
      * @param array $options
      * @return string
@@ -1389,6 +1388,36 @@ EOF;
         return $str;
     }
 
+    /**
+     * 穿梭框
+     * @param $name
+     * @param $select
+     * @param $options
+     * @param $value
+     * @return string
+     */
+    public function transfer($name,$select= [],$options ,$value='')
+    {
+        $options['id'] = $options['id'] ?? $name;
+        $options['filter'] = $options['filter'] ?? 'transfer';
+        $select = ArrayHelper::getArray($select);
+        $options['data'] = json_encode($select,JSON_UNESCAPED_UNICODE);
+        $value = (is_array($value)|| is_object($value))?json_encode($value,JSON_UNESCAPED_UNICODE):$value;
+        if (isset($options['verify'])) {
+            $verify = $this->layverify($options);
+            unset($options['verify']);
+        }
+        $str = <<<EOF
+<div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
+     <div class="layui-input-block">
+            <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}" {$verify}>
+     <div  {$this->getOptionsAttr($name, $options)}  class="{$this->getClass($options)}" id="{$options['id']}"></div>
+    </div>
+</div>
+EOF;
+
+        return $str;
+    }
     /**
      * @param bool $reset
      * @param array $options

@@ -1136,3 +1136,13 @@ if (!function_exists('form_autocomplete')) {
         return Form::autocomplete( $name, $list ,  $options ,$value) ;
     }
 }
+if (!function_exists('form_transfer')) {
+    /**
+     * @param $name
+     * @return string
+     */
+    function form_transfer($name = 'transfer', $options = [], $value = '')
+    {
+        return Form::transfer($name, $options, $value);
+    }
+}
