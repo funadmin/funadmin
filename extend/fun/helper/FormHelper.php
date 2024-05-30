@@ -828,7 +828,8 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         if ($select) {
-            $attr = is_array($attr)?$attr:explode(',',array_filter($attr));
+            $attr = is_array($attr)?$attr:explode(',',$attr);
+            $attr = array_filter($attr);
             $value = is_array($value)?$value:explode(',',$value);
             foreach ($select as $k => $v) {
                 $selected = '';
