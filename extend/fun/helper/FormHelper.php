@@ -202,6 +202,13 @@ class FormHelper
             case 'region':
                 $form = $this->region($name, $options, $value);
                 break;
+            case 'json':
+                $form = $this->json($name, $options, $value);
+                break;
+            case 'transfer':
+                $list = ($options['list'] ?? $extra);
+                $form = $this->transfer($name,$list, $options, $value);
+                break;
             case 'autocomplete':
                 $attr = $options['attr'] ?? ['id', 'title'];
                 $list = ($options['list'] ?? $extra);

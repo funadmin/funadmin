@@ -511,6 +511,20 @@ class FormBuilder
         $this->formHtml[] = Form::json($name,$options,$value);
         return $this;
     }
+
+    /**
+     * @param string $name
+     * @param $id
+     * @param int $type
+     * @param array $options
+     * @return string
+     * json
+     */
+    public  function transfer($name = 'transfer',$select=[], $options = [], $value = '')
+    {
+        $this->formHtml[] = Form::transfer($name,$select,$options,$value);
+        return $this;
+    }
     /**
      * 上传
      * @param string $name
