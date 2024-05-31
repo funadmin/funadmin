@@ -1620,14 +1620,16 @@
                             layui.each(transferList, function (i, v) {
                                     var _t = $(this);
                                     // 配置参数
-                                    var id = $(this).attr('id');
-                                    console.log( id)
-                                    window['transfer-'+id] = transfer.render({
+                                    var id = _t.attr('id');
+                                var val =  _t.data('value');
+                                    val =  typeof val == 'string' ? val.split(','):[val];
+                                    console.log(val)
+                                window['transfer-'+id] = transfer.render({
                                         elem:this,
                                         id:id,
                                         data:_t.data('data'),
                                         title:_t.data('title'),
-                                        value:_t.data('value'),
+                                        value:val,
                                         showSearch:_t.data('search') || _t.data('showsearch') ||true ,
                                         width:_t.data('width') || 200 ,
                                         height:_t.data('width') || 360 ,
