@@ -43,14 +43,12 @@ use think\Facade;
  * @method static string arrays(string $name, array $list = [],  array $options = [],$attr= []) 数组
  * @method static string select(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string selects(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
- * @method static string selectplus(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
- * @method static string selectn(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
+ * @method static string selectcx(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string multiselect(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string xmselect(string $name, array $list = [],  array $options = [],array $attr = [],$value) 下拉列表组件
  * @method static string selectpage(string $name,array $list = [], array $options = [],array $attr = [],$value='') 动态下拉列表组件
  * @method static string autocomplete(string $name,array $list = [], array $options = [],array $attr = [],$value='') 自动完成
  * @method static string citypicker(string $name, array $options = [], string $value = null) 城市选择组件
- * @method static string region(string $name, array $options = [], string $value = null) 城市选择组件
  * @method static string date(string $name, array $options = [],string $value= null) 日期选择组件
  * @method static string switchs(string $name, array $list = [], array $options = [], string $value = null) 切换组件
  * @method static string checkbox(string $name, array $list = [],  array $options = [],string $value = '1', ) 单个复选框

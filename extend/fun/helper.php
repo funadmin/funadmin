@@ -927,7 +927,8 @@ if (!function_exists('form_multiselect')) {
         return Form::selects($name, $select, $options, $attr, $value);
     }
 }
-if (!function_exists('form_selectplus')) {
+
+if (!function_exists('form_selectcx')) {
     /**
      * @param $name
      * @param $select
@@ -936,25 +937,10 @@ if (!function_exists('form_selectplus')) {
      * @param $value
      * @return string
      */
-    function form_selectplus($name = '', $select = [], $options = [], $attr = '', $value = '')
+    function form_selectcx($name = '', $select = [], $options = [], $attr = '', $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return Form::selectplus($name, $select, $options, $attr, $value);
-    }
-}
-if (!function_exists('form_selectn')) {
-    /**
-     * @param $name
-     * @param $select
-     * @param $options
-     * @param $attr
-     * @param $value
-     * @return string
-     */
-    function form_selectn($name = '', $select = [], $options = [], $attr = '', $value = '')
-    {
-        if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
-        return Form::selectn($name, $select, $options, $attr, $value);
+        return Form::selectcx($name, $select, $options, $attr, $value);
     }
 }
 if (!function_exists('form_xmselect')) {
@@ -1004,17 +990,7 @@ if (!function_exists('form_city')) {
         return Form::city($name, $options);
     }
 }
-if (!function_exists('form_region')) {
-    /**
-     * @param array $options
-     * @return string
-     */
 
-    function form_region($name = 'regionCheck', $options = [])
-    {
-        return Form::region($name, $options);
-    }
-}
 if (!function_exists('form_tags')) {
     /**
      * @param array $options

@@ -339,22 +339,9 @@ class FormBuilder
      * @param $value
      * @return string
      */
-    public  function selectn($name = '', $select= [], $options=[], $attr=[], $value='')
+    public  function selectcx($name = '', $select= [], $options=[], $attr=[], $value='')
     {
-        $this->formHtml[] = Form::selectn($name,$select,$options,$attr,$value);
-        return $this;
-    }
-    /**
-     * @param $name
-     * @param $select
-     * @param $options
-     * @param $attr
-     * @param $value
-     * @return string
-     */
-    public  function selectplus($name = '', $select= [], $options=[], $attr=[], $value='')
-    {
-        $this->formHtml[] = Form::selectplus($name,$select,$options,$attr,$value);
+        $this->formHtml[] = Form::selectcx($name,$select,$options,$attr,$value);
         return $this;
     }
     /**
@@ -469,18 +456,6 @@ class FormBuilder
     public  function city($name = 'cityPicker', $options = [],$value='')
     {
         $this->formHtml[] = Form::city($name,$options,$value);
-        return $this;
-    }
-
-    /**
-     * 城市选择
-     * @param string $name
-     * @param $options
-     * @return string
-     */
-    public  function region($name = 'region',  $options = [],$value='')
-    {
-        $this->formHtml[] = Form::region($name,$options,$value);
         return $this;
     }
 

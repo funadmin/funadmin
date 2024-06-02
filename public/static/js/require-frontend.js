@@ -20,7 +20,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery','css','jsoneditor','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','multiSelect','selectPlus','selectN','selectPage','cityPicker', 'regionCheckBox','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
+    include: ['jquery','css','jsoneditor','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','selects','cxSelect','selectPage','cityPicker','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
@@ -34,12 +34,10 @@ require.config({
         'step-lay'      : 'plugins/lay-module/step-lay/step',
         'inputTags'     : 'plugins/lay-module/inputTags/inputTags',
         'timeago'       : 'plugins/lay-module/timeago/timeago',
-        'multiSelect'   : 'plugins/lay-module/multiSelect/multiSelect',
-        'selectPlus'    : 'plugins/lay-module/selectPlus/selectPlus',
-        'selectN'       : 'plugins/lay-module/selectPlus/selectN',
+        'selects'       : 'plugins/lay-module/selects/selects',
+        'cxSelect'       : 'plugins/lay-module/cxSelect/cxSelect',
         'selectPage'    : 'plugins/lay-module/selectPage/selectpage.min',
         'cityPicker'    : 'plugins/lay-module/cityPicker/city-picker',
-        'regionCheckBox': 'plugins/lay-module/regionCheckBox/regionCheckBox',
         'timePicker'    : 'plugins/lay-module/timePicker/timePicker',
         'croppers'      : 'plugins/lay-module/cropper/croppers',
         'xmSelect'      : 'plugins/lay-module/xm-select/xm-select',

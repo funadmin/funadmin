@@ -358,12 +358,18 @@ class Addon extends Backend
             $class = get_addons_instance($name);
             $menu_config = get_addons_menu($name);
             if(!empty($menu_config)){
-                if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+                $menus = $menu_config['menu'];
+                if(isset($menu_config['is_nav']) && $menu_config['is_nav']== -1){
+                    $menu = $menus['menulist'];
                     $pid = 0;
-                }else{
+                }elseif(isset($menu_config['is_nav']) && $menu_config['is_nav']==0){
+                    $menu[] = $menu_config['menu'];
                     $pid = $this->addonService->addAddonManager()->id;
+                }else{
+                    $menu[] = $menu_config['menu'];
+                    $pid = 0;
                 }
-                $menu[] = $menu_config['menu'];
+
                 if( $addoninfo['status']){
                     $this->addonService->addAddonMenu($menu,$pid,$name);
                 }else{
@@ -540,12 +546,17 @@ class Addon extends Backend
         // 安装菜单
         $menu_config=get_addons_menu($name);
         if(!empty($menu_config)){
-            if(isset($menu_config['is_nav']) && $menu_config['is_nav']==1){
+            $menus = $menu_config['menu'];
+            if(isset($menu_config['is_nav']) && $menu_config['is_nav']== -1){
+                $menu = $menus['menulist'];
                 $pid = 0;
-            }else{
+            }elseif(isset($menu_config['is_nav']) && $menu_config['is_nav']==0){
+                $menu[] = $menu_config['menu'];
                 $pid = $this->addonService->addAddonManager()->id;
+            }else{
+                $menu[] = $menu_config['menu'];
+                $pid = 0;
             }
-            $menu[] = $menu_config['menu'];
             $this->addonService->addAddonMenu($menu,$pid,$name);
         }
 

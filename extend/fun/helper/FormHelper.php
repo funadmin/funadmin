@@ -186,21 +186,13 @@ class FormHelper
                 $list = ($options['list'] ?? $extra);
                 $form = $this->arrays($name, $list, $options);
                 break;
-            case 'selectn':
+            case 'selectcx':
                 $attr = $options['attr'] ?? ['id', 'title'];
                 $list = ($options['list'] ?? $extra);
-                $form = $this->selectn($name, $list, $options, $attr, $value);
-                break;
-            case 'selectplus':
-                $attr = $options['attr'] ?? ['id', 'title'];
-                $list = ($options['list'] ?? $extra);
-                $form = $this->selectplus($name, $list, $options, $attr, $value);
+                $form = $this->selectcx($name, $list, $options, $attr, $value);
                 break;
             case 'city':
                 $form = $this->city($name, $options, $value);
-                break;
-            case 'region':
-                $form = $this->region($name, $options, $value);
                 break;
             case 'json':
                 $form = $this->json($name, $options, $value);
@@ -724,75 +716,71 @@ EOF;
      * @param $value
      * @return string
      */
-    public function selectn($name = '', $select = [], $options = [], $attr = [], $value = '')
+    public function selectcx($name = '', $select = [], $options = [], $attr = ['province_id','city_id','area_id'], $value = '')
     {
         $select = ArrayHelper::getArray($select);
-        $name = $options['formname'] ?? $name;
-        $options['url'] = $options['url'] ?? '';
-        $options['delimiter'] = $options['delimiter'] ?? '';
-        $options['search'] = isset($options['search']) ? true : '';
-        $options['num'] = $options['num'] ?? 3;
-        $options['last'] = $options['last'] ?? '';
-        if (!empty($attr)) {
-            $attr = is_array($attr) ? implode(',', array_filter($attr)) : $attr ;
+        list($name, $id) = $this->getNameId($name, $options);
+        $op = '';
+        if(!empty($options['fields']) && is_string($options['fields'])){
+            $options['fields'] = explode(',',$options['fields']);
         }
-        $options['filter'] = $options['filter'] ?? 'selectN';
-        $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
+        $options['fields'] = $options['fields'] ?? ['id','name'];
+        $value = is_array($value)?$value:explode(',',$value);
+        if ($select) {
+            $attr = is_array($attr)?$attr:explode(',',$attr);
+            $attr = array_filter($attr);
+            foreach ($select as $k => $v) {
+                if (!is_array($v)) {
+                    $op .= '<option  value="' . $k . '">' . $this->__($v) . '</option>';
+                }elseif (is_array($v) && !empty($attr)) {
+                    $op .= '<option  value="' . $v[$options['fields'][0]] . '">' . $this->__($v[$options['fields'][1]]) . '</option>';
+                }
+            }
+        }
+        $fields = array_filter(is_string($attr)?explode(',',$attr):$attr);
+        $attr = is_array($attr) ? implode(',', array_filter($attr)) : $attr;
+        $select = '';
+        foreach ($fields as $k=>$v){
+            $val = $value[$k]??'';
+            $select .= <<<EOF
+    <div class="layui-input-inline">
+      <select lay-search  {$this->getDataPropAttr($v, $val, $options)} class="layui-select-url selectcx{$k} layui-select {$v} {$this->getClass($options)}"   >
+        {$op}
+    </select>
+  </div>
+EOF;
+            }
+
         $options['attr'] = $attr;
-        if(!isset($options['search'])){
-            $options['search'] = true;
+        if(!isset($options['create'])){
+            $options['create'] = true;
         }
+        $value = implode(',',$value);
+        $options['filter'] = $options['filter']??'cxselect';
+        $verify = $options['verify']??'';
+        unset($options['verify']);
         $str = <<<EOF
-<div class="layui-form-item layui-form {$this->getClass($options,'outclass')}" lay-filter="{$name}">{$this->label($name, $options)}
-    <div class="layui-input-block">
-      <div  
-{$this->getDataPropAttr($name, $value, $options)}  class="{$this->getClass($options)}" {$this->laysearch($options)} {$this->readonlyOrdisabled($options)} >
-      </div>
-      {$this->tips($options)}
+<div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
+      <div class="layui-input-block" {$this->getDataPropAttr($name, $value, $options)}>
+      <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}" {$this->layverify(['verify'=>$verify])}>
+        {$select}
     </div>
+      {$this->tips($options)}
 </div>
 EOF;
+
 
         return $str;
     }
 
     /**
      * @param $name
-     * @param $select
+     * @param $list
      * @param $options
      * @param $attr
      * @param $value
      * @return string
      */
-    public function selectplus($name = '', $select = [], $options = [], $attr = [], $value = '')
-    {
-        $select = ArrayHelper::getArray($select);
-        list($name, $id) = $this->getNameId($name, $select);
-        $options['url'] = $options['url'] ?? '';
-        $options['delimiter'] = $options['delimiter'] ?? '';
-        $options['fielddelimiter'] = $options['fielddelimiter'] ?? '';
-        $options['verify'] = $options['verify'] ?? '';
-        $multiple = !empty($options['multiple']) ? 'multiple="multiple"' : '';
-
-        $options['multiple'] = $multiple ? 1 : '';
-        if (!empty($attr)) {
-            $attr = is_array($attr) ?implode(',', array_filter($attr))  : $attr;
-        }
-        $options['attr'] = $attr;
-        $options['data'] = json_encode($select, JSON_UNESCAPED_UNICODE);
-        $options['filter'] = $options['filter'] ?? "selectPlus";
-        $str = <<<EOF
-    <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
-        <div class="layui-input-block">
-          <div class="{$this->getClass($options)}" {$this->getDataPropAttr($name, $value, $options)}    {$multiple} >
-          </div>
-           {$this->tips($options)} 
-        </div>
-    </div>
-EOF;
-
-        return $str;
-    }
 
     public function autocomplete($name = '', $list = [], $options = [], $attr = [], $value = '')
     {
@@ -853,10 +841,6 @@ EOF;
                 }
             }
         }
-       /* $multiple = '';
-        if (isset($options['multiple'])) {
-            $multiple = 'multiple="multiple"';
-        }*/
         if (isset($options['default'])) {
             $default = $this->__($options['default']);
         } else {
@@ -870,10 +854,13 @@ EOF;
         if(!isset($options['create'])){
             $options['create'] = true;
         }
+        if(!empty($options['url'])){
+            $options['filter'] = 'select';
+        }
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
-      <select {$this->getDataPropAttr($name, $value, $options)}  class="layui-select-url layui-select {$this->getClass($options)}"   >
+      <select {$this->getDataPropAttr($name, $value, $options)} class="layui-select-url layui-select {$this->getClass($options)}"   >
         <option value="">{$this->__($default)}</option>
         {$op}
       </select>
@@ -1158,28 +1145,7 @@ EOF;
         return $str;
     }
 
-    /**
-     * 城市选择
-     * @param string $name
-     * @param $options
-     * @return string
-     */
-    public function region($name = 'region', $options = [], $value = '')
-    {
-        list($name, $id) = $this->getNameId($name, $options);
-        $options['filter'] = 'region';
-        $str = <<<EOF
- <div class="layui-form-item {$this->getClass($options,'outclass')}">{$this->label($name, $options)}
-    <div class="layui-input-block">
-        <input type="text" class="layui-input" name="{$name}" value="{$value}" {$this->layverify($options)} />
-        <div {$this->getOptionsAttr($name, $options)}  class="{$this->getClass($options)}" id="{$id}" name="{$name}">
-        </div>
-    </div>
-</div>
-EOF;
 
-        return $str;
-    }
 
     /**
      * @param string $name

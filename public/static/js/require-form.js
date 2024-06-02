@@ -44,11 +44,8 @@
                     selects: function (formObj) {
                         Form.api.selects(formObj);
                     },
-                    selectplus: function (formObj) {
-                        Form.api.selectplus(formObj)
-                    },
-                    selectn: function (formObj) {
-                        Form.api.selectn(formObj)
+                    selectcx: function (formObj) {
+                        Form.api.selectcx(formObj)
                     },
                     selectpage: function (formObj) {
                         Form.api.selectpage(formObj)
@@ -67,9 +64,6 @@
                     },
                     color: function (formObj) {
                         Form.api.color(formObj)
-                    },
-                    region: function (formObj) {
-                        Form.api.region(formObj)
                     },
                     city: function (formObj) {
                         Form.api.city(formObj)
@@ -405,11 +399,10 @@
                         }
                     },
                     selects: function (formObj) {
-                        var multiselect = {},
-                            list = formObj !== undefined ? formObj.find("*[lay-filter='selects']") : $("*[lay-filter='selects']");
+                        var list = formObj !== undefined ? formObj.find("*[lay-filter='selects']") : $("*[lay-filter='selects']");
                         if (list.length > 0) {
-                            require(['multiSelect'], function (multiSelect) {
-                                multiSelect = layui.multiSelect || parent.layui.multiSelect;
+                            require(['selects'], function (selects) {
+                                selects = layui.selects || parent.layui.selects;
                                 layui.each(list, function (i) {
                                     var _t = $(this);
                                     var id = _t.prop('id'), name = _t.attr('name') || 'id',
@@ -465,76 +458,31 @@
                                             return res.data;
                                         }
                                     }
-                                    window['selects-' + id] = multiSelect.render(opt);
+                                    window['selects-' + id] = selects.render(opt);
                                     window['selects-' + id].val(String(values))
                                 })
                             })
                         }
                     },
-                    selectplus: function (formObj) {
-                        var selectplus = {},
-                            list = formObj !== undefined ? formObj.find("*[lay-filter='selectPlus']") : $("*[lay-filter='selectPlus']");
+                    selectcx: function (formObj) {
+                        var selectcx = {},
+                        list = formObj !== undefined ? formObj.find("*[lay-filter='cxselect']") : $("*[lay-filter='cxselect']");
                         if (list.length > 0) {
-                            require(['selectPlus'], function (selectPlus) {
-                                selectPlus = layui.selectPlus || parent.layui.selectPlus;
-                                layui.each(list, function (i) {
+                            require(['cxSelect'],function(cxSelect){
+                                layui.each(list, function (i, v) {
                                     var _t = $(this);
-                                    var id = _t.prop('id'), name = _t.attr('name') || 'id',
-                                        verify = _t.data('verify') || _t.attr('verify'),
-                                        url = _t.data('url') || _t.data('request'),
-                                        data = _t.data('data') || [],
-                                        type = _t.attr('multiple') || _t.data('multiple') ? 'checkbox' : 'radio',
-                                        method = _t.data('method') ? $(this).data('method') : 'get',
-                                        values = _t.data('value') ? $(this).data('value') : '',
-                                        attr = _t.data('attr'),
-                                        attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
-                                        where = _t.data('where'), delimiter = _t.data('delimiter') || ',',
-                                        fielddelimiter = _t.data('fielddelimiter') || '、';
-                                    if (typeof values === 'string') {
-                                        values = values.split(',')
-                                    } else if (typeof values === 'number') {
-                                        values = [values];
-                                    }
-                                    options = {
-                                        el: this, data: data, url: url, type: type, name: name,
-                                        field: attr, values: values, method: method, where: where,
-                                        delimiter: delimiter, fielddelimiter: fielddelimiter, verify: verify,
-                                    };
-                                    window['selectplus-' + id] = selectPlus.render(options);
-                                })
-                            })
-                        }
-                    },
-                    selectn: function (formObj) {
-                        var selectn = {},
-                            list = formObj !== undefined ? formObj.find("*[lay-filter='selectN']") : $("*[lay-filter='selectN']");
-                        if (list.length > 0) {
-                            require(['selectN'], function (selectN) {
-                                selectN = layui.selectN || parent.layui.selectN;
-                                layui.each(list, function (i) {
-                                    var _t = $(this);
-                                    var id = _t.prop('id'), name = _t.attr('name') || 'id',
-                                        verify = _t.data('verify') || _t.attr('verify'),
-                                        url = _t.data('url') || _t.data('request'),
-                                        data = _t.data('data') || '',
-                                        method = _t.data('method') ||  'get',
-                                        last = _t.data('last') ||  '',
-                                        values = _t.data('value') || '',
-                                        search = _t.data('search') || _t.attr('lay-search');
-                                    if (search !== undefined) {
-                                        search = true;
-                                    }
-                                    attr = _t.data('attr'),
-                                        attr = typeof attr === 'string' ? attr.split(',') : ['id', 'title'],
-                                        num = _t.data('num') ? _t.data('num') : 3,
-                                        pid = _t.data('pid') || 'pid',
-                                        delimiter = _t.data('delimiter') || ',',
-                                        options = {
-                                            elem: this, data: data, url: url, name: name, pid: pid, formFilter: id,
-                                            field: attr, selected: values, method: method, search: search, num: num,
-                                            delimiter: delimiter, last: last, verify: verify,
-                                        };
-                                    window['selectn-' + id] = selectN(options).render();
+                                    var attr = _t.data('attr');
+                                    var url = _t.data('url');
+                                    var fields = _t.data('fields') || ['id', 'name'];
+                                    attr = layui.isArray(attr) ? attr : attr.split(',');
+                                    $.cxSelect.defaults.jsonValue = fields[0] || 'id';
+                                    $.cxSelect.defaults.jsonName = fields ? fields[1] : 'name';
+                                    $.cxSelect.defaults.jsonSpace = _t.data('url') ? 'data' : "";
+                                    _t.cxSelect({
+                                        url: url,       // 如果服务器不支持 .json 类型文件，请将文件改为 .js 文件
+                                        selects: attr,  // 数组，请注意顺序
+                                        emptyStyle: 'none'
+                                    });
                                 })
                             })
                         }
@@ -772,8 +720,9 @@
                                     }
                                     window['editor-' + id] = tinymce.init({
                                         selector: '#' + id + '[lay-editor]',
-                                        language: data.language ||  'zh-Hans',
-                                        plugins: data.plugins ? data.plugins : 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media template codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
+                                        license_key:'gpl',
+                                        language: data.language ||  'zh_CN',
+                                        plugins: data.plugins ? data.plugins : 'preview importcss searchreplace autolink autosave save directionality code visualblocks visualchars fullscreen image link media  codesample table charmap pagebreak nonbreaking anchor insertdatetime advlist lists wordcount help charmap quickbars emoticons',
                                         editimage_cors_hosts: ['picsum.photos'],
                                         menubar: 'file edit view insert format tools table help',
                                         toolbar: data.toolbar ? data.toobar : 'undo redo  bold italic underline strikethrough  fontfamily fontsize | blocks  alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist | forecolor backcolor removeformat | pagebreak | charmap emoticons | fullscreen  insertfile image media preview  template link  | print  anchor codesample save  ltr rtl ',
@@ -810,25 +759,6 @@
                                         importcss_append: true,
                                         images_upload_url: upload_url,
                                         images_upload_base_path: '',
-                                        templates: [
-                                            {
-                                                title: 'New Table',
-                                                description: 'creates a new table',
-                                                content: '<div class="mceTmpl"><table width="98%"  border="0" cellspacing="0" cellpadding="0"><tr><th scope="col"> </th><th scope="col"> </th></tr><tr><td> </td><td> </td></tr></table></div>'
-                                            },
-                                            {
-                                                title: 'Starting my story',
-                                                description: 'A cure for writers block',
-                                                content: 'Once upon a time...'
-                                            },
-                                            {
-                                                title: 'New list with dates',
-                                                description: 'New List with dates',
-                                                content: '<div class="mceTmpl"><span class="cdate">cdate</span><br><span class="mdate">mdate</span><h2>My List</h2><ul><li></li><li></li></ul></div>'
-                                            }
-                                        ],
-                                        template_cdate_format: '[Date Created (CDATE): %m/%d/%Y : %H:%M:%S]',
-                                        template_mdate_format: '[Date Modified (MDATE): %m/%d/%Y : %H:%M:%S]',
                                         image_caption: true,
                                         quickbars_selection_toolbar: 'bold italic | quicklink h2 h3 blockquote quickimage quicktable',
                                         noneditable_class: 'mceNonEditable',
@@ -943,43 +873,6 @@
                                     },
                                     done: data.done ? eval(data.done(color)) : function (color) {
                                         _t.prev('input[name="' + name + '"]').val(color)
-                                    }
-                                })
-                            })
-                        }
-                    },
-                    region: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='region']") : $("*[lay-filter='region']");
-                        if (list.length > 0) {
-                            require(['regionCheckBox'], function (regionCheckBox) {
-                                layui.each(list, function () {
-                                    var _t = $(this);
-                                    var id = _t.prop('id'),
-                                        name = _t.attr('name');
-                                    value = _t.data('value') || [];
-                                    if (value && typeof value === 'string') {
-                                        value = value.split(',');
-                                    }
-                                    window['region-' + id] = layui.regionCheckBox.render({
-                                        elem: this,
-                                        name: name,
-                                        value: value,
-                                        width: '550px',
-                                        border: true,
-                                        ready: function () {
-                                            _t.prev('input[type="hidden"]').val(getAllChecked())
-                                        },
-                                        change: function (result) {
-                                            _t.prev('input[name="' + name + '"]').val(getAllChecked())
-                                        }
-                                    });
-
-                                    function getAllChecked() {
-                                        var all = '';
-                                        _t.find("input:checkbox[name='" + id + name + "']:checked").each(function () {
-                                            all += $(this).val() + ','
-                                        });
-                                        return all.substring(0, all.length - 1)
                                     }
                                 })
                             })
@@ -1318,7 +1211,7 @@
                                 options.value = _t.data('value');
                                 options.type = _t.data('type') || 'default';
                                 options.step = _t.data('step') || 1;
-                                options.range = _t.data('range') || false;
+                                options.range = _t.data('range') || true;
                                 options.max = options.max ? options.max : 100;
                                 options.min = options.min ? options.min : 0;
                                 options.disabled = options.readonly || options.disabled ? true : false;
@@ -1680,10 +1573,8 @@
                         events.timepicker(form);
                         events.datepicker(form);
                         events.editor(form);
-                        events.region(form);
                         events.formarray(form);
-                        events.selectplus(form);
-                        events.selectn(form);
+                        events.selectcx(form);
                         events.selectpage(form);
                         events.autocomplete(form);
                         events.verifys(form);

@@ -32,6 +32,7 @@ class AddonService extends AbstractService
 {
     use Jump;
 
+    protected $myaddon = 'myaddon';
     public function __construct()
     {
 
@@ -73,7 +74,7 @@ class AddonService extends AbstractService
                     }
                 }
                 //删除主菜单；
-                $manager = AuthRule::withTrashed()->where('href','addon/manager')->find();
+                $manager = AuthRule::withTrashed()->where('href',$this->myaddon)->find();
                 if($manager){
                     $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
                     if(!$manager_child){
@@ -89,20 +90,20 @@ class AddonService extends AbstractService
     }
     //添加管理菜单
     public function addAddonManager(){
-        $addon_auth =  AuthRule::where('href','addon')->cache(3600)->find();
         $data = array(
-            "title" => '插件',
-            'href'=>'addon/manager',
-            'menu_status'=>1,
+            "title" => '已装插件',
+            'href' => $this->myaddon,
+            'menu_status' => 1,
+            'type' => 1,//1菜单
             //状态，1是显示，0是不显示
             "status" => 1,
-            "icon" =>'layui-icon layui-icon-app',
+            "icon" => 'layui-icon layui-icon-app',
             //父ID
-            "pid" => $addon_auth->id,
+            "pid" => 0,
             //排序
             "sort" => 50,
         );
-        $manager = AuthRule::where('href','addon/manager')->find();
+        $manager = AuthRule::where('href',$this->myaddon)->find();
         if(!$manager){
             $manager = AuthRule::create($data);
         }elseif($manager && $manager->menu_status==0){
