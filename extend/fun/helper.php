@@ -937,7 +937,7 @@ if (!function_exists('form_selectcx')) {
      * @param $value
      * @return string
      */
-    function form_selectcx($name = '', $select = [], $options = [], $attr = '', $value = '')
+    function form_selectcx($name = '', $select = [], $options = [], $attr = ['province_id','city_id','area_id'], $value = '')
     {
         if (!empty($attr) and !is_array($attr)) $attr = explode(',', $attr);
         return Form::selectcx($name, $select, $options, $attr, $value);

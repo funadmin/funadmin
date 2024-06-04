@@ -762,7 +762,7 @@ EOF;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
       <div class="layui-input-block" {$this->getDataPropAttr($name, $value, $options)}>
-      <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}" {$this->layverify(['verify'=>$verify])}>
+      <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}">
         {$select}
     </div>
       {$this->tips($options)}
