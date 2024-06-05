@@ -1117,8 +1117,8 @@ if (!function_exists('form_transfer')) {
      * @param $name
      * @return string
      */
-    function form_transfer($name = 'transfer', $options = [], $value = '')
+    function form_transfer($name = 'transfer',$select=[], $options = [], $value = '')
     {
-        return Form::transfer($name, $options, $value);
+        return Form::transfer($name,$select, $options, $value);
     }
 }
