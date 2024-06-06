@@ -716,15 +716,12 @@ EOF;
      * @param $value
      * @return string
      */
-    public function selectcx($name = '', $select = [], $options = [], $attr = ['province_id','city_id','area_id'], $value = '')
+    public function selectcx($name = 'province_id,city_id,area_id', $select = [], $options = [], $attr = ['id','name'], $value = '')
     {
         $select = ArrayHelper::getArray($select);
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
-        if(!empty($options['fields']) && is_string($options['fields'])){
-            $options['fields'] = explode(',',$options['fields']);
-        }
-        $options['fields'] = $options['fields'] ?? ['id','name'];
+        $attr = $attr ?? ['id','name'];
         $value = is_array($value)?$value:explode(',',$value);
         if ($select) {
             $attr = is_array($attr)?$attr:explode(',',$attr);
@@ -737,8 +734,12 @@ EOF;
                 }
             }
         }
-        $fields = array_filter(is_string($attr)?explode(',',$attr):$attr);
+
+        $fields = array_filter(is_string($name)?explode(',',$name):$name);
         $attr = is_array($attr) ? implode(',', array_filter($attr)) : $attr;
+
+        $options['selects'] = $fields;
+        $options['attr'] = $attr;
         $select = '';
         foreach ($fields as $k=>$v){
             $val = $value[$k]??'';
@@ -761,8 +762,7 @@ EOF;
         unset($options['verify']);
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
-      <div class="layui-input-block" {$this->getDataPropAttr($name, $value, $options)}>
-      <input class="layui-input layui-form-required-hidden" type="text" name="{$name}" value="{$value}">
+      <div class="layui-input-block" {$this->getDataPropAttr(implode(',',$fields), $value, $options)}>
         {$select}
     </div>
       {$this->tips($options)}

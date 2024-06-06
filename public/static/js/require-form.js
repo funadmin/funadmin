@@ -471,16 +471,16 @@
                             require(['cxSelect'],function(cxSelect){
                                 layui.each(list, function (i, v) {
                                     var _t = $(this);
-                                    var attr = _t.data('attr');
+                                    var selects = _t.data('selects');
                                     var url = _t.data('url');
-                                    var fields = _t.data('fields') || ['id', 'name'];
+                                    var attr = _t.data('attr') || ['id', 'name'];
                                     attr = layui.isArray(attr) ? attr : attr.split(',');
-                                    $.cxSelect.defaults.jsonValue = fields[0] || 'id';
-                                    $.cxSelect.defaults.jsonName = fields ? fields[1] : 'name';
+                                    $.cxSelect.defaults.jsonValue = attr[0] || 'id';
+                                    $.cxSelect.defaults.jsonName = attr ? attr[1] : 'name';
                                     $.cxSelect.defaults.jsonSpace = _t.data('url') ? 'data' : "";
                                     _t.cxSelect({
                                         url: url,       // 如果服务器不支持 .json 类型文件，请将文件改为 .js 文件
-                                        selects: attr,  // 数组，请注意顺序
+                                        selects: selects,  // 数组，请注意顺序
                                         emptyStyle: 'none'
                                     });
                                 })
