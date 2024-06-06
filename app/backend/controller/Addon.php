@@ -188,7 +188,7 @@ class Addon extends Backend
         }
         $res = $this->authCloudService->setApiUrl('api/v1.plugins/cateList')->setMethod('GET')
             ->setParams([])->run();
-        $cateList = $res['data'];
+        $cateList = $res['data']??[];
         $account = $this->authCloudService->getMember();
         return view('',[
             'auth'=>$account?1:0, 'account'=>$account,'cateList'=>$cateList]);
