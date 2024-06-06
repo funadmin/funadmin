@@ -130,7 +130,7 @@ define(['timePicker'], function (timePicker) {
                         }
                     } else if (v === 'recycle') {
                         if (Fun.checkAuth('recycle', options.elem)) {
-                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" data-tips="recycle" lay-event="open" data-btn="close" data-tableid="' + tableId + '"  data-url="' + url + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n';
+                            toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" data-tips="recycle" lay-event="open" data-btn="close" data-tableid="' + tableId + '" data-url="' + url + '" title="' + __('Recycle') + '"><i class="layui-icon layui-icon-find-fill"></i>' + __('Recycle') + '</a>\n';
                         }
                     } else if (v === 'restore') {
                         if (Fun.checkAuth('restore', options.elem)) {
