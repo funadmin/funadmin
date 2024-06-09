@@ -22,22 +22,17 @@ class Styles extends BaseParserClass
      *
      * @var ?Theme
      */
-    private $theme;
+    private ?Theme $theme = null;
 
-    /** @var array */
-    private $workbookPalette = [];
+    private array $workbookPalette = [];
 
-    /** @var array */
-    private $styles = [];
+    private array $styles = [];
 
-    /** @var array */
-    private $cellStyles = [];
+    private array $cellStyles = [];
 
-    /** @var SimpleXMLElement */
-    private $styleXml;
+    private SimpleXMLElement $styleXml;
 
-    /** @var string */
-    private $namespace = '';
+    private string $namespace = '';
 
     public function setNamespace(string $namespace): void
     {
@@ -49,24 +44,11 @@ class Styles extends BaseParserClass
         $this->workbookPalette = $palette;
     }
 
-    /**
-     * Cast SimpleXMLElement to bool to overcome Scrutinizer problem.
-     *
-     * @param mixed $value
-     */
-    private static function castBool($value): bool
-    {
-        return (bool) $value;
-    }
-
     private function getStyleAttributes(SimpleXMLElement $value): SimpleXMLElement
     {
-        $attr = null;
-        if (self::castBool($value)) {
-            $attr = $value->attributes('');
-            if ($attr === null || count($attr) === 0) {
-                $attr = $value->attributes($this->namespace);
-            }
+        $attr = $value->attributes('');
+        if ($attr === null || count($attr) === 0) {
+            $attr = $value->attributes($this->namespace);
         }
 
         return Xlsx::testSimpleXml($attr);
@@ -293,10 +275,8 @@ class Styles extends BaseParserClass
 
     /**
      * Read style.
-     *
-     * @param SimpleXMLElement|stdClass $style
      */
-    public function readStyle(Style $docStyle, $style): void
+    public function readStyle(Style $docStyle, SimpleXMLElement|stdClass $style): void
     {
         if ($style instanceof SimpleXMLElement) {
             $this->readNumberFormat($docStyle->getNumberFormat(), $style->numFmt);
@@ -448,11 +428,9 @@ class Styles extends BaseParserClass
      * Get array item.
      *
      * @param mixed $array (usually array, in theory can be false)
-     *
-     * @return stdClass
      */
-    private static function getArrayItem($array, int $key = 0)
+    private static function getArrayItem(mixed $array): ?SimpleXMLElement
     {
-        return is_array($array) ? ($array[$key] ?? null) : null;
+        return is_array($array) ? ($array[0] ?? null) : null;
     }
 }
