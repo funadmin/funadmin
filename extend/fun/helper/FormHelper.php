@@ -1754,8 +1754,9 @@ EOF;
 
     protected function getStyle($options = [])
     {
-        if (!empty($options['style']) || !empty($options['css'])) {
-            return ' style="' . $options['style'] . $options['style'] . '" ';
+        $style = $options['style']??($options['css']??'');
+        if ($style) {
+            return ' style="' . $style . '" ';
         }
         return ' ';
     }
