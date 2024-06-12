@@ -1111,7 +1111,7 @@ define(['timePicker'], function (timePicker) {
                     var othis = $(this);
                     switch (obj.event) {
                         case'TABLE_SEARCH':
-                            var id = othis.parents('div[lay-id]').attr('lay-id');
+                            var id = othis.parents('div[lay-table-id]').attr('lay-table-id')  || othis.parents('div[lay-id]').attr('lay-id');
                             var searchFieldsetId = 'layui-search-field-' + id;
                             var _that = $("#" + searchFieldsetId);
                             if (_that.hasClass("layui-hide")) {
