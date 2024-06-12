@@ -177,25 +177,38 @@ define([ 'croppers'], function(croppers) {
                                             delete fileList[res.data['chunkId']];
                                             res.url = res.data.url;
                                         }
-                                        var img ='jpg|jpeg|png|gif|svg|bmp|webp';
-                                        var video ='mp4|rmvb|avi|ts';
-                                        var zip ='jpg|jpeg|png|gif|';
-                                        var audio ='mp3|wma|wav';
-                                        var office ='ppt|pptx|xls|xlsx|word|ppt|pptx|doc|docx';
+                                        fileImageType = {
+                                            'audio': 'mp3|wma|wav',
+                                            'image': 'jpg|jpeg|png|gif|svg|bmp|webp',
+                                            'mp3': 'mp3|wma|wav',
+                                            'pdf': 'pdf',
+                                            'pptx': 'ppt|pptx|doc|docx',
+                                            'txt': 'txt',
+                                            'video': 'mp4|rmvb|avi|ts',
+                                            'word': 'word|doc|docx',
+                                            'xlsx': 'xls|xlsx',
+                                            'zip': 'rar|tar|zip|7z',
+                                            'office': 'ppt|pptx|doc|docx|word|doc|docx|xls|xlsx',
+                                            'file': '*'
+                                        }
                                         var start = res.url.lastIndexOf(".");
-                                        uploadAccept =  res.url.substring(start+1, res.url.length).toLowerCase();
-                                        if (img.indexOf(uploadAccept) !==-1) {
+                                        ext =  res.url.substring(start+1, res.url.length).toLowerCase()
+                                        var fileType = '';
+                                        for (var key in fileImageType) {
+                                            if (fileImageType[key].indexOf(ext) !==-1){
+                                                fileType = key;
+                                                break;
+                                            }
+                                            if (fileImageType[key]=='*'){
+                                                fileType = key;
+                                                break;
+                                            }
+                                        }
+                                        console.log(fileType)
+                                        if (fileType=='image') {
                                             html = '<li><img lay-event="photos" class="layui-upload-img fl" width="150" src="' + res.url + '"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                        } else if (zip.indexOf(uploadAccept) !==-1) {
-                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/zip.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                        } else if (video.indexOf(uploadAccept) !==-1) {
-                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/video.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                        } else if (audio.indexOf(uploadAccept) !==-1) {
-                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/audio.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
-                                        } else if (office.indexOf(uploadAccept) !==-1) {
-                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/office.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                         } else {
-                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/file.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
+                                            html = '<li><img  class="layui-upload-img fl" width="150" src="/static/backend/images/filetype/'+fileType+'.jpg"><i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="' + res.url + '"></i></li>\n';
                                         }
                                         var inputVal = input.val();
                                         if (uploadNum == 1) {

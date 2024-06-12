@@ -21,7 +21,7 @@ class FormHelper
 {
     /**
      * 表单html
-     * @var array
+     * @$array
      */
     protected static $instance;
 
@@ -1260,49 +1260,26 @@ EOF;
         } else {
             $values = is_array($value) ? $value : [];
         }
+       
         if (!empty(array_filter($values))) {
             foreach ($values as $k => $v) {
+                $_v = explode('.',$v);
+                $ext = end($_v);
                 if ($k + 1 <= $options['num']) {
-                    switch ($options['mime']) {
-                        case 'video':
-                            $v = $v ?: '/static/backend/images/filetype/video.png';
-                            $li .= <<<EOF
-<li><video lay-event="" class="layui-upload-img fl"  width="150" src="{$v}"></video>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="$v"></i></li>
-EOF;
-                            break;
-                        case 'audio':
-                            $v = $v ?: '/static/backend/images/filetype/audio.jpg';
-                            $li .= <<<EOF
-<li><audio lay-event="" class="layui-upload-img fl"  width="150" src="'{$v}"></audio> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>
-EOF;
-                            break;
-                        case 'images':
-                            $v = $v ?: '/static/backend/images/filetype/image.jpg';
-                            $li .= <<<EOF
-<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
-EOF;
-                            break;
+                    $type = $this->getFileImage($ext);
+                    switch ($type) {
                         case 'image':
-                            $v = $v ?: '/static/backend/images/filetype/image.jpg';
+                            $v = $v ?: '/static/backend/images/filetype/'.$type.'.jpg';
                             $li .= <<<EOF
 <li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="{$v}"></img>  <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
-EOF;
-                            break;
-                        case 'zip':
-                            $li .= <<<EOF
-<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static//backend/images/filetype/zip.jpg"></img> <i class="layui-icon layui-icon-close" lay-event="upfileDelete" data-fileurl="{$v}"></i></li>
-EOF;
-                            break;
-                        case 'office':
-                            $li .= <<<EOF
-<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/office.jpg"></img> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>
 EOF;
                             break;
                         default:
                             $li .= <<<EOF
-<li><img lay-event="photos" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/file.jpg"> <i class="layui-icon layui-icon-close" lay-event="filedelete" data-fileurl="{$v}"></i></li>
+<li><img lay-event="" class="layui-upload-img fl"  width="150" src="/static/backend/images/filetype/{$type}.jpg"></img> <i class="layui-icon layui-icon-close" lay-event="filedelete"  data-fileurl="{$v}"></i></li>
 EOF;
                             break;
+
                     }
                 }
             }
@@ -1953,5 +1930,37 @@ EOF;
         return $this->__(Str::title($string));
     }
 
+    /**
+     * 获取文件类型图片
+     * @param $file
+     * @return string|void
+     */
+    protected function getFileImage($file){
+        $_file = explode('.',$file);
+        $ext = strtolower(end($_file));
+        $fileImageType = [
+            'audio' => 'mp3|wma|wav',
+            'image' => 'jpg|jpeg|png|gif|svg|bmp|webp',
+            'mp3' => 'mp3|wma|wav',
+            'pdf' => 'pdf',
+            'pptx' => 'ppt|pptx|doc|docx',
+            'txt' => 'txt',
+            'video' => 'mp4|rmvb|avi|ts',
+            'word' => 'word|doc|docx',
+            'xlsx' => 'xls|xlsx',
+            'zip' => 'rar|tar|zip|7z',
+            'office' => 'ppt|pptx|doc|docx|word|doc|docx|xls|xlsx',
+            'file' => '*',
+        ];
+        foreach ($fileImageType as $key=>$item) {
+            if(strpos($item,$ext)!==false){
+                return $key;
+            }
+            if($item=='*'){
+               return $key;
+            }
+
+        }
+    }
 
 }
