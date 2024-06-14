@@ -1948,7 +1948,7 @@ EOF;
             'video' => 'mp4|rmvb|avi|ts',
             'word' => 'word|doc|docx',
             'xlsx' => 'xls|xlsx',
-            'zip' => 'rar|tar|zip|7z',
+            'zip' => 'rar|tar|zip|7z|gz',
             'office' => 'ppt|pptx|doc|docx|word|doc|docx|xls|xlsx',
             'file' => '*',
         ];

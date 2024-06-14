@@ -41,6 +41,20 @@ define([ 'croppers'], function(croppers) {
                     var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice
                     var  chunkSize = Upload.init.upload_chunksize*1024*1024;
                     var  maxSize = Upload.init.upload_size*1024*1024;
+                    fileImageType = {
+                        'audio': 'mp3|wma|wav',
+                        'image': 'jpg|jpeg|png|gif|svg|bmp|webp',
+                        'mp3': 'mp3|wma|wav',
+                        'pdf': 'pdf',
+                        'pptx': 'ppt|pptx|doc|docx',
+                        'txt': 'txt',
+                        'video': 'mp4|rmvb|avi|ts',
+                        'word': 'word|doc|docx',
+                        'xlsx': 'xls|xlsx',
+                        'zip': 'rar|tar|zip|7z|gz',
+                        'office': 'ppt|pptx|doc|docx|word|doc|docx|xls|xlsx',
+                        'file': '*'
+                    }
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var _that= $(this), data = _that.data();
@@ -176,20 +190,6 @@ define([ 'croppers'], function(croppers) {
                                             delete chunkList[res.data['chunkId']];
                                             delete fileList[res.data['chunkId']];
                                             res.url = res.data.url;
-                                        }
-                                        fileImageType = {
-                                            'audio': 'mp3|wma|wav',
-                                            'image': 'jpg|jpeg|png|gif|svg|bmp|webp',
-                                            'mp3': 'mp3|wma|wav',
-                                            'pdf': 'pdf',
-                                            'pptx': 'ppt|pptx|doc|docx',
-                                            'txt': 'txt',
-                                            'video': 'mp4|rmvb|avi|ts',
-                                            'word': 'word|doc|docx',
-                                            'xlsx': 'xls|xlsx',
-                                            'zip': 'rar|tar|zip|7z',
-                                            'office': 'ppt|pptx|doc|docx|word|doc|docx|xls|xlsx',
-                                            'file': '*'
                                         }
                                         var start = res.url.lastIndexOf(".");
                                         ext =  res.url.substring(start+1, res.url.length).toLowerCase()
