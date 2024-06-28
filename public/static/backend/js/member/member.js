@@ -243,6 +243,10 @@ define(['table','form'], function (Table,Form) {
                         operat: ['edit_url', 'destroy',],
                         // operat: ['edit_url','copy', 'destroy','dropdown'],
                         // operat:function(d){
+                        //     return ['edit_s','destroy'];
+                        // },
+                        // operat:function(d){
+                        //     console.log(d)
                         //     return '<div><a href="/detail/{{=d.id}}" className="layui-table-link">{{=d.avatar}}</a> </div>'
                         // }
                         // operat:'<div><a href="/detail/{{=d.id}}" class="layui-table-link">{{=d.status}}</a></div>',

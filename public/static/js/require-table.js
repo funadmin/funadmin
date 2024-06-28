@@ -616,6 +616,9 @@ define(['timePicker'], function (timePicker) {
                 ele.operat = ele.operat || ['edit', 'delete'];
                 var html = '';
                 var requests = init['requests'] || d.init['requests'];
+                if(typeof ele.operat == 'function'){
+                    ele.operat = ele.operat(d);
+                }
                 if(typeof ele.operat=="object"){
                     var buttons=[];
                     layui.each(ele.operat, function (i, v) {
@@ -734,7 +737,7 @@ define(['timePicker'], function (timePicker) {
                 }else if(typeof ele.operat == 'string' || typeof ele.operat == 'function'){
                     tpl = ele.operat;
                     if(typeof ele.operat == 'function'){
-                        tpl = ele.operat();
+                        tpl = ele.operat(d);
                     }else if(typeof ele.operat == 'string' && ele.operat.indexOf('#')===0){
                         tpl = $(ele.operat).html();
                     }
