@@ -1826,6 +1826,7 @@ EOF;
                         $attr .= $this->laysearch($options);
                         break;
                     case 'creatable':
+                    case 'create':
                         $attr .= $this->laycreatable($options);
                         break;
                     case 'skin':

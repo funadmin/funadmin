@@ -55,7 +55,7 @@ define(['table','form'], function (Table,Form) {
                 event: 'dropdown',
                 class: 'layui-btn-xs layui-btn-green',
                 url: 'member.member/edit',
-                icon: 'layui-icon layui-icon-edit',
+                icon: 'layui-icon layui-icon-down',
                 text: __('Edit'),
                 title: __('Edit'),
                 // full: 1,
@@ -240,8 +240,8 @@ define(['table','form'], function (Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        operat: ['edit_url', 'destroy',],
-                        // operat: ['edit_url','copy', 'destroy','dropdown'],
+                        // operat: ['edit_url', 'destroy',],
+                        operat: ['edit_url','copy', 'destroy','dropdown'],
                         // operat:function(d){
                         //     return ['edit_s','destroy'];
                         // },
