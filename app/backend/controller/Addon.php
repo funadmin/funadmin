@@ -554,15 +554,6 @@ class Addon extends Backend
             $this->error(lang('addon install fail'));
         }
         Service::copyApp($name,$delete = true);
-        //复制文件到目录
-        if(Service::getCheckDirs()){
-            foreach (Service::getCheckDirs() as $k => $dir) {
-                $sourcedir = Service::getAddonsNamePath($name). $dir;
-                if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, app()->getRootPath().  $dir. DS .'static'.DS.'addons'.DS.$name,true);
-                }
-            }
-        }
         try {
             Service::updateAddonsInfo($name);
             //刷新addon文件
@@ -611,17 +602,6 @@ class Addon extends Backend
         if(file_exists($sql)){
             importSqlData($sql);
         }
-        //为了防止文件误删，这里先不删除文件
-//        // 移除插件基础资源目录
-//        $destAssetsDir = Service::getDestAssetsDir($name);
-//        if (is_dir($destAssetsDir)) {
-//            FileHelper::delDir($destAssetsDir);
-//        }
-//        //删除文件
-//        $list = Service::getGlobalAddonsFiles($name);
-//        foreach ($list as $k => $v) {
-//            @unlink(app()->getRootPath() . $v);
-//        }
         Service::updateAddonsInfo($name,1,0);
         try {
             //刷新addon文件和配置

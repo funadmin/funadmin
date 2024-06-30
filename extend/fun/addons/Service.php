@@ -316,24 +316,14 @@ class Service extends \think\Service
      * @param string $name 插件名称
      * @return  string
      */
-    public static function getSourceAssetsDir($name)
+    public static function getAssetsDir($name)
     {
-        return Service::getAddonsNamePath($name) . 'public' . DS;
-    }
-
-    /**
-     * 获取插件目标资源文件夹
-     * @param string $name 插件名称
-     * @return  string
-     */
-    public static function getDestAssetsDir($name)
-    {
-        $assetsDir = app()->getRootPath() . str_replace("/", DS, "public/static/{$name}");
-        if (!is_dir($assetsDir)) {
-            mkdir($assetsDir, 0755, true);
-        }
+        $assetsDir = [
+            Service::getAddonsNamePath($name) . 'public' . DS =>app()->getRootPath() . str_replace("/", DS, "public/static/{$name}"),
+            Service::getAddonsNamePath($name) . 'storage' . DS=> app()->getRootPath() . str_replace("/", DS, "public/storage/{$name}")];
         return $assetsDir;
     }
+
 
     //获取插件目录
     public static function getAddonsNamePath($name)
@@ -365,12 +355,14 @@ class Service extends \think\Service
                 if($delete) unlink($sourcedir);
             }
         }
-        $sourceAssetsDir = Service::getSourceAssetsDir($name);
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($sourceAssetsDir)) {
-            FileHelper::copyDir($sourceAssetsDir, $destAssetsDir,$delete);
-            if($delete) FileHelper::delDir($sourceAssetsDir);
+        $assetsDir = Service::getAssetsDir($name);
+        foreach ($assetsDir as $key=>$item){
+            if (is_dir($key)) {
+                FileHelper::copyDir($key, $item,$delete);
+                if($delete) FileHelper::delDir($key);
+            }
         }
+
     }
     /**
      * @param $name
@@ -395,15 +387,12 @@ class Service extends \think\Service
             @rmdir($appDir);
         }
         // 移除插件基础静态资源目录
-        $destAssetsDir = Service::getDestAssetsDir($name);
-        if (is_dir($destAssetsDir)) {
-            FileHelper::copyDir($destAssetsDir,$addonPath.'public'.DS,$delete);
-            if($delete) FileHelper::delDir($destAssetsDir);
-        }
-        //删除文件
-        $list = Service::getGlobalAddonsFiles($name);
-        foreach ($list as $k => $v) {
-            @unlink(app()->getRootPath() . $v);
+        $assetsDir = Service::getAssetsDir($name);
+        foreach ($assetsDir as $key=>$item) {
+            if (is_dir($item)) {
+                FileHelper::copyDir($item,$key,$delete);
+                if($delete) FileHelper::delDir($item);
+            }
         }
     }
     /**
@@ -413,50 +402,8 @@ class Service extends \think\Service
     public static function getCheckDirs()
     {
         return [
-            'public'
+            'global'
         ];
-    }
-
-    /**
-     * 获取插件在全局的文件
-     * @param int $onlyconflict 冲突
-     * @param string $name 插件名称
-     * @return  array
-     */
-    public static function getGlobalAddonsFiles($name, $onlyconflict = false)
-    {
-        $list = [];
-        $addonDir = self::getAddonsNamePath($name);
-        // 扫描插件目录是否有覆盖的文件
-        foreach (self::getCheckDirs() as $k => $name) {
-            $checkDir = app()->getRootPath() . DS . $name . DS;
-            if (!is_dir($checkDir))
-                continue;
-            //检测到存在插件外目录
-            if (is_dir($addonDir . $name)) {
-                //匹配出所有的文件
-                $files = new RecursiveIteratorIterator(
-                    new RecursiveDirectoryIterator($addonDir . $name, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST
-                );
-                foreach ($files as $fileinfo) {
-                    if ($fileinfo->isFile()) {
-                        $filePath = $fileinfo->getPathName();
-                        $path = str_replace($addonDir, '', $filePath);
-                        if ($onlyconflict) {
-                            $destPath = app()->getRootPath() . $path;
-                            if (is_file($destPath)) {
-                                if (filesize($filePath) != filesize($destPath) || md5_file($filePath) != md5_file($destPath)) {
-                                    $list[] = $path;
-                                }
-                            }
-                        } else {
-                            $list[] = $path;
-                        }
-                    }
-                }
-            }
-        }
-        return $list;
     }
 
     //更新插件状态
