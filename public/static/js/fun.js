@@ -295,8 +295,8 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     icon: 3,
                     btn: [__('Confirm'), __('Cancel')],
                 }, function () {
-                    typeof success === 'function' && success.call(this);
                     Fun.toastr.close(index);
+                    typeof success === 'function' && success.call(this);
                 }, function () {
                     typeof error === 'function' && error.call(this);
                 });
