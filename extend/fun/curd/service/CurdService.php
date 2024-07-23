@@ -108,6 +108,8 @@ class CurdService
     protected $version;
     protected $requires;
     protected $description;
+    protected $dir;
+    protected $lang;
 
     public function __construct(array $config)
     {
@@ -206,7 +208,7 @@ class CurdService
         }
         unset($v);
         $this->modelName = array_pop($modelArr);
-        $modelArr ? $modelArr[0] = Str::lower($modelArr[0]) : '';
+        $modelArr[0] = !empty($modelArr) ? Str::lower($modelArr[0]) : '';
         $this->modelArr = $modelArr;
         $this->validateName = !empty($this->config['validate']) ? $this->config['validate'] : $this->modelName;
         $this->validateName = Str::studly($this->validateName);
@@ -337,11 +339,11 @@ class CurdService
                 $joinclass = str_replace(DS, '\\', $joinclass);
                 if (file_exists($joinModelFile)) include_once $joinModelFile;
                 if ($assign) {
-                    foreach ($assign as $k => $v) {
-                        $kk = Str::studly($k);
-                        $tempKey = $k;
-                        if(Str::endsWith($k,'List')){
-                            $tempKey = substr($k, 0, strlen($k) - 4);
+                    foreach ($assign as $ks => $vv) {
+                        $kk = Str::studly($ks);
+                        $tempKey = $ks;
+                        if(Str::endsWith($ks,'List')){
+                            $tempKey = substr($ks, 0, strlen($ks) - 4);
                         }
                         if ($v) {
                             $joinMethod = 'get' . $kk;
