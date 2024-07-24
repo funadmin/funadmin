@@ -766,6 +766,7 @@
                                         contextmenu: 'link image table',
                                         skin: useDarkMode ? 'oxide-dark' : 'oxide',
                                         content_css: useDarkMode ? 'dark' : 'default',
+                                        convert_urls:false,
                                         //自定义文件选择器的回调内容
                                         file_picker_callback: function (callback, value, meta) {
                                             //文件分类
@@ -784,12 +785,12 @@
                                                 xhr.onload = function () {
                                                     var json;
                                                     if (xhr.status != 200) {
-                                                        failure('HTTP Error: ' + xhr.status);
+                                                        Fun.toastr.error('HTTP Error: ' + xhr.status);
                                                         return;
                                                     }
                                                     json = JSON.parse(xhr.responseText);
                                                     if (!json || typeof json.location != 'string') {
-                                                        failure('Invalid JSON: ' + xhr.responseText);
+                                                        Fun.toastr.error('Invalid JSON: ' + xhr.responseText);
                                                         return;
                                                     }
                                                     callback(json.location);
