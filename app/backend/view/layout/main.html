@@ -13,11 +13,11 @@
     <meta name="referrer" content="never">
     <meta name="format-detection" content="telephone=no">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"/>
-    <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="__CDN____PLUGINS__/layui/css/layui.css?v={:syscfg('site','site_version')}" media="all" />
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/comm.css?v={:syscfg('site','site_version')}" media="all">
     <link rel="stylesheet" href="__CDN____STATIC__/backend/css/global.css?v={:syscfg('site','site_version')}" media="all" />
-<!--    <script src="__CDN____STATIC__/plugins/jquery/jquery-3.7.1.min.js"></script>-->
-    <script src="__CDN____PLUGINS__/layui/layui.js" charset="utf-8"></script>
+    <!--    <script src="__CDN____STATIC__/plugins/jquery/jquery-3.7.1.min.js"></script>-->
+    <script src="__CDN____PLUGINS__/layui/layui.js?v={:syscfg('site','site_version')}" charset="utf-8"></script>
     {:token_meta()}
     <script>
         window.Config = {:json_encode($config)};
@@ -34,7 +34,7 @@
 
 <div class="fun-container" id="app" style="">
 
-{__CONTENT__}
+    {__CONTENT__}
 
 </div>
 </body>
@@ -43,7 +43,7 @@
 <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
 <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
-<script src="__CDN____STATIC__/require.min.js?v={:syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','site_version')}" charset="utf-8"></script>
+<script defer src="__CDN____STATIC__/require.min.js?v={:syscfg('site','site_version')}" data-main="__CDN____STATIC__/js/require-backend{:syscfg('site','app_debug')?'':'.min'}.js?v={:syscfg('site','site_version')}" charset="utf-8"></script>
 
 {if !empty($formScript)}{$formScript|raw}{/if}
 {if !empty($tableScript)}{$tableScript|raw}{/if}
