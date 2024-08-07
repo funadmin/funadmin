@@ -46,8 +46,8 @@ define(['table','form'], function (Table,Form) {
                     {field: 'url', title: __('Log Addr'), sort: true,templet:function(d){
                         return d.module +'@'+ d.url
                         }},
-                    {field: 'post_data', title: __('Log Content'), width: 150, sort: true,},
-                    {field: 'get_data', title: __('Log Content'), width: 150, sort: true,},
+                    {field: 'post_data', title: __('Post'), width: 150, sort: true,},
+                    {field: 'get_data', title: __('GET'), width: 150, sort: true,},
                     {field: 'agent', title: __('Log Agent'), width: 120, sort: true,},
                     {field: 'ip', title: 'Ip', width: 80},
                     {field: 'create_time', title: __('CreateTime'), width: 180, search: 'range'},
