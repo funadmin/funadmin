@@ -5,7 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com)
 and this project adheres to [Semantic Versioning](https://semver.org).
 
-## 2.0.0 - 2024-01-24
+## 2024-05-11 - 2.1.0
+
+### MINOR BREAKING CHANGE
+
+- Writing of cell comments to Html will now sanitize all Html tags within the comment, so the tags will be rendered as plaintext and have no other effects when rendered. Styling can be achieved by using the Font property of of the TextRuns which make up the comment, as is already the cases for Xlsx. [PR #3957](https://github.com/PHPOffice/PhpSpreadsheet/pull/3957)
+
+### Added
+
+- Default Style Alignment Property (workaround for bug in non-Excel spreadsheet apps) [Issue #3918](https://github.com/PHPOffice/PhpSpreadsheet/issues/3918) [PR #3924](https://github.com/PHPOffice/PhpSpreadsheet/pull/3924)
+- Additional Support for Date/Time Styles [PR #3939](https://github.com/PHPOffice/PhpSpreadsheet/pull/3939)
+
+### Changed
+
+- Nothing
+
+### Deprecated
+
+- Reader/Xml trySimpleXMLLoadString should not have had public visibility, and will be removed.
+
+### Removed
+
+- Nothing
+
+### Fixed
+
+- IF Empty Arguments. [Issue #3875](https://github.com/PHPOffice/PhpSpreadsheet/issues/3875) [Issue #2146](https://github.com/PHPOffice/PhpSpreadsheet/issues/2146) [PR #3879](https://github.com/PHPOffice/PhpSpreadsheet/pull/3879)
+- Changes to floating point in Php8.4. [Issue #3896](https://github.com/PHPOffice/PhpSpreadsheet/issues/3896) [PR #3897](https://github.com/PHPOffice/PhpSpreadsheet/pull/3897)
+- Handling User-supplied Decimal and Thousands Separators. [Issue #3900](https://github.com/PHPOffice/PhpSpreadsheet/issues/3900) [PR #3903](https://github.com/PHPOffice/PhpSpreadsheet/pull/3903)
+- Improve Performance of CSV Writer. [Issue #3904](https://github.com/PHPOffice/PhpSpreadsheet/issues/3904) [PR #3906](https://github.com/PHPOffice/PhpSpreadsheet/pull/3906)
+- Fix issue with prepending zero in percentage [Issue #3920](https://github.com/PHPOffice/PhpSpreadsheet/issues/3920) [PR #3921](https://github.com/PHPOffice/PhpSpreadsheet/pull/3921)
+- Incorrect SUMPRODUCT Calculation [Issue #3909](https://github.com/PHPOffice/PhpSpreadsheet/issues/3909) [PR #3916](https://github.com/PHPOffice/PhpSpreadsheet/pull/3916)
+- Formula Misidentifying Text as Cell After Insertion/Deletion [Issue #3907](https://github.com/PHPOffice/PhpSpreadsheet/issues/3907) [PR #3915](https://github.com/PHPOffice/PhpSpreadsheet/pull/3915)
+- Unexpected Absolute Address in Xlsx Rels [Issue #3730](https://github.com/PHPOffice/PhpSpreadsheet/issues/3730) [PR #3923](https://github.com/PHPOffice/PhpSpreadsheet/pull/3923)
+- Unallocated Cells Affected by Column/Row Insert/Delete [Issue #3933](https://github.com/PHPOffice/PhpSpreadsheet/issues/3933) [PR #3940](https://github.com/PHPOffice/PhpSpreadsheet/pull/3940)
+- Invalid Builtin Defined Name in Xls Reader [Issue #3935](https://github.com/PHPOffice/PhpSpreadsheet/issues/3935) [PR #3942](https://github.com/PHPOffice/PhpSpreadsheet/pull/3942)
+- Hidden Rows and Columns Tcpdf/Mpdf [PR #3945](https://github.com/PHPOffice/PhpSpreadsheet/pull/3945)
+- RTL Text Alignment in Xlsx Comments [Issue #4004](https://github.com/PHPOffice/PhpSpreadsheet/issues/4004) [PR #4006](https://github.com/PHPOffice/PhpSpreadsheet/pull/4006)
+- Protect Sheet But Allow Sort [Issue #3951](https://github.com/PHPOffice/PhpSpreadsheet/issues/3951) [PR #3956](https://github.com/PHPOffice/PhpSpreadsheet/pull/3956)
+- Default Value for Conditional::$text [PR #3946](https://github.com/PHPOffice/PhpSpreadsheet/pull/3946)
+- Table Filter Buttons [Issue #3988](https://github.com/PHPOffice/PhpSpreadsheet/issues/3988) [PR #3992](https://github.com/PHPOffice/PhpSpreadsheet/pull/3992)
+- Improvements to Xml Reader [Issue #3999](https://github.com/PHPOffice/PhpSpreadsheet/issues/3999) [Issue #4000](https://github.com/PHPOffice/PhpSpreadsheet/issues/4000) [Issue #4001](https://github.com/PHPOffice/PhpSpreadsheet/issues/4001) [Issue #4002](https://github.com/PHPOffice/PhpSpreadsheet/issues/4002) [PR #4003](https://github.com/PHPOffice/PhpSpreadsheet/pull/4003) [PR #4007](https://github.com/PHPOffice/PhpSpreadsheet/pull/4007)
+- Html Reader non-UTF8 [Issue #3995](https://github.com/PHPOffice/PhpSpreadsheet/issues/3995) [Issue #866](https://github.com/PHPOffice/PhpSpreadsheet/issues/866) [Issue #1681](https://github.com/PHPOffice/PhpSpreadsheet/issues/1681) [PR #4019](https://github.com/PHPOffice/PhpSpreadsheet/pull/4019)
+
+## 2.0.0 - 2024-01-04
 
 ### BREAKING CHANGE
 

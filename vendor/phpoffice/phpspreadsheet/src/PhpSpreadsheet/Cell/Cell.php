@@ -175,6 +175,13 @@ class Cell implements Stringable
         return $this->value;
     }
 
+    public function getValueString(): string
+    {
+        $value = $this->value;
+
+        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
+    }
+
     /**
      * Get cell value with formatting.
      */
@@ -182,7 +189,7 @@ class Cell implements Stringable
     {
         return (string) NumberFormat::toFormattedString(
             $this->getCalculatedValue(),
-            (string) $this->getStyle()->getNumberFormat()->getFormatCode()
+            (string) $this->getStyle()->getNumberFormat()->getFormatCode(true)
         );
     }
 
@@ -334,6 +341,16 @@ class Cell implements Stringable
         }
 
         return $result;
+    }
+
+    /**
+     * Get calculated cell value converted to string.
+     */
+    public function getCalculatedValueString(): string
+    {
+        $value = $this->getCalculatedValue();
+
+        return ($value === '' || is_scalar($value) || $value instanceof Stringable) ? "$value" : '';
     }
 
     /**

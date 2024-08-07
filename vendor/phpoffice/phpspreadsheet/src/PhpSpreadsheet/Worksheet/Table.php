@@ -178,7 +178,7 @@ class Table implements Stringable
         foreach ($worksheet->getCoordinates(false) as $coordinate) {
             $cell = $worksheet->getCell($coordinate);
             if ($cell->getDataType() === DataType::TYPE_FORMULA) {
-                $formula = $cell->getValue();
+                $formula = $cell->getValueString();
                 if (preg_match($pattern, $formula) === 1) {
                     $formula = preg_replace($pattern, "{$newName}[", $formula);
                     $cell->setValueExplicit($formula, DataType::TYPE_FORMULA);
@@ -194,8 +194,8 @@ class Table implements Stringable
         foreach ($spreadsheet->getNamedFormulae() as $namedFormula) {
             $formula = $namedFormula->getValue();
             if (preg_match($pattern, $formula) === 1) {
-                $formula = preg_replace($pattern, "{$newName}[", $formula);
-                $namedFormula->setValue($formula); // @phpstan-ignore-line
+                $formula = preg_replace($pattern, "{$newName}[", $formula) ?? '';
+                $namedFormula->setValue($formula);
             }
         }
     }
@@ -506,7 +506,7 @@ class Table implements Stringable
     /**
      * Get table Style.
      */
-    public function getStyle(): Table\TableStyle
+    public function getStyle(): TableStyle
     {
         return $this->style;
     }

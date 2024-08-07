@@ -18,6 +18,7 @@ use InvalidArgumentException;
 use Stringable;
 use think\db\Raw;
 use think\helper\Str;
+use think\Model;
 use think\model\Relation;
 
 /**
@@ -31,6 +32,13 @@ trait Attribute
      * @var string|array
      */
     protected $pk = 'id';
+
+    /**
+     * 数据表主键自增.
+     *
+     * @var bool|null|string
+     */
+    protected $autoInc;
 
     /**
      * 数据表字段信息 留空则自动获取.
@@ -234,7 +242,7 @@ trait Attribute
         } elseif (is_object($data)) {
             $data = get_object_vars($data);
         }
-                
+
         // 清空数据
         $this->data = [];
 
