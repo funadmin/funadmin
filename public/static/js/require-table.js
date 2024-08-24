@@ -859,6 +859,7 @@ define(['timePicker'], function (timePicker) {
             table = layui.table ||　layui.treeTable;
             var checkStatus = table.checkStatus(tableId), data = checkStatus.data;
             var ids = [];
+            length = 0;
             if (url.indexOf('id=all') !== -1) {
                 ids = 'all';
                 length = __('All')
