@@ -39,7 +39,7 @@
     "doctrine/annotations": "^2.0.0",
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^2.0",
-    "guzzlehttp/guzzle": "^7.8",
+    "guzzlehttp/guzzle": "^7.9",
     "firebase/php-jwt": "*",
     "overtrue/pinyin": "^5.3"
   },
