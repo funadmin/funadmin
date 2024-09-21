@@ -531,7 +531,7 @@ define([], function () {
          * @returns {string}
          */
         buildLockScreenHtml:function(){
-            $str = '<div style="z-index: 999999" class="layui-carousel" id="lock-screen">\n' +
+            $str = '<style>.layui-carousel img{width: 100%;}</style><div style="z-index: 999999" class="layui-carousel" style="width: 100%;" id="lock-screen">\n' +
                 '  <div carousel-item="">\n' +
                 '    <div><img src="/static/backend/images/lockscreen/1.jpg"></div>\n' +
                 '    <div><img src="/static/backend/images/lockscreen/2.jpg"></div>\n' +
@@ -814,6 +814,7 @@ define([], function () {
                                         //清除密码
                                         Fun.api.setStorage('BackendLock', null);
                                         Fun.toastr.success(__('Unlock Success'));
+                                        $('#lock-screen').remove();
                                     } else {
                                         Fun.toastr.error(__('Password Error'));
                                         return false;
