@@ -1,6 +1,6 @@
 {
   "name": "funadmin/funadmin",
-  "description": "FunAdmin是一个基于thinkphp8,Layui,requirejs的k开发应用框架",
+  "description": "FunAdmin是一个基于thinkphp8,Layui,requirejs的应用框架",
   "type": "project",
   "license": "Apache-2.0",
   "keywords": [
