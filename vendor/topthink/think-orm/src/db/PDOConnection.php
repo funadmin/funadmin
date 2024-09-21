@@ -163,12 +163,16 @@ abstract class PDOConnection extends Connection
     protected $bindType = [
         'string'    => self::PARAM_STR,
         'str'       => self::PARAM_STR,
+        'bigint'    => self::PARAM_STR,
+        'set'       => self::PARAM_STR,
+        'enum'      => self::PARAM_STR,
         'integer'   => self::PARAM_INT,
         'int'       => self::PARAM_INT,
         'boolean'   => self::PARAM_BOOL,
         'bool'      => self::PARAM_BOOL,
         'float'     => self::PARAM_FLOAT,
         'datetime'  => self::PARAM_STR,
+        'date'      => self::PARAM_STR,
         'timestamp' => self::PARAM_STR,
     ];
 
@@ -292,27 +296,24 @@ abstract class PDOConnection extends Connection
      */
     protected function getFieldType(string $type): string
     {
+        // 将字段类型转换为小写以进行比较
         $type = strtolower($type);
 
-        switch (true) {
-            case strpos($type, 'set') === 0:
-            case strpos($type, 'enum') === 0:
-                return 'string';
-            case preg_match('/(double|float|decimal|real|numeric)/i', $type):
-                return 'float';
-            case preg_match('/(int|serial|bit)/i', $type):
-                return 'int';
-            case strpos($type, 'bool') !== false:
-                return 'bool';
-            case strpos($type, 'timestamp') === 0:
-                return 'timestamp';
-            case strpos($type, 'datetime') === 0:
-                return 'datetime';
-            case strpos($type, 'date') === 0:
-                return 'date';
-            default:
-                return 'string';
-        }
+        return match (true) {
+            str_starts_with($type, 'set') => 'set',
+            str_starts_with($type, 'enum') => 'enum',
+            str_starts_with($type, 'bigint') => 'bigint',
+            str_contains($type, 'float') || str_contains($type, 'double') ||
+            str_contains($type, 'decimal') || str_contains($type, 'real') ||
+            str_contains($type, 'numeric') => 'float',
+            str_contains($type, 'int') || str_contains($type, 'serial') ||
+            str_contains($type, 'bit') => 'int',
+            str_contains($type, 'bool') => 'bool',
+            str_starts_with($type, 'timestamp') => 'timestamp',
+            str_starts_with($type, 'datetime') => 'datetime',
+            str_starts_with($type, 'date') => 'date',
+            default => 'string',
+        };
     }
 
     /**
@@ -324,14 +325,7 @@ abstract class PDOConnection extends Connection
      */
     public function getFieldBindType(string $type): int
     {
-        return match (true) {
-            in_array($type, ['integer', 'string', 'float', 'boolean', 'bool', 'int', 'str']) => $this->bindType[$type],
-            str_starts_with($type, 'set'), str_starts_with($type, 'enum') => self::PARAM_STR,
-            preg_match('/(double|float|decimal|real|numeric)/i', $type)   => self::PARAM_FLOAT,
-            preg_match('/(int|serial|bit)/i', $type)                      => self::PARAM_INT,
-            preg_match('/bool/i', $type)                                  => self::PARAM_BOOL,
-            default                                                       => self::PARAM_STR,
-        };
+        return $this->bindType[$type] ?? self::PARAM_STR;
     }
 
     /**

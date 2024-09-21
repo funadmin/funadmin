@@ -246,6 +246,34 @@ class Fetch
     }
 
     /**
+     * 字段值增长
+     *
+     * @param string    $field 字段名
+     * @param float     $step  步进值
+     * @param int       $lazyTime 延迟时间（秒）
+     *
+     * @return string
+     */
+    public function setInc(string $field, float $step = 1, int $lazyTime = 0)
+    {
+        return $this->inc($field, $step)->update();
+    }
+
+    /**
+     * 字段值减少
+     *
+     * @param string    $field 字段名
+     * @param float     $step  步进值
+     * @param int       $lazyTime 延迟时间（秒）
+     *
+     * @return string
+     */
+    public function setDec(string $field, float $step = 1, int $lazyTime = 0)
+    {
+        return $this->dec($field, $step)->update();
+    }
+
+    /**
      * 更新记录.
      *
      * @param mixed $data 数据
@@ -500,8 +528,8 @@ class Fetch
             $field = Str::snake(substr($method, 5));
 
             return $this->where($field, '=', $args[0])->find();
-        } 
-        
+        }
+
         if (strtolower(substr($method, 0, 10)) == 'getfieldby') {
             // 根据某个字段获取记录的某个值
             $name = Str::snake(substr($method, 10));

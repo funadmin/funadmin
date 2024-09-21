@@ -274,6 +274,33 @@ trait WhereQuery
     }
 
     /**
+     * 指定json_contains查询条件.
+     *
+     * @param mixed  $field     查询字段
+     * @param mixed  $condition 查询条件
+     * @param string $logic     查询逻辑 and or xor
+     *
+     * @return $this
+     */
+    public function whereJsonContains(string $field, $condition, string $logic = 'AND')
+    {
+        if (str_contains($field, '->')) {
+            [$field1, $field2] = explode('->', $field);
+            $field             = 'json_extract(' . $field1 . ',\'$.' . $field2 . '\')';
+        }
+
+        $value       = is_string($condition) ? '"' . $condition . '"' : $condition;
+        $name        = $this->bindValue($value);
+        $bind[$name] = $value;
+        return $this->whereRaw('json_contains(' . $field . ',:' . $name . ')', $bind, $logic);
+    }
+
+    public function whereOrJsonContains(string $field, $condition)
+    {
+        return $this->whereJsonContains($field, $condition, 'OR');
+    }
+
+    /**
      * 比较两个字段.
      *
      * @param string $field1   查询字段

@@ -236,6 +236,12 @@ class HasOne extends OneToOne
                 [$foreignKey, 'in', $range],
             ], $foreignKey, $subRelation, $closure, $cache);
 
+            // 动态绑定参数
+            $bindAttr = $this->query->getOptions('bind_attr');
+            if ($bindAttr) {
+                $this->bind($bindAttr);
+            }
+
             // 关联数据封装
             foreach ($resultSet as $result) {
                 // 关联模型
@@ -292,6 +298,12 @@ class HasOne extends OneToOne
 
         // 设置关联属性
         $result->setRelation($relation, $relationModel);
+
+        // 动态绑定参数
+        $bindAttr = $this->query->getOptions('bind_attr');
+        if ($bindAttr) {
+            $this->bind($bindAttr);
+        }
 
         if (!empty($this->bindAttr)) {
             // 绑定关联属性

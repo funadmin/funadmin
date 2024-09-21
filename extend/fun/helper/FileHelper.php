@@ -71,7 +71,7 @@ class FileHelper
                 }
             } else {
                 @copy($item, $dest . DIRECTORY_SEPARATOR . $iterator->getSubPathName());
-                if($delete) unlink($item);
+                if($delete) @unlink($item);
             }
         }
         return true;

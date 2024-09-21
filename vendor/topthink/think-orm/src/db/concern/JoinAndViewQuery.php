@@ -215,7 +215,7 @@ trait JoinAndViewQuery
             }
         }
 
-        if (isset($options['order'])) {
+        if (empty($options['order'])) {
             return;
         }
         

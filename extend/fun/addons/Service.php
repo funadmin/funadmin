@@ -352,7 +352,7 @@ class Service extends \think\Service
                 if($delete) FileHelper::delDir(Service::getAddonsNamePath($name).$dir);
             }else{
                 @copy($sourcedir, app()->getBasePath() .DS.$dir);
-                if($delete) unlink($sourcedir);
+                if($delete) @unlink($sourcedir);
             }
         }
         $assetsDir = Service::getAssetsDir($name);
@@ -381,7 +381,7 @@ class Service extends \think\Service
                 }else{
                     if(!is_dir(dirname($addonPath .'app'. DS. $name))) @mkdir($addonPath .'app'. DS. $name,0755,true);
                     @copy($sourcedir,$addonPath .'app'.DS .$name . DS .$dir);
-                    if($delete) unlink($sourcedir);
+                    if($delete) @unlink($sourcedir);
                 }
             }
             @rmdir($appDir);

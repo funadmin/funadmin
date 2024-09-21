@@ -142,7 +142,7 @@ trait ModelRelationQuery
     protected function scopeQuery()
     {
         if (!empty($this->options['scope'])) {
-            foreach ($this->options['scope'] as $name => $val) {
+            foreach ($this->options['scope'] as $val) {
                 [$call, $args] = $val;
                 call_user_func_array($call, $args);
             }
@@ -197,11 +197,11 @@ trait ModelRelationQuery
      *
      * @param string|array $fields 搜索字段
      * @param mixed        $data   搜索数据
-     * @param string       $prefix 字段前缀标识
+     * @param bool         $strict 是否严格检查数据
      *
      * @return $this
      */
-    public function withSearch($fields, $data = [], string $prefix = '')
+    public function withSearch($fields, $data = [], bool $strict = true)
     {
         if (is_string($fields)) {
             $fields = explode(',', $fields);
@@ -211,14 +211,17 @@ trait ModelRelationQuery
 
         foreach ($fields as $key => $field) {
             if ($field instanceof Closure) {
-                $field($this, $data[$key] ?? null, $data, $prefix);
+                $field($this, $data[$key] ?? null, $data);
             } elseif ($this->model) {
-                // 检测搜索器
+                // 检查字段是否有数据
+                if ($strict && (!isset($data[$field]) || (empty($data[$field]) && !in_array($data[$field], ['0', 0])))) {
+                    continue;
+                }
+
                 $fieldName = is_numeric($key) ? $field : $key;
                 $method    = 'search' . Str::studly($fieldName) . 'Attr';
-
                 if (method_exists($this->model, $method)) {
-                    $this->model->$method($this, $data[$field] ?? null, $data, $prefix);
+                    $this->model->$method($this, $data[$field], $data);
                 } elseif (isset($data[$field])) {
                     $this->where($fieldName, in_array($fieldName, $likeFields) ? 'like' : '=', in_array($fieldName, $likeFields) ? '%' . $data[$field] . '%' : $data[$field]);
                 }
@@ -267,6 +270,19 @@ trait ModelRelationQuery
     {
         $this->options['default_model'] = $data;
 
+        return $this;
+    }
+
+    /**
+     * 设置关联模型的动态绑定
+     *
+     * @param array $attr 绑定数据
+     *
+     * @return $this
+     */
+    public function withBind(array $attr)
+    {
+        $this->options['bind_attr'] = $attr;
         return $this;
     }
 
@@ -672,11 +688,11 @@ trait ModelRelationQuery
 
         // 动态获取器
         if (!empty($this->options['with_attr'])) {
-            $result->withAttr($this->options['with_attr']);
+            $result->withFieldAttr($this->options['with_attr']);
         }
 
         foreach (['hidden', 'visible', 'append'] as $name) {
-            if (!empty($this->options[$name])) {
+            if (isset($this->options[$name])) {
                 $result->$name($this->options[$name]);
             }
         }

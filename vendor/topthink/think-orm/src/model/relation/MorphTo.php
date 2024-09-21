@@ -12,6 +12,7 @@
 
 namespace think\model\relation;
 
+use BackedEnum;
 use Closure;
 use think\db\exception\DbException as Exception;
 use think\db\Query;
@@ -173,8 +174,12 @@ class MorphTo extends Relation
      *
      * @return Model
      */
-    protected function parseModel(string $model): string
+    protected function parseModel($model): string
     {
+        if ($model instanceof BackedEnum) {
+            $model = $model->value;
+        }
+
         if (isset($this->alias[$model])) {
             $model = $this->alias[$model];
         }
