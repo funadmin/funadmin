@@ -219,15 +219,15 @@ class CurdService
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
         //普通模式
         $this->controllerNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . $this->controllerName : $this->controllerName;
-        $this->modelNamePrefix = $modelArr ? $modelArr[0] . '/' : '' . ($this->modelName);
+        $this->modelNamePrefix = !empty($modelArr[0]) ? $modelArr[0] . '/' : '' . ($this->modelName);
         $this->langNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::lower($this->controllerName) : Str::lower($this->controllerName);
         $this->indexNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
         $this->addNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
         if (!$this->addon) {//普通app应用或后台应用
             $this->controllerNamespace = 'app\\' . $this->app . '\\controller' . $nameSpace;
             $this->baseController = '\\app\\common\\controller\\Backend';
-            $this->modelNamespace = "app\\{$this->app}\\model" . ($modelArr ? '\\' . $modelArr[0] : '');
-            $this->validateNamespace = "app\\{$this->app}\\validate" . ($modelArr ? '\\' . $modelArr[0] : '');
+            $this->modelNamespace = "app\\{$this->app}\\model" . (!empty($modelArr[0]) ? '\\' . $modelArr[0] : '');
+            $this->validateNamespace = "app\\{$this->app}\\validate" . (!empty($modelArr[0]) ? '\\' . $modelArr[0] : '');
             $path = $this->rootPath . "app" . '/' . $this->app . '/';
             $this->fileList = [
                 'controllerFileName' =>
@@ -245,7 +245,6 @@ class CurdService
                 'addFileName' =>
                     $path . "view" . '/' . $this->indexNamePrefix . '/' . 'add.html',
             ];
-
         } else {
             //插件模式
             $this->controllerNamespace = "app\\{$this->addon}\\controller" . $nameSpace;
@@ -321,7 +320,7 @@ class CurdService
                 $joinName = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
                 if (!$this->addon) {
-                    $joinclass = "app" . '/' . $this->app . '/' . "model" . '/' . ($this->modelArr ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) ;
+                    $joinclass = "app" . '/' . $this->app . '/' . "model" . '/' . (!empty($this->modelArr[0]) ? $this->modelArr[0] . '/' : '') . ucfirst(Str::studly($this->joinTable[$k])) ;
                     $joinModelFile = $this->rootPath . $joinclass . '.php';
                 } else {
                     $joinclass =   "app" . '/' . $this->addon .'/'. "model" . '/' . ucfirst(Str::studly($this->joinTable[$k])) ;
