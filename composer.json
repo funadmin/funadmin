@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "keywords": [
     "FunAdmin","CMS","CMF","LowCode","Layui","TP8",
-    "easywechat", "framework","TP6","ORM",
+    "easywechat", "framework","TP6","ORM","低代码",
     "thinkphp", "thinkphp6","thinkphp8"
   ],
   "homepage": "https://www.funadmin.com",
@@ -25,7 +25,7 @@
   "require": {
     "php": ">=8.0.0",
     "ext-json": "*",
-    "topthink/framework": "^8.0",
+    "topthink/framework": "^8.0.3",
     "topthink/think-orm": "3.0.*",
     "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",
