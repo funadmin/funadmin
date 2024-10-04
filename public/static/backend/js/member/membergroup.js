@@ -21,6 +21,7 @@ define(['table','form'], function (Table,Form) {
                 url: Fun.url(Table.init.requests.index_url),
                 init: Table.init,
                 toolbar: ['refresh','add','destroy','export','recycle'],
+                searchType:1,
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
@@ -35,7 +36,7 @@ define(['table','form'], function (Table,Form) {
                         filter: 'status',
                         templet: Table.templet.switch
                     },
-                    {field: 'create_time', title: __('CreateTime'),search: 'range', width: 180,},
+                    {field: 'create_time', title: __('CreateTime'),search: 'range',filter:"timePicker", width: 180,},
                     {
                         minWidth: 250,
                         align: 'center',

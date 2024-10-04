@@ -337,7 +337,7 @@ define(['timePicker'], function (timePicker) {
                                 elem: formId +' [name="' + ncV.field + '"]',
                                 options: {timeStamp: false, format: ncV.timepickerformat},
                             })
-                            break
+                            break;
                     }
                 }
                 if (ncV.search === 'time' || ncV.search === 'date') {
