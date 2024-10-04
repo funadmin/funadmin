@@ -190,6 +190,7 @@ define(['table','form'], function (Table,Form) {
                 primaryKey: 'id',
                 // primaryKey:"member_id",
                 searchShow:true,
+                searchType:1,
                 // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','import','export','recycle'],
                 // toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],

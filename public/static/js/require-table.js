@@ -191,6 +191,9 @@ define(['timePicker'], function (timePicker) {
             tableId = options.id;
             cols = options.cols;
             show = Fun.param(options.searchShow, false) ? '' : 'layui-hide';
+            if(options.searchType){
+                show = 'layui-hide';
+            }
             cols = cols[0] || {};
             var newCols = [];
             var formHtml = '',formVal = {};
@@ -1118,11 +1121,43 @@ define(['timePicker'], function (timePicker) {
                             var id = othis.parents('div[lay-table-id]').attr('lay-table-id')  || othis.parents('div[lay-id]').attr('lay-id');
                             var searchFieldsetId = 'layui-search-field-' + id;
                             var _that = $("#" + searchFieldsetId);
-                            if (_that.hasClass("layui-hide")) {
-                                _that.removeClass('layui-hide')
-                            } else {
-                                _that.addClass('layui-hide')
+                            // 在此处输入 layer 的任意代码
+                            if(options.searchType){
+                                var drawer = layui.layer.open({
+                                    type: 1, // page 层类型
+                                    area: ['420px', '100%'],
+                                    title: __('SEARCH'),
+                                    offset: 'r',
+                                    shade: 0.1, // 遮罩透明度
+                                    shadeClose: true, // 点击遮罩区域，关闭弹层
+                                    maxmin: true, // 允许全屏最小化
+                                    anim: 'slideLeft',
+                                    content: _that,
+                                    success: function (layero, index, that) {
+                                        _that.removeClass('layui-hide')
+                                        if($(document).width()<=420){
+                                            _that.find('.layui-col-md3').css('width','100%');
+                                        }else{
+                                            _that.find('.layui-col-md3').css('width','50%');
+                                        }
+                                        layui.layer.style(index, {
+                                            maxWidth: '100%',
+                                            right:0,
+                                            left:'unset'
+                                        })
+                                    },
+                                    end: function () {
+                                        _that.addClass('layui-hide')
+                                    }
+                                });
+                            }else{
+                                 if (_that.hasClass("layui-hide")) {
+                                     _that.removeClass('layui-hide')
+                                } else {
+                                     _that.addClass('layui-hide')
+                                }
                             }
+
                             break;
                         case'refresh':
                             Table.events.refresh(othis);
