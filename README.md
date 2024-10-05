@@ -7,7 +7,7 @@ funadmin docker 版本请移步docker仓库
 funadmin前端和webman开发的后台管理系统
     </a></h3>
 
-<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V6.X最低支持PHP8.0</h3>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V6.X最低支持PHP8.1</h3>
 
 <h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">

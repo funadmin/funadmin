@@ -23,7 +23,7 @@
     "source": "https://gitee.com/funadmin/funadmin"
   },
   "require": {
-    "php": ">=8.0.0",
+    "php": ">=8.1.0",
     "ext-json": "*",
     "topthink/framework": "^8.0.3",
     "topthink/think-orm": "3.0.*",
