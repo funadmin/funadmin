@@ -110,8 +110,8 @@ class Index extends BaseController
                 $this->error('当前版本已经安装了，如果需要重新安装请先删除install.lock');
             }
             //php 版本
-            if (version_compare(PHP_VERSION, '8.0.0', '<')) {
-                $this->error('当前版本(" . PHP_VERSION . ")过低，请使用PHP8.0.0以上版本');
+            if (version_compare(PHP_VERSION, '8.1.0', '<')) {
+                $this->error('当前版本(" . PHP_VERSION . ")过低，请使用PHP8.1.0以上版本');
             }
             if (!extension_loaded("PDO")) {
                 $this->error('当前未开启PDO，无法进行安装');

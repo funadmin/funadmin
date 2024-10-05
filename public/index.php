@@ -13,9 +13,9 @@
 namespace think;
 use think\route\Url;
 
-if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
     header("Content-type: text/html; charset=utf-8");
-    die('PHP 8.0.0 及以上版本系统才可运行~ ');
+    die('PHP 8.1.0 及以上版本系统才可运行~ ');
 }
 if (!is_file($_SERVER['DOCUMENT_ROOT'] . '/install.lock')) {
     header('Location: /install.php/index');exit();
