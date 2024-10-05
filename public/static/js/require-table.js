@@ -1146,6 +1146,16 @@ define(['timePicker'], function (timePicker) {
                                             left:'unset'
                                         })
                                     },
+                                    restore: function (layero, index, that) {
+                                        if ($(document).width() <= 420) {
+                                            _that.find('.layui-col-md3').css('width', '100%');
+                                        } else {
+                                            _that.find('.layui-col-md3').css('width', '50%');
+                                        }
+                                    },
+                                     full: function(layero, index, that){
+                                           _that.find('.layui-col-md3').css('width','25%');
+                                     },
                                     end: function () {
                                         _that.addClass('layui-hide')
                                     }
