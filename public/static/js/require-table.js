@@ -246,7 +246,7 @@ define(['timePicker'], function (timePicker) {
                         case'select':
                             d.searchOp = '=';
                             var selectHtml = '';
-                            selectList = d.selectList || Fun.api.getData(d.url) || {};
+                            selectList = d.selectList || d.searchList || Fun.api.getData(d.url) || {};
                             prop =  (d.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
                             if(prop){ prop = prop[2];}else{prop = d.prop;}
                             if (prop) {prop = prop.split(',');}
@@ -387,6 +387,7 @@ define(['timePicker'], function (timePicker) {
             var newclos = options.cols[0];
             layui.each(newclos, function (i, d) {
                 d.init = options.init;
+                d.selectList = d.selectList || d.searchList;
                 newclos[i]['primaryKey'] = options.primaryKey;
                 if (d.align === undefined) {
                     newclos[i]['align'] = 'center';
@@ -452,7 +453,7 @@ define(['timePicker'], function (timePicker) {
                 }
             },tags: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
-                var selectList = ele.selectList || Fun.api.getData(ele.url) || {};
+                var selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
                 var content = eval('d.' + ele.field), prop =  (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
                 if(prop){ prop = prop[2];}else{prop = ele.prop;}if(prop) prop = prop.split(',');
                 op = d.search ? d.searchOp : '%*%';
@@ -514,7 +515,7 @@ define(['timePicker'], function (timePicker) {
                 return Table.templet.resolution(d, ele)
             },dropdown: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
-                ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};
+                ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
                 value = Table.templet.resolution(d, ele);extend = [];
                 init = ele.init;
                 layui.each(ele.selectList, function (i, v) {
@@ -533,7 +534,7 @@ define(['timePicker'], function (timePicker) {
                 return $html = "<a class= '' lay-event='dropdown' data-extend = '"+JSON.stringify(extend)+"' > "+ele.selectList[value]+"   <i class='layui-icon layui-icon-down layui-font-12'></i></a>";
             },selects: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
-                ele.selectList = ele.selectList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
+                ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
                 ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 value = Table.templet.resolution(d, ele)
                 $html = '<select class="layui-border" data-url="'+ ele.saveurl +'" data-tableid="'+ele.init.tableId+'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"   lay-search="">\n' +
@@ -545,6 +546,7 @@ define(['timePicker'], function (timePicker) {
                 $html += '</select>';
                 return $html;
             }, switch: function (d) {
+                ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
                 var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
@@ -554,7 +556,7 @@ define(['timePicker'], function (timePicker) {
                 return '<input data-tableid="'+ele.init.tableId+'" data-url="' + ele.saveurl  + '" data-tips="'+ele.tips+'" type="checkbox" name="' + ele.field + '" value="' + d[ele.primaryKey] + '" lay-skin="switch" lay-text="' + ele.text + '" lay-filter="' + ele.filter + '" ' + checked + ' >'
             },select: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
-                ele.selectList = ele.selectList || Fun.api.getData((ele.url)) || {};
+                ele.selectList = ele.selectList || ele.searchList || Fun.api.getData((ele.url)) || {};
                 value = Table.templet.resolution(d, ele);
                 if (!ele.selectList[value]) {
                     return Table.getBadge(d, ele, value, __(value), 2)
