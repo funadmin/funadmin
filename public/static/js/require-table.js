@@ -546,8 +546,9 @@ define(['timePicker'], function (timePicker) {
                 $html += '</select>';
                 return $html;
             }, switch: function (d) {
+                var ele = $(this)[0];
                 ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
-                var ele = $(this)[0];ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
+                ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
                 ele.tips = ele.tips || 'switch';
