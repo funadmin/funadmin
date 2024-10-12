@@ -72,7 +72,7 @@ abstract class OneToOne extends Relation
      *
      * @return void
      */
-    public function eagerly(Query $query, string $relation, $field = true, string $joinType = '', Closure $closure = null, bool $first = false): void
+    public function eagerly(Query $query, string $relation, $field = true, string $joinType = '', ?Closure $closure = null, bool $first = false): void
     {
         $name = Str::snake(class_basename($this->parent));
 
@@ -140,7 +140,7 @@ abstract class OneToOne extends Relation
      *
      * @return mixed
      */
-    abstract protected function eagerlySet(array &$resultSet, string $relation, array $subRelation = [], Closure $closure = null);
+    abstract protected function eagerlySet(array &$resultSet, string $relation, array $subRelation = [], ?Closure $closure = null);
 
     /**
      * 预载入关联查询（数据）.
@@ -152,7 +152,7 @@ abstract class OneToOne extends Relation
      *
      * @return mixed
      */
-    abstract protected function eagerlyOne(Model $result, string $relation, array $subRelation = [], Closure $closure = null);
+    abstract protected function eagerlyOne(Model $result, string $relation, array $subRelation = [], ?Closure $closure = null);
 
     /**
      * 预载入关联查询（数据集）.
@@ -166,7 +166,7 @@ abstract class OneToOne extends Relation
      *
      * @return void
      */
-    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation = [], Closure $closure = null, array $cache = [], bool $join = false): void
+    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = [], bool $join = false): void
     {
         if ($join) {
             // 模型JOIN关联组装
@@ -191,7 +191,7 @@ abstract class OneToOne extends Relation
      *
      * @return void
      */
-    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], Closure $closure = null, array $cache = [], bool $join = false): void
+    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = [], bool $join = false): void
     {
         if ($join) {
             // 模型JOIN关联组装
@@ -313,7 +313,7 @@ abstract class OneToOne extends Relation
      *
      * @return void
      */
-    protected function bindAttr(Model $result, Model $model = null): void
+    protected function bindAttr(Model $result, ?Model $model = null): void
     {
         foreach ($this->bindAttr as $key => $attr) {
             if (is_numeric($key)) {
@@ -349,7 +349,7 @@ abstract class OneToOne extends Relation
      *
      * @return array
      */
-    protected function eagerlyWhere(array $where, string $key, array $subRelation = [], Closure $closure = null, array $cache = [])
+    protected function eagerlyWhere(array $where, string $key, array $subRelation = [], ?Closure $closure = null, array $cache = [])
     {
         // 预载入关联查询 支持嵌套预载入
         if ($closure) {

@@ -30,7 +30,7 @@ trait JoinAndViewQuery
      *
      * @return $this
      */
-    public function join(array | string | Raw $join, string $condition = null, string $type = 'INNER', array $bind = [])
+    public function join(array | string | Raw $join, ?string $condition = null, string $type = 'INNER', array $bind = [])
     {
         $table = $this->getJoinTable($join);
 
@@ -52,7 +52,7 @@ trait JoinAndViewQuery
      *
      * @return $this
      */
-    public function leftJoin(array | string | Raw $join, string $condition = null, array $bind = [])
+    public function leftJoin(array | string | Raw $join, ?string $condition = null, array $bind = [])
     {
         return $this->join($join, $condition, 'LEFT', $bind);
     }
@@ -66,7 +66,7 @@ trait JoinAndViewQuery
      *
      * @return $this
      */
-    public function rightJoin(array | string | Raw $join, string $condition = null, array $bind = [])
+    public function rightJoin(array | string | Raw $join, ?string $condition = null, array $bind = [])
     {
         return $this->join($join, $condition, 'RIGHT', $bind);
     }
@@ -80,9 +80,9 @@ trait JoinAndViewQuery
      *
      * @return $this
      */
-    public function fullJoin(array | string | Raw $join, string $condition = null, array $bind = [])
+    public function fullJoin(array | string | Raw $join, ?string $condition = null, array $bind = [])
     {
-        return $this->join($join, $condition, 'FULL');
+        return $this->join($join, $condition, 'FULL', $bind);
     }
 
     /**
@@ -94,7 +94,7 @@ trait JoinAndViewQuery
      *
      * @return string|array
      */
-    protected function getJoinTable(array | string | Raw $join, string &$alias = null)
+    protected function getJoinTable(array | string | Raw $join, ?string &$alias = null)
     {
         if (is_array($join)) {
             $table = $join;
@@ -146,7 +146,7 @@ trait JoinAndViewQuery
      *
      * @return $this
      */
-    public function view(array | string | Raw $join, string | array | bool $field = true, string $on = null, string $type = 'INNER', array $bind = []): self
+    public function view(array | string | Raw $join, string | array | bool $field = true, ?string $on = null, string $type = 'INNER', array $bind = []): self
     {
         $this->options['view'] = true;
 

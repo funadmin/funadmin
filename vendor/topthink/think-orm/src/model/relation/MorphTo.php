@@ -64,7 +64,7 @@ class MorphTo extends Relation
      * @param array   $alias     多态别名定义
      * @param ?string $relation  关联名
      */
-    public function __construct(Model $parent, string $morphType, string $morphKey, array $alias = [], string $relation = null)
+    public function __construct(Model $parent, string $morphType, string $morphKey, array $alias = [], ?string $relation = null)
     {
         $this->parent       = $parent;
         $this->morphType    = $morphType;
@@ -94,7 +94,7 @@ class MorphTo extends Relation
      *
      * @return Model
      */
-    public function getRelation(array $subRelation = [], Closure $closure = null)
+    public function getRelation(array $subRelation = [], ?Closure $closure = null)
     {
         $morphKey   = $this->morphKey;
         $morphType  = $this->morphType;
@@ -125,7 +125,7 @@ class MorphTo extends Relation
      *
      * @return Query
      */
-    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', Query $query = null)
+    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', ?Query $query = null)
     {
         return $this->parent;
     }
@@ -140,7 +140,7 @@ class MorphTo extends Relation
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, string $joinType = '', Query $query = null)
+    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null)
     {
         $alias = class_basename($this->parent);
         $types = $this->parent->distinct()->column($this->morphType);
@@ -231,7 +231,7 @@ class MorphTo extends Relation
      *
      * @return void
      */
-    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation, Closure $closure = null, array $cache = []): void
+    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation, ?Closure $closure = null, array $cache = []): void
     {
         $morphKey   = $this->morphKey;
         $morphType  = $this->morphType;
@@ -293,7 +293,7 @@ class MorphTo extends Relation
      *
      * @return void
      */
-    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], Closure $closure = null, array $cache = []): void
+    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = []): void
     {
         // 多态类型映射
         $model = $this->parseModel($result->{$this->morphType});
@@ -311,7 +311,7 @@ class MorphTo extends Relation
      *
      * @return int
      */
-    public function relationCount(Model $result, Closure $closure = null, string $aggregate = 'count', string $field = '*')
+    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = '*')
     {
     }
 

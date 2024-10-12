@@ -508,7 +508,7 @@ abstract class PDOConnection extends Connection
      *
      * @return array|string
      */
-    public function getFieldsType($tableName, string $field = null)
+    public function getFieldsType($tableName, ?string $field = null)
     {
         $result = $this->getTableInfo($tableName, 'type');
 
@@ -711,7 +711,7 @@ abstract class PDOConnection extends Connection
      *
      * @return array
      */
-    protected function pdoQuery(BaseQuery $query, $sql, bool $master = null): array
+    protected function pdoQuery(BaseQuery $query, $sql, ?bool $master = null): array
     {
         // 分析查询表达式
         $query->parseOptions();
@@ -1738,7 +1738,7 @@ abstract class PDOConnection extends Connection
      *
      * @return mixed
      */
-    public function getLastInsID(BaseQuery $query, string $sequence = null)
+    public function getLastInsID(BaseQuery $query, ?string $sequence = null)
     {
         try {
             $insertId = $this->linkID->lastInsertId($sequence);

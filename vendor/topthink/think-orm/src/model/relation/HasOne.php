@@ -51,7 +51,7 @@ class HasOne extends OneToOne
      *
      * @return Model
      */
-    public function getRelation(array $subRelation = [], Closure $closure = null)
+    public function getRelation(array $subRelation = [], ?Closure $closure = null)
     {
         $localKey = $this->localKey;
 
@@ -91,7 +91,7 @@ class HasOne extends OneToOne
      *
      * @return string
      */
-    public function getRelationCountQuery(Closure $closure = null, string $aggregate = 'count', string $field = '*', string &$name = null): string
+    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null): string
     {
         if ($closure) {
             $closure($this->query, $name);
@@ -114,7 +114,7 @@ class HasOne extends OneToOne
      *
      * @return int
      */
-    public function relationCount(Model $result, Closure $closure = null, string $aggregate = 'count', string $field = '*', string &$name = null)
+    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null)
     {
         $localKey = $this->localKey;
 
@@ -142,7 +142,7 @@ class HasOne extends OneToOne
      *
      * @return Query
      */
-    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', Query $query = null): Query
+    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', ?Query $query = null): Query
     {
         $table      = $this->query->getTable();
         $model      = class_basename($this->parent);
@@ -172,7 +172,7 @@ class HasOne extends OneToOne
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, string $joinType = '', Query $query = null): Query
+    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null): Query
     {
         $table    = $this->query->getTable();
         $model    = class_basename($this->parent);
@@ -214,7 +214,7 @@ class HasOne extends OneToOne
      *
      * @return void
      */
-    protected function eagerlySet(array &$resultSet, string $relation, array $subRelation = [], Closure $closure = null, array $cache = []): void
+    protected function eagerlySet(array &$resultSet, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = []): void
     {
         $localKey   = $this->localKey;
         $foreignKey = $this->foreignKey;
@@ -275,7 +275,7 @@ class HasOne extends OneToOne
      *
      * @return void
      */
-    protected function eagerlyOne(Model $result, string $relation, array $subRelation = [], Closure $closure = null, array $cache = []): void
+    protected function eagerlyOne(Model $result, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = []): void
     {
         $localKey   = $this->localKey;
         $foreignKey = $this->foreignKey;

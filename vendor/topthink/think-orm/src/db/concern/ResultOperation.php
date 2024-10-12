@@ -35,7 +35,7 @@ trait ResultOperation
      *
      * @return $this
      */
-    public function filter(callable $filter, string $index = null)
+    public function filter(callable $filter, ?string $index = null)
     {
         if ($index) {
             $this->options['filter'][$index] = $filter;
@@ -162,7 +162,7 @@ trait ResultOperation
      *
      * @return array|Model|null|static
      */
-    protected function resultToEmpty($closure = null)
+    protected function resultToEmpty(?Closure $closure = null)
     {
         if (!empty($this->options['fail'])) {
             $this->throwNotFound();

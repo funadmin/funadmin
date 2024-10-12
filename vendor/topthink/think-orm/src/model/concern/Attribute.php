@@ -116,7 +116,7 @@ trait Attribute
     /**
      * Enum数据取出自动转换为name.
      *
-     * @var bool
+     * @var bool|string
      */
     protected $enumReadName = false;
 
@@ -323,7 +323,7 @@ trait Attribute
      *
      * @return mixed
      */
-    public function getOrigin(string $name = null)
+    public function getOrigin(?string $name = null)
     {
         if (is_null($name)) {
             return $this->origin;
@@ -343,7 +343,7 @@ trait Attribute
      *
      * @return mixed
      */
-    public function getData(string $name = null)
+    public function getData(?string $name = null)
     {
         if (is_null($name)) {
             return $this->data;
@@ -567,7 +567,7 @@ trait Attribute
             } else {
                 $closure = $this->withAttr[$fieldName];
                 if ($closure instanceof \Closure) {
-                    $value = $closure($value, $this->data);
+                    $value = $closure($value, $this->data, $this);
                 }
             }
         } elseif (method_exists($this, $method)) {
@@ -669,7 +669,8 @@ trait Attribute
                     if (is_subclass_of($type, EnumTransform::class)) {
                         $value = $value->value();
                     } elseif ($model->enumReadName) {
-                        $value = $value->name;
+                        $method = $model->enumReadName;
+                        $value  = is_string($method) ? $value->$method() : $value->name;
                     }
                 } else {
                     // 对象类型
@@ -703,7 +704,7 @@ trait Attribute
      *
      * @return $this
      */
-    public function withFieldAttr(string | array $name, Closure $callback = null)
+    public function withFieldAttr(string | array $name, ?Closure $callback = null)
     {
         if (is_array($name)) {
             foreach ($name as $key => $val) {
@@ -711,6 +712,7 @@ trait Attribute
             }
         } else {
             $name = $this->getRealFieldName($name);
+            $this->append([$name], true);
 
             if (str_contains($name, '.')) {
                 [$name, $key] = explode('.', $name);
@@ -720,6 +722,20 @@ trait Attribute
                 $this->withAttr[$name] = $callback;
             }
         }
+
+        return $this;
+    }
+
+    /**
+     * 设置枚举类型自动读取数据方式
+     * true 表示使用name值返回
+     * 字符串 表示使用枚举类的方法返回
+     *
+     * @return $this
+     */
+    public function withEnumRead(bool | string $method = true)
+    {
+        $this->enumReadName = $method;
 
         return $this;
     }

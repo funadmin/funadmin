@@ -50,7 +50,7 @@ trait ParamsBind
      *
      * @return string
      */
-    public function bindValue($value, int $type = null, string $name = null)
+    public function bindValue($value, ?int $type = null, ?string $name = null)
     {
         $name = $name ?: 'ThinkBind_' . (count($this->bind) + 1) . '_' . mt_rand() . '_';
 

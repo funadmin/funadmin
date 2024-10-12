@@ -895,17 +895,17 @@
         },
         {
             "name": "maennchen/zipstream-php",
-            "version": "3.1.0",
-            "version_normalized": "3.1.0.0",
+            "version": "3.1.1",
+            "version_normalized": "3.1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/maennchen/ZipStream-PHP.git",
-                "reference": "b8174494eda667f7d13876b4a7bfef0f62a7c0d1"
+                "reference": "6187e9cc4493da94b9b63eb2315821552015fca9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/maennchen/ZipStream-PHP/zipball/b8174494eda667f7d13876b4a7bfef0f62a7c0d1",
-                "reference": "b8174494eda667f7d13876b4a7bfef0f62a7c0d1",
+                "url": "https://api.github.com/repos/maennchen/ZipStream-PHP/zipball/6187e9cc4493da94b9b63eb2315821552015fca9",
+                "reference": "6187e9cc4493da94b9b63eb2315821552015fca9",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -932,7 +932,7 @@
                 "guzzlehttp/psr7": "^2.4",
                 "psr/http-message": "^2.0"
             },
-            "time": "2023-06-21T14:59:35+00:00",
+            "time": "2024-10-10T12:33:01+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -969,16 +969,12 @@
             ],
             "support": {
                 "issues": "https://github.com/maennchen/ZipStream-PHP/issues",
-                "source": "https://github.com/maennchen/ZipStream-PHP/tree/3.1.0"
+                "source": "https://github.com/maennchen/ZipStream-PHP/tree/3.1.1"
             },
             "funding": [
                 {
                     "url": "https://github.com/maennchen",
                     "type": "github"
-                },
-                {
-                    "url": "https://opencollective.com/zipstream",
-                    "type": "open_collective"
                 }
             ],
             "install-path": "../maennchen/zipstream-php"
@@ -3029,17 +3025,17 @@
         },
         {
             "name": "topthink/think-orm",
-            "version": "v3.0.27",
-            "version_normalized": "3.0.27.0",
+            "version": "v3.0.28",
+            "version_normalized": "3.0.28.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-orm.git",
-                "reference": "9c691f6bedc8a47103767a9a682810308c30c010"
+                "reference": "407dfd782b6124b2a33c9867e9c09041f36fb4ba"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-orm/zipball/9c691f6bedc8a47103767a9a682810308c30c010",
-                "reference": "9c691f6bedc8a47103767a9a682810308c30c010",
+                "url": "https://api.github.com/repos/top-think/think-orm/zipball/407dfd782b6124b2a33c9867e9c09041f36fb4ba",
+                "reference": "407dfd782b6124b2a33c9867e9c09041f36fb4ba",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -3062,7 +3058,7 @@
             "suggest": {
                 "ext-mongodb": "provide mongodb support"
             },
-            "time": "2024-09-11T01:29:29+00:00",
+            "time": "2024-10-10T02:14:17+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -3090,7 +3086,7 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/think-orm/issues",
-                "source": "https://github.com/top-think/think-orm/tree/v3.0.27"
+                "source": "https://github.com/top-think/think-orm/tree/v3.0.28"
             },
             "install-path": "../topthink/think-orm"
         },

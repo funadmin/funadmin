@@ -294,7 +294,7 @@ trait ModelRelationQuery
      *
      * @return $this
      */
-    public function withAttr(string | array $name, callable $callback = null)
+    public function withAttr(string | array $name, ?callable $callback = null)
     {
         if (is_array($name)) {
             foreach ($name as $key => $val) {
@@ -425,7 +425,7 @@ trait ModelRelationQuery
      *
      * @return $this
      */
-    public function withCache(string | array | bool $relation = true, $key = true, $expire = null, string $tag = null)
+    public function withCache(string | array | bool $relation = true, $key = true, $expire = null, ?string $tag = null)
     {
         if (empty($this->model)) {
             return $this;

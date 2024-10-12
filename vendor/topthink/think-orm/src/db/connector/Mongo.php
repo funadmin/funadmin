@@ -199,7 +199,7 @@ class Mongo extends Connection
      *
      * @return string
      */
-    public function db(string $db = null)
+    public function db(?string $db = null)
     {
         if (is_null($db)) {
             return $this->dbName;
@@ -444,7 +444,7 @@ class Mongo extends Connection
      *
      * @return array
      */
-    public function command(Command $command, string $dbName = '', ReadPreference $readPreference = null, $typeMap = null, bool $master = false): array
+    public function command(Command $command, string $dbName = '', ?ReadPreference $readPreference = null, $typeMap = null, bool $master = false): array
     {
         $this->initConnect($master);
         $this->db->updateQueryTimes();
@@ -778,7 +778,7 @@ class Mongo extends Connection
      *
      * @return mixed
      */
-    public function getLastInsID(BaseQuery $query, string $sequence = null)
+    public function getLastInsID(BaseQuery $query, ?string $sequence = null)
     {
         $id = $this->builder->getLastInsID();
 

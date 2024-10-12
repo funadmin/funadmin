@@ -310,7 +310,7 @@ trait WhereQuery
      *
      * @return $this
      */
-    public function whereColumn(string $field1, string $operator, string $field2 = null, string $logic = 'AND')
+    public function whereColumn(string $field1, string $operator, ?string $field2 = null, string $logic = 'AND')
     {
         if (is_null($field2)) {
             $field2   = $operator;
@@ -607,7 +607,7 @@ trait WhereQuery
      *
      * @return $this
      */
-    public function when($condition, Closure | array $query, Closure | array $otherwise = null): self
+    public function when($condition, Closure | array $query, Closure | array | null $otherwise = null): self
     {
         // 处理条件为 Closure 的情况
         if ($condition instanceof Closure) {

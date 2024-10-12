@@ -105,7 +105,7 @@ trait RelationShip
      *
      * @return mixed
      */
-    public function getRelation(string $name = null, bool $auto = false)
+    public function getRelation(?string $name = null, bool $auto = false)
     {
         if (is_null($name)) {
             return $this->relation;
@@ -213,7 +213,7 @@ trait RelationShip
      *
      * @return Query
      */
-    public static function has(string $relation, string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', Query $query = null): Query
+    public static function has(string $relation, string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', ?Query $query = null): Query
     {
         return (new static())
             ->$relation()
@@ -231,7 +231,7 @@ trait RelationShip
      *
      * @return Query
      */
-    public static function hasWhere(string $relation, $where = [], string $fields = '*', string $joinType = '', Query $query = null): Query
+    public static function hasWhere(string $relation, $where = [], string $fields = '*', string $joinType = '', ?Query $query = null): Query
     {
         return (new static())
             ->$relation()
@@ -250,7 +250,7 @@ trait RelationShip
      *
      * @return bool
      */
-    public function eagerly(Query $query, string $relation, $field, string $joinType = '', Closure $closure = null, bool $first = false): bool
+    public function eagerly(Query $query, string $relation, $field, string $joinType = '', ?Closure $closure = null, bool $first = false): bool
     {
         $relation   = Str::camel($relation);
         $class      = $this->$relation();
@@ -586,7 +586,7 @@ trait RelationShip
      *
      * @return MorphOne
      */
-    public function morphOne(string $model, string|array $morph = null, string $type = ''): MorphOne
+    public function morphOne(string $model, string|array|null $morph = null, string $type = ''): MorphOne
     {
         // 记录当前关联信息
         $model = $this->parseModel($model);
@@ -612,7 +612,7 @@ trait RelationShip
      *
      * @return MorphMany
      */
-    public function morphMany(string $model, string|array $morph = null, string $type = ''): MorphMany
+    public function morphMany(string $model, string|array|null $morph = null, string $type = ''): MorphMany
     {
         // 记录当前关联信息
         $model = $this->parseModel($model);
@@ -637,7 +637,7 @@ trait RelationShip
      *
      * @return MorphTo
      */
-    public function morphTo(string|array $morph = null, array $alias = []): MorphTo
+    public function morphTo(string|array|null $morph = null, array $alias = []): MorphTo
     {
         $trace      = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
         $relation   = Str::snake($trace[1]['function']);
@@ -661,7 +661,7 @@ trait RelationShip
      *
      * @return MorphToMany
      */
-    public function morphToMany(string $model, string $middle, string|array $morph = null, string $localKey = null): MorphToMany
+    public function morphToMany(string $model, string $middle, string|array|null $morph = null, ?string $localKey = null): MorphToMany
     {
         if (is_null($morph)) {
             $morph = $middle;
@@ -686,7 +686,7 @@ trait RelationShip
      *
      * @return MorphToMany
      */
-    public function morphByMany(string $model, string $middle, string|array $morph = null, string $foreignKey = null): MorphToMany
+    public function morphByMany(string $model, string $middle, string|array|null $morph = null, ?string $foreignKey = null): MorphToMany
     {
         if (is_null($morph)) {
             $morph = $middle;

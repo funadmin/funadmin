@@ -348,7 +348,7 @@ abstract class BaseQuery
      *
      * @return mixed
      */
-    public function getLastInsID(string $sequence = null)
+    public function getLastInsID(?string $sequence = null)
     {
         return $this->connection->getLastInsID($this, $sequence);
     }
@@ -636,7 +636,7 @@ abstract class BaseQuery
      *
      * @return $this
      */
-    public function limit(int $offset, int $length = null)
+    public function limit(int $offset, ?int $length = null)
     {
         $this->options['limit'] = $offset . ($length ? ',' . $length : '');
 
@@ -651,7 +651,7 @@ abstract class BaseQuery
      *
      * @return $this
      */
-    public function page(int $page, int $listRows = null)
+    public function page(int $page, ?int $listRows = null)
     {
         $this->options['page'] = [$page, $listRows];
 
@@ -796,7 +796,7 @@ abstract class BaseQuery
      *
      * @throws Exception
      */
-    public function paginate(int | array $listRows = null, int | bool $simple = false): Paginator
+    public function paginate(int | array | null $listRows = null, int | bool $simple = false): Paginator
     {
         if (is_int($simple)) {
             $total  = $simple;
@@ -862,7 +862,7 @@ abstract class BaseQuery
      *
      * @throws Exception
      */
-    public function paginateX(int | array $listRows = null, string $key = null, string $sort = null): Paginator
+    public function paginateX(int | array | null $listRows = null, ?string $key = null, ?string $sort = null): Paginator
     {
         $defaultConfig = [
             'query' => [], //url额外参数
@@ -935,7 +935,7 @@ abstract class BaseQuery
      *
      * @throws Exception
      */
-    public function more(int $limit, int | string $lastId = null, string $key = null, string $sort = null): array
+    public function more(int $limit, int | string | null $lastId = null, ?string $key = null, ?string $sort = null): array
     {
         $key = $key ?: $this->getPk();
 
@@ -1103,7 +1103,7 @@ abstract class BaseQuery
      *
      * @return $this
      */
-    public function sequence(string $sequence = null)
+    public function sequence(?string $sequence = null)
     {
         $this->options['sequence'] = $sequence;
 
@@ -1447,7 +1447,7 @@ abstract class BaseQuery
      *
      * @return mixed
      */
-    public function find($data = null, Closure $closure = null)
+    public function find($data = null, ?Closure $closure = null)
     {
         if ($data instanceof Closure) {
             $closure = $data;

@@ -198,7 +198,7 @@ class Fetch
      *
      * @return string
      */
-    public function insertAll(array $dataSet = [], int $limit = null): string
+    public function insertAll(array $dataSet = [], ?int $limit = null): string
     {
         $options = $this->query->parseOptions();
 

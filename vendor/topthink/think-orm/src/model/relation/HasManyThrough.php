@@ -76,7 +76,7 @@ class HasManyThrough extends Relation
      *
      * @return Collection
      */
-    public function getRelation(array $subRelation = [], Closure $closure = null)
+    public function getRelation(array $subRelation = [], ?Closure $closure = null)
     {
         if ($closure) {
             $closure($this->query);
@@ -100,7 +100,7 @@ class HasManyThrough extends Relation
      *
      * @return Query
      */
-    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', Query $query = null): Query
+    public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', ?Query $query = null): Query
     {
         $model         = Str::snake(class_basename($this->parent));
         $throughTable  = $this->through->getTable();
@@ -135,7 +135,7 @@ class HasManyThrough extends Relation
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, $joinType = '', Query $query = null): Query
+    public function hasWhere($where = [], $fields = null, $joinType = '', ?Query $query = null): Query
     {
         $model        = Str::snake(class_basename($this->parent));
         $throughTable = $this->through->getTable();
@@ -181,7 +181,7 @@ class HasManyThrough extends Relation
      *
      * @return void
      */
-    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation = [], Closure $closure = null, array $cache = []): void
+    public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = []): void
     {
         $localKey   = $this->localKey;
         $foreignKey = $this->foreignKey;
@@ -225,7 +225,7 @@ class HasManyThrough extends Relation
      *
      * @return void
      */
-    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], Closure $closure = null, array $cache = []): void
+    public function eagerlyResult(Model $result, string $relation, array $subRelation = [], ?Closure $closure = null, array $cache = []): void
     {
         $localKey   = $this->localKey;
         $foreignKey = $this->foreignKey;
@@ -256,7 +256,7 @@ class HasManyThrough extends Relation
      *
      * @return array
      */
-    protected function eagerlyWhere(array $where, string $key, array $subRelation = [], Closure $closure = null, array $cache = []): array
+    protected function eagerlyWhere(array $where, string $key, array $subRelation = [], ?Closure $closure = null, array $cache = []): array
     {
         // 预载入关联查询 支持嵌套预载入
         $throughList = $this->through->where($where)->select();
@@ -311,7 +311,7 @@ class HasManyThrough extends Relation
      *
      * @return mixed
      */
-    public function relationCount(Model $result, Closure $closure = null, string $aggregate = 'count', string $field = '*', string &$name = null)
+    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null)
     {
         $localKey = $this->localKey;
 
@@ -351,7 +351,7 @@ class HasManyThrough extends Relation
      *
      * @return string
      */
-    public function getRelationCountQuery(Closure $closure = null, string $aggregate = 'count', string $field = '*', string &$name = null): string
+    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null): string
     {
         if ($closure) {
             $closure($this->query, $name);
