@@ -3,7 +3,7 @@
         'name' => 'funadmin/funadmin',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'b08ecfcd54fcadff13b4ce728df3cf98a331efe4',
+        'reference' => '2c1f37c4d016332b0a8fb8118d38ee49c55c8e44',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -58,7 +58,7 @@
         'funadmin/funadmin' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'b08ecfcd54fcadff13b4ce728df3cf98a331efe4',
+            'reference' => '2c1f37c4d016332b0a8fb8118d38ee49c55c8e44',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

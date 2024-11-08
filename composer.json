@@ -31,7 +31,7 @@
     "topthink/think-image": "^1.0",
     "topthink/think-captcha": "^3.0.9",
     "topthink/think-helper": "^3.1",
-    "topthink/think-multi-app": "^1.0",
+    "topthink/think-multi-app": "^1.0.17",
     "topthink/think-filesystem": "^2.0",
     "topthink/think-trace": "^1.6",
     "topthink/think-queue": "^3.0",
