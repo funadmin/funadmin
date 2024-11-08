@@ -522,17 +522,17 @@
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "1.5.3",
-            "version_normalized": "1.5.3.0",
+            "version": "2.0.3",
+            "version_normalized": "2.0.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "67ab6e18aaa14d753cc148911d273f6e6cb6721e"
+                "reference": "6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/67ab6e18aaa14d753cc148911d273f6e6cb6721e",
-                "reference": "67ab6e18aaa14d753cc148911d273f6e6cb6721e",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8",
+                "reference": "6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -542,18 +542,22 @@
                 ]
             },
             "require": {
-                "php": ">=5.5"
+                "php": "^7.2.5 || ^8.0"
             },
             "require-dev": {
-                "symfony/phpunit-bridge": "^4.4 || ^5.1"
+                "bamarni/composer-bin-plugin": "^1.8.2",
+                "phpunit/phpunit": "^8.5.39 || ^9.6.20"
             },
-            "time": "2023-05-21T12:31:43+00:00",
+            "time": "2024-07-18T10:29:17+00:00",
             "type": "library",
+            "extra": {
+                "bamarni-bin": {
+                    "bin-links": true,
+                    "forward-command": false
+                }
+            },
             "installation-source": "dist",
             "autoload": {
-                "files": [
-                    "src/functions_include.php"
-                ],
                 "psr-4": {
                     "GuzzleHttp\\Promise\\": "src/"
                 }
@@ -590,7 +594,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/1.5.3"
+                "source": "https://github.com/guzzle/promises/tree/2.0.3"
             },
             "funding": [
                 {
@@ -2408,17 +2412,17 @@
         },
         {
             "name": "symfony/process",
-            "version": "v6.4.8",
-            "version_normalized": "6.4.8.0",
+            "version": "v6.4.14",
+            "version_normalized": "6.4.14.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/process.git",
-                "reference": "8d92dd79149f29e89ee0f480254db595f6a6a2c5"
+                "reference": "25214adbb0996d18112548de20c281be9f27279f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/process/zipball/8d92dd79149f29e89ee0f480254db595f6a6a2c5",
-                "reference": "8d92dd79149f29e89ee0f480254db595f6a6a2c5",
+                "url": "https://api.github.com/repos/symfony/process/zipball/25214adbb0996d18112548de20c281be9f27279f",
+                "reference": "25214adbb0996d18112548de20c281be9f27279f",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2430,7 +2434,7 @@
             "require": {
                 "php": ">=8.1"
             },
-            "time": "2024-05-31T14:49:08+00:00",
+            "time": "2024-11-06T09:25:01+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2458,7 +2462,7 @@
             "description": "Executes commands in sub-processes",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/process/tree/v6.4.8"
+                "source": "https://github.com/symfony/process/tree/v6.4.14"
             },
             "funding": [
                 {
@@ -2860,17 +2864,17 @@
         },
         {
             "name": "topthink/think-helper",
-            "version": "v3.1.6",
-            "version_normalized": "3.1.6.0",
+            "version": "v3.1.8",
+            "version_normalized": "3.1.8.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-helper.git",
-                "reference": "769acbe50a4274327162f9c68ec2e89a38eb2aff"
+                "reference": "612eea76eec2a22f41b0e24be27f49454e4fd5f5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-helper/zipball/769acbe50a4274327162f9c68ec2e89a38eb2aff",
-                "reference": "769acbe50a4274327162f9c68ec2e89a38eb2aff",
+                "url": "https://api.github.com/repos/top-think/think-helper/zipball/612eea76eec2a22f41b0e24be27f49454e4fd5f5",
+                "reference": "612eea76eec2a22f41b0e24be27f49454e4fd5f5",
                 "shasum": "",
                 "mirrors": [
                     {
@@ -2885,7 +2889,7 @@
             "require-dev": {
                 "phpunit/phpunit": "^9.5"
             },
-            "time": "2021-12-15T04:27:55+00:00",
+            "time": "2024-08-26T15:07:58+00:00",
             "type": "library",
             "installation-source": "dist",
             "autoload": {
@@ -2909,7 +2913,7 @@
             "description": "The ThinkPHP6 Helper Package",
             "support": {
                 "issues": "https://github.com/top-think/think-helper/issues",
-                "source": "https://github.com/top-think/think-helper/tree/v3.1.6"
+                "source": "https://github.com/top-think/think-helper/tree/v3.1.8"
             },
             "install-path": "../topthink/think-helper"
         },
