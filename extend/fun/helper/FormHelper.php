@@ -821,6 +821,7 @@ EOF;
             return $this->selects($name, $select , $options, $attr, $value);
         }
         list($name, $id) = $this->getNameId($name, $options);
+        $value = $value??'';
         $op = '';
         if ($select) {
             $attr = is_array($attr)?$attr:explode(',',$attr);
