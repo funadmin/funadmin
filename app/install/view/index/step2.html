@@ -308,7 +308,7 @@
                 return false;
             }
             if($('.layui-icon-ok').length < 12){
-                msg = msg?msg:'您的配置或权限未满足要求';
+                let msg = '您的配置或权限未满足要求';
                 layer.msg(msg);
             }else{
                 window.location.href = $(this).data('href');
