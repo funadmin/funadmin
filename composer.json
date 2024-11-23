@@ -36,12 +36,12 @@
     "topthink/think-trace": "^1.6",
     "topthink/think-queue": "^3.0",
     "doctrine/annotations": "^2.0.0",
-    "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^2.0",
     "guzzlehttp/guzzle": "^7.9",
     "firebase/php-jwt": "*",
+    "topthink/think-throttle": "^2.0",
     "overtrue/pinyin": "^5.3",
-    "topthink/think-throttle": "^2.0"
+    "ramsey/uuid": "^4.7"
   },
   "autoload": {
     "psr-4": {
