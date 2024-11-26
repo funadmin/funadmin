@@ -27,7 +27,7 @@ class Concatenate
 
         foreach ($aArgs as $arg) {
             $value = Helpers::extractString($arg);
-            if (ErrorValue::isError($value, true)) {
+            if (ErrorValue::isError($value)) {
                 $returnValue = $value;
 
                 break;
@@ -56,7 +56,7 @@ class Concatenate
      *         If an array of values is passed for the $delimiter or $ignoreEmpty arguments, then the returned result
      *            will also be an array with matching dimensions
      */
-    public static function TEXTJOIN(mixed $delimiter = '', mixed $ignoreEmpty = true, mixed ...$args): array|string
+    public static function TEXTJOIN($delimiter = '', $ignoreEmpty = true, ...$args)
     {
         if (is_array($delimiter) || is_array($ignoreEmpty)) {
             return self::evaluateArrayArgumentsSubset(
@@ -85,7 +85,7 @@ class Concatenate
     {
         foreach ($aArgs as $key => &$arg) {
             $value = Helpers::extractString($arg);
-            if (ErrorValue::isError($value, true)) {
+            if (ErrorValue::isError($value)) {
                 return $value;
             }
 
@@ -113,7 +113,7 @@ class Concatenate
      *         If an array of values is passed for the $stringValue or $repeatCount arguments, then the returned result
      *            will also be an array with matching dimensions
      */
-    public static function builtinREPT(mixed $stringValue, mixed $repeatCount): array|string
+    public static function builtinREPT($stringValue, $repeatCount)
     {
         if (is_array($stringValue) || is_array($repeatCount)) {
             return self::evaluateArrayArguments([self::class, __FUNCTION__], $stringValue, $repeatCount);
@@ -123,7 +123,7 @@ class Concatenate
 
         if (!is_numeric($repeatCount) || $repeatCount < 0) {
             $returnValue = ExcelError::VALUE();
-        } elseif (ErrorValue::isError($stringValue, true)) {
+        } elseif (ErrorValue::isError($stringValue)) {
             $returnValue = $stringValue;
         } else {
             $returnValue = str_repeat($stringValue, (int) $repeatCount);

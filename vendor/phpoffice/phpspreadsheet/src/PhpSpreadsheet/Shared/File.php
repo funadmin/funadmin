@@ -10,8 +10,10 @@ class File
 {
     /**
      * Use Temp or File Upload Temp for temporary files.
+     *
+     * @var bool
      */
-    protected static bool $useUploadTempDirectory = false;
+    protected static $useUploadTempDirectory = false;
 
     /**
      * Set the flag indicating whether the File Upload Temp directory should be used for temporary files.
@@ -92,9 +94,9 @@ class File
             $pathArray = explode('/', $filename);
             while (in_array('..', $pathArray) && $pathArray[0] != '..') {
                 $iMax = count($pathArray);
-                for ($i = 1; $i < $iMax; ++$i) {
-                    if ($pathArray[$i] == '..') {
-                        array_splice($pathArray, $i - 1, 2);
+                for ($i = 0; $i < $iMax; ++$i) {
+                    if ($pathArray[$i] == '..' && $i > 0) {
+                        unset($pathArray[$i], $pathArray[$i - 1]);
 
                         break;
                     }

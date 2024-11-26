@@ -9,9 +9,15 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class AutoFilters
 {
-    private XMLWriter $objWriter;
+    /**
+     * @var XMLWriter
+     */
+    private $objWriter;
 
-    private Spreadsheet $spreadsheet;
+    /**
+     * @var Spreadsheet
+     */
+    private $spreadsheet;
 
     public function __construct(XMLWriter $objWriter, Spreadsheet $spreadsheet)
     {
@@ -19,9 +25,12 @@ class AutoFilters
         $this->spreadsheet = $spreadsheet;
     }
 
+    /** @var mixed */
+    private static $scrutinizerFalse = false;
+
     public function write(): void
     {
-        $wrapperWritten = false;
+        $wrapperWritten = self::$scrutinizerFalse;
         $sheetCount = $this->spreadsheet->getSheetCount();
         for ($i = 0; $i < $sheetCount; ++$i) {
             $worksheet = $this->spreadsheet->getSheet($i);
@@ -47,7 +56,7 @@ class AutoFilters
         }
     }
 
-    protected function formatRange(Worksheet $worksheet, AutoFilter $autofilter): string
+    protected function formatRange(Worksheet $worksheet, Autofilter $autofilter): string
     {
         $title = $worksheet->getTitle();
         $range = $autofilter->getRange();

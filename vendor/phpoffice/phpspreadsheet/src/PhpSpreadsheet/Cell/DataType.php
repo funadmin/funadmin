@@ -4,7 +4,6 @@ namespace PhpOffice\PhpSpreadsheet\Cell;
 
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
-use Stringable;
 
 class DataType
 {
@@ -24,7 +23,7 @@ class DataType
      *
      * @var array<string, int>
      */
-    private static array $errorCodes = [
+    private static $errorCodes = [
         '#NULL!' => 0,
         '#DIV/0!' => 1,
         '#VALUE!' => 2,
@@ -42,7 +41,7 @@ class DataType
      *
      * @return array<string, int>
      */
-    public static function getErrorCodes(): array
+    public static function getErrorCodes()
     {
         return self::$errorCodes;
     }
@@ -54,7 +53,7 @@ class DataType
      *
      * @return RichText|string Sanitized value
      */
-    public static function checkString(null|RichText|string $textValue): RichText|string
+    public static function checkString($textValue)
     {
         if ($textValue instanceof RichText) {
             // TODO: Sanitize Rich-Text string (max. character count is 32,767)
@@ -77,9 +76,9 @@ class DataType
      *
      * @return string Sanitized value
      */
-    public static function checkErrorCode(mixed $value): string
+    public static function checkErrorCode($value)
     {
-        $value = (is_scalar($value) || $value instanceof Stringable) ? ((string) $value) : '#NULL!';
+        $value = (string) $value;
 
         if (!isset(self::$errorCodes[$value])) {
             $value = '#NULL!';

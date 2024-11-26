@@ -10,7 +10,10 @@ use stdClass;
 
 class PageSettings
 {
-    private stdClass $printSettings;
+    /**
+     * @var stdClass
+     */
+    private $printSettings;
 
     public function __construct(SimpleXMLElement $xmlX)
     {
@@ -59,6 +62,7 @@ class PageSettings
         if (isset($xmlX->WorksheetOptions->PageSetup)) {
             foreach ($xmlX->WorksheetOptions->PageSetup as $pageSetupData) {
                 foreach ($pageSetupData as $pageSetupKey => $pageSetupValue) {
+                    /** @scrutinizer ignore-call */
                     $pageSetupAttributes = $pageSetupValue->attributes(Namespaces::URN_EXCEL);
                     if ($pageSetupAttributes !== null) {
                         switch ($pageSetupKey) {

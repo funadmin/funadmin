@@ -4,7 +4,8 @@ namespace PhpOffice\PhpSpreadsheet\Helper;
 
 class Handler
 {
-    private static string $invalidHex = 'Y';
+    /** @var string */
+    private static $invalidHex = 'Y';
 
     // A bunch of methods to show that we continue
     // to capture messages even using PhpUnit 10.

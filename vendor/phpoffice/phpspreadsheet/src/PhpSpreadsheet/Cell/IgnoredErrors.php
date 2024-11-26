@@ -4,13 +4,17 @@ namespace PhpOffice\PhpSpreadsheet\Cell;
 
 class IgnoredErrors
 {
-    private bool $numberStoredAsText = false;
+    /** @var bool */
+    private $numberStoredAsText = false;
 
-    private bool $formula = false;
+    /** @var bool */
+    private $formula = false;
 
-    private bool $twoDigitTextYear = false;
+    /** @var bool */
+    private $twoDigitTextYear = false;
 
-    private bool $evalError = false;
+    /** @var bool */
+    private $evalError = false;
 
     public function setNumberStoredAsText(bool $value): self
     {

@@ -30,7 +30,7 @@ class Permutations
      *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function PERMUT(mixed $numObjs, mixed $numInSet)
+    public static function PERMUT($numObjs, $numInSet)
     {
         if (is_array($numObjs) || is_array($numInSet)) {
             return self::evaluateArrayArguments([self::class, __FUNCTION__], $numObjs, $numInSet);
@@ -46,17 +46,16 @@ class Permutations
         if ($numObjs < $numInSet) {
             return ExcelError::NAN();
         }
-        /** @var float|int|string */
         $result1 = MathTrig\Factorial::fact($numObjs);
         if (is_string($result1)) {
             return $result1;
         }
-        /** @var float|int|string */
         $result2 = MathTrig\Factorial::fact($numObjs - $numInSet);
         if (is_string($result2)) {
             return $result2;
         }
-        $result = round($result1 / $result2);
+        // phpstan thinks result1 and result2 can be arrays; they can't.
+        $result = round($result1 / $result2); // @phpstan-ignore-line
 
         return IntOrFloat::evaluate($result);
     }
@@ -76,7 +75,7 @@ class Permutations
      *         If an array of numbers is passed as an argument, then the returned result will also be an array
      *            with the same dimensions
      */
-    public static function PERMUTATIONA(mixed $numObjs, mixed $numInSet)
+    public static function PERMUTATIONA($numObjs, $numInSet)
     {
         if (is_array($numObjs) || is_array($numInSet)) {
             return self::evaluateArrayArguments([self::class, __FUNCTION__], $numObjs, $numInSet);

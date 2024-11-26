@@ -9,67 +9,78 @@ use PhpOffice\PhpSpreadsheet\Shared\Drawing as SharedDrawing;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use Stringable;
 
-class Comment implements IComparable, Stringable
+class Comment implements IComparable
 {
     /**
      * Author.
+     *
+     * @var string
      */
-    private string $author;
+    private $author;
 
     /**
      * Rich text comment.
+     *
+     * @var RichText
      */
-    private RichText $text;
+    private $text;
 
     /**
      * Comment width (CSS style, i.e. XXpx or YYpt).
+     *
+     * @var string
      */
-    private string $width = '96pt';
+    private $width = '96pt';
 
     /**
      * Left margin (CSS style, i.e. XXpx or YYpt).
+     *
+     * @var string
      */
-    private string $marginLeft = '59.25pt';
+    private $marginLeft = '59.25pt';
 
     /**
      * Top margin (CSS style, i.e. XXpx or YYpt).
+     *
+     * @var string
      */
-    private string $marginTop = '1.5pt';
+    private $marginTop = '1.5pt';
 
     /**
      * Visible.
+     *
+     * @var bool
      */
-    private bool $visible = false;
+    private $visible = false;
 
     /**
      * Comment height (CSS style, i.e. XXpx or YYpt).
+     *
+     * @var string
      */
-    private string $height = '55.5pt';
+    private $height = '55.5pt';
 
     /**
      * Comment fill color.
+     *
+     * @var Color
      */
-    private Color $fillColor;
+    private $fillColor;
 
     /**
      * Alignment.
+     *
+     * @var string
      */
-    private string $alignment;
+    private $alignment;
 
     /**
      * Background image in comment.
+     *
+     * @var Drawing
      */
-    private Drawing $backgroundImage;
-
-    public const TEXTBOX_DIRECTION_RTL = 'rtl';
-    public const TEXTBOX_DIRECTION_LTR = 'ltr';
-    // MS uses 'auto' in xml but 'context' in UI
-    public const TEXTBOX_DIRECTION_AUTO = 'auto';
-    public const TEXTBOX_DIRECTION_CONTEXT = 'auto';
-
-    private string $textboxDirection = '';
+    private $backgroundImage;
 
     /**
      * Create a new Comment.
@@ -240,6 +251,9 @@ class Comment implements IComparable, Stringable
         return $this->fillColor;
     }
 
+    /**
+     * Set Alignment.
+     */
     public function setAlignment(string $alignment): self
     {
         $this->alignment = $alignment;
@@ -247,21 +261,12 @@ class Comment implements IComparable, Stringable
         return $this;
     }
 
+    /**
+     * Get Alignment.
+     */
     public function getAlignment(): string
     {
         return $this->alignment;
-    }
-
-    public function setTextboxDirection(string $textboxDirection): self
-    {
-        $this->textboxDirection = $textboxDirection;
-
-        return $this;
-    }
-
-    public function getTextboxDirection(): string
-    {
-        return $this->textboxDirection;
     }
 
     /**
@@ -270,18 +275,17 @@ class Comment implements IComparable, Stringable
     public function getHashCode(): string
     {
         return md5(
-            $this->author
-            . $this->text->getHashCode()
-            . $this->width
-            . $this->height
-            . $this->marginLeft
-            . $this->marginTop
-            . ($this->visible ? 1 : 0)
-            . $this->fillColor->getHashCode()
-            . $this->alignment
-            . $this->textboxDirection
-            . ($this->hasBackgroundImage() ? $this->backgroundImage->getHashCode() : '')
-            . __CLASS__
+            $this->author .
+            $this->text->getHashCode() .
+            $this->width .
+            $this->height .
+            $this->marginLeft .
+            $this->marginTop .
+            ($this->visible ? 1 : 0) .
+            $this->fillColor->getHashCode() .
+            $this->alignment .
+            ($this->hasBackgroundImage() ? $this->backgroundImage->getHashCode() : '') .
+            __CLASS__
         );
     }
 

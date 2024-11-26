@@ -3,21 +3,25 @@
 namespace PhpOffice\PhpSpreadsheet\Shared\Escher;
 
 use PhpOffice\PhpSpreadsheet\Exception as SpreadsheetException;
-use PhpOffice\PhpSpreadsheet\Shared\Escher\DgContainer\SpgrContainer;
 
 class DgContainer
 {
     /**
      * Drawing index, 1-based.
+     *
+     * @var ?int
      */
-    private ?int $dgId = null;
+    private $dgId;
 
     /**
      * Last shape index in this drawing.
+     *
+     * @var ?int
      */
-    private ?int $lastSpId = null;
+    private $lastSpId;
 
-    private ?SpgrContainer $spgrContainer = null;
+    /** @var ?DgContainer\SpgrContainer */
+    private $spgrContainer;
 
     public function getDgId(): ?int
     {
@@ -39,12 +43,12 @@ class DgContainer
         $this->lastSpId = $value;
     }
 
-    public function getSpgrContainer(): ?SpgrContainer
+    public function getSpgrContainer(): ?DgContainer\SpgrContainer
     {
         return $this->spgrContainer;
     }
 
-    public function getSpgrContainerOrThrow(): SpgrContainer
+    public function getSpgrContainerOrThrow(): DgContainer\SpgrContainer
     {
         if ($this->spgrContainer !== null) {
             return $this->spgrContainer;
@@ -53,7 +57,8 @@ class DgContainer
         throw new SpreadsheetException('spgrContainer is unexpectedly null');
     }
 
-    public function setSpgrContainer(SpgrContainer $spgrContainer): SpgrContainer
+    /** @param DgContainer\SpgrContainer $spgrContainer */
+    public function setSpgrContainer($spgrContainer): DgContainer\SpgrContainer
     {
         return $this->spgrContainer = $spgrContainer;
     }

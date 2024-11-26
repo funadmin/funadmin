@@ -4,15 +4,30 @@ namespace PhpOffice\PhpSpreadsheet\Helper;
 
 class TextGrid
 {
-    private bool $isCli;
+    /**
+     * @var bool
+     */
+    private $isCli = true;
 
-    protected array $matrix;
+    /**
+     * @var array
+     */
+    protected $matrix;
 
-    protected array $rows;
+    /**
+     * @var array
+     */
+    protected $rows;
 
-    protected array $columns;
+    /**
+     * @var array
+     */
+    protected $columns;
 
-    private string $gridDisplay;
+    /**
+     * @var string
+     */
+    private $gridDisplay;
 
     public function __construct(array $matrix, bool $isCli = true)
     {

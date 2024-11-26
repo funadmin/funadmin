@@ -4,9 +4,11 @@ namespace PhpOffice\PhpSpreadsheet;
 
 class Theme
 {
-    private string $themeColorName = 'Office';
+    /** @var string */
+    private $themeColorName = 'Office';
 
-    private string $themeFontName = 'Office';
+    /** @var string */
+    private $themeFontName = 'Office';
 
     public const COLOR_SCHEME_2013_PLUS_NAME = 'Office 2013+';
     public const COLOR_SCHEME_2013_PLUS = [
@@ -41,33 +43,39 @@ class Theme
     ];
 
     /** @var string[] */
-    private array $themeColors = self::COLOR_SCHEME_2007_2010;
+    private $themeColors = self::COLOR_SCHEME_2007_2010;
 
-    private string $majorFontLatin = 'Cambria';
+    /** @var string */
+    private $majorFontLatin = 'Cambria';
 
-    private string $majorFontEastAsian = '';
+    /** @var string */
+    private $majorFontEastAsian = '';
 
-    private string $majorFontComplexScript = '';
+    /** @var string */
+    private $majorFontComplexScript = '';
 
-    private string $minorFontLatin = 'Calibri';
+    /** @var string */
+    private $minorFontLatin = 'Calibri';
 
-    private string $minorFontEastAsian = '';
+    /** @var string */
+    private $minorFontEastAsian = '';
 
-    private string $minorFontComplexScript = '';
+    /** @var string */
+    private $minorFontComplexScript = '';
 
     /**
      * Map of Major (header) fonts to write.
      *
      * @var string[]
      */
-    private array $majorFontSubstitutions = self::FONTS_TIMES_SUBSTITUTIONS;
+    private $majorFontSubstitutions = self::FONTS_TIMES_SUBSTITUTIONS;
 
     /**
      * Map of Minor (body) fonts to write.
      *
      * @var string[]
      */
-    private array $minorFontSubstitutions = self::FONTS_ARIAL_SUBSTITUTIONS;
+    private $minorFontSubstitutions = self::FONTS_ARIAL_SUBSTITUTIONS;
 
     public const FONTS_TIMES_SUBSTITUTIONS = [
         'Jpan' => 'ＭＳ Ｐゴシック',
@@ -187,7 +195,8 @@ class Theme
         return $this->majorFontSubstitutions;
     }
 
-    public function setMajorFontValues(?string $latin, ?string $eastAsian, ?string $complexScript, ?array $substitutions): self
+    /** @param null|array $substitutions */
+    public function setMajorFontValues(?string $latin, ?string $eastAsian, ?string $complexScript, $substitutions): self
     {
         if (!empty($latin)) {
             $this->majorFontLatin = $latin;
@@ -225,7 +234,8 @@ class Theme
         return $this->minorFontSubstitutions;
     }
 
-    public function setMinorFontValues(?string $latin, ?string $eastAsian, ?string $complexScript, ?array $substitutions): self
+    /** @param null|array $substitutions */
+    public function setMinorFontValues(?string $latin, ?string $eastAsian, ?string $complexScript, $substitutions): self
     {
         if (!empty($latin)) {
             $this->minorFontLatin = $latin;

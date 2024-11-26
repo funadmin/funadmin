@@ -25,23 +25,26 @@
   "require": {
     "php": ">=8.1.0",
     "ext-json": "*",
-    "topthink/framework": "^8.0.3",
+    "topthink/framework": "^8.0",
     "topthink/think-orm": "3.0.*",
     "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",
     "topthink/think-captcha": "^3.0.9",
     "topthink/think-helper": "^3.1",
-    "topthink/think-multi-app": "^1.0.17",
+    "topthink/think-multi-app": "^1.0",
     "topthink/think-filesystem": "^2.0",
     "topthink/think-trace": "^1.6",
     "topthink/think-queue": "^3.0",
-    "doctrine/annotations": "^2.0.0",
-    "phpoffice/phpspreadsheet": "^2.0",
-    "guzzlehttp/guzzle": "^7.9",
-    "firebase/php-jwt": "*",
     "topthink/think-throttle": "^2.0",
-    "overtrue/pinyin": "^5.3",
-    "ramsey/uuid": "^4.7"
+    "doctrine/annotations": "^2.0.0",
+    "ramsey/uuid": "^4.7",
+    "phpoffice/phpspreadsheet": "^1.28",
+    "guzzlehttp/guzzle": "^7.7",
+    "firebase/php-jwt": "*",
+    "overtrue/pinyin": "^5.3"
+  },
+  "require-dev": {
+    "symfony/var-dumper": "^6.4.x-dev"
   },
   "autoload": {
     "psr-4": {

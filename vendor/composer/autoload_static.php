@@ -14,8 +14,10 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
         'a1105708a18b76903365ca1c4aa61b02' => __DIR__ . '/..' . '/symfony/translation/Resources/functions.php',
+        '2cffec82183ee1cea088009cef9a6fc3' => __DIR__ . '/..' . '/ezyang/htmlpurifier/library/HTMLPurifier.composer.php',
         '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
+        '667aeda72477189d0494fecd327c3641' => __DIR__ . '/..' . '/symfony/var-dumper/Resources/functions/dump.php',
         '1cfd2761b63b0a29ed23657ea394cb2d' => __DIR__ . '/..' . '/topthink/think-captcha/src/helper.php',
         'cc56288302d9df745d97c934d6a6e5f0' => __DIR__ . '/..' . '/topthink/think-queue/src/common.php',
         '8ab20330a5eba7351f0079e3f962caad' => __DIR__ . '/../..' . '/extend/fun/helper.php',
@@ -44,6 +46,7 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
             'Symfony\\Polyfill\\Php80\\' => 23,
             'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Contracts\\Translation\\' => 30,
+            'Symfony\\Component\\VarDumper\\' => 28,
             'Symfony\\Component\\Translation\\' => 30,
             'Symfony\\Component\\Process\\' => 26,
         ),
@@ -74,6 +77,7 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         'L' => 
         array (
             'League\\MimeTypeDetection\\' => 25,
+            'League\\Flysystem\\Cached\\' => 24,
             'League\\Flysystem\\' => 17,
         ),
         'G' => 
@@ -154,6 +158,10 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         array (
             0 => __DIR__ . '/..' . '/symfony/translation-contracts',
         ),
+        'Symfony\\Component\\VarDumper\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/symfony/var-dumper',
+        ),
         'Symfony\\Component\\Translation\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/translation',
@@ -215,6 +223,10 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         array (
             0 => __DIR__ . '/..' . '/league/mime-type-detection/src',
         ),
+        'League\\Flysystem\\Cached\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/league/flysystem-cached-adapter/src',
+        ),
         'League\\Flysystem\\' => 
         array (
             0 => __DIR__ . '/..' . '/league/flysystem/src',
@@ -261,6 +273,16 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         ),
     );
 
+    public static $prefixesPsr0 = array (
+        'H' => 
+        array (
+            'HTMLPurifier' => 
+            array (
+                0 => __DIR__ . '/..' . '/ezyang/htmlpurifier/library',
+            ),
+        ),
+    );
+
     public static $fallbackDirsPsr0 = array (
         0 => __DIR__ . '/../..' . '/extend',
     );
@@ -279,6 +301,7 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b::$prefixesPsr0;
             $loader->fallbackDirsPsr0 = ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b::$fallbackDirsPsr0;
             $loader->classMap = ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b::$classMap;
 

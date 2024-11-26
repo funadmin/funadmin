@@ -8,9 +8,11 @@ use SimpleXMLElement;
 
 class DataValidations
 {
-    private Worksheet $worksheet;
+    /** @var Worksheet */
+    private $worksheet;
 
-    private SimpleXMLElement $worksheetXml;
+    /** @var SimpleXMLElement */
+    private $worksheetXml;
 
     public function __construct(Worksheet $workSheet, SimpleXMLElement $worksheetXml)
     {

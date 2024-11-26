@@ -8,7 +8,7 @@ use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class Formatter extends BaseFormatter
+class Formatter
 {
     /**
      * Matches any @ symbol that isn't enclosed in quotes.
@@ -20,30 +20,45 @@ class Formatter extends BaseFormatter
      */
     private const SECTION_SPLIT = '/;(?=(?:[^"]*"[^"]*")*[^"]*\Z)/miu';
 
+    /**
+     * @param mixed $value
+     * @param mixed $comparisonValue
+     * @param mixed $defaultComparisonValue
+     */
     private static function splitFormatComparison(
-        mixed $value,
+        $value,
         ?string $condition,
-        mixed $comparisonValue,
+        $comparisonValue,
         string $defaultCondition,
-        mixed $defaultComparisonValue
+        $defaultComparisonValue
     ): bool {
         if (!$condition) {
             $condition = $defaultCondition;
             $comparisonValue = $defaultComparisonValue;
         }
 
-        return match ($condition) {
-            '>' => $value > $comparisonValue,
-            '<' => $value < $comparisonValue,
-            '<=' => $value <= $comparisonValue,
-            '<>' => $value != $comparisonValue,
-            '=' => $value == $comparisonValue,
-            default => $value >= $comparisonValue,
-        };
+        switch ($condition) {
+            case '>':
+                return $value > $comparisonValue;
+
+            case '<':
+                return $value < $comparisonValue;
+
+            case '<=':
+                return $value <= $comparisonValue;
+
+            case '<>':
+                return $value != $comparisonValue;
+
+            case '=':
+                return $value == $comparisonValue;
+        }
+
+        return $value >= $comparisonValue;
     }
 
-    /** @param float|int|string $value value to be formatted */
-    private static function splitFormatForSectionSelection(array $sections, mixed $value): array
+    /** @param mixed $value */
+    private static function splitFormatForSectionSelection(array $sections, $value): array
     {
         // Extract the relevant section depending on whether number is positive, negative, or zero?
         // Text not supported yet.
@@ -111,11 +126,11 @@ class Formatter extends BaseFormatter
      * @param null|bool|float|int|RichText|string $value Value to format
      * @param string $format Format code: see = self::FORMAT_* for predefined values;
      *                          or can be any valid MS Excel custom format string
-     * @param ?array $callBack Callback function for additional formatting of string
+     * @param array $callBack Callback function for additional formatting of string
      *
      * @return string Formatted string
      */
-    public static function toFormattedString($value, string $format, ?array $callBack = null): string
+    public static function toFormattedString($value, $format, $callBack = null)
     {
         if (is_bool($value)) {
             return $value ? Calculation::getTRUE() : Calculation::getFALSE();
@@ -134,7 +149,7 @@ class Formatter extends BaseFormatter
         // For 'General' format code, we just pass the value although this is not entirely the way Excel does it,
         // it seems to round numbers to a total of 10 digits.
         if (($format === NumberFormat::FORMAT_GENERAL) || ($format === NumberFormat::FORMAT_TEXT)) {
-            return self::adjustSeparators((string) $value);
+            return (string) $value;
         }
 
         // Ignore square-$-brackets prefix in format string, like "[$-411]ge.m.d", "[$-010419]0%", etc
@@ -142,7 +157,9 @@ class Formatter extends BaseFormatter
 
         $format = (string) preg_replace_callback(
             '/(["])(?:(?=(\\\\?))\\2.)*?\\1/u',
-            fn (array $matches): string => str_replace('.', chr(0x00), $matches[0]),
+            function ($matches) {
+                return str_replace('.', chr(0x00), $matches[0]);
+            },
             $format
         );
 
@@ -168,7 +185,7 @@ class Formatter extends BaseFormatter
             // datetime format
             $value = DateFormatter::format($value, $format);
         } else {
-            if (str_starts_with($format, '"') && str_ends_with($format, '"') && substr_count($format, '"') === 2) {
+            if (substr($format, 0, 1) === '"' && substr($format, -1, 1) === '"' && substr_count($format, '"') === 2) {
                 $value = substr($format, 1, -1);
             } elseif (preg_match('/[0#, ]%/', $format)) {
                 // % number format - avoid weird '-0' problem

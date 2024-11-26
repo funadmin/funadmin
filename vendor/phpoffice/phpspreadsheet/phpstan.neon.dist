@@ -1,18 +1,14 @@
 includes:
     - phpstan-baseline.neon
+    - phpstan-conditional.php
     - vendor/phpstan/phpstan-phpunit/extension.neon
     - vendor/phpstan/phpstan-phpunit/rules.neon
 
 parameters:
     level: 8
     paths:
-        - samples/
         - src/
         - tests/
-        - infra/
-        - bin/generate-document
-        - bin/generate-locales
-        - bin/check-phpdoc-types
     excludePaths:
         - src/PhpSpreadsheet/Chart/Renderer/JpGraph.php
         - src/PhpSpreadsheet/Chart/Renderer/JpGraphRendererBase.php
@@ -23,7 +19,9 @@ parameters:
     parallel:
         processTimeout: 300.0
     ignoreErrors:
+        - identifier: missingType.iterableValue
+        - '~^Parameter \#1 \$im(age)? of function (imagedestroy|imageistruecolor|imagealphablending|imagesavealpha|imagecolortransparent|imagecolorsforindex|imagesavealpha|imagesx|imagesy|imagepng) expects (GdImage|resource), GdImage\|resource given\.$~'
+        - '~^Parameter \#2 \$src_im(age)? of function imagecopy expects (GdImage|resource), GdImage\|resource given\.$~'
         # Accept a bit anything for assert methods
         - '~^Parameter \#2 .* of static method PHPUnit\\Framework\\Assert\:\:assert\w+\(\) expects .*, .* given\.$~'
-        - '~^Variable \$helper might not be defined\.$~'
-        - identifier: missingType.iterableValue
+        - '~^Method PhpOffice\\PhpSpreadsheetTests\\.*\:\:test.*\(\) has parameter \$args with no type specified\.$~'

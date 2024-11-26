@@ -2,6 +2,7 @@
 
 namespace PhpOffice\PhpSpreadsheet\Writer;
 
+use ZipStream\Option\Archive;
 use ZipStream\ZipStream;
 
 class ZipStream3

@@ -6,9 +6,11 @@ use PhpOffice\PhpSpreadsheet\Style\Font;
 
 class AxisText extends Properties
 {
-    private ?int $rotation = null;
+    /** @var ?int */
+    private $rotation;
 
-    private Font $font;
+    /** @var Font */
+    private $font;
 
     public function __construct()
     {
@@ -50,14 +52,5 @@ class AxisText extends Properties
         $this->font = $font;
 
         return $this;
-    }
-
-    /**
-     * Implement PHP __clone to create a deep clone, not just a shallow copy.
-     */
-    public function __clone()
-    {
-        parent::__clone();
-        $this->font = clone $this->font;
     }
 }

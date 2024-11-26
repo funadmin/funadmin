@@ -15,8 +15,10 @@ class DataValidator
      * Does this cell contain valid value?
      *
      * @param Cell $cell Cell to check the value
+     *
+     * @return bool
      */
-    public function isValid(Cell $cell): bool
+    public function isValid(Cell $cell)
     {
         if (!$cell->hasDataValidation() || $cell->getDataValidation()->getType() === DataValidation::TYPE_NONE) {
             return true;
@@ -46,13 +48,14 @@ class DataValidator
                 $returnValue = $this->numericOperator($dataValidation, (float) $cellValue);
             }
         } elseif ($type === DataValidation::TYPE_TEXTLENGTH) {
-            $returnValue = $this->numericOperator($dataValidation, mb_strlen($cell->getValueString()));
+            $returnValue = $this->numericOperator($dataValidation, mb_strlen((string) $cellValue));
         }
 
         return $returnValue;
     }
 
-    private function numericOperator(DataValidation $dataValidation, int|float $cellValue): bool
+    /** @param float|int $cellValue */
+    private function numericOperator(DataValidation $dataValidation, $cellValue): bool
     {
         $operator = $dataValidation->getOperator();
         $formula1 = $dataValidation->getFormula1();
@@ -83,17 +86,19 @@ class DataValidator
      * Does this cell contain valid value, based on list?
      *
      * @param Cell $cell Cell to check the value
+     *
+     * @return bool
      */
-    private function isValueInList(Cell $cell): bool
+    private function isValueInList(Cell $cell)
     {
-        $cellValueString = $cell->getValueString();
+        $cellValue = $cell->getValue();
         $dataValidation = $cell->getDataValidation();
 
         $formula1 = $dataValidation->getFormula1();
         if (!empty($formula1)) {
             // inline values list
             if ($formula1[0] === '"') {
-                return in_array(strtolower($cellValueString), explode(',', strtolower(trim($formula1, '"'))), true);
+                return in_array(strtolower($cellValue), explode(',', strtolower(trim($formula1, '"'))), true);
             } elseif (strpos($formula1, ':') > 0) {
                 // values list cells
                 $matchFormula = '=MATCH(' . $cell->getCoordinate() . ', ' . $formula1 . ', 0)';
@@ -106,7 +111,7 @@ class DataValidator
                     }
 
                     return $result !== ExcelError::NA();
-                } catch (Exception) {
+                } catch (Exception $ex) {
                     return false;
                 }
             }

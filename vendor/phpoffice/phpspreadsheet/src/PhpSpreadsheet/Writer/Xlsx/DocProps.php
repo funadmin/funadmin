@@ -15,7 +15,7 @@ class DocProps extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeDocPropsApp(Spreadsheet $spreadsheet): string
+    public function writeDocPropsApp(Spreadsheet $spreadsheet)
     {
         // Create XML writer
         $objWriter = null;
@@ -113,7 +113,7 @@ class DocProps extends WriterPart
      *
      * @return string XML Output
      */
-    public function writeDocPropsCore(Spreadsheet $spreadsheet): string
+    public function writeDocPropsCore(Spreadsheet $spreadsheet)
     {
         // Create XML writer
         $objWriter = null;
@@ -182,7 +182,7 @@ class DocProps extends WriterPart
      *
      * @return null|string XML Output
      */
-    public function writeDocPropsCustom(Spreadsheet $spreadsheet): ?string
+    public function writeDocPropsCustom(Spreadsheet $spreadsheet)
     {
         $customPropertyList = $spreadsheet->getProperties()->getCustomProperties();
         if (empty($customPropertyList)) {
@@ -216,7 +216,7 @@ class DocProps extends WriterPart
 
             switch ($propertyType) {
                 case Properties::PROPERTY_TYPE_INTEGER:
-                    $objWriter->writeElement('vt:i4', (string) $propertyValue);
+                    $objWriter->writeElement('vt:i4', $propertyValue);
 
                     break;
                 case Properties::PROPERTY_TYPE_FLOAT:
@@ -235,7 +235,7 @@ class DocProps extends WriterPart
 
                     break;
                 default:
-                    $objWriter->writeElement('vt:lpwstr', (string) $propertyValue);
+                    $objWriter->writeElement('vt:lpwstr', $propertyValue);
 
                     break;
             }
