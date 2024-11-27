@@ -10,14 +10,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class NamedExpressions
 {
-    /** @var XMLWriter */
-    private $objWriter;
+    private XMLWriter $objWriter;
 
-    /** @var Spreadsheet */
-    private $spreadsheet;
+    private Spreadsheet $spreadsheet;
 
-    /** @var Formula */
-    private $formulaConvertor;
+    private Formula $formulaConvertor;
 
     public function __construct(XMLWriter $objWriter, Spreadsheet $spreadsheet, Formula $formulaConvertor)
     {
@@ -121,9 +118,9 @@ class NamedExpressions
                 $newRange = "'" . str_replace("'", "''", $worksheet) . "'.";
             }
 
-            if (!empty($column)) {
-                $newRange .= $column;
-            }
+            //if (!empty($column)) { // phpstan says always true
+            $newRange .= $column;
+            //}
             if (!empty($row)) {
                 $newRange .= $row;
             }
@@ -131,7 +128,7 @@ class NamedExpressions
             $address = substr($address, 0, $offset) . $newRange . substr($address, $offset + $length);
         }
 
-        if (substr($address, 0, 1) === '=') {
+        if (str_starts_with($address, '=')) {
             $address = substr($address, 1);
         }
 

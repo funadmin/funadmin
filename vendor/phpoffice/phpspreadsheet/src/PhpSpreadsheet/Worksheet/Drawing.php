@@ -16,17 +16,13 @@ class Drawing extends BaseDrawing
 
     /**
      * Path.
-     *
-     * @var string
      */
-    private $path;
+    private string $path;
 
     /**
      * Whether or not we are dealing with a URL.
-     *
-     * @var bool
      */
-    private $isUrl;
+    private bool $isUrl;
 
     /**
      * Create a new Drawing.
@@ -43,10 +39,8 @@ class Drawing extends BaseDrawing
 
     /**
      * Get Filename.
-     *
-     * @return string
      */
-    public function getFilename()
+    public function getFilename(): string
     {
         return basename($this->path);
     }
@@ -61,10 +55,8 @@ class Drawing extends BaseDrawing
 
     /**
      * Get Extension.
-     *
-     * @return string
      */
-    public function getExtension()
+    public function getExtension(): string
     {
         $exploded = explode('.', basename($this->path));
 
@@ -73,10 +65,8 @@ class Drawing extends BaseDrawing
 
     /**
      * Get full filepath to store drawing in zip archive.
-     *
-     * @return string
      */
-    public function getMediaFilename()
+    public function getMediaFilename(): string
     {
         if (!array_key_exists($this->type, self::IMAGE_TYPES_CONVERTION_MAP)) {
             throw new PhpSpreadsheetException('Unsupported image type in comment background. Supported types: PNG, JPEG, BMP, GIF.');
@@ -87,10 +77,8 @@ class Drawing extends BaseDrawing
 
     /**
      * Get Path.
-     *
-     * @return string
      */
-    public function getPath()
+    public function getPath(): string
     {
         return $this->path;
     }
@@ -100,11 +88,11 @@ class Drawing extends BaseDrawing
      *
      * @param string $path File path
      * @param bool $verifyFile Verify file
-     * @param ZipArchive $zip Zip archive instance
+     * @param ?ZipArchive $zip Zip archive instance
      *
      * @return $this
      */
-    public function setPath($path, $verifyFile = true, $zip = null)
+    public function setPath(string $path, bool $verifyFile = true, ?ZipArchive $zip = null): static
     {
         $this->isUrl = false;
         if (preg_match('~^data:image/[a-z]+;base64,~', $path) === 1) {
@@ -123,7 +111,7 @@ class Drawing extends BaseDrawing
             $this->isUrl = true;
             $ctx = null;
             // https://github.com/php/php-src/issues/16023
-            if (substr($path, 0, 6) === 'https:') {
+            if (str_starts_with($path, 'https:')) {
                 $ctx = stream_context_create(['ssl' => ['crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT]]);
             }
             $imageContents = @file_get_contents($path, false, $ctx);
@@ -167,7 +155,7 @@ class Drawing extends BaseDrawing
     {
         $mime = (string) @mime_content_type($path);
         $retVal = false;
-        if (strpos($mime, 'image/') === 0) {
+        if (str_starts_with($mime, 'image/')) {
             $retVal = true;
         } elseif ($mime === 'application/octet-stream') {
             $extension = pathinfo($path, PATHINFO_EXTENSION);
@@ -202,12 +190,12 @@ class Drawing extends BaseDrawing
      *
      * @return string Hash code
      */
-    public function getHashCode()
+    public function getHashCode(): string
     {
         return md5(
-            $this->path .
-            parent::getHashCode() .
-            __CLASS__
+            $this->path
+            . parent::getHashCode()
+            . __CLASS__
         );
     }
 
