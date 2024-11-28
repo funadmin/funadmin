@@ -277,20 +277,21 @@ abstract class BaseQuery
 
     /**
      * 得到当前或者指定名称的数据表.
-     *
-     * @param string $name 不含前缀的数据表名字
+     * @param bool $alias 是否返回数据表别名 
      *
      * @return string|array|Raw
      */
-    public function getTable(string $name = '')
+    public function getTable(bool $alias = false)
     {
-        if (empty($name) && isset($this->options['table'])) {
-            return $this->options['table'];
+        if (isset($this->options['table'])) {
+            $table =  $this->options['table'];
+            if ($alias && is_string($table) && !empty($this->options['alias'][$table])) {
+                return $this->options['alias'][$table];
+            }
+            return $table;
         }
 
-        $name = $name ?: $this->name;
-
-        return $this->prefix . Str::snake($name) . $this->suffix;
+        return $this->prefix . Str::snake($this->name) . $this->suffix;
     }
 
     /**
@@ -375,7 +376,9 @@ abstract class BaseQuery
             return $this->model->newInstance($array)->getAttr($field);
         }
 
-        $this->result($array);
+        if (!empty($this->options['json'])) {
+            $this->jsonResult($array);
+        }
         return $array[$field];
     }
 
@@ -413,7 +416,9 @@ abstract class BaseQuery
                     }
                     return $this->model->newInstance($item)->toArray();
                 }
-                $this->result($item);
+                if (!empty($this->options['json'])) {
+                    $this->jsonResult($item);
+                }
                 return $item;
             }
 
@@ -428,7 +433,9 @@ abstract class BaseQuery
                 }
                 return $this->model->newInstance($array)->getAttr($field);
             }
-            $this->result($array);
+            if (!empty($this->options['json'])) {
+                $this->jsonResult($array);
+            }
             return $array[$field];
         }, $result);
     }

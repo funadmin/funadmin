@@ -38,7 +38,7 @@
     "topthink/think-throttle": "^2.0",
     "doctrine/annotations": "^2.0.1",
     "ramsey/uuid": "^4.7",
-    "phpoffice/phpspreadsheet": "^3.4",
+    "phpoffice/phpspreadsheet": "^3.5",
     "guzzlehttp/guzzle": "^7.9",
     "firebase/php-jwt": "*",
     "overtrue/pinyin": "^5.3"
