@@ -59,6 +59,22 @@ if (!function_exists('syscfg')) {
     }
 }
 
+
+
+if (!function_exists('Mycfg')) {
+    /**
+     * @param $group
+     * @param null $code
+     * @return array|mixed|object|App
+     */
+    function Mycfg($group, $code = null)
+    {
+        return syscfg($group, $code);
+
+    }
+}
+
+
 //重写url 助手函数
 if (!function_exists('__u')) {
 
@@ -383,9 +399,9 @@ if(!function_exists('password')){
      * @param $password
      * @return string
      */
-    function password($password,$typ=PASSWORD_DEFAULT)
+    function password($password,$type=PASSWORD_DEFAULT)
     {
-        return password_hash($password, $typ);
+        return password_hash($password, $type);
     }
 
 }
