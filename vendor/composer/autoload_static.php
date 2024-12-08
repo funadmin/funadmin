@@ -30,6 +30,7 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
             'think\\middleware\\' => 17,
             'think\\captcha\\' => 14,
             'think\\app\\' => 10,
+            'think\\annotation\\' => 17,
             'think\\' => 6,
         ),
         'a' => 
@@ -89,10 +90,9 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         array (
             'Firebase\\JWT\\' => 13,
         ),
-        'D' => 
+        'E' => 
         array (
-            'Doctrine\\Common\\Lexer\\' => 22,
-            'Doctrine\\Common\\Annotations\\' => 28,
+            'Ergebnis\\Classy\\' => 16,
         ),
         'C' => 
         array (
@@ -126,6 +126,10 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         'think\\app\\' => 
         array (
             0 => __DIR__ . '/..' . '/topthink/think-multi-app/src',
+        ),
+        'think\\annotation\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/topthink/think-annotation/src',
         ),
         'think\\' => 
         array (
@@ -246,13 +250,9 @@ class ComposerStaticInitb71c220392b257ba6f7a069a07ecf16b
         array (
             0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
-        'Doctrine\\Common\\Lexer\\' => 
+        'Ergebnis\\Classy\\' => 
         array (
-            0 => __DIR__ . '/..' . '/doctrine/lexer/src',
-        ),
-        'Doctrine\\Common\\Annotations\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/doctrine/annotations/lib/Doctrine/Common/Annotations',
+            0 => __DIR__ . '/..' . '/ergebnis/classy/src',
         ),
         'Complex\\' => 
         array (
