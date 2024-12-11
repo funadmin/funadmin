@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'mysqlPrefix'=>['__PREFIX__','__prefix__','{PREFIX}','{prefix}','fun_', 'Fun_', 'THINK_'],
+    'mysqlPrefix'=>['__PREFIX__','__prefix__','{PREFIX}','{prefix}','fun_', 'Fun_', 'THINK_','think_'],
     //权限开关
     "auth_on" =>true,
     //超级管理员id
