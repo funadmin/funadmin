@@ -7,14 +7,12 @@ declare(strict_types=1);
 namespace tests;
 
 use think\middleware\Throttle;
-use think\middleware\throttle\CounterSlider;
-use think\Request;
 
 class VisitRateTest extends Base
 {
     function is_visit_allow(string $uri): bool
     {
-        $request = new Request();
+        $request = new \think\Request();
         $request->setUrl($uri);
         $response = $this->get_response($request);
         return $response->getCode() == 200;
@@ -25,9 +23,8 @@ class VisitRateTest extends Base
      */
     function test_custom_visit_rate() {
         $config = $this->get_default_throttle_config();
-        $config['key'] = function(Throttle $throttle, Request $request) {
-            $throttle->setDriverClass(CounterSlider::class);
-            $path = $request->baseUrl();
+        $config['key'] = function(Throttle $throttle, \think\Request $request) {
+            $path = $request->url();
             if ($path === '/path1') {
                 $throttle->setRate('10/m');
             } else if ($path === '/path2') {
@@ -44,16 +41,16 @@ class VisitRateTest extends Base
         $allowCount2 = 0;
         $allowCount3 = 0;
         for ($i = 0; $i < 200; $i++) {
-            if ($this->visit_with_http_code($this->create_request('/'))) {
+            if ($this->is_visit_allow('/')) {
                 $allowCount0++;
             }
-            if ($this->visit_with_http_code($this->create_request('/path1'), 404)) {
+            if ($this->is_visit_allow('/path1')) {
                 $allowCount1++;
             }
-            if ($this->visit_with_http_code($this->create_request('/path2'), 404)) {
+            if ($this->is_visit_allow('/path2')) {
                 $allowCount2++;
             }
-            if ($this->visit_with_http_code($this->create_request('/path3'), 404)) {
+            if ($this->is_visit_allow('/path3')) {
                 $allowCount3++;
             }
         }

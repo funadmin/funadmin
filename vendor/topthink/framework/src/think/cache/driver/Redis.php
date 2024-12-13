@@ -15,7 +15,6 @@ namespace think\cache\driver;
 use DateInterval;
 use DateTimeInterface;
 use think\cache\Driver;
-use think\exception\InvalidCacheException;
 
 class Redis extends Driver
 {
@@ -27,17 +26,16 @@ class Redis extends Driver
      * @var array
      */
     protected $options = [
-        'host'        => '127.0.0.1',
-        'port'        => 6379,
-        'password'    => '',
-        'select'      => 0,
-        'timeout'     => 0,
-        'expire'      => 0,
-        'persistent'  => false,
-        'prefix'      => '',
-        'tag_prefix'  => 'tag:',
-        'serialize'   => [],
-        'fail_delete' => false,
+        'host'       => '127.0.0.1',
+        'port'       => 6379,
+        'password'   => '',
+        'select'     => 0,
+        'timeout'    => 0,
+        'expire'     => 0,
+        'persistent' => false,
+        'prefix'     => '',
+        'tag_prefix' => 'tag:',
+        'serialize'  => [],
     ];
 
     /**
@@ -50,49 +48,42 @@ class Redis extends Driver
         if (!empty($options)) {
             $this->options = array_merge($this->options, $options);
         }
-    }
 
-    public function handler()
-    {
-        if (!$this->handler) {
-            if (extension_loaded('redis')) {
-                $this->handler = new \Redis;
+        if (extension_loaded('redis')) {
+            $this->handler = new \Redis;
 
-                if ($this->options['persistent']) {
-                    $this->handler->pconnect($this->options['host'], (int) $this->options['port'], (int) $this->options['timeout'], 'persistent_id_' . $this->options['select']);
-                } else {
-                    $this->handler->connect($this->options['host'], (int) $this->options['port'], (int) $this->options['timeout']);
-                }
-
-                if ('' != $this->options['password']) {
-                    $this->handler->auth($this->options['password']);
-                }
-            } elseif (class_exists('\Predis\Client')) {
-                $params = [];
-                foreach ($this->options as $key => $val) {
-                    if (in_array($key, ['aggregate', 'cluster', 'connections', 'exceptions', 'prefix', 'profile', 'replication', 'parameters'])) {
-                        $params[$key] = $val;
-                        unset($this->options[$key]);
-                    }
-                }
-
-                if ('' == $this->options['password']) {
-                    unset($this->options['password']);
-                }
-
-                $this->handler = new \Predis\Client($this->options, $params);
-
-                $this->options['prefix'] = '';
+            if ($this->options['persistent']) {
+                $this->handler->pconnect($this->options['host'], (int) $this->options['port'], (int) $this->options['timeout'], 'persistent_id_' . $this->options['select']);
             } else {
-                throw new \BadFunctionCallException('not support: redis');
+                $this->handler->connect($this->options['host'], (int) $this->options['port'], (int) $this->options['timeout']);
             }
 
-            if (0 != $this->options['select']) {
-                $this->handler->select((int) $this->options['select']);
+            if ('' != $this->options['password']) {
+                $this->handler->auth($this->options['password']);
             }
+        } elseif (class_exists('\Predis\Client')) {
+            $params = [];
+            foreach ($this->options as $key => $val) {
+                if (in_array($key, ['aggregate', 'cluster', 'connections', 'exceptions', 'prefix', 'profile', 'replication', 'parameters'])) {
+                    $params[$key] = $val;
+                    unset($this->options[$key]);
+                }
+            }
+
+            if ('' == $this->options['password']) {
+                unset($this->options['password']);
+            }
+
+            $this->handler = new \Predis\Client($this->options, $params);
+
+            $this->options['prefix'] = '';
+        } else {
+            throw new \BadFunctionCallException('not support: redis');
         }
 
-        return $this->handler;
+        if (0 != $this->options['select']) {
+            $this->handler->select((int) $this->options['select']);
+        }
     }
 
     /**
@@ -103,7 +94,7 @@ class Redis extends Driver
      */
     public function has($name): bool
     {
-        return $this->handler()->exists($this->getCacheKey($name)) ? true : false;
+        return $this->handler->exists($this->getCacheKey($name)) ? true : false;
     }
 
     /**
@@ -116,18 +107,13 @@ class Redis extends Driver
     public function get($name, $default = null): mixed
     {
         $key   = $this->getCacheKey($name);
-        $value = $this->handler()->get($key);
+        $value = $this->handler->get($key);
 
         if (false === $value || is_null($value)) {
-            return $this->getDefaultValue($name, $default);
+            return $default;
         }
 
-        try {
-            return $this->unserialize($value);
-        } catch (InvalidCacheException $e) {
-            return $this->getDefaultValue($name, $default, true);
-
-        }
+        return $this->unserialize($value);
     }
 
     /**
@@ -149,9 +135,9 @@ class Redis extends Driver
         $value  = $this->serialize($value);
 
         if ($expire) {
-            $this->handler()->setex($key, $expire, $value);
+            $this->handler->setex($key, $expire, $value);
         } else {
-            $this->handler()->set($key, $value);
+            $this->handler->set($key, $value);
         }
 
         return true;
@@ -168,7 +154,7 @@ class Redis extends Driver
     {
         $key = $this->getCacheKey($name);
 
-        return $this->handler()->incrby($key, $step);
+        return $this->handler->incrby($key, $step);
     }
 
     /**
@@ -182,7 +168,7 @@ class Redis extends Driver
     {
         $key = $this->getCacheKey($name);
 
-        return $this->handler()->decrby($key, $step);
+        return $this->handler->decrby($key, $step);
     }
 
     /**
@@ -194,7 +180,7 @@ class Redis extends Driver
     public function delete($name): bool
     {
         $key    = $this->getCacheKey($name);
-        $result = $this->handler()->del($key);
+        $result = $this->handler->del($key);
         return $result > 0;
     }
 
@@ -205,7 +191,7 @@ class Redis extends Driver
      */
     public function clear(): bool
     {
-        $this->handler()->flushDB();
+        $this->handler->flushDB();
         return true;
     }
 
@@ -218,7 +204,7 @@ class Redis extends Driver
     public function clearTag($keys): void
     {
         // 指定标签清除
-        $this->handler()->del($keys);
+        $this->handler->del($keys);
     }
 
     /**
@@ -231,7 +217,7 @@ class Redis extends Driver
     public function append($name, $value): void
     {
         $key = $this->getCacheKey($name);
-        $this->handler()->sAdd($key, $value);
+        $this->handler->sAdd($key, $value);
     }
 
     /**
@@ -244,11 +230,6 @@ class Redis extends Driver
     {
         $name = $this->getTagKey($tag);
         $key  = $this->getCacheKey($name);
-        return $this->handler()->sMembers($key);
-    }
-
-    public function __call($method, $args)
-    {
-        return call_user_func_array([$this->handler(), $method], $args);
+        return $this->handler->sMembers($key);
     }
 }

@@ -1,6 +1,6 @@
 {
     "name": "topthink/think-throttle",
-    "description": "throttle middleware for thinkphp8",
+    "description": "throttle middleware for thinkphp6",
     "require": {
         "php": ">=8.0.0",
         "topthink/framework": "^8.0"
@@ -29,6 +29,7 @@
             }
         }
     },
+    "minimum-stability": "dev",
     "require-dev": {
         "phpunit/phpunit": "^9.5",
         "guzzlehttp/guzzle": "^7.7",

@@ -235,17 +235,13 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function invoke($method, array $vars = [])
     {
-        if (is_string($method)) {
-            $method = [$this, $method];
-        }
-
         if (self::$invoker) {
             $call = self::$invoker;
 
-            return $call($method instanceof Closure ? $method : Closure::fromCallable($method), $vars);
+            return $call($method instanceof Closure ? $method : Closure::fromCallable([$this, $method]), $vars);
         }
 
-        return call_user_func_array($method, $vars);
+        return call_user_func_array($method instanceof Closure ? $method : [$this, $method], $vars);
     }
 
     /**

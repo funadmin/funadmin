@@ -27,6 +27,7 @@ class FlipTest extends TestCase
         @unlink($pathname);
     }
 
+
     public function testGif()
     {
         $pathname = TEST_PATH . 'tmp/flip.gif';

@@ -103,6 +103,7 @@ class ThumbTest extends TestCase
         @unlink($pathname);
     }
 
+
     public function testPng()
     {
         $pathname = TEST_PATH . 'tmp/thumb.png';

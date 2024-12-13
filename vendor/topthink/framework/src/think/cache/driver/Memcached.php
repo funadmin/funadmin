@@ -15,7 +15,6 @@ namespace think\cache\driver;
 use DateInterval;
 use DateTimeInterface;
 use think\cache\Driver;
-use think\exception\InvalidCacheException;
 
 /**
  * Memcached缓存类
@@ -27,17 +26,16 @@ class Memcached extends Driver
      * @var array
      */
     protected $options = [
-        'host'        => '127.0.0.1',
-        'port'        => 11211,
-        'expire'      => 0,
-        'timeout'     => 0,
-        'prefix'      => '',
-        'option'      => [],
-        'username'    => '',
-        'password'    => '',
-        'tag_prefix'  => 'tag:',
-        'serialize'   => [],
-        'fail_delete' => false,
+        'host'       => '127.0.0.1',
+        'port'       => 11211,
+        'expire'     => 0,
+        'timeout'    => 0, // 超时时间（单位：毫秒）
+        'prefix'     => '',
+        'username'   => '', //账号
+        'password'   => '', //密码
+        'option'     => [],
+        'tag_prefix' => 'tag:',
+        'serialize'  => [],
     ];
 
     /**
@@ -110,11 +108,8 @@ class Memcached extends Driver
     public function get($name, $default = null): mixed
     {
         $result = $this->handler->get($this->getCacheKey($name));
-        try {
-            return false !== $result ? $this->unserialize($result) : $this->getDefaultValue($name, $default);
-        } catch (InvalidCacheException $e) {
-            return $this->getDefaultValue($name, $default, true);
-        }
+
+        return false !== $result ? $this->unserialize($result) : $default;
     }
 
     /**
@@ -188,8 +183,8 @@ class Memcached extends Driver
         $key = $this->getCacheKey($name);
 
         return false === $ttl ?
-        $this->handler->delete($key) :
-        $this->handler->delete($key, $ttl);
+            $this->handler->delete($key) :
+            $this->handler->delete($key, $ttl);
     }
 
     /**

@@ -8,11 +8,9 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace think;
-
-use Closure;
 
 /**
  * 配置管理类
@@ -25,12 +23,6 @@ class Config
      * @var array
      */
     protected $config = [];
-
-    /**
-     * 注册配置获取器
-     * @var Closure
-     */
-    protected $hook;
 
     /**
      * 构造方法
@@ -82,11 +74,11 @@ class Config
         $type   = pathinfo($file, PATHINFO_EXTENSION);
         $config = [];
         $config = match ($type) {
-            'php' => include $file,
-            'yml', 'yaml' => function_exists('yaml_parse_file') ? yaml_parse_file($file) : [],
-            'ini'         => parse_ini_file($file, true, INI_SCANNER_TYPED) ?: [],
-            'json'        => json_decode(file_get_contents($file), true),
-            default       => [],
+            'php'           =>  include $file,
+            'yml','yaml'    =>  function_exists('yaml_parse_file') ? yaml_parse_file($file) : [],
+            'ini'           =>  parse_ini_file($file, true, INI_SCANNER_TYPED) ?: [],
+            'json'          =>  json_decode(file_get_contents($file), true),
+            default         =>  [],
         };
 
         return is_array($config) ? $this->set($config, strtolower($name)) : [];
@@ -115,18 +107,9 @@ class Config
      */
     protected function pull(string $name): array
     {
-        return $this->config[$name] ?? [];
-    }
+        $name = strtolower($name);
 
-    /**
-     * 注册配置获取器
-     * @access public
-     * @param  Closure $callback
-     * @return void
-     */
-    public function hook(Closure $callback)
-    {
-        $this->hook = $callback;
+        return $this->config[$name] ?? [];
     }
 
     /**
@@ -136,7 +119,7 @@ class Config
      * @param  mixed  $default 默认值
      * @return mixed
      */
-    public function get(?string $name = null, $default = null)
+    public function get(string $name = null, $default = null)
     {
         // 无参数时获取所有
         if (empty($name)) {
@@ -144,42 +127,23 @@ class Config
         }
 
         if (!str_contains($name, '.')) {
-            $name   = strtolower($name);
-            $result = $this->pull($name);
-            return $this->hook ? $this->lazy($name, $result, []) : $result;
+            return $this->pull($name);
         }
 
-        $item    = explode('.', $name);
-        $item[0] = strtolower($item[0]);
+        $name    = explode('.', $name);
+        $name[0] = strtolower($name[0]);
         $config  = $this->config;
 
-        foreach ($item as $val) {
+        // 按.拆分成多维数组进行判断
+        foreach ($name as $val) {
             if (isset($config[$val])) {
                 $config = $config[$val];
             } else {
-                return $this->hook ? $this->lazy($name, null, $default) : $default;
+                return $default;
             }
         }
 
-        return $this->hook ? $this->lazy($name, $config, $default) : $config;
-    }
-
-    /**
-     * 通过获取器加载配置
-     * @access public
-     * @param  string  $name 配置参数
-     * @param  mixed   $value 配置值
-     * @param  mixed   $default 默认值
-     * @return mixed
-     */
-    protected function lazy(?string $name, $value = null, $default = null)
-    {
-        // 通过获取器返回
-        $result = call_user_func_array($this->hook, [$name, $value]);
-        if (is_null($result)) {
-            return $default;
-        }
-        return $result;
+        return $config;
     }
 
     /**
@@ -189,7 +153,7 @@ class Config
      * @param  string $name 配置名
      * @return array
      */
-    public function set(array $config, ?string $name = null): array
+    public function set(array $config, string $name = null): array
     {
         if (empty($name)) {
             $this->config = array_merge($this->config, array_change_key_case($config));

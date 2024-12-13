@@ -11,6 +11,7 @@
 
 namespace think\image\gif;
 
+
 class Decoder
 {
     public $GIF_buffer = [];

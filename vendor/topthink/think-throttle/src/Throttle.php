@@ -13,7 +13,6 @@ use think\middleware\throttle\CounterFixed;
 use think\middleware\throttle\ThrottleAbstract;
 use think\Request;
 use think\Response;
-use TypeError;
 use function sprintf;
 
 /**
@@ -27,7 +26,7 @@ class Throttle
      * 默认配置参数
      * @var array
      */
-    public static array $default_config = [
+    public static $default_config = [
         'prefix' => 'throttle_',                    // 缓存键前缀，防止键与其他应用冲突
         'key'    => true,                           // 节流规则 true为自动规则
         'visit_method' => ['GET', 'HEAD'],          // 要被限制的请求类型
@@ -39,7 +38,7 @@ class Throttle
         'driver_name' => CounterFixed::class,       // 限流算法驱动
     ];
 
-    public static array $duration = [
+    public static $duration = [
         's' => 1,
         'm' => 60,
         'h' => 3600,
@@ -50,19 +49,24 @@ class Throttle
      * 缓存对象
      * @var CacheInterface
      */
-    protected CacheInterface $cache;
+    protected $cache;
 
     /**
      * 配置参数
      * @var array
      */
-    protected array $config = [];
+    protected $config = [];
 
-    protected int $wait_seconds = 0;    // 下次合法请求还有多少秒
-    protected int $now = 0;             // 当前时间戳
-    protected int $max_requests = 0;    // 规定时间内允许的最大请求次数
-    protected int $expire = 0;          // 规定时间
-    protected int $remaining = 0;       // 规定时间内还能请求的次数
+    protected $key = null;          // 解析后的标识
+    protected $wait_seconds = 0;    // 下次合法请求还有多少秒
+    protected $now = 0;             // 当前时间戳
+    protected $max_requests = 0;    // 规定时间内允许的最大请求次数
+    protected $expire = 0;          // 规定时间
+    protected $remaining = 0;       // 规定时间内还能请求的次数
+    /**
+     * @var ThrottleAbstract|null
+     */
+    protected $driver_class = null;
 
     /**
      * Throttle constructor.
@@ -93,24 +97,25 @@ class Throttle
         }
         [$max_requests, $duration] = $this->parseRate($this->config['visit_rate']);
 
-        $micro_now = microtime(true);   // float
+        $micronow = microtime(true);
+        $now = (int) $micronow;
 
-        $driver = Container::getInstance()->invokeClass($this->config['driver_name']);
-        if (!($driver instanceof ThrottleAbstract)) {
-            throw new TypeError('The throttle driver must extends ' . ThrottleAbstract::class);
+        $this->driver_class = Container::getInstance()->invokeClass($this->config['driver_name']);
+        if (!$this->driver_class instanceof ThrottleAbstract) {
+            throw new \TypeError('The throttle driver must extends ' . ThrottleAbstract::class);
         }
-        $allow = $driver->allowRequest($key, $micro_now, $max_requests, $duration, $this->cache);
+        $allow = $this->driver_class->allowRequest($key, $micronow, $max_requests, $duration, $this->cache);
 
         if ($allow) {
             // 允许访问
-            $this->now = (int) $micro_now;
+            $this->now = $now;
             $this->expire = $duration;
             $this->max_requests = $max_requests;
-            $this->remaining = $max_requests - $driver->getCurRequests();
+            $this->remaining = $max_requests - $this->driver_class->getCurRequests();
             return true;
         }
 
-        $this->wait_seconds = $driver->getWaitSeconds();
+        $this->wait_seconds = $this->driver_class->getWaitSeconds();
         return false;
     }
 
@@ -135,11 +140,7 @@ class Throttle
         $response = $next($request);
         if (200 <= $response->getCode() && 300 > $response->getCode() && $this->config['visit_enable_show_rate_limit']) {
             // 将速率限制 headers 添加到响应中
-            $response->header([
-                'X-Rate-Limit-Limit' => $this->max_requests,
-                'X-Rate-Limit-Remaining' => max($this->remaining, 0),
-                'X-Rate-Limit-Reset' => $this->now + $this->expire,
-            ]);
+            $response->header($this->getRateLimitHeaders());
         }
         return $response;
     }
@@ -153,7 +154,7 @@ class Throttle
     {
         $key = $this->config['key'];
 
-        if ($key instanceof Closure) {
+        if ($key instanceof \Closure) {
             $key = Container::getInstance()->invokeFunction($key, [$this, $request]);
         }
 
@@ -164,7 +165,7 @@ class Throttle
 
         if ($key === true) {
             $key = $request->ip();
-        } elseif (is_string($key) && str_contains($key, '__')) {
+        } elseif (false !== strpos($key, '__')) {
             $key = str_replace(['__CONTROLLER__', '__ACTION__', '__IP__'], [$request->controller(), $request->action(), $request->ip()], $key);
         }
 
@@ -176,7 +177,7 @@ class Throttle
      * @param string $rate
      * @return int[]
      */
-    protected function parseRate(string $rate): array
+    protected function parseRate($rate): array
     {
         [$num, $period] = explode("/", $rate);
         $max_requests = (int) $num;
@@ -218,6 +219,19 @@ class Throttle
     }
 
     /**
+     * 获取速率限制头
+     * @return array
+     */
+    public function getRateLimitHeaders(): array
+    {
+        return [
+            'X-Rate-Limit-Limit' => $this->max_requests,
+            'X-Rate-Limit-Remaining' => $this->remaining < 0 ? 0 : $this->remaining,
+            'X-Rate-Limit-Reset' => $this->now + $this->expire,
+        ];
+    }
+
+    /**
      * 构建 Response Exception
      * @param int     $wait_seconds
      * @param Request $request
@@ -225,10 +239,10 @@ class Throttle
      */
     public function buildLimitException(int $wait_seconds, Request $request): HttpResponseException {
         $visitFail = $this->config['visit_fail_response'] ?? null;
-        if ($visitFail instanceof Closure) {
+        if ($visitFail instanceof \Closure) {
             $response = Container::getInstance()->invokeFunction($visitFail, [$this, $request, $wait_seconds]);
             if (!$response instanceof Response) {
-                throw new TypeError(sprintf('The closure must return %s instance', Response::class));
+                throw new \TypeError(sprintf('The closure must return %s instance', Response::class));
             }
         } else {
             $content = str_replace('__WAIT__', (string) $wait_seconds, $this->config['visit_fail_text']);

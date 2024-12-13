@@ -8,12 +8,11 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace think\route;
 
 use think\Exception;
-use think\facade\Validate;
 use think\Request;
 use think\Route;
 
@@ -44,7 +43,7 @@ class RuleItem extends Rule
      * @param  string|\Closure   $route 路由地址
      * @param  string            $method 请求类型
      */
-    public function __construct(Route $router, RuleGroup $parent, ?string $name = null, string $rule = '', $route = null, string $method = '*')
+    public function __construct(Route $router, RuleGroup $parent, string $name = null, string $rule = '', $route = null, string $method = '*')
     {
         $this->router = $router;
         $this->parent = $parent;
@@ -53,6 +52,7 @@ class RuleItem extends Rule
         $this->method = $method;
 
         $this->setRule($rule);
+
         $this->router->setRule($this->rule, $this);
     }
 
@@ -88,9 +88,11 @@ class RuleItem extends Rule
             $suffix = $this->option['ext'];
         } elseif ($this->parent->getOption('ext')) {
             $suffix = $this->parent->getOption('ext');
+        } else {
+            $suffix = null;
         }
 
-        return $suffix ?? null;
+        return $suffix;
     }
 
     /**
@@ -114,8 +116,8 @@ class RuleItem extends Rule
             $rule = $prefix . ($rule ? '/' . ltrim($rule, '/') : '');
         }
 
-        if (str_contains($rule, ':') || str_contains($rule, '{')) {
-            $this->rule = preg_replace(['/\[\:(\w+)\]/', '/\:(\w+)/', '/\{(\w+)\}/', '/\{(\w+)\?\}/'], ['<\1?>', '<\1>', '<\1>', '<\1?>'], $rule);
+        if (str_contains($rule, ':')) {
+            $this->rule = preg_replace(['/\[\:(\w+)\]/', '/\:(\w+)/'], ['<\1?>', '<\1>'], $rule);
         } else {
             $this->rule = $rule;
         }
@@ -160,7 +162,7 @@ class RuleItem extends Rule
      * @param  bool         $completeMatch   路由是否完全匹配
      * @return Dispatch|false
      */
-    public function checkRule(Request $request, string $url, ?array $match = null, bool $completeMatch = false)
+    public function checkRule(Request $request, string $url, array $match = null, bool $completeMatch = false)
     {
         // 检查参数有效性
         if (!$this->checkOption($this->option, $request)) {
@@ -256,7 +258,6 @@ class RuleItem extends Rule
         }
 
         if (!str_contains($rule, '<')) {
-            // 静态路由
             if ($case && (0 === strcmp($rule, $url) || (!$completeMatch && 0 === strncmp($rule . $depr, $url . $depr, strlen($rule . $depr))))) {
                 return $var;
             } elseif (!$case && (0 === strcasecmp($rule, $url) || (!$completeMatch && 0 === strncasecmp($rule . $depr, $url . $depr, strlen($rule . $depr))))) {
@@ -286,20 +287,7 @@ class RuleItem extends Rule
 
             foreach ($match as $key => $val) {
                 if (is_string($key)) {
-                    if (isset($option['var_rule'][$key]) && !Validate::checkRule($val, $option['var_rule'][$key])) {
-                        // 检查变量
-                        return false;
-                    }
                     $var[$key] = $val;
-                }
-            }
-        }
-
-        if (!empty($option['default'])) {
-            // 可选路由变量设置默认值
-            foreach ($option['default'] as $name => $default) {
-                if (!isset($var[$name])) {
-                    $var[$name] = $default;
                 }
             }
         }

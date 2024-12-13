@@ -109,8 +109,8 @@ class TagSet
     {
         // 指定标签清除
         foreach ($this->tag as $tag) {
-            $keys = $this->handler->getTagItems($tag);
-            if (!empty($keys)) $this->handler->clearTag($keys);
+            $names = $this->handler->getTagItems($tag);
+            $this->handler->clearTag($names);
 
             $key = $this->handler->getTagKey($tag);
             $this->handler->delete($key);

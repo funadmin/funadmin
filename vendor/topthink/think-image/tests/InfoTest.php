@@ -37,6 +37,7 @@ class InfoTest extends TestCase
         $this->assertEquals([800, 600], $image->size());
     }
 
+
     public function testPng()
     {
         $image = Image::open($this->getPng());

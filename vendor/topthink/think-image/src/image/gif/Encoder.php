@@ -48,7 +48,7 @@ class Encoder
         for ($i = 0; $i < count($GIF_src); $i++) {
             if (strtolower($GIF_mod) == "url") {
                 $this->BUF[] = fread(fopen($GIF_src[$i], "rb"), filesize($GIF_src[$i]));
-            } elseif (strtolower($GIF_mod) == "bin") {
+            } else if (strtolower($GIF_mod) == "bin") {
                 $this->BUF[] = $GIF_src[$i];
             } else {
                 printf("%s: %s ( %s )!", $this->VER, $this->ERR['ERR02'], $GIF_mod);
@@ -74,7 +74,7 @@ class Encoder
         }
         $this->addHeader();
         for ($i = 0; $i < count($this->BUF); $i++) {
-            isset($GIF_dly[$i]) && $this->addFrames($i, $GIF_dly[$i]);
+            $this->addFrames($i, $GIF_dly[$i]);
         }
         $this->addFooter();
     }

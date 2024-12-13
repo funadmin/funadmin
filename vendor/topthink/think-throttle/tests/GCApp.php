@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 namespace tests;
 
-use Exception;
 use think\App;
 use think\initializer\BootService;
 use think\initializer\Error;
@@ -22,7 +21,7 @@ class GCError extends Error {
      * 从 parent::init() 中移除 register_shutdown_function
      * @param App $app
      */
-    public function init(App $app): void
+    public function init(App $app)
     {
         $this->app = $app;
         error_reporting(E_ALL);
@@ -33,13 +32,11 @@ class GCError extends Error {
 }
 
 class GCValidate extends Validate {
-    public static function cleanMaker(): void
-    { static::$maker = []; }
+    public static function cleanMaker() { static::$maker = []; }
 }
 
 class GCModel extends Model {
-    public static function cleanMaker(): void
-    { static::$maker = []; }
+    public static function cleanMaker() { static::$maker = []; }
 }
 
 /**
@@ -56,24 +53,23 @@ class GCApp extends App {
 
     /**
      * 添加清理函数
+     * @throws \Exception
      */
-    public function refClear(): void
+    public function refClear()
     {
         $this->route->clear(); // 清理路由规则
+        // 清理绑定在 App 的实例
+        $names = [];
+        foreach ($this->getIterator() as $name=>$_v) {
+            $names[] = $name;
+        }
+        foreach ($names as $name) {
+            $this->delete($name);
+        }
         // 清理异常 handler
         restore_error_handler();
         restore_exception_handler();
         GCValidate::cleanMaker();
         GCModel::cleanMaker();
-        // 清理绑定在 App 的实例
-        $names = [];
-        try {
-            foreach ($this->getIterator() as $name => $_v) {
-                $names[] = $name;
-            }
-        } catch (Exception) {}
-        foreach ($names as $name) {
-            $this->delete($name);
-        }
     }
 }

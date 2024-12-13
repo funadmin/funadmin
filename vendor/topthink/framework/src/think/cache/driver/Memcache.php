@@ -15,7 +15,6 @@ namespace think\cache\driver;
 use DateInterval;
 use DateTimeInterface;
 use think\cache\Driver;
-use think\exception\InvalidCacheException;
 
 /**
  * Memcache缓存类
@@ -27,15 +26,14 @@ class Memcache extends Driver
      * @var array
      */
     protected $options = [
-        'host'        => '127.0.0.1',
-        'port'        => 11211,
-        'expire'      => 0,
-        'timeout'     => 0,
-        'persistent'  => true,
-        'prefix'      => '',
-        'tag_prefix'  => 'tag:',
-        'serialize'   => [],
-        'fail_delete' => false,
+        'host'       => '127.0.0.1',
+        'port'       => 11211,
+        'expire'     => 0,
+        'timeout'    => 0, // 超时时间（单位：毫秒）
+        'persistent' => true,
+        'prefix'     => '',
+        'tag_prefix' => 'tag:',
+        'serialize'  => [],
     ];
 
     /**
@@ -68,8 +66,8 @@ class Memcache extends Driver
         foreach ($hosts as $i => $host) {
             $port = $ports[$i] ?? $ports[0];
             $this->options['timeout'] > 0 ?
-            $this->handler->addServer($host, (int) $port, $this->options['persistent'], 1, (int) $this->options['timeout']) :
-            $this->handler->addServer($host, (int) $port, $this->options['persistent'], 1);
+                $this->handler->addServer($host, (int) $port, $this->options['persistent'], 1, (int) $this->options['timeout']) :
+                $this->handler->addServer($host, (int) $port, $this->options['persistent'], 1);
         }
     }
 
@@ -97,11 +95,7 @@ class Memcache extends Driver
     {
         $result = $this->handler->get($this->getCacheKey($name));
 
-        try {
-            return false !== $result ? $this->unserialize($result) : $this->getDefaultValue($name, $default);
-        } catch (InvalidCacheException $e) {
-            return $this->getDefaultValue($name, $default, true);
-        }
+        return false !== $result ? $this->unserialize($result) : $default;
     }
 
     /**
@@ -175,8 +169,8 @@ class Memcache extends Driver
         $key = $this->getCacheKey($name);
 
         return false === $ttl ?
-        $this->handler->delete($key) :
-        $this->handler->delete($key, $ttl);
+            $this->handler->delete($key) :
+            $this->handler->delete($key, $ttl);
     }
 
     /**

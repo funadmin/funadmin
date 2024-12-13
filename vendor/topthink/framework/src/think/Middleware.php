@@ -186,10 +186,6 @@ class Middleware
      */
     protected function buildMiddleware(array|string|Closure $middleware, string $type): array
     {
-        if (empty($middleware)) {
-            return [];
-        }
-        
         if (is_array($middleware)) {
             [$middleware, $params] = $middleware;
         }

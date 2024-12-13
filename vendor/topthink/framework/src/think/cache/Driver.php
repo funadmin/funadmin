@@ -20,8 +20,7 @@ use Exception;
 use think\Container;
 use think\contract\CacheHandlerInterface;
 use think\exception\InvalidArgumentException;
-use think\exception\InvalidCacheException;
-use Throwable;
+use throwable;
 
 /**
  * 缓存基础类
@@ -64,14 +63,14 @@ abstract class Driver implements CacheHandlerInterface
      * @param integer|DateInterval|DateTimeInterface $expire 有效期
      * @return int
      */
-    protected function getExpireTime(int | DateInterval | DateTimeInterface $expire): int
+    protected function getExpireTime(int|DateInterval|DateTimeInterface $expire): int
     {
         if ($expire instanceof DateTimeInterface) {
             $expire = $expire->getTimestamp() - time();
         } elseif ($expire instanceof DateInterval) {
             $expire = DateTime::createFromFormat('U', (string) time())
-                ->add($expire)
-                ->format('U') - time();
+                    ->add($expire)
+                    ->format('U') - time();
         }
 
         return $expire;
@@ -92,17 +91,16 @@ abstract class Driver implements CacheHandlerInterface
      * 读取缓存并删除
      * @access public
      * @param string $name 缓存变量名
-     * @param mixed  $default 默认值
      * @return mixed
      */
-    public function pull($name, $default = null)
+    public function pull($name)
     {
-        if ($this->has($name)) {
-            $result = $this->get($name, $default);
+        $result = $this->get($name, false);
+
+        if ($result) {
             $this->delete($name);
             return $result;
         }
-        return $this->getDefaultValue($name, $default);
     }
 
     /**
@@ -180,7 +178,7 @@ abstract class Driver implements CacheHandlerInterface
 
             // 解锁
             $this->delete($name . '_lock');
-        } catch (Exception | Throwable $e) {
+        } catch (Exception|throwable $e) {
             $this->delete($name . '_lock');
             throw $e;
         }
@@ -235,10 +233,10 @@ abstract class Driver implements CacheHandlerInterface
      * @param mixed $data 缓存数据
      * @return string
      */
-    protected function serialize($data)
+    protected function serialize($data): string
     {
         if (is_numeric($data)) {
-            return $data;
+            return (string) $data;
         }
 
         $serialize = $this->options['serialize'][0] ?? "serialize";
@@ -252,38 +250,15 @@ abstract class Driver implements CacheHandlerInterface
      * @param string $data 缓存数据
      * @return mixed
      */
-    protected function unserialize($data)
+    protected function unserialize(string $data)
     {
         if (is_numeric($data)) {
             return $data;
         }
-        try {
-            $unserialize = $this->options['serialize'][1] ?? "unserialize";
-            $content     = $unserialize($data);
-            if (is_null($content)) {
-                throw new InvalidCacheException;
-            } else {
-                return $content;
-            }
-        } catch (Exception | Throwable $e) {
-            throw new InvalidCacheException;
-        }
-    }
 
-    /**
-     * 获取默认值
-     * @access protected
-     * @param string $name 缓存标识
-     * @param mixed $default 默认值
-     * @param bool $fail 是否有异常
-     * @return mixed
-     */
-    protected function getDefaultValue($name, $default, $fail = false)
-    {
-        if ($fail && $this->options['fail_delete']) {
-            $this->delete($name);
-        }
-        return $default instanceof Closure ? $default() : $default;
+        $unserialize = $this->options['serialize'][1] ?? "unserialize";
+
+        return $unserialize($data);
     }
 
     /**

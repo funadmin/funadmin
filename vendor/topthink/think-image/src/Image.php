@@ -141,31 +141,6 @@ class Image
     }
 
     /**
-     * http输出图片
-     * @return void
-     */
-    public function output()
-    {
-        $type = $this->info['type'];
-        header("content-type: image/{$type}");
-        switch ($type) {
-            case 'png':
-                imagepng($this->im);
-                break;
-            case 'gif':
-                imagegif($this->im);
-                break;
-            case 'jpeg':
-                imagejpeg($this->im);
-                break;
-            case 'wbmp':
-                imagewbmp($this->im);
-                break;
-        }
-        exit;
-    }
-
-    /**
      * 返回图像宽度
      * @return int 图像宽度
      */
@@ -282,17 +257,16 @@ class Image
     public function crop($w, $h, $x = 0, $y = 0, $width = null, $height = null)
     {
         //设置保存尺寸
-
         empty($width) && $width   = $w;
         empty($height) && $height = $h;
         do {
             //创建新图像
-            $img = imagecreatetruecolor((int) $width, (int) $height);
+            $img = imagecreatetruecolor($width, $height);
             // 调整默认颜色
             $color = imagecolorallocate($img, 255, 255, 255);
             imagefill($img, 0, 0, $color);
             //裁剪
-            imagecopyresampled($img, $this->im, 0, 0, (int) $x, (int) $y, (int) $width, (int) $height, $w, $h);
+            imagecopyresampled($img, $this->im, 0, 0, $x, $y, $width, $height, $w, $h);
             imagedestroy($this->im); //销毁原图
             //设置新图像
             $this->im = $img;
@@ -328,18 +302,18 @@ class Image
                 $scale = min($width / $w, $height / $h);
                 //设置缩略图的坐标及宽度和高度
                 $x      = $y      = 0;
-                $width  = (int) ($w * $scale);
-                $height = (int) ($h * $scale);
+                $width  = $w * $scale;
+                $height = $h * $scale;
                 break;
             /* 居中裁剪 */
             case self::THUMB_CENTER:
                 //计算缩放比例
                 $scale = max($width / $w, $height / $h);
                 //设置缩略图的坐标及宽度和高度
-                $w = (int) ($width / $scale);
-                $h = (int) ($height / $scale);
-                $x = (int) (($this->info['width'] - $w) / 2);
-                $y = (int) (($this->info['height'] - $h) / 2);
+                $w = $width / $scale;
+                $h = $height / $scale;
+                $x = ($this->info['width'] - $w) / 2;
+                $y = ($this->info['height'] - $h) / 2;
                 break;
             /* 左上角裁剪 */
             case self::THUMB_NORTHWEST:
@@ -347,18 +321,18 @@ class Image
                 $scale = max($width / $w, $height / $h);
                 //设置缩略图的坐标及宽度和高度
                 $x = $y = 0;
-                $w = (int) ($width / $scale);
-                $h = (int) ($height / $scale);
+                $w = $width / $scale;
+                $h = $height / $scale;
                 break;
             /* 右下角裁剪 */
             case self::THUMB_SOUTHEAST:
                 //计算缩放比例
                 $scale = max($width / $w, $height / $h);
                 //设置缩略图的坐标及宽度和高度
-                $w = (int) ($width / $scale);
-                $h = (int) ($height / $scale);
-                $x = (int) ($this->info['width'] - $w);
-                $y = (int) ($this->info['height'] - $h);
+                $w = $width / $scale;
+                $h = $height / $scale;
+                $x = $this->info['width'] - $w;
+                $y = $this->info['height'] - $h;
                 break;
             /* 填充 */
             case self::THUMB_FILLED:
@@ -369,12 +343,12 @@ class Image
                     $scale = min($width / $w, $height / $h);
                 }
                 //设置缩略图的坐标及宽度和高度
-                $neww = (int) ($w * $scale);
-                $newh = (int) ($h * $scale);
+                $neww = $w * $scale;
+                $newh = $h * $scale;
                 $x    = $this->info['width'] - $w;
                 $y    = $this->info['height'] - $h;
-                $posx = (int) (($width - $w * $scale) / 2);
-                $posy = (int) (($height - $h * $scale) / 2);
+                $posx = ($width - $w * $scale) / 2;
+                $posy = ($height - $h * $scale) / 2;
                 do {
                     //创建新图像
                     $img = imagecreatetruecolor($width, $height);
@@ -403,9 +377,9 @@ class Image
     /**
      * 添加水印
      *
-     * @param string    $source 水印图片路径
-     * @param int|array $locate 水印位置
-     * @param int       $alpha  透明度
+     * @param  string $source 水印图片路径
+     * @param int     $locate 水印位置
+     * @param int     $alpha  透明度
      * @return $this
      */
     public function water($source, $locate = self::WATER_SOUTHEAST, $alpha = 100)
@@ -483,10 +457,10 @@ class Image
             // 调整默认颜色
             $color = imagecolorallocate($src, 255, 255, 255);
             imagefill($src, 0, 0, $color);
-            imagecopy($src, $this->im, 0, 0, (int) $x, (int) $y, $info[0], $info[1]);
+            imagecopy($src, $this->im, 0, 0, $x, $y, $info[0], $info[1]);
             imagecopy($src, $water, 0, 0, 0, 0, $info[0], $info[1]);
-            imagecopymerge($this->im, $src, (int) $x, (int) $y, 0, 0, $info[0], $info[1], $alpha);
-            //销毁临时图片资源
+            imagecopymerge($this->im, $src, $x, $y, 0, 0, $info[0], $info[1], $alpha);
+            //销毁零时图片资源
             imagedestroy($src);
         } while (!empty($this->gif) && $this->gifNext());
         //销毁水印资源
@@ -497,13 +471,13 @@ class Image
     /**
      * 图像添加文字
      *
-     * @param string        $text   添加的文字
-     * @param string        $font   字体路径
-     * @param integer       $size   字号
-     * @param string        $color  文字颜色
-     * @param int|array     $locate 文字写入位置
-     * @param integer|array $offset 文字相对当前位置的偏移量
-     * @param integer       $angle  文字倾斜角度
+     * @param  string  $text   添加的文字
+     * @param  string  $font   字体路径
+     * @param  integer $size   字号
+     * @param  string  $color  文字颜色
+     * @param int      $locate 文字写入位置
+     * @param  integer $offset 文字相对当前位置的偏移量
+     * @param  integer $angle  文字倾斜角度
      *
      * @return $this
      * @throws ImageException
@@ -585,24 +559,6 @@ class Image
             $offset = intval($offset);
             $ox     = $oy     = $offset;
         }
-        /* 图片黑白检测 */
-        if ("auto" == $color) {
-            //X方向采集宽度：单英文字符占据宽度约为字体大小/1.6，单中文字符占据宽度约为字体大小*4/3；Y方向采集宽度：英文字符高度约为字体大小，中文会高一些。
-            //使用保守宽度，以免在纯英文情况下采集区域超出图像范围，并且精度完全可以满足本功能。
-            $pickX = intval(mb_strwidth($text) * ($size / 1.6));
-            $pickY = $size;
-
-            $brightness = 0;
-            for ($i = $x + $ox; $i < $pickX + $x + $ox; $i++) {
-                //根据文字基线确定要进行遍历的像素
-                for ($j = $y + $oy - $pickY; $j < $y + $oy; $j++) {
-                    //基线修正
-                    $brightness += self::getBrightnessOfPixel($i, $j);
-                }
-            }
-
-            $color = $brightness / ($pickX * $pickY) > 127 ? '#00000000' : '#ffffffff';
-        }
         /* 设置颜色 */
         if (is_string($color) && 0 === strpos($color, '#')) {
             $color = str_split(substr($color, 1), 2);
@@ -619,22 +575,6 @@ class Image
             imagettftext($this->im, $size, $angle, $x + $ox, $y + $oy, $col, $font, $text);
         } while (!empty($this->gif) && $this->gifNext());
         return $this;
-    }
-
-    /**
-     * 获取图片指定像素点的亮度值
-     */
-    private function getBrightnessOfPixel($x, $y)
-    {
-        $rgb = imagecolorat($this->im, $x, $y);
-        $r   = ($rgb >> 16) & 0xFF;
-        $g   = ($rgb >> 8) & 0xFF;
-        $b   = $rgb & 0xFF;
-
-        //红绿蓝能量不同，亮度不同，对应系数也不同（参考https://www.w3.org/TR/AERT/#color-contrast）
-        $brightness = intval($r * 0.299 + $g * 0.587 + $b * 0.114);
-
-        return $brightness;
     }
 
     /**

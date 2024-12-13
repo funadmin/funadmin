@@ -8,7 +8,7 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
-declare (strict_types = 1);
+declare(strict_types=1);
 
 namespace think;
 
@@ -51,7 +51,7 @@ class Cookie
      */
     public function __construct(protected Request $request, array $config = [])
     {
-        $this->config = array_merge($this->config, array_change_key_case($config));
+        $this->config  = array_merge($this->config, array_change_key_case($config));
     }
 
     public static function __make(Request $request, Config $config)
@@ -111,7 +111,6 @@ class Cookie
         }
 
         $this->setCookie($name, $value, $expire, $config);
-        $this->request->setCookie($name, $value);
     }
 
     /**
@@ -159,7 +158,6 @@ class Cookie
     {
         $config = array_merge($this->config, array_change_key_case($options));
         $this->setCookie($name, '', time() - 3600, $config);
-        $this->request->setCookie($name, null);
     }
 
     /**
