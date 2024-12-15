@@ -1,4 +1,3 @@
-verfiy--
 -- 表的结构 `fun_addon`
 --
 
@@ -351,7 +350,7 @@ CREATE TABLE `fun_config` (
 -- 转存表中的数据 `fun_config`
 --
 
-INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verfiy`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
+INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verify`, `type`, `group`, `status`, `is_system`, `create_time`, `update_time`, `delete_time`) VALUES
                                                                                                                                                                        (1, 'site_name', '', 'FunAdmin管理系统', '网站名称', '0', 'text', 'site', 1, 1, 0, 1602808542, 0),
                                                                                                                                                                        (2, 'site_phone', '', '1888888888', '网站客服服务电话', '0', 'text', 'site', 1, 1, 0, 1581831391, 0),
                                                                                                                                                                        (3, 'site_state', '', '0:关闭\r\n1:开启', '状态', '0', 'radio', 'site', 1, 1, 0, 1581825436, 0),
@@ -4603,7 +4602,7 @@ ALTER TABLE `fun_field_type`
 -- 表的索引 `fun_field_verify`
 --
 ALTER TABLE `fun_field_verify`
-    ADD UNIQUE KEY `verfiy` (`verify`);
+    ADD UNIQUE KEY `verify` (`verify`);
 
 --
 -- 表的索引 `fun_languages`

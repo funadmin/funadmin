@@ -148,12 +148,14 @@ class Index extends BaseController
             if (version_compare($link->server_info, $this->mysqlVersion, '<')) {
                 $this->error("MySQL数据库版本不能低于{$this->mysqlVersion},请将您的MySQL升级到{$this->mysqlVersion}及以上");
             }
-            // 创建数据库并选中
-            if (!$link->select_db($db['database'])) {
+            try {
+                // 创建数据库并选中
                 $create_sql = 'CREATE DATABASE IF NOT EXISTS ' . $db['database'] . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;';
                 if (!$link->query($create_sql)) {
                     $this->error('创建数据库失败');
                 }
+            }catch (\Exception $e){
+                $this->error($e->getMessage());
             }
             $link->select_db($db['database']);
             // 写入数据库
