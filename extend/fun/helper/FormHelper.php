@@ -826,7 +826,7 @@ EOF;
         if ($select) {
             $attr = is_array($attr)?$attr:explode(',',$attr);
             $attr = array_filter($attr);
-            $value = is_array($value)?$value:explode(',',$value);
+            $value = $value?(is_array($value)?$value:explode(',',$value)):"";
             foreach ($select as $k => $v) {
                 $selected = '';
                 if (is_array($v) && !empty($attr) && in_array($v[$attr[0]], $value)) {
