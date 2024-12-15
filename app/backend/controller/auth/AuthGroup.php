@@ -131,6 +131,9 @@ class AuthGroup extends Backend
             if($id==1){
                 $this->error(lang('SupperAdmin cannot edit'));
             }
+            if($post['pid']==$id){
+                $this->error(lang('Superiors can not be for themselves'));
+            }
             $res = $list->save($post);
             if($res){
                 $this->success(lang('operation success'));
@@ -142,9 +145,9 @@ class AuthGroup extends Backend
             $id = $this->request->param('id');
             $list = $this->modelClass->find(['id' => $id]);
             $where = [];
-            if(session('admin.id')!==1){
-                $where[] = ['id','in',session('admin.group_id')];
-            }
+//            if(session('admin.id')!=1){
+//                $where[] = ['id','in',session('admin.group_id')];
+//            }
             $authGroup = $this->modelClass->where('status',1)->where($where)->select()->toArray();
             foreach ($authGroup as $key=>$item) {
                 $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
