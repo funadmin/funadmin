@@ -148,7 +148,8 @@ class AuthGroup extends Backend
 //            if(session('admin.id')!=1){
 //                $where[] = ['id','in',session('admin.group_id')];
 //            }
-            $authGroup = $this->modelClass->where('status',1)->where($where)->select()->toArray();
+            $authGroup = $this->modelClass->where('status',1)->where($where)
+                ->where('id','<>',$id)->select()->toArray();
             foreach ($authGroup as $key=>$item) {
                 $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
                 if(empty($parent)){
