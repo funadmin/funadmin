@@ -38,6 +38,8 @@ trait WhereQuery
             $this->options['where']['AND'][] = true;
 
             return $this;
+        } elseif (empty($field)) {
+            return $this;
         }
 
         $pk = $this->getPk();
@@ -48,6 +50,11 @@ trait WhereQuery
         $param = func_get_args();
         array_shift($param);
 
+        if (is_array($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field) {
+                return $query->parseWhereExp('AND', $field, $op, $condition, $param);
+            });
+        }
         return $this->parseWhereExp('AND', $field, $op, $condition, $param);
     }
 
@@ -91,6 +98,12 @@ trait WhereQuery
         $param = func_get_args();
         array_shift($param);
 
+        if (is_array($field) && !empty($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field) {
+                return $query->parseWhereExp('OR', $field, $op, $condition, $param);
+            });
+        }
+
         return $this->parseWhereExp('OR', $field, $op, $condition, $param);
     }
 
@@ -108,6 +121,11 @@ trait WhereQuery
         $param = func_get_args();
         array_shift($param);
 
+        if (is_array($field) && !empty($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field) {
+                return $query->parseWhereExp('XOR', $field, $op, $condition, $param);
+            });
+        }
         return $this->parseWhereExp('XOR', $field, $op, $condition, $param);
     }
 
@@ -616,18 +634,18 @@ trait WhereQuery
 
         // 根据条件决定执行哪个查询
         if ($condition) {
-            $this->executeQuery($query);
+            $this->executeQuery($query, $condition);
         } elseif ($otherwise) {
-            $this->executeQuery($otherwise);
+            $this->executeQuery($otherwise, $condition);
         }
 
         return $this;
     }
 
-    protected function executeQuery(Closure | array $query): void
+    protected function executeQuery(Closure | array $query, $condition): void
     {
         if ($query instanceof Closure) {
-            $query($this);
+            $query($this, $condition);
         } elseif (is_array($query)) {
             $this->where($query);
         }
