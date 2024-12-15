@@ -1,3 +1,3 @@
 <?php
 
-\think\facade\Route::get('/','frontend/index/index');
+\think\facade\Route::get('/','index/index');

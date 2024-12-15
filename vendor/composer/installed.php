@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'funadmin/funadmin',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => NULL,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'ae5831964df68644c97809f0e09c9d8d65db613f',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -56,9 +56,9 @@
             'dev_requirement' => false,
         ),
         'funadmin/funadmin' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => NULL,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'ae5831964df68644c97809f0e09c9d8d65db613f',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -362,8 +362,8 @@
             ),
         ),
         'symfony/var-dumper' => array(
-            'pretty_version' => '6.4.x-dev',
-            'version' => '6.4.9999999.9999999-dev',
+            'pretty_version' => 'v6.4.15',
+            'version' => '6.4.15.0',
             'reference' => '38254d5a5ac2e61f2b52f9caf54e7aa3c9d36b80',
             'type' => 'library',
             'install_path' => __DIR__ . '/../symfony/var-dumper',
@@ -467,7 +467,7 @@
             'type' => 'library',
             'install_path' => __DIR__ . '/../topthink/think-trace',
             'aliases' => array(),
-            'dev_requirement' => false,
+            'dev_requirement' => true,
         ),
         'topthink/think-view' => array(
             'pretty_version' => 'v2.0.0',
