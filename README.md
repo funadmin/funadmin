@@ -18,7 +18,7 @@ funadmin前端和webman开发的后台管理系统
         <img src="https://img.shields.io/badge/layui-2.9.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
-        <img src="https://img.shields.io/badge/php-%3E%3D8.0-8892BF.svg" alt="PHP Version">
+        <img src="https://img.shields.io/badge/php-%3E%3D8.1-8892BF.svg" alt="PHP Version">
     </a>
     <a href='https://gitee.com/funadmin/funadmin'>
         <img src='https://img.shields.io/badge/Mysql-%3E%3D5.7-green' alt='MYSQL'></img>
@@ -76,7 +76,7 @@ FunAdmin 基于thinkphp8.X +Layui2.9.*+requirejs开发权限(RBAC)管理框架�
 ## 环境要求:
 
 * 开启静态重写 (必须)
-* PHP >= 8.0
+* PHP >= 8.1
 * PDO PHP Extension
 * MBstring PHP Extension
 * CURL PHP Extension
