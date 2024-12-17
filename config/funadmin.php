@@ -20,6 +20,7 @@ return [
 
     'publicAjaxUrl'=>['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'],
 
+    'standalone'=>1,
 ];
 
 

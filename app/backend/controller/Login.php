@@ -18,6 +18,7 @@ use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use Exception;
 use fun\helper\SignHelper;
+use http\Header;
 use think\App;
 
 class Login extends Backend {
@@ -28,8 +29,11 @@ class Login extends Backend {
         SystemLog::class
     ];
     public function __construct(App $app) {
-
         parent::__construct($app);
+        if(config('funadmin.standalone') && request()->baseFile()=='/index.php'){
+            header("Location: /");
+            exit();
+        }
     }
     public function index(){
         if (!$this->request->isPost()) {

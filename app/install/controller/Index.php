@@ -34,6 +34,7 @@ class Index extends BaseController
     protected $mysqlVersion = '5.7';
     //database模板
     protected $databaseTpl = '';
+    protected $adminTpl = '';
 
     public function __construct(App $app)
     {
@@ -42,6 +43,7 @@ class Index extends BaseController
         $this->envFile = root_path() . ".env";
         $this->lockFile = public_path() . "install.lock";
         $this->databaseTpl = app_path() . "view/tpl/database.tpl";
+        $this->adminTpl = app_path() . "view/tpl/admin.tpl";
         $this->envTpl = app_path() . "view/tpl/env.example";
         $this->sqlFileDir = app_path() . "sql";
         $this->config = [
@@ -88,6 +90,7 @@ class Index extends BaseController
         }
         if (request()->action() === 'step3' && request()->isPost()) {
             //执行安装
+
             $this->app_debug = request()->post('app_debug')? true : false;
             $db['host'] = request()->post('hostname') ? request()->post('hostname') : '127.0.0.1';
             $db['port'] = request()->post('port') ?: '3306';
@@ -220,8 +223,32 @@ class Index extends BaseController
             }catch(\Exception $e){
                 $this->error($e->getMessage());
             }
+            $adminName = 'backend';
+            if(request()->post('standalone')){
+                //后台入口
+                $putAdmin = @file_get_contents($this->adminTpl);
+                $number = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $adminName = substr(str_shuffle($number), 0, 10) . '.php';
+                $adminFile = "." . DIRECTORY_SEPARATOR . $adminName;
+                if (!file_exists($adminFile)) {
+                    @touch($adminFile);
+                }
+                @file_put_contents($adminFile, $putAdmin);
+            }
+            $funadmin = @file_get_contents(config_path().'funadmin.php');
+            $standalone = request()->post('standalone')?1:0;
+            // Match and replace standalone value (1 or 0) to boolean (true or false)
+            $updatedContent = preg_replace_callback(
+                "/('standalone'\s*=>\s*)(1|0|true|false)/",
+                function ($matches) use ($standalone) {
+                    return $matches[1] . $standalone;
+                },
+                $funadmin
+            );
+            @file_put_contents(config_path().'funadmin.php', $updatedContent);
             $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
+            $adminUser['backend'] = $adminName;
             session('admin_install', $adminUser);
             $this->success('安装成功,安装后请重新启动程序');
         }
