@@ -23,16 +23,32 @@ use think\facade\Db;
 
 class Install extends Command
 {
+    //开发模式
+    protected $app_debug = false;
+
+    protected $config;
+    //错误信息
+    protected $msg = '';
     //安装文件
     protected $lockFile;
     //数据库
     protected $databaseConfigFile;
-    //sql 文件
-    protected $sqlFile = '';
+    protected $envFile;
+    //模版
+    protected $envTpl;
+    /**
+     * 安装中要执行的 SQL 脚本文件清单.
+     * 自定义的SQL脚本放在controller同级的sql文件夹,将文件名添加到这个数组中,务必注意脚本依赖顺序,因为系统会按照数组里的顺序依次执行.
+     */
+    protected $sqlFileDir = '';
     //mysql版本
     protected $mysqlVersion = '5.7';
     //database模板
     protected $databaseTpl = '';
+    protected $adminTpl = '';
+
+
+
 
     protected function configure()
     {
@@ -48,6 +64,8 @@ class Install extends Command
             ->addOption('username', 'u', Option::VALUE_OPTIONAL, 'mysql username', $config['username'])
             ->addOption('password', 'p', Option::VALUE_OPTIONAL, 'mysql password', $config['password'])
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, 'force override', false)
+            ->addOption('app_debug', 'debug', Option::VALUE_OPTIONAL, 'force override', 1)
+            ->addOption('standalone', 'standalone', Option::VALUE_OPTIONAL, 'force override', 1)
             ->setDescription('FunAdmin install command');
     }
 
@@ -60,12 +78,26 @@ class Install extends Command
     protected function execute(Input $input, Output $output)
     {
 
+
+
+        $force = $input->getOption('force');
+        $app_debug = $input->getOption('app_debug');
+        $standalone = $input->getOption('standalone');
+
         $this->databaseConfigFile = config_path() . "database.php";
-        $this->sqlFile = app()->getBasePath() . "install/funadmin.sql";
+        $this->envFile = root_path() . ".env";
         $this->lockFile = public_path() . "install.lock";
         $this->databaseTpl = app()->getBasePath()  . "install/view/tpl/database.tpl";
-        $force = $input->getOption('force');
-        $this->lockFile = public_path() . "install.lock";
+        $this->adminTpl = app()->getBasePath()  . "install/view/tpl/admin.tpl";
+        $this->envTpl = app()->getBasePath()  . "install/view/tpl/env.example";
+        $this->sqlFileDir = app()->getBasePath()  . "install/sql";
+        $this->config = [
+            'siteName' => "FunAdmin",
+            'siteVersion' => config('app.version'),
+            'tablePrefix' => "fun_",
+            'runtimePath' => runtime_path(),
+            'lockFile' => $this->lockFile,
+        ];
         if (is_file($this->lockFile) && !$force) {
             $this->output->highlight("已经安装了,如需重新安装请输入 -f 1或 --force 1");
             exit();
@@ -143,6 +175,7 @@ class Install extends Command
      */
     protected function install($input): void{
         $env = root_path() . '.env';
+        $standalone = $input->getOption('standalone');
         $db["host"] = $input->getOption('hostname');
         $db["port"] = $input->getOption('hostport');
         $db["database"] = $input->getOption('database');
@@ -169,8 +202,8 @@ class Install extends Command
         $db['username'] = strtolower($this->output->ask($this->input, '👉 Set mysql username default (root)'))?:$db["username"];
         $db['password'] = strtolower($this->output->ask($this->input, '👉 Set mysql password required'))?: $db["password"];
         $admin["username"] = strtolower($this->output->ask($this->input, '👉 Set admin username required default (admin)'))?:'admin';
-        $admin["password"] = strtolower($this->output->ask($this->input, '👉 Set admin password required default (123456)'))?:'123456';
-        $admin['rePassword'] = strtolower($this->output->ask($this->input, '👉 Set admin repeat password default (123456)'))?:'123456';
+        $admin["password"] = strtolower($this->output->ask($this->input, '👉 Set admin password required default (admin123456)'))?:'admin123456';
+        $admin['rePassword'] = strtolower($this->output->ask($this->input, '👉 Set admin repeat password default (admin123456)'))?:'admin123456';
         $admin['email'] = strtolower($this->output->ask($this->input, '👉 Set admin email'))?:'admin@admin.com';
         if(!$admin["username"] || !$admin['rePassword'] ){
             $this->output->error('请输入管理员帐号和密码');
@@ -197,6 +230,7 @@ class Install extends Command
                 }
             }
         }
+        $adminPassword = $admin['password'];
         if(!preg_match('/^[0-9a-z_$]{6,16}$/i', $admin['password']) || strlen($admin['password']) < 5 || strlen($admin['password']) > 16){
             $this->output->error('管理员密码必须6-16位,且必须包含字母和数字,不能有中文和空格');
             while (!$adminPassword) {
@@ -230,11 +264,9 @@ class Install extends Command
                 exit("MySQL数据库版本不能低于{$this->mysqlVersion},请将您的MySQL升级到{$this->mysqlVersion}及以上");
             }
             // 创建数据库并选中
-            if (!$link->select_db($db['database'])) {
-                $create_sql = 'CREATE DATABASE IF NOT EXISTS ' . $db['database'] . ' DEFAULT CHARACTER SET '. $db["charset"].';';
-                $link->query($create_sql) or exit('创建数据库失败');
-                $link->select_db($db['database']);
-            }
+            $create_sql = 'CREATE DATABASE IF NOT EXISTS ' . $db['database'] . ' DEFAULT CHARACTER SET '. $db["charset"].';';
+            $link->query($create_sql) or exit('创建数据库失败');
+            $link->select_db($db['database']);
 //            $link->query('set global wait_timeout=2147480');
 //            $link->query("set global interactive_timeout=2147480");
 //            $link->query("set global max_allowed_packet=104857600");
@@ -255,20 +287,7 @@ class Install extends Command
                 'charset'   => 'utf8mb4'
             ];
             Config::set($config, 'database');
-            try {
-                $instance = Db::connect();
-                $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
-                $instance->getPdo()->exec($sql);
-                sleep(2);
-                $password = password_hash($admin['password'], PASSWORD_BCRYPT);
-                $instance->execute("UPDATE {$db['prefix']}admin SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
-                $instance->execute("UPDATE {$db['prefix']}member SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
-            } catch (\PDOException $e) {
-                $this->output->error($e->getMessage());exit();
-            }catch(\Exception $e){
-                $this->output->error($e->getMessage());exit();
-            }
-            $this->output->highlight('数据库安装完成...');
+
             $databaseTpl = @file_get_contents($this->databaseTpl);
             $this->output->highlight('修改数据配置中...');
             //替换数据库相关配置
@@ -281,12 +300,78 @@ class Install extends Command
                 $this->output->error('安装失败，请确认database.php有写权限！');
                 exit();
             }
+            if($this->app_debug){
+                $putEnv = str_replace(
+                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                    [$this->app_debug,$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+                    file_get_contents($this->envTpl));
+                $putConfig = @file_put_contents($this->envFile, $putEnv);
+                if (!$putConfig) {
+                    $this->output->error('安装失败、请确定目录是否有写入权限');exit();
+                }
+            }
+            $result = @touch($this->lockFile);
+            if (!$result) {
+                $this->output->error("安装失败、请确定install.lock是否有写入权限");exit();
+            }
+            try {
+                $instance = Db::connect();
+                $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
+                //逐个执行SQL脚本
+                $sqlFiles = glob($this->sqlFileDir. '/*');
+                foreach ($sqlFiles as $i => $value) {
+                    if(!is_file($value)) continue;
+                    //检测能否读取安装文件
+                    $sql = @file_get_contents($value);
+                    if (!$sql) {
+                        $this->output->error('无法读取{$value}文件，请检查是否有读权限');exit();
+                    }
+                    //替换数据表前缀
+                    $sql = str_replace(["`fun_", 'CREATE TABLE'], ["`{$db['prefix']}", 'CREATE TABLE IF NOT EXISTS'], $sql);
+                    $instance->getPdo()->exec($sql);
+                    sleep(2);
+                }
+                $password = password($admin['password']);
+                $instance->execute("UPDATE {$db['prefix']}admin SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
+                $instance->execute("UPDATE {$db['prefix']}member SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
+            } catch (\PDOException $e) {
+                $this->output->error($e->getMessage());exit();
+            }catch(\Exception $e){
+                $this->output->error($e->getMessage());exit();
+            }
+            $this->output->highlight('数据库安装完成...');
+
+            $adminName = 'backend';
+            if($standalone){
+                //后台入口
+                $putAdmin = @file_get_contents($this->adminTpl);
+                $number = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                $adminName = substr(str_shuffle($number), 0, 10) . '.php';
+                $adminFile = public_path(). $adminName;
+                if (!file_exists($adminFile)) {
+                    @touch($adminFile);
+                }
+                @file_put_contents($adminFile, $putAdmin);
+                $this->output->highlight('后台入口文件生成成功...');
+            }
+            $funadmin = @file_get_contents(config_path().'funadmin.php');
+            $standalone = $standalone?1:0;
+            // Match and replace standalone value (1 or 0) to boolean (true or false)
+            $updatedContent = preg_replace_callback(
+                "/('standalone'\s*=>\s*)(1|0|true|false)/",
+                function ($matches) use ($standalone) {
+                    return $matches[1] . $standalone;
+                },
+                $funadmin
+            );
+            @file_put_contents(config_path().'funadmin.php', $updatedContent);
+            $this->output->highlight('配置修改成功...');
+
             $adminUser['username'] = $admin['username'];
             $adminUser['password'] = $admin['password'];
-            $adminUser['backend'] = 'backend';
-
+            $adminUser['backend'] = $adminName;
             $this->output->highlight('👉 恭喜您：系统已经安装完成... 通过域名+后台入口文件即可访问后台');
-            $this->output->highlight('👉 管理员账号: '.$adminUser["username"].'，管理员密码:'.$adminUser['password'].',后台入口:'.request()->domain().'/backend');
+            $this->output->highlight('👉 管理员账号: '.$adminUser["username"].'，管理员密码:'.$adminUser['password'].',后台入口:'.request()->domain()."/".$adminName);
         } catch (\Exception $e) {
             $this->output->error($e->getMessage());
         }

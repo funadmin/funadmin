@@ -133,8 +133,8 @@ class Index extends BaseController
             if (strlen($admin['username']) < 3 || strlen($admin['username']) > 12) {
                 $this->error('用户名请输入3~12位字符！');
             }
-            if (strlen($admin['password']) < 6 || strlen($admin['password']) > 16) {
-                $this->error('密码请输6~16位字符！');
+            if(!preg_match('/^[0-9a-z_$]{6,16}$/i', $admin['password']) || strlen($admin['password']) < 5 || strlen($admin['password']) > 16){
+                $this->error('管理员密码必须6-16位,且必须包含字母和数字,不能有中文和空格');
             }
 
             // 连接数据库
@@ -229,7 +229,7 @@ class Index extends BaseController
                 $putAdmin = @file_get_contents($this->adminTpl);
                 $number = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
                 $adminName = substr(str_shuffle($number), 0, 10) . '.php';
-                $adminFile = "." . DIRECTORY_SEPARATOR . $adminName;
+                $adminFile = public_path(). $adminName;
                 if (!file_exists($adminFile)) {
                     @touch($adminFile);
                 }
