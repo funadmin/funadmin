@@ -175,6 +175,7 @@ class Install extends Command
     protected function install($input): void{
         $env = root_path() . '.env';
         $standalone = $input->getOption('standalone');
+        $app_debug = $input->getOption('app_debug');
         $db["host"] = $input->getOption('hostname');
         $db["port"] = $input->getOption('hostport');
         $db["database"] = $input->getOption('database');
@@ -193,6 +194,8 @@ class Install extends Command
             $db["password"] = $env['DB_PASS']  ;
         }
         $prefix = env('DB_PREFIX');
+        $app_debug = strtolower($this->output->ask($this->input, '👉 Set debug model default yes',$app_debug))?:$app_debug;
+        $standalone = strtolower($this->output->ask($this->input, '👉 Set standalone backend default true',$standalone))?:$app_debug;
         $db["host"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostname default(127.0.0.1)',$db["host"]))?:$db["host"];
         $db["port"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostport default (3306)',$db["port"]))?:$db["port"] ;
         $db['database'] = strtolower($this->output->ask($this->input, '👉 Set mysql database default (funadmin)',$db["database"]))?:$db["prefix"];
@@ -204,6 +207,7 @@ class Install extends Command
         $admin["password"] = strtolower($this->output->ask($this->input, '👉 Set admin password required default (admin123456)','admin123456'))?:'admin123456';
         $admin['rePassword'] = strtolower($this->output->ask($this->input, '👉 Set admin repeat password default (admin123456)','admin123456'))?:'admin123456';
         $admin['email'] = strtolower($this->output->ask($this->input, '👉 Set admin email','admin@admin.com'))?:'admin@admin.com';
+
         if(!$admin["username"] || !$admin['rePassword'] ){
             $this->output->error('请输入管理员帐号和密码');
             while (!$admin["username"]) {
