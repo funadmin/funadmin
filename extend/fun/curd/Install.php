@@ -78,8 +78,6 @@ class Install extends Command
     protected function execute(Input $input, Output $output)
     {
 
-
-
         $force = $input->getOption('force');
         $app_debug = $input->getOption('app_debug');
         $standalone = $input->getOption('standalone');
@@ -155,14 +153,15 @@ class Install extends Command
 
         $this->output->info('runtime  is witeable');
 
-        $sql_file = app()->getBasePath().'install'.DIRECTORY_SEPARATOR.'funadmin.sql';
-        //检测能否读取安装文件
-        $sql = @file_get_contents($sql_file);
-        if (!$sql) {
-            $this->output->error("Unable to read `{$sql_file}`，Please check if you have read permission");
-            exit();
+        $sqlFiles = glob($this->sqlFileDir. '/*');
+        foreach ($sqlFiles as $i => $value) {
+            if(!is_file($value)) continue;
+            //检测能否读取安装文件
+            $sql = @file_get_contents($value);
+            if (!$sql) {
+                $this->output->error('无法读取{$value}文件，请检查是否有读权限');exit();
+            }
         }
-
         $this->output->info('sql file is witeable');
 
         $this->output->info('🎉 environment checking finished');
@@ -185,26 +184,26 @@ class Install extends Command
         $db["prefix"] = $input->getOption('prefix');
         if(file_exists($env)){
             $env = \parse_ini_file($env, true);
-            $db["host"] =  $env['DATABASE']['HOSTNAME'] ;
-            $db["port"] = $env['DATABASE']['HOSTPORT']  ;
-            $db["database"] = $env['DATABASE']['DATABASE'] ;
-            $db["charset"] = $env['DATABASE']['CHARSET']  ;
-            $db["prefix"] = $env['DATABASE']['PREFIX']  ;
-            $db["username"] = $env['DATABASE']['USERNAME']  ;
-            $db["password"] = $env['DATABASE']['PASSWORD']  ;
+            $db["host"] =  $env['DB_HOST'] ;
+            $db["port"] = $env['DB_PORT']  ;
+            $db["database"] = $env['DB_NAME'] ;
+            $db["charset"] = $env['DB_CHARSET']  ;
+            $db["prefix"] = $env['DB_PREFIX']  ;
+            $db["username"] = $env['DB_USER']  ;
+            $db["password"] = $env['DB_PASS']  ;
         }
         $prefix = env('DB_PREFIX');
-        $db["host"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostname default(127.0.01)'))?:$db["host"];
-        $db["port"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostport default (3306)'))?:$db["port"] ;
-        $db['database'] = strtolower($this->output->ask($this->input, '👉 Set mysql database default (funadmin)'))?:$db["database"];
-        $db['prefix'] = strtolower($this->output->ask($this->input, "👉 Set mysql table prefix default( $prefix )"))?:$db["prefix"];
-        $db["charset"] = strtolower($this->output->ask($this->input, '👉 Set mysql table charset default (utf8mb4)'))?:$db["charset"];
-        $db['username'] = strtolower($this->output->ask($this->input, '👉 Set mysql username default (root)'))?:$db["username"];
-        $db['password'] = strtolower($this->output->ask($this->input, '👉 Set mysql password required'))?: $db["password"];
-        $admin["username"] = strtolower($this->output->ask($this->input, '👉 Set admin username required default (admin)'))?:'admin';
-        $admin["password"] = strtolower($this->output->ask($this->input, '👉 Set admin password required default (admin123456)'))?:'admin123456';
-        $admin['rePassword'] = strtolower($this->output->ask($this->input, '👉 Set admin repeat password default (admin123456)'))?:'admin123456';
-        $admin['email'] = strtolower($this->output->ask($this->input, '👉 Set admin email'))?:'admin@admin.com';
+        $db["host"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostname default(127.0.0.1)',$db["host"]))?:$db["host"];
+        $db["port"] = strtolower($this->output->ask($this->input, '👉 Set mysql hostport default (3306)',$db["port"]))?:$db["port"] ;
+        $db['database'] = strtolower($this->output->ask($this->input, '👉 Set mysql database default (funadmin)',$db["database"]))?:$db["prefix"];
+        $db['prefix'] = strtolower($this->output->ask($this->input, "👉 Set mysql table prefix default( $prefix )",$db["prefix"]))?:$db["prefix"];
+        $db["charset"] = strtolower($this->output->ask($this->input, '👉 Set mysql table charset default (utf8mb4)',$db["charset"]))?:$db["charset"];
+        $db['username'] = strtolower($this->output->ask($this->input, '👉 Set mysql username default (root)',$db["username"]))?:$db["username"];
+        $db['password'] = strtolower($this->output->ask($this->input, '👉 Set mysql password required',$db["password"]))?: $db["password"];
+        $admin["username"] = strtolower($this->output->ask($this->input, '👉 Set admin username required default (admin)','admin'))?:'admin';
+        $admin["password"] = strtolower($this->output->ask($this->input, '👉 Set admin password required default (admin123456)','admin123456'))?:'admin123456';
+        $admin['rePassword'] = strtolower($this->output->ask($this->input, '👉 Set admin repeat password default (admin123456)','admin123456'))?:'admin123456';
+        $admin['email'] = strtolower($this->output->ask($this->input, '👉 Set admin email','admin@admin.com'))?:'admin@admin.com';
         if(!$admin["username"] || !$admin['rePassword'] ){
             $this->output->error('请输入管理员帐号和密码');
             while (!$admin["username"]) {
@@ -271,10 +270,6 @@ class Install extends Command
 //            $link->query("set global interactive_timeout=2147480");
 //            $link->query("set global max_allowed_packet=104857600");
             $link->query("USE `{$db['database']}`");//使用数据库
-            // 写入数据库
-            $this->output->writeln('安装数据库中...');
-            $sql = file_get_contents($this->sqlFile);
-            $sql = str_replace(["`fun_",'CREATE TABLE'], ["`{$db['prefix']}",'CREATE TABLE IF NOT EXISTS'], $sql);
             $config = Config::get('database');
             $config['connections']['mysql'] = [
                 'type'      => 'mysql',
