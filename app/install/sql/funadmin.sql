@@ -690,60 +690,6 @@ CREATE TABLE `fun_member_third` (
                                     `delete_time` int DEFAULT '0' COMMENT '删除时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='第三方登录表';
 
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_oauth2_access_token`
---
-
-CREATE TABLE `fun_oauth2_access_token` (
-                                           `id` int UNSIGNED NOT NULL,
-                                           `client_id` int NOT NULL COMMENT '客户端ID',
-                                           `merchant_id` int UNSIGNED DEFAULT '0' COMMENT '商户id',
-                                           `refresh_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '刷新令牌',
-                                           `access_token` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权令牌',
-                                           `expires_time` int NOT NULL COMMENT '过期时间',
-                                           `refresh_expires_time` int NOT NULL COMMENT '刷新过期时间',
-                                           `member_id` int UNSIGNED DEFAULT '0' COMMENT '用户id',
-                                           `openid` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '授权对象openid',
-                                           `tablename` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'member' COMMENT '授权用户表',
-                                           `group` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
-                                           `status` tinyint DEFAULT '1' COMMENT '状态=[-1:删除,0:禁用,1启用]',
-                                           `create_time` int UNSIGNED DEFAULT '0' COMMENT '创建时间',
-                                           `update_time` int UNSIGNED DEFAULT '0' COMMENT '修改时间',
-                                           `delete_time` int DEFAULT '0' COMMENT '删除时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='oauth授权表token';
-
--- --------------------------------------------------------
-
---
--- 表的结构 `fun_oauth2_client`
---
-
-CREATE TABLE `fun_oauth2_client` (
-                                     `id` int UNSIGNED NOT NULL,
-                                     `merchant_id` int UNSIGNED DEFAULT '0' COMMENT '商户id',
-                                     `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
-                                     `appid` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'appid',
-                                     `appsecret` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '密钥',
-                                     `redirect_uri` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '回调Url',
-                                     `remark` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
-                                     `group` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'api' COMMENT '组别',
-                                     `status` tinyint DEFAULT '1' COMMENT '状态=[0:禁用;1启用]',
-                                     `create_time` int UNSIGNED DEFAULT '0' COMMENT '创建时间',
-                                     `update_time` int UNSIGNED DEFAULT '0' COMMENT '修改时间',
-                                     `delete_time` int NOT NULL DEFAULT '0' COMMENT '删除时间'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='oauth2_授权客户端';
-
---
--- 转存表中的数据 `fun_oauth2_client`
---
-
-INSERT INTO `fun_oauth2_client` (`id`, `merchant_id`, `title`, `appid`, `appsecret`, `redirect_uri`, `remark`, `group`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-    (1, 0, 'FunAdmin', 'funadmin', '692ffa52429dd7e2b1df280be0f8c83f', '', '', 'api', 1, 0, 0, 0);
-
--- --------------------------------------------------------
-
 --
 -- 表的结构 `fun_provinces`
 --
@@ -4668,24 +4614,6 @@ ALTER TABLE `fun_member_third`
     ADD KEY `member_id` (`member_id`,`platform`) USING BTREE,
     ADD KEY `id` (`id`);
 
---
--- 表的索引 `fun_oauth2_access_token`
---
-ALTER TABLE `fun_oauth2_access_token`
-    ADD PRIMARY KEY (`id`),
-    ADD UNIQUE KEY `access_token` (`access_token`),
-    ADD UNIQUE KEY `refresh_token` (`refresh_token`),
-    ADD KEY `merchant_id` (`merchant_id`),
-    ADD KEY `member_id` (`member_id`),
-    ADD KEY `openid` (`openid`);
-
---
--- 表的索引 `fun_oauth2_client`
---
-ALTER TABLE `fun_oauth2_client`
-    ADD PRIMARY KEY (`id`),
-    ADD KEY `merchant_id` (`merchant_id`),
-    ADD KEY `appid` (`appid`);
 
 --
 -- 表的索引 `fun_provinces`
@@ -4819,17 +4747,6 @@ ALTER TABLE `fun_member_level`
 ALTER TABLE `fun_member_third`
     MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID';
 
---
--- 使用表AUTO_INCREMENT `fun_oauth2_access_token`
---
-ALTER TABLE `fun_oauth2_access_token`
-    MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
-
---
--- 使用表AUTO_INCREMENT `fun_oauth2_client`
---
-ALTER TABLE `fun_oauth2_client`
-    MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `fun_test`

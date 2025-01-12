@@ -14,7 +14,7 @@ class Config extends Command
     public function configure()
     {
         $this->setName('addons:config')
-            ->setDescription('send config to config folder');
+            ->setDescription('ApiTraits config to config folder');
     }
 
     public function execute(Input $input, Output $output)

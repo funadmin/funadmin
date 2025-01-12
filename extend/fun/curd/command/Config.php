@@ -24,7 +24,7 @@ class Config extends Command
 
     public function configure()
     {
-        $this->setName('curd:config')->setDescription('send config to config folder');
+        $this->setName('curd:config')->setDescription('ApiTraits config to config folder');
     }
 
     public function execute(Input $input, Output $output)

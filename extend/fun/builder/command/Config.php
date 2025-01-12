@@ -24,7 +24,7 @@ class Config extends Command
 
     public function configure()
     {
-        $this->setName('builder:config')->setDescription('send js file to builder folder');
+        $this->setName('builder:config')->setDescription('ApiTraits js file to builder folder');
     }
 
     public function execute(Input $input, Output $output)
