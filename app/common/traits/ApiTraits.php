@@ -26,7 +26,7 @@ trait ApiTraits
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public  function success($msg = '', $data = null, $code = 200, $type = 'json', array $header = [], $options= [])
+    public  function success($msg = '', $data = '', $code = 200, $type = 'json', array $header = [], $options= [])
     {
         $this->result($msg, $data, $code, $type, $header,$options);
     }
@@ -39,12 +39,12 @@ trait ApiTraits
      * @param string $type 输出类型
      * @param array $header 发送的 Header 信息
      */
-    public function error($msg = '', $data = null, $code = 404, $type = 'json', $header = [], $options=[])
+    public function error($msg = '', $data = '', $code = 404, $type = 'json', $header = [], $options=[])
     {
         $this->result($msg, $data, $code, $type, $header,$options);
     }
 
-    protected  function result($msg, $data = null, $code = 404, $type = 'json',  $header = [], $options = [])
+    protected  function result($msg, $data = '', $code = 404, $type = 'json',  $header = [], $options = [])
     {
         $result = [
             'code' => $code,
