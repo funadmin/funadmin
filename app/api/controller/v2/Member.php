@@ -10,8 +10,7 @@ use think\Request;
 
 class Member extends Api
 {
-    protected array $noAuth = ['verify'];
-    protected array $needAuth = ['index','userinfo'];
+    protected array $noNeedLogin = ['verify'];
 
     protected $middleware = [];
 
