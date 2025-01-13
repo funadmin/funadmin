@@ -58,6 +58,7 @@ class Token extends Api
                 $this->success(__('Tokens generated successfully'), [
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
+                    'expires_in' => Config::get('api.access_token_ttl'),
                 ]);
             } else {
                 $this->error(lang('Password is not right'), [], 401);
