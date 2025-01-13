@@ -74,30 +74,24 @@ class Token extends Api
      * @param Request $request
      * @return \think\response\Json
      */
-    public function refresh(Request $request)
-{
-    // 获取 Authorization 头
-    $authHeader = $request->header('Authorization');
+    public function refresh(Request $request){
+        // 获取 Authorization 头
+        $authHeader = $request->header('Authorization');
+        if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+            $this->error(__('Unauthorized'), [], 401);
+        }
+        $refreshToken = $matches[1];
+        // 验证 refresh_token
+        $userData = $this->jwtService->validateToken($refreshToken, 'refresh');
 
-    if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-        $this->error(__('Unauthorized'), [], 401);
+        if (!$userData) {
+            $this->error(__('Invalid refresh token'), [], 401);
+        }
+        // 生成新的 access_token
+        $newAccessToken = $this->jwtService->build($userData, Config::get('api.access_token_ttl', 3600));
+        $this->success(__('Access token refreshed successfully'), [
+            'access_token' => $newAccessToken,
+        ]);
     }
-
-    $refreshToken = $matches[1];
-
-    // 验证 refresh_token
-    $userData = $this->jwtService->validateToken($refreshToken, 'refresh');
-
-    if (!$userData) {
-        $this->error(__('Invalid refresh token'), [], 401);
-    }
-
-    // 生成新的 access_token
-    $newAccessToken = $this->jwtService->build($userData, Config::get('api.access_token_ttl', 3600));
-    $this->success(__('Access token refreshed successfully'), [
-        'access_token' => $newAccessToken,
-    ]);
-
-}
 
 }
