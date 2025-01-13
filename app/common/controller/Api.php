@@ -27,8 +27,7 @@ class Api extends BaseController
 
     protected $middleware =[];
 
-    protected array $noAuth = [];
-    protected array $needAuth = [];
+    protected array $noNeedLogin = [];
     /**
      * @var
      * 模型
@@ -118,11 +117,8 @@ class Api extends BaseController
         $this->pageSize = input('limit', 15);
         $this->page = input('page', 1);
         $auth = [];
-        if(!empty($this->noAuth) && $this->noAuth!=['*']){
-            $auth['expect'] = $this->noAuth;
-        }
-        if(!empty($this->needAuth) && $this->needAuth!=['*']){
-            $auth['only'] = $this->needAuth;
+        if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
+            $auth['expect'] = $this->noNeedLogin;
         }
         if(!empty($auth)){
             $this->middleware = [
