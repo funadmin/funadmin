@@ -118,11 +118,15 @@ class Api extends BaseController
         $this->page = input('page', 1);
         $auth = [];
         if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
-            $auth['expect'] = $this->noNeedLogin;
+            $auth['except'] = $this->noNeedLogin;
         }
         if(!empty($auth)){
             $this->middleware = [
                 ApiAuth::class=>$auth,
+            ];
+        }else{
+            $this->middleware = [
+                ApiAuth::class,
             ];
         }
     }

@@ -20,7 +20,7 @@ class Member extends Api
     }
     public function index(Request $request)
     {
-        $this->success();
+        $this->success('ok',['user'=>$request->user]);
     }
 
 

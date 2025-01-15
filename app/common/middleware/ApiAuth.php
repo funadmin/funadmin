@@ -30,7 +30,6 @@ class ApiAuth
     {
         // 获取请求的 URL 或其他标识符
         $url = $request->url();
-
         // 检查是否需要鉴权
         // 获取 Authorization 头
         $authHeader = $request->header('Authorization');
@@ -45,7 +44,6 @@ class ApiAuth
         if (!$userData) {
             $this->error(__('Invalid token'), [], 401);
         }
-
         // 将解码后的用户信息存储在请求中
         $request->user = $userData;
 

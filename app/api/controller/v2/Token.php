@@ -15,7 +15,8 @@ use think\facade\Config;
 class Token extends Api
 {
 
-    protected $jwtService;
+    protected  $jwtService;
+    protected array $noNeedLogin = ['build'];
 
     public function __construct(App $app)
     {
@@ -26,6 +27,9 @@ class Token extends Api
         header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
         header('Access-Control-Allow-Credentials:true');
         header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
+        if(!$app->request->isPost()){
+            $this->error(__('Page not find'),[],404);
+        }
     }
 
     /**
