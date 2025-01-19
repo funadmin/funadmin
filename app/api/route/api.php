@@ -13,6 +13,7 @@
 use think\facade\Route;
 ////一般路由规则，访问的url为：v1/member/1,对应的文件为member类下的index方法
 Route::get(':version/member/index','api/:version.member/index');
+Route::get(':version/member/userinfo','api/:version.member/userinfo');
 //
 ////资源路由，详情查看tp手册资源路由
 //Route::resource(':version/member','api/:version.member');

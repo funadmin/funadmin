@@ -2,7 +2,7 @@
 
 namespace app\common\middleware;
 
-use app\common\service\JwtService;
+use app\common\service\TokenService;
 use app\common\traits\Apis;
 use Closure;
 use think\Request;
@@ -12,11 +12,11 @@ class ApiAuth
 {
     use Apis;
 
-    public $jwtService;
+    public $tokenService;
 
-    public function __construct(JwtService $jwtService)
+    public function __construct(TokenService $tokenService)
     {
-        $this->jwtService = $jwtService;
+        $this->tokenService = $tokenService;
     }
 
     /**
@@ -39,7 +39,7 @@ class ApiAuth
         $token = $matches[1];
 
         // 验证 JWT
-        $userData = $this->jwtService->validateToken($token);
+        $userData = $this->tokenService->validateToken($token);
 
         if (!$userData) {
             $this->error(__('Invalid token'), [], 401);

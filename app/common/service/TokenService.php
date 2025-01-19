@@ -7,7 +7,7 @@ use Firebase\JWT\Key;
 use think\App;
 use think\facade\Config;
 
-class JwtService extends AbstractService
+class TokenService extends AbstractService
 {
 
     public function __construct(App $app)
@@ -53,11 +53,10 @@ class JwtService extends AbstractService
     public function validateToken(string $token, string $type = 'access')
     {
         $secretKey = $type === 'access' ? Config::get('api.jwt_secret') : Config::get('api.refresh_jwt_secret');
-
         try {
-
-            JWT::$leeway = 60;//当前时间减去60，把时间留点余地
+            JWT::$leeway = 160;//当前时间减去60，把时间留点余地
             $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
+
             if ($decoded->type !== $type) {
                 return false;
             }

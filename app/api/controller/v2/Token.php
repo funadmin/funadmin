@@ -3,7 +3,7 @@
 namespace app\api\controller\v2;
 
 use app\common\controller\Api;
-use app\common\service\JwtService;
+use app\common\service\TokenService;
 use think\App;
 use think\facade\Db;
 use think\Request;
@@ -15,13 +15,13 @@ use think\facade\Config;
 class Token extends Api
 {
 
-    protected  $jwtService;
-    protected array $noNeedLogin = ['build'];
+    protected  $tokenService;
+    protected array $noNeedLogin = ['build','refresh'];
 
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->jwtService = JwtService::instance();
+        $this->tokenService = TokenService::instance();
         //跨域
         header('Access-Control-Allow-Origin:*');
         header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
@@ -57,8 +57,8 @@ class Token extends Api
             $member = $member->toArray();
             if (password_verify($password, $member['password'])) {
                 unset($member['password']);
-                $accessToken = $this->jwtService->build($member);
-                $refreshToken = $this->jwtService->build($member, 'refresh');
+                $accessToken = $this->tokenService->build($member);
+                $refreshToken = $this->tokenService->build($member, 'refresh');
                 $this->success(__('Tokens generated successfully'), [
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
@@ -86,13 +86,12 @@ class Token extends Api
         }
         $refreshToken = $matches[1];
         // 验证 refresh_token
-        $userData = $this->jwtService->validateToken($refreshToken, 'refresh');
-
+        $userData = $this->tokenService->validateToken($refreshToken, 'refresh');
         if (!$userData) {
             $this->error(__('Invalid refresh token'), [], 401);
         }
         // 生成新的 access_token
-        $newAccessToken = $this->jwtService->build($userData, Config::get('api.access_token_ttl', 3600));
+        $newAccessToken = $this->tokenService->build($userData, Config::get('api.access_token_ttl', 3600*2));
         $this->success(__('Access token refreshed successfully'), [
             'access_token' => $newAccessToken,
         ]);
