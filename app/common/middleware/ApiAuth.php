@@ -3,14 +3,14 @@
 namespace app\common\middleware;
 
 use app\common\service\JwtService;
-use app\common\traits\ApiTraits;
+use app\common\traits\Apis;
 use Closure;
 use think\Request;
 use think\Response;
 
 class ApiAuth
 {
-    use ApiTraits;
+    use Apis;
 
     public $jwtService;
 

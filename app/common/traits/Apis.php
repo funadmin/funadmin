@@ -15,7 +15,7 @@ namespace app\common\traits;
 use think\exception\HttpResponseException;
 use think\Response;
 
-trait ApiTraits
+trait Apis
 {
 
     /**

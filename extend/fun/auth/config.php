@@ -15,5 +15,5 @@ return [
     'jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
     'refresh_jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
     'access_token_ttl' => 3600 * 2,//token-有效期
-    'refresh_token_ttl' => 3600 * 24,   //刷新token过期时间
+    'refresh_token_ttl' => 3600 * 24 * 30,   //刷新token过期时间
 ];

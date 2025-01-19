@@ -15,7 +15,7 @@ namespace app\common\controller;
 
 use app\BaseController;
 use app\common\middleware\ApiAuth;
-use app\common\traits\ApiTraits;
+use app\common\traits\Apis;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Lang;
@@ -23,7 +23,7 @@ use think\helper\Str;
 
 class Api extends BaseController
 {
-    use ApiTraits;
+    use Apis;
 
     protected $middleware =[];
 
