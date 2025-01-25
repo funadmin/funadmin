@@ -32,6 +32,9 @@ return [
     'accept_language' => [
         'zh-hans-cn' => 'zh-cn',
     ],
+    // 关闭自动侦测浏览器语言
+    'auto_detect_browser' => false,
+
     // 是否支持语言分组
     'allow_group'     => true,
 ];
