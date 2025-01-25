@@ -556,7 +556,7 @@ trait Curd
                 }
                 $value = is_array($value)?implode(',',$value):$value;
                 // 写入数据
-                if (preg_match('/^\d{11,}$/', $value)) {
+                if ($value && preg_match('/^\d{11,}$/', $value)) {
                     //正则判断数据是数字且超过10位，则输出本型，防止科学计数
 					$objActSheet->setCellValueExplicit($tmpSpan . $column, $value,\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 				} else {
