@@ -54,7 +54,7 @@ class TokenService extends AbstractService
     {
         $secretKey = $type === 'access' ? Config::get('api.jwt_secret') : Config::get('api.refresh_jwt_secret');
         try {
-            JWT::$leeway = 160;//当前时间减去60，把时间留点余地
+            JWT::$leeway = 60;//当前时间减去60，把时间留点余地
             $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));
 
             if ($decoded->type !== $type) {
