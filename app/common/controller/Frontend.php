@@ -127,8 +127,7 @@ class Frontend extends BaseController
         parent::__construct($app);
         //过滤参数
         $this->layout && $this->app->view->engine()->layout($this->layout);
-        $controller = parse_name($this->request->controller(),1);
-        $controller = strtolower($controller);
+        $controller = $this->request->controller(true);
         if($controller!=='ajax'){
             $this->loadlang($controller,'');
         }

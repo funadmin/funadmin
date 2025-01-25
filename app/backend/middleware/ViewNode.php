@@ -13,14 +13,13 @@ class ViewNode
 {
     public function handle($request, \Closure $next)
     {
-        [$appname, $controllername, $actionname] = [app('http')->getName(), $request->controller(), Request::action()];
+        [$appname, $controllername, $actionname] = [app('http')->getName(), $request->controller(true), Request::action()];
         $controllers = explode('.', $controllername);
         $jsname = '';
         foreach ($controllers as $vo) {
-            empty($jsname) ? $jsname = strtolower(Str::camel(parse_name($vo))) : $jsname .= '/' . strtolower(Str::camel(parse_name($vo)));
+            empty($jsname) ? $jsname = $vo : $jsname .= '/' . $vo;
         }
-        $controllername = strtolower(Str::camel(parse_name($controllername)));
-        $actionname = strtolower(Str::camel(parse_name($actionname)));
+        $actionname = strtolower($actionname);
         $requesturl = "{$appname}/{$controllername}/{$actionname}";
         $autojs = file_exists(app()->getRootPath()."public".DS."static".DS."{$appname}".DS."js".DS."{$jsname}.js") ? true : false;
         $jspath ="{$appname}/js/{$jsname}.js";
