@@ -714,7 +714,7 @@ trait ModelRelationQuery
         }
 
         foreach (['hidden', 'visible', 'append'] as $name) {
-            if (isset($this->options[$name])) {
+            if (!empty($this->options[$name])) {
                 [$value, $merge] = $this->options[$name];
                 $result->$name($value, $merge);
             }

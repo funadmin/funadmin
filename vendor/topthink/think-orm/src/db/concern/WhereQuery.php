@@ -47,15 +47,16 @@ trait WhereQuery
             $this->options['key'] = is_null($condition) ? $op : $condition;
         }
 
+        $logic = 'AND';
         $param = func_get_args();
         array_shift($param);
 
-        if (is_array($field)) {
-            return $this->where(function ($query) use ($param, $condition, $op, $field) {
-                return $query->parseWhereExp('AND', $field, $op, $condition, $param);
+        if (is_array($field) && !empty($field) && array_is_list($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field, $logic) {
+                return $query->parseWhereExp($logic, $field, $op, $condition, $param);
             });
         }
-        return $this->parseWhereExp('AND', $field, $op, $condition, $param);
+        return $this->parseWhereExp($logic, $field, $op, $condition, $param);
     }
 
     /**
@@ -95,16 +96,17 @@ trait WhereQuery
      */
     public function whereOr($field, $op = null, $condition = null)
     {
+        $logic = 'OR';
         $param = func_get_args();
         array_shift($param);
 
-        if (is_array($field) && !empty($field)) {
-            return $this->where(function ($query) use ($param, $condition, $op, $field) {
-                return $query->parseWhereExp('OR', $field, $op, $condition, $param);
+        if (is_array($field) && !empty($field) && array_is_list($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field, $logic) {
+                return $query->parseWhereExp($logic, $field, $op, $condition, $param);
             });
         }
 
-        return $this->parseWhereExp('OR', $field, $op, $condition, $param);
+        return $this->parseWhereExp($logic, $field, $op, $condition, $param);
     }
 
     /**
@@ -118,15 +120,16 @@ trait WhereQuery
      */
     public function whereXor($field, $op = null, $condition = null)
     {
+        $logic = 'XOR';
         $param = func_get_args();
         array_shift($param);
 
-        if (is_array($field) && !empty($field)) {
-            return $this->where(function ($query) use ($param, $condition, $op, $field) {
-                return $query->parseWhereExp('XOR', $field, $op, $condition, $param);
+        if (is_array($field) && !empty($field) && array_is_list($field)) {
+            return $this->where(function ($query) use ($param, $condition, $op, $field, $logic) {
+                return $query->parseWhereExp($logic, $field, $op, $condition, $param);
             });
         }
-        return $this->parseWhereExp('XOR', $field, $op, $condition, $param);
+        return $this->parseWhereExp($logic, $field, $op, $condition, $param);
     }
 
     /**
