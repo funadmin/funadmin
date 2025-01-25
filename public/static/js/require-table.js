@@ -1037,20 +1037,11 @@ define(['timePicker'], function (timePicker) {
                             function (res) {
                                 if(res.code==0){
                                     Fun.toastr.error(res.msg);
-                                    return false;
+                                }else{
+                                     Fun.toastr.success(res.msg);
                                 }
-                                Fun.ajax({
-                                    url: options.init.requests.import_url ||　options.init.requests.import,
-                                    data: {file: res.url},
-                                }, function (res) {
-                                    if(res.code>0){
-                                        Fun.toastr.success(res.msg);
-                                    }else{
-                                        Fun.toastr.error(res.msg);
-                                    }
-                                    Table.api.reload();
-
-                                });
+                                Table.api.reload();
+                                return false;
                             }
                         );
                     });
@@ -1290,7 +1281,7 @@ define(['timePicker'], function (timePicker) {
                     //兼容表单
                     if($(obj.othis).parents('form').length>0){return false;}
                     var id = $(obj.elem).attr('data-id');
-                    name = $(obj.elem).attr('name');
+                    var name = $(obj.elem).attr('name');
                     var data = {id: id, field: name, value: obj.value};
                     Fun.ajax({url: url, prefix: true, data: data,}, function (res) {
                         Fun.toastr.success(res.msg)

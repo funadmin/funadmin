@@ -67,7 +67,7 @@ define([ 'croppers'], function(croppers) {
                             save = data.save || 0,
                             group = data.group || '',
                             uploadmultiple = data.multiple,
-                            uploadExts = data.exts,chunk = data.chunk,
+                            uploadExts = data.exts,chunk = data.chunk;
                             uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
