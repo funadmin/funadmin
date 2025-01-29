@@ -844,6 +844,10 @@ define(['timePicker'], function (timePicker) {
                 if (val !== '') {
                     formatFilter[key] = val;
                     var op = $('#field_' + key).attr('data-searchop');
+                    if(key.indexOf('.') !== -1){
+                        new_key = key.replace(/\./g, '\\.');
+                        op = $('#field_' + new_key).attr('data-searchop');
+                    }
                     var min, max;
                     if ($('#field_' + key + '_min').length > 0) {
                         min = $('#field_' + key + '_min').val();
