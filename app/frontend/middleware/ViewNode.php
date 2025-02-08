@@ -40,7 +40,7 @@ class ViewNode
             'publicAjaxUrl'         =>config('funadmin.publicAjaxUrl'),
 
         ];
-        View::assign('config',$config);
+        View::assign('CONFIG',$config);
         $request->appname =$appname;
         return $next($request);
     }

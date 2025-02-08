@@ -36,9 +36,10 @@ class ViewNode
             'lang'           =>  strip_tags(Lang::getLangset()),
             'site'           =>   syscfg('site'),
             'upload'           =>  syscfg('upload'),
+            'editor'                => syscfg('editor'),
             'publicAjaxUrl'         =>config('funadmin.publicAjaxUrl'),
         ];
-        View::assign('config',$config);
+        View::assign('CONFIG',$config);
         $request->appname =$appname;
         return $next($request);
     }

@@ -29,7 +29,7 @@
     <![endif]-->
 </head>
 <script>
-    window.Config = {:json_encode($config)};
+    window.Config = {:json_encode($CONFIG)};
     window.FormArray = {:isset($formData)?(json_encode($formData)):'""'},
     window.STATIC ='__STATIC__'
     window.PLUGINS = '__PLUGINS__';
