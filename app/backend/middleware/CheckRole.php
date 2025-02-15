@@ -21,7 +21,7 @@ class CheckRole
     {
         if(!Session::has('admin')) {
 
-            $this->redirect(__u('backend/login/index'));
+            $this->redirect(__u('/backend/login/index'));
         }
         $auth = AuthService::instance();
         $auth->roleAccess();
