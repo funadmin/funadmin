@@ -13,6 +13,7 @@
 
 namespace app\common\controller;
 
+use app\backend\middleware\CheckRole;
 use app\frontend\middleware\ViewNode;
 use app\backend\service\AuthService;
 use app\BaseController;
@@ -125,6 +126,18 @@ class Frontend extends BaseController
     public function __construct(App $app)
     {
         parent::__construct($app);
+        $auth = [];
+        if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
+            $auth['except'] = $this->noNeedLogin;
+        }
+        if(!empty($this->onlyNeedLogin)){
+            $auth['only'] = $this->onlyNeedLogin;
+        }
+        if(!empty($auth)){
+            $this->middleware = [CheckRole::class=>$auth] + $this->middleware;
+        }else{
+            $this->middleware = [CheckRole::class] + $this->middleware;
+        }
         //过滤参数
         $this->layout && $this->app->view->engine()->layout($this->layout);
         $controller = $this->request->controller(true);

@@ -143,9 +143,9 @@ class Backend extends BaseController
             $auth['only'] = $this->onlyNeedLogin;
         }
         if(!empty($auth)){
-            $this->middleware = $this->middleware + [CheckRole::class=>$auth];
+            $this->middleware = [CheckRole::class=>$auth] + $this->middleware;
         }else{
-            $this->middleware = $this->middleware  + [CheckRole::class];
+            $this->middleware = [CheckRole::class] + $this->middleware;
         }
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
