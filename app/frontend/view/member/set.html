@@ -61,7 +61,7 @@
                                 <select name="city" lay-filter="city" lay-search="" id="city">
                                     <option value="">请选择城市</option>
                                     {if $member.city}
-                                    <option value="{$member.city}" selected>{:_getProvicesByPid($member.city)['name']}</option>
+                                    <option value="{$member.city}" selected>{:getProvicesByPid($member.city)['name']}</option>
                                     {/if}
                                 </select>
                             </div>
@@ -70,7 +70,7 @@
                                         id="district" val>
                                     <option value="">请选择地区</option>
                                     {if $member.district}
-                                    <option value="{$member.district}"  selected >{:_getProvicesByPid($member.district)['name']}</option>
+                                    <option value="{$member.district}"  selected >{:getProvicesByPid($member.district)['name']}</option>
                                     {/if}
 
                                 </select>

@@ -20,7 +20,7 @@
   <p class="fly-home-info">
     <i class="iconfont icon-kiss" title="L币"></i><span style="color: #FF7200;">{$ouser.scores} L币</span>
     <i class="iconfont icon-shijian"></i><span>{:timeAgo($ouser.create_time)} 加入</span>
-    {if $ouser.province}<i class="iconfont icon-chengshi"></i><span>来自{:_getProvicesByPid($ouser.province)['name']}</span>{/if}
+    {if $ouser.province}<i class="iconfont icon-chengshi"></i><span>来自{:getProvicesByPid($ouser.province)['name']}</span>{/if}
   </p>
   {if $ouser.sign}
   <p class="fly-home-sign">（{$ouser.sign}）</p>

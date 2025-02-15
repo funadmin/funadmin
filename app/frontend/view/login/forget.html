@@ -10,7 +10,7 @@
         <div class="layui-tab-item layui-show">
           <!-- 重置密码 -->
           {if cookie('forget_uid') && cookie('forget_code')}
-          <div class="fly-msg">{:_getMember(cookie('forget_uid'))['username']}，请重置您的密码 <a href="{:__u('login/forget',['type'=>1])}"> 没收到邮件？点击重新发送</a></div>
+          <div class="fly-msg">{:getMember(cookie('forget_uid'))['username']}，请重置您的密码 <a href="{:__u('login/forget',['type'=>1])}"> 没收到邮件？点击重新发送</a></div>
           <div class="layui-form"  style="padding:20px 0;">
             <form action="{:__u('repass')}" method="post">
               <div class="layui-form-item">

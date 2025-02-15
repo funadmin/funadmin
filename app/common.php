@@ -115,15 +115,15 @@ if (!function_exists('lang')) {
     }
 }
 
-if (!function_exists("_getProvicesByPid")) {
-    function _getProvicesByPid($pid = 0)
+if (!function_exists("getProvicesByPid")) {
+    function getProvicesByPid($pid = 0)
     {
         return  \app\common\model\Provinces::cache(true)->find($pid);
     }
 }
 
-if (!function_exists("_getMember")) {
-    function _getMember($id)
+if (!function_exists("getMember")) {
+    function getMember($id)
     {
         $member = \app\common\model\Member::cache(true)->find($id);
         if ($member) {
