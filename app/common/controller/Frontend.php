@@ -133,11 +133,7 @@ class Frontend extends BaseController
         if(!empty($this->onlyNeedLogin)){
             $auth['only'] = $this->onlyNeedLogin;
         }
-        if(!empty($auth)){
-            $this->middleware = [CheckRole::class=>$auth] + $this->middleware;
-        }else{
-            $this->middleware = [CheckRole::class] + $this->middleware;
-        }
+
         //过滤参数
         $this->layout && $this->app->view->engine()->layout($this->layout);
         $controller = $this->request->controller(true);
