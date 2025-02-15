@@ -206,7 +206,7 @@ class AuthService extends AbstractService
     /**
      * 验证权限
      */
-    public function checkNode()
+    public function roleAccess()
     {
         $cfg = config('funadmin');
         if ($this->requesturl === '/') {
@@ -252,7 +252,7 @@ class AuthService extends AbstractService
     /**
      * 前台权限节点
      */
-    public function authNode($url)
+    public function nodeAccess($url)
     {
         // 判断权限验证开关
         $cfg = Config::get('funadmin');

@@ -313,7 +313,7 @@ if (!function_exists('auth')) {
 if (!function_exists('node')) {
     function node($url)
     {
-        return \app\backend\service\AuthService::instance()->authNode($url);
+        return \app\backend\service\AuthService::instance()->nodeAccess($url);
     }
 }
 
