@@ -21,7 +21,6 @@ use app\common\model\Blacklist;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
-use http\Env\Response;
 use think\facade\Cache;
 use think\facade\Config;
 use think\facade\Cookie;
@@ -260,11 +259,8 @@ class AuthService extends AbstractService
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        $this->app = app()->http->getName();
-        $url = parse_url($url)['path'];
-        if($this->app!=='backend'){
-            $url = $this->app.$url;
-        }
+        $parse =  parse_url($url);
+        $url = $parse['path'];
         if(Str::endsWith($url,'.' . config('view.view_suffix'))){
             $this->requesturl = (string)$url;
         }else{
@@ -273,6 +269,9 @@ class AuthService extends AbstractService
         if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
 
             $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
+        }
+        if($parse['host'] && $parse['scheme']){
+            $this->requesturl = $this->app.$this->requesturl;
         }
         $this->requesturl = trim($this->requesturl, '/');
         $requesturlArr = explode('/', $this->requesturl);
