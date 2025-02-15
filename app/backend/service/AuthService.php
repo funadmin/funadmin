@@ -270,12 +270,12 @@ class AuthService extends AbstractService
 
             $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
         }
-        if($parse['host'] && $parse['scheme']){
+        if(!empty($parse['host']) && !empty($parse['scheme'])){
             $this->requesturl = $this->app.$this->requesturl;
         }
         $this->requesturl = trim($this->requesturl, '/');
         $requesturlArr = explode('/', $this->requesturl);
-        $this->app = array_shift($requesturlArr);
+        $app = array_shift($requesturlArr);
         $this->requesturl = implode('/', $requesturlArr);
         if ($this->requesturl === '/')  return false;
         if (!$this->isLogin()) return false;
@@ -283,14 +283,15 @@ class AuthService extends AbstractService
         if ($adminId != $cfg['superAdminId']) {
             $map = [
                 ['href', '=', $this->requesturl],
-                ['module', '=', $this->app]
+                ['module', '=', $app]
             ];
+            ;
             $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
             $menuid = 0;
             if (Str::endsWith($this->requesturl, '/index')) {
                 $where[] = [
                     ['href', '=', substr($this->requesturl, 0, strlen($this->requesturl) - 6)],
-                    ['module', '=', $this->app]
+                    ['module', '=', $app]
                 ];
                 $menuid = AuthRule::where($where)->where('status', 1)->value('id');
             }
