@@ -36,7 +36,7 @@ class Config extends Command
 
         //判断目录是否存在
         if (!file_exists($configPath)) {
-            mkdir($configPath, 0755, true);
+            @mkdir($configPath, 0755, true);
         }
 
         //判断文件是否存在
