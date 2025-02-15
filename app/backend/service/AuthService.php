@@ -71,6 +71,7 @@ class AuthService extends AbstractService
 
     public function __construct()
     {
+        parent::__construct();
         if ($auth = Config::get('auth')) {
             $this->config = array_merge($this->config, $auth);
         }
@@ -210,10 +211,10 @@ class AuthService extends AbstractService
     {
         $cfg = config('funadmin');
         if ($this->requesturl === '/') {
-            $this->error(lang('Login again'), __u('login/index'));
+            $this->error(lang('Login again'), __u('/backend/login/index'));
         }
         if (!$this->isLogin()) {
-            $this->error(lang('Please Login First'), __u('backend/login/index'));
+            $this->error(lang('Please Login First'), __u('/backend/login/index'));
         }
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
