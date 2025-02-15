@@ -11,7 +11,6 @@
  * Date: 2017/8/2
  */
 namespace app\backend\controller;
-use app\backend\middleware\CheckRole;
 use app\backend\middleware\SystemLog;
 use app\backend\middleware\ViewNode;
 use app\backend\service\AuthService;
@@ -22,12 +21,12 @@ use http\Header;
 use think\App;
 
 class Login extends Backend {
+
+
+    protected array $noNeedLogin = ['index','verify'];
+
     protected $layout='';
-    protected $middleware = [
-        CheckRole::class=>['except'=>['index','verify']],
-        ViewNode::class,
-        SystemLog::class
-    ];
+
     public function __construct(App $app) {
         parent::__construct($app);
         if(config('funadmin.standalone') && request()->baseFile()=='/index.php'){

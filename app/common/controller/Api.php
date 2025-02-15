@@ -121,13 +121,9 @@ class Api extends BaseController
             $auth['except'] = $this->noNeedLogin;
         }
         if(!empty($auth)){
-            $this->middleware = [
-                ApiAuth::class=>$auth,
-            ];
+            $this->middleware = $this->middleware + [ApiAuth::class=>$auth];
         }else{
-            $this->middleware = [
-                ApiAuth::class,
-            ];
+            $this->middleware = $this->middleware + [ApiAuth::class];
         }
     }
 

@@ -31,8 +31,13 @@ class Backend extends BaseController
 {
     use Jump,Curd;
 
+    /**
+     * 无需登录
+     * @var array
+     */
+    protected array $noNeedLogin = ['enlang','verify'];
+    protected array $onlyNeedLogin = [];
     protected $middleware = [
-        CheckRole::class =>['except'=>['enlang','verify']],
         ViewNode::class,
         SystemLog::class
     ];
@@ -130,6 +135,18 @@ class Backend extends BaseController
     public function __construct(App $app)
     {
         parent::__construct($app);
+        $auth = [];
+        if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
+            $auth['except'] = $this->noNeedLogin;
+        }
+        if(!empty($this->onlyNeedLogin)){
+            $auth['only'] = $this->onlyNeedLogin;
+        }
+        if(!empty($auth)){
+            $this->middleware = $this->middleware + [CheckRole::class=>$auth];
+        }else{
+            $this->middleware = $this->middleware  + [CheckRole::class];
+        }
         //模板管理
         $this->layout && $this->app->view->engine()->layout($this->layout);
         $controller = $this->request->controller(true);

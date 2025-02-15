@@ -23,6 +23,10 @@ use think\Validate;
  */
 abstract class BaseController
 {
+
+    protected array $noNeedLogin = [];
+
+    protected array $onlyNeedLogin = [];
     /**
      * Request实例
      * @var \think\Request

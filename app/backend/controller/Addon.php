@@ -13,7 +13,6 @@
 
 namespace app\backend\controller;
 
-use app\backend\middleware\CheckRole;
 use app\backend\middleware\SystemLog;
 use app\backend\middleware\ViewNode;
 use app\backend\service\AddonService;
@@ -39,11 +38,7 @@ use think\facade\Cookie;
 class Addon extends Backend
 {
 
-    protected $middleware = [
-        CheckRole::class =>['except'=>['enlang','verify','logout']],
-        ViewNode::class,
-        SystemLog::class
-    ];
+    protected array $noNeedLogin = ['enlang','verify','logout'];
     protected $addonService;
     protected $authCloudService;
     protected $app_version;

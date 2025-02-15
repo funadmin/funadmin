@@ -13,7 +13,6 @@
 
 namespace app\backend\controller;
 
-use app\backend\middleware\CheckRole;
 use app\backend\middleware\SystemLog;
 use app\backend\middleware\ViewNode;
 use app\backend\model\AuthRule;
@@ -29,11 +28,8 @@ use think\facade\Cache;
 
 class Ajax extends Backend
 {
-    protected $middleware = [
-        CheckRole::class=>['only'=>[]],
-        ViewNode::class,
-        SystemLog::class
-    ];
+
+    protected array $onlyNeedLogin = ['uploads'];
     public function __construct(App $app)
     {
         $this->modelClass = new AttachModel();
