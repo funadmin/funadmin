@@ -20,3 +20,27 @@ ALTER TABLE `fun_member_third` CHANGE `delete_time` `delete_time` INT NULL DEFAU
 ALTER TABLE `fun_provinces` CHANGE `delete_time` `delete_time` INT NULL DEFAULT NULL COMMENT '删除时间';
 ALTER TABLE `fun_test` CHANGE `delete_time` `delete_time` INT NULL DEFAULT NULL COMMENT '删除时间';
 ALTER TABLE `fun_test_cate` CHANGE `delete_time` `delete_time` INT NULL DEFAULT NULL COMMENT '删除时间';
+
+
+UPDATE `fun_addon` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_admin` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_admin_log` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_attach` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_attach_group` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_auth_group` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_auth_rule` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_blacklist` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_config` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_config_group` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_field_type` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_field_verify` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_languages` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member_account` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member_address` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member_group` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member_level` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_member_third` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_provinces` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_test` SET delete_time = null where delete_time = 0 ;
+UPDATE `fun_test_cate` SET delete_time = null where delete_time = 0 ;

@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'funadmin/funadmin',
-        'pretty_version' => '8.x-dev',
-        'version' => '8.9999999.9999999.9999999-dev',
-        'reference' => 'dee7e41ccdc5f33eb47750fbbdaddac4b274d4c0',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '4a0256433396229986dc2e7803baa8e457b3f33b',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -65,9 +65,9 @@
             'dev_requirement' => false,
         ),
         'funadmin/funadmin' => array(
-            'pretty_version' => '8.x-dev',
-            'version' => '8.9999999.9999999.9999999-dev',
-            'reference' => 'dee7e41ccdc5f33eb47750fbbdaddac4b274d4c0',
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '4a0256433396229986dc2e7803baa8e457b3f33b',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
