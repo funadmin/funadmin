@@ -65,7 +65,7 @@ class Login extends Backend {
             } catch (Exception $e) {
                 $this->error(lang('Login Failed')."：{$e->getMessage()}");
             }
-            $this->success(lang('Login Success').'...',__u('index/index'));
+            $this->success(lang('Login Success').'...',__u('/index/index'));
         }
     }
     public function verify()
