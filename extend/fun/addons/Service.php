@@ -168,9 +168,11 @@ class Service extends \think\Service
                     }
                 }
             }
-            $bind = array_merge($bind, $services);
+            $bind[] = $services; // 收集服务
         }
-        $this->app->bind($bind);
+        if(!empty($bind)){
+            $this->app->bind($bind);
+        }
 
         $routes = (array) Config::get('addons.route', []);
         foreach ($routes as $key => $val) {
