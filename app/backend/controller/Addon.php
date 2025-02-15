@@ -597,6 +597,10 @@ class Addon extends Backend
         if(file_exists($sql)){
             importSqlData($sql);
         }
+        $sql = root_path().'addons/'.$name.'/'.'update.sql';
+        if(file_exists($sql)){
+            importSqlData($sql);
+        }
         Service::updateAddonsInfo($name,1,0);
         try {
             //刷新addon文件和配置
