@@ -432,7 +432,7 @@ if (!function_exists('get_addons_autoload_config')) {
                         'app_rule' => $app_rule
                     ];
                 } else {
-                    $route = array_merge($route, $rule);
+                    $route[] = $rule;
                 }
             }
         }
