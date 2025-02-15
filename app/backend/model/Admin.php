@@ -24,7 +24,6 @@ class Admin extends BackendModel {
 
 
     
-    protected $deleteTime = 'delete_time';
 
 
 

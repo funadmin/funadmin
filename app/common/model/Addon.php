@@ -14,8 +14,6 @@ class Addon extends BaseModel {
     use SoftDelete;
 
 
-    protected $deleteTime = 'delete_time';
-
 
     public function __construct(array $data = [])
     {

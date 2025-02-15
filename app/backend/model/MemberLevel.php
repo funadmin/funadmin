@@ -25,7 +25,6 @@ class MemberLevel extends BackendModel
 
 
     
-    protected $deleteTime = 'delete_time';
 
 
     public function __construct(array $data = [])
