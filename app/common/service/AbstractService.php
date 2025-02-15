@@ -27,15 +27,13 @@ abstract class AbstractService
      * 应用实例
      * @var App
      */
-    protected $app;
 
     /**
      * Service constructor.
      * @param App $app
      */
-    protected function __construct(App $app)
+    protected function __construct()
     {
-        $this->app = $app;
         $this->initialize();
     }
 

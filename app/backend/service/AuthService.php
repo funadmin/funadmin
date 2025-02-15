@@ -210,11 +210,11 @@ class AuthService extends AbstractService
     public function roleAccess()
     {
         $cfg = config('funadmin');
-        if ($this->requesturl === '/') {
-            $this->error(lang('Login again'), __u('/backend/login/index'));
-        }
-        if (!$this->isLogin()) {
-            $this->error(lang('Please Login First'), __u('/backend/login/index'));
+        if ($this->requesturl === '/' || !$this->isLogin()) {
+            if (config('funadmin.standalone') && request()->baseFile() != '/index.php') {
+                $this->error(lang('Please Login First'), __u('login/index'));
+            }
+            $this->redirect(lang('Login again'), __u('/backend/login/index'));
         }
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
