@@ -13,7 +13,7 @@ class Config extends BaseModel
 
     
     protected $deleteTime = 'delete_time';
-    protected $defaultSoftDelete = 0;
+
 
     public function __construct(array $data = [])
     {

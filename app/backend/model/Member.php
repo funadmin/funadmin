@@ -27,7 +27,7 @@ class Member extends BackendModel {
 
     
     protected $deleteTime = 'delete_time';
-    protected $defaultSoftDelete = 0;
+
 
     public function __construct(array $data = [])
     {
