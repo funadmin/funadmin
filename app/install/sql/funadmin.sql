@@ -395,7 +395,7 @@ INSERT INTO `fun_config` (`id`, `code`, `extra`, `value`, `remark`, `verify`, `t
 (46, 'site_layer_width', '', '60%', '弹窗宽度', '0', 'text', 'site', 1, 1, 1581825436, 1581825436, NULL),
 (47, 'site_layer_height', '', '80%', '弹窗高度', '0', 'text', 'site', 1, 1, 1581825436, 1581825436, NULL),
 (48, 'site_layer_anim', 'slideLeft', '0', '弹层的出场动画', '0', 'text', 'site', 1, 1, 1581825436, 1581825436, NULL),
-(49, 'export_tyoe', 'csv:csv\r\nexcel:excel', 'csv', '导出类型', '0', 'radio', 'site', 1, 1, 1581825436, 1698156633, NULL);
+(49, 'export_type', 'csv:csv\r\nexcel:excel', 'csv', '导出类型', '0', 'radio', 'site', 1, 1, 1581825436, 1698156633, NULL);
 
 -- --------------------------------------------------------
 
