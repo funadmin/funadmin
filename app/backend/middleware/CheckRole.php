@@ -20,12 +20,7 @@ class CheckRole
     public function handle($request, \Closure $next)
     {
         if(!Session::has('admin')) {
-            if(config('funadmin.standalone') && request()->baseFile()!='/index.php'){
-                $this->redirect(__u('login/index'));
-            }else{
-                $this->redirect(__u('/backend/login/index'));
-            }
-
+            $this->error('Please login first');
         }
         $auth = AuthService::instance();
         $auth->roleAccess();
