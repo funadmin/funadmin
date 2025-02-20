@@ -14,9 +14,9 @@ define(['table', 'form'], function (Table, Form) {
             }
         }
     };
-    switch (ACTION) {
+    switch (window.ACTION) {
         case 'index':
-            Controller[ACTION] = function () {
+            Controller[window.ACTION] = function () {
                 if (typeof tableOptions === "object") {
                     layui.each(tableOptions, function (i, v) {
                         Table.init[i] = init = {
@@ -38,7 +38,7 @@ define(['table', 'form'], function (Table, Form) {
         case 'add':
         case 'edit':
         case 'copy':
-            Controller[ACTION] = function () {
+            Controller[window.ACTION] = function () {
                 if (typeof tableOptions === "object") {
                     layui.each(tableOptions, function (i, v) {
                         Table.init[i] = {
@@ -59,7 +59,7 @@ define(['table', 'form'], function (Table, Form) {
             }
             break;
         case 'recycle':
-            Controller[ACTION] = function () {
+            Controller[window.ACTION] = function () {
                 if (typeof tableOptions === "object") {
                     layui.each(tableOptions, function (i, v) {
                         Table.init[i] = {
@@ -80,7 +80,7 @@ define(['table', 'form'], function (Table, Form) {
 
             break;
         default:
-            Controller[ACTION] = function () {
+            Controller[window.ACTION] = function () {
                 if (typeof tableOptions === "object") {
                     layui.each(tableOptions, function (i, v) {
                         Table.init[i] = {
