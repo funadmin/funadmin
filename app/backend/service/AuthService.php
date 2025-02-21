@@ -93,6 +93,7 @@ class AuthService extends AbstractService
 
     /**
      * 权限节点
+     * @return array|int[]|mixed|string[]
      */
     public function nodeList()
     {
@@ -113,9 +114,15 @@ class AuthService extends AbstractService
 
     }
 
-    /*
-    * 菜单排列
-    */
+    /**
+     * 菜单节点
+     * @param $cate
+     * @param $lefthtml
+     * @param $pid
+     * @param $lvl
+     * @param $leftpin
+     * @return array
+     */
     public function treemenu($cate, $lefthtml = '├─', $pid = 0, $lvl = 0, $leftpin = 0)
     {
         $arr = array();
@@ -133,8 +140,12 @@ class AuthService extends AbstractService
         return $arr;
     }
 
-    /*
-     * 权限
+    /**
+     * Summary of auth
+     * @param mixed $cate
+     * @param mixed $rules
+     * @param mixed $pid
+     * @return array
      */
     public function auth($cate, $rules, $pid = 0)
     {
@@ -155,9 +166,10 @@ class AuthService extends AbstractService
 
     /**
      * 权限设置选中状态
-     * @param $cate  栏目
-     * @param int $pid 父ID
-     * @param $rules 规则
+     * @param array $cate
+     * @param int $pid
+     * @param string $rules
+     * @param int $group_id
      * @return array
      */
     public function authChecked(array $cate, int $pid, string $rules, int $group_id)
@@ -184,9 +196,7 @@ class AuthService extends AbstractService
 
     /**
      * 权限多维转化为二维
-     * @param $cate  栏目
-     * @param int $pid 父ID
-     * @param $rules 规则
+     * @param $cate
      * @return array
      */
     public function authNormal($cate)
@@ -206,6 +216,7 @@ class AuthService extends AbstractService
 
     /**
      * 验证权限
+     * @return true|void
      */
     public function roleAccess()
     {
@@ -249,6 +260,8 @@ class AuthService extends AbstractService
 
     /**
      * 前台权限节点
+     * @param $url
+     * @return bool
      */
     public function nodeAccess($url)
     {
@@ -385,10 +398,10 @@ class AuthService extends AbstractService
     }
 
     /**
+     * 获取子菜单html
      * @param $html
      * @param $child
      * @return string
-     * 获取子菜单html
      */
     public function childmenuhtml($html, $child, $type = 1)
     {
@@ -466,9 +479,10 @@ class AuthService extends AbstractService
 
     /**
      * 根据用户名密码，验证用户是否能成功登陆
-     * @param string $username
-     * @param string $password
-     * @return mixed
+     * @param $username
+     * @param $password
+     * @param $rememberMe
+     * @return true
      * @throws \Exception
      */
     public function checkLogin($username, $password, $rememberMe)
@@ -515,7 +529,8 @@ class AuthService extends AbstractService
     }
 
     /**
-     * 注销登录
+     * 退出登录
+     * @return boolean
      */
     public function logout()
     {
@@ -531,9 +546,9 @@ class AuthService extends AbstractService
 
 
     /**
-     * 获取rules
-     * @param $groups
-     * @return void
+     * 获取用户组规则
+     * @param mixed $groups
+     * @return string|null
      */
     protected function getRules($groups)
     {
@@ -602,20 +617,22 @@ class AuthService extends AbstractService
         return $list;
     }
 
-    /**
+    /** 
      * 获取所有子id
+     * @param mixed $pid
+     * @return string
      */
     public function getAllIdsBypid($pid)
     {
         $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
-        $str = '';
+        $ids = [];
         if (!empty($res)) {
-            foreach ($res as $k => $v) {
-                $str .= "," . $v['id'];
-                $str .= $this->getAllIdsBypid($v['id']);
+            foreach ($res as $v) {
+                $ids[] = $v['id'];
+                $ids = array_merge($ids, explode(',', $this->getAllIdsBypid($v['id'])));
             }
         }
-        return $str;
+        return implode(',', array_filter($ids));
     }
 
 
