@@ -6,25 +6,25 @@ use think\Validate;
 class MemberValidate extends Validate
 {
     protected $rule = [
-        'username|用户名' => 'require|min:2|max:18|unique:member',
-        'email|邮箱' => 'require|email|unique:member',
-        'password|密码' => 'require|min:6|max:20',
-        'repassword|确认密码'=>'require|confirm:password',
-        'nickname|昵称' => 'require|min:2|max:20',
-        'vercode|校验码' => 'require|max:6',
-        'sign|签名' => 'min:10|max:100',
-        'sex|性别' => 'require',
+        'username|用户名'    => 'require|min:2|max:18|unique:member',
+        'email|邮箱'        => 'require|email|unique:member',
+        'password|密码'     => 'require|min:6|max:20',
+        'repassword|确认密码' => 'require|confirm:password',
+        'nickname|昵称'     => 'require|min:2|max:20',
+        'vercode|校验码'    => 'require|max:6',
+        'sign|签名'         => 'min:10|max:100',
+        'sex|性别'          => 'require',
         'oldpassword|旧密码' => 'require|min:6|max:20',
     ];
 
-    protected $message  =   [
+    protected $message = [
         'repassword.confirm:password' => '密码不一致',
-        'username.max'     => '名称最多不能超过25个字符',
-        'username.unique'     => '名称已经存在',
-        'username.min'     => '名称最多不能少于2个字符',
-        'age.number'   => '年龄必须是数字',
-        'age.between'  => '年龄只能在1-120之间',
-        'email'        => '邮箱格式错误',
+        'username.max'                => '名称最多不能超过25个字符',
+        'username.unique'             => '名称已经存在',
+        'username.min'                => '名称最多不能少于2个字符',
+        'age.number'                  => '年龄必须是数字',
+        'age.between'                 => '年龄只能在1-120之间',
+        'email'                       => '邮箱格式错误',
     ];
     //邮件邮件码验证
     public function sceneCode()

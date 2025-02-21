@@ -551,7 +551,8 @@ class AuthService extends AbstractService
         }
         $norules = AuthRule::where('auth_verify', 0)->column('id');
         $norules = $norules ? implode(',', $norules) : '';
-        return $rules . ',' . $norules;
+        $result = trim($rules . ',' . $norules, ',');
+        return $result !== '' ? $result : null;
     }
 
     //获取左侧主菜单树形结构
