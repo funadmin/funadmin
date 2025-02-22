@@ -8,4 +8,3 @@ return [
     'Old password error'                                                                                              => '旧密码不正确',
     'reg successful'                                                                                                  => '注册成功'
 ];
-?>
