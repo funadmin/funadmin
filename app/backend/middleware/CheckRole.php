@@ -20,7 +20,11 @@ class CheckRole
     public function handle($request, \Closure $next)
     {
         if(!Session::has('admin')) {
-            $this->error('Please login first');
+            if($request->baseFile()!='/index.php' && str_contains($request->baseFile(), '.php')) {
+                $this->error('Please login first',url('login/index'));
+            }else{
+                $this->error('Please login first');
+            }
         }
         $auth = AuthService::instance();
         $auth->roleAccess();
