@@ -1217,17 +1217,17 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.8.5",
-            "version_normalized": "3.8.5.0",
+            "version": "3.8.6",
+            "version_normalized": "3.8.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "b1a53a27898639579a67de42e8ced5d5386aa9a4"
+                "reference": "ff2f20cf83bd4d503720632ce8a426dc747bf7fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/b1a53a27898639579a67de42e8ced5d5386aa9a4",
-                "reference": "b1a53a27898639579a67de42e8ced5d5386aa9a4",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/ff2f20cf83bd4d503720632ce8a426dc747bf7fd",
+                "reference": "ff2f20cf83bd4d503720632ce8a426dc747bf7fd",
                 "shasum": ""
             },
             "require": {
@@ -1254,7 +1254,7 @@
                 "phpunit/phpunit": "^10.5.20",
                 "squizlabs/php_codesniffer": "^3.9.0"
             },
-            "time": "2025-02-11T16:28:45+00:00",
+            "time": "2025-02-20T17:33:38+00:00",
             "bin": [
                 "bin/carbon"
             ],
