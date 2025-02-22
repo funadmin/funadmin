@@ -52,6 +52,11 @@ abstract class BaseController
     protected $middleware = [];
 
     /**
+     * @var object
+     */
+    protected $model;
+
+    /**
      * 构造方法
      * @access public
      * @param  App  $app  应用对象
