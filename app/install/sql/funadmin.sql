@@ -1,3 +1,28 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- 主机： localhost
+-- 生成日期： 2025-02-23 15:53:35
+-- 服务器版本： 8.0.24
+-- PHP 版本： 8.1.29
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- 数据库： `funadmin`
+--
+
+-- --------------------------------------------------------
+
 --
 -- 表的结构 `fun_addon`
 --
@@ -34,7 +59,7 @@ INSERT INTO `fun_addon` (`id`, `title`, `name`, `thumb`, `group`, `description`,
 --
 
 CREATE TABLE `fun_admin` (
-  `id` tinyint NOT NULL COMMENT '管理员ID',
+  `id` int NOT NULL COMMENT '管理员ID',
   `username` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户名',
   `password` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员密码',
   `group_id` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分组ID',
@@ -148,7 +173,7 @@ INSERT INTO `fun_attach_group` (`id`, `pid`, `title`, `create_time`, `delete_tim
 --
 
 CREATE TABLE `fun_auth_group` (
-  `id` smallint UNSIGNED NOT NULL COMMENT '分组id',
+  `id` int UNSIGNED NOT NULL COMMENT '分组id',
   `pid` int DEFAULT '0' COMMENT '父级',
   `title` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
   `status` tinyint(1) DEFAULT '0' COMMENT '状态',
@@ -339,7 +364,7 @@ CREATE TABLE `fun_blacklist` (
 --
 
 CREATE TABLE `fun_config` (
-  `id` smallint NOT NULL,
+  `id` int NOT NULL,
   `code` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '配置键',
   `extra` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '配置额值',
   `value` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '配置值',
@@ -649,7 +674,7 @@ INSERT INTO `fun_member_group` (`id`, `name`, `rules`, `create_time`, `update_ti
 --
 
 CREATE TABLE `fun_member_level` (
-  `id` smallint UNSIGNED NOT NULL COMMENT '表id',
+  `id` int UNSIGNED NOT NULL COMMENT '表id',
   `name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '头衔名称',
   `amount` decimal(10,2) DEFAULT NULL COMMENT '等级必要金额',
   `discount` smallint DEFAULT '100' COMMENT '折扣',
@@ -4663,7 +4688,7 @@ ALTER TABLE `fun_addon`
 -- 使用表AUTO_INCREMENT `fun_admin`
 --
 ALTER TABLE `fun_admin`
-  MODIFY `id` tinyint NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT COMMENT '管理员ID', AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `fun_admin_log`
@@ -4687,7 +4712,7 @@ ALTER TABLE `fun_attach_group`
 -- 使用表AUTO_INCREMENT `fun_auth_group`
 --
 ALTER TABLE `fun_auth_group`
-  MODIFY `id` smallint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=2;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=2;
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_rule`
@@ -4705,7 +4730,7 @@ ALTER TABLE `fun_blacklist`
 -- 使用表AUTO_INCREMENT `fun_config`
 --
 ALTER TABLE `fun_config`
-  MODIFY `id` smallint NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- 使用表AUTO_INCREMENT `fun_config_group`
@@ -4753,7 +4778,7 @@ ALTER TABLE `fun_member_group`
 -- 使用表AUTO_INCREMENT `fun_member_level`
 --
 ALTER TABLE `fun_member_level`
-  MODIFY `id` smallint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=8;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id', AUTO_INCREMENT=8;
 
 --
 -- 使用表AUTO_INCREMENT `fun_member_third`
