@@ -201,8 +201,7 @@ if (!function_exists('get_addons_instance')) {
         }
         $class = get_addons_class($name);
         if (class_exists($class)) {
-            $_addons[$name] = new $class(app());
-
+            $_addons[$name] = App::make($class);
             return $_addons[$name];
         } else {
             return null;
@@ -285,6 +284,7 @@ if (!function_exists('set_addons_config')) {
         return true;
     }
 }
+
 
 if (!function_exists('addons_url')) {
     /**
