@@ -1,6 +1,5 @@
 <?php
 
-use think\facade\Env;
 
 return [
     // 默认磁盘

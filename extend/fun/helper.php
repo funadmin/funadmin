@@ -153,7 +153,7 @@ if (!function_exists('set_addons_info')) {
 
     function set_addons_info(string $name, array $array)
     {
-        $service = new Service(App::instance()); // 获取service 服务
+        $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath();
         // 插件列表
         $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
@@ -261,9 +261,15 @@ if (!function_exists('get_addons_config')) {
 
 if (!function_exists('set_addons_config')) {
 
+    /**
+     * @param $name
+     * @param $array
+     * @return true
+     * @throws Exception
+     */
     function set_addons_config($name, $array)
     {
-        $service = new Service(App::instance()); // 获取service 服务
+        $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath();
         // 插件列表
         $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'config.php';
@@ -514,7 +520,7 @@ function is_really_writable($file)
 if (!function_exists('importsql')) {
 
     function importsql($name){
-        $service = new Service(App::instance()); // 获取service 服务
+        $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath(); // 插件列表
         $sqlFile = $addons_path . $name . DS . 'install.sql';
         if (is_file($sqlFile)) {
@@ -551,7 +557,7 @@ if (!function_exists('importsql')) {
 if (!function_exists('uninstallsql')) {
      function uninstallsql($name)
     {
-        $service = new Service(App::instance()); // 获取service 服务
+        $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath(); // 插件列表
         $sqlFile = $addons_path . $name . DS . 'uninstall.sql';
         if (is_file($sqlFile)) {
