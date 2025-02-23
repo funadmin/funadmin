@@ -420,6 +420,9 @@ class Addon extends Backend
                         $class->config();
                     }
                     set_addons_config($name,$config);
+                    if(!empty($config['app_rewrite']['content'])) {
+                        set_app_route($name, $config['app_rewrite']['content']);
+                    }
                     refreshaddons();
                     $this->success(lang('operation success'));
                 }else{

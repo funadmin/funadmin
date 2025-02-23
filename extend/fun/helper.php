@@ -187,6 +187,29 @@ if (!function_exists('set_addons_info')) {
     }
 }
 
+if(!function_exists('set_app_route')) {
+    /**
+     * @param $name
+     * @param $params
+     * @return bool
+     * @throws Exception
+     */
+    function set_app_route(string $name,array $params = []):bool
+    {
+        $dir = root_path().'app/'. $name . '/route';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $file = $dir.'/route.php';
+        $content = "<?php\n\nuse think\\facade\\Route;\n\n";
+        foreach ($params as $route => $action) {
+            $content .= "Route::rule('$route', '$action');\n";
+        }
+        FileHelper::createFile($file, $content);
+        return true;
+    }
+}
+
 if (!function_exists('get_addons_instance')) {
     /**
      * 获取插件的单例
