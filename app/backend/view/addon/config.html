@@ -6,79 +6,79 @@
     {php}$name = "params[".$k."]";{/php}
     {switch name="$vo.type"}
     {case value="text"}
-    {:form_text($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::text($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="textarea"}
-    {:form_textarea($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::textarea($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="password"}
-    {:form_password($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::password($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="tel"}
-    {:form_tel($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::tel($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="email"}
-    {:form_email($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::email($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="range"}
-    {:form_range($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::range($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="color"}
-    {:form_color($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::color($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="tags"}
-    {:form_tags($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::tags($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="rate"}
-    {:form_rate($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::rate($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="icon"}
-    {:form_icon($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::icon($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="date"}
-    {:form_date($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::date($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="city"}
-    {:form_city($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::city($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="region"}
-    {:form_region($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::region($name,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="radio"}
-    {:form_radio($name,$vo.content,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
+    {:Form::radio($name,$vo.content,['label'=>$vo.title,'tips'=>$vo.tips],$vo.value)}
     {/case}
     {case value="checkbox"}
-    {:form_checkbox($name, $vo.content,['label'=>$vo.title, 'verify' =>$vo.rule,'tips'=>$vo.tips,], $vo['value'])};
+    {:Form::checkbox($name, $vo.content,['label'=>$vo.title, 'verify' =>$vo.rule,'tips'=>$vo.tips,], $vo['value'])};
     {/case}
     {case value="select"}
-    {:form_select($name,$vo.content,['label'=>$vo.title,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
+    {:Form::select($name,$vo.content,['label'=>$vo.title,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
     {/case}
     {case value="selects"}
-    {:form_select($name,$vo.content,['label'=>$vo.title,'multiple'=>1,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
+    {:Form::select($name,$vo.content,['label'=>$vo.title,'multiple'=>1,'verify'=>$vo.rule,'tips'=>$vo.tips,'search'=>1] ,[],$vo.value)}
     {/case}
     {case value="selectpage"}
-    {:form_select($name,$vo.content,['label'=>$vo.title,'multiple'=>$vo.multiple,'int'=>$vo.int?$vo.int:'','data'=>$vo.data?$vo.data:'','filed'=>$vo.filed?$vo.filed:'','primarykey'=>$vo.primarykey?$vo.primarykey:'','tips'=>$vo.tips] ,[],$vo.value)}
+    {:Form::select($name,$vo.content,['label'=>$vo.title,'multiple'=>$vo.multiple,'int'=>$vo.int?$vo.int:'','data'=>$vo.data?$vo.data:'','filed'=>$vo.filed?$vo.filed:'','primarykey'=>$vo.primarykey?$vo.primarykey:'','tips'=>$vo.tips] ,[],$vo.value)}
     {/case}
     {case value="autocomplete"}
-    {:form_select($name,$vo.content,['label'=>$vo.title] ,[],$vo.value)}
+    {:Form::select($name,$vo.content,['label'=>$vo.title] ,[],$vo.value)}
     {/case}
     {case value="xmselect"}
-    {:form_xmselect($name,$vo.content,['label'=>$vo.title] ,[],$vo.value)}
+    {:Form::xmselect($name,$vo.content,['label'=>$vo.title] ,[],$vo.value)}
     {/case}
     {case value="image"}
-    {:form_upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>'1','mime'=>'images'],$vo.value)}
+    {:Form::upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>'1','mime'=>'images'],$vo.value)}
     {/case}
     {case value="images"}
-    {:form_upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'images'],$vo.value)}
+    {:Form::upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'images'],$vo.value)}
     {/case}
     {case value="file"}
-    {:form_upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>$vo.num,'mime'=>'*'],$vo.value)}
+    {:Form::upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'radio','num'=>$vo.num,'mime'=>'*'],$vo.value)}
     {/case}
     {case value="files"}
-    {:form_upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'*'],$vo.value,)}
+    {:Form::upload($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule,'type'=>'checkbox','num'=>$vo.num,'mime'=>'*'],$vo.value,)}
     {/case}
     {case value="editor"}
-    {:form_editor($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
+    {:Form::editor($name,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {case value="array"}
         {php}
@@ -89,7 +89,7 @@
                 $list['value'][] = $v;
             }
         {/php}
-    {:form_arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
+    {:Form::arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {case value="arrays"}
         {php}
@@ -100,11 +100,11 @@
             $list['value'][] = $v;
         }
         {/php}
-    {:form_arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
+    {:Form::arrays($name,$list,['label'=>$vo.title,'tips'=>$vo.tips,'verify'=>$vo.rule])}
     {/case}
     {/switch}
     {/foreach}
     <input type="hidden" name="id" value="{:input('id')}">
     <input type="hidden" name="name" value="{:input('name')}">
-    {:form_submitbtn()}
+    {:Form::submit()}
 </form>
