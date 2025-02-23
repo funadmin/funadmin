@@ -189,10 +189,9 @@ if (!function_exists('set_addons_info')) {
 
 if(!function_exists('set_app_route')) {
     /**
-     * @param $name
-     * @param $params
+     * @param string $name
+     * @param array $params
      * @return bool
-     * @throws Exception
      */
     function set_app_route(string $name,array $params = []):bool
     {
