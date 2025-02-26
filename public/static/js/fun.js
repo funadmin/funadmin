@@ -16,7 +16,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             url = url==undefined?location.href:url;
             var domain = window.location.host;
             if (url &&　url.indexOf(domain) !== -1) return url;
-            var ajax_url = Config.publicAjaxUrl;tempurl = url.split('?') ;//公共url
+            var ajax_url = Config.public_ajax_url;tempurl = url.split('?') ;//公共url
             var suffix = tempurl[1]?"?"+tempurl[1]:'',prefix = tempurl[0];
             if($.inArray(prefix,ajax_url)!== -1) return Config.module+url
             prefix = prefix.indexOf('/')==0 ? prefix.replace('/',''):prefix;
