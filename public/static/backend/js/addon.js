@@ -100,7 +100,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     {
                         field: 'version', title: __('Addon version'), width: 100, search: false,
                         templet: function (d) {
-                            return d['pluginsVersion'] ? d['pluginsVersion'] ['0']['version'] : d.version;
+                            return d['pluginsVersion'] ? d['pluginsVersion']['0']['version'] : d.version;
                         }
                     },
                     // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
