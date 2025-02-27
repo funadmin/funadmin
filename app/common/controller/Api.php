@@ -28,6 +28,7 @@ class Api extends BaseController
     protected $middleware =[];
 
     protected array $noNeedLogin = [];
+    protected array $noNeedRight = [];
     /**
      * @var
      * 模型
@@ -119,6 +120,9 @@ class Api extends BaseController
         $auth = [];
         if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
             $auth['except'] = $this->noNeedLogin;
+        }
+        if(!empty($this->noNeedRight)){
+            $auth['noNeedRight'] = $this->noNeedRight;
         }
         if(!empty($auth)){
             $this->middleware = [ApiAuth::class=>$auth] + $this->middleware ;

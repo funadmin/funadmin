@@ -12,7 +12,7 @@ class ApiAuth
 {
     use Apis;
 
-    public $tokenService;
+    public TokenService $tokenService;
 
     public function __construct(TokenService $tokenService)
     {
@@ -26,11 +26,9 @@ class ApiAuth
      * @param Closure $next
      * @return Response
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        // 获取请求的 URL 或其他标识符
-        $url = $request->url();
-        // 检查是否需要鉴权
+    
         // 获取 Authorization 头
         $authHeader = $request->header('Authorization');
         if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {

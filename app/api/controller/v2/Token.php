@@ -15,7 +15,7 @@ use think\facade\Config;
 class Token extends Api
 {
 
-    protected  $tokenService;
+    protected TokenService $tokenService;
     protected array $noNeedLogin = ['build','refresh'];
 
     public function __construct(App $app)
