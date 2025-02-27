@@ -52,14 +52,6 @@ class TokenService extends AbstractService
      */
     public function validateToken(string $token, string $type = 'access')
     {
-        $controllerClass = '\\' . app()->getNamespace() . '\\controller\\' . str_replace('.', '\\', request()->controller());
-        $reflectionClass = new \ReflectionClass($controllerClass);
-        $noNeedRight = $reflectionClass->hasProperty('noNeedRight') ? $reflectionClass->getProperty('noNeedRight')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
-        $action = request()->action();
-        //如果是不需要验证权限的方法，并且token不存在
-        if((!empty($noNeedRight) && in_array($action, $noNeedRight) || $noNeedRight==['*']) && !$token){
-            return true;
-        }
         $secretKey = $type === 'access' ? Config::get('api.jwt_secret') : Config::get('api.refresh_jwt_secret');
         try {
             JWT::$leeway = 30;//当前时间减去60，把时间留点余地
