@@ -4,7 +4,7 @@
       {"mode":755,"path":"/"}
     ],
     "success_url":"/install.php",
-    "php_versions":"74,80,81,82",
+    "php_versions":"81,82,83,84",
     "db_config":"",
     "admin_username":"",
     "admin_password":"",
