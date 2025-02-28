@@ -35,6 +35,7 @@ class AddonService extends AbstractService
     protected $myaddon = 'myaddon';
     public function __construct()
     {
+        parent::__construct();
 
     }
     //添加菜单
