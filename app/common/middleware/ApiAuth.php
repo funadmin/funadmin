@@ -29,8 +29,8 @@ class ApiAuth
     public function handle(Request $request, Closure $next): Response
     {
         // 获取 Authorization 头
-        $request->user = [];
-        $request->user_id = null
+        $request->member = [];
+        $request->member_id = null;
         $controllerClass = '\\' . app()->getNamespace() . '\\controller\\' . str_replace('.', '\\', request()->controller());
         $reflectionClass = new \ReflectionClass($controllerClass);
         $noNeedRight = $reflectionClass->hasProperty('noNeedRight') ? $reflectionClass->getProperty('noNeedRight')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
@@ -46,18 +46,18 @@ class ApiAuth
         }
         $token = $matches[1];
         // 验证 JWT
-        $userData = $this->tokenService->validateToken($token);
+        $memberData = $this->tokenService->validateToken($token);
 
-        if (!$userData) {
+        if (!$memberData) {
             $this->error(__('Invalid token'), [], 401);
         }
-        if($userData===true){
+        if($memberData===true){
              // 继续处理请求
             return $next($request);
         }
         // 将解码后的用户信息存储在请求中
-        $request->user = $userData;
-        $request->user_id = $userData['id'];
+        $request->member = $memberData;
+        $request->member_id = $memberData['id'];
 
         // 继续处理请求
         return $next($request);

@@ -21,13 +21,13 @@ class Member extends Api
     }
     public function index(Request $request)
     {
-        $this->success('ok',['user'=>$request->user]);
+        $this->success('ok',['user'=>$request->member]);
     }
 
 
     public function userinfo(Request $request)
     {
-        $this->success('ok',['user'=>$request->user]);
+        $this->success('ok',['user'=>$request->member]);
     }
     public function verify(Request $request)
     {
