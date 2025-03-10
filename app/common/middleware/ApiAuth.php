@@ -30,7 +30,7 @@ class ApiAuth
     {
         // 获取 Authorization 头
         $request->user = [];
-        $request->user_id = null
+        $request->user_id = null;
         $controllerClass = '\\' . app()->getNamespace() . '\\controller\\' . str_replace('.', '\\', request()->controller());
         $reflectionClass = new \ReflectionClass($controllerClass);
         $noNeedRight = $reflectionClass->hasProperty('noNeedRight') ? $reflectionClass->getProperty('noNeedRight')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
