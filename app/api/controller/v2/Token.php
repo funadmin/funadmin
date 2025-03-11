@@ -80,11 +80,15 @@ class Token extends Api
      */
     public function refresh(Request $request){
         // 获取 Authorization 头
-        $authHeader = $request->header('Authorization');
-        if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $this->error(__('Unauthorized'), [], 401);
+        if(input('access_token')){
+            $refreshToken = input('access_token');
+        }else{
+            $authHeader = $request->header('Authorization');
+            if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                $this->error(__('Unauthorized'), [], 401);
+            }
+            $refreshToken = $matches[1];
         }
-        $refreshToken = $matches[1];
         // 验证 refresh_token
         $userData = $this->tokenService->validateToken($refreshToken, 'refresh');
         if (!$userData) {
