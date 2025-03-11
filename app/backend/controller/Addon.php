@@ -21,7 +21,7 @@ use fun\addons\Service;
 use fun\helper\ZipHelper;
 use think\App;
 use think\facade\Cache;
-use thinkException;
+use think\Exception;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
