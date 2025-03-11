@@ -13,8 +13,6 @@
 
 namespace app\backend\controller;
 
-use app\backend\middleware\SystemLog;
-use app\backend\middleware\ViewNode;
 use app\backend\service\AddonService;
 use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
@@ -23,13 +21,12 @@ use fun\addons\Service;
 use fun\helper\ZipHelper;
 use think\App;
 use think\facade\Cache;
-use think\Exception;
+use thinkException;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
 use think\facade\Console;
 use think\facade\Cookie;
-
 /**
  * @ControllerAnnotation(title="插件管理")
  * Class Addon
@@ -39,7 +36,13 @@ class Addon extends Backend
 {
 
     protected array $noNeedLogin = ['enlang','verify','logout'];
+    /**
+     * @var AddonService 
+     */
     protected $addonService;
+    /**
+     * @var AuthCloudService|object|App
+     */
     protected $authCloudService;
     protected $app_version;
     public function __construct(App $app)
@@ -47,12 +50,10 @@ class Addon extends Backend
 
         parent::__construct($app);
         $this->modelClass = new AddonModel();
-        $this->addonService = new AddonService();
-        $this->authCloudService = AuthCloudService::instance();
+        $this->addonService = app(AddonService::class);
+        $this->authCloudService = app(AuthCloudService::class);
         $this->app_version = config('funadmin.version');
     }
-
-
 
     /**
      * @NodeAnnotation(title="列表")
@@ -61,24 +62,23 @@ class Addon extends Backend
     public function index()
     {
         if ($this->request->isAjax()) {
+
             if($this->request->isPost()){
-                //登录请求
-                $data = $this->request->post();
-                $this->authCloudService->setUserParams($data);
-                $result = $this->authCloudService->setApiUrl('')->setMethod('post')
-                    ->setParams($this->authCloudService->getUserParams())
-                    ->run();
-                if ($result['code'] == 200) {
-                    $this->authCloudService->setAuth($result['data']);
-                    $member = $this->authCloudService->setApiUrl('api/v1.member/get')->setMethod('get')
-                        ->setParams([])->setHeader([$this->authCloudService->authorization=>$result['data']['access_token']])->run();
-                    $this->authCloudService->setMember($member['data']);
-                    $this->success(lang('login successful'),'',$member['data']);
-                } else {
-                    $this->error(lang('Login failed:' . $result['msg']));
+                try {
+                    $data = $this->request->post();
+                    // 获取访问令牌
+                    $tokenResult = $this->getAccessToken($data);
+                    // 获取用户信息
+                    $member = $this->getMemberInfo($tokenResult['access_token']);
+                    // 设置用户信息并返回成功
+                    $this->authCloudService->setMember($member);
+                } catch (Exception $e) {
+                    $this->error(lang('Login failed:' . $e->getMessage()));
                 }
+                    $this->success( lang( 'login successful'),'',$member);
+
             }else{
-                $param = $this->request->param();
+                $param = input();
                 list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
                 if($where){foreach($where as $k=>$v){$map[$v[0]] = trim($v[2],'%');}}
                 if(empty($param['cateid'])){
@@ -90,25 +90,23 @@ class Addon extends Backend
                 $map['page'] = $param['page'];
                 $map['limit'] = $param['limit'];
                 unset($map['status']);
-                $auth = $this->authCloudService->setApiUrl('api/v1.plugins/getList')->setMethod('GET')
-                    ->setParams($map);
-                if($this->authCloudService->getAuth()){
-                    $res = $auth->setHeader()->run();
-                }else{
-                    $res = $auth->run();
-                }
+                $res = $this->authCloudService
+                    ->setApiUrl('/api/v2.plugins/getList')
+                    ->setParams($map)
+                    ->setHeader()
+                    ->run();
                 $list = [];
                 $addonNameArr = [];
                 $addonNameArrAll = [];
                 $count = 1;
-                if($res['code']==200){
+                if (isset($res['code']) && $res['code'] == 200) {
                     $list = $res['data']['list'];
                     $allList = $res['data']['allList'];
                     $addonNameArr = $res['data']['searchNameList'];
                     $addonNameArrAll = $res['data']['nameList'];
                     $count = count($addonNameArr);
-                }else if($res['code']==401){
-                    Cookie::set('auth_account','');
+                }else if(isset($res['code']) && $res['code']==401){
+                    $this->authCloudService->setToken()->setMember();
                 }
                 list($localAddons,$localNameArr) = $this->getLocalAddons();
                 try {
@@ -175,18 +173,18 @@ class Addon extends Backend
                     unset($value);
                     $result = ['code' => 0, 'msg' => lang('Get Data Success'),
                         'data' => $addons, 'count' => $count];
-                }catch (\Exception $e){
+                }catch (Exception $e){
                     $this->error($e->getMessage());
                 }
                 return json($result);
             }
         }
-        $res = $this->authCloudService->setApiUrl('api/v1.plugins/cateList')->setMethod('GET')
+        $res = $this->authCloudService
+            ->setApiUrl('/api/v2.plugins/cateList')
             ->setParams([])->run();
         $cateList = $res['data']??[];
         $account = $this->authCloudService->getMember();
-        return view('',[
-            'auth'=>$account?1:0, 'account'=>$account,'cateList'=>$cateList]);
+        return view('',['auth'=>$account?1:0, 'account'=>$account,'cateList'=>$cateList]);
     }
 
     /**
@@ -230,10 +228,10 @@ class Addon extends Backend
     public function install(string $name='',string $type='')
     {
         set_time_limit(0);
-        $name = $this->request->param("name")??$name;
-        $plugins_id = $this->request->param("plugins_id");
-        $version_id = $this->request->param("version_id");
-        $type = $this->request->param("type")??$type;
+        $name = input("name")??$name;
+        $plugins_id = input("plugins_id");
+        $version_id = input("version_id");
+        $type = input("type")??$type;
 //        插件名是否为空
         if (!$name) {
             $this->error(lang('addon  %s can not be empty', [$name]));
@@ -264,7 +262,7 @@ class Addon extends Backend
             if($file && file_exists('.'.$file)){
                 try {
                     $res = ZipHelper::unzip('.'.$file,'../addons');
-                }catch (\Exception $e){
+                }catch (Exception $e){
                     $this->error($e->getMessage());
                 }
                 if($res){
@@ -278,14 +276,14 @@ class Addon extends Backend
     }
     /**
      * @NodeAnnotation(title="卸载")
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     public function uninstall()
     {
         set_time_limit(0);
-        $name = $this->request->param("name");
+        $name = input("name");
         if (!$name) {
             $this->error(lang(' addon name can not be empty'));
         }
@@ -325,7 +323,7 @@ class Addon extends Backend
         try {
             //刷洗addon文件和配置
             refreshaddons();
-        }catch (\Exception $e){
+        }catch (Exception $e){
             $this->error($e->getMessage());
         }
         $this->success(lang('Uninstall successful'));
@@ -333,13 +331,13 @@ class Addon extends Backend
 
     /**
      * @NodeAnnotation (title="禁用启用")
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     public function modify()
     {
-        $name = $this->request->param("name");
+        $name = input("name");
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not right'));
         }
@@ -363,7 +361,7 @@ class Addon extends Backend
             refreshaddons();
             $info->save();
             $addoninfo['status']==1 ?$class->enabled():$class->disabled();
-        }catch (\Exception $e){
+        }catch (Exception $e){
             $this->error(lang($e->getMessage()));
         }
         $this->success(lang('operation success'));
@@ -373,9 +371,9 @@ class Addon extends Backend
      * @NodeAnnotation (title="插件配置")
      * @return \think\response\View
      * @throws Exception
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     public function config()
     {
@@ -384,7 +382,7 @@ class Addon extends Backend
         $one =  $this->modelClass->find($id);
         $config = get_addons_config($name);
         if ($this->request->isAjax()) {
-            $params = $this->request->param('params/a',[],'trim');
+            $params = input('params/a',[],'trim');
             if ($params) {
                 foreach ($config as $k => &$v) {
                     if (isset($params[$k])) {
@@ -453,9 +451,9 @@ class Addon extends Backend
      * @NodeAnnotation (title="是否安装")
      * @param $name
      * @return array|false|\think\Model|null
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     public function isInstall($name)
     {
@@ -484,9 +482,9 @@ class Addon extends Backend
      * @param string $type
      * @return true
      * @throws Exception
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     protected function doInstall(string $name,int $plugins_id=0,int $version_id=0,string $type=''){
         //检查插件是否安装
@@ -498,13 +496,21 @@ class Addon extends Backend
         //本地存在空和更新则请求后端
         if(empty($type) || $type=='upgrade'){
             //不存在或者
-            $postData = $this->getCloundData($name,$plugins_id,$version_id);
+            $postData = $this->getCloudData($name,$plugins_id,$version_id);
             if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
             ){
-                $this->getCloundAddons($postData);
+                try {
+                    $this->getCloudAddons($postData);
+                } catch (Exception $e) {
+                    $this->error($e->getMessage());
+                }
             }
             if($type =='upgrade'){
-                $this->getCloundAddons($postData);
+                try {
+                    $this->getCloudAddons($postData);
+                } catch (Exception $e) {
+                    $this->error($e->getMessage());
+                }
             }
         }
         $class = get_addons_instance($name);
@@ -556,7 +562,7 @@ class Addon extends Backend
             Service::updateAddonsInfo($name);
             //刷新addon文件
             refreshaddons();
-        }catch (\Exception $e){
+        }catch (Exception $e){
             $this->error($e->getMessage());
         }
         Cache::clear();
@@ -565,14 +571,14 @@ class Addon extends Backend
     /**
      * 更新 先卸载插件
      * @return bool
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
      */
     protected function doUpgrade(string $name='')
     {
         set_time_limit(0);
-        $name = $name?:$this->request->param("name");
+        $name = $name?:input("name");
         //获取插件信息
         $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
         if($info && $info->status==1){
@@ -608,26 +614,32 @@ class Addon extends Backend
         try {
             //刷新addon文件和配置
             refreshaddons();
-        }catch (\Exception $e){
+        }catch (Exception $e){
             $this->error($e->getMessage());
         }
         return true;
     }
 
     /**
-     * 获取远程安装包
-     * @param $params
+     * @param array $params
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
-    protected function getCloundAddons(array $params=[]){
-        $res = $this->authCloudService->setApiUrl('api/v1.plugins/down')->setMethod('GET')
-            ->setParams($params)->setHeader()->setOptions()->run();
-        if($res['code'] == 401){
-            Cookie::delete('auth_account');
-            $this->error(lang('please login aigin'));
+    protected function getCloudAddons(array $params=[]): void
+    {
+        $res = $this->authCloudService
+            ->setApiUrl('/api/v2.plugins/down')
+            ->setParams($params)
+            ->setHeader()
+            ->run();
+        if(empty($res)){
+            $this->error(lang('Api request error'));
         }
-        if($res['code']!=200){
+        if(isset($res['code']) && $res['code'] == 401){
+            $this->authCloudService->setToken()->setMember();
+            $this->error(lang('please login again'));
+        }
+        if(isset($res['code']) && $res['code']!=200){
             $url = '';
             if(!empty($res['data']['url'])) {
                 $url = $res['data']['url'];
@@ -660,7 +672,8 @@ class Addon extends Backend
      * @param $version_id
      * @return array
      */
-    protected  function getCloundData(string $name,int $plugins_id=0,int $version_id=0){
+    protected  function getCloudData(string $name,int $plugins_id=0,int $version_id=0): array
+    {
         return  [
             'plugins_id'=>$plugins_id,
             'name'=>$name,
@@ -669,6 +682,7 @@ class Addon extends Backend
             'app_version'=>$this->app_version,
             "ip" => request()->ip(),
             "domain" => request()->domain(),
+            "access_token" => $this->authCloudService->getToken(),
         ];
     }
     /**
@@ -676,16 +690,15 @@ class Addon extends Backend
      * @return void
      */
     public function logout(){
-        Cookie::delete('auth_account');
-        Cookie::delete('clound_account');
+        $this->authCloudService->setToken()->setMember();
         $this->success(lang('logout success'));
 
     }
 
     /**
      * 获取菜单
-     * @param $menu
-     * @return void
+     * @param mixed $config
+     * @return array<array|int|mixed>
      */
     protected function getMenu($config = [])
     {
@@ -718,5 +731,39 @@ class Addon extends Backend
             }
         }
         return [$menu,$pid];
+    }
+
+    // 新增辅助方法
+    private function getAccessToken($data)
+    {
+        $result = $this->authCloudService
+            ->setApiUrl('/api/v2.token/build')
+            ->setParams($data)
+            ->setMethod('POST')
+            ->run();
+        if (!isset($result['code']) || $result['code'] !== 200) {
+            $this->error($result['msg']);
+        }
+        
+        return $result['data'];
+    }
+
+    /**
+     * @param $accessToken
+     * @return mixed
+     * @throws Exception
+     */
+    private function getMemberInfo($accessToken)
+    {
+        $member = $this->authCloudService
+            ->setApiUrl('/api/v2.member/get')
+            ->setToken($accessToken)
+            ->setHeader(['access_token' => $accessToken])
+            ->run();
+        
+        if (!isset($member['code']) || $member['code'] !== 200) {
+            throw new Exception($member['msg']);
+        }
+        return $member['data'];
     }
 }

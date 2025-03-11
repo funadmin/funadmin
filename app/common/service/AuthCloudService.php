@@ -18,213 +18,178 @@ use fun\helper\HttpHelper;
 use fun\helper\StringHelper;
 use think\App;
 use think\facade\Config;
-use think\facade\Cookie;
 
 class AuthCloudService extends AbstractService
 {
     // 请求的数据
     //服务器地址
-    public $api_domain = 'https://www.funadmin.com/';
-    public $appid = 'funadmin';
-    public $appsecret = '6087ed6cd51e4860ff596cee0635d8d8';
+    public string $api_domain;
     // 接口
-    public $api_url = 'api/v1.token/accessToken';
-    public $expire = 3600*24*7;
+    public string $api_url ;
     // 请求类型
-    public $method = 'post';
-    public $authorization = 'authentication';//不可更改
-    public $token = '';
-    public $params = [];
-    public $userdata = [];
-    public $cookie = [];
-    public $options = [];
-    public $header = [];
+    public string $method = 'GET';
+    public int $expire = 3600*24*7;
+    public array $params = [];
+    public array $options = [];
+    public array $header = [];
+    public $cloud_account_key = 'cloud_account';
+    public $cloud_access_toke_key = 'cloud_access_token';
 
-    public function __construct(App $app)
+    public function __construct()
     {
-        parent::__construct($app);
+        parent::__construct();
+        $this->api_domain = config('funadmin.api_domain');
     }
 
     public function getAppVersion(){
-        $config = Config::get('funadmin');
+        $config = config('funadmin');
         return $config?$config['version']:'';
 
     }
-    /**
-     * $expire
-     * @return mixed
-     */
-    public function setExpire($expire)
-    {
-        $this->expire = $expire?:$this->expire;
-        return $this;
 
-    }
     /**
-     * token
-     * @return mixed
+     * @param array $memberInfo
+     * @return $this
      */
-    public function setToken()
+    public function setMember(array $memberInfo = []): static
     {
-        $this->token = StringHelper::randomNum();
-        return $this;
-
-    }
-    /**
-     * token
-     * @return mixed
-     */
-    public function getToken()
-    {
-        return $this->token;
-    }
-    /**
-     * 设置账号缓存
-     * @return mixed
-     */
-    public function setAuth($token=[])
-    {
-        Cookie::set('auth_account',base64_encode(serialize($token)),$this->expire);
-        return $this;
-    }
-
-    public function setMember($memberInfo = [])
-    {
-        Cookie::set('clound_account',base64_encode(serialize($memberInfo)),$this->expire);
-        return $this;
-    }
-
-    public function getMember()
-    {
-        $account = Cookie::get('clound_account');
-        return $account?unserialize(base64_decode(Cookie::get('clound_account'))):'';
-    }
-    /**
-     * 获取授权账号
-     * @return mixed
-     */
-    public function getAuth()
-    {
-        $auth_account = Cookie::get('auth_account');
-        return $auth_account?unserialize(base64_decode(Cookie::get('auth_account'))):'';
-    }
-    public function getApiUrl()
-    {
-        return $this->api_url;
-    }
-
-    public function setApiUrl($url = '')
-    {
-        if (!$url) {
-            $this->api_url = $this->api_domain . $this->api_url;
-        } else {
-            $this->api_url = $this->api_domain . $url;
+        if(empty($memberInfo)){
+            cookie($this->cloud_account_key,null);
+        }else{
+            cookie($this->cloud_account_key,base64_encode(serialize($memberInfo)),$this->expire);
         }
         return $this;
     }
 
-    public function setParams($params = [])
+    /**
+     * @return mixed|string
+     */
+    public function getMember()
     {
-
-        $this->params = $params;
-        return $this;
-    }
-
-    public function setUserParams($data){
-        $data['timestamp'] = $this->getTimestamp();
-        $data['nonce'] = $this->getNonce();
-        $data['appid'] = $this->appid;
-        $data['appsecret'] = $this->appsecret;
-        $data['key'] = $data['appsecret'];
-        $data['app_version'] = $this->getAppVersion();
-        $data['sign'] = $this->getSign($data);
-        $this->userdata= $data;
-        return $this;
-    }
-    public function getUserParams(){
-        return $this->userdata;
+        $account = cookie($this->cloud_account_key);
+        return $account?unserialize(base64_decode($account)):'';
     }
     /**
-     * 请求类型
-     * @return string
+     * @param string $token
+     * @return $this
      */
-    public function getmethod()
+    public function setToken(string $token=''): static
     {
-        return $this->method;
+        if($token){
+            cookie($this->cloud_access_toke_key,$token,$this->expire);
+        }else{
+            cookie($this->cloud_access_toke_key,null);
+        }
+        return $this;
     }
 
-    public function setMethod($method = 'post')
+    public function getToken(array $memberInfo = []) : string
+    {
+        return cookie($this->cloud_access_toke_key)?:'';
+    }
+
+
+    /**
+     * @param string $url
+     * @return $this
+     */
+    public function setApiUrl(string $url): static
+    {
+        $this->api_url = rtrim($this->api_domain, '/') . '/' . ltrim($url, '/');
+        return $this;
+    }
+
+    /**
+     * @param array $params
+     * @return $this
+     */
+    public function setParams(array $params = []): static
+    {
+
+        $this->params['app_version'] = $this->getAppVersion();
+        $this->params = array_merge($this->params, $params);
+        return $this;
+    }
+
+    /**
+     * @param string $method
+     * @return $this
+     */
+    public function setMethod(string $method = 'post'): static
     {
         $this->method = $method;
         return $this;
     }
 
-    public function setOptions($options = [])
+    /**
+     * @param array $options
+     * @return $this
+     */
+    public function setOptions(array $options = []): static
     {
         $this->options = $options;
         return $this;
     }
+
     /**
-     * 设置请求头
      * @param array $header
      * @return $this
      */
-    public function setHeader($header=[])
+    public function setHeader(array $header=[]): static
     {
-        $data = $this->getAuth()?:['access_token'=>''];
-        $header = array_merge([$this->authorization=>$data['access_token']],$header);
+        if(empty($header['Authorization']) && empty($header['access_token'])){
+            if($this->getToken()){
+                $header['Authorization'] = 'Bearer '.$this->getToken();
+                $this->header = $header;
+                return $this;
+            }
+        }
+        if(!empty($header['access_token']) || !empty($header['Authorization'])){
+            $token = $header['access_token']??$header['Authorization'];
+            $header['Authorization'] = 'Bearer '.$token;
+            unset($header['access_token']);
+        }
         $this->header = $header;
         return $this;
     }
 
     /**
-     * 获取头部信息
      * @return array
      */
-    public function getHeader()
+    public function getHeader(): array
     {
         return $this->header ;
     }
-    public function setCookie($cookie = [])
-    {
-        $this->cookie = $cookie;
-        return $this;
-    }
 
+
+    /**
+     * Summary of run
+     * @throws \Exception
+     */
     public function run()
     {
-        $ret = HttpHelper::sendRequest($this->api_url, $this->params, $this->method,$this->header, $this->options, $this->cookie);
-        return json_decode($ret['msg'], true);
-    }
-
-    //随机数
-    public function getNonce($len = 8)
-    {
-        return StringHelper::randomNum($len);
-    }
-
-    //时间错
-    public function getTimestamp()
-    {
-        return time();
-    }
-
-    //签名
-    public function getSign($params = [])
-    {
-        $params['appid'] = $this->appid;
-        $params['appsecret'] = $this->appsecret;
-        ksort($params);
-        return strtolower(md5(urldecode(http_build_query($params))));
+        try {
+            $ret = HttpHelper::sendRequest($this->api_url, $this->params, $this->method, $this->header, $this->options);
+            if (empty($ret['data'])) {
+                throw new \Exception('Invalid response format');
+            }
+            $data = json_decode($ret['data'], true);
+            if (json_last_error()) {
+                throw new \Exception($ret['data']);
+            }
+            return $data;
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 
     /**
-     * 下载并保存
-     * @param $file_url
-     * @param $filepath
-     * @return false|mixed
+     * @param string $savePath
+     * @param string $saveName
+     * @return mixed
      */
-    public function down($savePath,$saveName){
+    public function down(string $savePath,string $saveName): mixed
+    {
         $res = HttpHelper::download($this->api_url,$savePath. DIRECTORY_SEPARATOR . $saveName);
         return $res;
     }

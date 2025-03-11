@@ -382,7 +382,6 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 }
             });
             AccountClick = function(e){
-                console.log()
                 let funadmin_memberinfo =  Fun.api.getStorage('funadmin_memberinfo')
                 if(typeof funadmin_memberinfo !=='undefined' && funadmin_memberinfo!=''){
                     layer.open({

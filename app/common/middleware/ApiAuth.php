@@ -35,17 +35,21 @@ class ApiAuth
         $reflectionClass = new \ReflectionClass($controllerClass);
         $noNeedRight = $reflectionClass->hasProperty('noNeedRight') ? $reflectionClass->getProperty('noNeedRight')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
         $action = request()->action();
-        $authHeader = $request->header('Authorization');
-        if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            //如果是不需要验证权限的方法，并且token不存在
-            if((!empty($noNeedRight) && in_array($action, $noNeedRight) || $noNeedRight==['*'])){
-                 // 继续处理请求
-                return $next($request);
+        if(input('access_token')){
+            $token = input('access_token');
+        }else{
+            $authHeader = $request->header('Authorization');
+            if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+                //如果是不需要验证权限的方法，并且token不存在
+                if((!empty($noNeedRight) && in_array($action, $noNeedRight) || $noNeedRight==['*'])){
+                     // 继续处理请求
+                    return $next($request);
+                }
+                $this->error(__('Unauthorized'), [], 401);        // 未认证
             }
-            $this->error(__('Unauthorized'), [], 401);        // 未认证
+            $token = $matches[1];
         }
-        $token = $matches[1];
-        // 验证 JWT
+         // 验证 JWT
         $memberData = $this->tokenService->validateToken($token);
 
         if (!$memberData) {
