@@ -55,17 +55,18 @@ class Upgrade extends Backend
     public function index()
     {
         if ($this->request->isPost()) {
-            $data = $this->request->post();
-            $this->authCloudService->setUserParams($data);
-            $result = $this->authCloudService->setApiUrl('')->setMethod('post')
-                ->setParams($this->authCloudService->getUserParams())
-                ->run();
-            if ($result['code'] == 200) {
-                $this->authCloudService->setAuth($result['data']);
-                $this->success(lang('login successful'));
-            } else {
-                $this->error(lang('Login failed:' . $result['msg']));
+            try {
+                $data = $this->request->post();
+                // 获取访问令牌
+                $tokenResult = $this->authCloudService->getAccessToken($data);
+                // 获取用户信息
+                $member = $this->authCloudService->getMemberInfo($tokenResult['access_token']);
+                // 设置用户信息并返回成功
+                $this->authCloudService->setMember($member);
+            } catch (Exception $e) {
+                $this->error(lang('Login failed:' . $e->getMessage()));
             }
+            $this->success( lang( 'login successful'),'',$member);
         }
         $data['now_version'] = $this->now_version;
         $version = Db::query('SELECT VERSION() AS ver');
@@ -93,7 +94,7 @@ class Upgrade extends Backend
      */
     public function check()
     {
-        if (!$this->authCloudService->getAuth()) {
+        if (!$this->authCloudService->getMember()) {
             $this->error(lang('请先登录FunAdmin系统'));
         }
         $params = [
@@ -101,7 +102,7 @@ class Upgrade extends Backend
             "domain" => request()->domain(),
             "version" => $this->now_version,
         ];
-        $result = $this->authCloudService->setApiUrl('api/v1.version/getVersion')
+        $result = $this->authCloudService->setApiUrl('api/v2.version/getVersion')
             ->setParams($params)->setHeader()->run();
         if ($result['code'] == 200) {
             session('upgradeInfo', $result['data']);
@@ -118,7 +119,7 @@ class Upgrade extends Backend
     public function backup()
     {
         if ($this->request->isPost()) {
-            if (!$this->authCloudService->getAuth()) {
+            if (!$this->authCloudService->getMember()) {
                 $this->error(lang('请先登录FunAdmin系统'));
             }
             if (!is_dir($this->backup_dir)) {
@@ -141,7 +142,7 @@ class Upgrade extends Backend
     public function install()
     {
         if ($this->request->isPost()) {
-            if (!$this->authCloudService->getAuth()) {
+            if (!$this->authCloudService->getMember()) {
                 $this->error(lang('请先登录FunAdmin系统'));
             }
             if(!file_exists($this->lockFile)){

@@ -194,4 +194,35 @@ class AuthCloudService extends AbstractService
         return $res;
     }
 
+
+    public function getAccessToken($data)
+    {
+        $result = $this->setApiUrl('/api/v2.token/build')
+            ->setParams($data)
+            ->setMethod('POST')
+            ->run();
+        if (!isset($result['code']) || $result['code'] !== 200) {
+            $this->error($result['msg']);
+        }
+
+        return $result['data'];
+    }
+
+    /**
+     * @param $accessToken
+     * @return mixed
+     * @throws Exception
+     */
+    public function getMemberInfo($accessToken)
+    {
+        $member =  $this->setApiUrl('/api/v2.member/get')
+            ->setToken($accessToken)
+            ->setHeader(['access_token' => $accessToken])
+            ->run();
+
+        if (!isset($member['code']) || $member['code'] !== 200) {
+            throw new Exception($member['msg']);
+        }
+        return $member['data'];
+    }
 }

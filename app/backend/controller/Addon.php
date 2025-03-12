@@ -67,15 +67,15 @@ class Addon extends Backend
                 try {
                     $data = $this->request->post();
                     // 获取访问令牌
-                    $tokenResult = $this->getAccessToken($data);
+                    $tokenResult = $this->authCloudService->getAccessToken($data);
                     // 获取用户信息
-                    $member = $this->getMemberInfo($tokenResult['access_token']);
+                    $member = $this->authCloudService->getMemberInfo($tokenResult['access_token']);
                     // 设置用户信息并返回成功
                     $this->authCloudService->setMember($member);
                 } catch (Exception $e) {
                     $this->error(lang('Login failed:' . $e->getMessage()));
                 }
-                    $this->success( lang( 'login successful'),'',$member);
+                $this->success( lang( 'login successful'),'',$member);
 
             }else{
                 $param = input();
@@ -733,37 +733,4 @@ class Addon extends Backend
         return [$menu,$pid];
     }
 
-    // 新增辅助方法
-    private function getAccessToken($data)
-    {
-        $result = $this->authCloudService
-            ->setApiUrl('/api/v2.token/build')
-            ->setParams($data)
-            ->setMethod('POST')
-            ->run();
-        if (!isset($result['code']) || $result['code'] !== 200) {
-            $this->error($result['msg']);
-        }
-        
-        return $result['data'];
-    }
-
-    /**
-     * @param $accessToken
-     * @return mixed
-     * @throws Exception
-     */
-    private function getMemberInfo($accessToken)
-    {
-        $member = $this->authCloudService
-            ->setApiUrl('/api/v2.member/get')
-            ->setToken($accessToken)
-            ->setHeader(['access_token' => $accessToken])
-            ->run();
-        
-        if (!isset($member['code']) || $member['code'] !== 200) {
-            throw new Exception($member['msg']);
-        }
-        return $member['data'];
-    }
 }
