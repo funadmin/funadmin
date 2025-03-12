@@ -80,7 +80,7 @@ class Upgrade extends Backend
             'server_file' => $_SERVER['SCRIPT_FILENAME'],
             'php_version' => PHP_VERSION,
             'mysql_version' => $version[0]['ver'],
-            'auth' => $this->authCloudService->getAuth() ? 1 : 0,
+            'auth' => $this->authCloudService->getMember() ? 1 : 0,
         ];
         $view = array_merge($data, $view);
         return view('', $view);
