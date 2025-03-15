@@ -30,7 +30,9 @@ body .fun-layer-class .layui-layer-btn.layui-layer-btn-c{background-color:rgb(24
 body .layui-form-item.layui-btn-center button.submit{background: linear-gradient(0deg, rgba(0,172,238,1) 0%, rgba(2,126,251,1) 100%);color:#fff;border:none}
 body .layui-form-item.layui-btn-center button.reset{background:#eee}
 body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
-
+.layui-tabs *{
+    font-style: normal;
+}
 .layui-layout-admin .layui-header {
     position: fixed;
     top: 0;
@@ -256,45 +258,24 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .1)
 }
 
-.layui-layout-admin .layui-pagetabs .layui-tabs-control {
-    position: absolute;
-    top: 0;
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
-    text-align: center;
-    cursor: pointer;
-    transition: all .3s;
-    -webkit-transition: all .3s;
-    box-sizing: border-box;
-    border-left: 1px solid #f6f6f6;
-    background: #fff
+.layui-layout-admin .layui-pagetabs .layui-tabs {
+     height: calc(100vh - 120px); /* 根据实际布局调整 */
+  display: flex;
+  flex-direction: column;
+    height: 100%; margin-bottom:30px;
+    font-style: normal;
 }
 
-.layui-layout-admin .layui-pagetabs .layui-tabs-control:hover {
-    background-color: #f6f6f6
-}
-
-.layui-layout-admin .layui-pagetabs .layui-icon-prev {
-    left: 0;
-    border-left: none;
-    border-right: 1px solid #f6f6f6
-}
-
-.layui-layout-admin .layui-pagetabs .layui-icon-next {
-    right: 40px
+.layui-layout-admin .layui-pagetabs .layui-tabs .layui-tabs-item{
+    height: 100%;
+    margin-bottom:60px;
+    /*overflow: auto;*/
 }
 
 .layui-layout-admin .layui-pagetabs .layui-icon-down {
     right: 0
 }
 
-.layui-layout-admin .layui-pagetabs .layui-tab {
-    margin: 0;
-    height: 100%;
-    width: 100%;
-    overflow: hidden
-}
 
 .layui-layout-admin .layui-tabs-select.layui-nav {
     position: absolute;
@@ -370,23 +351,23 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     display: none
 }
 
-.layui-layout-admin .layui-tab-title {
-    position: absolute;
-    left: 40px;
-    right: 80px;
-    background: #fff
-}
+/*.layui-layout-admin .layui-tabs-header {*/
+/*    position: absolute;*/
+/*    left: 40px;*/
+/*    right: 80px;*/
+/*    background: #fff*/
+/*}*/
 
-/*.layui-layout-admin .layui-tab-title i {*/
+/*.layui-layout-admin .layui-tabs-header i {*/
 /*    vertical-align: middle*/
 /*}*/
 
-.layui-layout-admin .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
+.layui-layout-admin .layui-tabs-header li:hover, .layui-pagetabs .layui-tabs-header li.layui-this {
     background-color: #f6f6f6;
     border-top: 1px
 }
 
-.layui-pagetabs .layui-tab-title li {
+.layui-pagetabs .layui-tabs-header li {
     min-width: 0;
     line-height: 40px;
     max-width: 160px;
@@ -396,12 +377,12 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     vertical-align: top
 }
 
-.layui-pagetabs .layui-tab-title li:hover, .layui-pagetabs .layui-tab-title li.layui-this {
+.layui-pagetabs .layui-tabs-header li:hover, .layui-pagetabs .layui-tabs-header li.layui-this {
     background-color: rgba(0, 0, 0, 0.02);
     color: #18bc9c !important
 }
 
-.layui-pagetabs .layui-tab-title li.layui-this:after {
+.layui-pagetabs .layui-tabs-header li.layui-this:after {
     content: '';
     position: absolute;
     top: 0;
@@ -414,7 +395,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     transition: all .3s;
     -webkit-transition: all .3s
 }
-.layui-pagetabs .layui-tab-title li .layui-tab-icon-active {
+.layui-pagetabs .layui-tabs-header li .layui-tab-icon-active {
     display: inline-block;
     background-color: lightgray;
     width: 9px;
@@ -422,33 +403,13 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     border-radius: 30px;
     margin-right: 5px;
 }
-.layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active {
+.layui-pagetabs .layui-tabs-header li.layui-this .layui-tab-icon-active {
     background-color: #4d70ff;
 }
-.layui-pagetabs .layui-tab-title li:first-child {
+.layui-pagetabs .layui-tabs-header li:first-child {
     padding-right: 15px
 }
 
-.layui-layout-admin .layui-pagetabs .layui-tab-title li:first-child .layui-tab-close {
-    display: none
-}
-
-.layui-layout-admin .layui-pagetabs .layui-tab-title li .layui-tab-close {
-    border-radius: 50%
-}
-
-.layui-layout-admin .layui-pagetabs .layui-tab-title li .layui-tab-close:hover {
-    border-radius: 50%
-}
-
-.layui-layout-admin .layui-pagetabs .layui-tab-title li cite {
-    font-style: normal;
-    padding-left: 5px
-}
-
-.layui-layout-admin .layui-tab-title .layui-tab-bar {
-    display: none
-}
 
 .layui-layout-admin .layui-body-shade {
     position: fixed;
@@ -458,7 +419,9 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     top: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, .3);
-    z-index: 1000
+    z-index: 1000;
+     flex: 1;
+  min-height: 0; /* 修复Firefox兼容问题 */
 }
 
 .layui-layout-admin .layui-body {
@@ -468,6 +431,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     margin-bottom: 45px;
     position: absolute;
     z-index: auto;
+    /*height: 100%;*/
     /*overflow: auto;*/
     -webkit-transition: left .3s;
     transition: left .3s;
@@ -488,7 +452,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
     font-size: 12px
 }
 
-.layui-body.layui-tab-content .layui-tab-item.layui-show {
+.layui-body.layui-tabs-body .layui-tabs-item.layui-show {
     width: 100%;
     height: 98%;
     padding: 0
@@ -834,7 +798,7 @@ body .layui-form-item.layui-btn-center button:hover{border-color:#eee;}
 
     .layui-side-shrink .layui-layout-admin .layui-body {
         width: 100%;
-        height: 100%;
+        /*height: 100%;*/
         position: fixed;
         left: 0;
         top: 40px

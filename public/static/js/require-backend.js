@@ -20,7 +20,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery', 'css','jsoneditor','layCascader','tableSelect','tableFilter','iconPicker', 'toastr','step-lay','inputTags', 'timeago','selects','cityPicker','cxSelect', 'selectPage','xmSelect','autoComplete','Sortable','timePicker','croppers', 'backend','md5','fun','form','table','upload'],
+    include: ['jquery', 'css','jsoneditor','layCascader','tableSelect','tableFilter','iconPicker', 'toastr','step-lay','inputTags', 'timeago','selects','cityPicker','cxSelect', 'selectPage','xmSelect','autoComplete','Sortable','timePicker','croppers','theme-config', 'backend','md5','fun','form','table','upload'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
@@ -45,6 +45,7 @@ require.config({
         'autoComplete'  : 'plugins/lay-module/autoComplete/autoComplete',
         'Sortable'      : 'plugins/lay-module/Sortable/Sortable.min',
         'md5'           : 'plugins/lay-module/md5/md5.min', // 后台扩展
+        'theme-config'  : 'js/theme-config', // jquery
         'backend'       : 'js/backend', // fun后台扩展
         'fun'           : 'js/fun', // api扩展
         'table'         : 'js/require-table',

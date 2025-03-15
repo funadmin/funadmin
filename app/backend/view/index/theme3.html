@@ -100,30 +100,17 @@
 
 <!--     导航按钮 +主题内容 -->
 <div class="layui-pagetabs" id="layui-app-tabs">
-    <div class="layui-icon layui-tabs-control layui-icon-next  " lay-event="leftPage"></div>
-    <div class="layui-icon layui-tabs-control layui-icon-prev  " lay-event="rightPage"></div>
-    <div class="layui-icon layui-tabs-control layui-icon-down  ">
-        <ul class="layui-nav layui-tabs-select">
-            <li class="layui-nav-item">
-                <a href="javascript:;"><span class="layui-nav-more"></span></a>
-                <dl class="layui-nav-child layui-anim-fadein">
-                    <dd lay-event="closeThisTabs"><a href="javascript:;">关闭当前页</a></dd>
-                    <dd lay-event="closeOtherTabs"><a href="javascript:;">关闭其它页</a></dd>
-                    <dd lay-event="closeAllTabs"><a href="javascript:;">关闭全部页</a></dd>
-                </dl>
-            </li>
-        </ul>
-    </div>
-    <div class="layui-tab layui-tab-card" id="layui-tab" overflow lay-allowclose="true" lay-filter="layui-layout-tabs">
-        <ul class="layui-tab-title" id="layui-tab-header">
-            <li lay-id="" lay-attr="console" class="layui-this">
+    <div class="layui-tabs layui-hide-v" id="layui-tabs" lay-options="{closable: true, headerMode:'auto'}"
+         lay-filter="layui-layout-tabs">
+        <ul class="layui-tabs-header layui-tab-title" id="layui-tabs-header">
+           <li lay-id="" lay-attr="console" class="layui-this" lay-closable="false">
                 <i class="layui-icon layui-icon-home"></i>
             </li>
         </ul>
-        <!-- 主体内容 -->
-        <div class="layui-body layui-tab-content" id="layui-app-body">
-            <div id="homePage" class="layui-body-tabs layui-tab-item layui-show">
-                <iframe width="100%" height="100%" frameborder="no" border="0" marginwidth="0" marginheight="0" src="{:__u('console')}"></iframe>
+        <div class="layui-tabs-body layui-body layui-tab-content" id="layui-app-body">
+            <div id="homePage" class="layui-body-tabs layui-tabs-item layui-show" >
+                <iframe width="100%" height="100%" frameborder="no" border="0" marginwidth="0" marginheight="0"
+                        src="{:__u('console')}"></iframe>
             </div>
         </div>
     </div>

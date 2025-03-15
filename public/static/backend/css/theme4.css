@@ -85,7 +85,7 @@
     position: fixed; top:60px;width:100%;
     z-index:999;
 }
-.layui-layout-admin .layui-tab-header{
+.layui-layout-admin .layui-tabs-header{
     display: none!important;
 }
 .layui-layout-admin .layui-body{

@@ -14,7 +14,7 @@ return [
 
     'version_data' => date('Y-m-d'),
 
-    'layui_version' => '2.9.23',
+    'layui_version' => '2.10.0',
 
     'ip_check'=>false,
 

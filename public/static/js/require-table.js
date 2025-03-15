@@ -1105,7 +1105,7 @@ define(['timePicker'], function (timePicker) {
                     }
                 }
                 table.reloadData(tableId, $map, $deep);
-                if ($parent && parent.layui.layer && parent.layui.layer.getFrameIndex(window.name)) {
+                if ($parent && parent.layui.layer && window.name && parent.layui.layer.getFrameIndex(window.name)) {
                     parent.layui.table.reloadData(tableId, $map, $deep) ||
                     parent.layui.treeTable.reloadData(tableId, $map, $deep);
                 }

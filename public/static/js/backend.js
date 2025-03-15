@@ -1,267 +1,23 @@
-define([], function () {
-    var $ = layui.$, element = layui.element;
-    var $document = $(document), $container = $('#fun-app'), FUN_APP = 'fun-app',
-        THIS = 'layui-this', SIDE_SHRINK = 'layui-side-shrink',
-        //主题配置
-        THEME = [
-            {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#4d70ff',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#4d70ff',
-                menuLeftBgHover: '#4d70ff',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#197971',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
+define(['theme-config'], function(themeConfig) { // 添加依赖
+    var $ = layui.$,
+          tabs = layui.tabs,
+          dropdown = layui.dropdown;
 
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#8e10b9',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#8e10b9',
-                menuLeftBgHover: '#8e10b9',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
+    var $document = $(document),
+          $container = $('#fun-app'),
+          FUN_APP = 'fun-app',
+          THIS = 'layui-this',
+          SIDE_SHRINK = 'layui-side-shrink',
+          TABS = 'layui-tabs',
+          TABS_HEADER = 'layui-tabs-header',
+            COLORID = 'ColorId' ,
+            LOCK = 'BackendLock'
 
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#b8279f',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#b8279f',
-                menuLeftBgHover: '#b8279f',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#197971',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#fff',
-                headerfontColor: '#595959',
-                headerBgThis: '#8e10b9',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#595959',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#8e10b9',
-                menuLeftBgHover: '#8e10b9',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#20b598',
-                headerfontColor: '#fff',
-                headerBgThis: '#197971',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#20b598',
-                headerfontColor: '#fff',
-                headerBgThis: '#197971',
-                headerBgLogo: '#20b598',
-                headerLogofontColor: '#fff',
-                menuLeftBg:'#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#20b598',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#00a65a',
-                headerBgThis: '#197971',
-                headerBgLogo: '#00a65a',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#222d32',
-                menuLeftBgThis: '#00a65a',
-                menuLeftBgHover: '#00a65a',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#8e10b9',
-                headerfontColor: '#fff',
-                headerBgThis: '#197971',
-                headerBgLogo: '#8e10b9',
-                headerLogofontColor: '#fff',
-                menuLeftBg:'#23262e',
-                menuLeftBgThis: '#8e10b9',
-                menuLeftBgHover: '#8e10b9',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#23262e',
-                headerfontColor: '#fff',
-                headerBgThis: '#0c0c0c',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#23262e',
-                menuLeftBgThis: '#20b598',
-                menuLeftBgHover: '#3b3f4b',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#ffa4d1',
-                headerfontColor: '#fff',
-                headerBgThis: '#bf7b9d',
-                headerBgLogo: '#e694bd',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#ffa4d1',
-                menuLeftBgHover: '#ffa4d1',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#4d70ff',
-                headerfontColor: '#fff',
-                headerBgThis: '#0069b7',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#4d70ff',
-                menuLeftBgHover: '#4d70ff',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#963885',
-                headerfontColor: '#fff',
-                headerBgThis: '#b8279f',
-                headerBgLogo: '#000',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#191a23',
-                menuLeftBgThis: '#963885',
-                menuLeftBgHover: '#963885',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#963885',
-                headerfontColor: '#fff',
-                headerBgThis: '#b8279f',
-                headerBgLogo: '#b8279f',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#191a23',
-                menuLeftBgThis: '#963885',
-                menuLeftBgHover: '#963885',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#4d70ff',
-                headerfontColor: '#fff',
-                headerBgThis: '#4d70ff',
-                headerBgLogo: '#4d70ff',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#4d70ff',
-                menuLeftBgHover: '#4d70ff',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#ffb800',
-                headerfontColor: '#fff',
-                headerBgThis: '#d09600',
-                headerBgLogo: '#000',
-                headerLogofontColor: '#fff',
-                menuLeftBg:'#23262e',
-                menuLeftBgThis: '#ffb800',
-                menuLeftBgHover: '#ffb800',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#ffb800',
-                headerfontColor: '#fff',
-                headerBgThis: '#d09600',
-                headerBgLogo: '#d09600',
-                headerLogofontColor: '#fff',
-                menuLeftBg:'#23262e',
-                menuLeftBgThis: '#ffb800',
-                menuLeftBgHover: '#ffb800',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#e82121',
-                headerfontColor: '#fff',
-                headerBgThis: '#ae1919',
-                headerBgLogo: '#0c0c0c',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#e82121',
-                menuLeftBgHover: '#e82121',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            }, {
-                headerBg: '#e82121',
-                headerfontColor: '#fff',
-                headerBgThis: '#ae1919',
-                headerBgLogo: '#d91f1f',
-                headerLogofontColor: '#fff',
-                menuLeftBg: '#1f1f1f',
-                menuLeftBgThis: '#e82121',
-                menuLeftBgHover: '#e82121',
-                menuLeftDlBg: 'rgba(0,0,0,.3)',
-                menuLeftfontColor: '#fff',
-                menuLeftfontColorHover: '#fff',
-            },  {
-                headerBg: '#fff',
-                headerfontColor: '#000',
-                headerBgThis: '#e2ebfb',
-                headerBgLogo: '#fff',
-                headerLogofontColor: '#000',
-                menuLeftBg: '#fff',
-                menuLeftBgThis: '#e2ebfb',
-                menuLeftBgHover: '#e2ebfb',
-                menuLeftDlBg: '#fff',
-                menuLeftfontColor: '#000',
-                menuLeftfontColorHover: '#e2ebfb',
-            }
-        ];
+    // 主题配置数组 - 保持原样
+    var THEME = themeConfig; // 使用导入的配置
     var Backend = {
         /*** 版本*/
-        v: '5.0',
+        v: '6.0',
         /**
          * @param options
          */
@@ -270,14 +26,13 @@ define([], function () {
             options.themeid = options.themeid || 0;
             options.maxTabs = options.maxTabs || 15;
             THEME = options.theme ?options.theme:THEME;
-            Backend.initTabs({
-                filter: 'layui-layout-tabs',
-                maxTabs: options.maxTabs,
-            });
+            Backend.api.bindEvent();
+            Backend.initTabs({id: TABS, maxTabs: options.maxTabs});
             Backend.hideLoading(options.loadingTime);
             Backend.initBodyTheme();
             Backend.initBgColor();
-            Backend.api.bindEvent();
+             //菜单自适应
+            Backend.initNav();
         },
         initBodyTheme:function (name){
             if(Config.site.site_theme ==0){
@@ -293,13 +48,13 @@ define([], function () {
             }
             value = Fun.api.getStorage(name);
             if(value && value == 1) {
-                $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').removeClass(
+                $('#layui-tabs-header').removeClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
                     top: '40px'
                 }, 100);
             }else if(value && value == 2){
-                $('.layui-tabs-control.layui-icon-prev,.layui-tabs-control.layui-icon-next,.layui-tabs-control.layui-icon-down,#layui-tab-header').addClass(
+                $('#layui-tabs-header').addClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
                     top: 0
@@ -317,7 +72,7 @@ define([], function () {
             setTimeout(function () {
                 //判断是否锁定了界面
                 $(document).find('.fun-loading').fadeOut();
-                if (Fun.api.getStorage('BackendLock')) {
+                if (Fun.api.getStorage(LOCK)) {
 
                     title = [__('Input Password')];
                     if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
@@ -336,10 +91,10 @@ define([], function () {
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            if (value === Fun.api.getStorage('BackendLock')) {
+                            if (value === Fun.api.getStorage(LOCK)) {
                                 Fun.toastr.close(index);
                                 //清除密码
-                                Fun.api.setStorage('BackendLock', null);
+                                Fun.api.setStorage(LOCK, null);
                                 Fun.toastr.success(__('Unlock Success'))
                                 $('#lock-screen').remove();
                             } else {
@@ -353,17 +108,14 @@ define([], function () {
         },
         /** tab*/
         initTabs: function (options) {
-            options.filter = options.filter || null;
-            options.maxTabs = options.maxTabs || 15;
-            Backend.listenScroll();
-            Backend.listenSwitch(options);
+            options.id = options.id || TABS;
+            tabs.render({ elem: '#layui-tabs',header: ['#layui-tabs-header', '>li'],body: ['.layui-tabs-body', '>div'],});
             Backend.listenTabs(options);
-            Backend.listenDeltab(options);
             Backend.listenFrameTheme();
         },
         initNav: function (options) {
             //菜单自适应
-            var nav = $('.layui-tab .layui-tab-title');
+            var nav = $('.layui-tab .layui-tabs-header');
             if(Config.site.site_theme<=0 ){
                 if( $(window).width()<=769)  {
                     nav.width('100%'); return;
@@ -371,8 +123,16 @@ define([], function () {
                 pagetab = $('.layui-pagetabs').outerWidth();
                 right = $('.layui-nav.layui-layout-right').outerWidth();
                 left = $('.layui-nav.layui-layout-left').outerWidth();
-                nav.width(pagetab - right- left);
+                nav.width(pagetab - right- left+50);
             }
+        },
+        initSession: function () {
+             layId = $('#layui-app-tabs .layui-tabs .layui-tabs-header').find('.layui-this').attr('lay-id');
+             if(!layId){
+                layId =  $('#layui-app-tabs .layui-tabs .layui-tabs-header').children('li:last').attr('lay-id');
+             }
+             console.log(layId);
+            layui.sessionData('tabLayId', {key: 'id', value: layId})
         },
         //全屏
         fullScreen: function () {
@@ -406,11 +166,10 @@ define([], function () {
             $(window).trigger("resize");
         },
         listenTabs: function (options) {
-            var funTabInfo = layui.sessionData("funTabInfo");
-            var tabLayId = layui.sessionData('tabLayId');
-            var layId = tabLayId.id;
-            if (layId === null || layId === undefined) return false;
-            if (funTabInfo) {
+            var tabLayId = layui.sessionData("tabLayId");
+            if (tabLayId) {
+                var layId = tabLayId.id;
+                if (layId === null || layId === undefined) return false;
                 $menu = $("[lay-filter='menulist']").find("a[lay-id='"+layId+"']");
                 if($menu.length>0){
                     var text = $menu.attr('data-tips') || $menu.attr('title'),
@@ -422,34 +181,11 @@ define([], function () {
                         icon: icon,
                         maxTabs: options.maxTabs,
                     });
-                    element.tabChange('layui-layout-tabs', layId);
+                    Backend.listenSwitchTabs(layId);
                 }
             }
             //菜单自适应
             Backend.initNav();
-        },
-        /**
-         * 删除tab窗口
-         * @param layId
-         * @param isParent
-         */
-        delTab: function (layId, isParent) {
-            var funTabInfo = layui.sessionData("funTabInfo");
-            if (funTabInfo != null) {
-                layui.sessionData("funTabInfo", {key: layId, remove: true})
-            }
-            if (isParent === true) {
-                parent.layui.element.tabDelete('layui-tabs', layId);
-            } else {
-                element.tabDelete('layui-layout-tabs', layId);
-            }
-            layId = $('#layui-app-tabs .layui-tab .layui-tab-title').find('.layui-this').attr('lay-id');
-            if(!layId){
-                layId =  $('#layui-app-tabs .layui-tab .layui-tab-title').children('li:last').attr('lay-id');
-            }
-            element.tabChange('layui-layout-tabs', layId);
-            Backend.changeSessioinTabId(layId);
-            $('#layui-nav-righmenu').remove();
         },
         /**
          * 增加tab 公用接口
@@ -460,32 +196,32 @@ define([], function () {
             options.text = options.text || '';
             options.icon = Config.site.site_tabicon>0 ? options.icon : 'layui-tab-icon-active';
             options.iframe = options.iframe || null;
-            if (top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").length >= options.maxTabs) {
+            if (top.window.$("#layui-app-tabs .layui-tabs .layui-tabs-header li").length >= options.maxTabs) {
                 Fun.toastr.error(__('window is create by maxnum'));
                 return false;
             }
-            Backend.changeSessioinTabId(options.layId);
-            layui.sessionData('funTabInfo', {
-                key: options.layId,
-                value: options.layId,
-            });
-            var ele = element;
-            if (options.iframe) ele = top.layui.element;
+
+            if (options.iframe) tabs = top.layui.tabs;
             var checkLayId = Backend.checkLayId(options.layId), loadindex;
             if(!options.layId) return false;
             if (!checkLayId) {
                 loadindex = layui.layer.load();
-                ele.tabAdd('layui-layout-tabs', {
+                tabs.add(TABS, {
                     title: ' <i class="' + options.icon + '"></i><cite>' + options.text + '</cite>' //标题
                     ,
                     content: '<iframe id="'+options.layId+'" width="100%" height="100%" frameborder="no" src="' + options.url + '"></iframe>'
                     ,
                     id: options.layId,
+                    index: options.layId,
+                    done: function(params) {
+                        Backend.listenContextMenu();
+                    }
                 });
+                Backend.initSession(options.layId);
             } else {
                 loadindex = layui.layer.load();
                 if(Config.site.site_reloadiframe){
-                    var current_iframe = window.$("#layui-app-tabs .layui-tab-content div").find("iframe[id='"+options.layId+"']");
+                    var current_iframe = window.$("#layui-app-tabs .layui-tabs-body div").find("iframe[id='"+options.layId+"']");
                     current_iframe.eq(0).attr('src',options.url)
                     // current_iframe[0].contentWindow.location.reload();
                 }
@@ -495,16 +231,8 @@ define([], function () {
             }
             $('#layui-nav-righmenu').remove();
             layui.layer.close(loadindex);
-            ele.tabChange('layui-layout-tabs', options.layId);
+            tabs.change(TABS, options.layId);
             Backend.initNav();
-        },
-        //切换id
-        changeSessioinTabId: function (layId) {
-            if (layId) {
-                layui.sessionData('tabLayId', {key: 'id', value: layId})
-            } else {
-                layui.sessionData('tabLayId', null);
-            }
         },
         /**
          * 判断tab窗口
@@ -512,19 +240,14 @@ define([], function () {
         checkLayId: function (layId) {
             // 判断选项卡上是否有
             var checkId = false;
-            top.window.$("#layui-app-tabs .layui-tab .layui-tab-title li").each(function () {
-                var checklayId = $(this).attr('lay-id');
-                if (checklayId != null && checklayId === layId) {
-                    checkId = true;
-                }
-            });
+            top.window.$("#layui-app-tabs .layui-tabs .layui-tabs-header li[lay-id='"+layId+"']").length > 0 ? checkId = true : checkId = false;
             return checkId !== false;
         },
         /**
          * 获取颜色缓存
          */
         getColorId:function(){
-            var colorId = Fun.api.getStorage('funColorId');colorId = colorId?colorId:0;
+            var colorId = Fun.api.getStorage(COLORID);colorId = colorId?colorId:0;
             return colorId;
         },
         /**
@@ -587,62 +310,63 @@ define([], function () {
                 '.layui-side-scroll .layui-nav .layui-nav-child a:hover:not(.layui-this){background-color:' + themeData.menuLeftBgHover + '!important;}\n' +
                 '.layui-layout-admin .layui-nav-tree .layui-this,.layui-layout-admin .layui-nav-tree .layui-this>a,' +
                 '.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this,.layui-layout-admin .layui-nav-tree .layui-nav-child dd.layui-this a {background-color: ' + themeData.menuLeftBgThis + ' !important;}\n' +
-                '.layui-pagetabs .layui-tab-title li:hover,.layui-pagetabs .layui-tab-title li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
-                '.layui-pagetabs .layui-tab-title li.layui-this .layui-tab-icon-active{ background-color:' + themeData.menuLeftBgThis + '!important;}\n' +
+                '.layui-pagetabs .layui-tabs-header li:hover,.layui-pagetabs .layui-tabs-header li.layui-this{ color:' + themeData.menuLeftBgThis + '!important;}\n' +
+                '.layui-pagetabs .layui-tabs-header li.layui-this .layui-tab-icon-active{ background-color:' + themeData.menuLeftBgThis + '!important;}\n' +
                 '.layui-layout-admin .layui-nav-tree .layui-nav-bar{background:' + themeData.menuLeftBgThis + '!important;}\n';
             $('#fun-bg-color').html(styleHtml);
             Backend.listenFrameTheme();
 
         },
-        /**
-         * 监听tab切换
-         * @param options
-         */
-        listenSwitch: function (options) {
-            options.filter = options.filter || '';
-            layui.element.on('tab(' + options.filter + ')', function(){
-                var layId = $(this).attr('lay-id');
-                Backend.changeSessioinTabId(layId);
-                Backend.listenSwitchIframe(layId);
-                Backend.scrollPostion();
-            });
-        },
         //监听主题
         listenFrameTheme:function(){
             Fun.api.setFrameTheme();
         },
-        /**
-         * 监听tab删除
-         * @param options
-         */
-        listenDeltab: function (options) {
-            options.filter = options.filter || null;
-            element.on('tabDelete(' + options.filter + ')', function () {
-                var layId = $(this).parent().attr('lay-id');
-                Backend.delTab(layId);
-            });
-        },
-        /**
-         * 监听左右滚动
-         */
-        listenScroll: function (type) {
-            var tabNav = $('#layui-app-tabs .layui-tab  .layui-tab-title');
-            var left = tabNav.scrollLeft();
-            if (type === 'left') {
-                tabNav.animate({
-                    scrollLeft: left - 550
-                }, 100);
-            } else {
-                tabNav.animate({
-                    scrollLeft: left + 550
-                }, 100);
-            }
+        listenContextMenu:function(){
+            layui.dropdown.render({
+                elem: '#layui-tabs #layui-tabs-header li',
+                trigger: 'contextmenu',
+                    data: [{
+                        title: '刷新当前',
+                        action: 'refresh',
+                        mode: 'this'
+                    },{
+                        title: '关闭当前',
+                        action: 'close',
+                        mode: 'this',
+                    }, {
+                        title: '关闭其他',
+                        action: 'close',
+                        mode: 'other'
+                    }, {
+                        title: '关闭右侧',
+                        action: 'close',
+                        mode: 'right'
+                    },{
+                        title: '关闭所有',
+                        action: 'close',
+                        mode: 'all'
+                    }],
+                    click: function (data, othis, event) {
+                        var index = this.elem.index(); // 获取活动标签索引
+                        // layId = this.elem.find('.layui-this').attr('lay-id');
+                        // 刷新标签
+                        if (data.action === 'refresh') {
+                            Backend.events[data.action] && Backend.events[data.action].call(this);
+                        } else if (data.action === 'close') { // 关闭标签操作
+                            if (data.mode === 'this') {
+                                tabs.close(TABS, index); // 关闭当前标签
+                            }else{
+                                tabs.closeMult(TABS, data.mode,index);
+                            }
+                        }
+                    }
+                });
         },
         /**
          * 监听切换 左侧菜单的样式和多级菜单的展开
          * @param layId
          */
-        listenSwitchIframe: function (layId) {
+        listenSwitchTabs: function (layId) {
             $("#layui-side-left-menu").find("li,dd").removeClass("layui-this").removeClass("layui-nav-itemed");//关闭所有展开的菜单
             $("#layui-side-left-menu > li dl.layui-nav-child").removeAttr('style');
             $menu = $("#layui-side-left-menu a[lay-id='"+layId+"']");
@@ -657,23 +381,6 @@ define([], function () {
                     $('#layui-header-nav-pc li a[menu-id="'+index+'"]').parent('li').addClass("layui-this").siblings('li').removeClass("layui-this");
                 }
             }
-        },
-        /**
-         * 自动定位
-         */
-        scrollPostion: function () {
-            var tabNav = $('#layui-app-tabs .layui-tab .layui-tab-title');
-            var autoLeft = 0;
-            tabNav.children("li").each(function () {
-                if ($(this).hasClass(THIS)) {
-                    return false;
-                } else {
-                    autoLeft += $(this).outerWidth();
-                }
-            });
-            tabNav.animate({
-                scrollLeft: autoLeft - tabNav.width() / 4
-            }, 200);
         },
         events: {
             //弹出主题面板
@@ -766,7 +473,7 @@ define([], function () {
                 var colorId = othis.attr('data-color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', THIS);
-                Fun.api.setStorage('funColorId',colorId);
+                Fun.api.setStorage(COLORID,colorId);
                 Backend.initBgColor();
             },
             /**
@@ -791,7 +498,7 @@ define([], function () {
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            Fun.api.setStorage('BackendLock',value);
+                            Fun.api.setStorage(LOCK,value);
                             layui.layer.close(index);
                             title = [__('Input Password')];
                             if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
@@ -808,11 +515,11 @@ define([], function () {
                                     Fun.toastr.error(__('Input Password'));
                                     return false;
                                 } else {
-                                    if (value === Fun.api.getStorage('BackendLock')) {
+                                    if (value === Fun.api.getStorage(LOCK)) {
                                         layui.layer.close(index);
                                         $(".yy").hide();
                                         //清除密码
-                                        Fun.api.setStorage('BackendLock', null);
+                                        Fun.api.setStorage(LOCK, null);
                                         Fun.toastr.success(__('Unlock Success'));
                                         $('#lock-screen').remove();
                                     } else {
@@ -829,12 +536,6 @@ define([], function () {
             //伸缩
             flexible: function () {
                 Backend.sideFlexible();
-            },
-            rightPage: function () {
-                Backend.listenScroll('right')
-            },
-            leftPage: function () {
-                Backend.listenScroll('left')
             },
             showtips: function (othis, type) {
                 if ($container.hasClass(SIDE_SHRINK)) {
@@ -865,12 +566,12 @@ define([], function () {
                 Backend.sideFlexible();
             },
             clear: function (othis) {  //清除缓存
-                layui.sessionData('funTabInfo',
+                layui.sessionData('tabLayId',
                     {
                         key: 'fun-safe',
                         value: '',
                     });
-                layui.sessionData('funTabInfo',
+                layui.sessionData('tabLayId',
                     {
                         key: 'fun-info',
                         value: '',
@@ -878,45 +579,22 @@ define([], function () {
                 var url = othis.data('ajax') ? othis.data('ajax') : Backend.refreshUrl;
                 Fun.ajax({url: url}, function (res) {
                     Fun.toastr.success(res.msg,function(){
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        $("#layui-app-tabs .layui-tabs-body .layui-show").find("iframe")[0].contentWindow.location.reload();
                     });
                 }, function (res) {
                     Fun.toastr.error(res.msg,function(){
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        $("#layui-app-tabs .layui-tabs-body .layui-show").find("iframe")[0].contentWindow.location.reload();
                     });
                 })
             },
             refresh: function () {  //刷新
                 Fun.toastr.success(__('Refresh Success'), setTimeout(function () {
-                        $("#layui-app-tabs .layui-tab-content .layui-show").find("iframe")[0].contentWindow.location.reload();
+                        $("#layui-app-tabs .layui-tabs-body .layui-show").find("iframe")[0].contentWindow.location.reload();
                         Fun.toastr.close();
                     }, 1200)
                 );
-            }
-            //关闭当前标签页
-            , closeThisTabs: function () {
-                var layId = $("#layui-app-tabs .layui-tab .layui-tab-title li.layui-this").attr('lay-id');
-                if (layId) {
-                    Backend.delTab(layId)
-                }
-            }
-            //关闭其它标签页
-            , closeOtherTabs: function (type) {
-                $("#layui-app-tabs .layui-tab .layui-tab-title li").each(function (key, val) {
-                    var layId = $(val).attr('lay-id');
-                    if (type === 'all' && layId) {
-                        Backend.delTab(layId);
-                    } else {
-                        if (layId && !$(this).hasClass(THIS)) {
-                            Backend.delTab(layId);
-                        }
-                    }
-                });
-            }
-            //关闭全部标签页
-            , closeAllTabs: function () {
-                Backend.events.closeOtherTabs('all');
             },
+
             /**
              * 退出登陆
              * @param othis
@@ -1080,38 +758,18 @@ define([], function () {
                     _t.siblings('dd').children('dl').removeClass('layui-nav-child-drop');
                     _t.find('dl').removeAttr('style');
                 });
-                //鼠标右键盘
-                layui.dropdown.render({
-                    elem: '#layui-tab-header' //也可绑定到 document，从而重置整个右键
-                    ,trigger: 'contextmenu' //contextmenu
-                    ,isAllowSpread: false //禁止菜单组展开收缩
-                    ,style: 'width: 130px' //定义宽度，默认自适应
-                    ,id: 'layui-tab-header-menu' //定义唯一索引
-                    ,data: [{
-                        title: '  刷新当前页',
-                        templet: '<a href="javascript:;" lay-event="refresh"><i class="layui-icon layui-icon-refresh"></i>  {{d.title}}</a>'
-                        ,id: 'refresh'
-                    }, {type:'-'},{
-                        title: '  关闭当前页',
-                        templet: '<a href="javascript:;" lay-event="closeThisTabs">&nbsp;<i class="layui-icon layui-icon-close-fill"></i>  {{d.title}}</a>'
-                        ,id: 'closeThisTabs'
-                    },{type:'-'},{
-                        title: '  关闭其它页',
-                        templet: '<a href="javascript:;" lay-event="closeOtherTabs">&nbsp;<i class="layui-icon layui-icon-unlink"></i>  {{d.title}}</a>'
-                        ,id: 'closeOtherTabs'
-                    },{type:'-'},{
-                        title: '  关闭全部页',
-                        templet: '<a href="javascript:;" lay-event="closeAllTabs">&nbsp;<i class="layui-icon layui-icon-close"></i>  {{d.title}}</a>'
-                        ,id: 'closeAllTabs'
-                    }],click:function (obj, othis) {
-                        var _t = othis.find('a'), attrEvent = obj.id;
-                        Backend.events[attrEvent] && Backend.events[attrEvent].call(this, _t);
-                    }
+                // tabs 关闭后的事件
+                tabs.on('afterClose('+TABS+')', function(data) {
+                    Backend.initSession();
+                });
+                tabs.on('afterChange('+TABS+')', function(data) {
+                    Backend.listenSwitchTabs($(this).attr('lay-id'));
                 });
                 $(window).on("resize", function () {
                     Backend.initBodyTheme();
                     Backend.initNav();
                 });
+                Backend.listenContextMenu();
                 $(window).trigger('resize');
             },
         }

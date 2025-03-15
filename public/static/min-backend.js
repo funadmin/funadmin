@@ -33,7 +33,7 @@
         'iconPicker', 'toastr', 'step-lay','inputTags' ,'cityPicker',
         'timeago','selects','cxSelect','xmSelect','selectPage',
         'timePicker','croppers','autoComplete','Sortable',
-        'dayjs', 'md5','fun','form', 'table', 'upload', 'backend'
+        'dayjs', 'md5','fun','form', 'table', 'upload','theme-config' , 'backend'
     ],
     paths: {
         'lang'          : 'empty:',
@@ -65,6 +65,7 @@
         'table'         : 'js/require-table',
         'form'          : 'js/require-form',
         'upload'        : 'js/require-upload',
+        'theme-config'  : 'js/theme-config', // jquery
         'backend'       : 'js/backend', // fun后台扩展
     },
     map: {
