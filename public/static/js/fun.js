@@ -169,7 +169,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         }
                     })
                     //锁屏
-                    if($('#lock-screen').length>0 &&  !Fun.api.getStorage('BackendLock')){
+                    if($('#lock-screen').length>0 &&  !Fun.api.getStorage('LOCK_SCREEN')){
                         $('#lock-screen').remove();
                     }
                 }
@@ -574,9 +574,9 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             },
             //设置子页面主题
             setFrameTheme:function(body){
-                var colorId = Fun.api.getStorage('funColorId');
+                var colorId = Fun.api.getStorage('COLOR_ID');
                 colorId = colorId?colorId:0;theme = 'theme'+colorId;
-                if(Fun.api.getStorage('setFrameTheme')){
+                if(Fun.api.getStorage('SET_FRAME_THEME')){
                     var iframe = $("#layui-tab .layui-tab-item").find("iframe");
                     for (var i = 0; i < iframe.length; i++) {
                         $(iframe[i]).on('load',function(){
@@ -592,7 +592,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     layui.$('iframe').contents().find('body').attr('id',theme);
                 }
                 //测试
-                themeData = Fun.api.getStorage('setFrameTheme');
+                themeData = Fun.api.getStorage('SET_FRAME_THEME');
                 if(themeData){
                     $('body').addClass('active');
                 }else{

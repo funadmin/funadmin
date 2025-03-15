@@ -1,18 +1,18 @@
 define(['theme-config'], function(themeConfig) { // 添加依赖
     var $ = layui.$,
-          tabs = layui.tabs,
-          dropdown = layui.dropdown;
-
-    var $document = $(document),
-          $container = $('#fun-app'),
-          FUN_APP = 'fun-app',
-          THIS = 'layui-this',
-          SIDE_SHRINK = 'layui-side-shrink',
-          TABS = 'layui-tabs',
-          TABS_HEADER = 'layui-tabs-header',
-            COLORID = 'ColorId' ,
-            LOCK = 'BackendLock'
-
+        tabs = layui.tabs,
+        $document = $(document),
+        $container = $('#fun-app'),
+        FUN_APP = 'fun-app',
+        THIS = 'layui-this',
+        SIDE_SHRINK = 'layui-side-shrink',
+        TABS = 'layui-tabs',
+        TABS_HEADER = 'layui-tabs-header';
+        const COLOR_ID  = 'COLOR_ID' ,
+            LOCK_SCREEN ='LOCK_SCREEN',
+            SET_FRAME_THEME ='SET_FRAME_THEME',
+            SET_TABS ='SET_TABS',
+            SITE_THEME ='SITE_THEME';
     // 主题配置数组 - 保持原样
     var THEME = themeConfig; // 使用导入的配置
     var Backend = {
@@ -39,8 +39,9 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                 return false;
             }
             name = typeof name==='undefined'?'setTab':name;
-            $('.layui-side-menu .layui-nav-item').removeClass('layui-nav-hover');
-            $('.layui-side-menu .layui-nav-item').find('dl').removeClass('layui-nav-child-drop').removeAttr('style');
+            $item = $('.layui-side-menu .layui-nav-item');
+            $item.removeClass('layui-nav-hover');
+            $item.find('dl').removeClass('layui-nav-child-drop').removeAttr('style');
             if($('.layui-layout-admin .layui-nav-header').length>0){
                 height = $('.layui-nav-header ul').height();//横屏
                 $('.layui-layout-admin .layui-pagetabs').attr('style','top:'+(60+height)+'px!important;');
@@ -48,13 +49,13 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
             }
             value = Fun.api.getStorage(name);
             if(value && value == 1) {
-                $('#layui-tabs-header').removeClass(
+                $("#"+TABS_HEADER).removeClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
                     top: '40px'
                 }, 100);
             }else if(value && value == 2){
-                $('#layui-tabs-header').addClass(
+                $("#"+TABS_HEADER).addClass(
                     'layui-hide');
                 $('#layui-app-body').animate({
                     top: 0
@@ -66,13 +67,13 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
         hideLoading: function (time) {
             time = time || 200;
             var colorId = Backend.getColorId();
-            theme = Fun.api.getStorage('setFrameTheme');
+            theme = Fun.api.getStorage(SET_FRAME_THEME);
             var bg = THEME[colorId]['menuLeftBgThis'];
             if (colorId  && theme) $(document).find('.fun-loading').find('span').css('background-color', THEME[colorId]['menuLeftBgHover']);
             setTimeout(function () {
                 //判断是否锁定了界面
                 $(document).find('.fun-loading').fadeOut();
-                if (Fun.api.getStorage(LOCK)) {
+                if (Fun.api.getStorage(LOCK_SCREEN)) {
 
                     title = [__('Input Password')];
                     if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
@@ -91,10 +92,10 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            if (value === Fun.api.getStorage(LOCK)) {
+                            if (value === Fun.api.getStorage(LOCK_SCREEN)) {
                                 Fun.toastr.close(index);
                                 //清除密码
-                                Fun.api.setStorage(LOCK, null);
+                                Fun.api.setStorage(LOCK_SCREEN, null);
                                 Fun.toastr.success(__('Unlock Success'))
                                 $('#lock-screen').remove();
                             } else {
@@ -109,7 +110,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
         /** tab*/
         initTabs: function (options) {
             options.id = options.id || TABS;
-            tabs.render({ elem: '#layui-tabs',header: ['#layui-tabs-header', '>li'],body: ['.layui-tabs-body', '>div'],});
+            tabs.render({ elem: '#layui-tabs',header: ["#"+TABS_HEADER, '>li'],body: ['.layui-tabs-body', '>div'],});
             Backend.listenTabs(options);
             Backend.listenFrameTheme();
         },
@@ -131,7 +132,6 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
              if(!layId){
                 layId =  $('#layui-app-tabs .layui-tabs .layui-tabs-header').children('li:last').attr('lay-id');
              }
-             console.log(layId);
             layui.sessionData('tabLayId', {key: 'id', value: layId})
         },
         //全屏
@@ -247,7 +247,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
          * 获取颜色缓存
          */
         getColorId:function(){
-            var colorId = Fun.api.getStorage(COLORID);colorId = colorId?colorId:0;
+            var colorId = Fun.api.getStorage(COLOR_ID);colorId = colorId?colorId:0;
             return colorId;
         },
         /**
@@ -457,9 +457,9 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                     content: html,
                 });
                 data = {
-                    'site_theme':Fun.api.getStorage('siteTheme'),
-                    'setTab':Fun.api.getStorage('setTab'),
-                    'setFrameTheme':Fun.api.getStorage('setFrameTheme'),
+                    'site_theme':Fun.api.getStorage(SITE_THEME),
+                    'setTab':Fun.api.getStorage(SET_TABS),
+                    'setFrameTheme':Fun.api.getStorage(SET_FRAME_THEME),
                 }
                 data.site_theme?data.site_theme:0;
                 layui.form.val("form", data);
@@ -473,7 +473,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                 var colorId = othis.attr('data-color');
                 $('.layui-fun-color .color-content ul .layui-this').attr('class', '');
                 $(this).attr('class', THIS);
-                Fun.api.setStorage(COLORID,colorId);
+                Fun.api.setStorage(COLOR_ID,colorId);
                 Backend.initBgColor();
             },
             /**
@@ -481,7 +481,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
              */
             lockScreen: function () {
                 var colorId = Backend.getColorId();
-                theme = Fun.api.getStorage('setFrameTheme');
+                theme = Fun.api.getStorage(SET_FRAME_THEME);
                 title = [__('Set Password To Lock Screen')];
                 if(theme) title[1] =  'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
                 layui.layer.prompt({
@@ -498,7 +498,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                             Fun.toastr.error(__('Input Password'));
                             return false;
                         } else {
-                            Fun.api.setStorage(LOCK,value);
+                            Fun.api.setStorage(LOCK_SCREEN,value);
                             layui.layer.close(index);
                             title = [__('Input Password')];
                             if(theme) title[1] = 'background:' + THEME[colorId]['menuLeftBgThis'] + ';color:' + THEME[colorId]['menuLeftfontColor'];
@@ -515,11 +515,11 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                                     Fun.toastr.error(__('Input Password'));
                                     return false;
                                 } else {
-                                    if (value === Fun.api.getStorage(LOCK)) {
+                                    if (value === Fun.api.getStorage(LOCK_SCREEN)) {
                                         layui.layer.close(index);
                                         $(".yy").hide();
                                         //清除密码
-                                        Fun.api.setStorage(LOCK, null);
+                                        Fun.api.setStorage(LOCK_SCREEN, null);
                                         Fun.toastr.success(__('Unlock Success'));
                                         $('#lock-screen').remove();
                                     } else {
@@ -638,7 +638,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                     code = $(data.elem).attr('name');
                     Fun.ajax({url: url,data:{value:data.value,code:code}}, function (res) {
                         Fun.toastr.success(res.msg, function () {
-                            Fun.api.setStorage('siteTheme', data.value)
+                            Fun.api.setStorage(SITE_THEME, data.value)
                             window.location.reload();
                         });
                     }, function (res) {
@@ -660,7 +660,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                     }
                 });
                 layui.form.on('radio(setFrameTheme)', function (data) {
-                    Fun.api.setStorage('setFrameTheme',data.value)
+                    Fun.api.setStorage(SET_FRAME_THEME,data.value)
                     window.location.reload();
                 });
                 //监听导航点击菜单点击*/
@@ -678,12 +678,13 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                                 $(this).parents('li').children('.layui-nav-child').removeClass('layui-show')
                             }
                         }
-                        if($('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').length>0){
+                        $menu = $('#layui-side-left-menu');
+                        if($menu.find('ul[menu-id="'+id+'"]').length>0){
                             $('#layui-app-body').addClass('layui-sub-body');
                         }
-                        $('#layui-side-left-menu').removeClass('layui-hide');//四
-                        $('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').removeClass('layui-hide');
-                        $('#layui-side-left-menu').find('ul[menu-id="'+id+'"]').siblings('ul').not('[data-rel="external"]').addClass('layui-hide');
+                        $menu.removeClass('layui-hide');//四
+                        $menu.find('ul[menu-id="'+id+'"]').removeClass('layui-hide');
+                        $menu.find('ul[menu-id="'+id+'"]').siblings('ul').not('[data-rel="external"]').addClass('layui-hide');
                         layui.layer.close(index)
                     }
                 })
