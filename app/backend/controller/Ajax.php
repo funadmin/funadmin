@@ -35,11 +35,9 @@ class Ajax extends Backend
         $this->modelClass = new AttachModel();
         parent::__construct($app);
     }
+
     /**
      * @return \think\response\Json
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
      * 文件上传总入口 集成qiniu ali tenxunoss
      */
     public function uploads()
@@ -48,7 +46,7 @@ class Ajax extends Backend
             $upload = UploadService::instance();
             $result = $upload->uploads(0,session('admin.id'));
             return json($result);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
     }
@@ -65,8 +63,8 @@ class Ajax extends Backend
             ->where('type',1)
             ->order('sort asc')
             ->select()->toArray();
-        $menulsit = AuthService::instance()->menuhtml($cate);
-        $this->success('ok','',$menulsit);
+        $menuList = AuthService::instance()->menuhtml($cate);
+        $this->success('ok','',$menuList);
     }
     /**
      * @return \think\response\Jsonp

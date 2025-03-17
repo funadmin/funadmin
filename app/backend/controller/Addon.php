@@ -39,12 +39,12 @@ class Addon extends Backend
     /**
      * @var AddonService 
      */
-    protected $addonService;
+    protected AddonService $addonService;
     /**
-     * @var AuthCloudService|object|App
+     * @var AuthCloudService
      */
-    protected $authCloudService;
-    protected $app_version;
+    protected AuthCloudService $authCloudService;
+    protected mixed $app_version;
     public function __construct(App $app)
     {
 
