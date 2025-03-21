@@ -33,7 +33,7 @@
                 "think\\queue\\Service"
             ],
             "config": {
-                "queue": "src/config.php"
+                "queue": "src/config/queue.php"
             }
         }
     },

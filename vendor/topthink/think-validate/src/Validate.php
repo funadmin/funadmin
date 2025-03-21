@@ -809,8 +809,6 @@ class Validate
             if (str_contains($name, '|')) {
                 // 字段|描述 用于指定属性名称
                 [$name, $title] = explode('|', $name);
-            } else {
-                $title = $this->field[$name] ?? $name;
             }
 
             $values = $this->getDataSet($data, $name);
@@ -1690,8 +1688,8 @@ class Validate
 
     /**
      * 验证数据长度
-     * @param mixed $value 字段值
-     * @param mixed $rule  验证规则
+     * @param mixed                  $value 字段值
+     * @param string|array|int|float $rule  验证规则
      * @return bool
      */
     public function length($value, $rule): bool
@@ -1704,7 +1702,10 @@ class Validate
             $length = mb_strlen((string) $value);
         }
 
-        if (is_string($rule) && str_contains($rule, ',')) {
+        if (is_array($rule)) {
+            // 长度区间
+            return $length >= $rule[0] && $length <= $rule[1];
+        } elseif (is_string($rule) && str_contains($rule, ',')) {
             // 长度区间
             [$min, $max] = explode(',', $rule);
             return $length >= $min && $length <= $max;

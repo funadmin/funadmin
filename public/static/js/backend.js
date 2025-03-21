@@ -7,7 +7,8 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
         THIS = 'layui-this',
         SIDE_SHRINK = 'layui-side-shrink',
         TABS = 'layui-tabs',
-        TABS_HEADER = 'layui-tabs-header';
+        TABS_HEADER = 'layui-tabs-header',
+        CONTEXTMENU ='';
         const COLOR_ID  = 'COLOR_ID' ,
             LOCK_SCREEN ='LOCK_SCREEN',
             SET_FRAME_THEME ='SET_FRAME_THEME',
@@ -214,7 +215,10 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                     id: options.layId,
                     index: options.layId,
                     done: function(params) {
-                        Backend.listenContextMenu();
+                        // 给新标签头添加上下文菜单
+                        layui.dropdown.render($.extend({}, CONTEXTMENU.config, {
+                            elem: params.thisHeaderItem // 当前标签头元素
+                        }));
                     }
                 });
                 Backend.initSession(options.layId);
@@ -227,7 +231,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                 }
             }
             if (Fun.api.checkScreen()) {
-                $container.removeClass(SIDE_SHRINK).addClass('fun-app')
+                $container.removeClass(SIDE_SHRINK).addClass(FUN_APP)
             }
             $('#layui-nav-righmenu').remove();
             layui.layer.close(loadindex);
@@ -322,7 +326,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
             Fun.api.setFrameTheme();
         },
         listenContextMenu:function(){
-            layui.dropdown.render({
+            CONTEXTMENU = layui.dropdown.render({
                 elem: '#layui-tabs #layui-tabs-header li',
                 trigger: 'contextmenu',
                     data: [{
