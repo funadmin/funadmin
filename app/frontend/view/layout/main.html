@@ -14,7 +14,7 @@
     </head>
     <script>
         window.Config = {:json_encode($CONFIG)};
-        window.FormData = {:isset($formData)?(json_encode($formData)):'""'},
+        window.FormArray = {:isset($formData)?(json_encode($formData)):'""'},
         window.STATIC ='__STATIC__'
         window.PLUGINS = '__PLUGINS__';
         window.APP = '{$APP}';
