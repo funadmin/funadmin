@@ -28,14 +28,14 @@ class Controller extends BaseController
      *
      * @var array
      */
-    protected $noNeedLogin = ['*'];
+    protected array $noNeedLogin = ['*'];
 
     /**
      * 无需鉴权的方法,但需要登录.
      *
      * @var array
      */
-    protected $noNeedRight = ['*'];
+    protected array $noNeedRight = ['*'];
 
 
     /**
