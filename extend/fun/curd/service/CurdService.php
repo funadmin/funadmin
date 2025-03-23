@@ -128,7 +128,7 @@ class CurdService
      * 获取配置
      * @return \string[][]
      */
-    public function getParam()
+    public function getParam(): array
     {
         return $this->config;
     }
@@ -137,7 +137,7 @@ class CurdService
      * 设置配置
      * @param $config
      */
-    public function setParam($config)
+    public function setParam($config): void
     {
         $res = array();
         foreach ($this->config as $k => $v) {
@@ -162,7 +162,7 @@ class CurdService
     /**
      * 设置基础参数
      */
-    protected function setArg()
+    protected function setArg(): static
     {
         $this->table = !empty($this->config['table'])?$this->config['table']:'';
         $this->table = str_replace($this->tablePrefix, '', $this->table);
@@ -282,7 +282,7 @@ class CurdService
     /**
      *
      */
-    public function maker()
+    public function maker(): static
     {
         list($this->tableComment,$this->fieldsList,$this->assign,$this->lang,$this->softDelete,$this->requests,$this->requestsRecycle) = $this->getFieldList();
         if (!$this->config['delete']) {
@@ -302,7 +302,7 @@ class CurdService
     }
 
     // 创建控制器文件
-    protected function makeController()
+    protected function makeController(): void
     {
         $controllerTpl = $this->tplPath . 'controller.tpl';
         $modelTpl = $this->tplPath . 'model.tpl';
@@ -491,7 +491,7 @@ class CurdService
     }
 
     // 创建模型文件
-    protected function makeModel()
+    protected function makeModel(): void
     {
         $modelTpl = $this->tplPath . 'model.tpl';
         $validateTpl = $this->tplPath . 'validate.tpl';
@@ -577,7 +577,7 @@ class CurdService
     }
 
     // 创建模板
-    protected function makeView()
+    protected function makeView(): void
     {
         $formFieldData = $this->getFormData();
         $indexViewTpl = $this->tplPath . 'view' . '/' . 'index.tpl';
@@ -589,7 +589,7 @@ class CurdService
     }
 
     //生成js
-    protected function makeJs()
+    protected function makeJs(): void
     {
         $this->getCols();
         $jsTpl = $this->tplPath . 'js.tpl';
@@ -615,7 +615,7 @@ class CurdService
      * 生成插件文件
      * @throws \Exception
      */
-    public function makeAddon()
+    public function makeAddon(): void
     {
         if ($this->addon && (!file_exists($this->fileList['pluginFileName']) || $this->force)) {
             $controllerTpl = $this->tplPath . 'addon' . '/' . 'controller.tpl';
@@ -655,7 +655,7 @@ class CurdService
      * 生成菜单
      * @param int $type
      */
-    protected function makeMenu(int $type = 1)
+    protected function makeMenu(int $type = 1): void
     {
         $controllerName = str_replace('/', '.', $this->controllerNamePrefix);
         $href = $controllerName;
@@ -736,7 +736,7 @@ class CurdService
     /**
      * 生成文件
      */
-    public function makeFile($filename, $content)
+    public function makeFile($filename, $content): void
     {
         if(!$this->force && Str::contains($filename,'menu.php') ===true){
             file_put_contents($filename, $content);
@@ -752,7 +752,7 @@ class CurdService
             file_put_contents($filename, $content);
         }
     }
-    protected function buildMenu($menuListArr, $type = 1)
+    protected function buildMenu($menuListArr, $type = 1): void
     {
         $module = $this->addon ?: $this->app;
         foreach ($menuListArr as $k => $v) {
@@ -808,11 +808,9 @@ class CurdService
 
     /**
      * 获取add表单
-     * @param $fieldList
-     * @param $this- >addon
      * @return string
      */
-    protected function getFormData()
+    protected function getFormData(): string
     {
         $formFieldData = '';
         foreach ($this->fieldsList as $k => $vo) {
@@ -916,9 +914,9 @@ class CurdService
 
     /**
      * 获取js 栏目
-     * @return string
+     * @return array|string
      */
-    protected function getCols()
+    protected function getCols(): array|string
     {
         $space = '                    ';
         $this->jsCols = "{checkbox: true,}," . PHP_EOL . $space . " {field: 'id', title: __('ID'), sort:true,}," . PHP_EOL;
@@ -1019,9 +1017,12 @@ class CurdService
 
     /**
      * 获取字段数据
-     * @param $table
+     * @param $model
+     * @param $field
+     * @return array
+     * @throws \Exception
      */
-    protected function getFieldList($model='',$field = '*')
+    protected function getFieldList($model='',$field = '*'): array
     {
         $assign = [];
         $lang = '';
@@ -1047,7 +1048,13 @@ class CurdService
             if($v['COLUMN_KEY'] == 'PRI'){
                 $this->primaryKey = $v['name'];
             }
-            $comment = $v['COLUMN_COMMENT'] ? explode('=', $v['COLUMN_COMMENT']) : [Str::studly($v['name']),''];
+            // 第二种模式：冒号在前，等号在内部键值对中
+            if (preg_match('/(\w+):([\d]+=[^,]+(?:,[\d]+=[^,]+)*)/u', $v['COLUMN_COMMENT'])) {
+                $comment = $v['COLUMN_COMMENT'] ? explode(':', $v['COLUMN_COMMENT']) : [Str::studly($v['name']),''];
+                $comment[1] = str_replace('=',':',$comment[1]);
+            }else{
+                $comment = $v['COLUMN_COMMENT'] ? explode('=', $v['COLUMN_COMMENT']) : [Str::studly($v['name']),''];
+            }
             $v['comment'] = $comment[0];
             if(in_array($v['DATA_TYPE'],['set', 'enum']) && empty($comment[1])){
                 $comment[1] = str_replace([$v['DATA_TYPE'].'(',"'"],['(',""],$v['COLUMN_TYPE']);
@@ -1232,8 +1239,10 @@ class CurdService
 
     /**
      * 获取软删除
+     * @param $value
+     * @return string
      */
-    protected function getSoftDelete($value)
+    protected function getSoftDelete($value): string
     {
         $default = $value['value'] == '' ? 'null' : $value['value'];
         $str = 'use SoftDelete;' . PHP_EOL;
@@ -1249,7 +1258,7 @@ class CurdService
      * 设置属性
      * @return string
      */
-    protected function modifyAttr($fieldList = '')
+    protected function modifyAttr($fieldList = ''): string
     {
         $fieldAttrData = '';
         $tpl = [
@@ -1317,10 +1326,11 @@ class CurdService
     }
 
     /**
-     * @param $v
-     * @return string
+     * @param $name
+     * @param $op
+     * @return array|string
      */
-    protected function getOptionStr($name, $op)
+    protected function getOptionStr($name, $op): array|string
     {
         $name = Str::studly($name);
         $op = trim(trim($op, '('), ')');
@@ -1340,14 +1350,15 @@ class CurdService
     /**
      * 获取翻译字段
      * @param $v
-     * @return string[]
+     * @return array|string
      */
-    protected function getLangStr($v)
+    protected function getLangStr($v): array|string
     {
         $optionsLangStr = "";
         $comment = $v['COMMENT_DATA'];
         $optionsLangStr .= "'" . Str::studly($v['name']) . "'=>'" . $comment[0] . "'," . PHP_EOL;
         if (!empty($comment[1])) {
+            $comment[1] = str_replace('=',':',$comment[1]);
             if (strpos($comment[1], ':') !== false) { //判断是否是枚举等类型
                 $op = trim(trim($comment[1], '('), ')');
                 $option = explode(',', (trim(trim($op, '['), ']')));
@@ -1369,7 +1380,7 @@ class CurdService
      * @param $suffixArr
      * @return bool
      */
-    protected function hasSuffix($field, $suffix)
+    protected function hasSuffix($field, $suffix): bool
     {
         $suffix = is_array($suffix) ? $suffix : explode(',', $suffix);
         foreach ($suffix as $v) {
