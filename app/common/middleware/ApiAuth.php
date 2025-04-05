@@ -33,8 +33,13 @@ class ApiAuth
         $request->member_id = null;
         $controllerClass = '\\' . app()->getNamespace() . '\\controller\\' . str_replace('.', '\\', request()->controller());
         $reflectionClass = new \ReflectionClass($controllerClass);
+        $noNeedLogin = $reflectionClass->hasProperty('noNeedLogin') ? $reflectionClass->getProperty('noNeedLogin')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
         $noNeedRight = $reflectionClass->hasProperty('noNeedRight') ? $reflectionClass->getProperty('noNeedRight')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
         $action = request()->action();
+        if((!empty($noNeedLogin) && in_array($action, $noNeedLogin) || $noNeedLogin==['*'])){
+            // 继续处理请求
+            return $next($request);
+        }
         if(input('access_token')){
             $token = input('access_token');
         }else{
