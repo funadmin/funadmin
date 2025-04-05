@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace think\model;
 
-use think\Entity;
 use think\Model;
 
 /**
@@ -27,6 +26,7 @@ class Pivot extends Model
      * @var Model
      */
     public $parent;
+    protected $pivotName;
 
     /**
      * 是否时间自动写入.
@@ -44,36 +44,33 @@ class Pivot extends Model
      */
     public function __construct(array $data = [], ?Model $parent = null, string $table = '')
     {
-        $this->parent = $parent;
-
-        if (is_null($this->name)) {
-            $this->name = $table;
-        }
-
+        $this->pivotName   = $table;
+        $this->parent      = $parent;
         parent::__construct($data);
+    }
+
+    /**
+     *  初始化模型.
+     *
+     * @return void
+     */
+    protected function init() 
+    {
+        if (is_null($this->getOption('name'))) {
+            $this->setOption('name', $this->pivotName);
+        }        
     }
 
     /**
      * 创建新的模型实例.
      *
      * @param array $data    数据
-     * @param mixed $where   更新条件
-     * @param array $options 参数
      *
      * @return Model
      */
-    public function newInstance(array $data = [], $where = null, array $options = []): Model
+    public function newInstance(array $data = [])
     {
-        $model = parent::newInstance($data, $where, $options);
-
-        if ($model instanceof Entity) {
-            $model->setParent($this->parent);
-            $model->setOption('table_name', $this->name);
-        } else {
-            $model->parent  = $this->parent;
-            $model->name    = $this->name;
-        }
-
-        return $model;
+        $this->data($data);
+        return clone $this;
     }
 }

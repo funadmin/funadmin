@@ -23,37 +23,14 @@ use think\helper\Str;
 trait ModelEvent
 {
     /**
-     * Event对象
-     *
-     * @var object
-     */
-    protected static $event;
-
-    /**
-     * 是否需要事件响应.
-     *
-     * @var bool
-     */
-    protected $withEvent = true;
-
-    /**
-     * 事件观察者.
-     *
-     * @var string
-     */
-    protected $eventObserver;
-
-    /**
-     * 设置Event对象
+     * 设置Event对象 （用于兼容）
      *
      * @param object $event Event对象
      *
      * @return void
      */
     public static function setEvent($event)
-    {
-        self::$event = $event;
-    }
+    {}
 
     /**
      * 当前操作的事件响应.
@@ -64,7 +41,7 @@ trait ModelEvent
      */
     public function withEvent(bool $event)
     {
-        $this->withEvent = $event;
+        $this->setOption('withEvent', $event);
 
         return $this;
     }
@@ -78,31 +55,31 @@ trait ModelEvent
      */
     protected function trigger(string $event): bool
     {
-        if (!$this->withEvent) {
+        if (!$this->getOption('withEvent', true)) {
             return true;
         }
 
-        $call  = 'on' . Str::studly($event);
-        $model = $this->entity ?: $this;
-
+        $method = 'on' . Str::studly($event);
+        $obj    = $this->getOption('event');
+        $obser  = $this->getOption('eventObserver');
         try {
-            if ($this->eventObserver) {
-                $reflect  = new ReflectionClass($this->eventObserver);
+            if ($obser) {
+                $reflect  = new ReflectionClass($obser);
                 $observer = $reflect->newinstance();
             } else {
-                $observer = static::class;
+                $observer = $this;
             }
 
-            if (method_exists($observer, $call)) {
-                $result = $this->invoke([$observer, $call], [$model]);
-            } elseif (is_object(self::$event) && method_exists(self::$event, 'trigger')) {
-                $result = self::$event->trigger(static::class . '.' . $event, $model);
+            if (method_exists($observer, $method)) {
+                $result = $this->invoke([$observer, $method], [$this]);
+            } elseif (is_object($obj) && method_exists($obj, 'trigger')) {
+                $result = $obj->trigger(static::class . '.' . $event, $this);
                 $result = empty($result) ? true : end($result);
             } else {
                 $result = true;
             }
 
-            return !(false === $result);
+            return false !== $result;
         } catch (ModelEventException $e) {
             return false;
         }

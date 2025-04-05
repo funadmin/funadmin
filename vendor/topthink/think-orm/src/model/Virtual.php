@@ -11,22 +11,22 @@
 // +----------------------------------------------------------------------
 declare (strict_types = 1);
 
-namespace think\entity;
+namespace think\model;
 
-use think\Entity;
+use think\Model;
 
 /**
- * Class Simple.
- * 简单实体模型 仅限单表操作 不绑定模型
+ * Class Virtual.
+ * 虚拟模型
  */
-abstract class Simple extends Entity
+abstract class Virtual extends Model
 {
     /**
-     * 设置为单表模型.
+     * 设置为虚拟模型.
      *
      * @return bool
      */
-    public function isSimple(): bool
+    public function isVirtual(): bool
     {
         return true;
     }

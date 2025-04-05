@@ -15,7 +15,7 @@ namespace think\model\relation;
 use Closure;
 use think\Collection;
 use think\db\BaseQuery as Query;
-use think\db\exception\DbException as Exception;
+use think\helper\Str;
 use think\model\contract\Modelable as Model;
 use think\model\Relation;
 
@@ -56,12 +56,12 @@ class MorphMany extends Relation
      */
     public function __construct(Model $parent, string $model, string $morphKey, string $morphType, string $type)
     {
-        $this->parent       = $parent;
-        $this->model        = $model;
-        $this->type         = $type;
-        $this->morphKey     = $morphKey;
-        $this->morphType    = $morphType;
-        $this->query        = (new $model())->db();
+        $this->parent    = $parent;
+        $this->model     = $model;
+        $this->type      = $type;
+        $this->morphKey  = $morphKey;
+        $this->morphType = $morphType;
+        $this->query     = (new $model())->getQuery();
     }
 
     /**
@@ -80,9 +80,7 @@ class MorphMany extends Relation
 
         $this->baseQuery();
 
-        return $this->query->relation($subRelation)
-            ->select()
-            ->setParent(clone $this->parent);
+        return $this->query->relation($subRelation)->select();
     }
 
     /**
@@ -98,7 +96,20 @@ class MorphMany extends Relation
      */
     public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = '', ?Query $query = null)
     {
-        throw new Exception('relation not support: has');
+        $model    = Str::snake(class_basename($this->parent));
+        $relation = Str::snake(class_basename($this->model));
+        $table    = $this->query->getTable();
+        $query    = $query ?: $this->parent->getQuery();
+        $alias    = $query->getAlias() ?: $model;
+
+        $query->alias($alias)
+            ->field($alias . '.*')
+            ->join([$table => $relation], $alias . '.' . $this->parent->getPk() . '=' . $relation . '.' . $this->morphKey)
+            ->where($relation . '.' . $this->morphType, '=', $this->type)
+            ->group($relation . '.' . $this->morphKey)
+            ->having('count(' . $id . ')' . $operator . $count);
+
+        return $this->getRelationSoftDelete($query, $relation);
     }
 
     /**
@@ -111,9 +122,22 @@ class MorphMany extends Relation
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null)
+    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null, string $logic = '')
     {
-        throw new Exception('relation not support: hasWhere');
+        $table    = $this->query->getTable();
+        $query    = $query ?: $this->parent->getQuery();
+        $model    = Str::snake(class_basename($this->parent));
+        $relation = Str::snake(class_basename($this->model));
+        $alias    = $query->getAlias() ?: $model;
+        $fields   = $this->getRelationQueryFields($fields, $alias);
+
+        $query->alias($alias)
+            ->join([$table => $relation], $alias . '.' . $this->parent->getPk() . '=' . $relation . '.' . $this->morphKey, $joinType)
+            ->where($relation . '.' . $this->morphType, '=', $this->type)
+            ->group($relation . '.' . $this->morphKey)
+            ->field($fields);
+
+        return $this->getRelationSoftDelete($query, $relation, $where, $logic);
     }
 
     /**
@@ -129,10 +153,10 @@ class MorphMany extends Relation
      */
     public function eagerlyResultSet(array &$resultSet, string $relation, array $subRelation, ?Closure $closure = null, array $cache = []): void
     {
-        $morphType  = $this->morphType;
-        $morphKey   = $this->morphKey;
-        $type       = $this->type;
-        $range      = [];
+        $morphType = $this->morphType;
+        $morphKey  = $this->morphKey;
+        $type      = $this->type;
+        $range     = [];
 
         foreach ($resultSet as $result) {
             $pk = $result->getPk();
@@ -155,7 +179,7 @@ class MorphMany extends Relation
                     $data[$result->$pk] = [];
                 }
 
-                $result->setRelation($relation, $this->resultSetBuild($data[$result->$pk], clone $this->parent));
+                $result->setRelation($relation, $this->resultSetBuild($data[$result->$pk]));
             }
         }
     }
@@ -176,8 +200,8 @@ class MorphMany extends Relation
         $pk = $result->getPk();
 
         if (isset($result->$pk)) {
-            $key    = $result->$pk;
-            $data   = $this->eagerlyMorphToMany([
+            $key  = $result->$pk;
+            $data = $this->eagerlyMorphToMany([
                 [$this->morphKey, '=', $key],
                 [$this->morphType, '=', $this->type],
             ], $subRelation, $closure, $cache);
@@ -186,7 +210,7 @@ class MorphMany extends Relation
                 $data[$key] = [];
             }
 
-            $result->setRelation($relation, $this->resultSetBuild($data[$key], clone $this->parent));
+            $result->setRelation($relation, $this->resultSetBuild($data[$key]));
         }
     }
 
@@ -201,7 +225,7 @@ class MorphMany extends Relation
      *
      * @return mixed
      */
-    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null)
+    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = 'id',  ? string &$name = null)
     {
         $pk = $result->getPk();
 
@@ -231,15 +255,17 @@ class MorphMany extends Relation
      *
      * @return string
      */
-    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null): string
+    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = 'id',  ? string &$name = null) : string
     {
         if ($closure) {
             $closure($this->query, $name);
         }
-
+        $alias = Str::snake(class_basename($this->model));
+        $alias = $this->query->getAlias() ?: $alias . '_' . $aggregate;
         return $this->query
-            ->whereExp($this->morphKey, '=' . $this->parent->getTable(true) . '.' . $this->parent->getPk())
-            ->where($this->morphType, '=', $this->type)
+            ->alias($alias)
+            ->whereColumn($alias . '.' . $this->morphKey, $this->parent->getTable(true) . '.' . $this->parent->getPk())
+            ->where($alias . '.' . $this->morphType, '=', $this->type)
             ->fetchSql()
             ->$aggregate($field);
     }
@@ -254,7 +280,7 @@ class MorphMany extends Relation
      *
      * @return array
      */
-    protected function eagerlyMorphToMany(array $where, array $subRelation = [], ?Closure $closure = null, array $cache = []): array
+    protected function eagerlyMorphToMany(array $where, array $subRelation = [], ?Closure $closure = null, array $cache = []) : array
     {
         // 预载入关联查询 支持嵌套预载入
         $this->query->removeOption('where');
@@ -299,7 +325,7 @@ class MorphMany extends Relation
      *
      * @return Model|false
      */
-    public function save(array|Model $data, bool $replace = true)
+    public function save(array | Model $data, bool $replace = true)
     {
         $model = $this->make();
 

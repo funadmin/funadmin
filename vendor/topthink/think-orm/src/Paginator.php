@@ -282,6 +282,16 @@ abstract class Paginator implements ArrayAccess, Countable, IteratorAggregate, J
     /**
      * 获取当前页页码
      *
+     * @return bool
+     */
+    public function hasMore(): bool
+    {
+        return $this->hasMore;
+    }
+
+    /**
+     * 获取当前页页码
+     *
      * @return int
      */
     public function currentPage(): int

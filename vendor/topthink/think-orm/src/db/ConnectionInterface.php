@@ -29,24 +29,6 @@ interface ConnectionInterface
     public function getQueryClass(): string;
 
     /**
-     * 指定表名开始查询.
-     *
-     * @param $table
-     *
-     * @return BaseQuery
-     */
-    public function table($table);
-
-    /**
-     * 指定表名开始查询(不带前缀).
-     *
-     * @param $name
-     *
-     * @return BaseQuery
-     */
-    public function name($name);
-
-    /**
      * 连接数据库方法.
      *
      * @param array $config  接参数

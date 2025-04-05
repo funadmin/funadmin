@@ -304,15 +304,13 @@ trait WhereQuery
      */
     public function whereJsonContains(string $field, $condition, string $logic = 'AND')
     {
-        if (str_contains($field, '->')) {
-            [$field1, $field2] = explode('->', $field);
-            $field             = 'json_extract(' . $field1 . ',\'$.' . $field2 . '\')';
-        }
+        $value = is_null($condition) ? 'NULL' : '\'' . json_encode($condition) . '\'';
 
-        $value       = is_string($condition) ? '"' . $condition . '"' : $condition;
-        $name        = $this->bindValue($value);
-        $bind[$name] = $value;
-        return $this->whereRaw('json_contains(' . $field . ',:' . $name . ')', $bind, $logic);
+        if (str_contains($field, '->')) {
+            [$field, $path] = explode('->', $field, 2);
+            return $this->whereRaw('json_contains(' . $field . ', ' . $value . ', \'$.'. str_replace('->', '.', $path) . '\')', [], $logic);
+        }
+        return $this->whereRaw('json_contains(' . $field . ', ' . $value . ')', [], $logic);
     }
 
     public function whereOrJsonContains(string $field, $condition)

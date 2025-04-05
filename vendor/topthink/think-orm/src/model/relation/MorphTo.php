@@ -105,13 +105,7 @@ class MorphTo extends Relation
         // 主键数据
         $pk = $this->parent->$morphKey;
 
-        $relationModel = class_exists($model) ? $this->buildQuery((new $model())->relation($subRelation))->find($pk) : null;
-
-        if ($relationModel) {
-            $relationModel->setParent(clone $this->parent);
-        }
-
-        return $relationModel;
+        return class_exists($model) ? $this->buildQuery((new $model())->relation($subRelation))->find($pk) : null;
     }
 
     /**
@@ -140,27 +134,29 @@ class MorphTo extends Relation
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null)
+    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null, string $logic = '')
     {
-        $alias = class_basename($this->parent);
+        $model = Str::snake(class_basename($this->parent));
         $types = $this->parent->distinct()->column($this->morphType);
-        $query = $query ?: $this->parent->db();
+        $query = $query ?: $this->parent->getQuery();
+        $alias = $query->getAlias() ?: $model;
 
         return $query->alias($alias)
-            ->where(function (Query $query) use ($types, $where, $alias) {
+            ->where(function (Query $query) use ($types, $where, $alias, $logic) {
                 foreach ($types as $type) {
                     if ($type) {
-                        $query->whereExists(function (Query $query) use ($type, $where, $alias) {
+                        $query->whereExists(function (Query $query) use ($type, $where, $alias, $logic) {
                             $class = $this->parseModel($type);
                             /** @var Model $model */
                             $model = new $class();
 
                             $table = $model->getTable();
+                            $logic = 'OR' == $logic ? 'whereOr' : 'where';
                             $query
                                 ->table($table)
                                 ->where($alias . '.' . $this->morphType, $type)
-                                ->whereRaw("`{$alias}`.`{$this->morphKey}`=`{$table}`.`{$model->getPk()}`")
-                                ->where($where);
+                                ->whereColumn($alias . '.' . $this->morphKey, $table . '.' . $model->getPk())
+                                ->$logic($where);
                         }, 'OR');
                     }
                 }
@@ -271,8 +267,6 @@ class MorphTo extends Relation
                             $relationModel = null;
                         } else {
                             $relationModel = $data[$result->$morphKey];
-                            $relationModel->setParent(clone $result);
-                            $relationModel->exists(true);
                         }
 
                         $result->setRelation($relation, $relationModel);
@@ -336,11 +330,6 @@ class MorphTo extends Relation
             $data = (new $model())->with($subRelation)
                 ->cache($cache[0] ?? false, $cache[1] ?? null, $cache[2] ?? null)
                 ->find($pk);
-
-            if ($data) {
-                $data->setParent(clone $result);
-                $data->exists(true);
-            }
         }
 
         $result->setRelation($relation, $data ?: null);
@@ -360,8 +349,8 @@ class MorphTo extends Relation
         $morphType  = $this->morphType;
         $pk         = $model->getPk();
 
-        $this->parent->setAttr($morphKey, $model->$pk);
-        $this->parent->setAttr($morphType, $type ?: get_class($model));
+        $this->parent->set($morphKey, $model->$pk);
+        $this->parent->set($morphType, $type ?: get_class($model));
         $this->parent->save();
 
         return $this->parent->setRelation($this->relation, $model);
@@ -377,8 +366,8 @@ class MorphTo extends Relation
         $morphKey   = $this->morphKey;
         $morphType  = $this->morphType;
 
-        $this->parent->setAttr($morphKey, null);
-        $this->parent->setAttr($morphType, null);
+        $this->parent->set($morphKey, null);
+        $this->parent->set($morphType, null);
         $this->parent->save();
 
         return $this->parent->setRelation($this->relation, null);

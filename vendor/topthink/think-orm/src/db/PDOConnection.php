@@ -301,19 +301,18 @@ abstract class PDOConnection extends Connection
         $type = strtolower($type);
 
         return match (true) {
-            str_starts_with($type, 'set') => 'set',
-            str_starts_with($type, 'enum') => 'enum',
-            str_starts_with($type, 'bigint') => 'bigint',
-            str_contains($type, 'float') || str_contains($type, 'double') ||
-            str_contains($type, 'decimal') || str_contains($type, 'real') ||
-            str_contains($type, 'numeric') => 'float',
+            str_starts_with($type, 'set')           => 'set',
+            str_starts_with($type, 'enum')          => 'enum',
+            str_starts_with($type, 'bigint')        => 'bigint',
+            str_contains($type, 'float') || str_contains($type, 'double') || str_contains($type, 'real') || str_contains($type, 'numeric')          => 'float',
             str_contains($type, 'int') || str_contains($type, 'serial') ||
-            str_contains($type, 'bit') => 'int',
-            str_contains($type, 'bool') => 'bool',
-            str_starts_with($type, 'timestamp') => 'timestamp',
-            str_starts_with($type, 'datetime') => 'datetime',
-            str_starts_with($type, 'date') => 'date',
-            default => 'string',
+            str_contains($type, 'bit')              => 'int',
+            str_contains($type, 'bool')             => 'bool',
+            str_contains($type, 'json')             => 'json',
+            str_starts_with($type, 'timestamp')     => 'timestamp',
+            str_starts_with($type, 'datetime')      => 'datetime',
+            str_starts_with($type, 'date')          => 'date',
+            default                                 => 'string',
         };
     }
 
@@ -389,6 +388,9 @@ abstract class PDOConnection extends Connection
         if ($this->config['fields_cache'] && !empty($this->cache) && !$force) {
             $info = $this->cache->get($cacheKey);
             if (!empty($info)) {
+                if (is_object($info)) {
+                    $info = get_object_vars($info);
+                }
                 return $info;
             }
         }
@@ -424,7 +426,7 @@ abstract class PDOConnection extends Connection
 
         $info = $this->getSchemaInfo($tableName);
 
-        return $fetch && isset($info[$fetch]) ? $info[$fetch] : $info;
+        return $fetch && array_key_exists($fetch, $info) ? $info[$fetch] : $info;
     }
 
     /**
@@ -482,7 +484,7 @@ abstract class PDOConnection extends Connection
      *
      * @param mixed $tableName 数据表名
      *
-     * @return string
+     * @return string|null
      */
     public function getAutoInc($tableName)
     {
@@ -726,7 +728,7 @@ abstract class PDOConnection extends Connection
 
                 if ($this->cache->has($key)) {
                     $data = $this->cache->get($key);
-                    if (null !== $data) {
+                    if (null !== $data && is_array($data)) {
                         return $data;
                     }
                 }

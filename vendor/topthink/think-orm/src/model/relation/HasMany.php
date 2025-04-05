@@ -16,6 +16,7 @@ namespace think\model\relation;
 use Closure;
 use think\Collection;
 use think\db\BaseQuery as Query;
+use think\helper\Str;
 use think\model\contract\Modelable as Model;
 use think\model\Relation;
 
@@ -38,7 +39,7 @@ class HasMany extends Relation
         $this->model      = $model;
         $this->foreignKey = $foreignKey;
         $this->localKey   = $localKey;
-        $this->query      = (new $model())->db();
+        $this->query      = (new $model())->getQuery();
 
         if (get_class($parent) == $model) {
             $this->selfRelation = true;
@@ -62,8 +63,7 @@ class HasMany extends Relation
         return $this->query
             ->where($this->foreignKey, $this->parent->{$this->localKey})
             ->relation($subRelation)
-            ->select()
-            ->setParent(clone $this->parent);
+            ->select();
     }
 
     /**
@@ -101,7 +101,7 @@ class HasMany extends Relation
                     $data[$pk] = [];
                 }
 
-                $result->setRelation($relation, $this->resultSetBuild($data[$pk], clone $this->parent));
+                $result->setRelation($relation, $this->resultSetBuild($data[$pk]));
             }
         }
     }
@@ -132,7 +132,7 @@ class HasMany extends Relation
                 $data[$pk] = [];
             }
 
-            $result->setRelation($relation, $this->resultSetBuild($data[$pk], clone $this->parent));
+            $result->setRelation($relation, $this->resultSetBuild($data[$pk]));
         }
     }
 
@@ -147,7 +147,7 @@ class HasMany extends Relation
      *
      * @return int
      */
-    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null)
+    public function relationCount(Model $result, ?Closure $closure = null, string $aggregate = 'count', string $field = 'id',  ? string &$name = null)
     {
         $localKey = $this->localKey;
 
@@ -174,14 +174,16 @@ class HasMany extends Relation
      *
      * @return string
      */
-    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = '*', ?string &$name = null): string
+    public function getRelationCountQuery(?Closure $closure = null, string $aggregate = 'count', string $field = 'id',  ? string &$name = null) : string
     {
         if ($closure) {
             $closure($this->query, $name);
         }
 
-        return $this->query->alias($aggregate . '_table')
-            ->whereExp($aggregate . '_table.' . $this->foreignKey, '=' . $this->parent->getTable(true) . '.' . $this->localKey)
+        $alias = Str::snake(class_basename($this->model));
+        $alias = $this->query->getAlias() ?: $alias . '_' . $aggregate;
+        return $this->query->alias($alias)
+            ->whereColumn($alias . '.' . $this->foreignKey, $this->parent->getTable(true) . '.' . $this->localKey)
             ->fetchSql()
             ->$aggregate($field);
     }
@@ -196,7 +198,7 @@ class HasMany extends Relation
      *
      * @return array
      */
-    protected function eagerlyOneToMany(array $where, array $subRelation = [], ?Closure $closure = null, array $cache = []): array
+    protected function eagerlyOneToMany(array $where, array $subRelation = [], ?Closure $closure = null, array $cache = []) : array
     {
         $foreignKey = $this->foreignKey;
 
@@ -301,23 +303,22 @@ class HasMany extends Relation
     public function has(string $operator = '>=', int $count = 1, string $id = '*', string $joinType = 'INNER', ?Query $query = null): Query
     {
         $table    = $this->query->getTable();
-        $model    = class_basename($this->parent);
-        $relation = class_basename($this->model);
+        $model    = Str::snake(class_basename($this->parent));
+        $query    = $query ?: $this->parent->getQuery();
+        $alias    = $query->getAlias() ?: $model;
 
-        if ('*' != $id) {
-            $id = $relation . '.' . (new $this->model())->getPk();
-        }
+        return $query->alias($alias)
+            ->whereExists(function ($query) use ($alias, $id, $table, $operator, $count) {
+                $table      = $this->query->getTable();
+                $relation   = Str::snake(class_basename($this->model));
 
-        $softDelete = $this->query->getOptions('soft_delete');
-        $query      = $query ?: $this->parent->db()->alias($model);
+                $query->table([$table => $relation])
+                    ->field('count(' . $id . ') AS count')
+                    ->whereColumn($relation . '.' . $this->foreignKey, $alias . '.' . $this->localKey)
+                    ->having('count ' . $operator . ' ' . $count);
 
-        return $query->field($model . '.*')
-            ->join([$table => $relation], $model . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey, $joinType)
-            ->when($softDelete, function ($query) use ($softDelete, $relation) {
-                $query->where($relation . strstr($softDelete[0], '.'), '=' == $softDelete[1][0] ? $softDelete[1][1] : null);
-            })
-            ->group($relation . '.' . $this->foreignKey)
-            ->having('count(' . $id . ')' . $operator . $count);
+                $this->getRelationSoftDelete($query, $relation);
+            });
     }
 
     /**
@@ -330,36 +331,22 @@ class HasMany extends Relation
      *
      * @return Query
      */
-    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null): Query
+    public function hasWhere($where = [], $fields = null, string $joinType = '', ?Query $query = null, string $logic = ''): Query
     {
+        $model    = Str::snake(class_basename($this->parent));
+        $relation = Str::snake(class_basename($this->model));
         $table    = $this->query->getTable();
-        $model    = class_basename($this->parent);
-        $relation = class_basename($this->model);
+        $query    = $query ?: $this->parent->getQuery();
+        $alias    = $query->getAlias() ?: $model;
+        $fields   = $this->getRelationQueryFields($fields, $alias);
 
-        if (is_array($where)) {
-            $this->getQueryWhere($where, $relation);
-        } elseif ($where instanceof Query) {
-            $where->via($relation);
-        } elseif ($where instanceof Closure) {
-            $where($this->query->via($relation));
-            $where = $this->query;
-        }
-
-        $fields     = $this->getRelationQueryFields($fields, $model);
-        $softDelete = $this->query->getOptions('soft_delete');
-        $query      = $query ?: $this->parent->db();
-
-        return $query->alias($model)
-            ->via($model)
-            ->group($model . '.' . $this->localKey)
+        $query->alias($alias)
+            ->via($alias)
+            ->group($alias . '.' . $this->localKey)
             ->field($fields)
-            ->join([$table => $relation], $model . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey, $joinType)
-            ->when($softDelete, function ($query) use ($softDelete, $relation) {
-                $query->where($relation . strstr($softDelete[0], '.'), '=' == $softDelete[1][0] ? $softDelete[1][1] : null);
-            })
-            ->where(function ($query) use ($where) {
-                $query->where($where);
-            });
+            ->join([$table => $relation], $alias . '.' . $this->localKey . '=' . $relation . '.' . $this->foreignKey, $joinType);
+
+        return $this->getRelationSoftDelete($query, $relation, $where, $logic);
     }
 
     /**
