@@ -30,7 +30,7 @@ class ApiAuth
     {
         // 获取 Authorization 头
         $request->member = [];
-        $request->member_id = null;
+        $request->member_id = $request->mid = null;
         $controllerClass = '\\' . app()->getNamespace() . '\\controller\\' . str_replace('.', '\\', request()->controller());
         $reflectionClass = new \ReflectionClass($controllerClass);
         $noNeedLogin = $reflectionClass->hasProperty('noNeedLogin') ? $reflectionClass->getProperty('noNeedLogin')->getValue($reflectionClass->newInstanceWithoutConstructor()) : [];
@@ -66,7 +66,7 @@ class ApiAuth
         }
         // 将解码后的用户信息存储在请求中
         $request->member = $memberData;
-        $request->member_id = $memberData['id'];
+        $request->member_id = $request->mid = $memberData['id'];
 
         // 继续处理请求
         return $next($request);
