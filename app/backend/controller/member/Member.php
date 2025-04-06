@@ -59,7 +59,7 @@ class Member extends Backend
             }
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
             $list = $this->modelClass
-                ->withJoin(['memberGroup','memberLevel'])
+                ->with(['memberGroup','memberLevel'])
                 ->where($where)
                 ->order($sort)
                 ->paginate([
@@ -227,11 +227,11 @@ EOF;
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
             $count = $this->modelClass->onlyTrashed()
-                ->withJoin(['memberGroup','memberLevel'])
+                ->with(['memberGroup','memberLevel'])
                 ->where($where)
                 ->count();
             $list = $this->modelClass->onlyTrashed()
-                ->withJoin(['memberGroup','memberLevel'])
+                ->with(['memberGroup','memberLevel'])
                 ->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)

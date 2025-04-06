@@ -315,7 +315,7 @@ class CurdService
         $status = $statusResult[0]['COUNT(*)'];
         if (!empty($this->joinTable)) {
             $relationSearch = '$this->relationSearch = true;';
-            $joinIndexMethod = "withJoin([";
+            $joinIndexMethod = "with([";
             foreach ($this->joinTable as $k => $v) {
                 $joinName = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
