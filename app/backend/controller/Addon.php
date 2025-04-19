@@ -236,8 +236,8 @@ class Addon extends Backend
     {
         set_time_limit(0);
         $name = $this->request->param("name")??$name;
-        $plugins_id = $this->request->param("plugins_id");
-        $version_id = $this->request->param("version_id");
+        $plugins_id = $this->request->param("plugins_id",0);
+        $version_id = $this->request->param("version_id",'1.0');
         $type = $this->request->param("type")??$type;
 //        插件名是否为空
         if (!$name) {
