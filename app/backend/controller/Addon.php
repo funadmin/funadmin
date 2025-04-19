@@ -229,8 +229,8 @@ class Addon extends Backend
     {
         set_time_limit(0);
         $name = input("name")??$name;
-        $plugins_id = input("plugins_id");
-        $version_id = input("version_id");
+        $plugins_id = input("plugins_id",0);
+        $version_id = input("version_id",0);
         $type = input("type")??$type;
 //        插件名是否为空
         if (!$name) {
