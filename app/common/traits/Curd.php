@@ -131,6 +131,12 @@ trait Curd
                 if(is_array($v)){
                     $post[$k] = implode(',',$v);
                 }
+                if ($v == "0000-00-00 00:00:00") {//避免插入数据库时出现错误，日期不能为空
+		            $post[$k] = null;
+	            }
+	            if ($v == "") {//避免插入数据库时出现错误，日期不能为空
+		            $post[$k] = null;
+	            }
             }
             try {
                 $save = $list->save($post);
