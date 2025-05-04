@@ -35,6 +35,49 @@ trait Curd
 
 
     use SoftDelete;
+
+    /**
+     * 初始化方法
+     * 用于设置模型类和其他必要的属性
+     * 在控制器初始化时自动调用
+     * @return void
+     */
+    public function initialize()
+    {
+        parent::initialize();
+        // 设置模型类，优先使用已定义的modelClass，如果未定义则使用model属性
+        $this->modelClass = $this->modelClass ?: $this->model;
+        // 确保modelClass已设置
+        if (empty($this->modelClass)) {
+            // 尝试根据控制器名称自动推断模型类
+            $className = get_class($this);
+            $classArr = explode('\\', $className);
+            $controllerName = end($classArr);
+
+            // 获取应用和模块名称
+            $appName = isset($classArr[0]) ? $classArr[0] : 'app';
+            $moduleName = isset($classArr[1]) ? $classArr[1] : 'common';
+
+            // 移除Controller后缀
+            $modelName = str_replace('Controller', '', $controllerName);
+
+            // 尝试不同的命名空间加载模型类
+            $modelPaths = [
+                "\\app\\{$moduleName}\\model\\{$modelName}",
+                "\\app\\common\\model\\{$modelName}"
+            ];
+            foreach ($modelPaths as $modelClass) {
+                if (class_exists(class: $modelClass)) {
+                    $this->modelClass = new $modelClass();
+                    break;
+                }
+            }
+        }
+        // 如果modelClass是字符串（类名），则实例化它
+        if (is_string($this->modelClass) && class_exists($this->modelClass)) {
+            $this->modelClass = new $this->modelClass();
+        }
+    }
     /**
      * @NodeAnnotation(title="List")
      * @return \think\response\Json|\think\response\View
