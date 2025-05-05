@@ -606,7 +606,17 @@ define(['timePicker'], function (timePicker) {
             }, resolution: function (d, ele) {
                 var ele = ele || $(this)[0];
                 ele.field = ele.field || ele.filter || null;
-                return eval('d.' + ele.field) || eval('d.'+ele.field) === 0 ? eval('d.' + ele.field) : '-';
+                if (ele.field && ele.field.indexOf('.') !== -1) {
+                    // Handle relational field
+                    var parts = ele.field.split('.');
+                    if(eval('d.'+parts[0])){
+                        return eval('d.' + ele.field) || eval('d.'+ele.field) === 0 ? eval('d.' + ele.field) : '-';
+                    }else{
+                        return '-';
+                    }
+                } else {
+                    return eval('d.' + ele.field) || eval('d.'+ele.field) === 0 ? eval('d.' + ele.field) : '-';
+                }
             }, number: function (d) {
                 var ele = $(this)[0];
                 var toFixed = ele.toFixed || 2;
