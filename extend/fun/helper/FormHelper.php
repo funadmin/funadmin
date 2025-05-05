@@ -1544,7 +1544,10 @@ EOF;
      */
     protected function entity_decode($value)
     {
-        return html_entity_decode($value);
+        if ($value){
+            return html_entity_decode($value);
+        }
+        return '';
     }
 
     /**
