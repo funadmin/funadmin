@@ -227,11 +227,11 @@ EOF;
         if ($this->request->isAjax()) {
             list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
             $count = $this->modelClass->onlyTrashed()
-                ->withJoin(['memberGroup','memberLevel'])
+                ->withJoin(['group','level'])
                 ->where($where)
                 ->count();
             $list = $this->modelClass->onlyTrashed()
-                ->withJoin(['memberGroup','memberLevel'])
+                ->withJoin(['group','level'])
                 ->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
