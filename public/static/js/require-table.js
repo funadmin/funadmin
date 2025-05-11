@@ -969,6 +969,8 @@ define(['timePicker'], function (timePicker) {
                 Fun.events.confirm(othis, null, Table)
             },popconfirm: function (othis,data,tableOptions) {
                 Fun.events.popconfirm(othis, null, Table);
+            },prompt: function (othis,data,tableOptions) {
+                Fun.events.prompt(othis, null, Table);
             }, delete: function (othis,data,tableOptions) {
                 var tableId = othis.data('tableid');
                 url = othis.data('url');
@@ -1197,6 +1199,9 @@ define(['timePicker'], function (timePicker) {
                             break;
                         case'popconfirm':
                             Table.events.popconfirm(othis);
+                            break;
+                        case'prompt':
+                            Table.events.prompt(othis);
                             break;
                         case'request':
                             Table.events.request(othis);

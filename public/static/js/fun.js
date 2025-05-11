@@ -302,6 +302,14 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 });
                 return index;
             },
+            prompt: function (othis, msg, success) {
+                layui.layer.prompt({title: msg, formType: 2}, function(value, index, elem){
+                    if(value === '') return elem.focus();
+                    typeof success === 'function' && success.call(this,value,index,elem);
+                    layer.close(index);
+                });
+                return false;
+            },
             // 关闭消息框
             close: function (index) {
                 if (index) {layui.layer.close(index);} else {layui.layer.closeAll();}
@@ -417,6 +425,43 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             },
             confirm:function(othis, options,Table){
                 return Fun.events.request(othis, options,Table);
+            },
+            prompt: function(othis, options,Table){
+                var data = othis.data(),value;
+                if (options) {
+                    title = options.title;
+                    url = options.url;
+                    tableId = options.tableId || Table.init.tableId
+                } else {
+                    var title = data.prompt ||  othis.prop('prompt') ||  othis.prop('text') || data.text || othis.prop('title') || data.title  , url = data.url ? data.url : data.href,
+                        tableId = data.tableid;
+                    title = title || 'Are you sure to do this';
+                    url = url !== undefined ? url : window.location.href;
+                    tableId = tableId || Table.init.tableId, value = data.value;
+                }
+                ids = '';
+                if(Table){
+                    arr = Table.getIds(url, tableId);
+                    ids = arr[0];
+                    length = arr[1];
+                }
+                postdata = {ids:ids};if(value){postdata.value = value}
+                Fun.toastr.prompt(othis,__(title), function (text,index,elem) {
+                    if(text){
+                        postdata.text = text;
+                    }
+                    Fun.ajax({url: url, data: postdata}, function (res) {
+                        Fun.toastr.success(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    }, function (res) {
+                        Fun.toastr.error(res.msg, function () {
+                            Table && Table.api.reload(tableId)
+                        })
+                    })
+                    Fun.toastr.close()
+                });
+                return false
             },
             request: function (othis, options,Table) {
                 var data = othis.data(),value;
