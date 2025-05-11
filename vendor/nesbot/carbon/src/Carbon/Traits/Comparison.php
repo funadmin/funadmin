@@ -1272,7 +1272,7 @@ trait Comparison
 
         if (preg_match('/^(?:Jan|January|Feb|February|Mar|March|Apr|April|May|Jun|June|Jul|July|Aug|August|Sep|September|Oct|October|Nov|November|Dec|December)$/i', $tester)) {
             return $this->isSameMonth(
-                $this->transmitFactory(static fn () => static::parse($tester)),
+                $this->transmitFactory(static fn () => static::parse("$tester 1st")),
                 false,
             );
         }
@@ -1283,10 +1283,8 @@ trait Comparison
             );
         }
 
-        if (preg_match('/^\d{1,2}-\d{1,2}$/', $tester)) {
-            return $this->isSameDay(
-                $this->transmitFactory(fn () => static::parse($this->year.'-'.$tester)),
-            );
+        if (preg_match('/^(\d{1,2})-(\d{1,2})$/', $tester, $match)) {
+            return $this->month === (int) $match[1] && $this->day === (int) $match[2];
         }
 
         $modifier = preg_replace('/(\d)h$/i', '$1:00', $tester);

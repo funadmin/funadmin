@@ -11,7 +11,7 @@ return array(
     'think\\middleware\\' => array($vendorDir . '/topthink/think-throttle/src'),
     'think\\captcha\\' => array($vendorDir . '/topthink/think-captcha/src'),
     'think\\app\\' => array($vendorDir . '/topthink/think-multi-app/src'),
-    'think\\' => array($vendorDir . '/topthink/think-queue/src', $vendorDir . '/topthink/think-image/src', $vendorDir . '/topthink/think-filesystem/src', $vendorDir . '/topthink/think-template/src', $vendorDir . '/topthink/framework/src/think', $vendorDir . '/topthink/think-validate/src', $vendorDir . '/topthink/think-orm/src', $vendorDir . '/topthink/think-container/src', $vendorDir . '/topthink/think-helper/src'),
+    'think\\' => array($vendorDir . '/topthink/think-queue/src', $vendorDir . '/topthink/think-image/src', $vendorDir . '/topthink/think-filesystem/src', $vendorDir . '/topthink/think-template/src', $vendorDir . '/topthink/framework/src/think', $vendorDir . '/topthink/think-orm/src', $vendorDir . '/topthink/think-validate/src', $vendorDir . '/topthink/think-container/src', $vendorDir . '/topthink/think-helper/src'),
     'app\\' => array($baseDir . '/app'),
     'ZipStream\\' => array($vendorDir . '/maennchen/zipstream-php/src'),
     'Symfony\\Polyfill\\Php83\\' => array($vendorDir . '/symfony/polyfill-php83'),

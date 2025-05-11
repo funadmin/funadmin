@@ -2,6 +2,9 @@
 
 namespace think\tests;
 
+use Closure;
+use Exception;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use stdClass;
@@ -52,6 +55,24 @@ class SomeClass
     public function __construct(Container $container)
     {
         $this->container = $container;
+    }
+}
+
+class WithDefaultValues
+{
+    public $container;
+
+    public function __construct(?Container $container = null)
+    {
+        $this->container = $container;
+    }
+
+    /**
+     * 有默认值且类存在，但无法注入
+     */
+    public static function classExistsButCannotBeInjected(?Closure $closure = null)
+    {
+        return $closure;
     }
 }
 
@@ -316,6 +337,20 @@ class ContainerTest extends TestCase
         $container->invokeClass('SomeClass');
     }
 
+    public function testInvokeWithDefaultValues()
+    {
+        $container = $this->resolveContainer();
+
+        $class = $container->invokeClass(WithDefaultValues::class);
+        $this->assertSame(null, $class->container);
+
+        $container->bind(Container::class, $container);
+        $bound = $container->invokeClass(WithDefaultValues::class);
+        $this->assertSame($container, $bound->container);
+
+        $this->assertSame(null, $container->invokeMethod(WithDefaultValues::class . '::classExistsButCannotBeInjected'));
+    }
+
     protected function resolveContainer()
     {
         $container = new Container();
@@ -323,5 +358,4 @@ class ContainerTest extends TestCase
         Container::setInstance($container);
         return $container;
     }
-
 }

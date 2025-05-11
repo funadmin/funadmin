@@ -9,6 +9,7 @@
 // +----------------------------------------------------------------------
 // | Author: liu21st <liu21st@gmail.com>
 // +----------------------------------------------------------------------
+declare (strict_types = 1);
 
 namespace think\model\relation;
 
@@ -248,7 +249,7 @@ class MorphToMany extends BelongsToMany
             $closure($this->query);
         }
 
-        $withLimit = $this->query->getOptions('limit');
+        $withLimit = $this->query->getOption('limit');
         if ($withLimit) {
             $this->query->removeOption('limit');
         }

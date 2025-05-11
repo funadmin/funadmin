@@ -213,10 +213,11 @@ define(['table','form'], function (Table,Form) {
                         tips: __('Female')+'|'+  __('Male')
                     },
                     {
-                        field: 'memberLevel.name',
+                        field: 'level.name',
                         title: __('MemberLevel'),
                         width: 120,
                         // url:'member.memberLevel/index',
+                        fieldAlias:'level_id',
                         selectList: memberLevel,
                         prop:'name,name',
                         search: 'select',
@@ -362,7 +363,10 @@ define(['table','form'], function (Table,Form) {
                         tips: __('Female')+'|'+  __('Male')
                     },
                     {
-                        field: 'memberLevel.name',
+                        field: 'level.name',
+                        fieldAlias:'level_id',
+                        selectList: memberLevel,
+                        prop:'name,name',
                         title: __('MemberLevel'),
                         width: 120,
                         templet: Table.templet.text

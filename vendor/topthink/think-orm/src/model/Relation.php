@@ -179,7 +179,8 @@ abstract class Relation
      */
     protected function getQueryFields(string $model)
     {
-        $fields = $this->query->getOptions('field');
+        $fields = $this->query->getOption('field');
+        $this->query->removeOption('field');
 
         return $this->getRelationQueryFields($fields, $model);
     }
@@ -210,21 +211,6 @@ abstract class Relation
         }
 
         return $fields;
-    }
-
-    /**
-     * 根据关联条件查询当前模型.
-     *
-     * @param mixed  $where    查询条件（数组或者闭包）
-     * @param mixed  $fields   字段
-     * @param string $joinType JOIN类型
-     * @param Query  $query    Query对象
-     *
-     * @return Query
-     */
-    public function hasWhereOr($where = [], $fields = null, string $joinType = '', ?Query $query = null): Query
-    {
-        return $this->hasWhere($where, $fields, $joinType, $query, 'OR');
     }
 
     /**
@@ -297,7 +283,7 @@ abstract class Relation
         }
 
         // 启用软删除则增加软删除条件
-        $softDelete = $this->query->getOptions('soft_delete');
+        $softDelete = $this->query->getOption('soft_delete');
         return $query->when($softDelete, function ($query) use ($softDelete, $relation) {
             $query->where($relation . strstr($softDelete[0], '.'), '=' == $softDelete[1][0] ? $softDelete[1][1] : null);
         });

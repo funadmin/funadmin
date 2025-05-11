@@ -33,9 +33,7 @@ trait Conversion
      */
     public function append(array $append, bool $merge = false)
     {
-        $this->setOption('append', $merge ? array_merge($this->getOption('append'), $append) : $append);
-
-        return $this;
+        return $this->setOption('append', $merge ? array_merge($this->getOption('append'), $append) : $append);
     }
 
     /**
@@ -48,9 +46,7 @@ trait Conversion
      */
     public function hidden(array $hidden, bool $merge = false)
     {
-        $this->setOption('hidden', $merge ? array_merge($this->getOption('hidden'), $hidden) : $hidden);
-
-        return $this;
+        return $this->setOption('hidden', $merge ? array_merge($this->getOption('hidden'), $hidden) : $hidden);
     }
 
     /**
@@ -63,9 +59,7 @@ trait Conversion
      */
     public function visible(array $visible, bool $merge = false)
     {
-        $this->setOption('visible', $merge ? array_merge($this->getOption('visible'), $visible) : $visible);
-
-        return $this;
+        return $this->setOption('visible', $merge ? array_merge($this->getOption('visible'), $visible) : $visible);
     }
 
     /**
@@ -77,9 +71,7 @@ trait Conversion
      */
     public function mapping(array $map)
     {
-        $this->setOption('mapping', $map);
-
-        return $this;
+        return $this->setOption('mapping', $map);
     }
 
     /**
@@ -105,6 +97,7 @@ trait Conversion
      */
     public function toArray(): array
     {
+        $mapping = $this->getOption('mapping');
         foreach (['visible', 'hidden', 'append'] as $convert) {
             ${$convert} = $this->getOption($convert);
             foreach (${$convert} as $key => $val) {
@@ -115,6 +108,8 @@ trait Conversion
                     [$relName, $name]               = explode('.', $val);
                     $relation[$relName][$convert][] = $name;
                     unset(${$convert}[$key]);
+                } elseif ($item = array_search($val, $mapping)) {
+                    ${$convert}[$key] = $item;
                 }
             }
         }
@@ -128,7 +123,7 @@ trait Conversion
                     // 隐藏关联属性
                     unset($item[$name]);
                     continue;
-                } 
+                }
 
                 if (!empty($relation[$name])) {
                     // 处理关联数据输出
@@ -142,9 +137,9 @@ trait Conversion
                 $item[$name] = $this->getWithAttr($name, $val, $data);
             }
 
-            if (isset($item[$name]) && $key = $this->getWeakData('mapping', $name)) {
+            if (array_key_exists($name, $item) && isset($mapping[$name])) {
                 // 检查字段映射
-                $item[$key] = $item[$name];
+                $item[$mapping[$name]] = $item[$name];
                 unset($item[$name]);
             }
         }
@@ -156,8 +151,12 @@ trait Conversion
             } else {
                 // 追加关联属性
                 $relation = $this->getRelationData($key, false);
-                foreach((array) $field as $name) {
-                    $item[$name] = $relation[$name];
+                foreach((array) $field as $key => $name) {
+                    if (is_numeric($key)) {
+                        $item[$name] = $relation?->get($name);
+                    } else {
+                        $item[$name] = $relation?->get($key);
+                    }
                 }
             } 
         }
@@ -181,7 +180,7 @@ trait Conversion
      * @param int $options json参数
      * @return string
      */
-    public function tojson(int $options = JSON_UNESCAPED_UNICODE): string
+    public function toJson(int $options = JSON_UNESCAPED_UNICODE): string
     {
         return json_encode($this->toArray(), $options);
     }
@@ -190,7 +189,7 @@ trait Conversion
      * 转换为数据集对象
      *
      * @param array|Collection $collection    数据集
-     * @param string           $resultSetType 数据集类
+     * @param string|null      $resultSetType 数据集类
      *
      * @return Collection
      */

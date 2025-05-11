@@ -69,7 +69,7 @@ class Builder extends BaseBuilder
             } elseif (is_null($val) && in_array($key, $fields, true)) {
                 $result[$item] = 'NULL';
                 continue;
-            } elseif (!is_scalar($val) && (in_array($key, (array) $query->getOptions('json')) || 'json' == $query->getFieldType($key))) {
+            } elseif (!is_scalar($val) && (in_array($key, (array) $query->getOption('json')) || 'json' == $query->getFieldType($key))) {
                 $val = json_encode($val);
             }
 
@@ -263,7 +263,8 @@ class Builder extends BaseBuilder
             throw new Exception('where express error:' . var_export($exp, true));
         }
 
-        $exp = strtoupper($exp);
+        $param = $val[2] ?? null;
+        $exp   = strtoupper($exp);
         if (isset($this->exp[$exp])) {
             $exp = $this->exp[$exp];
         }
@@ -293,7 +294,7 @@ class Builder extends BaseBuilder
         // 解析查询表达式
         foreach ($this->parser as $fun => $parse) {
             if (in_array($exp, $parse)) {
-                return $this->$fun($query, $key, $exp, $value, $field, $bindType, $val[2] ?? 'AND');
+                return $this->$fun($query, $key, $exp, $value, $field, $bindType, $param);
             }
         }
 
@@ -313,9 +314,10 @@ class Builder extends BaseBuilder
      *
      * @return string
      */
-    protected function parseLike(Query $query, string $key, string $exp, $value, $field, int $bindType, string $logic): string
+    protected function parseLike(Query $query, string $key, string $exp, $value, $field, int $bindType, ?string $logic = null): string
     {
         // 模糊匹配
+        $logic = $logic ?: 'AND';
         if (is_array($value)) {
             $array = [];
             foreach ($value as $item) {
@@ -428,8 +430,8 @@ class Builder extends BaseBuilder
             $value = $this->parseRaw($query, $value);
         } else {
             // 检查枚举类型
-            if (is_subclass_of($value, UnitEnum::class)) {
-                if (is_subclass_of($value, BackedEnum::class)) {
+            if (is_subclass_of($value, UnitEnum::class, false)) {
+                if (is_subclass_of($value, BackedEnum::class, false)) {
                     $value = array_column($value::cases(), 'value');
                 } else {
                     $value = array_column($value::cases(), 'name');

@@ -72,12 +72,17 @@ trait AutoWriteData
             }
 
             foreach ($dateTimeFields as $field) {
-                if (is_string($field) && in_array($field, $allow)) {
+                if (is_string($field) && (empty($allow) || in_array($field, $allow))) {
                     $data[$field] = $this->getDateTime($field);
                     $this->setData($field, $this->readTransform($data[$field], $this->getFields($field)));
                 }
             }
         }
+    }
+
+    public function getAutoTimeFields(): array
+    {
+        return [$this->getOption('createTime'), $this->getOption('updateTime')];
     }
 
     /**
@@ -88,11 +93,11 @@ trait AutoWriteData
      */
     protected function getDateTime(string $field)
     {
-        $type = $this->getFields($field);
+        $type = $this->getFields($field) ?? 'string';
         if (in_array($type, ['int', 'integer'])) {
             return time();
         } elseif (is_subclass_of($type, Typeable::class)) {
-            return $type::from('now', $this)->value();
+            return $type::from('now', $this)->format('Y-m-d H:i:s.u');
         } elseif (str_contains($type, '\\')) {
             $obj = new $type();
             if ($obj instanceof Stringable) {
@@ -101,7 +106,7 @@ trait AutoWriteData
                 return (string) $obj;
             }
         } else {
-            return DateTime::from('now', $this)->value();
+            return DateTime::from('now', $this)->format('Y-m-d H:i:s.u');
         }
     }
 
@@ -112,9 +117,7 @@ trait AutoWriteData
 
     public function isAutoWriteTimestamp(string | bool $auto)
     {
-        $this->setOption('autoWriteTimestamp', $auto);
-
-        return $this;
+        return $this->setOption('autoWriteTimestamp', $auto);
     }
 
     public function getDateFormat()
@@ -124,9 +127,7 @@ trait AutoWriteData
 
     public function setDateFormat(string | bool $format)
     {
-        $this->setOption('dateFormat', $format);
-
-        return $this;
+        return $this->setOption('dateFormat', $format);
     }
 
     public function setTimeField($createTime, $updateTime)

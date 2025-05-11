@@ -67,9 +67,9 @@ trait WhereQuery
      */
     protected function parseQueryWhere(BaseQuery $query): void
     {
-        $this->options['where'] = $query->getOptions('where') ?? [];
+        $this->options['where'] = $query->getOption('where', []);
 
-        $via = $query->getOptions('via');
+        $via = $query->getOption('via');
         if ($via) {
             foreach ($this->options['where'] as $logic => &$where) {
                 foreach ($where as $key => &$val) {
@@ -625,7 +625,7 @@ trait WhereQuery
      *
      * @return $this
      */
-    public function when($condition, Closure | array $query, Closure | array | null $otherwise = null): self
+    public function when($condition, Closure | array $query, Closure | array | null $otherwise = null)
     {
         // 处理条件为 Closure 的情况
         if ($condition instanceof Closure) {
