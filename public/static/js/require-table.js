@@ -248,9 +248,13 @@ define(['timePicker'], function (timePicker) {
                             d.searchOp = '=';
                             var selectHtml = '';
                             selectList = d.selectList || d.searchList || Fun.api.getData(d.url) || {};
-                            prop =  (d.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
-                            if(prop){ prop = prop[2];}else{prop = d.prop;}
-                            if (prop) {prop = prop.split(',');}
+                            if(d.prop || d.selectAttr || d.searchAttr){
+                                prop = d.prop || d.selectAttr || d.searchAttr;
+                            }else{
+                                prop = (d.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/)
+                                if(prop){ prop = prop[2];}else{prop = d.prop;}
+                            }
+                            if(prop && !layui.isArray(prop)){ prop = prop.split(',');}
                             selectListObj = {}
                             layui.each(selectList, function (i, v) {
                                 if (prop && v[prop[1]]){
@@ -455,8 +459,14 @@ define(['timePicker'], function (timePicker) {
             },tags: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 var selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
-                var content = eval('d.' + ele.field), prop =  (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/);
-                if(prop){ prop = prop[2];}else{prop = ele.prop;}if(prop) prop = prop.split(',');
+                var content = eval('d.' + ele.field),prop;
+                if(ele.prop || ele.selectAttr || ele.searchAttr){
+                    prop = ele.prop || ele.selectAttr || ele.searchAttr;
+                }else{
+                    prop = (ele.extend || '').match(/data\-(?:attr|prop)\s*=\s*("|')(.*?)\1/)
+                    if(prop){ prop = prop[2];}else{prop = ele.prop;}
+                }
+                if(prop && !layui.isArray(prop)){ prop = prop.split(',');}
                 op = d.search ? d.searchOp : '%*%';
                 filter = {};ops = {};
                 ops[ele.field] = op;
