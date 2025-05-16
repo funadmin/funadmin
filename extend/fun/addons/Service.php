@@ -153,7 +153,7 @@ class Service extends \think\Service
                 continue;
             }
 
-            if (!is_file($addonDir .   'Plugin.php')) {
+            if (!is_file($addonDir .   'Plugin.php') && !is_file($addonDir . 'Addon.php')) {
                 continue;
             }
             $service_file = $addonDir . 'service.ini';
@@ -239,13 +239,16 @@ class Service extends \think\Service
             // 获取插件目录名
             $name = pathinfo($info['dirname'], PATHINFO_FILENAME);
             // 找到插件入口文件
-            if (strtolower($info['filename']) === 'plugin') {
+            if (strtolower($info['filename']) === 'plugin' || strtolower($info['filename']) === 'addon') {
                 // 读取出所有公共方法
                 if(!class_exists("\\addons\\" . $name . "\\" . $info['filename'])) continue;
                 $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . $info['filename']);
                 $ini= $info['dirname'] .DS. 'plugin.ini';
                 if (!is_file($ini)) {
-                    continue;
+                    $ini = $info['dirname'] .DS. 'addon.ini';
+                    if (!is_file($ini)) {
+                        continue;
+                    }
                 }
                 $addon_config = parse_ini_file($ini, true, INI_SCANNER_TYPED) ?: [];
 

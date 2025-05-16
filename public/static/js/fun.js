@@ -344,10 +344,10 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 return false;
             },
             open: function (othis) {
-                var data = othis.data();
-                if(!othis.data('url') && !othis.data('href')) return ;
+                var data = Fun.api.getElementData(othis);
+                if(!data.url && !data.href) return ;
                 var options = {
-                    title: othis.prop('title') ? othis.prop('title') : (data.title || '') ,
+                    title: data.title ? data.title : (othis.prop('title') || '') ,
                     url: data.url ? data.url : data.href,
                     width: data.width,
                     height: data.height,
@@ -362,13 +362,14 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 Fun.api.open(options);
             },
             iframe:function(othis){
-                var _t = othis
-                    , url = _t.data('url') ? _t.data('url') : _t.data('iframe')
-                    , layId = _t.attr('data-id') ||  _t.attr('lay-id') || url
-                    , text =  _t.attr('title') ||  _t.data('text')  || _t.attr('lay-text') || _t.attr('lay-tips')
-                    , icon = _t.find('i').attr('class') || 'layui-icon layui-icon-radio'
-                    , iframe = !!_t.has('data-iframe'),
-                    target = _t.prop('target') || '_self';
+                var _t = othis,
+                    data = Fun.api.getElementData(_t);
+                url = data.url ? data.url : data.iframe,
+                layId = data.id ||  data.layId || url,
+                text =  data.text ||  _t.attr('lay-text') || _t.attr('lay-tips'),
+                icon = _t.find('i').attr('class') || 'layui-icon layui-icon-radio',
+                iframe = !!_t.has('data-iframe'),
+                target = data.target || _t.prop('target') || '_self';
                 url = Fun.url(url);
                 if (!layId) {
                     return false;
@@ -377,12 +378,13 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         window.open(url, "_blank");
                         return false;
                     }
-                    options = {url: url, layId: layId, text: text, icon: icon, iframe: iframe, target: target,}
+                    options = {url: url, layId: layId, text: text, icon: icon, iframe: iframe, target: target,width:data.width,height:data.height,isResize:data.resize,full:data.full,btn:data.btn,anim:data.anim,offset:data.offset,btnAlign:data.btnAlign,autoheight:data.autoheight,}
                     Fun.api.iframe(options);
                 }
             },
             popconfirm:function(othis, options,Table){
-                var data = othis.data(),value;
+                var data = Fun.api.getElementData(othis);
+                var dataValue= data.value;
                 if (options) {
                     title = options.title;
                     url = options.url;
@@ -392,7 +394,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         tableId = data.tableid;
                     title = title || 'Are you sure to do this';
                     url = url !== undefined ? url : window.location.href;
-                    tableId = tableId || Table.init.tableId, value = data.value;
+                    tableId = tableId || Table.init.tableId, dataValue = data.value;
                 }
                 ids = '';
                 if(Table){
@@ -400,7 +402,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     ids = arr[0];
                     length = arr[1];
                 }
-                postdata = {ids:ids};if(value){postdata.value = value}
+                postdata = {ids:ids};if(dataValue){postdata.value = dataValue}
                 Fun.toastr.popconfirm(othis,__(title), function () {
                     Fun.ajax({url: url, data: postdata}, function (res) {
                         Fun.toastr.success(res.msg, function () {
@@ -427,7 +429,8 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 return Fun.events.request(othis, options,Table);
             },
             prompt: function(othis, options,Table){
-                var data = othis.data(),value;
+                var data = Fun.api.getElementData(othis);
+                var dataValue= data.value;
                 if (options) {
                     title = options.title;
                     url = options.url;
@@ -437,7 +440,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         tableId = data.tableid;
                     title = title || 'Are you sure to do this';
                     url = url !== undefined ? url : window.location.href;
-                    tableId = tableId || Table.init.tableId, value = data.value;
+                    tableId = tableId || Table.init.tableId, dataValue = data.value;
                 }
                 ids = '';
                 if(Table){
@@ -445,7 +448,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     ids = arr[0];
                     length = arr[1];
                 }
-                postdata = {ids:ids};if(value){postdata.value = value}
+                postdata = {ids:ids};if(dataValue){postdata.value = dataValue}
                 Fun.toastr.prompt(othis,__(title), function (text,index,elem) {
                     if(text){
                         postdata.text = text;
@@ -464,7 +467,8 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 return false
             },
             request: function (othis, options,Table) {
-                var data = othis.data(),value;
+                var data = Fun.api.getElementData(othis);
+                var dataValue= data.value;
                 if (options) {
                     title = options.title;
                     url = options.url;
@@ -474,7 +478,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         tableId = data.tableid;
                     title = title || 'Are you sure to do this';
                     url = url !== undefined ? url : window.location.href;
-                    tableId = tableId || Table.init.tableId, value = data.value;
+                    tableId = tableId || Table.init.tableId, dataValue = data.value;
                 }
                 ids = '';
                 if(Table){
@@ -482,7 +486,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     ids = arr[0];
                     length = arr[1];
                 }
-                postdata = {ids:ids};if(value){postdata.value = value}
+                postdata = {ids:ids};if(dataValue){postdata.value = dataValue}
                 Fun.toastr.confirm(__(title), function () {
                     Fun.ajax({url: url, data: postdata}, function (res) {
                         Fun.toastr.success(res.msg, function () {
@@ -506,7 +510,8 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 return false
             },
             dropdown: function (othis,rowData,tableOption) {
-                var data = $(othis).data(); extend = data.extend;
+                var data = Fun.api.getElementData(othis);
+                var extend = data.extend || data.child || '';
                 var dropdowndata = [];
                 if (typeof extend === 'object') {
                     ele = '';d= '';
@@ -578,6 +583,17 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
         接口
          */
         api: {
+            //获取元素数据
+            getElementData: function (othis) {
+                if(othis.length === undefined || othis.length<=0){
+                    othis = $(othis);
+                }
+                var data = othis.data();
+                var options = othis.attr('options');
+                options = options ? JSON.parse(options) : {};
+                data = $.extend({}, options, data);
+                return data;
+            },
             //删除空数据
             removeEmptyData: function (obj) {
                 $.each(obj, function(key, value) {
@@ -673,11 +689,16 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                 var isResize = (options.isResize === undefined);
                 var isFull = !!options.full;url = type===2?Fun.url(url):url;
                 isResize = isResize === false ? true : isResize;
-                width = width || Config.site.site_layer_width  ;
-                height = height ||  Config.site.site_layer_height;
-                width = width || '50%';height = height || '100%';
-                width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
-                height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
+                if(options.area){
+                    width = options.area[0];
+                    height = options.area[1];
+                }else{
+                    width = width || Config.site.site_layer_width  ;
+                    height = height ||  Config.site.site_layer_height;
+                    width = width || '50%';height = height || '100%';
+                    width =  /%|px/.test(width)?width:$(window).width()+20 >= width ? width + 'px' :'95%';
+                    height = /%|px/.test(height)?height:($(window).height()+110)>=height?height + 'px' :'100%';
+                }
                 autoheight = autoheight ? true:false;
                 offset = options.offset ||  Config.site.site_layer_offset ;
                 anim = Config.site.site_layer_anim ?  Config.site.site_layer_anim:options.anim;
@@ -853,7 +874,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     if(typeof callback === 'string'){
                         eval(callback)(othis,rowData,tableOption);
                     }else if(typeof callback === 'function'){
-                       callback(othis,rowData,tableOption);
+                        callback(othis,rowData,tableOption);
                     }
                 }
                 return true;

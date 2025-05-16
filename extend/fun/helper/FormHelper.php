@@ -716,17 +716,18 @@ EOF;
      * @param $value
      * @return string
      */
-    public function selectcx($name = 'province_id,city_id,area_id', $select = [], $options = [], $attr = ['id','name'], $value = '')
+    public function selectcx($name = 'province_id,city_id,area_id', $list = [], $options = [], $attr = ['id','name'], $value = '')
     {
-        $select = ArrayHelper::getArray($select);
+        $list = ArrayHelper::getArray($list);
         list($name, $id) = $this->getNameId($name, $options);
         $op = '';
         $attr = $attr ?? ['id','name'];
         $value = is_array($value)?$value:explode(',',$value);
-        if ($select) {
+        if ($list) {
+            $options['selectList'] = $list;
             $attr = is_array($attr)?$attr:explode(',',$attr);
             $attr = array_filter($attr);
-            foreach ($select as $k => $v) {
+            foreach ($list as $k => $v) {
                 if (!is_array($v)) {
                     $op .= '<option  value="' . $k . '">' . $this->__($v) . '</option>';
                 }elseif (is_array($v) && !empty($attr)) {
@@ -742,6 +743,9 @@ EOF;
         $options['attr'] = $attr;
         $select = '';
         foreach ($fields as $k=>$v){
+            if($k!=0){
+                unset($options['selectList']);
+            }
             $val = $value[$k]??'';
             $select .= <<<EOF
     <div class="layui-input-inline">
@@ -753,13 +757,8 @@ EOF;
             }
 
         $options['attr'] = $attr;
-        if(!isset($options['create'])){
-            $options['create'] = true;
-        }
         $value = implode(',',$value);
         $options['filter'] = $options['filter']??'cxselect';
-        $verify = $options['verify']??'';
-        unset($options['verify']);
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
       <div class="layui-input-block" {$this->getDataPropAttr(implode(',',$fields), $value, $options)}>
@@ -920,7 +919,7 @@ EOF;
         if(!isset($options['create'])){
             $options['create'] = true;
         }
-        $options['data'] =   json_encode($select,JSON_UNESCAPED_UNICODE);
+        $options['selectList'] =  $select;
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
@@ -946,9 +945,10 @@ EOF;
         list($name, $id) = $this->getNameId($name, $options);
         $select = ArrayHelper::getArray($select);
         $op = '';
-        $op .= " data-data='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
+        $op .= " data-select-list='" . json_encode($select, JSON_UNESCAPED_UNICODE) . "'";
         $attr = is_array($attr) ? implode(',', array_filter($attr)) : $attr;
         $value = is_array($value) ? implode(',',$value) : $value;
+        $options['selectList'] = $options['selectList'] ?? $select;
         $options['attr'] = $options['attr'] ?? $attr;
         $options['lang'] = $options['lang'] ?? '';
         $options['tips'] = $options['tips'] ?? '';
@@ -1006,7 +1006,7 @@ EOF;
         $lists = ArrayHelper::getArray($lists);
         list($name, $id) = $this->getNameId($name, $options);
         $options['filter'] = 'selectPage';
-        $options['data'] = empty($lists) ? '' : json_encode($lists,JSON_UNESCAPED_UNICODE);
+        $options['selectList'] = empty($lists) ? '' : $lists;
         $options['field'] = $options['field'] ?? 'title';
         $options['primaryKey'] = $options['field'] ?? 'id';
         $options['multiple'] = $options['multiple'] ?? '';
@@ -1236,6 +1236,7 @@ EOF;
         if (empty($options['num'])) $options['num'] = 1;
         if (!empty($options['num']) && $options['num'] == '*') $options['num'] = 100;
         if (empty($options['path'])) $options['path'] = 'upload'; //上传路劲
+        if (empty($options['driver'])) $options['driver'] = 'local';
         $css = $options['css'] ?? 'display:inline-block;';
         $li = '';
         $croper_container = '';
@@ -1457,13 +1458,13 @@ EOF;
 
     /**
      * JS
-     * @param $name
-     * @param $options
+     * @param string|array $name JS文件路径
+     * @param array $options 配置选项
      * @return string
      */
     public function js($name = [], $options = [])
     {
-        if(Str::contains($name,'</script>')){
+        if(is_string($name) && Str::contains($name,'</script>')){
             return $name;
         }
         if (is_string($name)) {
@@ -1480,13 +1481,13 @@ EOF;
 
     /**
      * css
-     * @param $name
-     * @param $options
+     * @param string|array $name CSS文件路径
+     * @param array $options 配置选项
      * @return string
      */
     public function link($name = [], $options = [])
     {
-        if(Str::contains($name,'<link')){
+        if(is_string($name) && Str::contains($name,'<link')){
             return $name;
         }
         if (is_string($name)) {
@@ -1771,92 +1772,76 @@ EOF;
     }
 
     /**
-     * @param $name
-     * @param $options
-     * @return string
+     * 处理表单选项属性
+     * @param string $name 表单名称
+     * @param array $options 选项配置
+     * @return string 处理后的HTML属性字符串
      */
     public function getOptionsAttr($name = '', $options = [])
     {
+        // 初始化基础属性
         $attr = ' ';
-        if (isset($options['extend']) && $options['extend']) {
-            $attr .= $this->getExtend($options);
-        } else {
-            $options['id'] = $options['id'] ?? $name;
-            $options['name'] = $options['formname'] ?? ($options['fromName'] ?? $name);
-            $options['label'] = $options['label'] ?? $name;
-            $options['tips'] = $options['tips'] ?? '';
-            $options['filter'] = $options['filter'] ?? $name;
-            foreach ($options as $key => $val) {
-                switch ($key) {
-                    case 'class':
-                    case 'tips':
-                    case 'css':
-                    case 'label':
-                        break;
-                    case 'placeholder':
-                        $attr .= $key . '="' . $this->__($val) . '" ';
-                        break;
-                    case 'verify':
-                        $attr .= $this->layverify($options);
-                        break;
-                    case 'filter':
-                        $attr .= $this->layfilter($options);
-                        break;
-                    case 'step':
-                        $attr .= $this->laystep($options);
-                        break;
-                    case 'affix':
-                        $attr .= $this->layaffix($options);
-                        break;
-                    case 'autocomplete':
-                        $attr .= $this->layautocomplete($options);
-                        break;
-                    case 'submit':
-                        $attr .= $this->laysubmit($options);
-                        break;
-                    case 'ignore':
-                        $attr .= $this->layignore($options);
-                        break;
-                    case 'precision':
-                        $attr .= $this->layprecision($options);
-                        break;
-                    case 'style':
-                        $attr .= $this->getStyle($options);
-                    case 'readonly':
-                    case 'disabled':
-                        $attr .= $this->readonlyOrdisabled($options);
-                        break;
-                    case 'search':
-                        $attr .= $this->laysearch($options);
-                        break;
-                    case 'creatable':
-                    case 'create':
-                        $attr .= $this->laycreatable($options);
-                        break;
-                    case 'skin':
-                        $attr .= $this->layskin($options);
-                        break;
-                    case 'value':
-                        $attr .= $key . "='" . $this->entities($val) . "' data-" . $key . "='" . $this->entities($val) . "' ";
-                        break;
-                    case 'attr':
-                        if (is_object($val) || is_array($val)) {
-                            $val = (array)$val;
-                            $val = implode(',', $val);
-                        }
-                        $attr .= " data-" . $key . "='" . $val . "' ";
-                        break;
-                    default:
-                        if (is_object($val) || is_array($val)) {
-                            $val = (array)$val;
-                            $val = $val[$name] ?? json_encode($val, JSON_UNESCAPED_UNICODE);
-                        }
-                        $attr .= " data-" . $key . "='" . $val . "' ";
-                        break;
-
+        $_options = [];
+        
+        // 设置默认值
+        $options['id'] = $options['id'] ?? $name;
+        $options['name'] = $options['formname'] ?? ($options['fromName'] ?? $name);
+        $options['label'] = $options['label'] ?? $name;
+        $options['tips'] = $options['tips'] ?? '';
+        $options['filter'] = $options['filter'] ?? $name;
+        
+        // 特殊属性处理映射
+        $specialAttributes = [
+            'verify' => 'layverify',
+            'filter' => 'layfilter',
+            'step' => 'laystep',
+            'affix' => 'layaffix',
+            'autocomplete' => 'layautocomplete',
+            'submit' => 'laysubmit',
+            'ignore' => 'layignore',
+            'precision' => 'layprecision',
+            'search' => 'laysearch',
+            'creatable' => 'laycreatable',
+            'create' => 'laycreatable',
+            'skin' => 'layskin',
+            'readonly' => 'readonlyOrdisabled',
+            'disabled' => 'readonlyOrdisabled',
+            'style' => 'getStyle'
+        ];
+        
+        // 需要跳过的属性列表
+        $skipAttributes = ['class', 'tips', 'css', 'label', 'outclass'];
+        
+        foreach ($options as $key => $val) {
+            // 跳过不需要处理的属性
+            if (in_array($key, $skipAttributes)) {
+                continue;
+            }
+            
+            // 处理特殊属性
+            if (isset($specialAttributes[$key])) {
+                $method = $specialAttributes[$key];
+                $attr .= $this->$method($options);
+                
+                // 对于style属性特殊处理，防止缺少break导致多次处理问题
+                if ($key === 'style') {
+                    continue;
                 }
+            } 
+            // 处理placeholder属性
+            elseif ($key === 'placeholder') {
+                $attr .= $key . '="' . $this->__($val) . '" ';
+            }
+            // 处理value属性
+            elseif ($key === 'value') {
+                $attr .= $key . "='" . $this->entities($val) . "' data-" . $key . "='" . $this->entities($val) . "' ";
             }
         }
+        // 处理剩余选项数据
+        if (!empty($options)) {
+            $attr .= $this->getOptionsData($options);
+        }
+        
         return $attr;
     }
 
@@ -1873,7 +1858,21 @@ EOF;
         $str .= $this->getOptionsAttr($name, $options);
         return $str;
     }
-
+    /**
+     * 获取data属性
+     * @param $name
+     * @param $value
+     * @param $options
+     * @return string
+     */
+    protected function getOptionsData($options = [])
+    {
+        if (empty($options)) {
+            return '';
+        }
+        // 使用JSON_UNESCAPED_UNICODE确保中文不被转义
+        return " options='".json_encode($options, JSON_UNESCAPED_UNICODE)."'";
+    }
     /**
      * 获取值
      * @param $name

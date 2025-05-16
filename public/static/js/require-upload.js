@@ -57,17 +57,17 @@ define([ 'croppers'], function(croppers) {
                     }
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
-                        var _that= $(this), data = _that.data();
-                        if(typeof data.value == 'object') data = data.value;
-                        var uploadNum = data.num,id= _that.prop('id') || data.id,
-                            uploadMime = data.mime,acceptMime = data.acceptmime || '',
-                            uploadAccept = data.accept,
-                            uploadPath = data.path || 'upload',
-                            uploadSize = data.size,
-                            save = data.save || 0,
-                            group = data.group || '',
-                            uploadmultiple = data.multiple,
-                            uploadExts = data.exts,chunk = data.chunk;
+                        var _t= $(this);
+                        var dataOptions = Fun.api.getElementData(this);
+                        var uploadNum = dataOptions.num,id= _t.prop('id') || dataOptions.id,
+                            uploadMime = dataOptions.mime,acceptMime = dataOptions.acceptmime || '',
+                            uploadAccept = dataOptions.accept,
+                            uploadPath = dataOptions.path || 'upload',
+                            uploadSize = dataOptions.size,
+                            save = dataOptions.save || 0,
+                            group = dataOptions.group || '',
+                            uploadmultiple = dataOptions.multiple,
+                            uploadExts = dataOptions.exts,chunk = dataOptions.chunk;
                             uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
@@ -85,7 +85,7 @@ define([ 'croppers'], function(croppers) {
                             number:uploadNum,
                             multiple: uploadmultiple,
                             auto:false,
-                            url: Fun.url(data.url?data.url:Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
+                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
                                 if(chunk==undefined || chunk ==false || chunk == 0){
                                     index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
@@ -270,18 +270,17 @@ define([ 'croppers'], function(croppers) {
                     var opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
-                        var _that = $(this), _parent =_that.parents('.layui-upload'), id = _that.prop('id') || _that.data('id');
-                        var data = _that.data();
-                        if(typeof data.value == 'object') data = data.value;
-                        var saveW = data.width || 300, saveH = data.height|| 300, mark = data.mark || 1,
-                            area = data.area, uploadPath = data.path || 'upload';
+                        var _t= $(this), _parent =_t.parents('.layui-upload'), id = _t.prop('id') || _t.data('id');
+                        var dataOptions = Fun.api.getElementData(this);
+                        var saveW = dataOptions.width || 300, saveH = dataOptions.height|| 300, mark = dataOptions.mark || 1,
+                            area = dataOptions.area, uploadPath = dataOptions.path || 'upload';
                         opt[i] = $.extend({
                             elem: $(this),
                             saveW: saveW, //保存宽度
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
                             area: area, //弹窗宽度
-                            url: Fun.url(data.url?data.url:Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
+                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
                             done:success=== undefined ? function(res) {
                                 //上传完毕回调

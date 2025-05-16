@@ -157,6 +157,9 @@ if (!function_exists('set_addons_info')) {
         $addons_path = $service->getAddonsPath();
         // 插件列表
         $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
+        if(!is_file($file)){
+            $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'addon.ini';
+        }
         $addon = get_addons_instance($name);
         $array = $addon->setInfo($name, $array);
         $array['install']==1 && $array['status'] ? $addon->enabled() : $addon->disabled();
@@ -257,6 +260,9 @@ if (!function_exists('get_addons_class')) {
                 break;
             default:
                 $namespace = '\\addons\\' . $name . '\\Plugin';
+                if(!class_exists($namespace)){
+                    $namespace = '\\addons\\' . $name . '\\Addon';
+                }
         }
 
         return class_exists($namespace) ? $namespace : '';
@@ -332,7 +338,11 @@ if (!function_exists('addons_url')) {
             if (isset($url['scheme'])) {
                 $addons = strtolower($url['scheme']);
                 $controller = $url['host'];
-                $action = trim($url['path'], '/');
+                if(isset($url['path'])){
+                    $action = trim($url['path'], '/');
+                }else{
+                    $action = $request->action();
+                }
             } else {
                 $route = explode('/', $url['path']);
                 $addons = $request->addon;
@@ -373,7 +383,7 @@ if (!function_exists('get_addons_list')) {
                 $addonDir = $addons_path . $name . DS;
                 if (!is_dir($addonDir))
                     continue;
-                if (!is_file($addonDir . 'Plugin' . '.php'))
+                if (!is_file($addonDir . 'Plugin' . '.php') && !is_file($addonDir . 'Addon' . '.php'))
                     continue;
                 $info = get_addons_info($name);
                 if (!isset($info['name']))
@@ -431,6 +441,9 @@ if (!function_exists('get_addons_autoload_config')) {
             if (!$addon['status']) continue;
             // 读取出所有公共方法
             $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . 'Plugin');
+            if(!$methods){
+                $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . 'Addon');
+            }
             // 跟插件基类方法做比对，得到差异结果
             $hooks = array_diff($methods, $base);
             // 循环将钩子方法写入配置中
@@ -484,6 +497,9 @@ if (!function_exists('refreshaddons')) {
         $jsArr = [];
         foreach ($addons as $name => $addon) {
             $jsArrFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'plugin.js';
+            if(!is_file($jsArrFile)){
+                $jsArrFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'addon.js';
+            }
             if ($addon['status'] && $addon['install'] && is_file($jsArrFile)) {
                 $jsArr[] = file_get_contents($jsArrFile);
             }
