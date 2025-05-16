@@ -1347,7 +1347,10 @@ define(['timePicker'], function (timePicker) {
                     var that = this;
                     if($(this).attr('data-tips')){layui.layer.tips(__($(this).attr('data-tips')),that,{tips: 1,time:1500,})}
                 });
-                $(document).on('blur', '#layui-input-search-'+tableId, function (event) {
+                $(document).on('blurr keypress', '#layui-input-search-'+tableId, function (event) {
+                    if (event.type === 'keypress' && event.keyCode !== 13) { // 添加键盘回车事件响应
+                        return; // 只允许回车键触发键盘事件
+                    }
                     var text = $(this).val();
                     var name = $(this).prop('name').split(',');
                     if (name.length === 1) {
