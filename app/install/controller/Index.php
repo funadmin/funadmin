@@ -223,7 +223,7 @@ class Index extends BaseController
             }catch(\Exception $e){
                 $this->error($e->getMessage());
             }
-            $adminName = 'backend';
+            $adminName = 'backend/login/index';
             if(request()->post('standalone')){
                 //后台入口
                 $putAdmin = @file_get_contents($this->adminTpl);
