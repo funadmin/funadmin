@@ -184,7 +184,6 @@ define(['timePicker'], function (timePicker) {
                                 }
                             }
                         })
-                        console.log(dataAttr)
                         //会影响后面行
                         toolbarHtml += "<a "+ dataAttr + cls+ ">"+icon+'</a>\n';
 

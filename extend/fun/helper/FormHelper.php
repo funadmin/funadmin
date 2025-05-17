@@ -738,10 +738,17 @@ EOF;
 
         $fields = array_filter(is_string($name)?explode(',',$name):$name);
         $attr = is_array($attr) ? implode(',', array_filter($attr)) : $attr;
-
         $options['selects'] = $fields;
         $options['attr'] = $attr;
         $select = '';
+        $verify = false;
+        if(!empty($options['verify'])){
+            $verify = true;
+        }
+        if(!empty($options['required'])){
+            $verify = true;
+        }
+        $selects = json_encode($fields);
         foreach ($fields as $k=>$v){
             if($k!=0){
                 unset($options['selectList']);
@@ -749,7 +756,7 @@ EOF;
             $val = $value[$k]??'';
             $select .= <<<EOF
     <div class="layui-input-inline">
-      <select lay-search  {$this->getDataPropAttr($v, $val, $options)} class="layui-select-url selectcx{$k} layui-select {$v} {$this->getClass($options)}"   >
+      <select lay-search data-required="{$verify}" data-url="{$options['url']}" {$this->getNameValueAttr($v, $val, $options)} class="layui-select-url selectcx{$k} {$this->getClass($options)} layui-select {$v}"   >
         {$op}
     </select>
   </div>
@@ -1782,14 +1789,14 @@ EOF;
         // 初始化基础属性
         $attr = ' ';
         $_options = [];
-        
+
         // 设置默认值
         $options['id'] = $options['id'] ?? $name;
         $options['name'] = $options['formname'] ?? ($options['fromName'] ?? $name);
         $options['label'] = $options['label'] ?? $name;
         $options['tips'] = $options['tips'] ?? '';
         $options['filter'] = $options['filter'] ?? $name;
-        
+
         // 特殊属性处理映射
         $specialAttributes = [
             'verify' => 'layverify',
@@ -1808,26 +1815,26 @@ EOF;
             'disabled' => 'readonlyOrdisabled',
             'style' => 'getStyle'
         ];
-        
+
         // 需要跳过的属性列表
         $skipAttributes = ['class', 'tips', 'css', 'label', 'outclass'];
-        
+
         foreach ($options as $key => $val) {
             // 跳过不需要处理的属性
             if (in_array($key, $skipAttributes)) {
                 continue;
             }
-            
+
             // 处理特殊属性
             if (isset($specialAttributes[$key])) {
                 $method = $specialAttributes[$key];
                 $attr .= $this->$method($options);
-                
+
                 // 对于style属性特殊处理，防止缺少break导致多次处理问题
                 if ($key === 'style') {
                     continue;
                 }
-            } 
+            }
             // 处理placeholder属性
             elseif ($key === 'placeholder') {
                 $attr .= $key . '="' . $this->__($val) . '" ';
@@ -1841,7 +1848,7 @@ EOF;
         if (!empty($options)) {
             $attr .= $this->getOptionsData($options);
         }
-        
+
         return $attr;
     }
 

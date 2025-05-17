@@ -39,8 +39,16 @@ class Member extends Backend
     public function getcitys(){
         if($this->request->isAjax()) {}{
             $pid = $this->request->param('pid',0);
-            $citys = Provinces::where('pid',$pid)->order('id desc')->field('id,name,pid')
-                ->cache('provinces.'.$pid,3600*24)->select()->toArray();
+            $pid = $this->request->param('province_id',0);
+            $city_id = $this->request->param('city_id');
+            if($city_id){
+                $citys = Provinces::where('pid',$city_id)->order('id desc')->field('id,name,pid')
+                    ->cache('provinces.'.$city_id,3600*24)->select()->toArray();
+            }else{
+                $citys = Provinces::where('pid',$pid)->order('id desc')->field('id,name,pid')
+                    ->cache('provinces.'.$pid,3600*24)->select()->toArray();
+            }
+
             $this->success('','',$citys);
         }
     }

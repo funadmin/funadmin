@@ -477,8 +477,7 @@
                                 layui.each(list, function (i, v) {
                                     var _t = $(this);
                                     var dataOptions = Fun.api.getElementData(_t);
-                                    var selects = dataOptions.selects;
-                                    var url = dataOptions.url;
+                                    var selects = dataOptions.selects || ['province_id', 'city_id', 'area_id'];
                                     var attr = dataOptions.attr || dataOptions.prop || ['id', 'name'];
                                     attr = layui.isArray(attr) ? attr : attr.split(',');
                                     $.cxSelect.defaults.jsonValue = attr[0] || 'id';
@@ -487,13 +486,13 @@
                                     if(dataOptions.selectList){
                                         $.cxSelect.defaults.data = dataOptions.selectList;
                                     }else{
-                                        _t.cxSelect({
-                                            url: url,       // 如果服务器不支持 .json 类型文件，请将文件改为 .js 文件
+                                        window['cxSelect-' + id] = $.cxSelect(_t, {
                                             selects: selects,  // 数组，请注意顺序
                                             emptyStyle: 'none'
                                         });
-                                        
+
                                     }
+
                                     
                                 })
                             })
