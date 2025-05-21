@@ -68,6 +68,7 @@ define([ 'croppers'], function(croppers) {
                             group = dataOptions.group || '',
                             uploadmultiple = dataOptions.multiple,
                             uploadExts = dataOptions.exts,chunk = dataOptions.chunk;
+                            driver = dataOptions.driver || 'local';
                             uploadNum = uploadNum || 1;
                         uploadSize = uploadSize || Upload.init.upload_size;
                         uploadExts = uploadExts || Upload.init.upload_exts;
@@ -78,6 +79,12 @@ define([ 'croppers'], function(croppers) {
                         uploadAccept = uploadAccept === '*' ? 'file' : uploadAccept;
                         var _parent = $(this).parents('.layui-upload'), input = _parent.find('input[type="text"]'),index;
                         var fileList = [],chunkList= [];
+                        if(driver=='direct'){
+                            if(typeof directUploadOss == 'function'){
+                                directUploadOss(this,dataOptions);
+                            }
+                            return;
+                        }
                         opt[i] = $.extend({
                             elem: this,
                             accept: uploadAccept,
