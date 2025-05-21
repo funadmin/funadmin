@@ -251,13 +251,12 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
             $model->exists(true);
         }
 
-        $with = !empty($options['with']) || !empty($options['with_join']);
         if ($this->getEntity()) {
             // 存在对应实体模型实例
-            return $this->getEntity()->newInstance($model, $with);
+            return $this->getEntity()->newInstance($model);
         }
 
-        return $this->fetchModel($model, $with);
+        return $this->fetchModel($model);
     }
 
     /**
@@ -276,15 +275,14 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      * 获取实际模型实例.
      *
      * @param Model $model
-     * @param bool  $with 是否包含关联查询
      *
      * @return Modelable
      */
-    protected function fetchModel(Model $model, bool $with = false): Modelable
+    protected function fetchModel(Model $model): Modelable
     {
         $class = $model->getOption('entityClass', str_replace('\\model\\', '\\entity\\', static::class));
         if (class_exists($class) && is_subclass_of($class, Entity::class)) {
-            $entity = new $class($model, $with);
+            $entity = new $class($model);
             $model->entity($entity);
             return $entity;
         }
@@ -337,17 +335,14 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      *
      * @param array|object $data 数据
      * @param mixed $where 更新条件 true为强制新增
+     * @param bool  $refresh  是否刷新数据
      * @return bool
      */
-    public function save(array | object $data = [], $where = []): bool
+    public function save(array | object $data = [], $where = [], bool $refresh = false): bool
     {
         if (!empty($data)) {
             // 初始化模型数据
             $this->initializeData($data, true);
-        }
-
-        if ($this->isVirtual() || $this->isView()) {
-            return true;
         }
 
         if (false === $this->trigger('BeforeWrite')) {
@@ -388,6 +383,10 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
         if (!$isUpdate) {
             $this->exists(true);
             $this->setKey($db->getLastInsID());
+        } elseif ($refresh) {
+            // 刷新数据
+            $data = $db->find()->getData();
+            $this->data($data);
         }
         $this->trigger($isUpdate ? 'AfterUpdate' : 'AfterInsert');
         $this->trigger('AfterWrite');
@@ -430,7 +429,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
             } elseif ($isUpdate && !$this->isForce() && $this->isNotRequireUpdate($name, $val, $origin)) {
                 unset($data[$name]);
             } else {
-                $val = $this->setWithAttr($name, $val, $data);
+                $val = $this->setWithAttr($name, $val);
             }
         }
 
@@ -509,43 +508,13 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
     }
 
     /**
-     * 是否为虚拟模型（不能查询）.
-     *
-     * @return bool
-     */
-    public function isVirtual(): bool
-    {
-        return false;
-    }
-
-    /**
-     * 设置为视图模型（不能写入）.
-     *
-     * @return $this
-     */
-    public function asView(bool $isView = true)
-    {
-        return $this->setOption('is_view', $isView);
-    }
-
-    /**
-     * 是否为视图模型（不能写入）.
-     *
-     * @return bool
-     */
-    public function isView(): bool
-    {
-        return $this->getOption('is_view', false);
-    }
-
-    /**
      * 刷新模型数据.
      *
      * @return static
      */
     public function refresh()
     {
-        if ($this->isExists()) {
+        if ($this->isExists() && $this->getKey()) {
             $data = $this->db()->find($this->getKey())->getData();
             $this->data($data);
         }
@@ -591,12 +560,6 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function delete(): bool
     {
-        if ($this->isVirtual() || $this->isView()) {
-            $this->exists(false);
-            $this->clear();
-            return true;
-        }
-
         if ($this->isEmpty() || false === $this->trigger('BeforeDelete')) {
             return false;
         }
@@ -632,9 +595,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
     public static function create(array | object $data, array $allowField = [], bool $replace = false): Modelable
     {
         $model = new static();
-
-        $model->allowField($allowField)->replace($replace)->save($data, true);
-        
+        $model->allowField($allowField)->replace($replace)->save($data, true);            
         return $model->fetchModel($model);
     }
 
@@ -644,14 +605,13 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      * @param array|object  $data 数据
      * @param mixed  $where       更新条件
      * @param array  $allowField  允许字段
+     * @param bool   $refresh     是否刷新数据
      * @return Modelable
      */
-    public static function update(array | object $data, $where = [], array $allowField = []): Modelable
+    public static function update(array | object $data, $where = [], array $allowField = [], bool $refresh = false): Modelable
     {
-        $model = new static();
-
-        $model->allowField($allowField)->exists(true)->save($data, $where);
-
+        $model  = new static();
+        $model->allowField($allowField)->exists(true)->save($data, $where, $refresh);
         return $model->fetchModel($model);
     }
 
@@ -666,11 +626,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
     public static function destroy($data, bool $force = false): bool
     {
         $model = new static();
-        if ($model->isVirtual() || $model->isView()) {
-            return true;
-        }
-
-        $db = $model->db();
+        $db    = $model->db();
 
         if (is_array($data) && key($data) !== 0) {
             $db->where($data);
@@ -815,9 +771,6 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function __isset(string $name): bool
     {
-        if ($this->isView()) {
-            return isset(self::$weakMap[$this]['data'][$name]);
-        }
         return !is_null($this->get($name, false));
     }
 

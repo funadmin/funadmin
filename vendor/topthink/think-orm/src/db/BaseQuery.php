@@ -380,6 +380,33 @@ abstract class BaseQuery
     }
 
     /**
+     * 设置字段映射信息.
+     *
+     * @param array $map 字段映射信息
+     *
+     * @return $this
+     */
+    public function fieldMap(array $map)
+    {
+        $this->options['field_map'] = $map;
+
+        return $this;
+    }
+
+    /**
+     * 获取字段映射名
+     *
+     * @param string $name 字段名
+     *
+     * @return mixed
+     */
+    public function getFieldMap(string $name)
+    {
+        $map = $this->getOption('field_map', []);
+        return $map[$name] ?? null;
+    }
+
+    /**
      * 得到某个字段的值
      *
      * @param string $field   字段名
@@ -766,14 +793,25 @@ abstract class BaseQuery
             return $this;
         } elseif ($field instanceof Raw) {
             $this->options['order'][] = $field;
-
             return $this;
         }
 
         if (is_string($field)) {
-            if (!empty($this->options['via'])) {
+            $field = $this->getFieldMap($field) ?: $field;
+            if (!empty($this->options['via']) && !str_contains($field, '.') && !str_contains($field, '->')) {
                 $field = $this->options['via'] . '.' . $field;
             }
+
+            if (is_string($field) && strpos($field, '->')) {
+                [$alias, $attr] = explode('->', $field, 2);
+
+                $type = $this->getFieldType($alias);
+                if (is_null($type)) {
+                    $this->hasWhere($alias);
+                    $field = $alias . '.' . $attr;
+                }
+            }
+
             if (str_contains($field, ',')) {
                 $field = array_map('trim', explode(',', $field));
             } else {

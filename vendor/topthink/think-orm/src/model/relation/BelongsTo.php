@@ -228,7 +228,7 @@ class BelongsTo extends OneToOne
             $defaultModel = $this->getDefaultModel($default);
 
             $data = $this->eagerlyWhere([
-                [$localKey, 'in', $range],
+                [$localKey, 'in', array_unique($range)],
             ], $localKey, $subRelation, $closure, $cache);
 
             // 动态绑定参数

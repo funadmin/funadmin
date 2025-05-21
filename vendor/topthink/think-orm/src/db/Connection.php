@@ -360,7 +360,7 @@ abstract class Connection implements ConnectionInterface
             str_replace(
                 [':' . $key . ' ', ':' . $key . ',', ':' . $key . ')'],
                 [$value . ' ', $value . ',', $value . ')'],
-                $sql);
+                $sql . ' ');
         }
 
         return rtrim($sql);

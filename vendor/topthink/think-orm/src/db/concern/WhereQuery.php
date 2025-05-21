@@ -453,8 +453,14 @@ trait WhereQuery
     {
         $logic = strtoupper($logic);
 
+        // 字段映射
+        $map   = $this->getOption('field_map', []);
+        if (is_string($field) && isset($map[$field])) {
+            $field = $map[$field];
+        }
+
         // 处理 via
-        if (is_string($field) && !empty($this->options['via']) && !str_contains($field, '.')) {
+        if (is_string($field) && !empty($this->options['via']) && !str_contains($field, '.') && !str_contains($field, '->')) {
             $field = $this->options['via'] . '.' . $field;
         }
 
@@ -521,6 +527,17 @@ trait WhereQuery
             // 同一字段多条件查询
             array_unshift($param, $field);
             return $param;
+        }
+
+        if (is_string($field) && strpos($field, '->')) {
+            [$relation, $attr] = explode('->', $field, 2);
+
+            $type = $this->getFieldType($relation);
+            if (is_null($type)) {
+                // 自动关联查询
+                $this->hasWhere($relation, [[$attr , is_null($condition) ? '=' : $op, $condition ?? $op]]);                    
+                return [];
+            }
         }
 
         if ($field && is_null($condition)) {

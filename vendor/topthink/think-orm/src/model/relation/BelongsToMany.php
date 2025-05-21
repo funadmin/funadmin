@@ -314,7 +314,7 @@ class BelongsToMany extends Relation
         if (!empty($range)) {
             // 查询关联数据
             $data = $this->eagerlyManyToMany([
-                ['pivot.' . $localKey, 'in', $range],
+                ['pivot.' . $localKey, 'in', array_unique($range)],
             ], $subRelation, $closure, $cache);
 
             // 关联数据封装

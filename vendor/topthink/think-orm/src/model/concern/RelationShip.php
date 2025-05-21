@@ -448,10 +448,10 @@ trait RelationShip
             $relationResult->eagerlyResultSet($resultSet, $relationName, $subRelation, $closure, $relationCache, $join);            
         }
 
-        // 视图模型初始化数据
+        // 刷新视图模型数据
         foreach ($resultSet as $result) {
             if ($result instanceof View) {
-                $result->initData();
+                $result->refresh();
             }
         }
     }
@@ -504,8 +504,8 @@ trait RelationShip
         }
 
         if ($result instanceof View) {
-            // 视图模型初始化数据
-            $result->initData();
+            // 刷新视图模型数据
+            $result->refresh();
         }
     }
 

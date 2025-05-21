@@ -177,7 +177,7 @@ class HasManyThrough extends Relation
             $this->query->removeWhereField($foreignKey);
 
             $data = $this->eagerlyWhere([
-                [$this->foreignKey, 'in', $range],
+                [$this->foreignKey, 'in', array_unique($range)],
             ], $foreignKey, $subRelation, $closure, $cache);
 
             // 关联数据封装

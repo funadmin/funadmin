@@ -2935,16 +2935,16 @@
         },
         {
             "name": "topthink/think-orm",
-            "version": "v4.0.32",
+            "version": "v4.0.37",
             "source": {
                 "type": "git",
                 "url": "https://github.com/top-think/think-orm.git",
-                "reference": "e9a930678250f1b9ce2ca9a5131d1610793236e1"
+                "reference": "558d5f376a048fa5bda3ee7553c26106c02b30bd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/top-think/think-orm/zipball/e9a930678250f1b9ce2ca9a5131d1610793236e1",
-                "reference": "e9a930678250f1b9ce2ca9a5131d1610793236e1",
+                "url": "https://api.github.com/repos/top-think/think-orm/zipball/558d5f376a048fa5bda3ee7553c26106c02b30bd",
+                "reference": "558d5f376a048fa5bda3ee7553c26106c02b30bd",
                 "shasum": ""
             },
             "require": {
@@ -2989,9 +2989,9 @@
             ],
             "support": {
                 "issues": "https://github.com/top-think/think-orm/issues",
-                "source": "https://github.com/top-think/think-orm/tree/v4.0.32"
+                "source": "https://github.com/top-think/think-orm/tree/v4.0.37"
             },
-            "time": "2025-05-08T06:44:03+00:00"
+            "time": "2025-05-20T06:59:21+00:00"
         },
         {
             "name": "topthink/think-queue",

@@ -106,7 +106,7 @@ class MorphToMany extends BelongsToMany
         if (!empty($range)) {
             // 查询关联数据
             $data = $this->eagerlyManyToMany([
-                ['pivot.' . $this->localKey, 'in', $range],
+                ['pivot.' . $this->localKey, 'in', array_unique($range)],
                 ['pivot.' . $this->morphType, '=', $this->morphClass],
             ], $subRelation, $closure, $cache);
 

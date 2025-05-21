@@ -170,7 +170,7 @@ class MorphMany extends Relation
 
         if (!empty($range)) {
             $where = [
-                [$morphKey, 'in', $range],
+                [$morphKey, 'in', array_unique($range)],
                 [$morphType, '=', $type],
             ];
             $data = $this->eagerlyMorphToMany($where, $subRelation, $closure, $cache);
