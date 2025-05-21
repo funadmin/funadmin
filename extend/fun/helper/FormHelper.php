@@ -1169,6 +1169,7 @@ EOF;
         $options['height'] = $options['height'] ?? '400px';
         $options['url'] = $options['url'] ?? '';
         $options['editor'] = $options['editor'] ?? (syscfg('upload', 'upload_editor') ?: 'tinymce');
+        $options['driver']  = $options['driver']?? 'local';
         $options['filter'] = 'editor';
         if ($options['editor'] == 'tinymce') {
             // tinyedit
