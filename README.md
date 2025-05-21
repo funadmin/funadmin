@@ -1,5 +1,5 @@
 <BR>
-<h3 align="center">FunAdmin6.X版本 在5.X的基础上优化了许多功能，优化了插件功能，欢迎使用</h3>
+<h3 align="center">FunAdmin7.X版本 在6.X的基础上优化了许多功能，优化了插件功能，欢迎使用</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
@@ -7,7 +7,7 @@ funadmin docker 版本请移步docker仓库
 funadmin前端和webman开发的后台管理系统
     </a></h3>
 
-<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V6.X最低支持PHP8.1</h3>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V7.X最低支持PHP8.1</h3>
 
 <h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
@@ -15,7 +15,7 @@ funadmin前端和webman开发的后台管理系统
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
     </a>
     <a href="https://layui.dev/">
-        <img src="https://img.shields.io/badge/layui-2.9.*-green.svg" alt="layui">
+        <img src="https://img.shields.io/badge/layui-2.11.*-green.svg" alt="layui">
     </a>
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/php-%3E%3D8.1-8892BF.svg" alt="PHP Version">
