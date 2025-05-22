@@ -1577,6 +1577,18 @@ EOF;
     }
 
     /**
+     * @param $attr
+     * @param $val
+     * @return string
+     */
+    protected function layAttr($attr,$val){
+        if($attr && $val) {
+            return  ' lay-'. $attr. '="'. $val. '"';
+        }
+        return '';
+
+    }
+    /**
      * @ 验证
      * @return string
      */
@@ -1789,8 +1801,6 @@ EOF;
     {
         // 初始化基础属性
         $attr = ' ';
-        $_options = [];
-
         // 设置默认值
         $options['id'] = $options['id'] ?? $name;
         $options['name'] = $options['formname'] ?? ($options['fromName'] ?? $name);
@@ -1800,21 +1810,22 @@ EOF;
 
         // 特殊属性处理映射
         $specialAttributes = [
-            'verify' => 'layverify',
-            'filter' => 'layfilter',
-            'step' => 'laystep',
-            'affix' => 'layaffix',
-            'autocomplete' => 'layautocomplete',
-            'submit' => 'laysubmit',
-            'ignore' => 'layignore',
-            'precision' => 'layprecision',
-            'search' => 'laysearch',
-            'creatable' => 'laycreatable',
-            'create' => 'laycreatable',
-            'skin' => 'layskin',
-            'readonly' => 'readonlyOrdisabled',
-            'disabled' => 'readonlyOrdisabled',
-            'style' => 'getStyle'
+            'verify',
+            'filter',
+            'step',
+            'affix',
+            'autocomplete',
+            'submit',
+            'ignore',
+            'precision',
+            'search',
+            'creatable',
+            'create',
+            'skin',
+            'readonly',
+            'disabled',
+            'style',
+            'event',
         ];
 
         // 需要跳过的属性列表
@@ -1827,10 +1838,8 @@ EOF;
             }
 
             // 处理特殊属性
-            if (isset($specialAttributes[$key])) {
-                $method = $specialAttributes[$key];
-                $attr .= $this->$method($options);
-
+            if (in_array( $key, $specialAttributes)) {
+                $attr .= $this->layAttr($key,$val);
                 // 对于style属性特殊处理，防止缺少break导致多次处理问题
                 if ($key === 'style') {
                     continue;
