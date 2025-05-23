@@ -113,14 +113,13 @@ class CurdService
 
     public function __construct(array $config)
     {
-        $config['driver'] = $config['driver']??$this->driver;
-        $this->tablePrefix = config('database.connections.' . $config['driver'] . '.prefix');
-        $this->database = Config::get('database.connections' . '.' . $config['driver'] . '.database');
+        $this->driver = $config['driver'] ?? $this->driver;
+        $this->tablePrefix = config('database.connections.' . $this->driver . '.prefix');
+        $this->database = config('database.connections' . '.' . $this->driver . '.database');
         $this->rootPath = root_path();
         $this->dir = __DIR__;
         $this->tplPath = $this->rootPath . 'extend/fun/curd/tpl/';
         $this->setParam($config);
-        $this->driver = $config['driver'];
         return $this;
     }
 
@@ -219,7 +218,7 @@ class CurdService
         $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
         //普通模式
         $this->controllerNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . $this->controllerName : $this->controllerName;
-        $this->modelNamePrefix = !empty($modelArr[0]) ? $modelArr[0] . '/' : '' . ($this->modelName);
+        $this->modelNamePrefix = !empty($modelArr[0]) ? $modelArr[0] . '/' . $this->modelName : $this->modelName;
         $this->langNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::lower($this->controllerName) : Str::lower($this->controllerName);
         $this->indexNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
         $this->addNamePrefix = $controllerArr ? Str::lower($controllerArr[0]) . '/' . Str::snake($this->controllerName) : Str::snake($this->controllerName);
@@ -280,24 +279,34 @@ class CurdService
     }
 
     /**
-     *
+     * 生成代码
+     * @return static
+     * @throws \Exception
      */
     public function maker(): static
     {
-        list($this->tableComment,$this->fieldsList,$this->assign,$this->lang,$this->softDelete,$this->requests,$this->requestsRecycle) = $this->getFieldList();
-        if (!$this->config['delete']) {
-            $this->makeModel();
-            $this->makeController();
-            $this->makeJs();
-            $this->makeView();
-            $this->makeMenu(1);
-            $this->makeAddon();
-        } elseif ($this->config['force'] and $this->config['delete']) {
-            foreach ($this->fileList as $k => $v) {
-                @unlink($v);
+        try {
+            list($this->tableComment, $this->fieldsList, $this->assign, $this->lang, $this->softDelete, $this->requests, $this->requestsRecycle) = $this->getFieldList();
+            
+            if (!$this->config['delete']) {
+                $this->makeModel();
+                $this->makeController();
+                $this->makeJs();
+                $this->makeView();
+                $this->makeMenu(1);
+                $this->makeAddon();
+            } elseif ($this->config['force'] && $this->config['delete']) {
+                foreach ($this->fileList as $v) {
+                    if (file_exists($v)) {
+                        @unlink($v);
+                    }
+                }
+                $this->makeMenu(2);
             }
-            $this->makeMenu(2);
+        } catch (\Exception $e) {
+            throw new \Exception('生成代码失败: ' . $e->getMessage());
         }
+        
         return $this;
     }
 
@@ -735,19 +744,30 @@ class CurdService
 
     /**
      * 生成文件
+     * @param string $filename 文件名
+     * @param string $content 文件内容
+     * @return void
      */
     public function makeFile($filename, $content): void
     {
-        if(!$this->force && Str::contains($filename,'menu.php') ===true){
+        // 特殊处理menu.php文件，始终更新
+        if(!$this->force && Str::contains($filename,'menu.php') === true){
             file_put_contents($filename, $content);
+            return;
         }
+        
+        // 普通文件处理
         if(is_file($filename)){
             if($this->force && !$this->jump){
                 file_put_contents($filename, $content);
             }
         }else{
-            if (!is_dir(dirname($filename))) {
-                @mkdir(dirname($filename), 0755, true);
+            $dir = dirname($filename);
+            if (!is_dir($dir)) {
+                // 递归创建目录
+                if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $dir));
+                }
             }
             file_put_contents($filename, $content);
         }
@@ -1195,11 +1215,9 @@ class CurdService
                     }
                 } else {
                     if ($v['name'] == 'status') {
-                        if ($v['name'] == 'status') {
-                            $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
-                            $v['option'] = '{0:__("disabled"),1:__("enabled")}';
-                            if (isset($comment[1])) list($assign[$v['name'] . 'List'], $v['option']) = $this->getOptionStr($v['name'], $comment[1]);
-                        }
+                        $assign[$v['name'] . 'List'] = '[0=>"disabled",1=>"enabled"]';
+                        $v['option'] = '{0:__("disabled"),1:__("enabled")}';
+                        if (isset($comment[1])) list($assign[$v['name'] . 'List'], $v['option']) = $this->getOptionStr($v['name'], $comment[1]);
                     }
                 }
             }
@@ -1226,7 +1244,6 @@ class CurdService
             if ($v != 'refresh') {
                 $space = $k == 0 ? '' : '                    ';
                 if (!in_array($v, ['restore'])) {
-                    $space = $k == 0 ? '' : '                    ';
                     $requests .= $space . $v . '_url:' . "'{$prefix_url}/{$v}'" . '+location.search,' . PHP_EOL;
                 }
                 if (in_array($v, ['recycle', 'restore', 'delete'])) {
@@ -1256,9 +1273,10 @@ class CurdService
 
     /**
      * 设置属性
+     * @param array $fieldList 字段列表
      * @return string
      */
-    protected function modifyAttr($fieldList = ''): string
+    protected function modifyAttr($fieldList = []): string
     {
         $fieldAttrData = '';
         $tpl = [
@@ -1267,7 +1285,11 @@ class CurdService
             $this->tplPath . 'attrmutiget.tpl',
             $this->tplPath . 'attrmutiset.tpl',
         ];
-        $fieldList = $fieldList?:$this->fieldsList;
+        $fieldList = !empty($fieldList) ? $fieldList : $this->fieldsList;
+        if (empty($fieldList)) {
+            return $fieldAttrData;
+        }
+        
         foreach ($fieldList as $k => $vo) {
             if ($vo['COLUMN_KEY'] == 'PRI') continue;
             if (in_array($vo['name'], $this->config['ignoreFields']) and $vo['name'] != 'status') continue;
@@ -1339,8 +1361,10 @@ class CurdService
         $optionObjStr = '{';
         foreach ($option as $k => $v) {
             $ops = explode(":", $v);
-            $optionsArrStr .= "'" . $ops[0] . "'=>'" . $name . ' ' . $ops[0] . "',";
-            $optionObjStr .= "'" . $ops[0] . "':'" . $name . ' ' . $ops[0] . "',";
+            if (isset($ops[0])) {
+                $optionsArrStr .= "'" . $ops[0] . "'=>'" . $name . ' ' . $ops[0] . "',";
+                $optionObjStr .= "'" . $ops[0] . "':'" . $name . ' ' . $ops[0] . "',";
+            }
         }
         $optionsArrStr .= "]";
         $optionObjStr .= "}";
@@ -1365,19 +1389,17 @@ class CurdService
                 foreach ($option as $kk => $vv) {
                     $vv = str_replace("：", ':', $vv);
                     $opArr = explode(':', $vv);
-//                    isset($opArr[1])?$optionsLangStr.="'" . Str::studly($v['name']). ' '. $opArr[0]. "'=>'" . $opArr[1] . "',".PHP_EOL:'';
                     $optionsLangStr .= "'" . Str::studly($v['name']) . ' ' . $opArr[0] . "'=>'" . $opArr[1] . "'," . PHP_EOL;
                 }
             }
         }
-        $optionsLangStr .= "";
         return $optionsLangStr;
     }
 
     /**
-     * 否符合指定后缀
-     * @param $field
-     * @param $suffixArr
+     * 判断字段是否符合指定后缀
+     * @param string $field 字段名
+     * @param array|string $suffix 后缀或后缀数组
      * @return bool
      */
     protected function hasSuffix($field, $suffix): bool
