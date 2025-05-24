@@ -1263,7 +1263,7 @@ class CurdService
     {
         $default = $value['value'] == '' ? 'null' : $value['value'];
         $str = 'use SoftDelete;' . PHP_EOL;
-        if($default != 'null'){
+        if(!is_null($default)){
             $str .= '    protected $defaultSoftDelete = ' . $default . ';' . PHP_EOL;
         }
         return $str;
