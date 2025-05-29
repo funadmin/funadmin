@@ -1418,7 +1418,7 @@ EOF;
         }
         $str = <<<EOF
         <input type="hidden" name="__token__" value="{$this->token()} ">
-        <div class=" layui-btn-submit layui-btn-center {$show}" />
+        <div class=" layui-btn-submit layui-btn-center {$show}">
             <button type="submit" class="layui-btn layui-btn-normal submit " lay-fitler="submit" lay-submit>{$this->__('Submit')}
             </button>
             {$reset}
