@@ -1422,7 +1422,7 @@ EOF;
             <button type="submit" class="layui-btn layui-btn-normal submit " lay-fitler="submit" lay-submit>{$this->__('Submit')}
             </button>
             {$reset}
-        </div>
+        </div>    
 EOF;
 
         return $str;
