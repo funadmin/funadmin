@@ -147,13 +147,7 @@ class CurdService
                 unset($this->config[$k], $config[$k]);
             }
         }
-//        foreach ($config as $k=>&$v){
-//
-//            if(!empty($v)  && is_array($v) && strpos($v[0],',')!==false) {
-////                $v = explode(',',$v[0]);
-//            }
-//        }
-//        unset($v);
+
         $this->config = array_merge($res, $this->config, $config);
         $this->setArg();
     }
@@ -324,7 +318,7 @@ class CurdService
         $status = $statusResult[0]['COUNT(*)'];
         if (!empty($this->joinTable)) {
             $relationSearch = '$this->relationSearch = true;';
-            $joinIndexMethod = "with([";
+            $joinIndexMethod = "withJoin([";
             foreach ($this->joinTable as $k => $v) {
                 $joinName = lcfirst(Str::studly($this->joinName[$k]));
                 $joinIndexMethod .= "'{$joinName}'" . ',';
@@ -1048,9 +1042,7 @@ class CurdService
         $lang = '';
         $softDelete = '';
         $model = $model?:$this->table;
-        $sql = "show tables like '{$this->tablePrefix}{$model}'";
-        $table = Db::connect($this->driver)->query($sql);
-        if (!$table) {
+        if (!$this->tableExists($model)) {
             throw new \Exception($model . '表不存在');
         }
         $sql = "select $field from information_schema . columns  where table_name = '" . $this->tablePrefix . $model . "' and table_schema = '" . $this->database . "' order by ORDINAL_POSITION ASC";
@@ -1263,7 +1255,7 @@ class CurdService
     {
         $default = $value['value'] == '' ? 'null' : $value['value'];
         $str = 'use SoftDelete;' . PHP_EOL;
-        if(!is_null($default)){
+        if($default!='null'){
             $str .= '    protected $defaultSoftDelete = ' . $default . ';' . PHP_EOL;
         }
         return $str;
@@ -1389,7 +1381,9 @@ class CurdService
                 foreach ($option as $kk => $vv) {
                     $vv = str_replace("：", ':', $vv);
                     $opArr = explode(':', $vv);
-                    $optionsLangStr .= "'" . Str::studly($v['name']) . ' ' . $opArr[0] . "'=>'" . $opArr[1] . "'," . PHP_EOL;
+                    if (isset($opArr[0]) && isset($opArr[1])) {
+                        $optionsLangStr .= "'" . Str::studly($v['name']) . ' ' . $opArr[0] . "'=>'" . $opArr[1] . "'," . PHP_EOL;
+                    }
                 }
             }
         }
@@ -1411,6 +1405,59 @@ class CurdService
             }
         }
         return false;
+    }
+
+    /**
+     * 从字段名中提取关联表名（去掉最后一个_xxx）
+     * 例如: user_id -> user, category_ids -> category, product_category_id -> product_category
+     *
+     * @param string $field 字段名
+     * @return string 表名
+     */
+    protected function getJoinTable($field): string {
+        // 找到最后一个下划线的位置
+        $lastUnderscorePos = strrpos($field, '_');
+        
+        // 如果没有找到下划线，返回原字段名
+        if ($lastUnderscorePos === false) {
+            return $field;
+        }
+        
+        // 截取最后一个下划线之前的部分
+        return substr($field, 0, $lastUnderscorePos);
+    }
+
+    /**
+     * 检查数据库中是否存在指定表格
+     * @param string $table 表名（不包含前缀）
+     * @return bool
+     */
+    protected function tableExists($table): bool
+    {
+        $table = trim($table);
+        if (empty($table)) {
+            return false;
+        }
+        
+        // 添加表前缀
+        $fullTableName = $this->tablePrefix . $table;
+        
+        try {
+            // 使用 SHOW TABLES LIKE 查询检查表是否存在
+            $sql = "SHOW TABLES LIKE '{$fullTableName}'";
+            $result = Db::connect($this->driver)->query($sql);
+            
+            return !empty($result);
+        } catch (\Exception $e) {
+            // 如果查询失败，使用备用方法
+            try {
+                $sql = "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_name = '{$fullTableName}' AND table_schema = '{$this->database}'";
+                $result = Db::connect($this->driver)->query($sql);
+                return isset($result[0]['count']) && $result[0]['count'] > 0;
+            } catch (\Exception $e) {
+                return false;
+            }
+        }
     }
 
 }
