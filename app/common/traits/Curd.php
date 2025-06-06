@@ -365,7 +365,7 @@ trait Curd
     public function import()
     {
         $file = request()->file('file');
-        $file= UploadService::instance()->uploads(session('member.id'),session('amdin.id'));
+        $file= UploadService::instance()->uploads(session('member.id'),session('admin.id'));
         if(!$file['url']){
             $this->error(lang("Upload failed"));
         }
