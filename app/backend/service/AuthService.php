@@ -349,72 +349,77 @@ class AuthService extends AbstractService
             Cache::delete('adminmenushtml' . session('admin.id'));
         }
         $list = $this->authMenuNode($cate);
-        $html = '';
         $theme = syscfg('site', 'site_theme');
-        if (empty($theme) || ($theme && in_array($theme,[1,2,5]))) {
-            foreach ($list as $key => $val) {
-                $html .= '<li class="layui-nav-item">';
-                $badge = '';
-                if (strtolower($val['title']) === 'addon') {
-                    $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
+        $cache_key = 'adminmenushtml-'.$theme.md5(json_encode($list));
+        $html = db_cache($cache_key,function()use($list,$theme){
+            if (empty($theme) || ($theme && in_array($theme,[1,2,5]))) {
+                $html = '';
+                foreach ($list as $key => $val) {
+                    $html .= '<li class="layui-nav-item">';
+                    $badge = '';
+                    if (strtolower($val['title']) === 'addon') {
+                        $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
+                    }
+                    if ($val['child'] and count($val['child']) > 0) {
+                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        $html = $this->childmenuhtml($html, $val['child']);
+                    } else {
+                        $target = $val['target'] ? $val['target'] : '_self';
+                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                    }
+                    $html .= '</li>';
                 }
-                if ($val['child'] and count($val['child']) > 0) {
-                    $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                    $html = $this->childmenuhtml($html, $val['child']);
-                } else {
-                    $target = $val['target'] ? $val['target'] : '_self';
-                    $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                }
-                $html .= '</li>';
-            }
-        } elseif ($theme == 3  ||  $theme ==4) {
-            $html = [];
-            $hide = '';
-            $html['nav'] = '';
-            $html['menu'] = '';
-            $html['navm'] = '<li class="layui-nav-item"  menu-id="' . $list[0]['id'] . '">
-                    <a href="javascript:;"><i class="fa fa-list-ul"></i> 请选择<span class="layui-nav-more"></span></a>
-                    <dl class="layui-nav-child">';
-            foreach ($list as $key => $val) {
-                $laythis = $key == 0 ? 'layui-this' : '';
-                $html['nav'] .= '<li class="layui-nav-item ' . $laythis . '"  menu-id="' . $val['id'] . '">';
-                $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
-                $badge = '';
-                if (strtolower($val['title']) === 'addon') {
-                    $badge = '<span class="layui-badge">new</span>';
-                }
+            } elseif ($theme == 3  ||  $theme ==4) {
+                $html = [];
                 $hide = '';
-                if($theme==3){
-                    $hide = $theme<=3 && $key > 0 ? 'layui-hide' : '';
-                }
-                if($theme==4){
-                    $hide = 'layui-hide';
-                }
-                $html['menu'] .= '<ul style="display:block"  lay-accordion class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
-                if ($val['child'] and count($val['child']) > 0) {
-                    $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                    foreach ($val['child'] as $k => $v) {
-                        if ($v['child'] and count($v['child']) > 0) {
-                            $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $v['id'] . '"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a>';
-                            $html['menu'] .= $this->childmenuhtml('', $v['child']);
-                            $html['menu'] .= '</li>';
-                        } else {
-                            $target = $val['target'] ? $val['target'] : '_self';
-                            $html['menu'] .= '<li class="layui-nav-item"  lay-id="' . $v['id'] . '"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a></li>';
+                $html['nav'] = '';
+                $html['menu'] = '';
+                $html['navm'] = '<li class="layui-nav-item"  menu-id="' . $list[0]['id'] . '">
+                        <a href="javascript:;"><i class="fa fa-list-ul"></i> 请选择<span class="layui-nav-more"></span></a>
+                        <dl class="layui-nav-child">';
+                foreach ($list as $key => $val) {
+                    $laythis = $key == 0 ? 'layui-this' : '';
+                    $html['nav'] .= '<li class="layui-nav-item ' . $laythis . '"  menu-id="' . $val['id'] . '">';
+                    $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
+                    $badge = '';
+                    if (strtolower($val['title']) === 'addon') {
+                        $badge = '<span class="layui-badge">new</span>';
+                    }
+                    $hide = '';
+                    if($theme==3){
+                        $hide = $theme<=3 && $key > 0 ? 'layui-hide' : '';
+                    }
+                    if($theme==4){
+                        $hide = 'layui-hide';
+                    }
+                    $html['menu'] .= '<ul style="display:block"  lay-accordion class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
+                    if ($val['child'] and count($val['child']) > 0) {
+                        $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        foreach ($val['child'] as $k => $v) {
+                            if ($v['child'] and count($v['child']) > 0) {
+                                $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $v['id'] . '"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a>';
+                                $html['menu'] .= $this->childmenuhtml('', $v['child']);
+                                $html['menu'] .= '</li>';
+                            } else {
+                                $target = $val['target'] ? $val['target'] : '_self';
+                                $html['menu'] .= '<li class="layui-nav-item"  lay-id="' . $v['id'] . '"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a></li>';
+                            }
                         }
+                        $html['menu'] .= '</ul>';
+                    } else {
+                        $target = $val['target'] ? $val['target'] : '_self';
+                        $html['nav'] .= '<a href="javascript:;" lay-event="tab" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="' . $val['id'] . '"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a></li>';
                     }
                     $html['menu'] .= '</ul>';
-                } else {
-                    $target = $val['target'] ? $val['target'] : '_self';
-                    $html['nav'] .= '<a href="javascript:;" lay-event="tab" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                    $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="' . $val['id'] . '"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a></li>';
+                    $html['nav'] .= '</li>';
                 }
-                $html['menu'] .= '</ul>';
-                $html['nav'] .= '</li>';
+                $html['navm'] .= '</dl><li>';
             }
-            $html['navm'] .= '</dl><li>';
-        }
+            return $html;
+        });
         return $html;
+        
     }
 
     /**
