@@ -220,7 +220,7 @@ class UploadService extends AbstractService
                 'chunkCount'=>$chunkCount,
                 'start'=>input('start',0),
                 'end'=>input('end'),
-                'url'=>$attach?$attach->path:""];
+                'url'=>""];
             $this->success('ok','',$data);
         }
         if (!move_uploaded_file($this->file, $chunkFileName)) {

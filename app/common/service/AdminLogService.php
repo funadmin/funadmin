@@ -73,7 +73,6 @@ class AdminLogService extends AbstractService
             $this->username = json_decode($this->post_data,true)['username'];
         }else{
             //权限
-            $auth = AuthRule::column('href','id');
             $url = str_replace('.'.config('view.view_suffix'),'',$url);
             $this->title =  AuthRule::where('href',$url)->where('module',$this->app)->value('title');
         }

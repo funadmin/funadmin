@@ -58,6 +58,11 @@ class AuthService extends AbstractService
      * @var $hrefId ;
      */
     protected $hrefId;
+    /**
+     * 当前管理员权限规则id
+     * @var string
+     */
+    protected $adminRules;
 
     /**
      * 获取用户信息
@@ -457,7 +462,9 @@ class AuthService extends AbstractService
             return false;
         }
         //判断是否同一时间同一账号只能在一个地方登录// 要是备份还原的话，这里会有点问题
-        $me = AdminModel::find($admin['id']);
+        $me = db_cache('admin-user',function()use($admin){
+            return  AdminModel::find($admin['id']);
+        });
         // if (!$me || $me['token'] != $admin['token']) {
         if (!$me) {
             $this->logout();
@@ -553,19 +560,29 @@ class AuthService extends AbstractService
     protected function getRules($groups)
     {
         if ($groups && in_array(1, explode(",", $groups))) {
-            $rules = AuthRule::where('status', 1)->cache('superAdmin', 24 * 3600)->column('id');
-            $rules = implode(',', $rules);
+            $rules = db_cache('super-admin-auth-group-rules',function(){
+                $rules = AuthRule::where('status', 1)->cache('superAdmin', 24 * 3600)->column('id');
+                $rules = implode(',', $rules);
+                return $rules;
+            });
         } else {
             //这一句有长度限制
 //            $rules  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('group_concat(rules)')->value('group_concat(rules)');
-            $data  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('rules')->select();
-            $rules = '';
-            foreach ($data as $rule) {
-                $rules .=$rule['rules'].',';
-            }
+            $rules = db_cache('auth-group-rules',function() use ($groups){
+                $data  = AuthGroupModel::where('id', 'in', condition: $groups)->where('status', 1)->field('rules')->select();
+                $rules = '';
+                foreach ($data as $rule) {
+                    $rules .=$rule['rules'].',';
+                }
+                return $rules;
+            });
+            
         }
-        $norules = AuthRule::where('auth_verify', 0)->column('id');
-        $norules = $norules ? implode(',', $norules) : '';
+        $norules = db_cache('no-rules',function(){
+            $norules = AuthRule::where('auth_verify', 0)->column('id');
+            $norules = $norules ? implode(',', $norules) : '';
+            return $norules;
+        });
         $result = trim($rules . ',' . $norules, ',');
         return $result !== '' ? $result : null;
     }
