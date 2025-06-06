@@ -22,7 +22,7 @@ use think\Facade;
  * @class   Form
  * @mixin  \fun\helper\FormHelper
  * @package fun-addons
- * @method static string token() 生成Token
+ * @method static string token($name = '__token__', $type = 'md5') 生成Token
  * @method static string label(string $name,  array $options = [], string $value = null) label标签
  * @method static string tags(string $name,  array $options = [], string $value = null) label标签
  * @method static string input($name,$type, array $options = [], string $value = null) 按类型生成文本框
