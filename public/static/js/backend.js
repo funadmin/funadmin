@@ -217,7 +217,7 @@ define(['theme-config'], function(themeConfig) { // 添加依赖
                     done: function(params) {
                         // 给新标签头添加上下文菜单
                         layui.dropdown.render($.extend({}, CONTEXTMENU.config, {
-                            elem: params.thisHeaderItem // 当前标签头元素
+                            elem: params.headerItem // 当前标签头元素
                         }));
                     }
                 });
