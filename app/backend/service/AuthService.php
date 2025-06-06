@@ -311,15 +311,20 @@ class AuthService extends AbstractService
                 ['href', '=', $this->requesturl],
                 ['module', '=', $app]
             ];
-            ;
-            $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
+            $cache_key = 'get-rule-id-by-module-href'.md5(json_encode($map));
+            $this->hrefId = db_cache($cache_key,function()use($map){
+                return AuthRule::where($map)->where('status', 1)->value('id');
+            });
             $menuid = 0;
             if (Str::endsWith($this->requesturl, '/index')) {
                 $where[] = [
                     ['href', '=', substr($this->requesturl, 0, strlen($this->requesturl) - 6)],
                     ['module', '=', $app]
                 ];
-                $menuid = AuthRule::where($where)->where('status', 1)->value('id');
+                $cache_key = 'get-rule-id-by-module-href'.md5(json_encode($where));
+                $menuid = db_cache($cache_key,function()use($where){
+                    return AuthRule::where($where)->where('status', 1)->value('id');
+                });
             }
             if ($menuid) $this->hrefId = $menuid;
             //当前管理员权限
