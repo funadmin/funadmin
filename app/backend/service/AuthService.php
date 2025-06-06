@@ -60,9 +60,9 @@ class AuthService extends AbstractService
     protected $hrefId;
     /**
      * 当前管理员权限规则id
-     * @var string
+     * @var array
      */
-    protected $adminRules;
+    protected $adminRules = [];
 
     /**
      * 获取用户信息
@@ -104,15 +104,19 @@ class AuthService extends AbstractService
     {
         $allAuthNode = [];
         if (session('admin')) {
-            $cacheKey = 'allAuthNode_' . session('admin.id');
+            $cacheKey = 'auth-node-list-' . session('admin.id');
             $allAuthNode = Cache::get($cacheKey);
             if (empty($allAuthNode)) {
                 $allAuthIds = $this->getRules(session('admin.group_id'));
-                $allAuthNode = AuthRule::where('status', 1)->whereIn('id', $allAuthIds)->cache($cacheKey)->column('href', 'href');
-                foreach ($allAuthNode as $k => $v) {
-                    $allAuthNode[$k] = (parse_name($v, 1));
-                }
-                $allAuthNode = array_flip($allAuthNode);
+                $allAuthNode = db_cache($cacheKey,function()use($allAuthIds,$cacheKey){
+                    $authNode = AuthRule::where('status', 1)->whereIn('id', $allAuthIds)->cache($cacheKey)->column('href', 'href');
+                    foreach ($authNode as $k => $v) {
+                        $authNode[$k] = (parse_name($v, 1));
+                    }
+                    return array_flip( $authNode);
+                });
+                Cache::set($cacheKey, $allAuthNode,3600);
+                
             }
         }
         return $allAuthNode;
@@ -242,7 +246,10 @@ class AuthService extends AbstractService
                 ['href','=', $this->requesturl],
                 ['module','=', $this->app]
             ];
-            $this->hrefId = AuthRule::where($map)->where('status', 1)->value('id');
+            $cache_key = 'get-rule-id-by-href-'.md5(json_encode($map));
+            $this->hrefId = db_cache($cache_key,function()use($map){
+                return AuthRule::where($map)->where('status', 1)->value('id');
+            });
             $hrefTemp = trim($this->requesturl, '/');
             $menuid = 0;
             if (Str::endsWith($hrefTemp, '/index')) {
@@ -250,7 +257,10 @@ class AuthService extends AbstractService
                     ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
                     ['module', '=', $this->app]
                 ];
-                $menuid = AuthRule::where($where)->where('status', 1)->value('id');
+                $cache_key = 'get-rule-id-by-href-'.md5(json_encode($where));
+                $menuid = db_cache($cache_key,function()use($where){
+                    return AuthRule::where($where)->where('status', 1)->value('id');
+                });
             }
             if ($menuid) $this->hrefId = $menuid;
             //当前管理员权限
@@ -258,7 +268,7 @@ class AuthService extends AbstractService
             //用户权限规则id
             $this->adminRules = array_unique(array_filter(explode(',', $rules)));
             if ($this->hrefId) {
-                if (!in_array($this->hrefId, $this->adminRules)) $this->error(lang('Permission Denied'));
+                if (!in_array($this->hrefId,  $this->adminRules)) $this->error(lang('Permission Denied'));
             }
         }
     }
@@ -568,8 +578,9 @@ class AuthService extends AbstractService
         } else {
             //这一句有长度限制
 //            $rules  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('group_concat(rules)')->value('group_concat(rules)');
-            $rules = db_cache('auth-group-rules',function() use ($groups){
-                $data  = AuthGroupModel::where('id', 'in', condition: $groups)->where('status', 1)->field('rules')->select();
+            $key = 'auth-group-rules-'.implode(',',$groups);
+            $rules = db_cache($key,function() use ($groups){
+                $data  = AuthGroupModel::where('id', 'in',  $groups)->where('status', 1)->field('rules')->select();
                 $rules = '';
                 foreach ($data as $rule) {
                     $rules .=$rule['rules'].',';
@@ -641,15 +652,18 @@ class AuthService extends AbstractService
      */
     public function getAllIdsBypid($pid)
     {
-        $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
-        $ids = [];
-        if (!empty($res)) {
-            foreach ($res as $v) {
-                $ids[] = $v['id'];
-                $ids = array_merge($ids, explode(',', $this->getAllIdsBypid($v['id'])));
+        $res = db_cache('get-rule-ids-by-pid-'.$pid,function()use($pid){
+            $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
+            $ids = [];
+            if (!empty($res)) {
+                foreach ($res as $v) {
+                    $ids[] = $v['id'];
+                    $ids = array_merge($ids, explode(',', $this->getAllIdsBypid($v['id'])));
+                }
             }
-        }
-        return implode(',', array_filter($ids));
+            return implode(',', array_filter($ids));
+        });
+        return $res;
     }
 
 
