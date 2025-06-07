@@ -752,7 +752,6 @@ define(['timePicker'], function (timePicker) {
                         cls = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;cls = 'class="' + cls + '"';
                         cls = cls.replaceAll('layui-btn-sm','');
                         var dataAttr = '';
-                        console.log(vv);
                         layui.each(vv, function (j, jj) {
                             if(j!=='callback'){
                                 if(j==='event'){
