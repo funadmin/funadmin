@@ -101,7 +101,7 @@ trait Attribute
      */
     public function getPk()
     {
-        return $this->getOption('pk');
+        return $this->getOption('pk', 'id');
     }
 
     /**
@@ -199,9 +199,10 @@ trait Attribute
             if (class_exists($type) && !($value instanceof $type)) {
                 if (is_subclass_of($type, Typeable::class)) {
                     $value = $type::from($value, $model);
-                    if ($value instanceof DateTime && $param) {
+                    if ($param && $value instanceof DateTime) {
+                        // 设置时间输出格式
                         $value->setFormat($param);
-                    }                    
+                    }
                 } elseif (is_subclass_of($type, FieldTypeTransform::class)) {
                     $value = $type::get($value, $model);
                 } elseif (is_subclass_of($type, BackedEnum::class)) {
@@ -560,7 +561,7 @@ trait Attribute
             return $value;
         }
 
-        if (!array_key_exists($name, $this->getData())) {
+        if (!array_key_exists($name, $this->getData()) && !array_key_exists($name, $this->getFields())) {
             // 动态获取关联数据
             $value = $this->getRelationData($name) ?: null;
         } else {

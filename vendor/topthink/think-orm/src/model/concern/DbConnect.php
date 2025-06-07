@@ -42,7 +42,6 @@ trait DbConnect
 
         return $db->schema($this->getOption('schema'))
             ->pk($this->getPk())
-            ->autoInc($this->getOption('autoInc'))
             ->suffix($this->getOption('suffix'))
             ->setKey($this->getKey())
             ->replace($this->getOption('replace', false))
@@ -87,13 +86,9 @@ trait DbConnect
             $db     = $this->initDb();
             $fields = $db->getFieldsType();
             $schema = array_merge($fields, $this->getOption('type', []));
-            // 获取主键和自增字段
+            // 获取主键
             if (!$this->getOption('pk')) {
                 $this->setOption('pk', $db->getPk());
-            }
-
-            if (!$this->getOption('autoInc')) {
-                $this->setOption('autoInc', $db->getAutoInc());
             }
 
             $this->setOption('schema', $schema);

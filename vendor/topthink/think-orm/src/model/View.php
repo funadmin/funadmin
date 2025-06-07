@@ -50,23 +50,30 @@ abstract class View extends Entity
         if ($this->isEmpty()) {
             return ;
         }
-        $data       = $this->model()->getData();
+        // 获取属性映射关系
         $properties = $this->getEntityPropertiesMap();
+        $data       = $this->model()->getData();
         foreach ($properties as $key => $field) {
             if (is_int($key)) {
+                // 主模型同名属性
                 $this->$field = $this->fetchViewAttr($field, $data);
             } elseif (strpos($field, '->')) {
+                // 关联属性或JSON字段映射
                 $this->$key = $this->getRelationMapAttr($field, $data);
             } else {
+                // 主模型属性映射
                 $this->$key = $this->fetchViewAttr($field, $data);
             }
         }
+        // 标记数据存在
+        $this->exists(true);
     }
 
     /**
-     * 获取关联映射的属性值.
+     * 获取关联或JSON字段映射的属性值.
      *
      * @param string $field 视图属性
+     * @param array  $data  模型数据
      *
      * @return mixed
      */
@@ -76,7 +83,6 @@ abstract class View extends Entity
         $value    = null;
         $relation = array_shift($items);
         if (isset($data[$relation])) {
-            // 存在关联数据
             $value = $this->model()->$relation;
             foreach ($items as $item) {
                 if (is_array($value)) {
@@ -93,6 +99,7 @@ abstract class View extends Entity
      * 获取视图属性值（支持视图获取器）.
      *
      * @param string $field 视图属性
+     * @param array  $data  模型数据
      *
      * @return mixed
      */
@@ -107,22 +114,35 @@ abstract class View extends Entity
             // 获取主模型数据（支持获取器）
             $value = $model->$field;
         } else {
-            // 获取关联模型数据
-            $mapping   = $this->getOption('viewMapping', []);
-            $relations = $this->getOption('autoMapping', []);
-            $value     = null;
-            foreach ($relations as $relation) {
-                if (isset($data[$relation]) && $model->$relation->hasData($field)) {
-                    $value = $model->$relation->$field;
-                    if (!isset($mapping[$field])) {
-                        $mapping[$field] = $relation . '->' . $field;
-                        $this->setOption('viewMapping', $mapping);
-                    }
-                    break;
-                }
-            }
+            // 获取自动映射的属性数据
+            $value = $this->getAutoRelationValue($field, $data);
         }
         return $value;
+    }
+
+    /**
+     * 获取autoMapping自动映射的视图属性值.
+     *
+     * @param string $field 视图属性
+     * @param array  $data  模型数据
+     *
+     * @return mixed
+     */
+    private function getAutoRelationValue(string $field, array $data)
+    {
+        $mapping   = $this->getOption('viewMapping', []);
+        $relations = $this->getOption('autoMapping', []);
+        foreach ($relations as $relation) {
+            if (isset($data[$relation]) && $this->model()->$relation->hasData($field)) {
+                $value = $this->model()->$relation->$field;
+                if (!isset($mapping[$field])) {
+                    $mapping[$field] = $relation . '->' . $field;
+                    $this->setOption('viewMapping', $mapping);
+                }
+                break;
+            }
+        }
+        return $value ?? null;
     }
 
     /**
@@ -149,13 +169,17 @@ abstract class View extends Entity
     {
         $properties = $this->getOption('view_properties');
         if (empty($properties)) {
+            // 获取实体属性列表
             $fields     = $this->getEntityProperties();
+            // 获取属性映射列表
             $mapping    = $this->getOption('viewMapping', []);
             $properties = [];
             foreach ($fields as $field) {
                 if (isset($mapping[$field])) {
+                    // 映射属性
                     $properties[$field] = $mapping[$field];
                 } else {
+                    // 主模型同名属性
                     $properties[] = $field;
                 }
             }
@@ -166,31 +190,33 @@ abstract class View extends Entity
     }
 
     /**
-     * 获取视图模型的完整映射属性（包括解析autoMapping的自动映射）
+     * 解析autoMapping的字段映射
      *
      * @return array
      */
-    protected function getViewMapWithRelation(): array
+    protected function parseAutoMapping(): array
     {
-        $relations = $this->getOption('autoMapping', []);
-        $mapping   = $this->getOption('viewMapping', []);
-        array_unshift($relations, $this->model());
-        $fields    = $this->getEntityProperties();
-        foreach ($fields as $field) {
-            if (!isset($mapping[$field]) && $relations) {
-                foreach ($relations as $relation) {
-                    if (is_object($relation)) {
-                        if ($relation->getFieldType($field)) {
+        $fields     = $this->getEntityProperties();
+        $mapping    = $this->getOption('viewMapping', []);
+        $relations  = $this->getOption('autoMapping', []);
+        if ($relations) {
+            array_unshift($relations, $this->model());
+            foreach ($fields as $field) {
+                if (!isset($mapping[$field])) {
+                    foreach ($relations as $relation) {
+                        if (is_object($relation)) {
+                            if ($relation->getFieldType($field)) {
+                                break;
+                            }
+                        } elseif ($this->model()->$relation()->getFieldType($field)) {
+                            $mapping[$field] = $relation . '->' . $field;
                             break;
                         }
-                    } elseif ($this->model()->$relation()->getFieldType($field)) {
-                        $mapping[$field] = $relation . '->' . $field;
-                        break;
                     }
                 }
             }
+            $this->setOption('viewMapping', $mapping);
         }
-        $this->setOption('viewMapping', $mapping);
         return $mapping;
     }
 
@@ -213,11 +239,15 @@ abstract class View extends Entity
     /**
      * 设置视图模型数据
      *
-     * @param array $data 数据
+     * @param array|object $data 数据
      * @return $this
      */
-    public function data(array $data)
+    public function data(array | object $data)
     {
+        // 处理对象数据
+        if (is_object($data)) {
+            $data = get_object_vars($data);
+        }
         // 数据验证
         $data = $this->validate($data);
         foreach ($this->getEntityProperties() as $field) {
@@ -247,6 +277,7 @@ abstract class View extends Entity
         foreach ($this->getEntityProperties() as $field) {
             $this->$field = null;
         }
+        $this->exists(false);
         return $this;
     }
 
@@ -385,43 +416,55 @@ abstract class View extends Entity
     }
 
     /**
-     * 视图模型数据转换为模型数据（用于写入）.
+     * 视图模型数据转换为模型数据（用于写入 暂不支持子关联写入）.
      *
      * @return array
      */
     protected function convertData(): array
     {
-        // 获取实体属性
+        // 获取属性映射
         $properties = $this->getEntityPropertiesMap();
-        $mapping    = $this->getOption('viewMapping', []);
         $data       = $this->getData();
         $item       = [];
         $together   = [];
+        $array      = [];
         foreach ($properties as $key => $field) {
             if (strpos($field, '->')) {
-                $fields     = explode('->', $field);
-                $together[] = current($fields);
-                $last       = array_pop($fields);
-                $target     = $this->model();
-                foreach ($fields as $attr) {
-                    $target = $target?->$attr;
+                if (!isset($data[$key]) || substr_count($field, '->') > 1) {
+                    // 排除空值 以及 多级关联属性值
+                    continue;
                 }
-                if ($target) {
-                    $target->$last = $data[$key];
+                [$relation, $field] = explode('->', $field);
+                if ('json' == $this->model()->getFieldType($relation)) {
+                    // JSON数据赋值
+                    $array[$relation][$field] = $data[$key];
+                } else {
+                    // 关联数据赋值
+                    $together[] = $relation;
+                    if ($this->model()->hasData($relation)) {
+                        // 关联更新
+                        $this->model()->$relation->$field = $data[$key];
+                    } else {
+                        // 新增关联
+                        $array[$relation][$field] = $data[$key];
+                    }
                 }
-            } elseif (is_int($key) && isset($mapping[$field])) {
-                [$relation] = explode('->', $mapping[$field]);
-                $together[] = $relation;
-                $this->model()->$relation->$field = $data[$field];
             } else {
-                $item[$field] =  $data[is_int($key) ? $field : $key];
+                $value =  $data[is_int($key) ? $field : $key];
+                if (isset($value)) {
+                    $item[$field] = $value;
+                }
             }
+        }
+
+        // 关联数据或JSON数据封装
+        foreach ($array as $relation => $val) {
+            $this->model()->$relation = $val;
         }
 
         if (!empty($together)) {
             // 自动关联写入
-            $together = array_unique($together);
-            $this->model()->together($together);
+            $this->model()->together(array_unique($together));
         }
         return $item;
     }
@@ -448,12 +491,41 @@ abstract class View extends Entity
     }
 
     /**
-     * 保存模型实例数据.
+     * 设置数据是否存在.
+     *
+     * @param bool $exists
+     *
+     * @return $this
+     */
+    public function exists(bool $exists = true)
+    {
+        return $this->setOption('exists', $exists);
+    }
+
+    /**
+     * 判断数据是否存在数据库.
      *
      * @return bool
      */
-    public function save(): bool
+    public function isExists(): bool
     {
+        return $this->getOption('exists', false);
+    }
+
+    /**
+     * 保存模型实例数据.
+     *
+     * @param array|object $data 数据
+     * @param mixed $where 更新条件 true为强制新增
+     * @param bool  $refresh  是否刷新数据
+     * @return bool
+     */
+    public function save(array | object $data = [], $where = [], bool $refresh = false): bool
+    {
+        if ($data) {
+            $this->data($data);
+        }
+
         // 根据映射关系转换为实际模型数据
         $data = $this->convertData();
         // 处理自动时间字段数据
@@ -461,7 +533,15 @@ abstract class View extends Entity
             unset($data[$field]);
         }
 
-        return $this->model()->save($data);
+        $result = $this->model()
+            ->exists($this->isExists())
+            ->save($data, $where, $refresh);
+
+        if ($result) {
+            // 刷新数据
+            $this->refresh();
+        }
+        return $result;
     }
 
     /**
@@ -488,9 +568,8 @@ abstract class View extends Entity
     public static function create(array | object $data)
     {
         $entity = new static();
-        $model  = $entity->model()->exists(false)->save($data, true);
-        // 刷新视图模型数据
-        return $entity->refresh();
+        $entity->exists(false)->save($data, true);
+        return $entity;
     }
 
     /**
@@ -498,15 +577,42 @@ abstract class View extends Entity
      *
      * @param array|object  $data 数据
      * @param mixed  $where       更新条件
-     * @param array  $allowField  允许字段
      * @return static
      */
-    public static function update(array | object $data, $where = [], array $allowField = [])
+    public static function update(array | object $data, $where = [])
     {
         $entity = new static();
-        $model  = $entity->model()->allowField($allowField)->exists(true)->save($data, $where, true);
-        // 刷新视图模型数据
-        return $entity->refresh();
+        $entity->exists(true)->save($data, $where, true);
+        return $entity;
+    }
+
+    /**
+     * 数据集写入
+     *
+     * @param iterable $dataSet 数据集
+     * @param bool     $replace 是否replace
+     *
+     * @return Collection
+     */
+    public static function saveAll(iterable $dataSet, bool $replace = true): Collection
+    {
+        $collection = [];
+        foreach ($dataSet as $data) {
+            $entity = new static();
+            $pk     = $entity->getPk();
+            if ($replace) {
+                $exists = true;
+                foreach ((array) $pk as $field) {
+                    if (is_string($field) && !isset($data[$field])) {
+                        $exists = false;
+                    }
+                }
+                $entity->exists($exists);
+            }
+            $entity->save($data, !$replace, true);
+            $collection[] = $entity;
+        }
+        return new Collection($collection);
     }
 
     /**
@@ -604,11 +710,11 @@ abstract class View extends Entity
     {
         $entity = new static();
         $model  = $entity->model();
-        if (in_array($method, ['destroy', 'saveAll'])) {
+        if (in_array($method, ['destroy'])) {
             $db = $model;
         } else {
             // 处理映射字段的查询
-            $map   = $entity->getViewMapWithRelation();
+            $map   = $entity->parseAutoMapping();
             $alias = Str::snake(class_basename($model));
             $db    = $model->db()->alias($alias)->via($alias)->fieldMap($map);
         }

@@ -143,7 +143,7 @@ class Query extends BaseQuery
      */
     public function batchQuery(array $sql = []): bool
     {
-        return $this->connection->batchQuery($this, $sql);
+        return $this->connection->batchQuery($sql);
     }
 
     /**

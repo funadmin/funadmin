@@ -304,7 +304,8 @@ abstract class PDOConnection extends Connection
             str_starts_with($type, 'set')           => 'set',
             str_starts_with($type, 'enum')          => 'enum',
             str_starts_with($type, 'bigint')        => 'bigint',
-            str_contains($type, 'float') || str_contains($type, 'double') || str_contains($type, 'real') || str_contains($type, 'numeric')          => 'float',
+            str_contains($type, 'float') || str_contains($type, 'double') || 
+            str_contains($type, 'real')             => 'float',
             str_contains($type, 'int') || str_contains($type, 'serial') ||
             str_contains($type, 'bit')              => 'int',
             str_contains($type, 'bool')             => 'bool',
@@ -685,7 +686,8 @@ abstract class PDOConnection extends Connection
      */
     public function query(string $sql, array $bind = [], bool $master = false): array
     {
-        return $this->pdoQuery($this->newQuery()->bind($bind), $sql, $master);
+        $this->getPDOStatement($sql, $bind, $master);
+        return $this->getResult();
     }
 
     /**
@@ -700,7 +702,25 @@ abstract class PDOConnection extends Connection
      */
     public function execute(string $sql, array $bind = []): int
     {
-        return $this->pdoExecute($this->newQuery()->bind($bind), $sql, true);
+        $this->getPDOStatement($sql, $bind, true);
+        return $this->PDOStatement->rowCount();
+    }
+
+    /**
+     * 获取最近插入的ID.
+     * @param string    $sequence 自增序列名
+     *
+     * @return mixed
+     */
+    public function getAutoID(?string $sequence = null)
+    {
+        try {
+            $insertId = $this->linkID->lastInsertId($sequence);
+        } catch (\Exception $e) {
+            $insertId = '';
+        }
+
+        return $insertId;
     }
 
     /**
@@ -1659,19 +1679,18 @@ abstract class PDOConnection extends Connection
      * 批处理执行SQL语句
      * 批处理的指令都认为是execute操作.
      *
-     * @param BaseQuery $query    查询对象
      * @param array     $sqlArray SQL批处理指令
      *
      * @return bool
      */
-    public function batchQuery(BaseQuery $query, array $sqlArray = []): bool
+    public function batchQuery(array $sqlArray = []): bool
     {
         // 自动启动事务支持
         $this->startTrans();
 
         try {
             foreach ($sqlArray as $sql) {
-                $this->pdoExecute($query, $sql);
+                $this->execute($sql);
             }
             // 提交事务
             $this->commit();
@@ -1746,13 +1765,7 @@ abstract class PDOConnection extends Connection
      */
     public function getLastInsID(BaseQuery $query, ?string $sequence = null)
     {
-        try {
-            $insertId = $this->linkID->lastInsertId($sequence);
-        } catch (\Exception $e) {
-            $insertId = '';
-        }
-
-        return $this->autoInsIDType($query, $insertId);
+        return $this->autoInsIDType($query, $this->getAutoID($sequence));
     }
 
     /**

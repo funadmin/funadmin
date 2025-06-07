@@ -164,8 +164,8 @@ class Admin extends Backend
                 $this->error(lang('operation failed'));
             }
         }
-        $list =  $this->modelClass->find($id);
-        $list->password = '';
+        $list =  $this->modelClass->find($id)->toArray();
+        $list['password'] = '';
         $auth_group = AuthGroupModel::where('status', 1)->select();
         if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
         $view = [
@@ -206,9 +206,9 @@ class Admin extends Backend
                 $this->error(lang('operation failed'));
             }
         }
-        $list =  $this->modelClass->find($id);
+        $list =  $this->modelClass->find($id)->toArray();
         if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
-        $list->password = '';
+        $list['password'] = '';
         $authGroup = $this->getAuthGroup();
         $view = [
             'formData'  =>$list,

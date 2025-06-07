@@ -385,8 +385,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
             $this->setKey($db->getLastInsID());
         } elseif ($refresh) {
             // 刷新数据
-            $data = $db->find()->getData();
-            $this->data($data);
+            $this->refresh();
         }
         $this->trigger($isUpdate ? 'AfterUpdate' : 'AfterInsert');
         $this->trigger('AfterWrite');
@@ -771,7 +770,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function __isset(string $name): bool
     {
-        return !is_null($this->get($name, false));
+        return !is_null($this->get($name));
     }
 
     /**
@@ -786,6 +785,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
         $name = $this->getRealFieldName($name);
 
         $this->setWeakData('data', $name, null);
+        $this->setWeakData('get', $name, null);
     }
 
     public function __toString()
@@ -827,6 +827,10 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function __unserialize(array $data) 
     {
+        if (!self::$weakMap) {
+            self::$weakMap = new WeakMap;
+        }
+
         self::$weakMap[$this] = $data;
         // 重新初始化
         $this->initialize();

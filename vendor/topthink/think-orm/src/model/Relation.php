@@ -224,11 +224,14 @@ abstract class Relation
      */
     protected function getQueryWhere(array &$where, string $relation): void
     {
+        if (array_is_list($where) && isset($where[0]) && is_string($where[0])) {
+            $where = [ $where ];
+        }
         foreach ($where as $key => &$val) {
             if (is_string($key)) {
                 $where[] = [!str_contains($key, '.') ? $relation . '.' . $key : $key, '=', $val];
                 unset($where[$key]);
-            } elseif (isset($val[0]) && !str_contains($val[0], '.')) {
+            } elseif (is_array($val) && isset($val[0]) && !str_contains($val[0], '.')) {
                 $val[0] = $relation . '.' . $val[0];
             }
         }

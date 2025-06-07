@@ -191,7 +191,7 @@ class BelongsTo extends OneToOne
         }
 
         $query->alias($alias)
-            ->via($model)
+            ->via($alias)
             ->field($fields)
             ->join([$table => $relAlias], $alias . '.' . $this->foreignKey . '=' . $relAlias . '.' . $this->localKey, $joinType);
 

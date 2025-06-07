@@ -168,7 +168,7 @@ define(['timePicker'], function (timePicker) {
                                 }else if(j==='extend'){
                                     if(typeof jj ==='string'){
                                         dataAttr+=" "+ jj +" ";
-                                    }else if(j==='object'){
+                                    }else if(typeof jj==='object'){
                                         dataAttr+=" data-"+j +"='"+JSON.stringify(jj)+"'";
                                     }
                                 }else if(j==='options'){
@@ -653,7 +653,6 @@ define(['timePicker'], function (timePicker) {
                 var ele = $(this)[0];init = ele.init;
                 d.primaryKey = ele.primaryKey ||'id';
                 d.primaryKeyValue = d[d.primaryKey];
-                var ele = $(this)[0];
                 ele.operat = ele.operat || ['edit', 'delete'];
                 var html = '';
                 var requests = init['requests'] || d.init['requests'];
@@ -752,6 +751,7 @@ define(['timePicker'], function (timePicker) {
                         cls = vv.class ? ' layui-btn layui-btn-xs '+vv.class  : vv.class;cls = 'class="' + cls + '"';
                         cls = cls.replaceAll('layui-btn-sm','');
                         var dataAttr = '';
+                        console.log(vv);
                         layui.each(vv, function (j, jj) {
                             if(j!=='callback'){
                                 if(j==='event'){
@@ -759,7 +759,7 @@ define(['timePicker'], function (timePicker) {
                                 }else if(j==='extend'){
                                     if(typeof jj ==='string'){
                                         dataAttr+=" "+ jj +" ";
-                                    }else if(j==='object'){
+                                    }else if(typeof jj==='object'){
                                         dataAttr+=" data-"+j +"='"+JSON.stringify(jj)+"'";
                                     }
                                 }else if(j==='options'){
@@ -775,6 +775,7 @@ define(['timePicker'], function (timePicker) {
                                 }
                             }
                         })
+                        console.log(dataAttr);
                         if ( vv.hidden===false && (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId)))) {
                             html += '<button ' + title + cls + dataAttr +' >' + icon + '</button>'
                         }

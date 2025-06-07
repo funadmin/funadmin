@@ -185,7 +185,7 @@ trait RelationShip
     protected function getRelationData(string $name, bool $set = true)
     {
         $method = Str::camel($name);
-        if (method_exists($this, $method)) {
+        if (method_exists($this, $method) && !method_exists('think\Model', $method)) {
             $modelRelation = $this->$method();
             if ($modelRelation instanceof Relation) {
                 $value = $modelRelation->getRelation();

@@ -1177,12 +1177,14 @@ class Validate
             'boolean', 'bool' => in_array($value, [true, false, 'true', 'false', 0, 1, '0', '1'], true),
             'date'            => false !== strtotime($value),
             'activeUrl'       => checkdnsrr($value),
-            'number'          => ctype_digit((string) $value),
-            'alphaNum'        => ctype_alnum($value),
+            'number'          => is_numeric($value),
+            'alphaNum'        => ctype_alnum((string)$value),
             'array'           => is_array($value),
+            'integer', 'int'  => is_int($value),
+            'float'           => is_float($value),
             'string'          => is_string($value),
             'file'            => $value instanceof File,
-            'image'           => $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6]),
+            'image'           => $value instanceof File && in_array($this->getImageType($value->getRealPath()), [1, 2, 3, 6, 9, 10, 11, 14, 15, 17, 18]),
             'token'           => $this->token($value, '__token__', $data),
             default           => $call($value, $rule),
         };
@@ -1397,33 +1399,57 @@ class Validate
      */
     public function image($file, $rule): bool
     {
-        if (!($file instanceof File)) {
-            return false;
+        if (is_array($file)) {
+            foreach ($file as $item) {
+                if (!($item instanceof File) || !$this->checkImage($item, $rule)) {
+                    return false;
+                }
+            }
+            return true;
+        } elseif ($file instanceof File) {
+            return $this->checkImage($file, $rule);
         }
 
+        return false;        
+    }
+
+    /**
+     * 验证图片的宽高及类型
+     * @param mixed $file 上传文件
+     * @param mixed $rule 验证规则
+     * @return bool
+     */
+    public function checkImage($file, $rule): bool
+    {
         if ($rule) {
             $rule = explode(',', $rule);
 
-            [$width, $height, $type] = getimagesize($file->getRealPath());
-
-            if (isset($rule[2])) {
+            if (0 === strpos($rule[0], 'type=')) {
+                $type      = array_shift($rule);
+                $imageType = substr($type, 5);
+            } elseif (isset($rule[2])) {
                 $imageType = strtolower($rule[2]);
+            }
 
+            [$width, $height, $type] = getimagesize($file->getRealPath());
+            if (isset($imageType)) {
                 if ('jpg' == $imageType) {
                     $imageType = 'jpeg';
                 }
 
-                if (image_type_to_extension($type, false) != $imageType) {
+                if (image_type_to_extension($type, false) != strtolower($imageType)) {
                     return false;
                 }
             }
 
-            [$w, $h] = $rule;
-
-            return $w == $width && $h == $height;
+            if (count($rule) > 1) {
+                [$w, $h] = $rule;
+                return $w == $width && $h == $height;
+            }
+            return true;
         }
 
-        return in_array($this->getImageType($file->getRealPath()), [1, 2, 3, 6]);
+        return in_array($this->getImageType($file->getRealPath()), [1, 2, 3, 6, 9, 10, 11, 14, 15, 17, 18]);
     }
 
     /**
