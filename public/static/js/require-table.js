@@ -33,6 +33,7 @@ define(['timePicker'], function (timePicker) {
             options.defaultToolbar = options.defaultToolbar || ['filter', 'exports', 'print',];
             if (options.search) {
                 options.defaultToolbar.push({
+                    name: __("Search"), // name
                     title: __("Search"),
                     layEvent: 'TABLE_SEARCH',
                     icon: 'layui-icon-search',
