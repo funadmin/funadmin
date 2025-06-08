@@ -344,6 +344,7 @@ if (!function_exists('isLogin')) {
             \think\facade\Cookie::set('mid', session('member.id'));//跨域
             return session('member');
         } else if(!empty(\think\facade\Cookie::get('mid'))) {
+            $mid = \think\facade\Cookie::get('mid');
             $member = db_cache('member-user',function()use($mid){
                 return \app\common\model\Member::withoutField('password')->find(Cookie::get('mid'));
             });
