@@ -579,17 +579,25 @@ if (!function_exists('importsql')) {
  * @return  boolean
  */
 if (!function_exists('uninstallsql')) {
-     function uninstallsql($name)
+    function uninstallsql($name)
     {
         $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath(); // 插件列表
         $sqlFile = $addons_path . $name . DS . 'uninstall.sql';
         if (is_file($sqlFile)) {
             $sql = file_get_contents($sqlFile);
+            $sql = preg_replace([
+                '/^--.*$/m',     // 删除注释行
+                '/^\s*$/m'
+                ,'/\n+/'      // 删除空行
+            ], '', $sql);
+            $sql = preg_replace('/\n+/', "\n", $sql);
+            $sql = trim($sql);
             $sql = str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'),$sql);
-            $sql = array_filter(explode("\r\n",$sql));
+            $sql = array_filter(explode(";",$sql));
             foreach ($sql as $k=>$v){
                 try {
+                    $v  = $v.';';
                     Db::execute($v);
                 } catch (\Exception $e) {
                     throw new Exception($e->getMessage());
