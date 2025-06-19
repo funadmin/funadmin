@@ -67,7 +67,7 @@ trait Curd
                 "\\app\\common\\model\\{$modelName}"
             ];
             foreach ($modelPaths as $modelClass) {
-                if (class_exists(class: $modelClass)) {
+                if (class_exists($modelClass)) {
                     $this->modelClass = new $modelClass();
                     break;
                 }
