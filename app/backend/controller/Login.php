@@ -37,10 +37,8 @@ class Login extends Backend {
     public function index(){
         if (!$this->request->isPost()) {
             $admin= session('admin');
-            $admin_sign= session('admin.token') == SignHelper::authSign($admin) ? $admin['id'] : 0;
-            // 签名验证是否存在
-            if ($admin && $admin_sign) {
-                $this->redirect(__u('/index/index'));
+            if ($admin) {
+                $this->redirect(__u('index/index'));
             }
             $bg = hook('bgHook')?hook('bgHook'):'/static/backend/images/admin-bg.jpg';
             $view = ['bg'=>$bg];
