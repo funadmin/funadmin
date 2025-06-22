@@ -40,7 +40,7 @@ class Login extends Backend {
             if ($admin) {
                 $this->redirect(__u('index/index'));
             }
-            $bg = hook('bgHook')?hook('bgHook'):'/static/backend/images/admin-bg.jpg';
+            $bg = hook_one('bgHook')?hook_one('bgHook'):'/static/backend/images/admin-bg.jpg';
             $view = ['bg'=>$bg];
             return view('',$view);
         } else {
