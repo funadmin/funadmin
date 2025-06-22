@@ -190,6 +190,8 @@ class Admin extends Backend
         $id = $this->request->param('id');
         if ($this->request->isPost()) {
             $post = $this->request->post();
+            $rule = ['group_id'=>'require','username'=>'require','realname'=>'require'];
+            $this->validate($post, $rule);
             if(session('admin.id'))
             if($post['password']){
                 $post['password'] = password($post['password']);

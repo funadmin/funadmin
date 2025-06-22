@@ -53,6 +53,9 @@
                             <div class="layui-tab-item layui-show">
                                 <form class="layui-form" lay-filter="form">
                                     {:form_input('username','text',['verify'=>'required','disabled'=>true,])}
+                                    {if request()->action()=='edit'}
+                                    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>1],'id,ltitle',$formData['group_id']??'')}
+                                    {/if}
                                     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
                                     {:form_input('password','password',['verify'=>'','tips'=>'If you do not fill in, you will not change the password'])}
                                     {:form_upload('avatar',['mime'=>'images'],$formData['avatar']??'')}
