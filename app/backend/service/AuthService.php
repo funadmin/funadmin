@@ -588,6 +588,7 @@ class AuthService extends AbstractService
         } else {
             //这一句有长度限制
 //            $rules  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('group_concat(rules)')->value('group_concat(rules)');
+            $groups = is_string($groups)?explode(',', $groups):$groups;
             $key = 'auth-group-rules-'.implode(',',$groups);
             $rules = db_cache($key,function() use ($groups){
                 $data  = AuthGroupModel::where('id', 'in',  $groups)->where('status', 1)->field('rules')->select();
