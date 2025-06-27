@@ -1822,8 +1822,6 @@ EOF;
             'creatable',
             'create',
             'skin',
-            'readonly',
-            'disabled',
             'style',
             'event',
         ];
@@ -1852,6 +1850,8 @@ EOF;
             // 处理value属性
             elseif ($key === 'value') {
                 $attr .= $key . "='" . $this->entities($val) . "' data-" . $key . "='" . $this->entities($val) . "' ";
+            } else if($key === 'disabled' || $key === 'readonly'){
+                $attr .= $key;
             }
         }
         // 处理剩余选项数据
