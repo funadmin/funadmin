@@ -1827,21 +1827,16 @@ EOF;
         ];
 
         // 需要跳过的属性列表
-        $skipAttributes = ['class', 'tips', 'css', 'label', 'outclass'];
+        $skipAttributes = ['class','style', 'tips', 'css', 'label', 'outclass'];
 
         foreach ($options as $key => $val) {
             // 跳过不需要处理的属性
             if (in_array($key, $skipAttributes)) {
                 continue;
             }
-
             // 处理特殊属性
             if (in_array( $key, $specialAttributes)) {
                 $attr .= $this->layAttr($key,$val);
-                // 对于style属性特殊处理，防止缺少break导致多次处理问题
-                if ($key === 'style') {
-                    continue;
-                }
             }
             // 处理placeholder属性
             elseif ($key === 'placeholder') {
