@@ -775,7 +775,6 @@ define(['timePicker'], function (timePicker) {
                                 }
                             }
                         })
-                        console.log(dataAttr);
                         if ( vv.hidden===false && (vv.node === false || (vv.node && Fun.checkAuth(vv.node, '#' + init.tableId)))) {
                             html += '<button ' + title + cls + dataAttr +' >' + icon + '</button>'
                         }
@@ -1090,7 +1089,8 @@ define(['timePicker'], function (timePicker) {
                 othis = $('[lay-event="import"]');
                 if(othis.length>0){
                     require(['upload'], function (Upload) {
-                        Upload.api.uploads(othis,{},
+                        var formObj;
+                        Upload.api.uploads(formObj,othis,{},
                             function (res) {
                                 if(res.code==0){
                                     Fun.toastr.error(res.msg);

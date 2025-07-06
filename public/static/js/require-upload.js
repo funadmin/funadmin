@@ -33,8 +33,16 @@ define([ 'croppers'], function(croppers) {
             },
         },
         api: {
-            uploads: function(ele,options,success,error,choose,progress) {
-                var uploadList = typeof ele === 'undefined' ? $('*[lay-filter="upload"]') : ele;
+            uploads: function(formObj,ele,options,success,error,choose,progress) {
+                if(typeof ele === 'undefined'){
+                    if(typeof formObj === 'undefined'){
+                        var uploadList = $('*[lay-filter="upload"]')
+                    }else{
+                        var uploadList = formObj.find('*[lay-filter="upload"]')
+                    }
+                }else{
+                    var uploadList = ele;
+                }
                 if (uploadList.length > 0) {
                     var opt = [];
                     //读取本地文件
@@ -58,7 +66,7 @@ define([ 'croppers'], function(croppers) {
                     layui.each(uploadList, function(i, v) {
                         //普通图片上传
                         var _t= $(this);
-                        var dataOptions = Fun.api.getElementData(this);
+                        var dataOptions = Fun.api.getElementData(_t);
                         var uploadNum = dataOptions.num,id= _t.prop('id') || dataOptions.id,
                             uploadMime = dataOptions.mime,acceptMime = dataOptions.acceptmime || '',
                             uploadAccept = dataOptions.accept,
@@ -271,14 +279,22 @@ define([ 'croppers'], function(croppers) {
                     })
                 }
             },
-            cropper: function(ele,options,success,error) {
-                var cropperlist = typeof ele === 'undefined' ? $('*[lay-filter="cropper"]') : ele;
+            cropper: function(formObj,ele,options,success,error) {
+                if(typeof ele === 'undefined'){
+                    if(typeof formObj === 'undefined'){
+                        var cropperlist = $('*[lay-filter="cropper"]')
+                    }else{
+                        var cropperlist = formObj.find('*[lay-filter="cropper"]')
+                    }
+                }else{
+                    var cropperlist = ele;
+                }
                 if (cropperlist.length > 0) {
                     var opt = [];
                     layui.each(cropperlist, function(i) {
                         //创建一个头像上传组件
                         var _t= $(this), _parent =_t.parents('.layui-upload'), id = _t.prop('id') || _t.data('id');
-                        var dataOptions = Fun.api.getElementData(this);
+                        var dataOptions = Fun.api.getElementData(_t);
                         var saveW = dataOptions.width || 300, saveH = dataOptions.height|| 300, mark = dataOptions.mark || 1,
                             area = dataOptions.area, uploadPath = dataOptions.path || 'upload';
                         opt[i] = $.extend({

@@ -14,7 +14,7 @@
                 //事件
                 events: {
                     events: function () {
-                        list = $("*[lay-event]");
+                        var list = $("*[lay-event]");
                         if (list.length > 0) {
                             layui.each(list, function () {
                                 $(this).click(function (e) {
@@ -38,86 +38,85 @@
                             })
                         }
                     },
-                    autocomplete: function (formObj) {
-                        Form.api.autocomplete(formObj)
+                    autocomplete: function (formObj, elem) {
+                        Form.api.autocomplete(formObj, elem)
                     },
-                    select: function (formObj) {
-                        Form.api.select(formObj)
+                    select: function (formObj, elem) {
+                        Form.api.select(formObj, elem)
                     },
-                    selects: function (formObj) {
-                        Form.api.selects(formObj);
+                    selects: function (formObj, elem) {
+                        Form.api.selects(formObj, elem);
                     },
-                    selectcx: function (formObj) {
-                        Form.api.selectcx(formObj)
+                    selectcx: function (formObj, elem) {
                     },
-                    selectpage: function (formObj) {
-                        Form.api.selectpage(formObj)
+                    selectpage: function (formObj, elem) {
+                        Form.api.selectpage(formObj, elem)
                     },
-                    xmselect: function (formObj) {
-                        Form.api.xmselect(formObj)
+                    xmselect: function (formObj, elem) {
+                        Form.api.xmselect(formObj, elem)
                     },
-                    editor: function (formObj) {
-                        Form.api.editor(formObj)
+                    editor: function (formObj, elem) {
+                        Form.api.editor(formObj, elem)
                     },
-                    tags: function (formObj) {
-                        Form.api.tags(formObj)
+                    tags: function (formObj, elem) {
+                        Form.api.tags(formObj, elem)
                     },
-                    icon: function (formObj) {
-                        Form.api.icon(formObj)
+                    icon: function (formObj, elem) {
+                        Form.api.icon(formObj, elem)
                     },
-                    color: function (formObj) {
-                        Form.api.color(formObj)
+                    color: function (formObj, elem) {
+                        Form.api.color(formObj, elem)
                     },
-                    city: function (formObj) {
-                        Form.api.city(formObj)
+                    city: function (formObj, elem) {
+                        Form.api.city(formObj, elem)
                     },
-                    timepicker: function (formObj) {
-                        Form.api.timepicker(formObj)
+                    timepicker: function (formObj, elem) {
+                        Form.api.timepicker(formObj, elem)
                     },
-                    datepicker: function (formObj) {
-                        Form.api.datepicker(formObj)
+                    datepicker: function (formObj, elem) {
+                        Form.api.datepicker(formObj, elem)
 
                     },
-                    date: function (formObj) {
-                        Form.api.date(formObj)
+                    date: function (formObj, elem) {
+                        Form.api.date(formObj, elem)
                     },
-                    rate: function (formObj) {
-                        Form.api.rate(formObj)
+                    rate: function (formObj, elem) {
+                        Form.api.rate(formObj, elem)
                     },
-                    slider: function (formObj) {
-                        Form.api.slider(formObj)
+                    slider: function (formObj, elem) {
+                        Form.api.slider(formObj, elem)
                     },
-                    formarray: function (formObj) {
-                        Form.api.formarray(formObj)
+                    formarray: function (formObj, elem) {
+                        Form.api.formarray(formObj, elem)
 
                     },
-                    uploads: function (formObj) {
-                        Upload.api.uploads();
+                    uploads: function (formObj, elem) { 
+                        Upload.api.uploads(formObj, elem);
                     },
-                    cropper: function (formObj) {
-                        Upload.api.cropper();
-                    },
-                    //选择文件
-                    choosefiles: function (formObj) {
-                        Form.api.chooseFiles(formObj)
+                    cropper: function (formObj, elem) {
+                        Upload.api.cropper(formObj, elem);
                     },
                     //选择文件
-                    selectfiles: function (formObj) {
-                        Form.api.selectFiles(formObj)
+                    choosefiles: function (formObj, elem) {
+                        Form.api.chooseFiles(formObj, elem)
                     },
-                    json:function (formObj){
-                        Form.api.json(formObj)
+                    //选择文件
+                    selectfiles: function (formObj, elem) {
+                        Form.api.selectFiles(formObj, elem)
                     },
-                    transfer:function (formObj){
-                        Form.api.transfer(formObj)
+                    json: function (formObj, elem) {
+                        Form.api.json(formObj, elem)
+                    },
+                    transfer: function (formObj, elem) {
+                        Form.api.transfer(formObj, elem)
                     },
                     //验证
-                    verifys: function (formObj) {
-                        Form.api.verifys(formObj)
+                    verifys: function (formObj, elem) {
+                        Form.api.verifys(formObj, elem)
                     },
                     //必填项
-                    required: function (formObj) {
-                        Form.api.required(formObj)
+                    required: function (formObj, elem) {
+                        Form.api.required(formObj, elem)
                     },
                     submit: function (formObj, success, error, submit) {
                         var formList = $("[lay-submit]");
@@ -126,8 +125,8 @@
                             layui.each(formList, function (i) {
                                 var filter = $(this).attr('lay-filter');
                                 var dataOptions = Fun.api.getElementData($(this));
-                                var type = dataOptions.type,refresh = dataOptions.refresh,
-                                url = dataOptions.request || dataOptions.url || $('form[lay-filter="' + filter + '"]').attr('action');
+                                var type = dataOptions.type, refresh = dataOptions.refresh;
+                                var url = dataOptions.request || dataOptions.url || $('form[lay-filter="' + filter + '"]').attr('action');
                                 // 表格搜索不做自动提交
                                 if (type === 'tableSearch') {
                                     return false;
@@ -271,8 +270,14 @@
                         return false;
                     },
                     //必填项
-                    required: function (formObj) {
-                        var vfList = $("[lay-verify]");
+                    required: function (formObj, elem) {
+                        elem = elem || '';
+                        var vfList;
+                        if(elem){
+                            vfList = elem;
+                        }else{
+                            vfList = formObj !== undefined ? formObj.find("[lay-verify]") : $("[lay-verify]");
+                        }
                         if (vfList.length > 0) {
                             layui.each(vfList, function () {
                                 var verify = $(this).attr('lay-verify');
@@ -294,7 +299,7 @@
                             $("div[lay-verify]").removeAttr('lay-verify');
                         }
                     },
-                    verifys: function (formObj) {
+                    verifys: function (formObj, elem) {
                         layui.form.verify({
                             user: function (value) { //value：表单的值、item：表单的DOM对象
                                 if (!new RegExp("^[a-zA-Z0-9_\u4e00-\u9fa5\\s·]+$").test(value)) {
@@ -354,8 +359,13 @@
                         });
                         return false;
                     },
-                    autocomplete: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='autoComplete']") : $("*[lay-filter='autoComplete']");
+                    autocomplete: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='autoComplete']") : $("*[lay-filter='autoComplete']");
+                        }
                         if (list.length > 0) {
                             require(['autoComplete'], function (autoComplete) {
                                 layui.each(list, function (i, v) {
@@ -405,8 +415,13 @@
                             })
                         }
                     },
-                    selects: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='selects']") : $("*[lay-filter='selects']");
+                    selects: function (formObj, ele) {
+                        ele = ele || '';
+                        if(ele){
+                            var list = ele;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='selects']") : $("*[lay-filter='selects']");
+                        }
                         if (list.length > 0) {
                             require(['selects'], function (selects) {
                                 selects = layui.selects || parent.layui.selects;
@@ -472,8 +487,13 @@
                             })
                         }
                     },
-                    select: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='select']") : $("*[lay-filter='select']");
+                    select: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='select']") : $("*[lay-filter='select']");
+                        }
                         // 生成选项HTML的通用函数
                         function getOptions(dataList, fields, selectedValue) {
                             var html = '<option value=""></option>';
@@ -542,10 +562,15 @@
                             }
                         });
                     },
-                    selectcx: function (formObj) {
-                        var selectcx = {},
-                        list = formObj !== undefined ? formObj.find("*[lay-filter='cxselect']") : $("*[lay-filter='cxselect']");
+                    selectcx: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='cxselect']") : $("*[lay-filter='cxselect']");
+                        }
                         if (list.length > 0) {
+                            var selectcx = {};
                             require(['cxSelect'],function(cxSelect){
                                 layui.each(list, function (i, v) {
                                     var _t = $(this);
@@ -571,8 +596,13 @@
                             })
                         }
                     },
-                    selectpage: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='selectPage']") : $("*[lay-filter='selectPage']");
+                    selectpage: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='selectPage']") : $("*[lay-filter='selectPage']");
+                        }
                         if (list.length > 0) {
                             require(["selectPage"], function (selectPage) {
                                 selectPage = layui.selectPage || parent.layui.selectPage;
@@ -638,8 +668,13 @@
                             })
                         }
                     },
-                    xmselect: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='xmSelect']") : ($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
+                    xmselect: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='xmSelect']") : ($("*[lay-filter='xmSelect']") || $("*[lay-filter='xmselect']"));
+                        }
                         if (list.length > 0) {
                             require(["xmSelect"], function (xmSelect) {
                                 layui.each(list, function (i) {
@@ -787,8 +822,13 @@
                             })
                         }
                     },
-                    editor: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='editor']") : $("*[lay-filter='editor']");
+                    editor: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='editor']") : $("*[lay-filter='editor']");
+                        }
                         if (list.length > 0) {
                             const useDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                             const isSmallScreen = window.matchMedia('(max-width: 1023.5px)').matches;
@@ -893,8 +933,13 @@
                             })
                         }
                     },
-                    tags: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='inputtags']") : $("*[lay-filter='inputtags']");
+                    tags: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='inputtags']") : $("*[lay-filter='inputtags']");
+                        }
                         if (list.length > 0) {
                             require(['inputTags'], function (inputTags) {
                                 layui.each(list, function () {
@@ -919,8 +964,13 @@
                             })
                         }
                     },
-                    icon: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='iconPicker']") : $("*[lay-filter='iconPicker']");
+                    icon: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='iconPicker']") : $("*[lay-filter='iconPicker']");
+                        }
                         if (list.length > 0) {
                             require(['iconPicker'], function (iconPicker) {
                                 layui.each(list, function () {
@@ -944,8 +994,13 @@
                             })
                         }
                     },
-                    color: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='colorPicker']") : $("*[lay-filter='colorPicker']");
+                    color: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='colorPicker']") : $("*[lay-filter='colorPicker']");
+                        }
                         if (list.length > 0) {
                             layui.each(list, function () {
                                 var _t = $(this);
@@ -968,8 +1023,13 @@
                             })
                         }
                     },
-                    city: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='cityPicker']") : $("*[lay-filter='cityPicker']");
+                    city: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='cityPicker']") : $("*[lay-filter='cityPicker']");
+                        }
                         if (list.length > 0) {
                             require(['cityPicker'], function (cityPicker) {
                                 cityPicker = layui.cityPicker;
@@ -1015,8 +1075,13 @@
                             })
                         }
                     },
-                    timepicker: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='timePicker']") : $("*[lay-filter='timePicker']");
+                    timepicker: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='timePicker']") : $("*[lay-filter='timePicker']");
+                        }
                         if (list.length > 0) {
                             require(['timePicker'], function (timePicker) {
                                 layui.each(list, function () {
@@ -1033,8 +1098,13 @@
                             })
                         }
                     },
-                    datepicker: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='datePicker']") : $("*[lay-filter='datePicker']");
+                    datepicker: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='datePicker']") : $("*[lay-filter='datePicker']");
+                        }
                         if (list.length > 0) {
                             layui.each(list, function () {
                                 var _t = $(this);
@@ -1220,8 +1290,13 @@
                             })
                         }
                     },
-                    date: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='date']") : $("*[lay-filter='date']");
+                    date: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='date']") : $("*[lay-filter='date']");
+                        }
                         if (list.length > 0) {
                             layui.each(list, function () {
                                 var _t = $(this);
@@ -1270,8 +1345,13 @@
                             })
                         }
                     },
-                    rate: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='rate']") : $("*[lay-filter='rate']");
+                    rate: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='rate']") : $("*[lay-filter='rate']");
+                        }
                         if (list.length > 0) {
                             layui.each(list, function (i) {
                                 var _t = $(this), id = _t.prop('id');
@@ -1304,8 +1384,13 @@
                             })
                         }
                     },
-                    slider: function (formObj) {
-                        var list = formObj !== undefined ? formObj.find("*[lay-filter='slider']") : $("*[lay-filter='slider']");
+                    slider: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var list = elem;
+                        }else{
+                            var list = formObj !== undefined ? formObj.find("*[lay-filter='slider']") : $("*[lay-filter='slider']");
+                        }
                         if (list.length > 0) {
                             layui.each(list, function (i) {
                                 var _t = $(this), id = _t.prop('id');
@@ -1353,7 +1438,8 @@
                             })
                         }
                     },
-                    formarray: function (formObj) {
+                    formarray: function (formObj, elem) {
+                        elem = elem || '';
                         formObj.on("click", ".form-array .del", function () {
                             var tr = $(this).parents('tr');
                             var lawtable = tr.parents('.layui-table');
@@ -1387,8 +1473,13 @@
                     /**
                      * 选择文件
                      */
-                    chooseFiles: function (formObj) {
-                        var fileChooseList = formObj !== undefined ? formObj.find("*[lay-filter='upload-choose']") : $("*[lay-filter='upload-choose']");
+                    chooseFiles: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var fileChooseList = elem;
+                        }else{
+                            var fileChooseList = formObj !== undefined ? formObj.find("*[lay-filter='upload-choose']") : $("*[lay-filter='upload-choose']");
+                        }
                         if (fileChooseList.length > 0) {
                             require(['tableSelect', 'table'], function (tableSelect, Table) {
                                 layui.each(fileChooseList, function (i, v) {
@@ -1491,8 +1582,13 @@
                     /**
                      * 选择文件
                      */
-                    selectFiles: function (formObj) {
-                        var fileSelectList = formObj !== undefined ? formObj.find("*[lay-filter='upload-select']") : $("*[lay-filter='upload-select']");
+                    selectFiles: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var fileSelectList = elem;
+                        }else{
+                            var fileSelectList = formObj !== undefined ? formObj.find("*[lay-filter='upload-select']") : $("*[lay-filter='upload-select']");
+                        }
                         if (fileSelectList.length > 0) {
                             layui.each(fileSelectList, function (i, v) {
                                 $(this).click(function (e) {
@@ -1580,8 +1676,13 @@
                     /**
                      * json
                      */
-                    json: function (formObj) {
-                        var jsonList = formObj !== undefined ? formObj.find("*[lay-filter='json']") : $("*[lay-filter='json']");
+                    json: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var jsonList = elem;
+                        }else{
+                            var jsonList = formObj !== undefined ? formObj.find("*[lay-filter='json']") : $("*[lay-filter='json']");
+                        }
                         if (jsonList.length > 0) {
                             require(['jsoneditor'],function(JSONEditor){
                                 layui.each(jsonList, function (i, v) {
@@ -1625,8 +1726,13 @@
                             })
                         }
                     },
-                    transfer: function (formObj) {
-                        var transferList = formObj !== undefined ? formObj.find("*[lay-filter='transfer']") : $("*[lay-filter='transfer']");
+                    transfer: function (formObj, elem) {
+                        elem = elem || '';
+                        if(elem){
+                            var transferList = elem;
+                        }else{
+                            var transferList = formObj !== undefined ? formObj.find("*[lay-filter='transfer']") : $("*[lay-filter='transfer']");
+                        }
                         if (transferList.length > 0) {
                             transfer = layui.transfer || parent.layui.transfer;
                             layui.each(transferList, function (i, v) {

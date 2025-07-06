@@ -66,6 +66,7 @@ class FormHelper
                 $extra[$kk[0]] = $kk[1];
             }
         }
+        $options['type'] = $data['type'];
         $options['verify'] = $options['verify'] ?? $data['verify'];
         $options['label'] = $options['label'] ?? $data['remark'];
         $value = $value ?: $data['value'];
@@ -826,7 +827,7 @@ EOF;
             return $this->selects($name, $select , $options, $attr, $value);
         }
         $options['selectList'] =  $select;
-        $options['filter'] = 'select';
+        $options['filter'] = $options['filter']??'select';
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
         if(!isset($options['search'])){
