@@ -476,7 +476,6 @@
                         var list = formObj !== undefined ? formObj.find("*[lay-filter='select']") : $("*[lay-filter='select']");
                         // 生成选项HTML的通用函数
                         function getOptions(dataList, fields, selectedValue) {
-                            console.log(dataList, fields, selectedValue)
                             var html = '<option value=""></option>';
                             if (!dataList) {
                                 return html;
