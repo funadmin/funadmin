@@ -31,6 +31,9 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
             }
             return url;
         },
+        fixurl: function (url) {
+            return fun.url(url);
+        },
         //替换ids
         replaceurl: function (url, d) {
             id = typeof d.primaryKeyValue !== 'undefined' ? d.primaryKeyValue : 0;

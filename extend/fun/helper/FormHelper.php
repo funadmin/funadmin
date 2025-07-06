@@ -748,7 +748,6 @@ EOF;
         if(!empty($options['required'])){
             $verify = true;
         }
-        $selects = json_encode($fields);
         foreach ($fields as $k=>$v){
             if($k!=0){
                 unset($options['selectList']);
@@ -826,33 +825,8 @@ EOF;
         if(isset($options['multiple'])){
             return $this->selects($name, $select , $options, $attr, $value);
         }
-        list($name, $id) = $this->getNameId($name, $options);
-        $value = $value??'';
-        $op = '';
-        if ($select) {
-            $attr = is_array($attr)?$attr:explode(',',$attr);
-            $attr = array_filter($attr);
-            $value = $value?(is_array($value)?$value:explode(',',$value)):[];
-            foreach ($select as $k => $v) {
-                $selected = '';
-                if (is_array($v) && !empty($attr) && in_array($v[$attr[0]], $value)) {
-                    $selected = 'selected';
-                }
-                if (in_array($k, $value) && empty($attr)) {
-                    $selected = 'selected';
-                }
-                if (!is_array($v)) {
-                    $op .= '<option ' . $selected . ' value="' . $k . '">' . $this->__($v) . '</option>';
-                }elseif (is_array($v) && !empty($attr)) {
-                    $op .= '<option ' . $selected . ' value="' . $v[$attr[0]] . '">' . $this->__($v[$attr[1]]) . '</option>';
-                }
-            }
-        }
-        if (isset($options['default'])) {
-            $default = $this->__($options['default']);
-        } else {
-            $default = $this->__('Select');
-        }
+        $options['selectList'] =  $select;
+        $options['filter'] = 'select';
         $attr = is_array($attr) ? implode(',', $attr) : $attr;
         $options['attr'] = $attr;
         if(!isset($options['search'])){
@@ -861,15 +835,10 @@ EOF;
         if(!isset($options['create'])){
             $options['create'] = true;
         }
-        if(!empty($options['url'])){
-            $options['filter'] = 'select';
-        }
         $str = <<<EOF
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
     <div class="layui-input-block">
       <select {$this->getDataPropAttr($name, $value, $options)} class="layui-select-url layui-select {$this->getClass($options)}"   >
-        <option value="">{$this->__($default)}</option>
-        {$op}
       </select>
       {$this->tips($options)}
     </div>
@@ -927,14 +896,7 @@ EOF;
             $options['create'] = true;
         }
         $options['selectList'] =  $select;
-        $str = <<<EOF
-<div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}
-    <div class="layui-input-block">
-        <input id="{$id}" name="{$name}" class="layui-input {$this->getClass($options)}"   {$this->readonlyOrdisabled($options)} {$this->getDataPropAttr($name, $value, $options)} placeholder="" />
-      {$this->tips($options)}
-    </div>
-</div>
-EOF;
+        $str = $this->input($name,  'text', $options);
 
         return $str;
     }
@@ -1824,6 +1786,8 @@ EOF;
             'skin',
             'style',
             'event',
+            'create',
+            'search',
         ];
 
         // 需要跳过的属性列表
@@ -1832,15 +1796,18 @@ EOF;
         foreach ($options as $key => $val) {
             // 跳过不需要处理的属性
             if (in_array($key, $skipAttributes)) {
+                unset($options[$key]);
                 continue;
             }
             // 处理特殊属性
             if (in_array( $key, $specialAttributes)) {
                 $attr .= $this->layAttr($key,$val);
+                unset($options[$key]);
             }
             // 处理placeholder属性
             elseif ($key === 'placeholder') {
                 $attr .= $key . '="' . $this->__($val) . '" ';
+                unset($options[$key]);
             }
             // 处理value属性
             elseif ($key === 'value') {

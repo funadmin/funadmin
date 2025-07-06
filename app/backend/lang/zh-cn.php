@@ -252,5 +252,6 @@ return [
     "modify failed"                             =>  '修改失败',
     'are you sure you want to close this window'=>  "确定关闭窗口吗？",
     'key'                                       =>  '键',
-    'Query'                                     =>  '参数'
+    'Query'                                     =>  '参数',
+    'The drop-down selection field is incorrect'=>  '下拉选择字段错误',
 ];

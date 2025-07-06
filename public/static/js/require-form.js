@@ -41,6 +41,9 @@
                     autocomplete: function (formObj) {
                         Form.api.autocomplete(formObj)
                     },
+                    select: function (formObj) {
+                        Form.api.select(formObj)
+                    },
                     selects: function (formObj) {
                         Form.api.selects(formObj);
                     },
@@ -469,6 +472,70 @@
                             })
                         }
                     },
+                    select: function (formObj) {
+                        var list = formObj !== undefined ? formObj.find("*[lay-filter='select']") : $("*[lay-filter='select']");
+                        // 生成选项HTML的通用函数
+                        function getOptions(dataList, fields, selectedValue) {
+                            var html = '<option value=""></option>';
+                            if (!dataList || !Array.isArray(dataList)) {
+                                return html;
+                            }
+                            if(!fields){
+                                dataList.forEach(function(key,item) {
+                                    var title = item;
+                                    var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
+                                    html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
+                                });
+                            }else{
+                                dataList.forEach(function(item) {
+                                    var key = item[fields[0]];
+                                    var title = item[fields[1]];
+                                    var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
+                                    html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
+                                });
+                                return html;
+                            }
+
+                        }
+                        $.each(list, function (i, v) {
+                            var _t = $(this);
+                            var dataOptions = Fun.api.getElementData(_t);
+                            var value = _t.val();
+                            var selectList = dataOptions.selectList || [];
+                            var attr = dataOptions.attr || 'id,title';
+                            var url = dataOptions.url || dataOptions.request ;
+                            
+                            // 清理属性字符串并分割
+                            var fields = attr.replace(/\s/g, "").split(',');
+
+                            if (fields.length !== 2) {
+                                return Fun.toastr.error(__('The drop-down selection field is incorrect'));
+                            }
+                            // 如果有本地数据，直接生成选项
+                            if (selectList && selectList.length > 0) {
+                                var html = getOptions(selectList, fields, value);
+                                _t.html(html);
+                                layui.form.render('select');
+                            } 
+                            // 如果没有本地数据但有URL，通过AJAX获取数据
+                            else if (url) {
+                                Fun.api.ajax({
+                                    method: 'get',
+                                    url: url,
+                                    data: {
+                                        selectFields: attr
+                                    },
+                                }, function (res) {
+                                    var html = getOptions(res.data, fields, value);
+                                    _t.html(html);
+                                    layui.form.render('select');
+                                }, function (error) {
+                                    console.error('获取选项数据失败:', error);
+                                    Fun.toastr.error('获取选项数据失败');
+                                });
+                            }
+                        });
+                    },
                     selectcx: function (formObj) {
                         var selectcx = {},
                         list = formObj !== undefined ? formObj.find("*[lay-filter='cxselect']") : $("*[lay-filter='cxselect']");
@@ -536,7 +603,7 @@
                                     var options = {
                                         showField: field, keyField: primaryKey, pageSize: pageSize,
                                         selectFields: searchField, searchKey: searchKey, isTree: isTree, isHtml: isHtml,
-                                        data: selectList || Fun.url(url), dbTable: dbTable, andOr: andOr, method: method,
+                                        data: selectList || fun.fixurl(url), dbTable: dbTable, andOr: andOr, method: method,
                                         //仅选择模式，不允许输入查询关键字
                                         selectOnly: selectOnly, verify: verify, selectToCloseList: selectToCloseList,
                                         //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
@@ -658,7 +725,7 @@
                                                 formatOp[props.name] = '%*%';
                                                 Fun.ajax({
                                                     method: 'get',
-                                                    url: Fun.url(url ? url : window.location.href),
+                                                    url: fun.fixurl(url ? url : window.location.href),
                                                     data: {
                                                         filter: JSON.stringify(formatFilter),
                                                         op: JSON.stringify(formatOp),
@@ -699,7 +766,7 @@
                                         }
                                         Fun.ajax({
                                             method: 'GET',
-                                            url: Fun.url(url ? url : window.location.href),
+                                            url: fun.fixurl(url ? url : window.location.href),
                                             data: searchData
                                         }, function (res) {
                                             window['xmselect-' + id].update({
@@ -726,7 +793,7 @@
                                 var name = _t.prop('name');
                                 var path = dataOptions.path;
                                 _t.html(window.FormArray[name]);
-                                var upload_url = (dataOptions.url ? dataOptions.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
+                                var upload_url = (dataOptions.url ? dataOptions.url : fun.fixurl(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
                                 if (dataOptions.editor == 'tinymce') {
                                     if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
                                         $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
@@ -1330,7 +1397,7 @@
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
                                     tableSelect = layui.tableSelect || parent.layui.tableSelect;
-                                    url = url ? url : Fun.url(Upload.init.requests.attach_url + '?' +
+                                    url = url ? url : fun.fixurl(Upload.init.requests.attach_url + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime + '&path=' + path + '&type=' + uploadType);
                                     tableSelect.render({
                                         elem: this,
@@ -1433,13 +1500,13 @@
                                     var token = _t.parents('form').find('input[name="__token__"]');
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
-                                    url = url ? url : Fun.url(Upload.init.requests.select_url + '?' +
+                                    url = url ? url : fun.fixurl(Upload.init.requests.select_url + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime +
                                         '&path=' + path + '&type=' + uploadType);
                                     var parentiframe = Fun.api.checkLayerIframe();
                                     options = {
                                         title: __('Filelist'), type: 2,
-                                        url: Fun.url(url), method: 'get',
+                                        url: fun.fixurl(url), method: 'get',
                                         success: function (layero, index) {
                                             var body = layui.layer.getChildFrame('body', index);
                                             if (parentiframe) {
@@ -1620,6 +1687,7 @@
                         events.datepicker(form);
                         events.editor(form);
                         events.formarray(form);
+                        events.select(form);
                         events.selectcx(form);
                         events.selectpage(form);
                         events.autocomplete(form);
