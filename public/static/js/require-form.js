@@ -476,26 +476,38 @@
                         var list = formObj !== undefined ? formObj.find("*[lay-filter='select']") : $("*[lay-filter='select']");
                         // 生成选项HTML的通用函数
                         function getOptions(dataList, fields, selectedValue) {
+                            console.log(dataList, fields, selectedValue)
                             var html = '<option value=""></option>';
-                            if (!dataList || !Array.isArray(dataList)) {
+                            if (!dataList) {
                                 return html;
                             }
-                            if(!fields){
-                                dataList.forEach(function(key,item) {
-                                    var title = item;
-                                    var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
-                                    html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
-                                });
-                            }else{
+                            
+                            // 处理数组格式的数据
+                            if (Array.isArray(dataList)) {  
                                 dataList.forEach(function(item) {
-                                    var key = item[fields[0]];
-                                    var title = item[fields[1]];
+                                    if (fields && fields.length >= 2) {
+                                        // 对象格式：{id: 1, title: 'xxx'}
+                                        var key = item[fields[0]];
+                                        var title = item[fields[1]];
+                                        var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
+                                        html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
+                                    } else {
+                                        // 简单数组格式：['value1', 'value2']
+                                        var selected = (selectedValue !== undefined && item.toString() === selectedValue) ? ' selected=""' : '';
+                                        html += '<option value="' + item + '"' + selected + '>' + item + '</option>';
+                                    }
+                                });
+                            } 
+                            // 处理对象格式的数据：{key1: 'value1', key2: 'value2'}
+                            else if (typeof dataList === 'object') {
+                                Object.keys(dataList).forEach(function(key) {
+                                    var title = dataList[key];
                                     var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
                                     html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
                                 });
-                                return html;
                             }
-
+                            
+                            return html;
                         }
                         $.each(list, function (i, v) {
                             var _t = $(this);
@@ -504,15 +516,10 @@
                             var selectList = dataOptions.selectList || [];
                             var attr = dataOptions.attr || 'id,title';
                             var url = dataOptions.url || dataOptions.request ;
-                            
                             // 清理属性字符串并分割
                             var fields = attr.replace(/\s/g, "").split(',');
-
-                            if (fields.length !== 2) {
-                                return Fun.toastr.error(__('The drop-down selection field is incorrect'));
-                            }
                             // 如果有本地数据，直接生成选项
-                            if (selectList && selectList.length > 0) {
+                            if (selectList) {
                                 var html = getOptions(selectList, fields, value);
                                 _t.html(html);
                                 layui.form.render('select');
@@ -603,7 +610,7 @@
                                     var options = {
                                         showField: field, keyField: primaryKey, pageSize: pageSize,
                                         selectFields: searchField, searchKey: searchKey, isTree: isTree, isHtml: isHtml,
-                                        data: selectList || fun.fixurl(url), dbTable: dbTable, andOr: andOr, method: method,
+                                        data: selectList || Fun.url(url), dbTable: dbTable, andOr: andOr, method: method,
                                         //仅选择模式，不允许输入查询关键字
                                         selectOnly: selectOnly, verify: verify, selectToCloseList: selectToCloseList,
                                         //关闭分页栏，数据将会一次性在列表中展示，上限200个项目
@@ -725,7 +732,7 @@
                                                 formatOp[props.name] = '%*%';
                                                 Fun.ajax({
                                                     method: 'get',
-                                                    url: fun.fixurl(url ? url : window.location.href),
+                                                    url: Fun.url(url ? url : window.location.href),
                                                     data: {
                                                         filter: JSON.stringify(formatFilter),
                                                         op: JSON.stringify(formatOp),
@@ -766,7 +773,7 @@
                                         }
                                         Fun.ajax({
                                             method: 'GET',
-                                            url: fun.fixurl(url ? url : window.location.href),
+                                            url: Fun.url(url ? url : window.location.href),
                                             data: searchData
                                         }, function (res) {
                                             window['xmselect-' + id].update({
@@ -793,7 +800,7 @@
                                 var name = _t.prop('name');
                                 var path = dataOptions.path;
                                 _t.html(window.FormArray[name]);
-                                var upload_url = (dataOptions.url ? dataOptions.url : fun.fixurl(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
+                                var upload_url = (dataOptions.url ? dataOptions.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
                                 if (dataOptions.editor == 'tinymce') {
                                     if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
                                         $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
@@ -1397,7 +1404,7 @@
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
                                     tableSelect = layui.tableSelect || parent.layui.tableSelect;
-                                    url = url ? url : fun.fixurl(Upload.init.requests.attach_url + '?' +
+                                    url = url ? url : Fun.url(Upload.init.requests.attach_url + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime + '&path=' + path + '&type=' + uploadType);
                                     tableSelect.render({
                                         elem: this,
@@ -1500,13 +1507,13 @@
                                     var token = _t.parents('form').find('input[name="__token__"]');
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
-                                    url = url ? url : fun.fixurl(Upload.init.requests.select_url + '?' +
+                                    url = url ? url : Fun.url(Upload.init.requests.select_url + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime +
                                         '&path=' + path + '&type=' + uploadType);
                                     var parentiframe = Fun.api.checkLayerIframe();
                                     options = {
                                         title: __('Filelist'), type: 2,
-                                        url: fun.fixurl(url), method: 'get',
+                                        url: Fun.url(url), method: 'get',
                                         success: function (layero, index) {
                                             var body = layui.layer.getChildFrame('body', index);
                                             if (parentiframe) {
