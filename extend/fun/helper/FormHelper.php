@@ -1850,8 +1850,13 @@ EOF;
         if (empty($options)) {
             return '';
         }
-        // 使用JSON_UNESCAPED_UNICODE确保中文不被转义
-        return " options='".json_encode($options, JSON_UNESCAPED_UNICODE)."'";
+        // 使用JSON_UNESCAPED_UNICODE确保中文不被转义，并添加错误处理
+        $jsonData = json_encode($options, JSON_UNESCAPED_UNICODE);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // 如果JSON编码失败，记录错误并返回空字符串
+            return '';
+        }
+        return " options='".htmlspecialchars($jsonData, ENT_QUOTES, 'UTF-8')."'";
     }
     /**
      * 获取值
