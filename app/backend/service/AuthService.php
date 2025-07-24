@@ -591,11 +591,11 @@ class AuthService extends AbstractService
             $groups = is_string($groups)?explode(',', $groups):$groups;
             $key = 'auth-group-rules-'.implode(',',$groups);
             $rules = db_cache($key,function() use ($groups){
-                $data  = AuthGroupModel::where('id', 'in',  $groups)->where('status', 1)->field('rules')->select();
-                $rules = '';
-                foreach ($data as $rule) {
-                    $rules .=$rule['rules'].',';
-                }
+                $rules = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->column('rules');// 获取所有组的权限规则ID
+                $rules = implode(',', $rules);// 获取用户组权限规则ID
+                $rules = array_unique(explode(',', $rules));// 转换成数组并去重
+                sort($rules);// 重新排序
+                $rules = implode(',', $rules);//重新组合成字符串
                 return $rules;
             });
             
