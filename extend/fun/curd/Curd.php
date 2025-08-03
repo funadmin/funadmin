@@ -160,9 +160,6 @@ class Curd extends Command
         'xor',
     ];
 
-
-
-
     protected function configure()
     {
         $this->setName('curd')
@@ -354,6 +351,7 @@ class Curd extends Command
                 . "ORDER BY ORDINAL_POSITION";
             $joinTables = $this->config['joinTable']??[];
             $joinArrData = [];
+            $langList = [];
             foreach ($joinTables as $k => &$joinTable) {
                 $joinTable = stripos($joinTable, $this->config['prefix']) === 0 ? substr($joinTable, strlen($this->config['prefix'])) : $joinTable;
                 if(!$this->tableExists($joinTable)){
@@ -393,6 +391,8 @@ class Curd extends Command
                 $modelAttrData = [];
                 $modelAttrData = $this->getModelAttrData($joinColumnList,'join');
                 $joinArr['priKey'] = $modelAttrData['primaryKey']??'id';
+                $joinArr['langList'] = $modelAttrData['langList']??[];
+                $langList = array_merge($langList,$joinArr['langList']);
                 $joinArrData[] = $joinArr;
                 $tableName= '';
                 if($joinArr['joinTable'] != Str::snake($joinArr['joinName']) ){
@@ -533,7 +533,8 @@ EOF;
                         'page' => $this->config['page']
                     ], 'js') : '',
             ];
-            $langArr['langList'] = implode(','.PHP_EOL,$modelAttrData['langList']);
+            $langList = array_unique(array_merge($modelAttrData['langList'],$langList));
+            $langArr['langList'] = implode(','.PHP_EOL,$langList);
             $this->makeFile('controller',$controllerArr,$controllerData['file'],'php');
             $this->makeFile('model',$modelArr,$modelData['file'],'php');
 //            $this->makeFile('validate',$validateArr,$validateData['file'],'php');
