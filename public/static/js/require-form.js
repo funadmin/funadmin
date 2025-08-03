@@ -620,10 +620,10 @@
                                         searchField = dataOptions.searchfield || field,
                                         searchKey = dataOptions.searchkey || primaryKey,
                                         orderBy = dataOptions.orderby || false,
-                                        method = dataOptions.method || 'GET', dbTable = dataOptions.dbtable??'',
+                                        method = dataOptions.method || 'GET', dbTable = dataOptions.dbtable || '',
                                         selectToCloseList = dataOptions.selecttocloselist || true,
                                         disabled = dataOptions.disabled || false,
-                                        andOr = dataOptions.andor??'', formatItem = dataOptions.formatitem || false,
+                                        andOr = dataOptions.andor || '', formatItem = dataOptions.formatitem || false,
                                         verify = _t.attr('lay-verify') || '';
                                     orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                     isHtml != undefined ? isHtml : true;
