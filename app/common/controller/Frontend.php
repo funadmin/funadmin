@@ -167,7 +167,7 @@ class Frontend extends BaseController
 
     /**
      * @param array $data
-     * @param array|string $validate
+     * @param mixed $validate
      * @param array $message
      * @param bool $batch
      * @return array|bool|string|true
