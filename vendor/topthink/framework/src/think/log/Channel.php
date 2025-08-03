@@ -26,15 +26,15 @@ class Channel implements LoggerInterface
 
     /**
      * 日志信息
-     * @var array
+     * @var array<LogRecord>
      */
-    protected $log = [];
+    protected array $log = [];
 
     /**
      * 关闭日志
      * @var bool
      */
-    protected $close = false;
+    protected bool $close = false;
 
     public function __construct(protected string $name, protected LogHandlerInterface $logger, protected array $allow, protected bool $lazy, protected Event $event)
     {
@@ -85,10 +85,11 @@ class Channel implements LoggerInterface
             $msg = strtr($msg, $replace);
         }
 
-        if (!empty($msg) || 0 === $msg) {
-            $this->log[$type][] = $msg;
+        if (!empty($msg)) {
+            $record      = new LogRecord($type, $msg);
+            $this->log[] = $record;
             if ($this->event) {
-                $this->event->trigger(new LogRecord($type, $msg));
+                $this->event->trigger($record);
             }
         }
 
@@ -114,7 +115,7 @@ class Channel implements LoggerInterface
 
     /**
      * 获取日志信息
-     * @return array
+     * @return array<LogRecord>
      */
     public function getLog(): array
     {
@@ -129,17 +130,15 @@ class Channel implements LoggerInterface
     {
         $log = $this->log;
         if ($this->event) {
-            $event = new LogWrite($this->name, $log);
+            $event = new LogWrite($this->name, $this->log);
             $this->event->trigger($event);
             $log = $event->log;
         }
 
-        if ($this->logger->save($log)) {
-            $this->clear();
-            return true;
-        }
+        $this->logger->save($log);
+        $this->log = [];
 
-        return false;
+        return true;
     }
 
     /**

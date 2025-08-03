@@ -97,11 +97,11 @@ trait Attribute
     /**
      * 获取主键名.
      *
-     * @return string|array
+     * @return null|string|array
      */
     public function getPk()
     {
-        return $this->getOption('pk', 'id');
+        return $this->getOption('pk');
     }
 
     /**
@@ -407,13 +407,15 @@ trait Attribute
      * 获取原始数据.
      *
      * @param string|null $name 字段名
+     * @param bool $transform 是否自动类型转换
      * @return mixed
      */
-    public function getOrigin(?string $name = null)
+    public function getOrigin(?string $name = null, bool $transfrom = false)
     {
         if ($name) {
-            $name = $this->getRealFieldName($name);
-            return $this->getWeakData('origin', $name);
+            $name   = $this->getRealFieldName($name);
+            $result = $this->getWeakData('origin', $name);
+            return $transfrom ? $this->writeTransform($result, $this->getFields($name)) : $result;
         }
         return $this->getOption('origin');
     }

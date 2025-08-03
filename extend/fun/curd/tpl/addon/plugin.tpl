@@ -1,6 +1,6 @@
 <?php
 
-namespace addons\{{$addon}};
+namespace addons\{%addon%};
 
 use fun\Addons;
 

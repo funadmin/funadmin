@@ -10,20 +10,26 @@
 // +----------------------------------------------------------------------
 namespace think\event;
 
+use DateTimeImmutable;
+
 /**
  * LogRecord事件类
  */
 class LogRecord
 {
     /** @var string */
-    public $type;
+    public string $type;
 
-    /** @var string */
+    /** @var string|array */
     public $message;
+
+    /** @var DateTimeImmutable */
+    public DateTimeImmutable $time;
 
     public function __construct($type, $message)
     {
         $this->type    = $type;
         $this->message = $message;
+        $this->time    = new DateTimeImmutable();
     }
 }

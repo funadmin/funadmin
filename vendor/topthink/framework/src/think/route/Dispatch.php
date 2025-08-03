@@ -34,16 +34,8 @@ abstract class Dispatch
      */
     protected $app;
 
-    public function __construct(protected Request $request, protected Rule $rule, protected $dispatch, protected array $param = [], protected array $option = [])
+    public function __construct(protected Request $request, protected Rule $rule, protected $dispatch, protected array $param = [], protected array $option = [], protected ?RuleItem $miss = null)
     {
-    }
-
-    public function init(App $app)
-    {
-        $this->app = $app;
-
-        // 执行路由后置操作
-        $this->doRouteAfter();
     }
 
     /**

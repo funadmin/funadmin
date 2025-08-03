@@ -1,3 +1,3 @@
 <?php
 
-        return {{$menu}};
+return {%menu%};

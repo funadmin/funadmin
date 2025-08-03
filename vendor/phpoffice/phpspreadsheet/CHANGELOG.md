@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com)
 and this project adheres to [Semantic Versioning](https://semver.org).
 
+# 2025-07-23 - 3.9.3
+
+### Added
+
+- Add to all readers the option to allow or forbid fetching external images. This is unconditionally allowed now. The default will be set to "allow", so no code changes are necessary. However, we are giving consideration to changing the default. [PR #4548](https://github.com/PHPOffice/PhpSpreadsheet/pull/4548)
+
+# 2025-06-22 - 3.9.2
+
+### Changed
+
+- Allow php-cs-fixer to Handle Implicit Backslashes.
+
+### Added
+
+- Allow spreadsheet to be serialized. [PR #4408](https://github.com/PHPOffice/PhpSpreadsheet/pull/4408)
+
+### Fixed
+
+- TEXT and TIMEVALUE functions. [Issue #4249](https://github.com/PHPOffice/PhpSpreadsheet/issues/4249) [PR #4355](https://github.com/PHPOffice/PhpSpreadsheet/pull/4355)
+- Removing Columns/Rows Containing Merged Cells. Backport of [PR #4465](https://github.com/PHPOffice/PhpSpreadsheet/pull/4465)
+- Allow Xlsx Reader to Specify ParseHuge. [Issue #4260](https://github.com/PHPOffice/PhpSpreadsheet/issues/4260) [PR #4518](https://github.com/PHPOffice/PhpSpreadsheet/pull/4518)
+
 ## 2025-02-07 - 3.9.1
 
 ### Fixed

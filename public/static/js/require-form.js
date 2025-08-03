@@ -432,7 +432,7 @@
                                         url = dataOptions.url || dataOptions.request,
                                         selectList = dataOptions.selectList || [],
                                         values = dataOptions.value ? dataOptions.value : '',
-                                        attr = dataOptions.attr,
+                                        attr = dataOptions.attr || dataOptions.prop,
                                         attr =  attr && typeof attr == 'string' ? attr.split(',') : (typeof attr =='object'?attr:['id','title']);
                                     attrs  = {}
                                     if(layui.isArray(attr)){
@@ -466,13 +466,6 @@
                                         opt.customName =  attrs;
                                     }
                                     if(selectList){
-                                        datas = [];
-                                        for (k in selectList){
-                                            if(!selectList[k].hasOwnProperty('id')){
-                                                datas[i] = {id:k,title:selectList[k]};
-                                            }
-                                        }
-                                        selectList = datas.length>0?datas:selectList;
                                         opt.options  = selectList;
                                     }
                                     if(url){
@@ -509,11 +502,11 @@
                                         var key = item[fields[0]];
                                         var title = item[fields[1]];
                                         var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
-                                        html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
+                                        html += '<option value="' + key + '"' + selected + '>' + __(title) + '</option>';
                                     } else {
                                         // 简单数组格式：['value1', 'value2']
                                         var selected = (selectedValue !== undefined && item.toString() === selectedValue) ? ' selected=""' : '';
-                                        html += '<option value="' + item + '"' + selected + '>' + item + '</option>';
+                                        html += '<option value="' + item + '"' + selected + '>' + __(item) + '</option>';
                                     }
                                 });
                             } 
@@ -522,7 +515,7 @@
                                 Object.keys(dataList).forEach(function(key) {
                                     var title = dataList[key];
                                     var selected = (selectedValue !== undefined && key.toString() === selectedValue) ? ' selected=""' : '';
-                                    html += '<option value="' + key + '"' + selected + '>' + title + '</option>';
+                                    html += '<option value="' + key + '"' + selected + '>' + __(title) + '</option>';
                                 });
                             }
                             
@@ -611,12 +604,14 @@
                                     var dataOptions = Fun.api.getElementData(_t);
                                     value = _t.val() || _t.data("init");
                                     var id = _t.prop('id'), name = _t.attr('name') || 'id',
+                                        prop = dataOptions.prop || dataOptions.attr,
+                                        prop = layui.isArray(prop) ? prop : prop.split(','),
                                         verify = dataOptions.verify || _t.attr('verify'),
                                         url = dataOptions.url || dataOptions.request, isTree = dataOptions.istree,
                                         isHtml = dataOptions.ishtml,
-                                        selectList = dataOptions.selectList, field = dataOptions.field || 'title',
+                                        selectList = dataOptions.selectList, field = dataOptions.showField || prop[1] || dataOptions.field || 'title',
                                         pageSize = dataOptions.pagesize || 12,
-                                        primaryKey = dataOptions.primarykey || 'id',
+                                        primaryKey = dataOptions.primarykey || prop[0] || 'id',
                                         selectOnly = dataOptions.selectonly || false,
                                         pagination = !(_t.data('pagination') == 'false' || _t.data('pagination') == 0),
                                         listSize = dataOptions.listsize || '15',
@@ -625,10 +620,10 @@
                                         searchField = dataOptions.searchfield || field,
                                         searchKey = dataOptions.searchkey || primaryKey,
                                         orderBy = dataOptions.orderby || false,
-                                        method = dataOptions.method || 'GET', dbTable = dataOptions.dbtable,
+                                        method = dataOptions.method || 'GET', dbTable = dataOptions.dbtable??'',
                                         selectToCloseList = dataOptions.selecttocloselist || true,
                                         disabled = dataOptions.disabled || false,
-                                        andOr = dataOptions.andor, formatItem = dataOptions.formatitem || false,
+                                        andOr = dataOptions.andor??'', formatItem = dataOptions.formatitem || false,
                                         verify = _t.attr('lay-verify') || '';
                                     orderBy = layui.type(orderBy) == 'string' ? [orderBy] : orderBy;
                                     isHtml != undefined ? isHtml : true;
@@ -694,7 +689,7 @@
                                         max = dataOptions.max, create = dataOptions.create, on = dataOptions.on,
                                         repeat = !!dataOptions.repeat,
                                         theme = dataOptions.theme || '#4d70ff',
-                                        name = dataOptions.name || _t.data('name') || 'pid',
+                                        name = dataOptions.field || dataOptions.name || _t.data('name') || 'pid',
                                         style = dataOptions.style || {},
                                         cascader = dataOptions.cascader ? {show: true, indent: 200, strict: false} : false,
                                         layVerify = _t.attr('lay-verify') || dataOptions.layverify || '',
@@ -739,10 +734,10 @@
                                     };
                                     if (prop) {
                                         propArr = prop.split(',');
-                                        props.name = propArr[0];
-                                        props.value = propArr[1];
+                                        props.name = propArr[1];
+                                        props.value = propArr[0];
                                         selelectFields = {name: props.name}
-                                        selelectFields.value = propArr[1] == props.name ? 'id' : propArr[1];
+                                        selelectFields.value = propArr[0] == props.name ? 'id' : propArr[0];
                                     }
                                     ;lang = lang ? lang : 'zh';
                                     paging = paging === undefined || paging !== 'false';
@@ -862,10 +857,9 @@
                                         image_advtab: true,
                                         height: (dataOptions.height ? dataOptions.height : 650), //编辑器高度
                                         min_height: (dataOptions.maxheight ? dataOptions.maxheight : 400),
-                                        content_style: "body { font-family:Helvetica,Arial,sans-serif; font-size:16px } img {max-width:100%;}",
+                                        content_style: "body {font-size:16px } img {max-width:100%;}",
                                         font_size_formats:'10px 11px 12px 13px 14px 15px 16px 18px 20px 22px 24px 26px 28px 30px 32px 34px 36px',
                                         font_size_input_default_unit: "px",
-                                        font_formats: '微软雅黑=Microsoft YaHei,Helvetica Neue,PingFang SC,sans-serif;苹果苹方=PingFang SC,Microsoft YaHei,sans-serif;宋体=simsun,serif;仿宋体=FangSong,serif;黑体=SimHei,sans-serif;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;',
                                         link_list: [
                                             {title: 'funadmin', value: 'https://www.tiny.cloud'},
                                             {title: 'my funadmin', value: 'http://www.funadmin.com'}],

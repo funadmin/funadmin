@@ -44,3 +44,6 @@ UPDATE `fun_member_third` SET delete_time = null where delete_time = 0 ;
 UPDATE `fun_provinces` SET delete_time = null where delete_time = 0 ;
 UPDATE `fun_test` SET delete_time = null where delete_time = 0 ;
 UPDATE `fun_test_cate` SET delete_time = null where delete_time = 0 ;
+alter table fun_auth_rule  alter column query set default '';
+update fun_auth_rule set query = '' where query is null;
+

@@ -10,7 +10,6 @@ body:
         - 路由(Route)
         - 控制器(Controller)
         - 中间件(Middleware)
-        - 容器(Container)
         - 服务(Service)
         - 门面(Facade)
         - 事件(Event)
@@ -20,15 +19,17 @@ body:
         - 视图(View)
         - 异常(Exception)
         - 日志(Log)
-        - 验证器(Validate)
         - 多语言(Lang)
         - Session/Cookie
-        - 文件系统(Filesystem)
         - 命令行(Command)
         - 其它
       description: |
         * 模型(Model)和数据库(Db)功能请前往 https://github.com/top-think/think-orm/issues 反馈
         * 多应用(MultiApp)功能请前往 https://github.com/top-think/think-multi-app/issues 反馈
+        * 容器(Container)功能请前往 https://github.com/top-think/think-container/issues 反馈
+        * 验证器(Validate)功能请前往 https://github.com/top-think/think-validate/issues 反馈
+        * 文件系统(Filesystem)功能请前往 https://github.com/top-think/think-filesystem/issues 反馈
+        * Swoole 功能请前往 https://github.com/top-think/think-swoole/issues 反馈
     validations:
       required: true
   - type: input

@@ -26,6 +26,12 @@ class ModelService extends Service
         Model::setEvent($this->app->event);
         Model::setInvoker([$this->app, 'invoke']);
         Model::maker(function (Model $model) {
+            if (method_exists($model, 'setOption')) {
+                // 兼容ORM4.0 
+                $model->setOption('db', $this->app->db);
+                $model->setOption('event', $this->app->event);
+                $model->setOption('invoker', [$this->app, 'invoke']);
+            }
             $config = $this->app->config;
 
             $isAutoWriteTimestamp = $model->getAutoWriteTimestamp();

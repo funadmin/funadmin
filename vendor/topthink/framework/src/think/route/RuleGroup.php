@@ -13,6 +13,7 @@ declare (strict_types = 1);
 namespace think\route;
 
 use Closure;
+use DirectoryIterator;
 use think\Container;
 use think\Exception;
 use think\helper\Str;
@@ -51,6 +52,12 @@ class RuleGroup extends Rule
     protected $alias;
 
     /**
+     * 分组子目录
+     * @var string
+     */
+    protected $sub;
+
+    /**
      * 分组绑定
      * @var string
      */
@@ -78,6 +85,15 @@ class RuleGroup extends Rule
         $this->rule   = $rule;
         $this->name   = trim($name, '/');
 
+        if ($name && is_string($rule) || is_null($rule)) {
+            if ($rule && is_subclass_of($rule, Dispatch::class, false)) {
+                $this->dispatcher($rule);
+                $this->rule = '';
+            } else {
+                $this->sub  =  $rule ?: $this->name;
+            }
+        }
+
         $this->setFullName();
 
         if ($this->parent) {
@@ -103,6 +119,9 @@ class RuleGroup extends Rule
 
         if ($this->parent && $this->parent->getFullName()) {
             $this->fullName = $this->parent->getFullName() . ($this->name ? '/' . $this->name : '');
+            if ($this->sub) {
+                $this->sub  = $this->parent->getFullName() . '/' . $this->sub;
+            }
         } else {
             $this->fullName = $this->name;
         }
@@ -130,6 +149,33 @@ class RuleGroup extends Rule
     public function getAlias(): string
     {
         return $this->alias ?: '';
+    }
+
+    /**
+     * 自动加载分组路由
+     * @access protected
+     * @param  string  $dir 目录名
+     * @return void
+     */
+    protected function loadRoutes(string $dir): void
+    {
+        $routePath = root_path('route' . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR);
+        if (is_dir($routePath)) {
+            // 动态加载分组路由
+            $files = glob($routePath . '*.php');
+            foreach ($files as $file) {
+                include_once $file;
+            }
+
+            // 自动扫描下级分组
+            $dirs = $this->config('route_auto_group') ? glob($routePath . '*', GLOB_ONLYDIR) : [];
+            foreach ($dirs as $dir) {
+                $groupName = str_replace('\\', '/', substr_replace($dir, '', 0, strlen($routePath)));
+                if (!$this->router->getRuleName()->hasGroup($groupName)) {
+                    $this->router->group($groupName);
+                }
+            }
+        }
     }
 
     /**
@@ -179,12 +225,13 @@ class RuleGroup extends Rule
             }
         }
 
+        $miss = $this->getMissRule($method);
         if ($this->bind) {
             // 检查分组绑定
-            return $this->checkBind($request, $url, $option);
+            return $this->checkBind($request, $url, $option, $miss);
         }
 
-        if ($miss = $this->getMissRule($method)) {
+        if ($miss) {
             // MISS路由
             return $miss->parseRule($request, '', $miss->getRoute(), $url, $miss->getOption());
         }
@@ -200,6 +247,15 @@ class RuleGroup extends Rule
      */
     protected function checkUrl(string $url): bool
     {
+        $url = str_replace('|', '/', $url);
+        if (!$this->config('url_route_must')) {
+            $item = $this->router->getRuleName()->getName($url);
+            if (!empty($item) && $item[0]['rule'] != $url){
+                // 定义过路由地址的 不支持访问
+                return false;
+            }
+        }
+
         if ($this->fullName) {
             $pos = strpos($this->fullName, '<');
 
@@ -209,7 +265,7 @@ class RuleGroup extends Rule
                 $str = $this->fullName;
             }
 
-            if ($str && 0 !== stripos(str_replace('|', '/', $url), $str)) {
+            if ($str && 0 !== stripos($url, $str)) {
                 return false;
             }
         }
@@ -239,18 +295,13 @@ class RuleGroup extends Rule
      */
     public function parseGroupRule($rule): void
     {
-        if (is_string($rule) && is_subclass_of($rule, Dispatch::class)) {
-            $this->dispatcher($rule);
-            return;
-        }
-
         $origin = $this->router->getGroup();
         $this->router->setGroup($this);
 
         if ($rule instanceof Closure) {
             Container::getInstance()->invokeFunction($rule);
-        } elseif (is_string($rule) && $rule) {
-            $this->bind($rule);
+        } elseif ($this->sub) {
+            $this->loadRoutes($this->sub);
         }
 
         $this->router->setGroup($origin);
@@ -492,9 +543,10 @@ class RuleGroup extends Rule
      * @param  Request   $request
      * @param  string    $url URL地址
      * @param  array     $option 分组参数
+     * @param  RuleItem  $miss
      * @return Dispatch
      */
-    public function checkBind(Request $request, string $url, array $option = []): Dispatch
+    public function checkBind(Request $request, string $url, array $option = [], ?RuleItem $miss = null): Dispatch
     {
         [$bind, $param] = $this->parseBindAppendParam($this->bind);
 
@@ -509,7 +561,7 @@ class RuleGroup extends Rule
         $name = $this->getFullName();
         $url  = trim(substr(str_replace('|', '/', $url), strlen($name)), '/');
 
-        return $this->$call($request, $url, $bind, $param, $option);
+        return $this->$call($request, $url, $bind, $param, $option, $miss);
     }
 
     protected function parseBindAppendParam(string $bind)
@@ -530,9 +582,10 @@ class RuleGroup extends Rule
      * @param  string    $class 类名（带命名空间）
      * @param  array     $param  路由变量
      * @param  array     $option 分组参数
+     * @param  RuleItem  $miss
      * @return CallbackDispatch
      */
-    protected function bindToClass(Request $request, string $url, string $class, array $param = [], array $option = []): CallbackDispatch
+    protected function bindToClass(Request $request, string $url, string $class, array $param = [], array $option = [], ?RuleItem $miss = null): CallbackDispatch
     {
         $array  = explode('/', $url, 2);
         $action = !empty($array[0]) ? $array[0] : $this->config('default_action');
@@ -541,7 +594,7 @@ class RuleGroup extends Rule
             $this->parseUrlParams($array[1], $param);
         }
 
-        return new CallbackDispatch($request, $this, [$class, $action], $param, $option);
+        return new CallbackDispatch($request, $this, [$class, $action], $param, $option, $miss);
     }
 
     /**
@@ -552,9 +605,10 @@ class RuleGroup extends Rule
      * @param  string    $namespace 命名空间
      * @param  array     $param  路由变量
      * @param  array     $option 分组参数
+     * @param  RuleItem  $miss
      * @return CallbackDispatch
      */
-    protected function bindToNamespace(Request $request, string $url, string $namespace, array $param = [], array $option = []): CallbackDispatch
+    protected function bindToNamespace(Request $request, string $url, string $namespace, array $param = [], array $option = [], ?RuleItem $miss = null): CallbackDispatch
     {
         $array  = explode('/', $url, 3);
         $class  = !empty($array[0]) ? $array[0] : $this->config('default_controller');
@@ -564,7 +618,7 @@ class RuleGroup extends Rule
             $this->parseUrlParams($array[2], $param);
         }
 
-        return new CallbackDispatch($request, $this, [trim($namespace, '\\') . '\\' . Str::studly($class), $method], $param, $option);
+        return new CallbackDispatch($request, $this, [trim($namespace, '\\') . '\\' . Str::studly($class), $method], $param, $option, $miss);
     }
 
     /**
@@ -575,9 +629,10 @@ class RuleGroup extends Rule
      * @param  string    $controller 控制器名
      * @param  array     $param  路由变量
      * @param  array     $option 分组参数
+     * @param  RuleItem  $miss
      * @return ControllerDispatch
      */
-    protected function bindToController(Request $request, string $url, string $controller, array $param = [], array $option = []): ControllerDispatch
+    protected function bindToController(Request $request, string $url, string $controller, array $param = [], array $option = [], ?RuleItem $miss = null): ControllerDispatch
     {
         $array  = explode('/', $url, 2);
         $action = !empty($array[0]) ? $array[0] : $this->config('default_action');
@@ -586,7 +641,7 @@ class RuleGroup extends Rule
             $this->parseUrlParams($array[1], $param);
         }
 
-        return new ControllerDispatch($request, $this, [$controller, $action], $param, $option);
+        return new ControllerDispatch($request, $this, [$controller, $action], $param, $option, $miss);
     }
 
     /**
@@ -597,9 +652,10 @@ class RuleGroup extends Rule
      * @param  string    $controller 控制器名
      * @param  array     $param  路由变量
      * @param  array     $option 分组参数
+     * @param  RuleItem  $miss
      * @return ControllerDispatch
      */
-    protected function bindToLayer(Request $request, string $url, string $layer, array $param = [], array $option = []): ControllerDispatch
+    protected function bindToLayer(Request $request, string $url, string $layer, array $param = [], array $option = [], ?RuleItem $miss = null): ControllerDispatch
     {
         $array      = explode('/', $url, 3);
         $controller = !empty($array[0]) ? $array[0] : $this->config('default_controller');
@@ -609,7 +665,7 @@ class RuleGroup extends Rule
             $this->parseUrlParams($array[2], $param);
         }
 
-        return new ControllerDispatch($request, $this, [$layer, $controller, $action], $param, $option);
+        return new ControllerDispatch($request, $this, [$layer, $controller, $action], $param, $option, $miss);
     }
 
     /**
@@ -624,13 +680,12 @@ class RuleGroup extends Rule
     {
         // 读取路由标识
         if (is_string($route)) {
-            $name = $route;
+            $name = $this->fullName ? $this->fullName . '/' . $route : $route;
         } else {
             $name = null;
         }
 
         $method = strtolower($method);
-
         if ('' === $rule || '/' === $rule) {
             $rule .= '$';
         }

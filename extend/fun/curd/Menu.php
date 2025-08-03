@@ -15,16 +15,14 @@ namespace fun\curd;
 
 use app\backend\model\AuthRule;
 use app\common\annotation\ControllerAnnotation;
-use app\common\annotation\NodeAnnotation;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
 use think\helper\Str;
 use Doctrine\Common\Annotations\AnnotationReader;
-use Doctrine\Common\Annotations\AnnotationRegistry;
-use Doctrine\Common\Annotations\FileCacheReader;
-
+use fun\helper\CtrHelper;
+use app\backend\service\AddonService;
 /**
  * Class Menu
  * @package app\backend\command
@@ -32,26 +30,35 @@ use Doctrine\Common\Annotations\FileCacheReader;
  */
 class Menu extends Command
 {
-    protected $addon;
-    protected $app;
     protected $config;
-    protected $method;
-    protected $menuname;
-    protected $menuid;
-    protected $force;
-    protected $delete;
-    protected $childMethod;
-    protected $controllerName;
-    protected $controllerArr;
-    protected $tableComment;
+    protected $appList = ['backend','frontend','api'];
+    protected $sysController = [
+        'auth.Admin',
+        'auth.Auth',
+        'auth.AuthGroup',
+        'member.Member',
+        'member.MemberLevel',
+        'member.MemberGroup',
+        'sys.Adminlog',
+        'sys.Attach',
+        'sys.AttachGroup',
+        'sys.Config',
+        'sys.ConfigGroup',
+        'sys.Blacklist',
+        'sys.Language',
+        'sys.Upgrade',
+        'Addon',
+        'Ajax',
+        'Error',
+        'Index',
+        'Login',
 
+    ];
     protected function configure()
     {
         $this->setName('menu')
             ->addOption('controller', 'c', Option::VALUE_OPTIONAL, '控制器名', null)
-            ->addOption('addon', 'a', Option::VALUE_OPTIONAL, '插件名', null)
-            ->addOption('app', '', Option::VALUE_OPTIONAL, 'app', '')
-            ->addOption('menuid', '', Option::VALUE_OPTIONAL, '上级菜单', 0)
+            ->addOption('app', '', Option::VALUE_OPTIONAL, 'app', 'backend')
             ->addOption('menuname', '', Option::VALUE_OPTIONAL, '菜单名称', null)
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
@@ -62,214 +69,125 @@ class Menu extends Command
     {
         $param = [];
         $param['controller'] = $input->getOption('controller');
-        $param['addon'] = $input->getOption('addon');
         $param['app'] = $input->getOption('app');
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
         $param['menuname'] = $input->getOption('menuname');
-        $param['menuid'] = $input->getOption('menuid');
         $this->config = $param;
-        $this->addon = $param['addon'];
-        $this->app = $this->addon?:$param['app'];
-        $this->force = $param['force'];
-        $this->menuid = $param['menuid'];
-        $this->menuname = $param['menuname'];
-        if (empty($param['controller'])) {
-            $output->info("控制器不能为空");
+        if ($param['app']=='backend' && in_array($param['controller'], $this->sysController)) {
+            $output->error("{$param['controller']}系统控制器不能生成");
             return false;
         }
-        $controllerArr = explode('/', str_replace('.', '/', $param['controller']));
-        foreach ($controllerArr as $k => &$v) {
-            $v = ucfirst(Str::studly($v));
+        if(empty($param['controller']) && $param['app']=='backend'){
+            $output->error("Backend应用控制器不能为空");
+            return false;
         }
-        unset($v);
-        $this->controllerName = array_pop($controllerArr);
-        $this->controllerArr = $controllerArr;
-        $nameSpace = $controllerArr ? '\\' . Str::lower($controllerArr[0]) : "";
-        if (!$this->app) {
-            $class = 'app\\backend\\controller' . $nameSpace . '\\' . $this->controllerName;
-        } else {
-            $class = 'app\\' . $this->app . '\\controller' . $nameSpace . '\\' . $this->controllerName;
-        }
-        if ($this->addon) {
-            $classFile = root_path() . 'addons' . DS . $this->addon . DS . $class . '.php';
-            $classFile = str_replace('\\', DS, $classFile);
-            if (file_exists($classFile)) include_once $classFile;//插件类需要加载进来
-        }
-        try {
-            if (class_exists($class)) {
-                // 获取类和方法的注释信息
-                $commMethod = ['enlang', '__construct'];
-                AnnotationRegistry::registerLoader('class_exists');
-                $reflectionClass = new \ReflectionClass($class);
-                $reader = new FileCacheReader(new AnnotationReader(), runtime_path() . 'menu', true);
-                $controllerAnnotation = $reader->getClassAnnotation($reflectionClass, ControllerAnnotation::class);
-                $controllerTitle = !empty($controllerAnnotation) && !empty($controllerAnnotation->title) ? $controllerAnnotation->title : null;
-                $this->tableComment = $controllerTitle;
-                $menuList = [];
-                $methods = $reflectionClass->getMethods();
-                $href  = $this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName) ;
-                foreach ($methods as $m) {
-                    $doc = $m->getDocComment();
-                    $title = $this->getTitle($doc);
-                    if (in_array($m->getName(), $commMethod) || !$title) continue;
-                    if ($this->app) {
-                        $menuList[] = [
-                            'href' => $href . '/' . $m->getName(),
-                            'title' => trim($title),
-                            'status' => 1,
-                            'menu_status' => 0,
-                            'icon' => 'layui-icon layui-icon-app'
-                        ];
-                    } else {
-                        $menuList[] = [
-                            'href' => $href . '/' . $m->getName(),
-                            'title' => trim($title),
-                            'status' => 1,
-                            'menu_status' => 0,
-                            'icon' => 'layui-icon layui-icon-app'
-                        ];
-                    }
+        if(empty($param['controller']) && $param['app']!='backend'){
+            if($param['force'] && $param['delete']){
+                $ids = AuthRule::where('module', $param['app'])->column('id');
+                if(!empty($ids)){
+                    AuthRule::destroy($ids, true); // 第二个参数true表示真实删除
                 }
-                $this->method = $menuList;
-                if (!$param['delete']) {
-                    $type = 1;
-                    $this->makeMenu($type);
-                } elseif ($param['force'] and $param['delete']) {
-                    $type = 2;
-                    $this->makeMenu($type);
-                }
-            } else {
-                $output->error('class is not exist');
-                return false;
+                $output->info('delete success');
+                return true;
             }
-        } catch (\Exception $e) {
-            $output->error($e->getMessage());
-        }
-        $output->info('make success');
-    }
-
-    /**
-     * 生成菜单
-     * @param int $type
-     */
-    protected function makeMenu(int $type = 1)
-    {
-        $title = ($this->app) ? ucfirst($this->app) . ucfirst($this->controllerName) : ($this->controllerArr ? strtolower($this->controllerArr[0]) . ucfirst($this->controllerName) : lcfirst($this->controllerName));
-        $title = $this->tableComment ?? $title;
-        $controller = $this->controllerArr ? strtolower($this->controllerArr[0]) . '.' . lcfirst($this->controllerName) : lcfirst($this->controllerName);
-        $childMenu = [
-            'href' => $controller,
-            'title' => $title,
-            'status' => 1,
-            'menu_status' => 1,
-            'type' => 1,
-            'icon' => 'layui-icon layui-icon-app',
-            'menulist' => [
-            ]
-        ];
-        $menu = [
-            'is_nav' => 1,//1导航栏；0 非导航栏
-            'menu' => [ //菜单;
-                'href' => 'Panel' .( $this->app!='backend'?$this->app: $this->controllerName),
-                'title' => $this->menuname?:($this->app ? : $this->controllerName),
+            $controllers = CtrHelper::getControllersByApp($param['app']);
+            $childMenu = [];
+            foreach($controllers as $controller){
+                $href = $controller['route_info'];
+                $title = $controller['comment'];
+                $menu = [
+                    'href' => $href,
+                    'title' => $title,
+                    'status' => 1,
+                    'type' => 1,
+                    'menu_status' => 1,
+                    'icon' => 'layui-icon layui-icon-app',
+                ];
+                foreach ($controller['methods'] as $item) {
+                    $menu['menulist'][] = [
+                        'href' => $href . '/' . $item['name'],
+                        'title' => $item['comment'],
+                        'status' => 1,
+                        'type' => 2,
+                        'menu_status' => 0,
+                    ];
+                }
+                $childMenu[] = $menu;
+            }
+            // 构建主菜单项
+            $mainMenu = [
+                'href' => ucfirst($this->config['app']) .'Manager',
+                'title' => ucfirst($this->config['app']) .'Manager',
                 'status' => 1,
                 'auth_verify' => 1,
                 'type' => 1,
                 'menu_status' => 1,
+                'module' => $this->config['app'],
                 'icon' => 'layui-icon layui-icon-app',
-                'menulist' => [
-                    $childMenu
-                ]
-            ]
-        ];
-        if ($this->addon) {
-            $menu = get_addons_menu($this->addon);
-        }
-        foreach ($this->method as $k => $v) {
-            $menuList[] = [
-                'href' => $v['href'],
-                'title' => $v['title'],
-                'status' => 1,
-                'menu_status' => 0,
-                'icon' => 'layui-icon layui-icon-app'
+                'menulist' => $childMenu // 直接使用 $childMenu 数组，不要额外包装
             ];
-            $childMethod[] = $v['href'];
-        }
-        $parentMethod = $this->app ? $this->app . '/' . $controller : $controller;
-        $this->childMethod = array_merge($childMethod, [$parentMethod]);
-        if ($this->addon) {
-            $childMenu['menulist'] = $menuList;
-            array_push($menu['menu']['menulist'], $childMenu);
-            $menu['menu']['menulist'] = array_unique($menu['menu']['menulist'], SORT_REGULAR);//去重
-        } else {
-            $menu['menu']['menulist'][0]['menulist'] = $menuList;
-        }
-        $menuListArr[] = $menu['menu'];
-        if (!$this->delete) {
-            $this->buildMenu($menuListArr, 1);
-        } elseif ($this->config['force'] && $this->config['delete']) {
-            $this->buildMenu($menuListArr, 2);
-        }
-    }
-
-    protected function buildMenu($menuListArr, $type = 1)
-    {
-        $module = $this->app ?: 'backend';
-        foreach ($menuListArr as $k => $v) {
-            $v['pid'] = $this->menuname?:0;
-            $v['href'] = trim($v['href'], '/');
-            $v['module'] = $module;
-            $menu = AuthRule::withTrashed()->where('href', $v['href'])->where('module', $module)->find();
-            if ($type == 1) {
-                if (!$menu) {
-                    $menu = AuthRule::create($v);
-                } elseif ($menu->deletetime == 0) {
-                    $menu->restore();
+            
+            // 只传递菜单项数组给addAddonMenu方法
+            $addonService = new AddonService();
+            $addonService->addAddonMenu([$mainMenu], 0, $param['app']);
+        }else{
+            if($param['force'] && $param['delete']){
+                $href = str_replace('/', '.', $param['controller']);
+                $topRule = AuthRule::where('module', $param['app'])
+                ->where('href','like','%'.$href.'%')
+                ->where('pid',0)
+                ->find();
+                if($topRule){
+                    $topRule->force()->delete();
+                    AuthRule::where('pid',$topRule['id'])->force()->delete();
                 }
-            } else {
-                $child = AuthRule::withTrashed()->where('href', 'not in', $this->childMethod)
-                    ->where('pid', $menu['id'])->where('module', $module)->find();
-                if (!$child) {
-                    $menu && $menu->delete();
-                }
+                $output->info('delete success');
+                return true;
             }
-            foreach ($v['menulist'] as $kk => $vv) {
-                $menu2 = AuthRule::withTrashed()->where('href', $vv['href'])->where('module', $module)->find();
-                if ($type == 1) {
-                    if (!$menu2) {
-                        $vv['pid'] = $menu['id'];
-                        $vv['module'] = $module;
-                        $menu2 = AuthRule::create($vv);
-                    } elseif ($menu2->deletetime == 0) {
-                        $menu2->restore();
-                    }
-                } else {
-                    $menu2 && $menu2->delete();
+            $param['controller'] = str_replace('.', '/', $param['controller']);
+            $controllerParts = explode('/', $param['controller']);
+            $controllerName = ucfirst(array_pop($controllerParts)); // 获取最后一个斜杠后的字符串并首字母大写
+            //合并$controllerName 和$param['controller']
+            $controllerParts[] = $controllerName;
+            $filePath = app_path($param['app'].'/controller').implode(DS, $controllerParts).'.php';
+            try {
+                $controllers  = CtrHelper::analyzeController($param['app'],$filePath);
+                // 合并href、module、query为独立键
+                $menu = [
+                    'href' => $controllers['route_info'],
+                    'title' => $controllers['comment'],
+                    'module' => $param['app'],
+                    'status' => 1,
+                    'menu_status' => 1,
+                    'type' => 1,
+                    'auth_verify'=>1,
+                    'icon' => 'layui-icon layui-icon-app',
+                    'pid' => 0,
+                ];
+                /** @var AuthRule $parent_auth */
+                $parent_auth = AuthRule::create($menu);
+                foreach($controllers['methods'] as $key=>$value){
+                    $menu= [
+                        'href' => $controllers['route_info'].'/'.$value['name'],
+                        'title' => $value['comment'],
+                        'module' => $param['app'],
+                        'status' => 1,
+                        'menu_status' => 0,
+                        'type' => 2,
+                        'auth_verify'=>1,
+                        'icon' => 'layui-icon layui-icon-app',
+                        'pid' => $parent_auth->id,
+                    ];
+                    AuthRule::create($menu);
                 }
-                foreach ($vv['menulist'] as $kkk => $vvv) {
-                    $menu3 = AuthRule::withTrashed()->where('href', $vvv['href'])->where('module', $module)->find();
-                    if ($type == 1) {
-                        if (!$menu3) {
-                            $vvv['pid'] = $menu2['id'];
-                            $vvv['module'] = $module;
-                            $menu3 = AuthRule::create($vvv);
-                        } elseif ($menu3->deletetime == 0) {
-                            $menu3->restore();
-                        }
-                    } else {
-                        $menu3 && $menu3->delete();
-                    }
-                }
+                    
+            } catch (\Exception $e) {
+                $output->error($e->getMessage());
             }
         }
-    }
-
-    function getTitle($doc)
-    {
-        $tmp = array();
-        preg_match_all('/@NodeAnnotation.*?title="(.*?)"\)[\r\n|\n]/', $doc, $tmp);
-        return trim($tmp[1][0] ?? "");
+        
+        $output->info('make success');
     }
 
 }

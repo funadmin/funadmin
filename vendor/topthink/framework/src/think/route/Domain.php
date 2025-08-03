@@ -12,7 +12,9 @@ declare (strict_types = 1);
 
 namespace think\route;
 
+use Closure;
 use think\Route;
+use think\Container;
 
 /**
  * 域名路由
@@ -38,4 +40,45 @@ class Domain extends RuleGroup
         }
     }
 
+    /**
+     * 解析分组和域名的路由规则及绑定
+     * @access public
+     * @param  mixed $rule 路由规则
+     * @return void
+     */
+    public function parseGroupRule($rule): void
+    {
+        $origin = $this->router->getGroup();
+        $this->router->setGroup($this);
+
+        if ($rule instanceof Closure) {
+            Container::getInstance()->invokeFunction($rule);
+        } elseif ($this->config('route_auto_group')) {
+            $this->loadGroupRoutes();
+        }
+
+        $this->router->setGroup($origin);
+        $this->hasParsed = true;
+    }
+
+    /**
+     * 自动加载分组（子目录）路由
+     * @access protected
+     * @param  string  $dir 目录名
+     * @return void
+     */
+    protected function loadGroupRoutes(): void
+    {
+        $routePath = root_path('route');
+        if (is_dir($routePath)) {
+            $dirs = glob($routePath . '*', GLOB_ONLYDIR);
+            foreach ($dirs as $dir) {
+                // 自动检查分组子目录
+                $groupName = str_replace('\\', '/', substr_replace($dir, '', 0, strlen($routePath)));
+                if (!$this->router->getRuleName()->hasGroup($groupName)) {
+                    $this->router->group($groupName);
+                }
+            }
+        }
+    }
 }

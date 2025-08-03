@@ -62,6 +62,8 @@ class Route
         'route_rule_merge'      => false,
         // 路由是否完全匹配
         'route_complete_match'  => false,
+        // 子目录是否自动路由分组
+        'route_auto_group'      => false,
         // 去除斜杠
         'remove_slash'          => false,
         // 默认的路由变量规则
@@ -86,6 +88,8 @@ class Route
         'url_common_param'      => true,
         // 操作方法的参数绑定方式 route get param
         'action_bind_param'     => 'get',
+        // API版本header变量
+        'api_version'           => 'Api-Version',
     ];
 
     /**

@@ -10,6 +10,7 @@
 // +----------------------------------------------------------------------
 namespace think\console\command;
 
+use DirectoryIterator;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Argument;
@@ -31,7 +32,6 @@ class RouteList extends Command
     protected function configure()
     {
         $this->setName('route:list')
-            ->addArgument('dir', Argument::OPTIONAL, 'dir name .')
             ->addArgument('style', Argument::OPTIONAL, "the style of the table.", 'default')
             ->addOption('sort', 's', Option::VALUE_OPTIONAL, 'order by rule name.', 0)
             ->addOption('more', 'm', Option::VALUE_NONE, 'show route options.')
@@ -40,9 +40,7 @@ class RouteList extends Command
 
     protected function execute(Input $input, Output $output)
     {
-        $dir = $input->getArgument('dir') ?: '';
-
-        $filename = $this->app->getRootPath() . 'runtime' . DIRECTORY_SEPARATOR . ($dir ? $dir . DIRECTORY_SEPARATOR : '') . 'route_list.php';
+        $filename = $this->app->getRootPath() . 'runtime' . DIRECTORY_SEPARATOR . 'route_list.php';
 
         if (is_file($filename)) {
             unlink($filename);
@@ -50,28 +48,41 @@ class RouteList extends Command
             mkdir(dirname($filename), 0755);
         }
 
-        $content = $this->getRouteList($dir);
+        $content = $this->getRouteList();
         file_put_contents($filename, 'Route List' . PHP_EOL . $content);
+    }
+
+    protected function scanRoute($path, $root, $autoGroup)
+    {
+        $iterator = new DirectoryIterator($path);
+        foreach ($iterator as $fileinfo) {
+            if ($fileinfo->isDot()) {
+                continue;
+            }
+
+            if ($fileinfo->getType() == 'file' && $fileinfo->getExtension() == 'php') {
+                $groupName = str_replace('\\', '/', substr_replace($fileinfo->getPath(), '', 0, strlen($root)));
+                if ($groupName) {
+                    $this->app->route->group($groupName, function()  use ($fileinfo) {
+                        include $fileinfo->getRealPath();
+                    });
+                } else {
+                    include $fileinfo->getRealPath();
+                }
+            } elseif ($autoGroup && $fileinfo->isDir()) {
+                $this->scanRoute($fileinfo->getPathname(), $root, $autoGroup);
+            }
+        }
     }
 
     protected function getRouteList(?string $dir = null): string
     {
         $this->app->route->clear();
         $this->app->route->lazy(false);
+        $autoGroup = $this->app->route->config('route_auto_group');
+        $path      = $this->app->getRootPath() . 'route' . DIRECTORY_SEPARATOR;
 
-        if ($dir) {
-            $path = $this->app->getRootPath() . 'route' . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR;
-        } else {
-            $path = $this->app->getRootPath() . 'route' . DIRECTORY_SEPARATOR;
-        }
-
-        $files = is_dir($path) ? scandir($path) : [];
-
-        foreach ($files as $file) {
-            if (str_contains($file, '.php')) {
-                include $path . $file;
-            }
-        }
+        $this->scanRoute($path, $path, $autoGroup);
 
         //触发路由载入完成事件
         $this->app->event->trigger(RouteLoaded::class);
@@ -90,13 +101,16 @@ class RouteList extends Command
         $rows      = [];
 
         foreach ($routeList as $item) {
-            $item['route'] = $item['route'] instanceof \Closure ? '<Closure>' : $item['route'];
-            $row           = [$item['rule'], $item['route'], $item['method'], $item['name']];
+            if (is_array($item['route'])) {
+                $item['route'] = '[' . $item['route'][0] .' , ' . $item['route'][1] . ']';
+            } else {
+                $item['route'] = $item['route'] instanceof \Closure ? '<Closure>' : $item['route'];
+            }
+            $row = [$item['rule'], $item['route'], $item['method'], $item['name']];
 
             if ($this->input->hasOption('more')) {
                 array_push($row, $item['domain'], json_encode($item['option']), json_encode($item['pattern']));
             }
-
             $rows[] = $row;
         }
 
@@ -110,7 +124,6 @@ class RouteList extends Command
             uasort($rows, function ($a, $b) use ($sort) {
                 $itemA = $a[$sort] ?? null;
                 $itemB = $b[$sort] ?? null;
-
                 return strcasecmp($itemA, $itemB);
             });
         }

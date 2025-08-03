@@ -14,6 +14,7 @@ namespace think\log\driver;
 
 use think\App;
 use think\contract\LogHandlerInterface;
+use think\event\LogRecord;
 
 /**
  * 本地化调试输出到文件
@@ -59,7 +60,7 @@ class File implements LogHandlerInterface
     /**
      * 日志写入接口
      * @access public
-     * @param array $log 日志信息
+     * @param array<LogRecord> $log 日志信息
      * @return bool
      */
     public function save(array $log): bool
@@ -69,35 +70,34 @@ class File implements LogHandlerInterface
         $path = dirname($destination);
         !is_dir($path) && mkdir($path, 0755, true);
 
-        $info = [];
+        $messages = [];
 
         // 日志信息封装
-        $time = \DateTime::createFromFormat('0.u00 U', microtime())->setTimezone(new \DateTimeZone(date_default_timezone_get()))->format($this->config['time_format']);
-
-        foreach ($log as $type => $val) {
-            $message = [];
-            foreach ($val as $msg) {
-                if (!is_string($msg)) {
-                    $msg = var_export($msg, true);
-                }
-
-                $message[] = $this->config['json'] ?
-                json_encode(['time' => $time, 'type' => $type, 'msg' => $msg], $this->config['json_options']) :
-                sprintf($this->config['format'], $time, $type, $msg);
+        foreach ($log as $record) {
+            $type = $record->type;
+            $msg  = $record->message;
+            $time = $record->time->format($this->config['time_format']);
+            if (!is_string($msg)) {
+                $msg = var_export($msg, true);
             }
 
+            $filename = $destination;
             if (true === $this->config['apart_level'] || in_array($type, $this->config['apart_level'])) {
                 // 独立记录的日志级别
                 $filename = $this->getApartLevelFile($path, $type);
-                $this->write($message, $filename);
-                continue;
             }
 
-            $info[$type] = $message;
+            if (!isset($messages[$filename])) {
+                $messages[$filename] = [];
+            }
+
+            $messages[$filename][] = $this->config['json'] ?
+                json_encode(['time' => $time, 'type' => $type, 'msg' => $msg], $this->config['json_options']) :
+                sprintf($this->config['format'], $time, $type, $msg);
         }
 
-        if ($info) {
-            return $this->write($info, $destination);
+        foreach ($messages as $filename => $message) {
+            $this->write($message, $filename);
         }
 
         return true;
@@ -115,15 +115,7 @@ class File implements LogHandlerInterface
         // 检测日志文件大小，超过配置大小则备份日志文件重新生成
         $this->checkLogSize($destination);
 
-        $info = [];
-
-        foreach ($message as $type => $msg) {
-            $info[$type] = is_array($msg) ? implode(PHP_EOL, $msg) : $msg;
-        }
-
-        $message = implode(PHP_EOL, $info) . PHP_EOL;
-
-        return error_log($message, 3, $destination);
+        return error_log(implode(PHP_EOL, $message) . PHP_EOL, 3, $destination);
     }
 
     /**
@@ -139,7 +131,7 @@ class File implements LogHandlerInterface
 
             try {
                 if (count($files) > $this->config['max_files']) {
-                    set_error_handler(function ($errno, $errstr, $errfile, $errline) {});
+                    set_error_handler(fn() => null);
                     unlink($files[0]);
                     restore_error_handler();
                 }

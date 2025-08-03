@@ -72,7 +72,7 @@ trait AutoWriteData
             }
 
             foreach ($dateTimeFields as $field) {
-                if (is_string($field) && (empty($allow) || in_array($field, $allow))) {
+                if (is_string($field) && empty($data[$field]) && (empty($allow) || in_array($field, $allow))) {
                     $data[$field] = $this->getDateTime($field);
                     $this->setData($field, $this->readTransform($data[$field], $this->getFields($field)));
                 }

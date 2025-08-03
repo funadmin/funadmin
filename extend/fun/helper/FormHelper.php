@@ -897,7 +897,7 @@ EOF;
             $options['create'] = true;
         }
         $options['selectList'] =  $select;
-        $str = $this->input($name,  'text', $options);
+        $str = $this->input($name,  'text', $options,$value);
 
         return $str;
     }
@@ -1789,6 +1789,8 @@ EOF;
             'event',
             'create',
             'search',
+            'wheel',
+            'step-strictly'
         ];
 
         // 需要跳过的属性列表
@@ -1802,7 +1804,11 @@ EOF;
             }
             // 处理特殊属性
             if (in_array( $key, $specialAttributes)) {
-                $attr .= $this->layAttr($key,$val);
+                if($key == 'step' || $key == 'min' || $key == 'max'){
+                    $attr .=  $key.'="'.$val.'" ';
+                }else{
+                    $attr .= $this->layAttr($key,$val);
+                }
                 unset($options[$key]);
             }
             // 处理placeholder属性

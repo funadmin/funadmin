@@ -240,7 +240,7 @@ class Redis extends Driver
      * @param string $tag 缓存标签
      * @return array
      */
-    public function getTagItems($tag): array
+    public function getTagItems(string $tag): array
     {
         $name = $this->getTagKey($tag);
         $key  = $this->getCacheKey($name);

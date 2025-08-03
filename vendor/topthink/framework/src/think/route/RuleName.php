@@ -107,6 +107,17 @@ class RuleName
     }
 
     /**
+     * 是否已经存在分组
+     * @access public
+     * @param  string $name 路由分组标识
+     * @return bool
+     */
+    public function hasGroup(string $name): bool 
+    {
+        return isset($this->group[strtolower($name)]);
+    }
+
+    /**
      * 清空路由规则
      * @access public
      * @return void
@@ -133,7 +144,11 @@ class RuleName
 
                 foreach (['method', 'rule', 'name', 'route', 'domain', 'pattern', 'option'] as $param) {
                     $call        = 'get' . $param;
-                    $val[$param] = $item->$call();
+                    if ('rule' == $param) {
+                        $val[$param] = $item->$call() ?: '/';
+                    } else {
+                        $val[$param] = $item->$call();
+                    }
                 }
 
                 if ($item->isMiss()) {

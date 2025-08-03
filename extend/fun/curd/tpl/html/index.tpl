@@ -1,0 +1,14 @@
+<table class="layui-table" id="list" lay-filter="list"
+       data-node-add="{:auth(__u('add'))}"
+       data-node-edit="{:auth(__u('edit'))}"
+       data-node-delete="{:auth(__u('delete'))}"
+       data-node-destroy="{:auth(__u('destroy'))}"
+       data-node-modify="{:auth(__u('modify'))}"
+       data-node-recycle="{:auth(__u('recycle'))}"
+       data-node-restore="{:auth(__u('restore'))}"
+       data-node-import="{:auth(__u('import'))}"
+       data-node-export="{:auth(__u('export'))}"
+></table>
+<script>
+{%assignList%}
+</script>

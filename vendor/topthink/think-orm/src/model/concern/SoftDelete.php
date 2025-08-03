@@ -114,10 +114,11 @@ trait SoftDelete
      *
      * @param mixed $data  主键列表 支持闭包查询条件
      * @param bool  $force 是否强制删除
+     * @param array $together 关联删除
      *
      * @return bool
      */
-    public static function destroy($data, bool $force = false): bool
+    public static function destroy($data, bool $force = false, array $together = []): bool
     {
         // 传入空值（包括空字符串和空数组）的时候不会做任何的数据删除操作，但传入0则是有效的
         if (empty($data) && 0 !== $data) {
@@ -133,7 +134,7 @@ trait SoftDelete
             $query->where($data);
             $data = [];
         } elseif ($data instanceof Closure) {
-            call_user_func_array($data, [ &$query]);
+            $data($query);
             $data = [];
         }
 
@@ -141,7 +142,7 @@ trait SoftDelete
 
         foreach ($resultSet as $result) {
             /** @var Model $result */
-            $result->force($force)->delete();
+            $result->force($force)->together($together)->delete();
         }
 
         return true;

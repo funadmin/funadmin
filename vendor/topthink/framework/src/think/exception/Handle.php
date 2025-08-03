@@ -229,7 +229,7 @@ class Handle
         ];
     }
 
-    protected function isJson(Request $request, Throwable $exception)
+    protected function isJson(Request $request)
     {
         return $request->isJson();
     }
@@ -241,7 +241,7 @@ class Handle
      */
     protected function convertExceptionToResponse(Request $request, Throwable $exception): Response
     {
-        if ($this->isJson($request, $exception)) {
+        if ($this->isJson($request)) {
             $response = Response::create($this->convertExceptionToArray($exception), 'json');
         } else {
             $response = Response::create($this->renderExceptionContent($exception));

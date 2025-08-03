@@ -17,6 +17,7 @@ use Closure;
 use think\helper\Str;
 use think\model\Collection;
 use think\model\contract\Modelable;
+use think\model\View;
 
 /**
  * 模型数据转换处理.
@@ -204,5 +205,16 @@ trait Conversion
         }
 
         return $collection;
-    }    
+    }
+
+    /**
+     * 转换为视图模型
+     *
+     * @param string $class 视图模型类名
+     * @return View
+     */
+    public function toView(string $class)
+    {
+        return is_subclass_of($class, View::class) ? new $class($this) : $this;
+    }
 }

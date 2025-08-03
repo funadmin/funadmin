@@ -12,6 +12,7 @@ declare (strict_types = 1);
 
 namespace think\route\dispatch;
 
+use Closure;
 use think\App;
 use think\exception\ClassNotFoundException;
 use think\exception\HttpException;
@@ -37,8 +38,13 @@ class Controller extends Dispatch
 
     public function init(App $app)
     {
-        parent::init($app);
+        $this->app = $app;
+        $this->parseDispatch();
+        $this->doRouteAfter();
+    }
 
+    protected function parseDispatch()
+    {
         $path = $this->dispatch;
         if (is_string($path)) {
             $path = explode('/', $path);
@@ -50,10 +56,10 @@ class Controller extends Dispatch
 
         if ($layer && !empty($this->option['auto_middleware'])) {
             // 自动为顶层layer注册中间件
-            $alias = $app->config->get('middleware.alias', []);
+            $alias = $this->app->config->get('middleware.alias', []);
 
             if (isset($alias[$layer])) {
-                $this->app->middleware->add($layer, 'route');
+                $this->option['middleware'] = array_merge($this->option['middleware'] ?? [], [$layer]);
             }
         }
 
@@ -81,8 +87,26 @@ class Controller extends Dispatch
         try {
             // 实例化控制器
             $instance = $this->controller($this->controller);
+            if ($this->miss && !method_exists($instance, $this->actionName . $this->rule->config('action_suffix'))) {
+                throw new ClassNotFoundException('class not exists:');
+            }
         } catch (ClassNotFoundException $e) {
-            throw new HttpException(404, 'controller not exists:' . $e->getClass());
+            if ($this->miss) {
+                $route = $this->miss->getRoute();
+                if ($route instanceof Closure) {
+                    $vars = $this->getActionBindVars();
+                    return $this->app->invoke($route, $vars);
+                }
+                // 检查分组绑定
+                $prefix = $this->rule->getOption('prefix');
+                if (!str_starts_with($route, $prefix)) {
+                    $route = $prefix . $route;
+                }
+                $this->parseDispatch($route);
+                $instance = $this->controller($this->controller);
+            } else {
+                throw new HttpException(404, 'controller not exists:' . $e->getClass());
+            }
         }
 
         return $this->responseWithMiddlewarePipeline($instance, $this->actionName);

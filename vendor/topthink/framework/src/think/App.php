@@ -540,16 +540,10 @@ class App extends Container
 
         include_once $this->thinkPath . 'helper.php';
 
-        $configPath = $this->getConfigPath();
-
-        $files = [];
-
-        if (is_dir($configPath)) {
-            $files = glob($configPath . '*' . $this->configExt);
-        }
-
-        foreach ($files as $file) {
-            $this->config->load($file, pathinfo($file, PATHINFO_FILENAME));
+        if (is_file($this->runtimePath . 'config.php')) {
+            $this->config->set(include $this->runtimePath . 'config.php');
+        } else {
+            $this->loadConfig();
         }
 
         if (is_file($appPath . 'event.php')) {
@@ -561,6 +555,24 @@ class App extends Container
             foreach ($services as $service) {
                 $this->register($service);
             }
+        }
+    }
+
+    /**
+     * 加载配置文件
+     * @return void
+     */
+    public function loadConfig()
+    {
+        $configPath = $this->getConfigPath();
+        $files      = [];
+
+        if (is_dir($configPath)) {
+            $files = glob($configPath . '*' . $this->configExt);
+        }
+
+        foreach ($files as $file) {
+            $this->config->load($file, pathinfo($file, PATHINFO_FILENAME));
         }
     }
 

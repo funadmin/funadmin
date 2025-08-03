@@ -46,6 +46,20 @@ class Collection extends BaseCollection
     }
 
     /**
+     * 转换为视图模型
+     *
+     * @param string $view 视图类名
+     *
+     * @return $this
+     */
+    public function toView(string $view)
+    {
+        return $this->map(function (Model $model) use($view) {
+            return $model->toView($view);
+        });
+    }
+
+    /**
      * 删除数据集的数据.
      *
      * @return bool

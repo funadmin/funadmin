@@ -8,6 +8,6 @@
     <title>funadmin</title>
 </head>
 <body>
-这是个插件{{$addon}}
+这是个插件{%addon%}
 </body>
 </html>
