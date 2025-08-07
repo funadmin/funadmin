@@ -15,6 +15,7 @@
 namespace app\backend\service;
 
 use app\backend\model\AuthRule;
+use app\common\model\Addon;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
@@ -27,6 +28,7 @@ use think\facade\Cookie;
 use think\facade\Db;
 use think\facade\Request;
 use think\facade\Session;
+use fun\addons\Service;
 
 class AddonService extends AbstractService
 {
@@ -124,8 +126,171 @@ class AddonService extends AbstractService
         Cache::delete('adminMenus_' . session('admin.id'));
 
     }
-    
+    /**
+     * 安装插件
+     * @param string $name
+     * @param string $type
+     * @return bool
+     */
+    public function installAddon(string $name,string $type=''){
+        $class = get_addons_instance($name);
+        if (empty($class)) {
+            throw new Exception(lang('addons %s is not ready', [$name]));
+        }
+        $addon_info = get_addons_info($name);
+        if(!empty($addon_info['depend'])){
+            $depend = explode(',',$addon_info['depend']);
+            foreach ($depend as $v) {
+                $dependAddon  = get_addons_info($v);
+                if(empty($dependAddon)){
+                    throw new Exception('Please install the dependent plugin first: '.$addon_info['depend']);
+                }
+            }
+        }
+        //添加数据库
+        try{
+            if($type!='upgrade'){
+                importsql($name);
+            }else{
+                $sqlFile = root_path().'addons/'.$name.'/'.'upgrade.sql';
+                if(!file_exists($sqlFile)){
+                    $sqlFile = root_path().'addons/'.$name.'/'.'update.sql';
+                }
+                if(file_exists($sqlFile)){
+                    importsql($name,$sqlFile);
+                }
+            }
+        } catch (Exception $e){
+            throw new Exception($e->getMessage());
+        }
 
+        // 安装菜单
+        $menu_config = get_addons_menu($name);
+        if(!empty($menu_config)){
+            list($menu,$pid) = $this->getMenu($menu_config);
+            $this->addAddonMenu($menu,$pid,$name);
+        }
+        $model = new Addon();
+        //安装插件
+        $class->install();
+        $addon_info['status'] = 1;
+        $list = $this->isInstall($name);
+        if($list){
+            if($list->delete_time > 0){
+                $model->restore(['id'=>$list->id]);
+            }
+            $res = $model->update(['status'=>1],['id'=>$list->id]);
+        }else{
+            $res =  $model->save($addon_info);
+        }
+        if (!$res) {
+            throw new Exception(lang('addon install fail'));
+        }
+        Service::copyApp($name,$delete = true);
+        try {
+            Service::updateAddonsInfo($name);
+            //刷新addon文件
+            refreshaddons();
+        }catch (Exception $e){
+            throw new Exception($e->getMessage());
+        }
+        return true;
+    }
+    public function uninstallAddon(string $name){
+        try {
+            if (!$name) {
+                throw new Exception(lang(' addon name can not be empty'));
+            }
+            //插件名匹配
+            if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
+                throw new Exception(lang('addon name is not right'));
+            }
+            $model = new Addon();
+            //获取插件信息
+            $info =  $model->withTrashed()->where('name', $name)->find();
+            if (empty($info)) {
+                throw new Exception(lang('addon is not exist'));
+            }
+            if($info->status==1){
+                throw new Exception(lang('Please disable addons %s first',[$name]));
+            }
+            if (!$info->force()->delete()) {
+                throw new Exception(lang('addon uninstall fail'));
+            }
+            //卸载插件
+            $class = get_addons_instance($name);
+            $class->uninstall();
+            //删除菜单
+            $menu_config=get_addons_menu($name);
+                if(!empty($menu_config)){
+                    list($menu,$pid) = $this->getMenu($menu_config);
+                    $this->delAddonMenu($menu,$name);
+                }
+                //卸载sql;
+                uninstallsql($name);
+            //还原文件
+            Service::removeApp($name,$delete= true);
+            Service::updateAddonsInfo($name,1,0);
+            refreshaddons();
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+        return true;
+
+    }
+    /**
+     * @NodeAnnotation (title="是否安装")
+     * @param $name
+     * @return array|false|\think\Model|null
+     * @throws \think\dbException\DataNotFoundException
+     * @throws \think\dbException\DbException
+     * @throws \think\dbException\ModelNotFoundException
+     */
+    public function isInstall($name)
+    {
+        if (empty($name)) {
+            return false;
+        }
+        $addons =  Addon::withTrashed()->where('name', $name)->find();
+        return $addons;
+    }
+    /**
+     * 获取菜单
+     * @param mixed $config
+     * @return array<array|int|mixed>
+     */
+    public function getMenu($config = [])
+    {
+        $is_nav = $config['is_nav']??1;
+        $menuArr = $config['menu'];
+        $menu = [];
+        if(!empty($menuArr[0]) && is_array($menuArr[0])){
+            foreach ($menuArr as $value) {
+                if($is_nav==-1){
+                    $menu = array_merge($menu,$value['menulist']);
+                    $pid = 0;
+                }elseif($is_nav==0){
+                    $menu[] = $value;
+                    $pid = $this->addAddonManager()->id;
+                }else{
+                    $menu[] = $value;
+                    $pid = 0;
+                }
+            }
+        }else{
+            if($is_nav==-1){
+                $menu = array_merge($menu,$menuArr['menulist']);
+                $pid = 0;
+            }elseif($is_nav==0){
+                $menu[] = $menuArr;
+                $pid = $this->addAddonManager()->id;
+            }else{
+                $menu[] = $menuArr;
+                $pid = 0;
+            }
+        }
+        return [$menu,$pid];
+    }
 
 
 }

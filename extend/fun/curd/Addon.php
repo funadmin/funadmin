@@ -14,6 +14,7 @@
 namespace fun\curd;
 
 use app\backend\model\AuthRule;
+use app\backend\service\AddonService;
 use Exception;
 use fun\helper\CtrHelper;
 use think\console\Command;
@@ -22,6 +23,8 @@ use think\console\input\Option;
 use think\console\Output;
 use fun\helper\FileHelper;
 use fun\helper\ZipHelper;
+use think\facade\Console;
+
 /**
  * Class Curd
  * @package app\backend\command
@@ -43,6 +46,8 @@ class Addon extends Command
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
             ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
             ->addOption('min', '', Option::VALUE_OPTIONAL, '打包', 0)
+            ->addOption('install', '', Option::VALUE_OPTIONAL, '安装', 0)
+            ->addOption('uninstall', '', Option::VALUE_OPTIONAL, '卸载', 0)
             ->setDescription('Addon Command');
     }
 
@@ -58,6 +63,8 @@ class Addon extends Command
         $param['force'] = $input->getOption('force');//强制覆盖或删除
         $param['delete'] = $input->getOption('delete');
         $param['min'] = $input->getOption('min');
+        $param['install'] = $input->getOption('install');
+        $param['uninstall'] = $input->getOption('uninstall');
         $this->config = $param;
         if (empty($param['app'])) {
             $output->error("插件名不能为空");
@@ -67,9 +74,27 @@ class Addon extends Command
             $output->error("插件名不能为backend或common或frontend或api或install");
             return false;
         }
-        $tplPath = root_path('extend/fun/curd/tpl/addon');
-        $addonPath = root_path('addons/'.$param['app']) ;
+        if($param['uninstall'] && !is_dir(root_path('addons/'.$param['app']))){
+            $output->error("插件目录不存在");
+            return false;
+        }
         try {
+            if($param['uninstall'] && is_dir(root_path('addons/'.$param['app']))){
+                app(AddonService::class)->uninstallAddon($param['app']);
+                $output->info("卸载成功");
+                return true;
+            }   
+            if($param['install'] && !is_dir(root_path('addons/'.$param['app']))){
+                $output->error("插件目录不存在");
+                return false;
+            }
+            if($param['install'] && is_dir(root_path('addons/'.$param['app']))){
+                app(AddonService::class)->installAddon($param['app'],'install');
+                $output->info("安装成功");
+                return true;
+            }
+            $tplPath = root_path('extend/fun/curd/tpl/addon');
+            $addonPath = root_path('addons/'.$param['app']) ;
             $fileList = [
                 [
                     'name'=>'Plugin.php',

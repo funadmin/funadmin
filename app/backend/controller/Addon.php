@@ -284,45 +284,8 @@ class Addon extends Backend
     {
         set_time_limit(0);
         $name = input("name");
-        if (!$name) {
-            $this->error(lang(' addon name can not be empty'));
-        }
-        //插件名匹配
-        if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
-            $this->error(lang('addon name is not right'));
-        }
-        //获取插件信息
-        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
-        if (empty($info)) {
-            $this->error(lang('addon is not exist'));
-        }
-        if($info->status==1){
-            $this->error(lang('Please disable addons %s first',[$name]));
-        }
-        if (!$info->delete(true)) {
-            $this->error(lang('addon uninstall fail'));
-        }
-        //卸载插件
-        $class = get_addons_instance($name);
-        $class->uninstall();
-        //删除菜单
-        $menu_config=get_addons_menu($name);
         try {
-            if(!empty($menu_config)){
-                list($menu,$pid) = $this->getMenu($menu_config);
-                $this->addonService->delAddonMenu($menu,$name);
-            }
-            //卸载sql;
-            uninstallsql($name);
-        }catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-        //还原文件
-        Service::removeApp($name,$delete= true);
-        Service::updateAddonsInfo($name,1,0);
-        try {
-            //刷洗addon文件和配置
-            refreshaddons();
+            $this->addonService->uninstallAddon($name);
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
@@ -447,22 +410,7 @@ class Addon extends Backend
         return view($viewFile,$view);
     }
 
-    /**
-     * @NodeAnnotation (title="是否安装")
-     * @param $name
-     * @return array|false|\think\Model|null
-     * @throws \think\dbException\DataNotFoundException
-     * @throws \think\dbException\DbException
-     * @throws \think\dbException\ModelNotFoundException
-     */
-    public function isInstall($name)
-    {
-        if (empty($name)) {
-            return false;
-        }
-        $addons =  $this->modelClass->withTrashed()->where('name', $name)->find();
-        return $addons;
-    }
+
 
     /**
      * 获取插件列表
@@ -488,7 +436,7 @@ class Addon extends Backend
      */
     protected function doInstall(string $name,int $plugins_id=0,int $version_id=0,string $type=''){
         //检查插件是否安装
-        $list = $this->isInstall($name);
+        $list = $this->addonService->isInstall($name);
         if ($list && $list->status==1) {
             $this->error(lang('addons %s is already installed', [$name]));
         }
@@ -513,56 +461,9 @@ class Addon extends Backend
                 }
             }
         }
-        $class = get_addons_instance($name);
-        if (empty($class)) {
-            $this->error(lang('addons %s is not ready', [$name]));
-        }
-        $addon_info = get_addons_info($name);
-        if(!empty($addon_info['depend'])){
-            $depend = explode(',',$addon_info['depend']);
-            foreach ($depend as $v) {
-                $dependAddon  = get_addons_info($v);
-                if(empty($dependAddon)){
-                    $this->error('Please install the dependent plugin first: '.$addon_info['depend']);
-                }
-            }
-        }
-        //添加数据库
-        try{
-            if($type!='upgrade'){
-                importsql($name);
-            }
-        } catch (Exception $e){
-            $this->error($e->getMessage());
-        }
-
-        // 安装菜单
-        $menu_config=get_addons_menu($name);
-        if(!empty($menu_config)){
-            list($menu,$pid) = $this->getMenu($menu_config);
-            $this->addonService->addAddonMenu($menu,$pid,$name);
-        }
-
-        //安装插件
-        $class->install();
-        $addon_info['status'] = 1;
-        if($list){
-            if($list->delete_time > 0){
-                $this->modelClass->restore(['id'=>$list->id]);
-            }
-            $res = $this->modelClass->update(['status'=>1],['id'=>$list->id]);
-        }else{
-            $res =  $this->modelClass->save($addon_info);
-        }
-        if (!$res) {
-            $this->error(lang('addon install fail'));
-        }
-        Service::copyApp($name,$delete = true);
         try {
-            Service::updateAddonsInfo($name);
-            //刷新addon文件
-            refreshaddons();
-        }catch (Exception $e){
+            $this->addonService->installAddon($name,$type);
+        } catch (Exception $e) {
             $this->error($e->getMessage());
         }
         Cache::clear();
@@ -594,7 +495,7 @@ class Addon extends Backend
         $menu_config=get_addons_menu($name);
         try {
             if(!empty($menu_config)){
-                list($menu,$pid) = $this->getMenu($menu_config);
+                list($menu,$pid) = $this->addonService->getMenu($menu_config);
                 $this->addonService->delAddonMenu($menu,$name);
             }
             //为了防止文件误删，这里先不卸载sql
@@ -694,43 +595,4 @@ class Addon extends Backend
         $this->success(lang('logout success'));
 
     }
-
-    /**
-     * 获取菜单
-     * @param mixed $config
-     * @return array<array|int|mixed>
-     */
-    protected function getMenu($config = [])
-    {
-        $is_nav = $config['is_nav']??1;
-        $menuArr = $config['menu'];
-        $menu = [];
-        if(!empty($menuArr[0]) && is_array($menuArr[0])){
-            foreach ($menuArr as $value) {
-                if($is_nav==-1){
-                    $menu = array_merge($menu,$value['menulist']);
-                    $pid = 0;
-                }elseif($is_nav==0){
-                    $menu[] = $value;
-                    $pid = $this->addonService->addAddonManager()->id;
-                }else{
-                    $menu[] = $value;
-                    $pid = 0;
-                }
-            }
-        }else{
-            if($is_nav==-1){
-                $menu = array_merge($menu,$menuArr['menulist']);
-                $pid = 0;
-            }elseif($is_nav==0){
-                $menu[] = $menuArr;
-                $pid = $this->addonService->addAddonManager()->id;
-            }else{
-                $menu[] = $menuArr;
-                $pid = 0;
-            }
-        }
-        return [$menu,$pid];
-    }
-
 }

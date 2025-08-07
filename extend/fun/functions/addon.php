@@ -543,10 +543,10 @@ function is_really_writable($file)
  */
 if (!function_exists('importsql')) {
 
-    function importsql($name){
+    function importsql($name,$sqlFile=''){
         $service = App::make('\fun\addons\Service');
         $addons_path = $service->getAddonsPath(); // 插件列表
-        $sqlFile = $addons_path . $name . DS . 'install.sql';
+        $sqlFile = $sqlFile?$sqlFile:$addons_path . $name . DS . 'install.sql';
         if (is_file($sqlFile)) {
             $gz = fopen($sqlFile, 'r');
             $sql = '';
