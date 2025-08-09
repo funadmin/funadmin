@@ -40,7 +40,8 @@
     "phpoffice/phpspreadsheet": "^3.4",
     "guzzlehttp/guzzle": "^7.9",
     "firebase/php-jwt": "*",
-    "overtrue/pinyin": "^5.3"
+    "overtrue/pinyin": "^5.3",
+    "php-mcp/server": "^3.3"
   },
   "require-dev": {
         "symfony/var-dumper": ">=6.4",
@@ -64,12 +65,13 @@
     }
   },
   "config": {
-    "preferred-install": "dist"
-,
+    "preferred-install": "dist",
     "allow-plugins": {
             "easywechat-composer/easywechat-composer": true
         }
   },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "scripts": {
     "post-autoload-dump": [
       "@php think service:discover",

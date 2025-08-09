@@ -1,11 +1,49 @@
 <BR>
-<h3 align="center">FunAdmin7.X版本 在6.X的基础上优化了许多功能，优化了插件功能，欢迎使用</h3>
+<h3 align="center">FunAdmin7.X版本, 全新的AI开发框架，MCP工具让您的开发过程起飞</h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/funadmin-docker">
 funadmin docker 版本请移步docker仓库
     </a></h3>
 <h3 align="center"> <a href="https://www.gitee.com/funadmin/webmanadmin">
 funadmin前端和webman开发的后台管理系统
     </a></h3>
+
+-  ✨ 核心特性
+-   🚀 智能代码生成：AI自动创建完整的CRUD模板
+-   🔍 智能文件搜索：自动定位相关文件并提供精准修改建议
+-   🎯 自动化流程：一键生成API接口和菜单配置
+-   🧠 上下文理解：AI深度理解项目架构，提供更准确的代码联动
+-🛠️ AI编辑工具配置
+- 支持的AI编辑工具
+```txt
+    Trae （尽量使用 trae.ai 国外版）
+    Cursor
+    Claude Code
+    Windsurf
+    Codebubby
+    其他支持MCP协议的AI编辑器
+``` 
+```txt   
+配置步骤
+第一步：启动FunAdmin项目
+确保你的项目正在运行 执行下面的命令
+```
+```
+php mcp-server.php
+
+```
+
+
+第二步：配置AI编辑器
+在你的AI编辑工具的配置文件中添加以下MCP配置：
+```json
+{
+"mcpServers": {
+        "funadmin": {
+            "url":"127.0.0.1:8080/mcp"
+        }
+    }
+}
+```
 
 <h3 align="center">为梦想而创作：FunAdmin开发框架系统 V7.X最低支持PHP8.1</h3>
 

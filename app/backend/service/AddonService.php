@@ -291,6 +291,34 @@ class AddonService extends AbstractService
         }
         return [$menu,$pid];
     }
-
-
+    /**
+     * 修改插件状态
+     * @param string $name
+     * @return void
+     */
+    public function modifyAddon(string $name){
+        $info =  Addon::where('name',$name)->find();
+        $addoninfo = get_addons_info($name);
+        $addoninfo['status'] = $addoninfo['status']?0:1;
+        try {
+            $info->status =$addoninfo['status'];
+            Service::updateAddonsInfo($name,$addoninfo['status']);
+            // 安装菜单
+            $class = get_addons_instance($name);
+            $menu_config = get_addons_menu($name);
+            if(!empty($menu_config)){
+                list($menu,$pid) = $this->getMenu($menu_config);
+                if( $addoninfo['status']){
+                    $this->addAddonMenu($menu,$pid,$name);
+                }else{
+                    $this->delAddonMenu($menu,$name);
+                }
+            }
+            refreshaddons();
+            $info->save();
+            $addoninfo['status']==1 ?$class->enabled():$class->disabled();
+        }catch (Exception $e){
+            throw new Exception($e->getMessage());
+        }
+    }
 }

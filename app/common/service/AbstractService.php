@@ -32,7 +32,7 @@ abstract class AbstractService
      * Service constructor.
      * @param App $app
      */
-    protected function __construct()
+    public function __construct()
     {
         $this->initialize();
     }

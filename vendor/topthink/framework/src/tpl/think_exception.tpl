@@ -166,6 +166,7 @@ if (!function_exists('echo_value')) {
             font-size:16px;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
+            font-family: Consolas,"Liberation Mono",Courier,Verdana,"微软雅黑",serif;
         }
         .exception .code{
             float: left;
@@ -208,6 +209,7 @@ if (!function_exists('echo_value')) {
             display: inline-block;
             border-left: 1px solid #fff;
             font-size:14px;
+            font-family: Consolas,"Liberation Mono",Courier,Verdana,"微软雅黑",serif;
         }
         .exception .trace{
             padding: 6px;
@@ -215,6 +217,7 @@ if (!function_exists('echo_value')) {
             border-top: 0 none;
             line-height: 16px;
             font-size:14px;
+            font-family: Consolas,"Liberation Mono",Courier,Verdana,"微软雅黑",serif;
         }
         .exception .trace h2:hover {
             text-decoration: underline;
@@ -253,6 +256,7 @@ if (!function_exists('echo_value')) {
         }
         .exception-var table tbody{
             font-size: 13px;
+            font-family: Consolas, "Liberation Mono", Courier, "微软雅黑",serif;
         }
         .exception-var table td{
             padding: 0 6px;

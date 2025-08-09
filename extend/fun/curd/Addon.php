@@ -48,6 +48,8 @@ class Addon extends Command
             ->addOption('min', '', Option::VALUE_OPTIONAL, '打包', 0)
             ->addOption('install', '', Option::VALUE_OPTIONAL, '安装', 0)
             ->addOption('uninstall', '', Option::VALUE_OPTIONAL, '卸载', 0)
+            ->addOption('enable', '', Option::VALUE_OPTIONAL, '启用', 0)
+            ->addOption('disable', '', Option::VALUE_OPTIONAL, '禁用', 0)
             ->setDescription('Addon Command');
     }
 
@@ -65,6 +67,8 @@ class Addon extends Command
         $param['min'] = $input->getOption('min');
         $param['install'] = $input->getOption('install');
         $param['uninstall'] = $input->getOption('uninstall');
+        $param['enable'] = $input->getOption('enable');
+        $param['disable'] = $input->getOption('disable');
         $this->config = $param;
         if (empty($param['app'])) {
             $output->error("插件名不能为空");
@@ -78,7 +82,25 @@ class Addon extends Command
             $output->error("插件目录不存在");
             return false;
         }
+        if($param['enable'] && !is_dir(root_path('addons/'.$param['app']))){
+            $output->error("插件目录不存在");
+            return false;
+        }
+        if($param['disable'] && !is_dir(root_path('addons/'.$param['app']))){
+            $output->error("插件目录不存在");
+            return false;
+        }
         try {
+            if($param['enable'] && is_dir(root_path('addons/'.$param['app']))){
+                app(AddonService::class)->enableAddon($param['app']);
+                $output->info("启用成功");
+                return true;
+            }
+            if($param['disable'] && is_dir(root_path('addons/'.$param['app']))){
+                app(AddonService::class)->modifyAddon($param['app']);
+                $output->info("禁用成功");
+                return true;
+            }
             if($param['uninstall'] && is_dir(root_path('addons/'.$param['app']))){
                 app(AddonService::class)->uninstallAddon($param['app']);
                 $output->info("卸载成功");

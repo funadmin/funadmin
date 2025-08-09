@@ -304,28 +304,10 @@ class Addon extends Backend
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not right'));
         }
-        $info =  $this->modelClass->where('name',$name)->find();
-        $addoninfo = get_addons_info($name);
-        $addoninfo['status'] = $addoninfo['status']?0:1;
         try {
-            $info->status =$addoninfo['status'];
-            Service::updateAddonsInfo($name,$addoninfo['status']);
-            // 安装菜单
-            $class = get_addons_instance($name);
-            $menu_config = get_addons_menu($name);
-            if(!empty($menu_config)){
-                list($menu,$pid) = $this->getMenu($menu_config);
-                if( $addoninfo['status']){
-                    $this->addonService->addAddonMenu($menu,$pid,$name);
-                }else{
-                    $this->addonService->delAddonMenu($menu,$name);
-                }
-            }
-            refreshaddons();
-            $info->save();
-            $addoninfo['status']==1 ?$class->enabled():$class->disabled();
-        }catch (Exception $e){
-            $this->error(lang($e->getMessage()));
+            $this->addonService->modifyAddon($name);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
         }
         $this->success(lang('operation success'));
     }
