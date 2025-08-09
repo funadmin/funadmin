@@ -18,7 +18,8 @@ return [
         'curd'=>'fun\curd\Curd',
         'menu'=>'fun\curd\Menu',
         'addon'=>'fun\curd\Addon',
-        'install'=>'fun\curd\Install',
+        'install'=>'fun\curd\Install', 
+        'mcp' =>'fun\mcp\McpServer'
 
     ],
 ];
