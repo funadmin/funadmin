@@ -54,6 +54,36 @@ class McpService extends AbstractService
     protected $timeout = 600000;
 
     /**
+     * 连接超时配置（毫秒）
+     * @var int
+     */
+    protected $connectTimeout = 30000;
+
+    /**
+     * 读取超时配置（毫秒）
+     * @var int
+     */
+    protected $readTimeout = 30000;
+
+    /**
+     * 重试次数
+     * @var int
+     */
+    protected $retryAttempts = 3;
+
+    /**
+     * 重试延迟（毫秒）
+     * @var int
+     */
+    protected $retryDelay = 1000;
+
+    /**
+     * 调试模式
+     * @var bool
+     */
+    protected $debug = false;
+
+    /**
      * 服务名称
      * @var string
      */
@@ -72,7 +102,66 @@ class McpService extends AbstractService
     {
         parent::initialize();
         $this->logger = new NullLogger(); // 默认使用空日志记录器
+        
+        // 读取MCP配置文件
+        $this->loadMcpConfig();
+        
         return $this;
+    }
+
+    /**
+     * 加载MCP配置
+     */
+    protected function loadMcpConfig()
+    {
+        try {
+                // 对于长时间运行的服务器，设置为无限制
+            ini_set('max_execution_time', 0);
+            set_time_limit(0);
+            
+            // 忽略用户中断，保持服务器运行
+            ignore_user_abort(true);
+        
+            $mcpConfig = Config::get('mcp', []);
+            
+            // 设置超时配置
+            if (isset($mcpConfig['timeout']) && $mcpConfig['timeout'] > 0) {
+                $this->timeout = $mcpConfig['timeout'];
+            }
+            
+            if (isset($mcpConfig['connect_timeout']) && $mcpConfig['connect_timeout'] > 0) {
+                $this->connectTimeout = $mcpConfig['connect_timeout'];
+            }
+            
+            if (isset($mcpConfig['read_timeout']) && $mcpConfig['read_timeout'] > 0) {
+                $this->readTimeout = $mcpConfig['read_timeout'];
+            }
+            
+            // 设置重试配置
+            if (isset($mcpConfig['retry_attempts']) && $mcpConfig['retry_attempts'] > 0) {
+                $this->retryAttempts = $mcpConfig['retry_attempts'];
+            }
+            
+            if (isset($mcpConfig['retry_delay']) && $mcpConfig['retry_delay'] > 0) {
+                $this->retryDelay = $mcpConfig['retry_delay'];
+            }
+            
+            // 设置调试模式
+            if (isset($mcpConfig['debug'])) {
+                $this->debug = $mcpConfig['debug'];
+            }
+            
+            Log::info('MCP配置加载成功', [
+                'timeout' => $this->timeout,
+                'connect_timeout' => $this->connectTimeout,
+                'read_timeout' => $this->readTimeout,
+                'retry_attempts' => $this->retryAttempts,
+                'retry_delay' => $this->retryDelay
+            ]);
+            
+        } catch (Exception $e) {
+            Log::warning('MCP配置加载失败，使用默认配置: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -492,23 +581,19 @@ class McpService extends AbstractService
     }
 
     /**
-     * 设置超时时间
-     * @param int $timeout 超时时间（毫秒）
-     * @return $this
+     * 获取当前配置信息
+     * @return array
      */
-    public function setTimeout(int $timeout)
+    public function getConfig()
     {
-        // 对于长时间运行的服务器，设置为无限制
-        ini_set('max_execution_time', 0);
-        set_time_limit(0);
-        
-        // 忽略用户中断，保持服务器运行
-        ignore_user_abort(true);
-        
-        // 存储超时配置供其他地方使用
-        $this->timeout = $timeout;
-        
-        return $this;
+        return [
+            'timeout' => $this->timeout,
+            'connect_timeout' => $this->connectTimeout,
+            'read_timeout' => $this->readTimeout,
+            'retry_attempts' => $this->retryAttempts,
+            'retry_delay' => $this->retryDelay,
+            'debug' => $this->debug
+        ];
     }
 
     /**
@@ -593,9 +678,11 @@ class McpService extends AbstractService
         return [
             'name' => $this->name,
             'version' => $this->version,
-            'tools' => 10, // 10个工具（新增1个）
+            'tools' => 15, // 10个工具（新增1个）
             'resources' => 3, // 3个资源
-            'status' => 'ready'
+            'prompt' => 1, // 1个提示词
+            'status' => 'ready',
+            'config' => $this->getConfig()
         ];
     }
 

@@ -133,9 +133,6 @@ try {
     $mcpService = app(McpService::class);
     $mcpService->setLogger($logger);
     
-    // 设置超时配置
-    $mcpService->setTimeout((int)$timeout);
-    
     echo "✓ MCP服务实例创建成功\n";
     
     $serviceInfo = $mcpService->getServiceInfo();

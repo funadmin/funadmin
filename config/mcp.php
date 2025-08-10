@@ -14,7 +14,7 @@ return [
     'path' => env('MCP_PATH', 'mcp'),
     
     // 连接超时配置（毫秒）
-    'timeout' => env('MCP_TIMEOUT', 60000),
+    'timeout' => env('MCP_TIMEOUT', 0),
     'connect_timeout' => env('MCP_CONNECT_TIMEOUT', 10000),
     'read_timeout' => env('MCP_READ_TIMEOUT', 30000),
     
