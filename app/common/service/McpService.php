@@ -345,7 +345,7 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleCreateController'], 'controller', '生成FunAdmin控制器文件')
             ->withTool([self::class, 'handleCreateModel'], 'model', '生成FunAdmin模型文件')
             ->withTool([self::class, 'handleCreateView'], 'view', '生成FunAdmin视图文件')
-            ->withTool([self::class, 'handleCreateJs'], 'service', '生成FunAdmin JS文件')
+            ->withTool([self::class, 'handleCreateJs'], 'js', '生成FunAdmin JS文件')
             ->withTool([self::class, 'handleCreateApi'], 'api', '生成FunAdmin API接口文件')
             ->withTool([self::class, 'handleCurd'], 'curd', '生成FunAdmin CURD模块')
             ->withTool([self::class, 'handleAddon'], 'addon', '生成FunAdmin 插件模块')
