@@ -39,7 +39,7 @@ php mcp-server.php
 {
 "mcpServers": {
         "funadmin": {
-            "url":"127.0.0.1:8080/mcp"
+            "url":"http://127.0.0.1:8080/mcp"
         }
     }
 }

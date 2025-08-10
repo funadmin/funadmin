@@ -96,6 +96,30 @@ class McpService extends AbstractService
     protected $version = '1.0.0';
 
     /**
+     * 内存限制
+     * @var string
+     */
+    protected $memoryLimit;
+
+    /**
+     * 缓冲区大小
+     * @var int
+     */
+    protected $bufferSize;
+
+    /**
+     * 心跳机制启用
+     * @var bool
+     */
+    protected $heartbeatEnabled;
+
+    /**
+     * 心跳间隔（秒）
+     * @var int
+     */
+    protected $heartbeatInterval;
+
+    /**
      * 初始化MCP服务
      */
     protected function initialize()
@@ -115,7 +139,7 @@ class McpService extends AbstractService
     protected function loadMcpConfig()
     {
         try {
-                // 对于长时间运行的服务器，设置为无限制
+            // 对于长时间运行的服务器，设置为无限制
             ini_set('max_execution_time', 0);
             set_time_limit(0);
             
@@ -151,17 +175,147 @@ class McpService extends AbstractService
                 $this->debug = $mcpConfig['debug'];
             }
             
+            // 设置内存限制
+            if (isset($mcpConfig['memory_limit'])) {
+                ini_set('memory_limit', $mcpConfig['memory_limit']);
+            }
+            
+            // 设置缓冲区大小
+            if (isset($mcpConfig['buffer_size'])) {
+                $this->bufferSize = $mcpConfig['buffer_size'];
+            }
+            
+            // 设置心跳配置
+            if (isset($mcpConfig['heartbeat_enabled'])) {
+                $this->heartbeatEnabled = $mcpConfig['heartbeat_enabled'];
+            }
+            
+            if (isset($mcpConfig['heartbeat_interval'])) {
+                $this->heartbeatInterval = $mcpConfig['heartbeat_interval'];
+            }
+            
             Log::info('MCP配置加载成功', [
                 'timeout' => $this->timeout,
                 'connect_timeout' => $this->connectTimeout,
                 'read_timeout' => $this->readTimeout,
                 'retry_attempts' => $this->retryAttempts,
-                'retry_delay' => $this->retryDelay
+                'retry_delay' => $this->retryDelay,
+                'heartbeat_enabled' => $this->heartbeatEnabled ?? false,
+                'heartbeat_interval' => $this->heartbeatInterval ?? 30
             ]);
             
         } catch (Exception $e) {
             Log::warning('MCP配置加载失败，使用默认配置: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * 启动心跳机制
+     */
+    protected function startHeartbeat()
+    {
+        if (!$this->heartbeatEnabled) {
+            return;
+        }
+        
+        // 在后台启动心跳线程
+        if (function_exists('pcntl_fork')) {
+            $pid = pcntl_fork();
+            if ($pid == 0) {
+                // 子进程执行心跳
+                $this->heartbeatLoop();
+                exit(0);
+            }
+        } else {
+            // Windows系统使用定时器
+            $this->scheduleHeartbeat();
+        }
+    }
+
+    /**
+     * 心跳循环
+     */
+    protected function heartbeatLoop()
+    {
+        while (true) {
+            try {
+                // 发送心跳信号
+                $this->sendHeartbeat();
+                
+                // 等待下次心跳
+                sleep($this->heartbeatInterval);
+                
+            } catch (Exception $e) {
+                Log::error('心跳发送失败: ' . $e->getMessage());
+                sleep(5); // 失败后等待5秒再重试
+            }
+        }
+    }
+
+    /**
+     * 发送心跳信号
+     */
+    protected function sendHeartbeat()
+    {
+        // 记录心跳日志
+        if ($this->debug) {
+            Log::debug('发送心跳信号', [
+                'timestamp' => time(),
+                'memory_usage' => memory_get_usage(true)
+            ]);
+        }
+        
+        // 这里可以添加实际的心跳逻辑
+        // 比如向客户端发送ping消息
+    }
+
+    /**
+     * 调度心跳（Windows系统）
+     */
+    protected function scheduleHeartbeat()
+    {
+        // Windows系统下的心跳调度
+        if (function_exists('register_tick_function')) {
+            register_tick_function([$this, 'sendHeartbeat']);
+            declare(ticks=1);
+        }
+    }
+
+    /**
+     * 带重试机制的操作执行
+     */
+    protected function executeWithRetry(callable $operation, string $operationName = 'operation')
+    {
+        $attempts = 0;
+        $lastException = null;
+        
+        while ($attempts < $this->retryAttempts) {
+            try {
+                $attempts++;
+                Log::info("执行{$operationName}，第{$attempts}次尝试");
+                
+                $result = $operation();
+                
+                if ($attempts > 1) {
+                    Log::info("{$operationName}在第{$attempts}次尝试后成功");
+                }
+                
+                return $result;
+                
+            } catch (Exception $e) {
+                $lastException = $e;
+                Log::warning("{$operationName}第{$attempts}次尝试失败: " . $e->getMessage());
+                
+                if ($attempts < $this->retryAttempts) {
+                    $delay = $this->retryDelay * pow(1.5, $attempts - 1); // 指数退避
+                    Log::info("等待{$delay}ms后重试");
+                    usleep($delay * 1000);
+                }
+            }
+        }
+        
+        Log::error("{$operationName}在{$this->retryAttempts}次尝试后仍然失败");
+        throw $lastException;
     }
 
     /**
@@ -602,13 +756,17 @@ class McpService extends AbstractService
     public function startWithStdio()
     {
         try {
+            // 启动心跳机制
+            $this->startHeartbeat();
+            
             $server = $this->buildServer();
             $transport = new StdioServerTransport();
             
+            Log::info('MCP STDIO服务器启动成功');
             $server->listen($transport);
 
         } catch (Exception $e) {
-            Log::error('MCP服务器启动失败: ' . $e->getMessage());
+            Log::error('MCP STDIO服务器启动失败: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -619,8 +777,13 @@ class McpService extends AbstractService
     public function startWithTransport($transport)
     {
         try {
+            // 启动心跳机制
+            $this->startHeartbeat();
+            
             $server = $this->buildServer();
             $server->listen($transport);
+            
+            Log::info('MCP服务器启动成功');
 
         } catch (Exception $e) {
             Log::error('MCP服务器启动失败: ' . $e->getMessage());
@@ -634,8 +797,13 @@ class McpService extends AbstractService
     public function startWithSse(string $host = '127.0.0.1', int $port = 8080, string $mcpPath = 'mcp')
     {
         try {
+            // 启动心跳机制
+            $this->startHeartbeat();
+            
             $server = $this->buildServer();
             $transport = new \PhpMcp\Server\Transports\StreamableHttpServerTransport($host, $port, $mcpPath);
+            
+            Log::info("MCP SSE服务器启动成功，监听地址: http://{$host}:{$port}/{$mcpPath}");
             $server->listen($transport);
 
         } catch (Exception $e) {
@@ -650,8 +818,13 @@ class McpService extends AbstractService
     public function startWithHttp(string $host = '127.0.0.1', int $port = 8080, string $mcpPath = 'mcp')
     {
         try {
+            // 启动心跳机制
+            $this->startHeartbeat();
+            
             $server = $this->buildServer();
             $transport = new \PhpMcp\Server\Transports\HttpServerTransport($host, $port, $mcpPath);
+            
+            Log::info("MCP HTTP服务器启动成功，监听地址: http://{$host}:{$port}/{$mcpPath}");
             $server->listen($transport);
 
         } catch (Exception $e) {
