@@ -264,7 +264,7 @@ INSERT INTO `fun_auth_rule` (`id`, `module`, `target`, `href`, `query`, `title`,
 (42, 'backend', '_self', 'sys.configGroup', '', 'configGroup', 1, 1, 1, 1, 'layui-icon layui-icon-component', 1, 50, 1599888082, 1600396158, NULL),
 (43, 'backend', '_self', 'sys.adminlog/index', '', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-circle-dot', 24, 50, 1599888429, 1602809070, NULL),
 (44, 'backend', '_self', 'ajax/uploads', '', 'Uploads', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 1, 0, 0, 1599887263, NULL),
-(45, 'backend', '_self', 'member', '', 'Member', 1, 1, 1, 1, 'layui-icon layui-icon-user', 0, 100, 1567327942, 159989
+(45, 'backend', '_self', 'member', '', 'Member', 1, 1, 1, 1, 'layui-icon layui-icon-user', 0, 100, 1567327942, 1599887263,NULL),
 (46, 'backend', '_self', 'member.member', '', 'Member', 1, 1, 1, 1, 'layui-icon layui-icon-username', 45, 1, 1599889321, 1602831544, NULL),
 (47, 'backend', '_self', 'member.member/index', '', 'List', 0, 1, 1, 0, 'layui-icon layui-icon-user', 46, 50, 1567327992, 1599889408, NULL),
 (48, 'backend', '_self', 'member.member/add', '', 'Add', 0, 1, 1, 0, 'layui-icon layui-icon-diamond', 46, 0, 0, 1599889767, NULL),
