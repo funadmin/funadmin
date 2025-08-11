@@ -1007,7 +1007,7 @@ use think\\App;
 use think\\Request;
 use app\\common\\annotation\\ControllerAnnotation;
 use app\\common\\annotation\\NodeAnnotation;
-
+use think\\exception\\ValidateException;
 /**
  * @ControllerAnnotation('{$description}')
  * Class {$controllerClass}
@@ -1068,13 +1068,13 @@ class {$controllerClass} extends {$baseController}
             \$post = request()->post();
             foreach (\$post as \$k=>\$v){
                 if(is_array(\$v)){
-                    \$post[\$k] = implode(',',\v);
+                    \$post[\$k] = implode(',',\$v);
                 }
             }
             \$rule = [];
             try {
                 \$this->validate(\$post, \$rule);
-            }catch (\ValidateException \$e){
+            }catch (ValidateException \$e){
                 \$this->error(lang(\$e->getMessage()));
             }
             try {
@@ -1088,7 +1088,7 @@ class {$controllerClass} extends {$baseController}
             'formData' => '',
             'title' => lang('Add'),
         ];
-        return view('',\$view);
+        return view('add',\$view);
     }
 
     /**
@@ -1105,12 +1105,12 @@ class {$controllerClass} extends {$baseController}
             \$rule = [];
             try {
                 \$this->validate(\$post, \$rule);
-            }catch (\ValidateException \$e){
+            }catch (ValidateException \$e){
                 \$this->error(lang(\$e->getMessage()));
             }
             foreach (\$post as \$k=>\$v){
                 if(is_array(\$v)){
-                    \$post[\$k] = implode(',',\v);
+                    \$post[\$k] = implode(',',\$v);
                 }
                 if (\$v == '0000-00-00 00:00:00') {//避免插入数据库时出现错误，日期不能为空
 		            \$post[\$k] = null;
@@ -1126,7 +1126,7 @@ class {$controllerClass} extends {$baseController}
             }
             \$save ? \$this->success(lang('operation success')) : \$this->error(lang('operation failed'));
         }
-        \$view = ['formData'=>\$list,'title' => lang('Add'),];
+        \$view = ['formData'=>\$list,'title' => lang('Edit'),];
         return view('add',\$view);
     }
 }";
@@ -1486,7 +1486,7 @@ class {$modelClass} extends BaseModel
 
     /**
      * 处理插件管理，基于fun/curd/Addon.php功能
-     * @param string $action 操作类型（create/install/uninstall/enable/disable/config/info/list）
+     * @param string $action 操作类型（create/install/uninstall/enable/disable）
      * @param string $addonName 插件名称
      * @param array $options 其他选项
      * @return array
@@ -1598,7 +1598,7 @@ class {$modelClass} extends BaseModel
 
     /**
      * 处理菜单管理，基于fun/curd/Menu.php功能
-     * @param string $action 操作类型（create/delete/list/tree）
+     * @param string $action 操作类型（create/delete）
      * @param array $menuData 菜单数据
      * @param array $options 其他选项
      * @return array
@@ -2865,10 +2865,10 @@ class {$controllerClass} extends Api
         ];
         
         // 生成 edit.html
-        $viewFiles[] = [
+       /*  $viewFiles[] = [
             'name' => 'edit.html',
             'content' => $addContent
-        ];
+        ]; */
         
         return $viewFiles;
     }
@@ -2977,7 +2977,7 @@ EOF;
         }
 
         // 添加提交按钮
-        $content .= "    {:Form::submitbtn()}\n";
+        $content .= "    {:Form::submit()}\n";
         $content .= "</form>\n";
         
         return $content;
