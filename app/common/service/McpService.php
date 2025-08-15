@@ -351,6 +351,7 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleAddon'], 'addon', '生成FunAdmin 插件模块')
             ->withTool([self::class, 'handleMenu'], 'menu', '生成FunAdmin 菜单模块')
             ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，   支持字段信息、类型、注释等')
+            ->withTool([self::class, 'handleThinkCommand'], 'think-command', '执行ThinkPHP内置命令')
             ->withPrompt([self::class, 'handleWithPrompt'], 'with-prompt', '通过自然语言描述生成数据库表、控制器、模型等')
             ->withResource([self::class, 'handleConfigResource'], 'config://system', 'config-system', '系统配置信息资源', 'application/json')
             ->withResource([self::class, 'handleSchemaResource'], 'schema://database', 'schema-database', '数据库表结构信息资源', 'application/json')
@@ -851,7 +852,7 @@ class McpService extends AbstractService
         return [
             'name' => $this->name,
             'version' => $this->version,
-            'tools' => 15, // 10个工具（新增1个）
+            'tools' => 16, // 16个工具（新增ThinkPHP命令工具）
             'resources' => 3, // 3个资源
             'prompt' => 1, // 1个提示词
             'status' => 'ready',
@@ -3405,6 +3406,18 @@ EOF;
             ];
         }
 
+        // 处理ThinkPHP命令执行操作
+        if (strpos($lowerPrompt, 'think') !== false || strpos($lowerPrompt, '命令') !== false || 
+            strpos($lowerPrompt, 'command') !== false || strpos($lowerPrompt, '执行') !== false ||
+            strpos($lowerPrompt, 'make:') !== false || strpos($lowerPrompt, 'optimize') !== false ||
+            strpos($lowerPrompt, 'clear') !== false || strpos($lowerPrompt, 'build') !== false) {
+            $results['think-command'] = [
+                'success' => true,
+                'message' => '检测到ThinkPHP命令执行操作',
+                'suggestion' => '请使用 think-command 工具执行ThinkPHP内置命令，支持的命令包括：make、optimize、clear、build、route:list等'
+            ];
+        }
+
         // 如果没有匹配到任何操作，返回通用建议
         if (empty($results)) {
             $results['general'] = [
@@ -3424,10 +3437,131 @@ EOF;
                     '- 系统配置：获取系统配置信息' . "\n" .
                     '- 文件操作：进行文件读写操作' . "\n" .
                     '- 用户管理：进行用户相关操作' . "\n" .
-                    '- 系统信息：获取系统运行信息'
+                    '- 系统信息：获取系统运行信息' . "\n" .
+                    '- ThinkPHP命令：执行框架内置命令（make、optimize、clear等）'
             ];
         }
 
         return $results;
+    }
+
+    /**
+     * 执行ThinkPHP内置命令
+     * @param string $command 命令名称
+     * @param array $params 命令参数 (可选)
+     * @param array $options 命令选项 (可选)
+     * @return array
+     */
+    public function handleThinkCommand(string $command, array $params = [], array $options = []): array
+    {
+        try {
+            // 验证命令是否为安全的内置命令
+            $allowedCommands = [
+                // 基础命令
+                'list', 'help', 'version', 'clear', 'build',
+                // make 命令组
+                'make:command', 'make:controller', 'make:event', 'make:listener', 
+                'make:middleware', 'make:model', 'make:service', 'make:subscribe', 'make:validate',
+                // optimize 命令组
+                'optimize:config', 'optimize:route', 'optimize:schema',
+                // route 命令组
+                'route:list',
+                // service 命令组
+                'service:discover',
+                // vendor 命令组
+                'vendor:publish',
+                // queue 命令组（只允许查看相关的）
+                'queue:failed', 'queue:failed-table', 'queue:table',
+                // addons 命令组
+                'addons:config',
+                // auth 命令组
+                'auth:config',
+                // builder 命令组
+                'builder:config',
+                // curd 命令组
+                'curd:config',
+                // FunAdmin 特有命令
+                'addon', 'curd', 'menu', 'install', 'mcp'
+            ];
+
+            if (!in_array($command, $allowedCommands)) {
+                return [
+                    'success' => false,
+                    'message' => '不支持的命令或命令不安全',
+                    'allowed_commands' => $allowedCommands
+                ];
+            }
+
+            // 构建完整的命令
+            $fullCommand = 'php think ' . $command;
+            
+            // 添加参数
+            if (!empty($params)) {
+                foreach ($params as $param) {
+                    $fullCommand .= ' ' . escapeshellarg($param);
+                }
+            }
+            
+            // 添加选项
+            if (!empty($options)) {
+                foreach ($options as $option => $value) {
+                    if (is_numeric($option)) {
+                        // 简单选项，如 --verbose
+                        $fullCommand .= ' --' . $value;
+                    } else {
+                        // 带值选项，如 --name=value
+                        $fullCommand .= ' --' . $option . '=' . escapeshellarg($value);
+                    }
+                }
+            }
+
+            // 切换到项目根目录执行命令
+            $rootPath = App::getRootPath();
+            $originalDir = getcwd();
+            
+            if ($originalDir !== $rootPath) {
+                chdir($rootPath);
+            }
+
+            // 执行命令并捕获输出
+            $output = [];
+            $returnCode = 0;
+            exec($fullCommand . ' 2>&1', $output, $returnCode);
+            
+            // 恢复原始目录
+            if ($originalDir !== $rootPath) {
+                chdir($originalDir);
+            }
+
+            // 记录命令执行日志
+            $this->handleWriteLog("执行ThinkPHP命令: {$fullCommand}", 'info', [
+                'return_code' => $returnCode,
+                'output_lines' => count($output)
+            ]);
+
+            return [
+                'success' => $returnCode === 0,
+                'message' => $returnCode === 0 ? '命令执行成功' : '命令执行失败',
+                'command' => $fullCommand,
+                'return_code' => $returnCode,
+                'output' => implode("\n", $output),
+                'output_lines' => $output
+            ];
+
+        } catch (\Exception $e) {
+            $this->handleWriteLog('执行ThinkPHP命令时出错: ' . $e->getMessage(), 'error', [
+                'command' => $command,
+                'params' => $params,
+                'options' => $options,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => '命令执行异常: ' . $e->getMessage(),
+                'command' => $command,
+                'error' => $e->getMessage()
+            ];
+        }
     }
 }
