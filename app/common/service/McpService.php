@@ -87,7 +87,7 @@ class McpService extends AbstractService
      * 服务名称
      * @var string
      */
-    protected $name = 'funadmin-mcp';
+    protected $name = 'mcp';
 
     /**
      * 服务版本
