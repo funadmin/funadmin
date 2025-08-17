@@ -216,4 +216,50 @@ class FileHelper
         }
         return $list;
     }
+
+
+    /**
+     * 文件比较
+     * @param $source
+     * @param $destFileOrPath
+     * @param string $prefix
+     * @param bool $onlyFiles
+     * @return mixed
+     */
+    public static function mutexCompare($source, $destFileOrPath, string $prefix = '', bool $onlyFiles = false): array
+    {
+        $list = [];
+        $destFileOrPath = $destFileOrPath ?: root_path();
+        if (!is_array($source) && is_file($source) && is_file($destFileOrPath)) {
+            return md5_file($source) !== md5_file(filename: $destFileOrPath);
+        }
+
+        foreach ($source as $filesPath) {
+            if (is_dir($filesPath)) {
+                $files = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($filesPath, \FilesystemIterator::SKIP_DOTS),
+                    \RecursiveIteratorIterator::CHILD_FIRST
+                );
+
+                foreach ($files as $file) {
+                    if ($file->isFile()) {
+                        $filePath = $file->getPathname();
+                        $appPath = str_replace($prefix, '', $filePath);
+                        $destPath = $destFileOrPath . $appPath;
+                        if ($onlyFiles) {
+                            if (is_file($destPath)) {
+                                if (md5_file($filePath) != md5_file($destPath)) {
+                                    $list[] = $appPath;
+                                }
+                            }
+                        } else {
+                            $list[] = $appPath;
+                        }
+
+                    }
+                }
+            }
+        }
+        return $list;
+    }
 }
