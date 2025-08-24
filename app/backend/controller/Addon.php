@@ -384,7 +384,7 @@ class Addon extends Backend
             $this->error(lang('addon config is not found'));
         }
         //模板引擎初始化
-        $view = ['formData'=>$config,'title'=>$one->name];
+        $view = ['formData'=>$config,'title'=>$one['name']];
         $configFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'config.html';
         $viewFile = file_exists($configFile) ? $configFile : '';
         //重新加载引擎
