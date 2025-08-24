@@ -7,7 +7,6 @@ use app\common\service\TokenService;
 use think\App;
 use think\facade\Db;
 use think\Request;
-use think\facade\Config;
 
 /**
  * 生成token
@@ -62,7 +61,7 @@ class Token extends Api
                 $this->success(__('Tokens generated successfully'), [
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
-                    'expires_in' => Config::get('api.access_token_ttl'),
+                    'expires_in' => config('api.access_token_ttl'),
                 ]);
             } else {
                 $this->error(lang('Password is not right'), [], 401);
@@ -95,7 +94,7 @@ class Token extends Api
             $this->error(__('Invalid refresh token'), [], 401);
         }
         // 生成新的 access_token
-        $newAccessToken = $this->tokenService->build($userData, Config::get('api.access_token_ttl', 3600*2));
+        $newAccessToken = $this->tokenService->build($userData, config('api.access_token_ttl', 3600*2));
         $this->success(__('Access token refreshed successfully'), [
             'access_token' => $newAccessToken,
         ]);

@@ -23,7 +23,6 @@ use think\App;
 use think\db\exception\PDOException;
 use think\Exception;
 use think\facade\Cache;
-use think\facade\Config;
 use think\facade\Cookie;
 use think\facade\Db;
 use think\facade\Request;

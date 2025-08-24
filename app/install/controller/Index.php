@@ -5,7 +5,6 @@ namespace app\install\controller;
 use app\common\traits\Jump;
 use think\App;
 use app\BaseController;
-use think\facade\Config;
 use think\facade\Db;
 use think\facade\View;
 
@@ -162,7 +161,7 @@ class Index extends BaseController
             }
             $link->select_db($db['database']);
             // 写入数据库
-            $config = Config::get('database');
+            $config = config('database');
             $config['connections']['mysql'] = [
                 'type'      => 'mysql',
                 'hostname'  => $db['host'],
@@ -173,7 +172,7 @@ class Index extends BaseController
                 'params'    => [],
                 'charset'   => 'utf8mb4'
             ];
-            Config::set($config, 'database');
+            config($config, 'database');
             //替换数据库相关配置
             $putDatabase = str_replace(
                 ['%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],

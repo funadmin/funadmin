@@ -22,7 +22,6 @@ use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
 use think\facade\Cache;
-use think\facade\Config;
 use think\facade\Cookie;
 use think\facade\Request;
 use think\facade\Session;
@@ -77,7 +76,7 @@ class AuthService extends AbstractService
     public function __construct()
     {
         parent::__construct();
-        if ($auth = Config::get('auth')) {
+        if ($auth = config('auth')) {
             $this->config = array_merge($this->config, $auth);
         }
         // 初始化request
@@ -281,7 +280,7 @@ class AuthService extends AbstractService
     public function nodeAccess($url)
     {
         // 判断权限验证开关
-        $cfg = Config::get('funadmin');
+        $cfg = config('funadmin');
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }

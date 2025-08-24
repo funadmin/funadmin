@@ -19,7 +19,6 @@ use fun\helper\TreeHelper;
 use OpenAI\Responses\Images\VariationResponse;
 use think\facade\Cache;
 use think\facade\Db;
-use think\facade\Config;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -520,7 +519,7 @@ trait Curd
      * @return array
      */
     protected function getTableField($modelClass='',$field='COLUMN_NAME,COLUMN_COMMENT'){
-        $driver = Config::get('database.default');
+        $driver = config('database.default');
         $this->modelClass = $modelClass?:$this->modelClass;
         $database = $this->modelClass->get_databasename();
         $table = Str::snake($this->modelClass->getName());

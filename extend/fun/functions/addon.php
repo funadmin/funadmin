@@ -4,7 +4,6 @@ use fun\helper\FileHelper;
 use think\Exception;
 use think\facade\Db;
 use think\facade\App;
-use think\facade\Config;
 use think\facade\Event;
 use think\facade\Route;
 use think\facade\Cache;
@@ -167,7 +166,7 @@ if (!function_exists('set_addons_info')) {
             fwrite($handle, implode("\n", $res) . "\n");
             fclose($handle);
             //清空当前配置缓存
-            Config::set($array, "addon_{$name}_info");
+            config($array, "addon_{$name}_info");
             Cache::delete('addonslist');
         } else {
             throw new Exception("File does not have write permission");
@@ -410,7 +409,7 @@ if (!function_exists('get_addons_autoload_config')) {
     function get_addons_autoload_config($chunk = false)
     {
         // 读取addons的配置
-        $config = (array)Config::get('addons');
+        $config = (array)config('addons');
         if ($chunk) {
             // 清空手动配置的钩子
             $config['hooks'] = [];
@@ -419,7 +418,7 @@ if (!function_exists('get_addons_autoload_config')) {
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
         $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
-        $url_domain_deploy = Config::get('route.url_domain_deploy');
+        $url_domain_deploy = config('route.url_domain_deploy');
         $addons = get_addons_list();
         $domain = [];
         foreach ($addons as $name => $addon) {

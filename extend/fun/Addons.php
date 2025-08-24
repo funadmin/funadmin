@@ -16,7 +16,6 @@ namespace fun;
 
 use think\App;
 use think\helper\Str;
-use think\facade\Config;
 use think\facade\View;
 
 abstract class Addons
@@ -140,7 +139,7 @@ abstract class Addons
      */
     final public function getInfo()
     {
-        $info = Config::get($this->addon_info, []);
+        $info = config($this->addon_info, []);
         if ($info) {
             return $info;
         }
@@ -153,7 +152,7 @@ abstract class Addons
             $_info = parse_ini_file($info_file, true, INI_SCANNER_TYPED) ?: [];
             $info = array_merge($info,$_info);
         }
-        Config::set($info, $this->addon_info);
+        config($info, $this->addon_info);
         return isset($info) ? $info : [];
     }
 
@@ -164,7 +163,7 @@ abstract class Addons
      */
     final public function getConfig($type = false)
     {
-        $config = Config::get($this->addon_config, []);
+        $config = config($this->addon_config, []);
         if ($config) {
             return $config;
         }
@@ -179,7 +178,7 @@ abstract class Addons
             }
             unset($temp_arr);
         }
-        Config::set($config, $this->addon_config);
+        config($config, $this->addon_config);
         return $config;
     }
     /**
@@ -195,7 +194,7 @@ abstract class Addons
         }
         $info = $this->getInfo($name);
         $info = array_merge($info, $value);
-        Config::set($info,$name);
+        config($info,$name);
         return $info;
     }
 

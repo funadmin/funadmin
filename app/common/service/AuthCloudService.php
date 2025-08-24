@@ -17,7 +17,7 @@ namespace app\common\service;
 use fun\helper\HttpHelper;
 use fun\helper\StringHelper;
 use think\App;
-use think\facade\Config;
+
 
 class AuthCloudService extends AbstractService
 {

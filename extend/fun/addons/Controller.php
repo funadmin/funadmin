@@ -7,7 +7,6 @@ use app\common\traits\Jump;
 use think\App;
 use think\facade\Lang;
 use think\facade\View;
-use think\facade\Config;
 
 /**
  * 插件基类控制器.
@@ -53,7 +52,7 @@ class Controller extends BaseController
         parent::__construct($app);
         $this->request = app()->request;
         // 是否自动转换控制器和操作名
-        $convert = Config::get('url_convert');
+        $convert = config('url_convert');
         $filter = $convert ? 'strtolower' : 'trim';
         // 处理路由参数
         $this->controller = $this->request->controller();
@@ -76,7 +75,7 @@ class Controller extends BaseController
     protected function _initialize()
     {
         parent::initialize();
-        $view_config = Config::get('view');
+        $view_config = config('view');
          // 渲染配置到视图中
         if($this->addon){
             $view_config = array_merge($view_config,['view_path' => $this->addon_path . DS .'view' .DS],);

@@ -6,7 +6,6 @@ use app\common\traits\Jump;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
-use think\facade\Config;
 use think\facade\Request;
 use think\file\UploadedFile;
 use think\Image;
@@ -99,8 +98,8 @@ class UploadService extends AbstractService
         $this->fileExt = syscfg('upload','upload_file_type');
         $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
         $this->filesystem =  Filesystem::instance();
-        $this->disksdriver = Config::get('filesystem.default','public');
-        $this->disksurl = Config::get('filesystem.disks.'.$this->disksdriver.'.url','/storage');
+        $this->disksdriver = config('filesystem.default','public');
+        $this->disksurl = config('filesystem.disks.'.$this->disksdriver.'.url','/storage');
         $this->ossService = OssService::instance();
         return $this;
     }

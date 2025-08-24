@@ -15,7 +15,6 @@
 namespace fun\builder;
 
 use fun\Form;
-use think\facade\Config;
 use think\facade\Db;
 use think\facade\View;
 
@@ -129,7 +128,7 @@ class TableBuilder
         $this->modelClass = $this->modelClass?: ($config['model'] ?? ($config['modelClass'] ?? ''));
         $this->driver = $config['driver'] ?? 'mysql';
         $this->tablePrefix = config('database.connections.' . $this->driver . '.prefix');
-        $this->database = Config::get('database.connections' . '.' . $this->driver . '.database');
+        $this->database = config('database.connections' . '.' . $this->driver . '.database');
         foreach ($this->requests as &$request) {
                         $request = __u($request);
                 }

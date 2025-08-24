@@ -14,7 +14,6 @@
 namespace fun\curd;
 
 use think\facade\Cache;
-use think\facade\Config;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
@@ -52,7 +51,7 @@ class Install extends Command
 
     protected function configure()
     {
-        $db["database"] = Config::get('database');
+        $db["database"] = config('database');
         $default = $db["database"]['default'];
         $config = $db["database"]['connections'][$default];
         $this->setName('install')
@@ -274,7 +273,7 @@ class Install extends Command
 //            $link->query("set global interactive_timeout=2147480");
 //            $link->query("set global max_allowed_packet=104857600");
             $link->query("USE `{$db['database']}`");//使用数据库
-            $config = Config::get('database');
+            $config = config('database');
             $config['connections']['mysql'] = [
                 'type'      => 'mysql',
                 'hostname'  => $db['host'],
@@ -285,7 +284,7 @@ class Install extends Command
                 'params'    => [],
                 'charset'   => 'utf8mb4'
             ];
-            Config::set($config, 'database');
+            config($config, 'database');
 
             $databaseTpl = @file_get_contents($this->databaseTpl);
             $this->output->highlight('修改数据配置中...');

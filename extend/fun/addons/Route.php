@@ -8,7 +8,6 @@ use think\exception\ClassNotFoundException;
 use think\facade\Lang;
 use think\helper\Str;
 use think\facade\Event;
-use think\facade\Config;
 use think\exception\HttpException;
 use fun\addons\AddonException;
 use think\validate\ValidateRule;
@@ -28,7 +27,7 @@ class Route
         $request = $app->request;
         Event::trigger('addons_begin', $request);
         // 是否自动转换控制器和操作名
-        $convert = $addonsRouteConfig['url_convert']??Config::get('route.url_convert');
+        $convert = $addonsRouteConfig['url_convert']??config('route.url_convert');
         $filter = $convert ? 'strtolower' : 'trim';
         $addon = $addon ? trim(call_user_func($filter, $addon)) : '';
         $controller = $controller ? trim(call_user_func($filter, $controller)) :$app->route->config('default_action');
@@ -57,9 +56,9 @@ class Route
         }
         //加载app配置
         // 重写视图基础路径
-        $config = Config::get('view');
+        $config = config('view');
         $config['view_path'] = $app->addons->getAddonsPath() . $addon  .DS. 'view' . DS;
-        Config::set($config, 'view');
+        config($config, 'view');
         // 生成控制器对象
         $instance = new $class($app);
         $vars = [];

@@ -5,7 +5,6 @@ namespace app\common\service;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use think\App;
-use think\facade\Config;
 
 class TokenService extends AbstractService
 {
@@ -26,9 +25,9 @@ class TokenService extends AbstractService
      */
     public function build(array $payload, string $type = 'access'): string
     {
-        $secretKey = $type === 'access' ? Config::get('api.jwt_secret') : Config::get('api.refresh_jwt_secret');
+        $secretKey = $type === 'access' ? config('api.jwt_secret') : config('api.refresh_jwt_secret');
         $issuedAt = time();
-        $ttl = $type === 'access' ? Config::get('api.access_token_ttl') : Config::get('api.refresh_expires');
+        $ttl = $type === 'access' ? config('api.access_token_ttl') : config('api.refresh_expires');
         $expirationTime = $issuedAt + $ttl;
 
         $tokenPayload = [
@@ -52,7 +51,7 @@ class TokenService extends AbstractService
      */
     public function validateToken(string $token, string $type = 'access')
     {
-        $secretKey = $type === 'access' ? Config::get('api.jwt_secret') : Config::get('api.refresh_jwt_secret');
+        $secretKey = $type === 'access' ? config('api.jwt_secret') : config('api.refresh_jwt_secret');
         try {
             JWT::$leeway = 30;//当前时间减去60，把时间留点余地
             $decoded = JWT::decode($token, new Key($secretKey, 'HS256'));

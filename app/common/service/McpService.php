@@ -21,7 +21,6 @@ use PhpMcp\Schema\Tool;
 use PhpMcp\Schema\Resource;
 use PhpMcp\Schema\ToolAnnotations;
 use PhpMcp\Schema\Annotations;
-use think\facade\Config;
 use think\facade\Db;
 use think\facade\Log;
 use think\facade\App;
@@ -146,7 +145,7 @@ class McpService extends AbstractService
             // 忽略用户中断，保持服务器运行
             ignore_user_abort(true);
         
-            $mcpConfig = Config::get('mcp', []);
+            $mcpConfig = config('mcp', []);
             
             // 设置超时配置
             if (isset($mcpConfig['timeout']) && $mcpConfig['timeout'] > 0) {
@@ -409,22 +408,22 @@ class McpService extends AbstractService
                 // 返回常用配置的概览
                 return [
                     'app' => [
-                        'debug' => Config::get('app.debug'),
-                        'default_timezone' => Config::get('app.default_timezone'),
-                        'default_lang' => Config::get('app.default_lang'),
+                        'debug' => config('app.debug'),
+                        'default_timezone' => config('app.default_timezone'),
+                        'default_lang' => config('app.default_lang'),
                     ],
                     'database' => [
-                        'type' => Config::get('database.default.type'),
-                        'hostname' => Config::get('database.default.hostname'),
-                        'database' => Config::get('database.default.database'),
+                        'type' => config('database.default.type'),
+                        'hostname' => config('database.default.hostname'),
+                        'database' => config('database.default.database'),
                     ],
                     'cache' => [
-                        'default' => Config::get('cache.default'),
-                        'stores' => array_keys(Config::get('cache.stores', [])),
+                        'default' => config('cache.default'),
+                        'stores' => array_keys(config('cache.stores', [])),
                     ]
                 ];
             } else {
-                return ['value' => Config::get($key), 'key' => $key];
+                return ['value' => config($key), 'key' => $key];
             }
 
         } catch (Exception $e) {
@@ -626,10 +625,10 @@ class McpService extends AbstractService
                     }
                     
                     return [
-                        'type' => Config::get('database.default.type'),
+                        'type' => config('database.default.type'),
                         'version' => $version,
-                        'charset' => Config::get('database.default.charset'),
-                        'collation' => Config::get('database.default.collate'),
+                        'charset' => config('database.default.charset'),
+                        'collation' => config('database.default.collate'),
                     ];
 
                 case 'performance':
@@ -641,7 +640,7 @@ class McpService extends AbstractService
 
                 case 'cache':
                     return [
-                        'default_driver' => Config::get('cache.default'),
+                        'default_driver' => config('cache.default'),
                         'opcache_enabled' => function_exists('opcache_get_status') && opcache_get_status() !== false,
                         'redis_available' => extension_loaded('redis'),
                         'memcached_available' => extension_loaded('memcached'),
@@ -682,15 +681,15 @@ class McpService extends AbstractService
     public function handleConfigResource(): string
     {
         $configs = [
-            'app' => Config::get('app'),
+            'app' => config('app'),
             'database' => [
-                'type' => Config::get('database.default.type'),
-                'charset' => Config::get('database.default.charset'),
-                'debug' => Config::get('database.debug'),
+                'type' => config('database.default.type'),
+                'charset' => config('database.default.charset'),
+                'debug' => config('database.debug'),
             ],
-            'cache' => Config::get('cache'),
-            'session' => Config::get('session'),
-            'log' => Config::get('log'),
+            'cache' => config('cache'),
+            'session' => config('session'),
+            'log' => config('log'),
         ];
 
         return json_encode($configs, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

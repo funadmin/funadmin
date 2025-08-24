@@ -5,7 +5,6 @@ namespace fun\addons;
 
 use fun\helper\FileHelper;
 use think\Route;
-use think\facade\Config;
 use think\facade\Lang;
 use think\facade\Cache;
 use think\facade\Event;
@@ -64,7 +63,7 @@ class Service extends \think\Service
             // 注册控制器路由
             $route->rule("addons/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
             // 自定义路由
-            $routes = (array) Config::get('addons.route', []);
+            $routes = (array) config('addons.route', []);
             foreach ($routes as $key => $val) {
                 if (!$val) {
                     continue;
@@ -174,7 +173,7 @@ class Service extends \think\Service
             $this->app->bind($bind);
         }
 
-        $routes = (array) Config::get('addons.route', []);
+        $routes = (array) config('addons.route', []);
         foreach ($routes as $key => $val) {
             if (!$val) {
                 continue;
@@ -193,7 +192,7 @@ class Service extends \think\Service
     {
         $hooks = $this->app->isDebug() ? [] : Cache::get('hooks', []);
         if (empty($hooks)) {
-            $hooks = (array)Config::get('addons.hooks', []);
+            $hooks = (array)config('addons.hooks', []);
             // 初始化钩子
             foreach ($hooks as $key => $values) {
                 if (is_string($values)) {
@@ -225,10 +224,10 @@ class Service extends \think\Service
     private function autoload()
     {
         // 是否处理自动载入
-        if (!Config::get('addons.autoload', true)) {
+        if (!config('addons.autoload', true)) {
             return true;
         }
-        $config = Config::get('addons');
+        $config = config('addons');
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
         $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
@@ -283,7 +282,7 @@ class Service extends \think\Service
         Cache::set('addons_data_list', $this->addons_data_list);
         //插件config列表
         Cache::set('addons_data_list_config', $this->addons_data_list_config);
-        Config::set($config, 'addons');
+        config($config, 'addons');
     }
 
     /**

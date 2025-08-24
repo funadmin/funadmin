@@ -4,7 +4,6 @@ namespace app\backend\middleware;
 
 use app\backend\service\AuthService;
 use think\App;
-use think\facade\Config;
 use think\facade\Lang;
 use think\facade\Request;
 use think\facade\View;
