@@ -272,7 +272,7 @@ class FormBuilder
      */
     public  function radio($name = '', $radiolist=[], $options = [], $value = '')
     {
-        $this->formHtml[] = Form::slider($name,$radiolist,$options,$value);
+        $this->formHtml[] = Form::radio($name,$radiolist,$options,$value);
         return $this;
     }
 
