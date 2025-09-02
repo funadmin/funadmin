@@ -25,6 +25,21 @@ class FormHelper
      */
     protected static $instance;
 
+     /**
+     * 表单配置选项
+     * @var array
+     */
+    protected $options = [];
+
+    /**
+     * 构造函数
+     * @param array $options 配置选项
+     */
+    public function __construct($options = [])
+    {
+        $this->options = $options;
+    }
+
     /**
      * 获取单例
      * @param array $options
