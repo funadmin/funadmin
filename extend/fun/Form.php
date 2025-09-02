@@ -52,7 +52,7 @@ use think\Facade;
  * @method static string date(string $name, array $options = [],string $value= null) 日期选择组件
  * @method static string switchs(string $name, array $list = [], array $options = [], string $value = null) 切换组件
  * @method static string checkbox(string $name, array $list = [],  array $options = [],string $value = '1', ) 单个复选框
- * @method static string radio(string $name, array $list = [], array $options = []) 单个单选框
+ * @method static string radio(string $name, array $list = [], array $options = [],$value=null) 单个单选框
  * @method static string link(string $name = null,array $options = []) css
  * @method static string style(string $name = null, array $options = []) 上传文件组件(多文件)）
  * @method static string js(string $name = null, array $options = []) 表单button
