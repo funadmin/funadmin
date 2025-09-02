@@ -996,7 +996,7 @@ EOF;
     protected function getPrefixUrl($controller): string
     {
         if ($this->config['app'] != 'backend') {
-            return $this->app . '/' . str_replace('/', '.', $controller);
+            return $this->config['app'] . '/' . str_replace('/', '.', $controller);
         } else {
             return str_replace('/', '.', $controller);
         }
