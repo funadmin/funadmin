@@ -92,9 +92,7 @@ class TableBuilder
 
     ];
     public $options = [];
-    /**
-     * @var
-     */
+
 
     /**
      * 获取单例
