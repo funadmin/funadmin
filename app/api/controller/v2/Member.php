@@ -4,7 +4,6 @@ namespace app\api\controller\v2;
 
 
 use app\common\controller\Api;
-use app\common\middleware\ApiAuth;
 use think\App;
 use think\Request;
 

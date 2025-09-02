@@ -8,7 +8,7 @@ use Closure;
 use think\Request;
 use think\Response;
 
-class ApiAuth
+class MApi
 {
     use Apis;
 

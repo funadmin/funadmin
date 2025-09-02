@@ -14,7 +14,7 @@
 namespace app\common\controller;
 
 use app\BaseController;
-use app\common\middleware\ApiAuth;
+use app\common\middleware\MApi;
 use app\common\traits\Apis;
 use think\App;
 use think\exception\ValidateException;
@@ -125,9 +125,9 @@ class Api extends BaseController
             $auth['noNeedRight'] = $this->noNeedRight;
         }
         if(!empty($auth)){
-            $this->middleware = [ApiAuth::class=>$auth] + $this->middleware ;
+            $this->middleware = [MApi::class=>$auth] + $this->middleware ;
         }else{
-            $this->middleware = [ApiAuth::class] + $this->middleware ;
+            $this->middleware = [MApi::class] + $this->middleware ;
         }
     }
 
