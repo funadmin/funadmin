@@ -51,6 +51,11 @@ class FormBuilder
     protected $extraJs = '';
 
     /**
+     * 模板
+     * @var string
+     */
+    protected $template = '';
+    /**
      * @var
      */
     private static $instance;
@@ -81,25 +86,24 @@ class FormBuilder
     {
         // TODO: Implement __clone() method.
     }
+
     /**
      * @param $name
-     * @param $value
      * @param $options
-     * @param $list
-     * @param $attr
-     * @return string
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
+     * @param $value
+     * @return $this
      */
-    public  function config($name='',$options=[],$value='')
+    public  function config($name='',$options=[],$value=''): static
     {
         $this->formHtml[] = Form::config($name,$options,$value);
         return $this;
     }
-
-
-    public  function token($name = '__token__', $type = 'md5')
+    /**
+     * @param $name
+     * @param $type
+     * @return $this
+     */
+    public  function token($name = '__token__', $type = 'md5'): static
     {
         $this->formHtml[] = Form::token($name = '__token__', $type = 'md5');
         return $this;
@@ -110,13 +114,21 @@ class FormBuilder
      * @param string $name
      * @param string $type
      * @param array $options
-     * @return string
+     * @return $this
      */
-    public  function input(string $name = '', string $type = 'text',array $options = [], $value = '')
+    public  function input(string $name = '', string $type = 'text',array $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::input($name, $type,$options,$value);
         return $this;
     }
+    /**
+     * @param $name
+     * @param $list
+     * @param $options
+     * @param $attr
+     * @param $value
+     * @return $this
+     */
     public  function autocomplete(string $name = '', array $list = [],array $options = [],$attr= [], $value = '')
     {
         $this->formHtml[] = Form::autocomplete($name, $list,$options,$attr,$value);
@@ -127,7 +139,7 @@ class FormBuilder
      * @param string $name
      * @param array $options
      * @param  $value
-     * @return string
+     * @return $this
      */
     public  function text(string $name,array $options = [], $value = null)
     {
@@ -140,10 +152,9 @@ class FormBuilder
      *
      * @param  string  $name
      * @param  array   $options
-     *
-     * @return string
+     * @return $this
      */
-    public  function password(string $name, array $options = [],$value='')
+    public  function password(string $name, array $options = [],$value=''): static
     {
         $this->formHtml[] = Form::input($name, 'password', $options,$value);
         return $this;
@@ -153,12 +164,11 @@ class FormBuilder
      * 创建一个范围输入选择器
      *
      * @param  string  $name
-     * @param  null    $value
      * @param  array   $options
-     *
-     * @return string
+     * @param  mixed    $value
+     * @return $this
      */
-    public  function range($name, $options = [], $value = null)
+    public  function range($name, $options = [], $value = null): static
     {
         $this->formHtml[] = Form::input($name,$options,$value);
         return $this;
@@ -168,12 +178,12 @@ class FormBuilder
      * 创建一个隐藏的输入字段
      *
      * @param  string  $name
-     * @param  null    $value
+     * @param  mixed    $value
      * @param  array   $options
      *
-     * @return string
+     * @return $this
      */
-    public  function hidden($name,  $options = [],$value = null)
+    public  function hidden($name,  $options = [],$value = null): static
     {
         $this->formHtml[] = Form::input($name,'hidden',$options,$value);
         return $this;
@@ -183,12 +193,11 @@ class FormBuilder
      * 创建一个电子邮件输入字段
      *
      * @param  string  $name
-     * @param  null    $value
+     * @param  mixed    $value
      * @param  array   $options
-     *
-     * @return string
+     * @return $this
      */
-    public  function email($name,  $options = [],$value = null)
+    public  function email($name,  $options = [],$value = null): static
     {
         $this->formHtml[] = Form::input($name,'email',$options,$value);
         return $this;
@@ -198,12 +207,12 @@ class FormBuilder
      * 创建一个tel输入字段
      *
      * @param  string  $name
-     * @param  null    $value
+     * @param  mixed    $value
      * @param  array   $options
      *
      * @return string
      */
-    public  function tel($name,  $options = [],$value = null)
+    public  function tel($name,  $options = [],$value = null): static
     {
         $this->formHtml[] = Form::input($name,'tel',$options,$value);
         return $this;
@@ -213,12 +222,12 @@ class FormBuilder
      * 创建一个数字输入字段
      *
      * @param  string  $name
-     * @param  null    $value
+     * @param  mixed    $value
      * @param  array   $options
      *
      * @return string
      */
-    public  function number($name,  $options = [],$value = null)
+    public  function number($name,  $options = [],$value = null): static
     {
         $this->formHtml[] = Form::input($name,'number',$options,$value);
         return $this;
@@ -228,12 +237,12 @@ class FormBuilder
      * 创建一个url输入字段
      *
      * @param  string  $name
-     * @param  null    $value
+     * @param  mixed    $value
      * @param  array   $options
      *
      * @return string
      */
-    public  function url($name,  $options = [],$value = null)
+    public  function url($name,  $options = [],$value = null): static
     {
         $this->formHtml[] = Form::input($name,'url',$options,$value);
         return $this;
@@ -244,9 +253,9 @@ class FormBuilder
      * @param $name
      * @param $options
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function rate($name = '', $options = [], $value = '')
+    public  function rate($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::rate($name,$options,$value);
         return $this;
@@ -256,9 +265,9 @@ class FormBuilder
      * @param $name
      * @param $options
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function slider($name = '', $options = [], $value = '')
+    public  function slider($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::slider($name,$options,$value);
         return $this;
@@ -268,9 +277,9 @@ class FormBuilder
      * @param $radiolist
      * @param array $options
      * @param string $value
-     * @return string
+     * @return $this
      */
-    public  function radio($name = '', $radiolist=[], $options = [], $value = '')
+    public  function radio($name = '', $radiolist=[], $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::radio($name,$radiolist,$options,$value);
         return $this;
@@ -281,11 +290,11 @@ class FormBuilder
      * @param $name
      * @param $value
      * @param array $options
-     * @return string
+     * @return $this
      * switch是关键字不能用
      */
 
-    public  function switchs($name = '', $switch=[], $options = [], $value = '')
+    public  function switchs($name = '', $switch=[], $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::switchs($name,$switch,$options,$value);
         return $this;
@@ -293,13 +302,13 @@ class FormBuilder
 
     /**
      * 多选
-     * @param null $name
+     * @param string $name
      * @param array $list
      * @param array $options
      * @param $value
-     * @return string
+     * @return self
      */
-    public  function checkbox($name = '', $list = [], $options = [], $value = '')
+    public  function checkbox($name = '', $list = [], $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::checkbox($name,$list,$options,$value);
         return $this;
@@ -307,12 +316,12 @@ class FormBuilder
 
     /**
      * 数组表单
-     * @param null $name
+     * @param string $name
      * @param array $options
      * @param array $list
-     * @return string
+     * @return self
      */
-    public  function arrays($name = '', $list = [], $options = [])
+    public  function arrays($name = '', $list = [], $options = []): static
     {
         $this->formHtml[] = Form::arrays($name,$list,$options);
         return $this;
@@ -320,12 +329,12 @@ class FormBuilder
 
     /**
      * 文本
-     * @param null $name
+     * @param string $name
      * @param array $options
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function textarea($name = '', $options = [], $value = '')
+    public  function textarea($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::textarea($name,$options,$value);
         return $this;
@@ -337,9 +346,9 @@ class FormBuilder
      * @param $options
      * @param $attr
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function selectcx($name = '', $select= [], $options=[], $attr=[], $value='')
+    public  function selectcx($name = '', $select= [], $options=[], $attr=[], $value=''): static
     {
         $this->formHtml[] = Form::selectcx($name,$select,$options,$attr,$value);
         return $this;
@@ -350,9 +359,9 @@ class FormBuilder
      * @param $options
      * @param $attr
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function multiselect($name = '', $select=[], $options=[], $attr=[], $value='')
+    public  function multiselect($name = '', $select=[], $options=[], $attr=[], $value=''): static
     {
         $this->formHtml[] = Form::selects($name,$select,$options,$attr,$value);
         return $this;
@@ -364,9 +373,9 @@ class FormBuilder
      * @param $options
      * @param $attr
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function selects($name = '', $select=[], $options=[], $attr=[], $value='')
+    public  function selects($name = '', $select=[], $options=[], $attr=[], $value=''): static
     {
         $this->formHtml[] = Form::selects($name,$select,$options,$attr,$value);
         return $this;
@@ -377,9 +386,9 @@ class FormBuilder
      * @param $options
      * @param $attr
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function xmselect($name = '', $select=[], $options=[], $attr=[], $value='')
+    public  function xmselect($name = '', $select=[], $options=[], $attr=[], $value=''): static 
     {
         $this->formHtml[] = Form::xmselect($name,$select,$options,$attr,$value);
         return $this;
@@ -390,9 +399,9 @@ class FormBuilder
      * @param $name
      * @param $options
      * @param $value
-     * @return string
+     * @return $this
      */
-    public  function selectpage(string $name,array $lists= [],array $options = [],$value=null)
+    public  function selectpage(string $name,array $lists= [],array $options = [],$value=null): static
     {
         $this->formHtml[] = Form::selectpage($name,$lists,$options,$value);
         return $this;
@@ -401,10 +410,10 @@ class FormBuilder
      * @param $name
      * @param $value
      * @param array $options
-     * @return string
+     * @return $this
      * tag
      */
-    public function tags($name = '', $options = [], $value = '')
+    public function tags($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::tags($name,$options,$value);
         return $this;
@@ -414,10 +423,10 @@ class FormBuilder
      * @param $name
      * @param $value
      * @param array $options
-     * @return string
+     * @return $this
      * 颜色选择
      */
-    public  function color($name = '', $options = [], $value = '')
+    public  function color($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::color($name,$options,$value);
         return $this;
@@ -427,10 +436,10 @@ class FormBuilder
      * @param $name
      * @param $value
      * @param array $options
-     * @return string
+     * @return $this
      * 图标，有点小问题
      */
-    public  function icon($name = '', $options = [], $value = '')
+    public  function icon($name = '', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::icon($name,$options,$value);
         return $this;
@@ -439,10 +448,10 @@ class FormBuilder
     /**
      * @param null $name
      * @param array $options
-     * @return string
+     * @return $this
      * 日期
      */
-    public  function date($name='', $options=[], $value='')
+    public  function date($name='', $options=[], $value=''): static
     {
         $this->formHtml[] = Form::date($name,$options,$value);
         return $this;
@@ -451,9 +460,9 @@ class FormBuilder
      * 城市选择
      * @param string $name
      * @param $options
-     * @return string
+     * @return $this
      */
-    public  function city($name = 'cityPicker', $options = [],$value='')
+    public  function city($name = 'cityPicker', $options = [],$value=''): static
     {
         $this->formHtml[] = Form::city($name,$options,$value);
         return $this;
@@ -464,10 +473,10 @@ class FormBuilder
      * @param $id
      * @param int $type
      * @param array $options
-     * @return string
+     * @return $this
      * 编辑器
      */
-    public  function editor($name = 'container', $options = [], $value = '')
+    public  function editor($name = 'container', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::editor($name,$options,$value);
         return $this;
@@ -478,10 +487,10 @@ class FormBuilder
      * @param $id
      * @param int $type
      * @param array $options
-     * @return string
+     * @return $this
      * json
      */
-    public  function json($name = 'json', $options = [], $value = '')
+    public  function json($name = 'json', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::json($name,$options,$value);
         return $this;
@@ -492,10 +501,10 @@ class FormBuilder
      * @param $id
      * @param int $type
      * @param array $options
-     * @return string
+     * @return $this
      * json
      */
-    public  function transfer($name = 'transfer',$select=[], $options = [], $value = '')
+    public  function transfer($name = 'transfer',$select=[], $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::transfer($name,$select,$options,$value);
         return $this;
@@ -505,9 +514,9 @@ class FormBuilder
      * @param string $name
      * @param string $formData
      * @param array $options
-     * @return string
+     * @return $this
      */
-    public  function upload($name = 'avatar', $options = [], $value = '')
+    public  function upload($name = 'avatar', $options = [], $value = ''): static
     {
         $this->formHtml[] = Form::upload($name,$options,$value);
         return $this;
@@ -515,9 +524,9 @@ class FormBuilder
     /**
      * @param bool $reset
      * @param array $options
-     * @return string
+     * @return $this
      */
-    public  function closebtn($reset = true, $options = [])
+    public  function closebtn($reset = true, $options = []): static
     {
         $this->formHtml[] = Form::closebtn($reset,$options);
         return $this;
@@ -526,9 +535,9 @@ class FormBuilder
     /**
      * @param bool $reset
      * @param array $options
-     * @return string
+     * @return $this
      */
-    public  function close($reset = true, $options = [])
+    public  function close($reset = true, $options = []): static
     {
         $this->formHtml[] = Form::closebtn($reset,$options);
         return $this;
@@ -536,16 +545,16 @@ class FormBuilder
     /**
      * @param bool $reset
      * @param array $options
-     * @return string
+     * @return $this
      */
-    public  function submitbtn($reset=true, $options=[])
+    public  function submitbtn($reset=true, $options=[]): static
     {
         $this->formHtml[] = Form::submitbtn($reset,$options);
         return $this;
     }
 
-    public function submit($reset=true, $options=[]){
-
+    public function submit($reset=true, $options=[]): static
+    {
         $this->formHtml[] = Form::submitbtn($reset,$options);
         return $this;
     }
@@ -554,7 +563,8 @@ class FormBuilder
      * @param $script
      * @return void
      */
-    public function js($name=[],$options=[]){
+    public function js($name=[],$options=[]): static
+    {
         if($options['merge']){
             $this->formHtml[] = Form::js($name,$options);
         }else{
@@ -562,7 +572,8 @@ class FormBuilder
         }
         return $this;
     }
-    public function link($name=[],$options=[]){
+    public function link($name=[],$options=[]): static
+    {
         if($options['merge']){
             $this->formHtml[] = Form::link($name,$options);
         }else{
@@ -571,7 +582,8 @@ class FormBuilder
 
         return $this;
     }
-    public function script(string $name,$options=[]){
+    public function script(string $name,$options=[]): static
+    {
         if($options['merge']){
             $this->formHtml[]= Form::script($name,$options);
         }else{
@@ -585,13 +597,15 @@ class FormBuilder
      * @param $js
      * @return $this
      */
-    public function extrajs($js,$options=[]){
+    public function extrajs($js,$options=[]): static
+    {
         $reg = '/<script.*?>([\s\S]*?)<\/script>/im';
         preg_match($reg, $js,$match);
         $this->extraJs = empty($match)?$js:$match[1];
         return $this;
     }
-    public function style(string $name,$options=[]){
+    public function style(string $name,$options=[]): static
+    {
         if($options['merge']){
             $this->formHtml[] = Form::style($name,$options);
         }else{
@@ -603,7 +617,8 @@ class FormBuilder
      * 渲染视图
      * @return string
      */
-    public function assign($data=[]){
+    public function assign($data=[]): static
+    {
         $form = $this;
         View::assign(array_merge([
             'formBuilder'=>$form,
@@ -622,13 +637,15 @@ class FormBuilder
      * @param string $template
      * @return \think\response\View
      */
-    public function view(string $template=''){
+    public function view(string $template=''): \think\response\View
+    {
 
         $template = $template?:$this->template;
         return view($template);
     }
 
-    public function extraHtml($html,$position='bottom'){
+    public function extraHtml($html,$position='bottom'): static
+    {
         if($position=='bottom'){
             $this->formHtml[] = $html;
         }else{
@@ -641,7 +658,8 @@ class FormBuilder
      * @param $html
      * @return $this
      */
-    public function html($html,$options=[]){
+    public function html($html,$options=[]): static
+    {
         $this->formHtml[] = Form::html($html,$options);
         return $this;
     }

@@ -26,7 +26,7 @@ class TableBuilder
     protected $database = 'funadmin';
     protected $tablePrefix = 'fun_';
     protected $templet = ['laydate', 'colorpicker', 'time', 'tags', 'image', 'content', 'text', 'dropdown', 'selects', 'switch', 'select', 'url', 'iframe', 'open','icon','number','operat'];
-
+    protected $template = '';
     public $fields = [];
     public $node = [];
     public $methods = [];
@@ -147,7 +147,7 @@ class TableBuilder
         }
         return $this;
     }
-    public function node(array $node = [])
+    public function node(array $node = []): static
     {
         foreach ($node as $item) {
             $this->node[] = ['data-node-' . $item => __u($item)];
@@ -155,37 +155,37 @@ class TableBuilder
         return $this;
     }
 
-    public function url(string|array|object $url, string $tableId = 'list')
+    public function url(string|array|object $url, string $tableId = 'list'): static
     {
         $this->options[$tableId]['url'] = $url;
         return $this;
     }
 
-    public function data(array $data=[], string $tableId = 'list')
+    public function data(array $data=[], string $tableId = 'list'): static
     {
         $this->options[$tableId]['data'] = $data;
         return $this;
     }
 
-    public function searchShow(bool $show = false, string $tableId = 'list')
+    public function searchShow(bool $show = false, string $tableId = 'list'): static
     {
         $this->options[$tableId]['searchShow'] = $show;
         return $this;
     }
 
-    public function searchTpl(string $tpl = '', string $tableId = 'list')
+    public function searchTpl(string $tpl = '', string $tableId = 'list'): static
     {
         $this->options[$tableId]['searchTpl'] = $tpl;
         return $this;
     }
 
-    public function rowDouble(bool $rowDouble = true, string $tableId = 'list')
+    public function rowDouble(bool $rowDouble = true, string $tableId = 'list'): static
     {
         $this->options[$tableId]['rowDouble'] = $rowDouble;
         return $this;
     }
 
-    public function searchInput($show = true, string $tableId = 'list')
+    public function searchInput($show = true, string $tableId = 'list'): static
     {
         $this->options[$tableId]['searchInput'] = $show;
         return $this;
@@ -196,7 +196,7 @@ class TableBuilder
      * @param $column
      * @return $this
      */
-    public function col(array $column = [], string $tableId = 'list')
+    public function col(array $column = [], string $tableId = 'list'): static
     {
         if(!$this->options[$tableId]){
             $this->options();
@@ -214,7 +214,7 @@ class TableBuilder
      * @param $columns
      * @return $this
      */
-    public function cols($columns = [], string $tableId = 'list')
+    public function cols($columns = [], string $tableId = 'list'): static
     {
         if(!$this->options[$tableId]){
             $this->options();
@@ -227,88 +227,88 @@ class TableBuilder
         return $this;
     }
 
-    public function width(string $width, string $tableId = 'list')
+    public function width(string $width, string $tableId = 'list'): static
     {
         $this->options[$tableId]['width'] = $width;
         return $this;
     }
 
-    public function height(string $height, string $tableId = 'list')
+    public function height(string $height, string $tableId = 'list'): static
     {
         $this->options[$tableId]['height'] = $height;
         return $this;
 
     }
 
-    public function cellMinWidth(string $cellMinWidth, string $tableId = 'list')
+    public function cellMinWidth(string $cellMinWidth, string $tableId = 'list'): static
     {
         $this->options[$tableId]['cellMinWidth'] = $cellMinWidth;
         return $this;
 
     }
 
-    public function lineStyle(string $lineStyle, string $tableId = 'list')
+    public function lineStyle(string $lineStyle, string $tableId = 'list'): static
     {
         $this->options[$tableId]['lineStyle'] = $lineStyle;
         return $this;
 
     }
 
-    public function className(string $className, string $tableId = 'list')
+    public function className(string $className, string $tableId = 'list'): static
     {
         $this->options[$tableId]['className'] = $className;
         return $this;
     }
 
-    public function css(string $css, string $tableId = 'list')
+    public function css(string $css, string $tableId = 'list'): static
     {
         $this->options[$tableId]['css'] = $css;
         return $this;
     }
 
-    public function escape(bool $escape, string $tableId = 'list')
+    public function escape(bool $escape, string $tableId = 'list'): static
     {
         $this->options[$tableId]['escape'] = $escape;
         return $this;
     }
 
-    public function totalRow(string $totalRow, string $tableId = 'list')
+    public function totalRow(string $totalRow, string $tableId = 'list'): static
     {
         $this->options[$tableId]['totalRow'] = $totalRow;
         return $this;
     }
 
-    public function page(bool $page = true, string $tableId = 'list')
+    public function page(bool $page = true, string $tableId = 'list'): static
     {
         $this->options[$tableId]['page'] = $page;
         return $this;
     }
 
-    public function pagebar(string $pagebar, string $tableId = 'list')
+    public function pagebar(string $pagebar, string $tableId = 'list'): static
     {
         $this->options[$tableId]['pagebar'] = $pagebar;
         return $this;
     }
 
-    public function limit(int $limit, string $tableId = 'list')
+    public function limit(int $limit, string $tableId = 'list'): static
     {
         $this->options[$tableId]['limit'] = $limit;
         return $this;
     }
 
-    public function limits(array $limits = [], string $tableId = 'list')
+    public function limits(array $limits = [], string $tableId = 'list'): static
     {
         $this->options[$tableId]['limits'] = $limits;
         return $this;
     }
 
-    public function loading(bool $loading, string $tableId = 'list')
+    public function loading(bool $loading, string $tableId = 'list'): static
     {
         $this->options[$tableId]['loading'] = $loading;
         return $this;
     }
 
-    public function scrollPos(string $scrollPos, string $tableId = 'list')
+    public function scrollPos(string $scrollPos, string $tableId = 'list'): static
     {
         //fixed 重载数据时，保持滚动条位置不变reset 重载数据时，滚动条位置恢复置顶default 默认方式，无需设置。即重载数据或切换分页
         $this->options[$tableId]['scrollPos'] = $scrollPos;
@@ -321,122 +321,124 @@ class TableBuilder
      * @param string $tableId
      * @return $this
      */
-    public function editTrigger(string $editTrigger, string $tableId = 'list')
+    public function editTrigger(string $editTrigger, string $tableId = 'list'): static
     {
         $this->options[$tableId]['editTrigger'] = $editTrigger;
         return $this;
     }
 
-    public function title(string $title, string $tableId = 'list')
+    public function title(string $title, string $tableId = 'list'): static
     {
         $this->options[$tableId]['title'] = $title;
         return $this;
     }
 
-    public function text(array $text, string $tableId = 'list')
+    public function text(array $text, string $tableId = 'list'): static 
     {
         $this->options[$tableId]['text'] = $text;
         return $this;
     }
 
-    public function autoSort(bool $autoSort, string $tableId = 'list')
+    public function autoSort(bool $autoSort, string $tableId = 'list'): static
     {
         $this->options[$tableId]['autoSort'] = $autoSort;
         return $this;
     }
 
-    public function initSort(array $initSort, string $tableId = 'list')
+    public function initSort(array $initSort, string $tableId = 'list'): static
     {
         $this->options[$tableId]['initSort'] = $initSort;
         return $this;
     }
 
-    public function skin(string $skin, string $tableId = 'list')
+    public function skin(string $skin, string $tableId = 'list'): static
     {
         $this->options[$tableId]['skin'] = $skin;//grid|line|row|nob
         return $this;
     }
 
-    public function size(string $size, string $tableId = 'list')
+    public function size(string $size, string $tableId = 'list'): static
     {
         $this->options[$tableId]['size'] = $size;//sm|md|lg
         return $this;
     }
 
-    public function even(string $even, string $tableId = 'list')
+    public function even(string $even, string $tableId = 'list'): static
     {
         $this->options[$tableId]['even'] = $even;
         return $this;
     }
 
-    public function before(string $before, string $tableId = 'list')
+    public function before(string $before, string $tableId = 'list'): static
     {
         $this->options[$tableId]['before'] = $before;
         return $this;
     }
 
-    public function done(mixed $done, string $tableId = 'list')
+    public function done(mixed $done, string $tableId = 'list'): static
     {
         $this->options[$tableId]['done'] = $done;
         return $this;
     }
 
-    public function error(mixed $error, string $tableId = 'list')
+    public function error(mixed $error, string $tableId = 'list'): static
     {
         $this->options[$tableId]['error'] = $error;
         return $this;
     }
 
-    public function method(string $method = 'GET', string $tableId = 'list')
+    public function method(string $method = 'GET', string $tableId = 'list'): static
     {
         $this->options[$tableId]['method'] = $method;
         return $this;
     }
 
-    public function where(mixed $where, string $tableId = 'list')
+    public function where(mixed $where, string $tableId = 'list'): static
     {
         $this->options[$tableId]['where'] = $where;
         return $this;
     }
 
-    public function headers(mixed $headers, string $tableId = 'list')
+    public function headers(mixed $headers, string $tableId = 'list'): static
     {
         $this->options[$tableId]['headers'] = $headers;
         return $this;
     }
 
-    public function contentType(mixed $contentType, string $tableId = 'list')
+    public function contentType(mixed $contentType, string $tableId = 'list'): static       
     {
         $this->options[$tableId]['contentType'] = $contentType;
         return $this;
     }
 
-    public function dataType(mixed $dataType, string $tableId = 'list')
+    public function dataType(mixed $dataType, string $tableId = 'list'): static
     {
         $this->options[$tableId]['dataType'] = $dataType;
         return $this;
     }
 
-    public function request(mixed $request, string $tableId = 'list')
+    public function request(mixed $request, string $tableId = 'list'): static
     {
         $this->options[$tableId]['request'] = $request;
         return $this;
     }
 
-    public function parseData(mixed $parseData, string $tableId = 'list')
+    public function parseData(mixed $parseData, string $tableId = 'list'): static
     {
         $this->options[$tableId]['parseData'] = $parseData;
         return $this;
     }
 
-    public function cellMaxWidth(string $cellMaxWidth, string $tableId = 'list')
+    public function cellMaxWidth(string $cellMaxWidth, string $tableId = 'list'): static
     {
         $this->options[$tableId]['cellMaxWidth'] = $cellMaxWidth;
+        return $this;
     }
 
-    public function maxHeight(string $maxHeight, string $tableId = 'list')
+    public function maxHeight(string $maxHeight, string $tableId = 'list'): static
     {
         $this->options[$tableId]['maxHeight '] = $maxHeight;
+        return $this;
     }
 
 
@@ -445,13 +447,13 @@ class TableBuilder
      * @param string $key 主键名称
      * @return $this
      */
-    public function primaryKey($key = 'id', string $tableId = 'list')
+    public function primaryKey($key = 'id', string $tableId = 'list'): static
     {
         $this->options[$tableId]['primaryKey'] = $key;
         return $this;
     }
 
-    public function pageSize($pageSize = [], string $tableId = 'list')
+    public function pageSize($pageSize = [], string $tableId = 'list'): static
     {
 
         $this->options[$tableId]['pageSize'] = !empty($pageSize) ? $pageSize : [];
@@ -463,13 +465,13 @@ class TableBuilder
      * @param $data
      * @return $this
      */
-    public function extra($data = [], string $tableId = 'list')
+    public function extra($data = [], string $tableId = 'list'): static
     {
         $this->options[$tableId] = array_merge($this->options[$tableId], $data);
         return $this;
     }
 
-    public function tree($data = [], string $tableId = 'list')
+    public function tree($data = [], string $tableId = 'list'): static
     {
         if (!empty($data)) {
             $this->options[$tableId]['tree'] = $data;
@@ -477,27 +479,27 @@ class TableBuilder
         return $this;
     }
 
-    public function style($style = '', string $tableId = 'list')
+    public function style($style = '', string $tableId = 'list'): static
     {
         $this->style = $style;
         return $this;
     }
-    public function link(string|array $link = '', string $tableId = 'list')
+    public function link(string|array $link = '', string $tableId = 'list'): static
     {
         $this->link = Form::link($link,[]);
         return $this;
     }
-    public function js(string|array$js = '', string $tableId = 'list')
+    public function js(string|array$js = '', string $tableId = 'list'): static
     {
         $this->js = Form::js($js,[]);
         return $this;
     }
-    public function script(string$script = '', string $tableId = 'list')
+    public function script(string$script = '', string $tableId = 'list'): static
     {
         $this->script = $script;
         return $this;
     }
-    public function extraJs(string$script = '', string $tableId = 'list')
+    public function extraJs(string$script = '', string $tableId = 'list'): static
     {
         $reg = '/<script.*?>([\s\S]*?)<\/script>/im';
         preg_match($reg, $script,$match);
@@ -509,19 +511,19 @@ class TableBuilder
      * @param string $html 额外HTML代码
      * @return $this
      */
-    public function html($html = '', string $tableId = 'list')
+    public function html($html = '', string $tableId = 'list'): static      
     {
         $this->html = $html;
         return $this;
     }
 
-    public function index(array $options = [], string $tableId = 'list')
+    public function index(array $options = [], string $tableId = 'list'): static
     {
         $this->options[$tableId] = array_merge($this->options[$tableId], $options);
         return $this;
     }
 
-    public function recycle(array $options = [], string $tableId = 'recycle')
+    public function recycle(array $options = [], string $tableId = 'recycle'): static
     {
         if ($options == false) {
             foreach ($this->options as $key => $value) {
@@ -539,7 +541,7 @@ class TableBuilder
      * @param array $request
      * @return $this
      */
-    public function requests(array $request = [], string $tableId = 'list')
+    public function requests(array $request = [], string $tableId = 'list'): static
     {
         $this->options[$tableId]['requests'] = $request;
         $this->requests = array_merge($this->requests, $request);
@@ -552,25 +554,25 @@ class TableBuilder
      * @param array $extra 扩展参数(待用)
      * @return $this
      */
-    public function operat(array $operat = [], string $tableId = 'list')
+    public function operat(array $operat = [], string $tableId = 'list'): static
     {
         array_push($this->options[$tableId]['cols'][0], $operat);
         return $this;
     }
 
-    public function elem(string $elem,string $tableId = 'list')
+    public function elem(string $elem,string $tableId = 'list'): static
     {
         $this->options[$tableId]['elem'] = $elem;
         return $this;
     }
 
-    public function id(string $id, string $tableId = 'list')
+    public function id(string $id, string $tableId = 'list'): static
     {
         $this->options[$tableId]['id'] = $id;
         return $this;
     }
 
-    public function defaultToolbar(array $default = ['filter', 'print', 'exports'], string $tableId = 'list')
+    public function defaultToolbar(array $default = ['filter', 'print', 'exports'], string $tableId = 'list'): static
     {
 
         $this->options[$tableId]['defaultToolbar'] = $default;
@@ -578,7 +580,7 @@ class TableBuilder
 
     }
 
-    public function toolbar($buttons = [], string $tableId = 'list')
+    public function toolbar($buttons = [], string $tableId = 'list'): static
     {
         $this->options[$tableId]['toolbar'] = $buttons;
         return $this;
@@ -588,7 +590,7 @@ class TableBuilder
      * @param $data
      * @return $this
      */
-    public function assign(array $data = [])
+    public function assign(array $data = []): static
     {
         View::assign(array_merge([
             'node' => implode(' ', $this->node),
@@ -608,7 +610,7 @@ class TableBuilder
      * @param string $template
      * @return \think\response\View
      */
-    public function view(string $template = '')
+    public function view(string $template = ''): \think\response\View
     {
         $template = $template ?: $this->template;
         return view($template);
