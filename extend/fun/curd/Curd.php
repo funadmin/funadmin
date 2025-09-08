@@ -602,6 +602,7 @@ EOF;
             'jsCols' => [],
             'jsColsRecycle' => [],
             'formFieldList' => [],
+            'formList' => [],
         ];
         if (empty($fieldList)) {
             return $fieldData;
