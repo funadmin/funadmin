@@ -308,14 +308,14 @@ class Curd extends Command
             // 原始文件路径
             $filePath = $controllerData['file'];
             // 1. 替换 controller 为 view
-            $filePath = str_replace('/controller/', '/view/', $filePath);
+            $filePath = str_replace(DS.'controller'.DS, DS.'view'.DS, $filePath);
             // 2. 提取文件名并去除扩展名
             $fileName = pathinfo($filePath, PATHINFO_FILENAME);
             // 3. 将驼峰命名转换为蛇形命名（小写且用下划线分隔）
             $newFileName = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $fileName));
             // 4. 构建新路径
-            $viewPath = dirname($filePath) . '/' . $newFileName;
-            $langPath = str_replace('/view/', '/lang/zh-cn/', $viewPath);
+            $viewPath = dirname($filePath) . DS . $newFileName;
+            $langPath = str_replace(DS.'view'.DS, DS.'lang'.DS.'zh-cn'.DS, $viewPath);
             $langFile =  $langPath . '.php';
             $indexFile =  $viewPath . '/index.html';
             $addFile =  $viewPath . '/add.html';
@@ -582,7 +582,7 @@ EOF;
         //     $parseArr = [$name];
         // }
         $namespace = "app\\{$app}\\{$type}" . ($arr ? "\\" . implode("\\", $arr) : "");
-        $file      = root_path('app/'.$app.DS.$type) . ($arr ? implode(DS, $arr) . DS : '') . $name . '.php';
+        $file      = root_path('app'.DS.$app.DS.$type) . ($arr ? implode(DS, $arr) . DS : '') . $name . '.php';
         return compact('namespace','name','file','parseArr');
     }
 
