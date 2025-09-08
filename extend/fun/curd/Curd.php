@@ -975,6 +975,7 @@ EOF;
      * @return string
      */
     protected function getAssignList($list,$type='php'){
+        $strArr = [];
         foreach($list as $key=>$val){
             $name = lcfirst(Str::studly($val));
             if($type=='php'){
