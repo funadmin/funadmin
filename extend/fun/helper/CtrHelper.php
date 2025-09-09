@@ -18,7 +18,7 @@ class CtrHelper
     {
         $dir = app_path($app.'/controller');
         if (!is_dir($dir)) {
-            throw new \Exception('目录不存在');
+            return [];
         }
         self::scanDirectory($app,$dir);
         return self::$controllerList;
