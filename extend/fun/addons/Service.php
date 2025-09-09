@@ -349,7 +349,7 @@ class Service extends \think\Service
      * @return void
      */
     public static function copyApp($name,$delete = false){
-        foreach (Service::getAppDir($name) as $k => $dir) {
+        foreach (Service::getAppDir() as $k => $dir) {
             $sourcedir =  Service::getAddonsNamePath($name) .$dir. DS . $name;
             if (is_dir($sourcedir)) {
                 FileHelper::copyDir($sourcedir, app()->getBasePath().DS.$name,$delete);
