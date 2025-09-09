@@ -12,6 +12,7 @@ use think\helper\{
 };
 
 define('DS', DIRECTORY_SEPARATOR);
+define('ADDON_DIR', 'addons');
 
 \think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
