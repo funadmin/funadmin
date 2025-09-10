@@ -27,7 +27,7 @@ define('ADDON_DIR', 'addons');
 spl_autoload_register(function ($class) {
 
     $class = ltrim($class, '\\');
-    $namespace = 'addons';
+    $namespace = ADDON_DIR;
 
     if (strpos($class, $namespace) === 0) {
         $dir = app()->getRootPath();
@@ -109,7 +109,7 @@ if (!function_exists('addons_vendor_autoload')) {
         if (is_array($addonsName)){
             foreach ($addonsName as $item) {
                 if ((isset($item['autoload']) && $item['autoload']==1) || isset($item['autoload'])){
-                    $autoload_file = root_path() . 'addons/' . $item['name'] . '/vendor/autoload.php';
+                    $autoload_file = root_path() . ADDON_DIR.'/' . $item['name'] . '/vendor/autoload.php';
                     if (file_exists($autoload_file)){
                         require_once $autoload_file;
                     }
@@ -119,7 +119,7 @@ if (!function_exists('addons_vendor_autoload')) {
             //插件私有类库
             $Config = get_addons_info($addonsName);
             if (isset($Config['autoload']) && $Config['autoload']==2){
-                $autoload_file = root_path() . 'addons/' . $addonsName . '/vendor/autoload.php';
+                $autoload_file = root_path() . ADDON_DIR.'/' . $addonsName . '/vendor/autoload.php';
                 if (file_exists($autoload_file)){
                     require_once $autoload_file;
                 }

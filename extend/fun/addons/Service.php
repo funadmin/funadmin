@@ -61,7 +61,7 @@ class Service extends \think\Service
             }
 
             // 注册控制器路由
-            $route->rule("addons/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
+            $route->rule(ADDON_DIR."/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
             // 自定义路由
             $routes = (array) config('addons.route', []);
             foreach ($routes as $key => $val) {
@@ -125,10 +125,6 @@ class Service extends \think\Service
 
     private function loadLang()
     {
-        // 加载系统语言包
-        Lang::load([
-            $this->app->getRootPath() . '/vendor/fun/fun-addons/src/lang/zh-cn.php'
-        ]);
         // 加载应用默认语言包
         $this->app->loadLangPack($this->app->lang->defaultLangSet());
     }
