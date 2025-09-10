@@ -1,7 +1,7 @@
 <?php
 declare (strict_types = 1);
 
-namespace addons\{%addon%}\controller;
+namespace {%addon_dir%}\{%addon%}\controller;
 
 use think\Request;
 use think\App;

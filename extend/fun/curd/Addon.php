@@ -125,6 +125,7 @@ class Addon extends Command
                     'tpl'=> $tplPath . 'Plugin.tpl',
                     'items'=>[
                         ['name'=>'addon','value'=>$param['app']],
+                        ['name'=>'addon_dir','value'=>ADDON_DIR],
                     ]
                 ],
                 [
@@ -134,6 +135,7 @@ class Addon extends Command
                     'tpl'=> $tplPath . 'ini.tpl',
                     'items'=>[
                         ['name'=>'addon','value'=>$param['app']],
+                        ['name'=>'addon_dir','value'=>ADDON_DIR],
                         ['name'=>'title','value'=>$param['title']],
                         ['name'=>'description','value'=>$param['description']],
                         ['name'=>'author','value'=>$param['author']],
