@@ -288,6 +288,9 @@ class Curd extends Command
             if (in_array( $this->config['table'],getSystemTable())) {
                 throw new \Exception('system table can\'t be curd');
             }
+            if(in_array($this->config['app'], config('funadmin.curd_deny_app'))){
+                throw new \Exception('系统应用无法生成');
+            }
             //控制器
             $controllerData = $this->getMvcData($this->config['app'], $this->config['controller'],'controller',false);
             //模型

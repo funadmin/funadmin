@@ -19,6 +19,10 @@ return [
     'ip_check'=>false,
 
     'public_ajax_url'=>['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'],
+
+    'sys_app'=>['backend','api','frontend','common','install'],
+
+    'curd_deny_app'=>['common','install'],
     //是否独立后台
     'standalone'=>1,
     //接口域名
