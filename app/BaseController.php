@@ -56,6 +56,11 @@ abstract class BaseController
      */
     protected $model;
 
+     /**
+     * @var action`
+     */
+
+    protected $action ; 
     /**
      * 构造方法
      * @access public
