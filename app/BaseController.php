@@ -54,13 +54,7 @@ abstract class BaseController
     /**
      * @var object
      */
-    protected $model;
-
-     /**
-     * @var action`
-     */
-
-    protected $action ; 
+    protected $action ;
     /**
      * 构造方法
      * @access public
@@ -70,7 +64,6 @@ abstract class BaseController
     {
         $this->app     = $app;
         $this->request = $this->app->request;
-        $this->action = $this->request->action();
         // 控制器初始化
         $this->initialize();
     }
