@@ -45,7 +45,7 @@ trait Curd
     {
         parent::initialize();
         // 设置模型类，优先使用已定义的modelClass，如果未定义则使用model属性
-        $this->modelClass = $this->modelClass ?: $this->model;
+        $this->modelClass = $this->modelClass ?: ($this->model??'');
         // 确保modelClass已设置
         if (empty($this->modelClass)) {
             // 尝试根据控制器名称自动推断模型类
