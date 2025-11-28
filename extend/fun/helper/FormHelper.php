@@ -1834,7 +1834,7 @@ EOF;
             // 处理value属性
             elseif ($key === 'value') {
                 $attr .= $key . "='" . $this->entities($val) . "' data-" . $key . "='" . $this->entities($val) . "' ";
-            } else if($key === 'disabled' || $key === 'readonly'){
+            } else if($key === 'disabled' || $key === 'readonly' && !empty($val)){
                 $attr .= $key;
             }
         }
