@@ -524,7 +524,7 @@
                         $.each(list, function (i, v) {
                             var _t = $(this);
                             var dataOptions = Fun.api.getElementData(_t);
-                            var value = _t.val();
+                            var value = _t.val() || _t.data('value') || dataOptions.value;
                             var selectList = dataOptions.selectList || [];
                             var attr = dataOptions.attr || 'id,title';
                             var url = dataOptions.url || dataOptions.request ;
