@@ -1094,7 +1094,7 @@ EOF;
 <div class="layui-form-item {$this->getClass($options,'outclass')}"> {$this->label($name, $options)}       
     <div class="layui-input-block layui-input-wrap">
     <div class="layui-input-prefix"><i class="layui-icon layui-icon-date"></i></div>
-    <input {$this->getDataPropAttr($name, $value, $options)}  class="layui-input {$this->getClass($options)} {$this->readonlyOrdisabled($options)}" type="text" />
+    <input {$this->getDataPropAttr($name, $value, $options)}  class="layui-input {$this->getClass($options)}" {$this->readonlyOrdisabled($options)} type="text" />
     </div>
 </div>
 
