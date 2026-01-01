@@ -27,7 +27,7 @@ class TokenService extends AbstractService
     {
         $secretKey = $type === 'access' ? config('api.jwt_secret') : config('api.refresh_jwt_secret');
         $issuedAt = time();
-        $ttl = $type === 'access' ? config('api.access_token_ttl') : config('api.refresh_token_ttl');
+        $ttl = $type === 'access' ? config('api.access_token_ttl') : config('api.refresh_expires');
         $expirationTime = $issuedAt + $ttl;
 
         $tokenPayload = [
