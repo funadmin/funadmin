@@ -419,46 +419,87 @@ define(['timePicker'], function (timePicker) {
         },
         //格式化列
         colsRender: function (options) {
-            var newclos = options.cols[0];
-            layui.each(newclos, function (i, d) {
-                d.init = options.init;
-                d.selectList = d.selectList || d.searchList;
-                newclos[i]['primaryKey'] = options.primaryKey;
-                if (d.align === undefined) {
-                    newclos[i]['align'] = 'center';
-                }
-                if (!d.filter) {
-                    newclos[i]['filter'] = d.field;
-                }
-                if (d.operat === undefined && d.templet === Table.templet.operat) {
-                    newclos[i]['operat'] = ['edit', 'delete']
-                }
-                sortFields = ['id', 'sort'];
-                if (d.sort === undefined && sortFields.indexOf(d.field) !== -1) {
-                    newclos[i]['sort'] = true;
-                }
-                if (d.filter === undefined && d.templet === Table.templet.switch) {
-                    newclos[i]['filter'] = d.field;
-                }
-                if (d.templet !== undefined && typeof (d.templet)=="string" &&  d.templet.indexOf('Table.templet') !== -1) {
-                    newclos[i]['templet'] = eval(d.templet);
-                }
-                if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
-                    newclos[i]['imageHeight'] = 40;
-                    newclos[i]['templet'] = Table.templet.image;
-                }
-                if (d.selectList !== undefined && d.search === undefined) {
-                    newclos[i]['search'] = 'select';
-                }
-                if (d.selectList !== undefined && d.templet === undefined) {
-                    newclos[i]['templet'] = Table.templet.select;
-                }
-                if (d.field && d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
-                    newclos[i]['templet'] = Table.templet.resolution;
-                }
-
-            })
-            return [newclos]
+            // 处理双行表头
+            if (Array.isArray(options.cols) && options.cols.length > 1) {
+                // 双行表头：处理所有行
+                var newCols = [];
+                layui.each(options.cols, function(rowIndex, row) {
+                    var newRow = [];
+                    layui.each(row, function(colIndex, d) {
+                        d.init = options.init;
+                        d['primaryKey'] = options.primaryKey;
+                        if (d.align === undefined) {
+                            d['align'] = 'center'
+                        }
+                        if (!d.filter) {
+                            d['filter'] = d.field
+                        }
+                        if (d.operat === undefined && d.templet === Table.templet.operat) {
+                            d['operat'] = ['edit', 'delete']
+                        }
+                        sortFields = ['id', 'sort'];
+                        if (d.sort === undefined && sortFields.indexOf(d.field) !== -1) {
+                            d['sort'] = true;
+                        }
+                        if (d.filter === undefined && d.templet === Table.templet.switch) {
+                            d['filter'] = d.field
+                        }
+                        if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
+                            d['imageHeight'] = 40;
+                            d['templet'] = Table.templet.image;
+                        }
+                        if (d.selectList !== undefined && d.search === undefined) {
+                            d['search'] = 'select'
+                        }
+                        if (d.selectList !== undefined && d.templet === undefined) {
+                            d['templet'] = Table.templet.select
+                        }
+                        if (d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
+                            d['templet'] = Table.templet.resolution
+                        }
+                        newRow.push(d);
+                    });
+                    newCols.push(newRow);
+                });
+                return newCols;
+            } else {
+                // 单行表头：保持原有逻辑
+                var newclos = options.cols[0];
+                layui.each(newclos, function (i, d) {
+                    d.init = options.init;
+                    newclos[i]['primaryKey'] = options.primaryKey;
+                    if (d.align === undefined) {
+                        newclos[i]['align'] = 'center'
+                    }
+                    if (!d.filter) {
+                        newclos[i]['filter'] = d.field
+                    }
+                    if (d.operat === undefined && d.templet === Table.templet.operat) {
+                        newclos[i]['operat'] = ['edit', 'delete']
+                    }
+                    sortFields = ['id', 'sort'];
+                    if (d.sort === undefined && sortFields.indexOf(d.field) !== -1) {
+                        newclos[i]['sort'] = true;
+                    }
+                    if (d.filter === undefined && d.templet === Table.templet.switch) {
+                        newclos[i]['filter'] = d.field
+                    }
+                    if (d.imageHeight === undefined && (d.templet!==undefined && (d.templet == Table.templet.image || d.templet == Table.templet.images))) {
+                        newclos[i]['imageHeight'] = 40;
+                        newclos[i]['templet'] = Table.templet.image;
+                    }
+                    if (d.selectList !== undefined && d.search === undefined) {
+                        newclos[i]['search'] = 'select'
+                    }
+                    if (d.selectList !== undefined && d.templet === undefined) {
+                        newclos[i]['templet'] = Table.templet.select
+                    }
+                    if (d.field !== undefined && d.field.split(".").length > 1 && d.templet === undefined) {
+                        newclos[i]['templet'] = Table.templet.resolution
+                    }
+                })
+                return [newclos]
+            }
         },
         templet: {
             laydate:function (d) {
