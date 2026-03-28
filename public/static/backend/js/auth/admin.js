@@ -5,11 +5,11 @@ define(['table', 'form'], function (Table, Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    modify_url: 'auth.admin/modify',
-                    index_url: 'auth.admin/index',
-                    delete_url: 'auth.admin/delete',
-                    add_url: 'auth.admin/add',
-                    edit_url: 'auth.admin/edit',
+                    modify: 'auth.admin/modify',
+                    index: 'auth.admin/index',
+                    delete: 'auth.admin/delete',
+                    add: 'auth.admin/add',
+                    edit: 'auth.admin/edit',
                     add_full:{
                         type: 'open',
                         class: 'layui-btn-sm',
@@ -34,7 +34,7 @@ define(['table', 'form'], function (Table, Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh', 'add_full', 'delete'],
                 cols: [[

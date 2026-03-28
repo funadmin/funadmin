@@ -834,7 +834,7 @@
                                 var name = _t.prop('name');
                                 var path = dataOptions.path;
                                 _t.html(window.FormArray[name]);
-                                var upload_url = (dataOptions.url ? dataOptions.url : Fun.url(Upload.init.requests.upload_url)) + '?editor=tinymce&path=' + path;
+                                var upload_url = (dataOptions.url ? dataOptions.url : Fun.url(Upload.init.requests.upload)) + '?editor=tinymce&path=' + path;
                                 if (dataOptions.editor == 'tinymce') {
                                     if ($("body").find('script[src="/static/plugins/tinymce/tinymce.min.js"]').length == 0) {
                                         $('body').append($("<script defer referrerpolicy='origin' src='/static/plugins/tinymce/tinymce.min.js'></script>"));
@@ -1488,7 +1488,7 @@
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
                                     tableSelect = layui.tableSelect || parent.layui.tableSelect;
-                                    url = url ? url : Fun.url(Upload.init.requests.attach_url + '?' +
+                                    url = url ? url : Fun.url(Upload.init.requests.attach + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime + '&path=' + path + '&type=' + uploadType);
                                     tableSelect.render({
                                         elem: this,
@@ -1596,7 +1596,7 @@
                                     var token = _t.parents('form').find('input[name="__token__"]');
                                     var uploadList = _t.parents('.layui-upload').find('.layui-upload-list');
                                     var id = _t.attr('id');
-                                    url = url ? url : Fun.url(Upload.init.requests.select_url + '?' +
+                                    url = url ? url : Fun.url(Upload.init.requests.select + '?' +
                                         '&elem_id=' + id + '&num=' + uploadNum + '&type=' + uploadType + '&mime=' + uploadMime +
                                         '&path=' + path + '&type=' + uploadType);
                                     var parentiframe = Fun.api.checkLayerIframe();

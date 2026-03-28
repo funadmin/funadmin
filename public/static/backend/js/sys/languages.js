@@ -6,16 +6,16 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'sys.languages/index',
-                    add_url: 'sys.languages/add',
-                    delete_url: 'sys.languages/delete',
-                    edit_url: 'sys.languages/edit',
+                    index: 'sys.languages/index',
+                    add: 'sys.languages/add',
+                    delete: 'sys.languages/delete',
+                    edit: 'sys.languages/edit',
                 }
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','add','delete'],
                 cols: [[

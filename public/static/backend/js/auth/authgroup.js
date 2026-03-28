@@ -5,11 +5,11 @@ define(['table', 'form'], function (Table, Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    modify_url: 'auth.authGroup/modify',
-                    index_url: 'auth.authGroup/index',
-                    delete_url: 'auth.authGroup/delete',
-                    add_url: 'auth.authGroup/add',
-                    edit_url: 'auth.authGroup/edit',
+                    modify: 'auth.authGroup/modify',
+                    index: 'auth.authGroup/index',
+                    delete: 'auth.authGroup/delete',
+                    add: 'auth.authGroup/add',
+                    edit: 'auth.authGroup/edit',
                     access: {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-warm',
@@ -24,7 +24,7 @@ define(['table', 'form'], function (Table, Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh', 'add', 'delete'],
                 cols: [[

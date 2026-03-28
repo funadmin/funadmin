@@ -6,12 +6,12 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'addon/index',
-                    install_url: 'addon/install',
-                    uninstall_url: 'addon/uninstall',
-                    config_url: 'addon/config',
-                    modify_url: 'addon/modify',
-                    logout_url: 'addon/logout',
+                    index: 'addon/index',
+                    install: 'addon/install',
+                    uninstall: 'addon/uninstall',
+                    config: 'addon/config',
+                    modify: 'addon/modify',
+                    logout: 'addon/logout',
                     localinstall:{
                         type: 'upload',
                         class: 'layui-btn-sm layui-btn-danger',
@@ -55,7 +55,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.table_render_id,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','localinstall','plugins','create','account'],
                 searchInput:true,
@@ -124,16 +124,16 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                             if (d.install && d.install == 1 ) {
                                 if(d.lastVersion > d.localVersion){
                                     html += "<button data-auth='"+auth+"' class='layui-btn layui-btn-normal layui-btn-sm ' title='"+ __('Upgrade') +"'  data-value='" +JSON.stringify(d.pluginsVersion)+"' lay-event='more' " +
-                                        'data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
+                                        'data-url="' + Table.init.requests.install + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
                                         __('Upgrade')+"</button>";
                                 }
-                                html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-sm"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
+                                html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-sm"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
                                 if (d.status == 1 ) {
-                                    html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
+                                    html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
                                 } else {
-                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify_url + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</button>'
+                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-warm" lay-event="status"   title="'+__('disabled')+'" data-text="enable" data-url="' + Table.init.requests.modify + '?name=' + d.name + '&id=' + d.id + '">'+__('Disabled')+'</button>'
                                 }
-                                html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall_url + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
+                                html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  lay-event="uninstall" title="'+__('uninstall')+'"   data-url="' + Table.init.requests.uninstall + '?name=' + d.name +'&version_id='+d.version_id +  '&id=' + d.id + '">'+__('uninstall')+'</button>'
                                 if (d.website !== '') {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</a>';
                                 }
@@ -144,7 +144,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
                                     html+="<a class=\"layui-btn  layui-btn-sm layui-btn-normal\" target='_blank' href='"+d.website+"'>点击了解</a>"
                                 }else{
-                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install_url + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
+                                    html += '<button data-auth="'+auth+'"  class="layui-btn layui-btn-danger layui-btn-sm"  title="'+__('install')+'" lay-event="install" data-url="' + Table.init.requests.install + '?name=' + d.name+'&plugins_id='+d.plugins_id  +'&version_id='+d.version_id + '&id=' + d.id + '">'+__('install')+'</button>'
                                 }
                             }
                             return html;
@@ -202,7 +202,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                             btnAlign: 'c',
                             btn: [__('Login'),__('Register')],
                             yes: function (index, layero) {
-                                var url = Fun.url(Table.init.requests.index_url);
+                                var url = Fun.url(Table.init.requests.index);
                                 var data = {
                                     username: $("#inputUsername", layero).val(),
                                     password: $("#inputPassword", layero).val(),
@@ -305,7 +305,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                             btnAlign: 'c',
                             btn: [__('Login'),__('Register')],
                             yes: function (index, layero) {
-                                var url = Fun.url(Table.init.requests.index_url);
+                                var url = Fun.url(Table.init.requests.index);
                                 var data = {
                                     username: $("#inputUsername", layero).val(),
                                     password: $("#inputPassword", layero).val(),
@@ -349,7 +349,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
             //指定允许上传的文件类型
             var uploadinit = layui.upload.render({
                 elem: '#importFile'
-                ,url: Fun.url(Upload.init.requests.upload_url)+'?save=1&path=addon' //改成您自己的上传接口
+                ,url: Fun.url(Upload.init.requests.upload)+'?save=1&path=addon' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
                 ,exts: 'zip|rar|7z' //只允许上传压缩文件
                 ,size:1024*50
@@ -395,7 +395,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                         btnAlign: 'c',
                         btn: [__('Logout'),__('Register')],
                         yes: function (index, layero) {
-                            var url = Fun.url(Table.init.requests.logout_url);
+                            var url = Fun.url(Table.init.requests.logout);
                             $.ajax({
                                 url: url, type: 'post', dataType: "json", success: function (res) {
                                     if (res.code === 1) {
@@ -433,7 +433,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                         btnAlign: 'c',
                         btn: [__('Login'),__('Register')],
                         yes: function (index, layero) {
-                            var url = Fun.url(Table.init.requests.index_url);
+                            var url = Fun.url(Table.init.requests.index);
                             var data = {
                                 username: $("#inputUsername", layero).val(),
                                 password: $("#inputPassword", layero).val(),

@@ -10,7 +10,7 @@
 define(['timePicker'], function (timePicker) {
     var $ = layui.$;
     var Table = {
-        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export_url: 'ajax/export',import_url:"ajax/import"},},
+        init: {table_elem: 'list', tableId: 'list', searchInput: true, requests: {export: 'ajax/export',import:"ajax/import"},},
         render: function (options) {
             options.init = options.init || Table.init;
             options.elem = options.elem || '#' + options.init.table_elem;
@@ -106,7 +106,8 @@ define(['timePicker'], function (timePicker) {
             var nodeArr = ['refresh','add', 'delete', 'destroy', 'export', 'import', 'recycle', 'restore'];
             layui.each(d, function (i, v) {
                 if ($.inArray(v, nodeArr) !== -1) {
-                    if (v !== 'refresh') url = Fun.replaceurl(eval('requests.' + v + '_url'), d);
+                    url = eval('requests.' + v) || eval('requests.' + v + '_url')
+                    if (v !== 'refresh') url = Fun.replaceurl(url, d);
                     if (v === 'refresh') {
                         toolbarHtml += ' <a class="layui-btn layui-btn-sm layui-btn-normal" data-tips="refresh" lay-event="refresh" data-tableid="' + tableId + '"><i class="layui-icon layui-icon-refresh"></i> </a>\n';
                     } else if (v === 'add') {
@@ -140,7 +141,7 @@ define(['timePicker'], function (timePicker) {
                     }
                 } else if (typeof v === 'string' && (typeof eval('requests.' + v)=== 'string' || typeof eval('requests.' + v+ '_url')=== 'string')) {
                     if (Fun.checkAuth(v, options.elem)) {
-                        url = eval(('requests.' + v + '_url'))  ||　eval(('requests.' + v ))
+                        url = eval(('requests.' + v )) || eval(('requests.' + v + '_url'))
                         if(!url) return ;
                         url = Fun.replaceurl(url, d);
                         toolbarHtml += '<a class="layui-btn layui-btn-sm layui-btn-normal" lay-event="open" data-tableid="' + tableId + '"  data-url="' + url + '" data-title="'+v+'"><i class="layui-icon layui-icon-radio"></i>' + __(v) + '</a>\n';
@@ -464,14 +465,14 @@ define(['timePicker'], function (timePicker) {
             laydate:function (d) {
                 var ele = $(this)[0];
                 var value = eval-('d.' + ele.field) || '';
-                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
+                ele.saveurl = ele.saveurl || ele.init.requests.modify || Table.init.requests.modify || ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 var format = ele.dateformat || 'yyyy-MM-dd HH:mm:ss';
                 return '<input lay-event="laydate" lay-filter="laydate" data-tableid="'+ele.init.tableId+'" data-field="'+ele.field+'" data-url="' +  ele.saveurl + '"  class="layui-input laydate"  data-dateformat="'+format+'" placeholder="'+__('select date')+'" value="'+ value+ '">';
             },
             colorpicker:function(d){
                 var ele = $(this)[0];
                 var value = eval('d.' + ele.field) || '';
-                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
+                ele.saveurl = ele.saveurl ||  ele.init.requests.modify || Table.init.requests.modify || ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 var color =JSON.stringify ({color: value});
                 return "<div lay-event='colorpicker' lay-filter='colorPicker' data-tableid='"+ele.init.tableId+"' data-field='"+ele.field+"' data-url='" +  ele.saveurl + "'  class='colorpicker' placeholder='"+__('select color')+"' lay-options='"+color+"' value='"+ value+ "'></div>";
             },
@@ -566,7 +567,7 @@ define(['timePicker'], function (timePicker) {
                 value = Table.templet.resolution(d, ele);extend = [];
                 init = ele.init;
                 layui.each(ele.selectList, function (i, v) {
-                    var url = ele.url || init.requests.modify_url || v.url;
+                    var url = ele.url || init.requests.modify || init.requests.modify_url || v.url;
                     if(url.indexOf('?')>=0){
                         url = url+"&"+ele.primaryKey+'='+d[ele.primaryKey]+'&field='+ele.field;
                     }else{
@@ -582,7 +583,7 @@ define(['timePicker'], function (timePicker) {
             },selects: function (d) {
                 var ele = $(this)[0];ele.url = ele.url?(ele.url.indexOf('?')!==-1?ele.url+'&'+ ele.primaryKey+'='+d[ele.primaryKey]:ele.url+'?'+ele.primaryKey+'='+d[ele.primaryKey]) :'';
                 ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};ele.filter = ele.filter || ele.field;
-                ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || "";
+                ele.saveurl = ele.saveurl || ele.init.requests.modify || Table.init.requests.modify|| ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 value = Table.templet.resolution(d, ele)
                 $html = '<select class="layui-border" data-url="'+ ele.saveurl +'" data-tableid="'+ele.init.tableId+'" data-id="'+d[ele.primaryKey]+'" name="' + ele.field + '" lay-filter="' + ele.filter  + '"   lay-search="">\n' +
                     '<option value="">' + __('Select') + '</option>\n'
@@ -595,7 +596,7 @@ define(['timePicker'], function (timePicker) {
             }, switch: function (d) {
                 var ele = $(this)[0];
                 ele.selectList = ele.selectList || ele.searchList || Fun.api.getData(ele.url) || {};
-                ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify_url || Table.init.requests.modify_url || '' ;
+                ele.filter = ele.filter || ele.field || null;ele.saveurl = ele.saveurl ||  ele.init.requests.modify || Table.init.requests.modify|| ele.init.requests.modify_url || Table.init.requests.modify_url || "";
                 ele.selectListTips = ele.selectList && JSON.stringify(ele.selectList) !== '{}' ? __(ele.selectList[1]) + '|' + __(ele.selectList[0]) : '';
                 ele.text = ele.text || ele.selectListTips || __('open') + '|' + __('close');
                 ele.tips = ele.tips || 'switch';
@@ -693,6 +694,7 @@ define(['timePicker'], function (timePicker) {
                         var vv = {};
                         var va = {};
                         if (typeof v === "string" && (typeof eval('requests.' + v + '_url') === 'string' || typeof eval('requests.' + v) === 'string')) {
+                            url  = eval('requests.' + v) || eval('requests.' + v + '_url')
                             if (v === 'add') {
                                 va = {
                                     type: 'open',
@@ -700,7 +702,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-warm',
                                     text: __('Add'),
                                     title: __('Add'),
-                                    url: requests.add_url,
+                                    url: url,
                                     icon: 'layui-icon layui-icon-add-circle-fine',
                                     extend: "",  tips: 'add',
                                 }
@@ -712,7 +714,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-normal',
                                     text: __(v),
                                     title: __(v),
-                                    url: requests[v+'_url'],
+                                    url: url,
                                     icon: 'layui-icon '+icon,
                                     extend: "", tips: v,
                                 }
@@ -723,7 +725,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-danger',
                                     text: __('Are you sure to delete'),
                                     title: __('Delete'),
-                                    url: requests.delete_url,
+                                    url: url,
                                     icon: 'layui-icon layui-icon-delete',
                                     extend: "",tips: 'delete',
                                 }
@@ -734,7 +736,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-warm',
                                     text: __('Are you sure to Destroy'),
                                     title: __('Destroy'),
-                                    url: requests.destroy_url,
+                                    url: url,
                                     icon: 'layui-icon layui-icon-fonts-clear',
                                     extend: "",tips: 'destroy',
                                 }
@@ -745,7 +747,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-warm',
                                     text: __('Are you sure to restore'),
                                     title: __('Restore'),
-                                    url: requests.restore_url,
+                                    url: url,
                                     icon: 'layui-icon layui-icon-refresh-1',
                                     extend: "",tips: 'restore',
                                 }
@@ -756,7 +758,7 @@ define(['timePicker'], function (timePicker) {
                                     class: 'layui-btn layui-btn-normal',
                                     text: __(v),
                                     title: __(v),
-                                    url: eval('requests.' + v + '_url') || eval('requests.' + v),
+                                    url: url,
                                     icon: 'layui-icon layui-icon-radio',
                                     extend: "",tips: '',
                                 }
@@ -1307,7 +1309,7 @@ define(['timePicker'], function (timePicker) {
                 })
             },
             rowDouble: function (options) {
-                var layFilter = options.layFilter, ops = options.init.requests.edit_url;
+                var layFilter = options.layFilter, ops = options.init.requests.edit || options.init.requests.edit_url;
                 Table.getTableObj(options.id).on('rowDouble(' + layFilter + ')', function (obj) {
                     url = typeof ops==="object"?ops.url:ops;
                     if (url && Fun.checkAuth(Fun.common.getNode(url), options.elem)) {
@@ -1319,7 +1321,8 @@ define(['timePicker'], function (timePicker) {
                 })
             },
             edit: function (options) {
-                var url = options.init.requests.modify_url ? options.init.requests.modify_url : false;
+                url = options.init.requests.modify || options.init.requests.modify_url
+                var url = url ? url : false;
                 tableId = options.id || Table.init.tableId;
                 if(!url || url=='undefined') return ;
                 Table.getTableObj(tableId).on('edit(' + options.layFilter + ')', function (obj) {
@@ -1355,7 +1358,7 @@ define(['timePicker'], function (timePicker) {
                 layui.form.on('switch', function (obj) {
                     //获取当前table id;
                     var dataOptions = Fun.api.getElementData(this);
-                    url = dataOptions.url || options.init.requests.modify_url || false;
+                    url = dataOptions.url ||options.init.requests.modify ||  options.init.requests.modify_url || false;
                     tableid = dataOptions.tableid;
                     if(options.id!==tableid) return ;
                     if(!url || url=='undefined') return ;
@@ -1378,7 +1381,7 @@ define(['timePicker'], function (timePicker) {
             selects: function (options) {
                 layui.form.on('select', function (obj) {
                     var dataOptions = Fun.api.getElementData($(obj.elem));
-                    url = dataOptions.url || options.init.requests.modify_url || false;
+                    url = dataOptions.url || options.init.requests.modify || options.init.requests.modify_url || false;
                     tableid = dataOptions.tableid;
                     if(options.id!==tableid) return ;
                     if(!url || url=='undefined') return ;

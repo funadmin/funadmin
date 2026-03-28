@@ -5,11 +5,11 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'sys.config/index',
-                    delete_url: 'sys.config/delete',
-                    add_url: 'sys.config/add',
-                    edit_url: 'sys.config/edit',
-                    modify_url: 'sys.config/modify',
+                    index: 'sys.config/index',
+                    delete: 'sys.config/delete',
+                    add: 'sys.config/add',
+                    edit: 'sys.config/edit',
+                    modify: 'sys.config/modify',
                     setValue:{
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-danger',
@@ -24,7 +24,7 @@ define(['table','form'], function (Table,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','add','delete'],
                 cols: [[
@@ -52,8 +52,8 @@ define(['table','form'], function (Table,Form) {
                             if(d.is_system){
                                 $html = '';
                                 var elem = '#'+d.LAY_COL.init.tableId;
-                                if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.edit_url),elem)) {
-                                    $html += '<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="' + Table.init.tableId + '" data-width="800"  data-url="' + Table.init.requests.edit_url + '?id=' + d.id + '" title="' + __('Edit') + '" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>';
+                                if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.edit),elem)) {
+                                    $html += '<button class="layui-btn layui-btn-xs layui-btn-xs" data-tableid="' + Table.init.tableId + '" data-width="800"  data-url="' + Table.init.requests.edit + '?id=' + d.id + '" title="' + __('Edit') + '" lay-event="open" data-type="open"><i class="layui-icon layui-icon-edit"></i></button>';
                                 }
                                 if(Fun.checkAuth(Fun.common.getNode(Table.init.requests.setValue.url),elem)){
                                     $html +='<button data-tableid="'+Table.init.tableId+'" class="layui-btn-xs layui-btn-danger layui-btn layui-btn-xs" title="'+__('SetValue')+'" data-url="'+Table.init.requests.setValue.url+'?id='+ d.id +'" lay-event="open" data-type="open" data-full="1"><i class="layui-icon layui-icon layui-icon-set"></i></button>';

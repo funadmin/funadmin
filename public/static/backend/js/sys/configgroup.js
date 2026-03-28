@@ -7,17 +7,17 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'sys.configGroup/index',
-                    add_url: 'sys.configGroup/add',
-                    edit_url: 'sys.configGroup/edit',
-                    delete_url: 'sys.configGroup/delete',
-                    modify_url: 'sys.configGroup/modify',
+                    index: 'sys.configGroup/index',
+                    add: 'sys.configGroup/add',
+                    edit: 'sys.configGroup/edit',
+                    delete: 'sys.configGroup/delete',
+                    modify: 'sys.configGroup/modify',
                 },
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh', 'add', 'delete'],
                 cols: [[

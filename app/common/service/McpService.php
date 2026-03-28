@@ -2437,18 +2437,17 @@ class {$modelClass} extends BaseModel
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: '{$controllerLower}/index',
-                    add_url: '{$controllerLower}/add',
-                    edit_url: '{$controllerLower}/edit',
-                    del_url: '{$controllerLower}/del',
-                    multi_url: '{$controllerLower}/multi',
-                    table_url: '{$controllerLower}/table',
+                    index: '{$controllerLower}/index',
+                    add: '{$controllerLower}/add',
+                    edit: '{$controllerLower}/edit',
+                    delete: '{$controllerLower}/delete',
+                    export: '{$controllerLower}/export',
                 }
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh', 'add', 'destroy', 'import', 'export'],
                 cols: [[
@@ -2457,7 +2456,7 @@ class {$modelClass} extends BaseModel
 {$jsCols}
                     {field: 'create_time', title: '创建时间', width: 180, sort: true},
                     {field: 'update_time', title: '更新时间', width: 180, sort: true},
-                    {title: '操作', width: 250, align: 'center', operat: ['index_url','copy', 'destroy']}
+                    {title: '操作', width: 250, align: 'center', operat: ['index','copy', 'destroy']}
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
                 limit: 15,
@@ -2481,7 +2480,7 @@ class {$modelClass} extends BaseModel
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.recycle_url),
+                url: Fun.url(Table.init.requests.recycle),
                 init: Table.init,
                 toolbar: ['refresh','delete','restore'],
                 cols: [[
@@ -2720,12 +2719,11 @@ class {$controllerClass} extends Api
      */
     private function generateJsRequests(string $controller): string
     {
-        return "                    index_url: '{$controller}/index',
-                    add_url: '{$controller}/add',
-                    edit_url: '{$controller}/edit',
-                    del_url: '{$controller}/del',
-                    multi_url: '{$controller}/multi',
-                    table_url: '{$controller}/table',";
+        return "                    index: '{$controller}/index',
+                    add: '{$controller}/add',
+                    edit: '{$controller}/edit',
+                    delete: '{$controller}/delete',
+                    export: '{$controller}/export',";
     }
 
     /**

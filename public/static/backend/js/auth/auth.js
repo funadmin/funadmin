@@ -6,9 +6,9 @@ define(['table','form'], function (Table, Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'auth.auth/index',
-                    add_url: 'auth.auth/add',
-                    edit_url: 'auth.auth/edit',
+                    index: 'auth.auth/index',
+                    add: 'auth.auth/add',
+                    edit: 'auth.auth/edit',
                     delete: {
                         type: 'request',
                         class: 'layui-btn-xs layui-btn-warm',
@@ -20,7 +20,7 @@ define(['table','form'], function (Table, Form) {
                         width:'',
                         height:'',
                     },
-                    modify_url: 'auth.auth/modify',
+                    modify: 'auth.auth/modify',
                     child:  {
                         type: 'open',
                         class: 'layui-btn-xs layui-btn-warm',
@@ -64,7 +64,7 @@ define(['table','form'], function (Table, Form) {
             Table.render({
                 id: Table.init.tableId,
                 elem: '#' + Table.init.table_elem,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar:['refresh','add','expand','close'],
                 // maxHeight: '501px',
@@ -129,7 +129,7 @@ define(['table','form'], function (Table, Form) {
                 ]]
                 ,page:false
             });
-            var url = Fun.url(Table.init.requests.modify_url);
+            var url = Fun.url(Table.init.requests.modify);
             Table.api.bindEvent(Table.init.tableId);
 
             form.on('switch(auth_verify)', function (obj) {

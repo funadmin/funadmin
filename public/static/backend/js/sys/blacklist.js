@@ -3,14 +3,14 @@ define(['table','form'], function (Table,Form) {
         table_elem: 'list',
         tableId: 'list',
         requests: {
-            index_url: 'sys.blacklist/index',
-            delete_url: 'sys.blacklist/delete',
-            add_url: 'sys.blacklist/add',
-            edit_url: 'sys.blacklist/edit',
-            recycle_url: 'sys.blacklist/recycle',
-            destroy_url: 'sys.blacklist/destroy',
-            restore_url: 'sys.blacklist/restore',
-            modify_url: 'sys.blacklist/modify',
+            index: 'sys.blacklist/index',
+            delete: 'sys.blacklist/delete',
+            add: 'sys.blacklist/add',
+            edit: 'sys.blacklist/edit',
+            recycle: 'sys.blacklist/recycle',
+            destroy: 'sys.blacklist/destroy',
+            restore: 'sys.blacklist/restore',
+            modify: 'sys.blacklist/modify',
         },
     };
     let Controller = {
@@ -18,7 +18,7 @@ define(['table','form'], function (Table,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','add','delete','recycle'],
                 cols: [[
@@ -61,7 +61,7 @@ define(['table','form'], function (Table,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','restore','destroy'],
                 cols: [[

@@ -505,12 +505,12 @@ EOF;
                 if ($v != 'refresh') {
                     if (!in_array($v, ['restore'])) {
                         $requests[] = <<<EOF
-                    '{$v}_url': '{$prefix_url}/{$v}' + location.search
+                    '{$v}': '{$prefix_url}/{$v}' + location.search
 EOF;
                     }
                     if (in_array($v, ['recycle', 'restore', 'delete'])) {
                         $requestsRecycle[] = <<<EOF
-                    '{$v}_url': '{$prefix_url}/{$v}' + location.search
+                    '{$v}': '{$prefix_url}/{$v}' + location.search
 EOF;
                     }
                 }

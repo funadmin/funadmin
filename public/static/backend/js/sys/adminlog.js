@@ -6,9 +6,9 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'sys.adminlog/index',
-                    delete_url: 'sys.adminlog/delete',
-                    // edit_url: 'sys.adminlog/edit',
+                    index: 'sys.adminlog/index',
+                    delete: 'sys.adminlog/delete',
+                    // edit: 'sys.adminlog/edit',
                     edit_close:  {
                         type: 'open',
                         'class': 'layui-btn-xs layui-btn-normal',
@@ -19,7 +19,7 @@ define(['table','form'], function (Table,Form) {
                         btn:['close'],
                         extend:"",
                     } ,
-                    delall_url: {
+                    delall: {
                         type: 'delete',
                         'class': 'layui-btn-sm layui-btn-danger',
                         icon: 'layui-icon layui-icon-delete',
@@ -33,9 +33,9 @@ define(['table','form'], function (Table,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
-                toolbar: ['refresh', 'delete', 'delall_url'],
+                toolbar: ['refresh', 'delete', 'delall'],
                 cols: [[
                     {type: "checkbox"},
                     {field: 'id', title: 'ID', sort: true, width: 80, search: false},

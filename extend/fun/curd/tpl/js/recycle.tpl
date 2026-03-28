@@ -9,7 +9,7 @@ recycle: function () {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.recycle_url),
+                url: Fun.url(Table.init.requests.recycle),
                 init: Table.init,
                 {%primaryKey%}
                 toolbar: ['refresh','delete','restore'],

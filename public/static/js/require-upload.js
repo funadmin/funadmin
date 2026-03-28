@@ -12,9 +12,9 @@ define([ 'croppers'], function(croppers) {
     var Upload = {
         init: {
             requests: {
-                upload_url: 'ajax/uploads',
-                attach_url: 'ajax/getAttach',
-                select_url:'sys.attach/selectfiles'
+                upload: 'ajax/uploads',
+                attach: 'ajax/getAttach',
+                select:'sys.attach/selectfiles'
             },
             upload_exts: Config.upload.upload_file_type,
             upload_size: Config.upload.upload_file_max,
@@ -100,7 +100,7 @@ define([ 'croppers'], function(croppers) {
                             number:uploadNum,
                             multiple: uploadmultiple,
                             auto:false,
-                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload_url) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
+                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
                                 if(chunk==undefined || chunk ==false || chunk == 0){
                                     index = Fun.toastr.loading(__('uploading'),setTimeout(function(){
@@ -303,7 +303,7 @@ define([ 'croppers'], function(croppers) {
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
                             area: area, //弹窗宽度
-                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload_url) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
+                            url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
                             done:success=== undefined ? function(res) {
                                 //上传完毕回调

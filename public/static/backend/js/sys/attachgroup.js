@@ -6,16 +6,16 @@ define(['table','form'], function (Table,Form) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index_url: 'sys.attachGroup/index',
-                    delete_url: 'sys.attachGroup/delete',
-                    add_url: 'sys.attachGroup/add',
-                    edit_url: 'sys.attachGroup/edit',
+                    index: 'sys.attachGroup/index',
+                    delete: 'sys.attachGroup/delete',
+                    add: 'sys.attachGroup/add',
+                    edit: 'sys.attachGroup/edit',
                 }
             }
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','add'],
                 tree: {

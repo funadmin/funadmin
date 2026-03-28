@@ -14,7 +14,7 @@
 .layui-layout-admin .layui-tabs-header{left: 54px;}
 .layui-layout-admin .layui-pagetabs .layui-tabs-header li:first-child{min-width: 30px;}
 .layui-layout-admin .layui-pagetabs .layui-tabs-header li:not(:first-child){min-width: 70px}
-.layui-layout-admin .layui-header ul li a{color: #000!important;}
+.layui-layout-admin .layui-header ul li>a{color: #000!important;}
 .layui-layout-admin .layui-header .layui-layout-center li.layui-this {background: #e2ebfb!important;color:#333!important;}
 .layui-layout-admin .layui-header .layui-layout-left{background: #fff!important;color:#000!important;border-right:1px solid #eee;left:0}
 .layui-layout-admin .layui-header .layui-layout-right{background: #fff!important;color:#000!important;}

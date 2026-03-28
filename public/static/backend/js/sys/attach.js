@@ -3,8 +3,8 @@ define(['table','upload','form'], function (Table,Upload,Form) {
         table_elem: 'list',
         tableId: 'list',
         requests: {
-            index_url: 'sys.attach/index',
-            // add_url: 'sys.attach/add',
+            index: 'sys.attach/index',
+            // add: 'sys.attach/add',
             add_full:{
                 type: 'open',
                 class: 'layui-btn-sm layui-btn-green',
@@ -15,11 +15,11 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                 full: 0,
                 extend:"data-btn='close'",
             },
-            edit_url: 'sys.attach/edit',
-            delete_url: 'sys.attach/delete',
-            move_url: 'sys.attach/move',
-            modify_url: 'sys.attach/modify',
-            group_index_url:{
+            edit: 'sys.attach/edit',
+            delete: 'sys.attach/delete',
+            move: 'sys.attach/move',
+            modify: 'sys.attach/modify',
+            group_index:{
                 type: 'open',
                 class: 'layui-btn-sm layui-btn-green',
                 url: 'sys.attachGroup/index',
@@ -29,9 +29,9 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                 node:false,
                 extend:"data-btn='false'",
             },
-            group_add_url: 'sys.attachGroup/add',
-            group_edit_url: 'sys.attachGroup/edit',
-            group_delete_url: 'sys.attachGroup/delete',
+            group_add: 'sys.attachGroup/add',
+            group_edit: 'sys.attachGroup/edit',
+            group_delete: 'sys.attachGroup/delete',
         }
     }
 
@@ -40,9 +40,9 @@ define(['table','upload','form'], function (Table,Upload,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
-                toolbar: ['refresh', 'add_full', 'delete','group_index_url'],
+                toolbar: ['refresh', 'add_full', 'delete','group_index'],
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80 , sort: true},
@@ -153,7 +153,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                             title:elem.find('.layui-tree-txt').html(),
                             '__token__': $("input[name='__token__']").val()
                         }
-                        Fun.ajax({url: Table.init.requests.group_add_url, data:postdata }
+                        Fun.ajax({url: Table.init.requests.group_add, data:postdata }
                             , function (res) {
                                 if (res.code > 0) {
                                     Fun.toastr.success(res.msg);
@@ -167,7 +167,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                             title:elem.find('.layui-tree-txt').html(),
                             '__token__': $("input[name='__token__']").val()
                         }
-                        Fun.ajax({url: Table.init.requests.group_edit_url, data: postdata}, function (res) {
+                        Fun.ajax({url: Table.init.requests.group_edit, data: postdata}, function (res) {
                             if (res.code > 0) {
                                 Fun.toastr.success(res.msg);
                             }
@@ -175,7 +175,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                         })
                         console.log(elem.find('.layui-tree-txt').html()); // 得到修改后的内容
                     } else if(type == 'del'){ // 删除节点
-                        Fun.ajax({url: Table.init.requests.group_delete_url, data: {ids: obj.data.id}}
+                        Fun.ajax({url: Table.init.requests.group_delete, data: {ids: obj.data.id}}
                         , function (res) {
                             if (res.code > 0) {
                                 Fun.toastr.success(res.msg);
@@ -206,7 +206,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                         Fun.toastr.error(__('please choose group'))
                         return false;
                     }
-                    var Url =Fun.url(Table.init.requests.move_url);
+                    var Url =Fun.url(Table.init.requests.move);
                     var data = {
                         ids: ids, '__token__': $("input[name='__token__']").val(),
                         group_id:obj.data.id?obj.data.id:1,
@@ -247,7 +247,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
             }
             layui.upload.render({
                 elem: '#uploadfile'
-                , url: Fun.url(Upload.init.requests.upload_url)
+                , url: Fun.url(Upload.init.requests.upload)
                 , multiple: multiple
                 , data: {group_id:group_id,path:upvalue.value.path}
                 , before: function (obj) {
@@ -292,7 +292,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                     Fun.toastr.error(__('please choose data'))
                     return false;
                 }
-                var Url =Fun.url(Table.init.requests.delete_url);
+                var Url =Fun.url(Table.init.requests.delete);
                 var data = {
                     ids: ids, '__token__': $("input[name='__token__']").val()
                 };
@@ -316,7 +316,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
                 var _this, id, name;_this = $(this).parent();id = _this.attr('data-id');name = _this.attr('title');
                 layui.layer.prompt({title: '修改图片名称', value: name, formType: 3}, function (value, index) {
                     layui.layer.close(index);
-                    var Url = Fun.url(Table.init.requests.edit_url+ '?id=' + id) ;
+                    var Url = Fun.url(Table.init.requests.edit+ '?id=' + id) ;
                     var data = {
                         'original_name': value,
                         'id': id,

@@ -3,17 +3,17 @@ define(['table','form'], function (Table,Form) {
         table_elem: 'list',
         tableId: 'list',
         requests: {
-            modify_url: 'member.member/modify',
-            index_url: 'member.member/index',
-            recycle_url: 'member.member/recycle',
-            delete_url: 'member.member/delete',
-            destroy_url: 'member.member/destroy',
-            export_url: 'member.member/export',
-            import_url: 'member.member/import',
-            restore_url: 'member.member/restore',
-            copy_url: 'member.member/copy',
-            // add_url: 'member.member/add',
-            // edit_url: 'member.member/edit',
+            modify: 'member.member/modify',
+            index: 'member.member/index',
+            recycle: 'member.member/recycle',
+            delete: 'member.member/delete',
+            destroy: 'member.member/destroy',
+            export: 'member.member/export',
+            import: 'member.member/import',
+            restore: 'member.member/restore',
+            copy: 'member.member/copy',
+            // add: 'member.member/add',
+            // edit: 'member.member/edit',
             add_full:{
                 type: 'open',
                 class: 'layui-btn-sm layui-btn-green',
@@ -25,7 +25,7 @@ define(['table','form'], function (Table,Form) {
                 // full: 1,
                 // width:'800',
             },
-            edit_url:{
+            edit:{
                 type: 'open',
                 event: 'open',
                 class: 'layui-btn-xs layui-btn-green',
@@ -90,17 +90,17 @@ define(['table','form'], function (Table,Form) {
         table_elem: 'list1',
         tableId: 'list1',
         requests: {
-            modify_url: 'member.memberLevel/modify',
-            index_url: 'member.memberLevel/index',
-            recycle_url: 'member.memberLevel/recycle',
-            delete_url: 'member.memberLevel/delete',
-            destroy_url: 'member.memberLevel/destroy',
-            export_url: 'member.memberLevel/export',
-            import_url: 'member.memberLevel/import',
-            restore_url: 'member.memberLevel/restore',
-            copy_url: 'member.memberLevel/copy',
-            // add_url: 'member.member/add',
-            // edit_url: 'member.member/edit',
+            modify: 'member.memberLevel/modify',
+            index: 'member.memberLevel/index',
+            recycle: 'member.memberLevel/recycle',
+            delete: 'member.memberLevel/delete',
+            destroy: 'member.memberLevel/destroy',
+            export: 'member.memberLevel/export',
+            import: 'member.memberLevel/import',
+            restore: 'member.memberLevel/restore',
+            copy: 'member.memberLevel/copy',
+            // add: 'member.member/add',
+            // edit: 'member.member/edit',
             add_full:{
                 type: 'open',
                 class: 'layui-btn-sm layui-btn-green',
@@ -112,7 +112,7 @@ define(['table','form'], function (Table,Form) {
                 // full: 1,
                 // width:'800',
             },
-            edit_url:{
+            edit:{
                 type: 'iframe',
                 event: 'iframe',
                 class: 'layui-btn-xs layui-btn-green',
@@ -185,7 +185,7 @@ define(['table','form'], function (Table,Form) {
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
                 css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 primaryKey: 'id',
                 // primaryKey:"member_id",
@@ -193,7 +193,7 @@ define(['table','form'], function (Table,Form) {
                 searchType:1,
                 // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','import','export','recycle'],
-                // toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],
+                // toolbar: ['refresh','add_full','edit','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true,},
                     {field: 'id', title: 'ID', width: 80, sort: true},
@@ -242,8 +242,8 @@ define(['table','form'], function (Table,Form) {
                         title: __('Operat'),
                         init: Table.init,
                         templet: Table.templet.operat,
-                        // operat: ['edit_url', 'destroy',],
-                        operat: ['edit_url','copy', 'destroy','dropdown'],
+                        // operat: ['edit', 'destroy',],
+                        operat: ['edit','copy', 'destroy','dropdown'],
                         // operat:function(d){
                         //     return ['edit_s','destroy'];
                         // },
@@ -253,7 +253,7 @@ define(['table','form'], function (Table,Form) {
                         // }
                         // operat:'<div><a href="/detail/{{=d.id}}" class="layui-table-link">{{=d.status}}</a></div>',
                         // operat:'#demo',
-                    //     operat: ['edit_url', 'destroy',
+                    //     operat: ['edit', 'destroy',
                     //         // {
                     //         //     type: 'x',
                     //         //     event: 'x',
@@ -284,14 +284,14 @@ define(['table','form'], function (Table,Form) {
                 elem: '#' + Table.init2.table_elem,
                 id: Table.init2.tableId,
                 css: '.layui-table-cell{height: 50px; line-height: 40px; overflow: visible;}',
-                url: Fun.url(Table.init2.requests.index_url),
+                url: Fun.url(Table.init2.requests.index),
                 init: Table.init2,
                 primaryKey: 'id',
                 // primaryKey:"member_id",
                 searchShow:true,
                 // searchFormTpl:'search',//模板ID
                 toolbar: ['refresh','add_full','destroy','import','export','recycle'],
-                // toolbar: ['refresh','add_full','edit_url','destroy','import','export','recycle'],
+                // toolbar: ['refresh','add_full','edit','destroy','import','export','recycle'],
                 cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('Id'), width: 80, sort: true},
@@ -343,7 +343,7 @@ define(['table','form'], function (Table,Form) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.recycle_url),
+                url: Fun.url(Table.init.requests.recycle),
                 init: Table.init,
                 toolbar: ['refresh','delete','restore'],
                 cols: [[

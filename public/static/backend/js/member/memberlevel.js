@@ -10,14 +10,14 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests:{
-                    modify_url:'member.memberLevel/modify',
-                    index_url: 'member.memberLevel/index',
-                    add_url: 'member.memberLevel/add',
-                    edit_url: 'member.memberLevel/edit',
-                    destroy_url: 'member.memberLevel/destroy',
-                    delete_url: 'member.memberLevel/delete',
-                    recycle_url: 'member.memberLevel/recycle',
-                    export_url: 'member.memberLevel/export',
+                    modify:'member.memberLevel/modify',
+                    index: 'member.memberLevel/index',
+                    add: 'member.memberLevel/add',
+                    edit: 'member.memberLevel/edit',
+                    destroy: 'member.memberLevel/destroy',
+                    delete: 'member.memberLevel/delete',
+                    recycle: 'member.memberLevel/recycle',
+                    export: 'member.memberLevel/export',
                 }
             };
             //表格过滤示例
@@ -36,7 +36,7 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 rowDouble:false,
                 toolbar: ['refresh','add','destroy','export','recycle'],
@@ -87,15 +87,15 @@ define(['table','form','tableFilter'], function (Table,Form,tableFilter) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    recycle_url: 'member.member/recycle',
-                    restore_url: 'member.member/restore',
-                    delete_url: 'member.member/delete',
+                    recycle: 'member.member/recycle',
+                    restore: 'member.member/restore',
+                    delete: 'member.member/delete',
                 },
             };
             Table.render({
                 elem: '#' + Table.init.table_elem,
                 id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index_url),
+                url: Fun.url(Table.init.requests.index),
                 init: Table.init,
                 toolbar: ['refresh','delete','restore'],
                 cols: [[
