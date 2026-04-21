@@ -149,7 +149,7 @@ class Attach extends Backend
                 'list_rows'=> $this->pageSize,
                 'page' => $this->page,
             ]);
-        return view('',['param'=>$param,'groupList'=>$groupList, 'data' => $list->items(), 'count' =>$list->total()]);
+        return view('',['param'=>$param,'groupList'=>array_values($groupList), 'data' => $list->items(), 'count' =>$list->total()]);
     }
     /**
      * @NodeAnnotation('移动文件')
