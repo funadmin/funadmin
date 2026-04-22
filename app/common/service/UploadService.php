@@ -202,6 +202,7 @@ class UploadService extends AbstractService
      */
     public function chunkUpload($file,string $chunkId,int $chunkIndex,int $chunkCount){
         $this->file = $file??$this->file;
+        $this->checkFile();
         $chunkId = $chunkId?:input('chunkId/s');
         $chunkIndex = $chunkIndex?:input('chunkIndex/d');
         $chunkCount = $chunkCount?:input('chunkCount/d');
