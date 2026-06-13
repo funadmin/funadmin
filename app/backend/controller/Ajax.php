@@ -75,7 +75,15 @@ class Ajax extends Backend
         header('Content-Type: application/javascript');
         $name = $this->request->get("controllername");
         $name = strtolower(parse_name($name, 1));
+        // 安全检查: 过滤非法字符，只允许字母、数字、下划线、点
+        if(!empty($name) && !preg_match('/^[a-zA-Z0-9_.]+$/', $name)){
+            $name = '';
+        }
         $app = $this->request->get("app");
+        // 安全检查: $app 只允许字母、数字、下划线
+        if(!empty($app) && !preg_match('/^[a-zA-Z0-9_]+$/', $app)){
+            $app = '';
+        }
         return jsonp($this->loadlang($name, $app))->code(200)->options([
             'var_jsonp_handler' => 'callback',
             'default_jsonp_handler' => 'jsonpReturn',

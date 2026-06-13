@@ -1,4 +1,5 @@
 /app/mocms
+/app/cms
 /app/curd
 /app/test
 /app/demo
@@ -18,3 +19,4 @@
 /public/static/storage
 /.trae
 /.cursor
+/.qoder

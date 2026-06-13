@@ -1,7 +1,3 @@
 *.js linguist-language=php
 *.css linguist-language=php
-<<<<<<< HEAD
 *.html linguist-language=php
-=======
-*.html linguist-language=php
->>>>>>> 8f2e737c7b356d47fc1f979eb488a24e224e8faf

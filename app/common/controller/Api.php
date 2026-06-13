@@ -136,8 +136,17 @@ class Api extends BaseController
     protected function loadlang($name,$app)
     {
         $lang = cookie(config('lang.cookie_var'));
-        if(!empty($lang) && Str::contains($lang,'../')){
+        // 安全检查: 防止路径遍历
+        if(!empty($lang) && !preg_match('/^[a-zA-Z0-9_-]+$/', $lang)){
             return false;
+        }
+        // 安全检查: $name 只允许字母、数字、下划线、点
+        if(!empty($name) && !preg_match('/^[a-zA-Z0-9_.]+$/', $name)){
+            $name = '';
+        }
+        // 安全检查: $app 只允许字母、数字、下划线，防止路径遍历
+        if(!empty($app) && !preg_match('/^[a-zA-Z0-9_]+$/', $app)){
+            $app = '';
         }
         if($app){
             $res =  Lang::load([

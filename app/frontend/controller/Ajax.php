@@ -83,7 +83,15 @@ class Ajax extends Frontend
         header('Content-Type: application/javascript');
         $controllername = $this->request->get("controllername");
         $controllername = strtolower(parse_name($controllername,1));
+        // 安全检查: 过滤非法字符，只允许字母、数字、下划线、点
+        if(!empty($controllername) && !preg_match('/^[a-zA-Z0-9_.]+$/', $controllername)){
+            $controllername = '';
+        }
         $app = $this->request->param('app');
+        // 安全检查: $app 只允许字母、数字、下划线
+        if(!empty($app) && !preg_match('/^[a-zA-Z0-9_]+$/', $app)){
+            $app = '';
+        }
         //默认只加载了控制器对应的语言名，你还根据控制器名来加载额外的语言包
         $this->loadlang($controllername,$app);
         return jsonp(Lang::get())->code(200)->options([
