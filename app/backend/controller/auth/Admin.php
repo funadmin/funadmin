@@ -17,7 +17,7 @@ use app\common\controller\Backend;
 use fun\helper\SignHelper;
 use fun\helper\StringHelper;
 use fun\helper\TreeHelper;
-use think\facade\Request;
+use think\facade\Cache;
 use think\facade\Session;
 use think\facade\View;
 use app\backend\model\Admin as AdminModel;
@@ -54,26 +54,22 @@ class Admin extends Backend
             }
 
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            if(\session('admin.id')!==1){
-                $model = new AuthGroupModel();
-                $group = session('admin.group_id');
-                $childsIds = $model->getAllIdsBypid($group);
-                $groupids = explode(',',$childsIds.','.$group);
-                $groupids = array_filter($groupids);
-                $ids = [];
-                foreach ($groupids as $id) {
-                    $id = intval($id);
-                    $val = $this->modelClass
-                        ->where($where)->whereFindInSet('group_id',$id)->column('id');
-                    if(!empty($val)) array_push($ids,implode(',',$val));
+            $auth = AuthService::instance();
+            if (!$auth->isSuperAdmin()) {
+                $groupIds = $auth->manageableGroupIds();
+                $adminIds = [];
+                foreach ($groupIds as $groupId) {
+                    $adminIds = array_merge($adminIds, $this->modelClass
+                        ->where($where)->whereFindInSet('group_id', $groupId)->column('id'));
                 }
-                $count = $this->modelClass->where($where)->where('id','in',$ids)->order($sort)->count();
-                $list =$this->modelClass->where($where)->where('id','in',$ids)->order($sort)->page($this->page  ,$this->pageSize)->select()->toArray();
-            }else{
-                $count = $this->modelClass
-                    ->where($where)->order($sort)->count();
-                $list =$this->modelClass
-                    ->where($where)->order($sort)->page($this->page  ,$this->pageSize)->select()->toArray();
+                $adminIds = array_values(array_unique(array_map('intval', $adminIds)));
+                $count = $this->modelClass->where($where)->whereIn('id', $adminIds ?: [0])->count();
+                $list = $this->modelClass->where($where)->whereIn('id', $adminIds ?: [0])
+                    ->order($sort)->page($this->page, $this->pageSize)->select()->toArray();
+            } else {
+                $count = $this->modelClass->where($where)->count();
+                $list = $this->modelClass->where($where)->order($sort)
+                    ->page($this->page, $this->pageSize)->select()->toArray();
             }
 
             foreach ($list as $key=>$item){
@@ -112,9 +108,18 @@ class Admin extends Backend
                 ],
             ];
             $this->validate($post, $rule);
+            $auth = AuthService::instance();
+            if (!$auth->canAssignGroups($post['group_id'] ?? '')) {
+                $this->error(lang('Permission denied'));
+            }
+            $post = array_intersect_key($post, array_flip([
+                'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
+            ]));
+            $post['group_id'] = $this->normalizeGroupValue($post['group_id']);
+            $post['status'] = 1;
             $post['password'] = StringHelper::filterWords($post['password']);
-            if(!$post['password']){
-                $post['password']='123456';
+            if (mb_strlen($post['password']) < 8) {
+                $this->error(lang('Password must be at least 8 characters'));
             }
             $post['password'] = SignHelper::password($post['password']);
             //添加
@@ -147,37 +152,31 @@ class Admin extends Backend
      */
     public function upme()
     {
-        $id = $this->request->param('id');
-        if ($this->request->isPost()) {
-            $post = $this->request->post();
-            if(session('admin.id'))
-                if($post['password']){
-                    $post['password'] = password($post['password']);
-                }else{
-                    unset($post['password']);
-                }
-            $list =  $this->modelClass->find($id);
-            $result = $list->save($post);
-            if ($result) {
-                $this->success(lang('operation success'));
-            } else {
-                $this->error(lang('operation failed'));
-            }
+        $id = (int) session('admin.id');
+        $list = $this->modelClass->find($id);
+        if (!$list) {
+            $this->error(lang('Invalid data'));
         }
-        $list =  $this->modelClass->find($id)->toArray();
-        $list['password'] = '';
-        $auth_group = AuthGroupModel::where('status', 1)->select();
-        if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
-        $view = [
-            'formData'  =>$list,
-            'authGroup' => $auth_group,
-            'title' => lang('Add'),
+        if ($this->request->isPost()) {
+            $post = array_intersect_key($this->request->post(), array_flip([
+                'realname', 'avatar', 'email', 'mobile',
+            ]));
+            $this->validate($post, ['realname' => 'require']);
+            $result = $list->save($post);
+            $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
+        }
+        $formData = $list->toArray();
+        $formData['password'] = '';
+        $formData['group_id'] = $formData['group_id'] ? explode(',', $formData['group_id']) : [];
+        View::assign([
+            'formData' => $formData,
+            'authGroup' => AuthGroupModel::where('status', 1)->whereIn('id', $formData['group_id'])->select(),
+            'title' => lang('Edit'),
             'type' => $this->request->get('type'),
-        ];
-        View::assign($view);
+        ]);
         return view('add');
-
     }
+
     /**
      * @NodeAnnotation (title="编辑")
      * @return \think\response\View
@@ -187,38 +186,45 @@ class Admin extends Backend
      */
     public function edit()
     {
-        $id = $this->request->param('id');
+        $id = (int) $this->request->param('id');
+        $auth = AuthService::instance();
+        $list = $this->modelClass->find($id);
+        if ($id === (int) config('funadmin.superAdminId') || !$auth->canManageAdmin($list)) {
+            $this->error(lang('Permission denied'));
+        }
         if ($this->request->isPost()) {
             $post = $this->request->post();
-            $rule = ['group_id'=>'require','username'=>'require','realname'=>'require'];
-            $this->validate($post, $rule);
-            if(session('admin.id'))
-            if($post['password']){
-                $post['password'] = password($post['password']);
-            }else{
+            $this->validate($post, ['group_id' => 'require', 'username' => 'require', 'realname' => 'require']);
+            if (!$auth->canAssignGroups($post['group_id'] ?? '')) {
+                $this->error(lang('Permission denied'));
+            }
+            $post = array_intersect_key($post, array_flip([
+                'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
+            ]));
+            $post['group_id'] = $this->normalizeGroupValue($post['group_id']);
+            if (!empty($post['password'])) {
+                if (mb_strlen((string) $post['password']) < 8) {
+                    $this->error(lang('Password must be at least 8 characters'));
+                }
+                $post['password'] = SignHelper::password($post['password']);
+                $post['token'] = SignHelper::salt(20);
+            } else {
                 unset($post['password']);
             }
-            $list =  $this->modelClass->find($id);
             $result = $list->save($post);
-            if ($result) {
-                $this->success(lang('operation success'));
-            } else {
-                $this->error(lang('operation failed'));
-            }
+            Cache::clear();
+            $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
-        $list =  $this->modelClass->find($id)->toArray();
-        if($list['group_id']) $list['group_id'] = explode(',',$list['group_id']);
-        $list['password'] = '';
-        $authGroup = $this->getAuthGroup();
-        $view = [
-            'formData'  =>$list,
-            'authGroup' => $authGroup,
-            'title' => lang('Add'),
+        $formData = $list->toArray();
+        $formData['group_id'] = $formData['group_id'] ? explode(',', $formData['group_id']) : [];
+        $formData['password'] = '';
+        View::assign([
+            'formData' => $formData,
+            'authGroup' => $this->getAuthGroup(),
+            'title' => lang('Edit'),
             'type' => $this->request->get('type'),
-        ];
-        View::assign($view);
+        ]);
         return view('add');
-
     }
 
     /**
@@ -226,21 +232,25 @@ class Admin extends Backend
      */
     public function modify()
     {
-        $id = $this->request->param('id');
-        $field = $this->request->param('field');
-        $value = $this->request->param('value');
-        if($id){
-            if($id==1){
-                $this->error(lang('SupperAdmin can not modify'));
-            }
-            $model = $this->findModel($id);
-            $model->$field = $value;
-            $save = $model->save();
-            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-        }else{
+        if (!$this->request->isPost()) {
             $this->error(lang('Invalid data'));
         }
-
+        $id = (int) $this->request->param('id');
+        $field = (string) $this->request->param('field');
+        if ($field !== 'status' || $id === (int) config('funadmin.superAdminId')) {
+            $this->error(lang('Permission denied'));
+        }
+        $model = $this->modelClass->find($id);
+        if (!AuthService::instance()->canManageAdmin($model)) {
+            $this->error(lang('Permission denied'));
+        }
+        $model->status = (int) ((bool) $this->request->param('value'));
+        if ($model->status === 0) {
+            $model->token = SignHelper::salt(20);
+        }
+        $save = $model->save();
+        Cache::clear();
+        $save ? $this->success(lang('Modify success')) : $this->error(lang('Modify Failed'));
     }
 
     /**
@@ -252,26 +262,33 @@ class Admin extends Backend
      */
     public function delete()
     {
-        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-        if (!empty($ids)) {
-            if($ids==1){
-                $this->error(lang('SupperAdmin can not delete'));
-            }
-            if(is_array($ids) && in_array(1,$ids)){
-                $this->error(lang('SupperAdmin can not delete'));
-            }
-            $list = $this->modelClass->where('id','in', $ids)->select();
-            try {
-                foreach ($list as $k=>$v){
-                    $v->force()->delete();
-                }
-            } catch (\Exception $e) {
-                $this->error(lang($e->getMessage()));
-            }
-            $this->success(lang('operation success'));
-        } else {
-            $this->error(lang('Ids can not empty'));
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
         }
+        $ids = $this->normalizeIds($this->request->param('ids', $this->request->param('id')));
+        if (!$ids || in_array((int) config('funadmin.superAdminId'), $ids, true)
+            || in_array((int) session('admin.id'), $ids, true)) {
+            $this->error(lang('Permission denied'));
+        }
+        $list = $this->modelClass->whereIn('id', $ids)->select();
+        if (count($list) !== count($ids)) {
+            $this->error(lang('Invalid data'));
+        }
+        $auth = AuthService::instance();
+        foreach ($list as $admin) {
+            if (!$auth->canManageAdmin($admin)) {
+                $this->error(lang('Permission denied'));
+            }
+        }
+        try {
+            foreach ($list as $admin) {
+                $admin->force()->delete();
+            }
+        } catch (\Exception $e) {
+            $this->error(lang($e->getMessage()));
+        }
+        Cache::clear();
+        $this->success(lang('operation success'));
     }
 
     /**
@@ -283,26 +300,39 @@ class Admin extends Backend
      */
     public function password()
     {
-        $id = input('id');
+        $requestedId = (int) input('id', 0);
+        $selfService = $requestedId === 0 || $requestedId === (int) session('admin.id');
+        $targetId = $selfService ? (int) session('admin.id') : $requestedId;
+        $one = $this->modelClass->find($targetId);
+        $auth = AuthService::instance();
+        if (!$one || (!$selfService
+            && ($targetId === (int) config('funadmin.superAdminId') || !$auth->canManageAdmin($one)))) {
+            $this->error(lang('Permission denied'));
+        }
         if ($this->request->isAjax()) {
-            $oldpassword = $this->request->post('oldpassword');
-            $password = $this->request->post('password', '',['strip_tags','trim','htmlspecialchars']);
-            $one = $this->modelClass->find($id?:session('admin.id'));
-            if (!$id && !password_verify($oldpassword, $one['password'])) {
+            $oldpassword = (string) $this->request->post('oldpassword', '');
+            $password = (string) $this->request->post('password', '', ['strip_tags', 'trim']);
+            $this->validate($this->request->post(), ['oldpassword' => 'require', 'password' => 'require']);
+            if (mb_strlen($password) < 8) {
+                $this->error(lang('Password must be at least 8 characters'));
+            }
+            if (!password_verify($oldpassword, $one['password'])) {
                 $this->error(lang('Old Password Error'));
-            }else if($oldpassword == $password){
+            } elseif (password_verify($password, $one['password'])) {
                 $this->error(lang('Password Cannot the Same'));
             }
             try {
-                $post['password'] = SignHelper::password($password);
-                $one->save($post);
+                $one->save([
+                    'password' => SignHelper::password($password),
+                    'token' => SignHelper::salt(20),
+                ]);
             } catch (\Exception $e) {
                 $this->error($e->getMessage());
             }
+            Cache::clear();
             $this->success(lang('operation success'));
         }
-        $view = ['id'=>$id];
-        return view('password',$view);
+        return view('password', ['id' => $selfService ? 0 : $targetId]);
     }
 
     /**
@@ -313,50 +343,54 @@ class Admin extends Backend
     {
         if (!Request::isAjax()) {
             return View::fetch('index/password');
-        } else {
-            $post = Request::post();
-            $admin = Admin::find($post['id']);
-            $oldpassword = Request::post('oldpassword', '123456', 'fun\helper\StringHelper::filterWords');
-            if (!password_verify($oldpassword, $admin['password'])) {
-                $this->error(lang('Origin password error'));
-            }
-            $password = Request::post('password', '123456', 'fun\helper\StringHelper::filterWords');
-            try {
-                $post['password'] = SignHelper::password($password);
-                if (Session::get('admin.id') == 1) {
-                    Admin::update($post);
-                } elseif (Session::get('admin.id') == $post['id']) {
-                    Admin::update($post);
-                } else {
-                    $this->error(lang('Permission denied'));
-                }
-
-            } catch (\Exception $e) {
-                $this->error($e->getMessage());
-            }
-            $this->success(lang('operation success'));
-
         }
+        $admin = AdminModel::find((int) Session::get('admin.id'));
+        $oldpassword = (string) Request::post('oldpassword', '');
+        $password = (string) Request::post('password', '');
+        $this->validate(Request::post(), ['oldpassword' => 'require', 'password' => 'require']);
+        if (mb_strlen($password) < 8) {
+            $this->error(lang('Password must be at least 8 characters'));
+        }
+        if (!$admin || !password_verify($oldpassword, $admin['password'])) {
+            $this->error(lang('Origin password error'));
+        }
+        if (password_verify($password, $admin['password'])) {
+            $this->error(lang('Password Cannot the Same'));
+        }
+        $admin->save([
+            'password' => SignHelper::password($password),
+            'token' => SignHelper::salt(20),
+        ]);
+        Cache::clear();
+        $this->success(lang('operation success'));
     }
 
-    protected function getAuthGroup(){
-        $where = [];
-        $model = new  AuthGroupModel();
-        $authGroup = AuthGroupModel::where('status',1)->where($where)->select()->toArray();
-        $childsIds = [];
-        if(session('admin.id')!==1){
-            $childsIds = $model->getAllIdsBypid(session('admin.group_id'));
-            $where[] = ['id','in',$childsIds];
-            $authGroup = $model->where('status',1)->where($where)->select()->toArray();
-            foreach ($authGroup as $key=>$item) {
-                $parent = $model->where('id',$item['pid'])->where('id','in',$childsIds)->find();
-                if(empty($parent)){
-                    $authGroup[$key]['pid']=0;
-                }
+    protected function normalizeGroupValue($groupIds): string
+    {
+        return implode(',', $this->normalizeIds($groupIds));
+    }
+
+    protected function normalizeIds($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = explode(',', (string) $ids);
+        }
+        return array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0)));
+    }
+
+    protected function getAuthGroup()
+    {
+        $ids = AuthService::instance()->manageableGroupIds();
+        if (!$ids) {
+            return [];
+        }
+        $authGroup = AuthGroupModel::where('status', 1)->whereIn('id', $ids)->select()->toArray();
+        foreach ($authGroup as $key => $item) {
+            if (!in_array((int) $item['pid'], $ids, true)) {
+                $authGroup[$key]['pid'] = 0;
             }
         }
-
-        $authGroup = TreeHelper::cateTree($authGroup,'title');
-        return $authGroup;
+        return TreeHelper::cateTree($authGroup, 'title');
     }
+
 }

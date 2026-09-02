@@ -247,6 +247,7 @@ define(['table','upload','form'], function (Table,Upload,Form) {
             }
             layui.upload.render({
                 elem: '#uploadfile'
+                , headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')}
                 , url: Fun.url(Upload.init.requests.upload)
                 , multiple: multiple
                 , data: {group_id:group_id,path:upvalue.value.path}

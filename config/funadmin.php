@@ -20,6 +20,22 @@ return [
 
     'public_ajax_url'=>['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'],
 
+    // 所有后台请求默认按权限节点校验；以下仅为登录后所有管理员共享的基础入口。
+    'auth_login_only_routes'=>[
+        'index/index', 'index/console', 'index/logout', 'index/enlang',
+        'ajax/refreshmenu', 'ajax/lang', 'ajax/getattach',
+        'auth.admin/upme', 'auth.admin/base',
+        'member.member/getcitys', 'member.member/getgroup',
+        'addon/logout',
+    ],
+    // 全局配置和缓存只允许超级管理员操作。
+    'auth_super_only_routes'=>['ajax/clearcache', 'ajax/setconfig', 'ajax/getlist'],
+    // 复用已有权限节点，避免同一能力出现多个授权口径。
+    'auth_route_aliases'=>[
+        'addon/localinstall' => 'addon/install',
+        'addon/uninstall' => 'addon/install',
+    ],
+
     'sys_app'=>['backend','api','frontend','common','install'],
 
     'curd_deny_app'=>['common','install'],

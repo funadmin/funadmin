@@ -23,9 +23,9 @@ use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Lang;
 use app\backend\middleware\CheckRole;
+use app\backend\middleware\CheckCsrf;
 use app\backend\middleware\ViewNode;
 use app\backend\middleware\SystemLog;
-use think\helper\Str;
 
 class Backend extends BaseController
 {
@@ -35,9 +35,10 @@ class Backend extends BaseController
      * 无需登录
      * @var array
      */
-    protected array $noNeedLogin = ['enlang','verify'];
+    protected array $noNeedLogin = [];
     protected array $onlyNeedLogin = [];
     protected $middleware = [
+        CheckCsrf::class,
         ViewNode::class,
         SystemLog::class
     ];

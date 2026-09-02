@@ -902,6 +902,10 @@
                                                 xhr = new XMLHttpRequest();
                                                 xhr.withCredentials = false;
                                                 xhr.open('POST', upload_url);
+                                                var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                                                if (csrfMeta) {
+                                                    xhr.setRequestHeader('X-CSRF-TOKEN', csrfMeta.content);
+                                                }
                                                 xhr.onload = function () {
                                                     var json;
                                                     if (xhr.status != 200) {

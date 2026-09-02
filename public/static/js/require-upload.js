@@ -100,6 +100,7 @@ define([ 'croppers'], function(croppers) {
                             number:uploadNum,
                             multiple: uploadmultiple,
                             auto:false,
+                            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')},
                             url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload) + '?path=' + uploadPath+'&save='+save+'&group_id='+group,
                             before: function(obj) {
                                 if(chunk==undefined || chunk ==false || chunk == 0){
@@ -303,6 +304,7 @@ define([ 'croppers'], function(croppers) {
                             saveH: saveH, //保存高度
                             mark: mark ,//选取比例
                             area: area, //弹窗宽度
+                            headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')},
                             url: Fun.url(dataOptions.url?dataOptions.url:Upload.init.requests.upload) + '?path=' + uploadPath //图片上传接口返回和（layui 的upload 模块）返回的JOSN一样
                             ,
                             done:success=== undefined ? function(res) {

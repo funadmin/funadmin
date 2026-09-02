@@ -20,9 +20,11 @@ return [
     // cookie 有效域名
     'domain'    => '',
     //  cookie 启用安全传输
-    'secure'    => false,
+    'secure'    => (bool) env('cookie.secure', !env('app.debug', false)),
     // httponly设置
-    'httponly'  => false,
+    'httponly'  => true,
+    // 防止跨站请求携带后台会话
+    'samesite'  => 'lax',
     // 是否使用 setcookie
     'setcookie' => true,
 ];

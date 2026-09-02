@@ -57,7 +57,9 @@
                                     {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>1],'id,ltitle',$formData['group_id']??'')}
                                     {/if}
                                     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
+                                    {if request()->action()=='edit'}
                                     {:form_input('password','password',['verify'=>'','tips'=>'If you do not fill in, you will not change the password'])}
+                                    {/if}
                                     {:form_upload('avatar',['mime'=>'images'],$formData['avatar']??'')}
                                     {:form_input('email','text',['verify'=>'email','tips'=>'For password retrieval please fill in carefully'] )}
                                     {:form_input('mobile','text',['verify'=>'mobile','tips'=>'mobile'] )}

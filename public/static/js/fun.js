@@ -10,6 +10,13 @@
 
 define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
     var $ = layui.jquery, layer = layui.layer, element = layui.element;layer = layer || parent.layer;
+    $.ajaxPrefilter(function (options, originalOptions, xhr) {
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var requestUrl = new URL(options.url, window.location.href);
+        if (csrfMeta && requestUrl.origin === window.location.origin) {
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfMeta.content);
+        }
+    });
     layui.layer.config({skin: 'fun-layer-class'});Toastr = parent.Toastr || Toastr;
     var Fun = {
         url: function (url) {
@@ -104,6 +111,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                         var token = xhr.getResponseHeader('__token__');
                         if (token) {
                             $("input[name='__token__']").val(token);
+                            $('meta[name="csrf-token"]').attr('content', token);
                         }
                         ex(this);
                     });
@@ -113,6 +121,7 @@ define(["lang",'toastr','dayjs'], function (Lang,Toastr,Dayjs) {
                     var token = xhr.getResponseHeader('__token__');
                     if (token) {
                         $("input[name='__token__']").val(token);
+                        $('meta[name="csrf-token"]').attr('content', token);
                     }
                 }
             });

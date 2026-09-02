@@ -13,8 +13,6 @@
 
 namespace app\backend\controller;
 
-use app\backend\middleware\SystemLog;
-use app\backend\middleware\ViewNode;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
@@ -29,7 +27,6 @@ use think\facade\Cache;
 class Ajax extends Backend
 {
 
-    protected array $onlyNeedLogin = ['uploads'];
     public function __construct(App $app)
     {
         $this->modelClass = new AttachModel();
@@ -96,8 +93,12 @@ class Ajax extends Backend
      */
     public function getList()
     {
-        $path = $this->request->param('path', 'uploads');
-        $paths = app()->getRootPath() . 'public/storage/' . $path;
+        $path = trim((string) $this->request->param('path', 'uploads'), '/\\');
+        $storageRoot = realpath(app()->getRootPath() . 'public/storage');
+        $paths = $storageRoot ? realpath($storageRoot . DIRECTORY_SEPARATOR . $path) : false;
+        if (!$storageRoot || !$paths || ($paths !== $storageRoot && !str_starts_with($paths, $storageRoot . DIRECTORY_SEPARATOR))) {
+            $this->error(lang('Invalid data'));
+        }
         $type = $this->request->param('type', 'image');
         $list = FileHelper::getFileList($paths, $type);
         $post = ['state' => 'SUCCESS', 'start' => 0, 'total' => count($list), 'list' => []];
@@ -126,12 +127,14 @@ class Ajax extends Backend
             if(input('original_name')){
                 $where[] =['original_name|id','like','%'.input('original_name').'%'];
             }
+            if (!AuthService::instance()->isSuperAdmin()) {
+                $where[] = ['admin_id', '=', (int) session('admin.id')];
+            }
             $count = $this->modelClass
                 ->where($where)
                 ->order($sort)
                 ->count();
             $list = $this->modelClass->where($where)
-                ->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
                 ->select();
@@ -144,6 +147,9 @@ class Ajax extends Backend
     */
     public function clearcache()
     {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $type = $this->request->param('type');
         $frontpath = app()->getRootPath().'runtime'.DIRECTORY_SEPARATOR.'frontend'.DIRECTORY_SEPARATOR;
         try {
@@ -168,7 +174,10 @@ class Ajax extends Backend
 
     public function setConfig()
     {
-        $config = Config::where('code',input('code'))->find();
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
+        $config = Config::where('code', input('code'))->find();
         $result = $config?$config->save(['value'=>input('value')]):'';
         Cache::clear();
         $result?$this->success(lang('operation success')):$this->error(lang('operation failed'));

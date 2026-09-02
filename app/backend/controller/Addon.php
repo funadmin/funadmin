@@ -35,7 +35,7 @@ use think\facade\Cookie;
 class Addon extends Backend
 {
 
-    protected array $noNeedLogin = ['enlang','verify','logout'];
+    protected array $noNeedLogin = [];
     /**
      * @var AddonService 
      */
@@ -227,6 +227,9 @@ class Addon extends Backend
      */
     public function install(string $name='',string $type='')
     {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         set_time_limit(0);
         $name = input("name")??$name;
         $plugins_id = input("plugins_id",0);
@@ -255,6 +258,9 @@ class Addon extends Backend
      */
     public function localinstall()
     {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         if($this->request->isAjax()){
             set_time_limit(0);
             $urls = parse_url(input('url'));
@@ -282,6 +288,9 @@ class Addon extends Backend
      */
     public function uninstall()
     {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         set_time_limit(0);
         $name = input("name");
         try {
@@ -300,6 +309,9 @@ class Addon extends Backend
      */
     public function modify()
     {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $name = input("name");
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
             $this->error(lang('addon name is not right'));

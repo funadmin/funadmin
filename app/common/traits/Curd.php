@@ -127,6 +127,9 @@ trait Curd
     {
         if (request()->isPost()) {
             $post = request()->post();
+            if ($this->dataLimit && $this->dataLimitField) {
+                $post[$this->dataLimitField] = session('admin.id');
+            }
             foreach ($post as $k=>$v){
                 if(is_array($v)){
                     $post[$k] = implode(',',$v);
@@ -228,15 +231,20 @@ trait Curd
      */
     public function delete()
     {
+        if (!request()->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $ids =  request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
-        if($ids=='all'){
-            $list = $this->modelClass->withTrashed(true)->select();
-        }else{
-            if(is_string($ids)){
-                $ids = strpos($ids,',')!==false?explode(',',$ids):[$ids];
+        $query = $this->modelClass->withTrashed(true);
+        $this->applyDataLimit($query);
+        if ($ids == 'all') {
+            $list = $query->select();
+        } else {
+            if (is_string($ids)) {
+                $ids = strpos($ids, ',') !== false ? explode(',', $ids) : [$ids];
             }
-            $list = $this->modelClass->withTrashed(true)->where($this->modelClass->getPk(),'in', $ids)->select();
+            $list = $query->whereIn($this->modelClass->getPk(), $ids)->select();
         }
         if(empty($list))$this->error('Data is not exist');
         try {
@@ -253,9 +261,14 @@ trait Curd
      */
     public function destroy()
     {
+        if (!request()->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
-        $list = $this->modelClass->whereIn($this->modelClass->getPk(), $ids)->select();
+        $query = $this->modelClass->whereIn($this->modelClass->getPk(), $ids);
+        $this->applyDataLimit($query);
+        $list = $query->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
@@ -273,6 +286,9 @@ trait Curd
      */
     public function sort($id)
     {
+        if (!request()->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $model = $this->findModel($id);
         if(empty($model))$this->error('Data is not exist');
         $sort = request()->param('sort');
@@ -284,6 +300,9 @@ trait Curd
      * @NodeAnnotation(title="modify")
      */
     public function modify(){
+        if (!request()->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $id = input($this->modelClass->getPk()) ?: input('id');
         $field = input('field');
         $value = input('value');
@@ -343,9 +362,14 @@ trait Curd
      * @return bool
      */
     public function restore(){
+        if (!request()->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
         $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
         if(empty($ids)) $this->error('id is not exist');
-        $list = $this->modelClass->onlyTrashed()->whereIn($this->modelClass->getPk(), $ids)->select();
+        $query = $this->modelClass->onlyTrashed()->whereIn($this->modelClass->getPk(), $ids);
+        $this->applyDataLimit($query);
+        $list = $query->select();
         if(empty($list)) $this->error('Data is not exist');
         try {
             foreach ($list as $k=>$v){
@@ -471,10 +495,27 @@ trait Curd
      */
     protected function findModel($id)
     {
-        if (empty($id) || empty($model = $this->modelClass->where($this->modelClass->getPk(),$id)->find())) {
+        $query = $this->modelClass->where($this->modelClass->getPk(), $id);
+        $this->applyDataLimit($query);
+        if (empty($id) || empty($model = $query->find())) {
             return '';
         }
         return $model;
+    }
+
+    /**
+     * 对列表和按主键写操作复用同一数据范围，防止通过构造 ID 绕过列表限制。
+     */
+    protected function applyDataLimit($query)
+    {
+        if (!$this->dataLimit || !$this->dataLimitField) {
+            return $query;
+        }
+        if (is_bool($this->dataLimit)) {
+            return $query->where($this->dataLimitField, session('admin.id'));
+        }
+        $ids = is_array($this->dataLimit) ? $this->dataLimit : explode(',', (string) $this->dataLimit);
+        return $query->whereIn($this->dataLimitField, $ids);
     }
 
     /**

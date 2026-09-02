@@ -6,7 +6,7 @@ use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use fun\helper\TreeHelper;
 use think\App;
-use think\facade\Session;
+use think\facade\Cache;
 use think\facade\View;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
@@ -38,10 +38,12 @@ class AuthGroup extends Backend
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort, $where) = $this->buildParames();
-            if(session('admin.id')!==1){
-                $pid = session('admin.group_id');
-                $ids = $this->modelClass->getAllIdsBypid($pid);
-                $where[] = ['id','in',$ids.','.$pid];
+            if (!AuthService::instance()->isSuperAdmin()) {
+                $ids = array_values(array_unique(array_merge(
+                    AuthService::instance()->currentGroupIds(),
+                    AuthService::instance()->manageableGroupIds()
+                )));
+                $where[] = ['id', 'in', $ids ?: [0]];
             }
             $count = $this->modelClass
                 ->where($where)
@@ -73,46 +75,29 @@ class AuthGroup extends Backend
      */
     public function add()
     {
+        $auth = AuthService::instance();
         if ($this->request->isPost()) {
             $post = $this->request->post();
-            $rule = [
-                'title|用户组名' => [
-                    'require' => 'require',
-                    'max'     => '100',
-                    'unique'  => 'auth_group',
-                ]
-            ];
-            $this->validate($post, $rule);
-            $post['status'] = 1;
-            $result =  $this->modelClass->save($post);
-            if ($result) {
-                $this->success(lang('operation success'));
-            } else {
-                $this->error(lang('operation failed'));
+            $this->validate($post, [
+                'title|用户组名' => ['require' => 'require', 'max' => '100', 'unique' => 'auth_group'],
+                'pid|上级用户组' => 'require',
+            ]);
+            $pid = (int) ($post['pid'] ?? 0);
+            if (!$auth->canUseParentGroup($pid)) {
+                $this->error(lang('Permission denied'));
             }
-
-        } else {
-            $where = [];
-            if(session('admin.id')!==1){
-                $pid = session('admin.group_id');
-                $ids = $this->modelClass->getAllIdsBypid($pid);
-                $where[] = ['id','in',$ids.','.$pid];
-            }
-            $authGroup = $this->modelClass->where('status',1)->where($where)->select()->toArray();
-            foreach ($authGroup as $key=>$item) {
-                $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
-                if(empty($parent)){
-                    $authGroup[$key]['pid']=0;
-                }
-            }
-            $authGroup = TreeHelper::cateTree($authGroup);
-            $view = [
-                'formData' => null,
-                'authGroup' => $authGroup,
-            ];
-            View::assign($view);
-            return view();
+            $result = $this->modelClass->save([
+                'title' => (string) $post['title'],
+                'pid' => $pid,
+                'status' => 1,
+                'rules' => '',
+            ]);
+            Cache::clear();
+            $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
+        $authGroup = $this->availableParentGroups();
+        View::assign(['formData' => null, 'authGroup' => $authGroup]);
+        return view();
     }
 
     /**
@@ -124,46 +109,30 @@ class AuthGroup extends Backend
      */
     public function edit()
     {
-        $id = $this->request->get('id');
+        $id = (int) $this->request->param('id');
+        $auth = AuthService::instance();
         $list = $this->modelClass->find($id);
+        if ($id === 1 || !$list || !$auth->canManageGroup($id)) {
+            $this->error(lang('Permission denied'));
+        }
         if ($this->request->isPost()) {
             $post = $this->request->post();
-            if($id==1){
-                $this->error(lang('SupperAdmin cannot edit'));
+            $this->validate($post, ['title' => 'require', 'pid' => 'require']);
+            $pid = (int) ($post['pid'] ?? 0);
+            $forbiddenParents = array_merge([$id], $auth->descendantGroupIds($id));
+            if (!$auth->canUseParentGroup($pid) || in_array($pid, $forbiddenParents, true)) {
+                $this->error(lang('Permission denied'));
             }
-            if($post['pid']==$id){
-                $this->error(lang('Superiors can not be for themselves'));
-            }
-            $res = $list->save($post);
-            if($res){
-                $this->success(lang('operation success'));
-            }else{
-                $this->error(lang('operation failed'));
-            }
-
-        } else {
-            $id = $this->request->param('id');
-            $list = $this->modelClass->find(['id' => $id]);
-            $where = [];
-//            if(session('admin.id')!=1){
-//                $where[] = ['id','in',session('admin.group_id')];
-//            }
-            $authGroup = $this->modelClass->where('status',1)->where($where)
-                ->where('id','<>',$id)->select()->toArray();
-            foreach ($authGroup as $key=>$item) {
-                $parent = $this->modelClass->where($where)->where('id',$item['pid'])->find();
-                if(empty($parent)){
-                    $authGroup[$key]['pid']=0;
-                }
-            }
-            $authGroup = TreeHelper::cateTree($authGroup);
-            $view = [
-                'formData' => $list,
-                'authGroup' => $authGroup,
-            ];
-            View::assign($view);
-            return view('add');
+            $result = $list->save(['title' => (string) $post['title'], 'pid' => $pid]);
+            Cache::clear();
+            $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
+        $authGroup = array_values(array_filter(
+            $this->availableParentGroups(),
+            static fn ($group) => !in_array((int) $group['id'], array_merge([$id], $auth->descendantGroupIds($id)), true)
+        ));
+        View::assign(['formData' => $list, 'authGroup' => $authGroup]);
+        return view('add');
     }
 
     /**
@@ -174,23 +143,22 @@ class AuthGroup extends Backend
      */
     public function modify()
     {
-        if ($this->request->isPost()) {
-            $id = $this->request->param('id');
-            if($id==1){
-                $this->error(lang('SuperGroup Cannot Edit'));
-            }
-            $field = $this->request->param('field');
-            $value = $this->request->param('value');
-            if($id){
-                $list = $this->modelClass->find($id);
-                $list->$field = $value;
-                $save = $list->save();
-                $save ? $this->success(lang('Modify Success')) :  $this->error(lang("Modify Failed"));
-            }else{
-                $this->error(lang('Invalid Data'));
-            }
-
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
         }
+        $id = (int) $this->request->param('id');
+        $field = (string) $this->request->param('field');
+        if ($id === 1 || $field !== 'status' || !AuthService::instance()->canManageGroup($id)) {
+            $this->error(lang('Permission denied'));
+        }
+        $list = $this->modelClass->find($id);
+        if (!$list) {
+            $this->error(lang('Invalid data'));
+        }
+        $list->status = (int) ((bool) $this->request->param('value'));
+        $save = $list->save();
+        Cache::clear();
+        $save ? $this->success(lang('Modify Success')) : $this->error(lang('Modify Failed'));
     }
 
     /**
@@ -202,25 +170,35 @@ class AuthGroup extends Backend
      */
     public function delete()
     {
-        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-        if($ids==1 || is_array($ids) and in_array(1,$ids)){
-            $this->error(lang('SuperGroup Cannot Edit'));
-        }else{
-            $list = $this->modelClass->withTrashed()->where('id','in', $ids)->select();
-            try {
-                foreach ($list as $k=>$v){
-                    $child = $this->modelClass->withTrashed()->where('pid','in', $v['id'])->find();
-                    if($child){
-                       throw new \Exception('there is child group in' .$v['title'] );
-                    }
-                    $v->force()->delete();
-                }
-            } catch (\Exception $e) {
-                $this->error(lang($e->getMessage() ." operation error"));
-            }
-            $this->success(lang('operation success'));
-
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
         }
+        $ids = $this->normalizeIds($this->request->param('ids', $this->request->param('id')));
+        if (!$ids || in_array(1, $ids, true)) {
+            $this->error(lang('Permission denied'));
+        }
+        $auth = AuthService::instance();
+        foreach ($ids as $id) {
+            if (!$auth->canManageGroup($id)) {
+                $this->error(lang('Permission denied'));
+            }
+        }
+        $list = $this->modelClass->withTrashed()->whereIn('id', $ids)->select();
+        if (count($list) !== count($ids)) {
+            $this->error(lang('Invalid data'));
+        }
+        try {
+            foreach ($list as $group) {
+                if ($this->modelClass->withTrashed()->where('pid', $group['id'])->find()) {
+                    throw new \Exception('there is child group in' . $group['title']);
+                }
+                $group->force()->delete();
+            }
+        } catch (\Exception $e) {
+            $this->error(lang($e->getMessage() . ' operation error'));
+        }
+        Cache::clear();
+        $this->success(lang('operation success'));
     }
 
     /**
@@ -232,92 +210,76 @@ class AuthGroup extends Backend
      */
     public function access()
     {
-        $AuthModel = new AuthRule();
-        $group_id = $this->request->get('id');
-        if($this->request->isAjax()){
-            if($this->request->isGet()){
-                $idList = cache('authIdList'.session('admin.id'));
-                if(!$idList){
-                    $idList = $AuthModel->cache('authIdList'.session('admin.id'))
-                        ->where('status',1)->column('id');
-                    sort($idList);
-                }
-                $groupRule = $this->modelClass->where('id', $group_id)
-//                    ->where('status',1)
-                    ->field('id,rules,pid')
-                    ->find();
-                $rules = $groupRule && $groupRule['rules']?$groupRule['rules']:'';
-                if($groupRule->pid > 0 && $groupRule->pid!=1){
-                    $prules =  $this->modelClass->where('id', $groupRule->pid)
-//                        ->where('status',1)
-                        ->field('rules')
-                        ->value('rules');
-                    $admin_rule = $AuthModel->field('id, pid,title,href,module')
-                        ->where('status',1)
-                        ->where('id','in',trim($prules,','))
-                        ->order('sort asc')
-                        ->select()->toArray();
-                }else{
-                    $admin_rule = $AuthModel->field('id, pid,title,href,module')
-                        ->where('status',1)
-                        ->order('sort asc')
-                        ->select()->toArray();
-                }
-                $list = AuthService::instance()->authChecked($admin_rule, $pid = 0, $rules,$group_id);
-                $view = [
-                    'code'=>1,
-                    'msg'=>'ok',
-                    'data'=>[
-                        'list' => $list,
-                        'idList' => $idList,
-                        'group_id' => $group_id,
-                    ]
-                ];
-                return json($view);
-            }else{
-                $rules = $this->request->post('rules');
-                if (empty($rules)) {
-                    $this->error(lang('please choose rule'));
-                }
-                $rules = json_decode($rules,true);
-                $rules = AuthService::instance()->authNormal($rules);
-                $rules = array_column($rules, 'id');
-                $rls = '';
-                $childIndexId='';
-                foreach ($rules as $k=>$v){
-                    $child = AuthRule::where('pid',$v)
-                        ->where('id','in',$rules)->find();
-                    if($child){
-                        $childIndex = AuthRule::where('pid','=',$v)
-                            ->where('href', 'like', '%/index')
-                            ->field('id')
-                            ->find();
-                        $one = AuthRule::where('id','=',$v)
-                            ->field('id,href')
-                            ->find();
-                        if($childIndex && ( in_array($childIndex['id'],$rules)
-                            || trim($one['href'],'/').'/index' == $childIndex['href'])){
-                            $childIndexId .= ($childIndex?$childIndex['id']:'').',';
-                        }
-                    }
-                    $rls.= $v.',';
-                }
-                $rls = $childIndexId.$rls;
-                $list = $this->modelClass->find($group_id);
-                $list->rules = $rls;
-                try {
-                    $list->save();
-                }catch(\Exception $e){
-                    $this->error(lang('rule assign fail'));
-                }
-                $admin = session('admin');
-                $admin['rules'] = $rls;
-                Session::set('admin', $admin);
-                $this->success(lang('rule assign success'),__u('sys.Auth/group'));
+        $groupId = (int) $this->request->param('id');
+        $auth = AuthService::instance();
+        $group = $this->modelClass->find($groupId);
+        if ($groupId === 1 || !$group || !$auth->canManageGroup($groupId)) {
+            $this->error(lang('Permission denied'));
+        }
+
+        if ($this->request->isAjax()) {
+            if ($this->request->isGet()) {
+                $allowedRuleIds = $auth->isSuperAdmin()
+                    ? array_map('intval', AuthRule::where('status', 1)->column('id'))
+                    : array_map('intval', array_filter(explode(',', (string) $auth->getRules(session('admin.group_id')))));
+                $adminRule = AuthRule::field('id,pid,title,href,module')
+                    ->where('status', 1)
+                    ->whereIn('id', $allowedRuleIds ?: [0])
+                    ->order('sort asc')
+                    ->select()->toArray();
+                return json([
+                    'code' => 1,
+                    'msg' => 'ok',
+                    'data' => [
+                        'list' => $auth->authChecked($adminRule, 0, (string) $group['rules'], $groupId),
+                        'idList' => $allowedRuleIds,
+                        'group_id' => $groupId,
+                    ],
+                ]);
             }
+
+            $rules = json_decode((string) $this->request->post('rules', ''), true);
+            if (!is_array($rules)) {
+                $this->error(lang('please choose rule'));
+            }
+            $ruleIds = array_column($auth->authNormal($rules), 'id');
+            $ruleIds = $this->normalizeIds($ruleIds);
+            if (!$ruleIds || !$auth->canAssignRules($ruleIds)) {
+                $this->error(lang('Permission denied'));
+            }
+            $group->rules = implode(',', $ruleIds) . ',';
+            try {
+                $group->save();
+            } catch (\Exception $e) {
+                $this->error(lang('rule assign fail'));
+            }
+            Cache::clear();
+            $this->success(lang('rule assign success'));
         }
         return view();
     }
 
+    protected function availableParentGroups(): array
+    {
+        $ids = AuthService::instance()->manageableGroupIds(true);
+        if (!$ids) {
+            return [];
+        }
+        $groups = $this->modelClass->where('status', 1)->whereIn('id', $ids)->select()->toArray();
+        foreach ($groups as $key => $group) {
+            if (!in_array((int) $group['pid'], $ids, true)) {
+                $groups[$key]['pid'] = 0;
+            }
+        }
+        return TreeHelper::cateTree($groups);
+    }
+
+    protected function normalizeIds($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = explode(',', (string) $ids);
+        }
+        return array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0)));
+    }
 
 }

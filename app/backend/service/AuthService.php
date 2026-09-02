@@ -20,7 +20,6 @@ use app\backend\model\AuthRule;
 use app\common\model\Blacklist;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
-use fun\helper\SignHelper;
 use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Request;
@@ -238,38 +237,56 @@ class AuthService extends AbstractService
         if($this->request->isPost() && $cfg['isDemo'] == 1){
             $this->error(lang('Demo is not allow to change data'));
         }
-        $adminId = session('admin.id');
-        if ($adminId != $cfg['superAdminId']) {
-            if ($this->request->isPost() && $cfg['isDemo'] == 1) $this->error(lang('Demo is not allow to change data'));
-            $map= [
-                ['href','=', $this->requesturl],
-                ['module','=', $this->app]
-            ];
-            $cache_key = 'get-rule-id-by-href-'.md5(json_encode($map));
-            $this->hrefId = db_cache($cache_key,function()use($map){
-                return AuthRule::where($map)->where('status', 1)->value('id');
-            });
-            $hrefTemp = trim($this->requesturl, '/');
-            $menuid = 0;
-            if (Str::endsWith($hrefTemp, '/index')) {
-                $where =[
-                    ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
-                    ['module', '=', $this->app]
-                ];
-                $cache_key = 'get-rule-id-by-href-'.md5(json_encode($where));
-                $menuid = db_cache($cache_key,function()use($where){
-                    return AuthRule::where($where)->where('status', 1)->value('id');
-                });
+        $adminId = (int) session('admin.id');
+        $requestUrl = strtolower(trim($this->requesturl, '/'));
+
+        if (in_array($requestUrl, config('funadmin.auth_login_only_routes', []), true)) {
+            return true;
+        }
+        if (in_array($requestUrl, config('funadmin.auth_super_only_routes', []), true)) {
+            if (!$this->isSuperAdmin()) {
+                $this->error(lang('Permission Denied'));
             }
-            if ($menuid) $this->hrefId = $menuid;
-            //当前管理员权限
-            $rules = $this->getRules(session('admin.group_id'));
-            //用户权限规则id
-            $this->adminRules = array_unique(array_filter(explode(',', $rules)));
-            if ($this->hrefId) {
-                if (!in_array($this->hrefId,  $this->adminRules)) $this->error(lang('Permission Denied'));
+            return true;
+        }
+
+        $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
+        $ruleUrl = $aliases[$requestUrl] ?? $this->requesturl;
+        $map = [
+            ['href', '=', $ruleUrl],
+            ['module', '=', $this->app]
+        ];
+        $cacheKey = 'get-rule-id-by-href-' . md5(json_encode($map));
+        $this->hrefId = db_cache($cacheKey, function () use ($map) {
+            return AuthRule::where($map)->where('status', 1)->value('id');
+        });
+        $hrefTemp = trim($ruleUrl, '/');
+        if (Str::endsWith($hrefTemp, '/index')) {
+            $where = [
+                ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
+                ['module', '=', $this->app]
+            ];
+            $menuCacheKey = 'get-rule-id-by-href-' . md5(json_encode($where));
+            $menuId = db_cache($menuCacheKey, function () use ($where) {
+                return AuthRule::where($where)->where('status', 1)->value('id');
+            });
+            if ($menuId) {
+                $this->hrefId = $menuId;
             }
         }
+
+        // 权限节点漏配属于安全错误，后台接口必须默认拒绝。
+        if (!$this->hrefId) {
+            $this->error(lang('Permission Denied'));
+        }
+        if ($adminId !== (int) $cfg['superAdminId']) {
+            $rules = $this->getRules(session('admin.group_id'));
+            $this->adminRules = array_unique(array_filter(explode(',', (string) $rules)));
+            if (!in_array((string) $this->hrefId, $this->adminRules, true)) {
+                $this->error(lang('Permission Denied'));
+            }
+        }
+        return true;
     }
 
     /**
@@ -480,16 +497,16 @@ class AuthService extends AbstractService
         if (!$admin) {
             return false;
         }
-        //判断是否同一时间同一账号只能在一个地方登录// 要是备份还原的话，这里会有点问题
-        $me = db_cache('admin-user',function()use($admin){
-            return  AdminModel::find($admin['id']);
-        });
-        // if (!$me || $me['token'] != $admin['token']) {
-        if (!$me) {
-            $this->logout();
+        // 每次请求复核账号状态和登录令牌，确保停用、改密和异地登录立即生效。
+        $me = AdminModel::find((int) $admin['id']);
+        if (!$me || (int) $me['status'] !== 1
+            || !hash_equals((string) $me['token'], (string) ($admin['token'] ?? ''))
+            || (string) $me['group_id'] !== (string) ($admin['group_id'] ?? '')) {
+            // 仅销毁当前旧会话，不清理数据库中的新登录令牌。
+            Session::destroy();
+            Cookie:[REDACTED]("rememberMe");
             return false;
         }
-        //}
         //过期
         if (!session('admin.expiretime') || session('admin.expiretime') < time()) {
             $this->logout();
@@ -513,6 +530,11 @@ class AuthService extends AbstractService
      */
     public function checkLogin($username, $password, $rememberMe)
     {
+        $loginKey = 'admin-login-attempt-' . hash('sha256', request()->ip() . '|' . strtolower(trim((string) $username)));
+        $attempts = (int) Cache::get($loginKey, 0);
+        if ($attempts >= 5) {
+            throw new \Exception(lang('Login attempts too frequent'));
+        }
         try {
             $ip = request()->ip();
             if(Blacklist::where('ip',$ip)->where('status',1)->find()){
@@ -524,7 +546,7 @@ class AuthService extends AbstractService
             if (!$admin) {
                 throw new \Exception(lang('Please check username or password'));
             }
-            if ($admin['status'] == 0) {
+            if ((int) $admin['status'] !== 1) {
                 throw new \Exception(lang('Account is disabled'));
             }
             if (!password_verify($password, $admin['password'])) {
@@ -547,8 +569,11 @@ class AuthService extends AbstractService
                 $admin['expiretime'] = config('session.expire') + time();
             }
             unset($admin['password']);
+            Session::regenerate(true);
             Session::set('admin', $admin);
+            Cache::delete($loginKey);
         } catch (\Exception $e) {
+            Cache::set($loginKey, $attempts + 1, 600);
             throw new \Exception($e->getMessage());
         }
         return true;
@@ -565,7 +590,7 @@ class AuthService extends AbstractService
             $admin->token = '';
             $admin->save();
         }
-        Session::clear();
+        Session::destroy();
         Cookie::delete("rememberMe");
         return true;
     }
@@ -576,7 +601,7 @@ class AuthService extends AbstractService
      * @param mixed $groups
      * @return string|null
      */
-    protected function getRules($groups)
+    public function getRules($groups)
     {
         if ($groups && in_array(1, explode(",", $groups))) {
             $rules = db_cache('super-admin-auth-group-rules',function(){
@@ -606,6 +631,134 @@ class AuthService extends AbstractService
         });
         $result = trim($rules . ',' . $norules, ',');
         return $result !== '' ? $result : null;
+    }
+
+    /**
+     * 当前账号是否为配置中的超级管理员。
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (int) session('admin.id') === (int) config('funadmin.superAdminId');
+    }
+
+    /**
+     * 当前管理员所属角色 ID。
+     */
+    public function currentGroupIds(): array
+    {
+        return $this->normalizeIds(session('admin.group_id'));
+    }
+
+    /**
+     * 当前管理员可管理的下级角色；可选包含自己的角色作为新角色父级。
+     */
+    public function manageableGroupIds(bool $includeOwn = false): array
+    {
+        if ($this->isSuperAdmin()) {
+            return array_map('intval', AuthGroupModel::where('status', 1)->column('id'));
+        }
+        $ownIds = $this->currentGroupIds();
+        $groups = AuthGroupModel::where('status', 1)->field('id,pid')->select()->toArray();
+        $children = [];
+        foreach ($groups as $group) {
+            $children[(int) $group['pid']][] = (int) $group['id'];
+        }
+        $result = $includeOwn ? $ownIds : [];
+        $queue = $ownIds;
+        while ($queue) {
+            $parentId = array_shift($queue);
+            foreach ($children[$parentId] ?? [] as $childId) {
+                if (!in_array($childId, $result, true)) {
+                    $result[] = $childId;
+                    $queue[] = $childId;
+                }
+            }
+        }
+        return $result;
+    }
+
+    public function canManageGroup(int $groupId): bool
+    {
+        return $this->isSuperAdmin() || in_array($groupId, $this->manageableGroupIds(), true);
+    }
+
+    public function descendantGroupIds(int $groupId): array
+    {
+        $groups = AuthGroupModel::field('id,pid')->select()->toArray();
+        $children = [];
+        foreach ($groups as $group) {
+            $children[(int) $group['pid']][] = (int) $group['id'];
+        }
+        $result = [];
+        $queue = [$groupId];
+        while ($queue) {
+            $parentId = array_shift($queue);
+            foreach ($children[$parentId] ?? [] as $childId) {
+                if ($childId !== $groupId && !in_array($childId, $result, true)) {
+                    $result[] = $childId;
+                    $queue[] = $childId;
+                }
+            }
+        }
+        return $result;
+    }
+
+    public function canUseParentGroup(int $groupId): bool
+    {
+        if ($groupId <= 0 || !AuthGroupModel::where('id', $groupId)->where('status', 1)->find()) {
+            return false;
+        }
+        return $this->isSuperAdmin() || in_array($groupId, $this->manageableGroupIds(true), true);
+    }
+
+    public function canAssignGroups($groupIds): bool
+    {
+        $groupIds = $this->normalizeIds($groupIds);
+        if (!$groupIds || AuthGroupModel::where('status', 1)->whereIn('id', $groupIds)->count() !== count($groupIds)) {
+            return false;
+        }
+        return $this->isSuperAdmin() || !array_diff($groupIds, $this->manageableGroupIds());
+    }
+
+    public function canManageAdmin($admin, bool $allowSelf = false): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        if ($allowSelf && (int) $admin['id'] === (int) session('admin.id')) {
+            return true;
+        }
+        $groupIds = $this->normalizeIds($admin['group_id'] ?? '');
+        return $groupIds && !array_diff($groupIds, $this->manageableGroupIds());
+    }
+
+    /**
+     * 下级角色只能获得当前管理员自身已有的权限。
+     */
+    public function canAssignRules($ruleIds): bool
+    {
+        $ruleIds = $this->normalizeIds($ruleIds);
+        if (!$ruleIds || AuthRule::where('status', 1)->whereIn('id', $ruleIds)->count() !== count($ruleIds)) {
+            return false;
+        }
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        $ownRuleIds = $this->normalizeIds($this->getRules(session('admin.group_id')));
+        return !array_diff($ruleIds, $ownRuleIds);
+    }
+
+    protected function normalizeIds($ids): array
+    {
+        if (!is_array($ids)) {
+            $ids = explode(',', (string) $ids);
+        }
+        $ids = array_map('intval', $ids);
+        $ids = array_values(array_unique(array_filter($ids, static fn ($id) => $id > 0)));
+        return $ids;
     }
 
     //获取左侧主菜单树形结构

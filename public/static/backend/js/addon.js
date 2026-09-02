@@ -349,6 +349,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
             //指定允许上传的文件类型
             var uploadinit = layui.upload.render({
                 elem: '#importFile'
+                ,headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')}
                 ,url: Fun.url(Upload.init.requests.upload)+'?save=1&path=addon' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
                 ,exts: 'zip|rar|7z' //只允许上传压缩文件
