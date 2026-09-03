@@ -65,13 +65,10 @@ class Controller extends BaseController
         $this->action = $this->action ? call_user_func($filter, $this->action) : 'index';
         // 父类的调用必须放在设置模板路径之后
         $this->_initialize();
-        if ($this->actionIsPublic($this->noNeedLogin)) {
-            return;
-        }
-        if (!session('admin')) {
+        if (!$this->actionIsPublic($this->noNeedLogin) && !session('admin')) {
             $this->error('You must login in first', __u('/'));
         }
-        if (!$this->actionIsPublic($this->noNeedRight)) {
+        if (session('admin') && !$this->actionIsPublic($this->noNeedRight)) {
             AuthService::instance()->roleAccess();
         }
     }

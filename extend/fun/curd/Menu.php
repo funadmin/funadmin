@@ -15,13 +15,10 @@ namespace fun\curd;
 
 use app\backend\model\AuthRule;
 use app\backend\service\CasbinService;
-use app\common\annotation\ControllerAnnotation;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
-use think\helper\Str;
-use Doctrine\Common\Annotations\AnnotationReader;
 use fun\helper\CtrHelper;
 use app\backend\service\AddonService;
 /**

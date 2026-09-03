@@ -20,7 +20,6 @@ use fun\helper\StringHelper;
 use fun\helper\TreeHelper;
 use think\facade\Cache;
 use think\facade\Db;
-use think\facade\Session;
 use think\facade\View;
 use app\backend\model\Admin as AdminModel;
 use think\App;

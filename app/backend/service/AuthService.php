@@ -520,10 +520,8 @@ class AuthService extends AbstractService
             $admin->save();
             $admin = $admin->toArray();
             $admin['group_ids'] = $groupIds;
-            // 保留会话中的旧字段形态，兼容尚未迁移的展示代码与插件。
+            // group_id 仅保留在会话中兼容现有模板展示，数据库不再存储该字段。
             $admin['group_id'] = implode(',', $groupIds);
-            $rules = $this->getRules($groupIds);
-            $admin['rules'] = $rules;
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
             } else {
@@ -727,49 +725,36 @@ class AuthService extends AbstractService
         return $ids;
     }
 
-    //获取左侧主菜单树形结构
+    // 获取左侧菜单树：叶子菜单按 Casbin 权限过滤，目录由可见子菜单反向保留。
     protected function authMenuNode($menu, $pid = 0, $rules = [])
     {
-        $authrules = array_unique(explode(',', $this->getRules($this->currentGroupIds())));
-        $list = array();
-        foreach ($menu as $v) {
-            $href = $v['href'];
+        $authorizedIds = $this->normalizeIds($this->getRules($this->currentGroupIds()));
+        $list = [];
+        foreach ($menu as $item) {
+            if ((int) $item['pid'] !== (int) $pid) {
+                continue;
+            }
+
+            $children = $this->authMenuNode($menu, (int) $item['id'], $authorizedIds);
+            $allowed = $this->isSuperAdmin()
+                || in_array((int) $item['id'], $authorizedIds, true)
+                || $children !== [];
+            if (!$allowed) {
+                continue;
+            }
+
+            $href = (string) $item['href'];
             $url = parse_url($href);
-            if (empty($url['host'])){
-                $v['href'] = "/" . $v['module']. '/' . trim($v['href'], '/');
-                $url = parse_url($v['href']);
-                $path = $url['path'];
-                $query = $url['query']??'';
-                $query = trim($query.'&'.$v['query'],'&');
-                $query = $query?'?'.$query :'';
-                if ($v['menu_status'] == 1) {
-                    $v['href'] = '/'.trim($path, '/').$query;
-                    if (!Str::endsWith($path, '/index')) {
-                        $v['href'] = '/'.trim($path, '/') . '/index'.$query;
-                    }
+            if (empty($url['host'])) {
+                $path = '/' . trim((string) $item['module'] . '/' . trim($href, '/'), '/');
+                $query = trim((string) ($url['query'] ?? '') . '&' . (string) $item['query'], '&');
+                if ((int) $item['menu_status'] === 1 && !Str::endsWith($path, '/index')) {
+                    $path .= '/index';
                 }
+                $item['href'] = $path . ($query !== '' ? '?' . $query : '');
             }
-            if ($v['pid'] == $pid) {
-                if (session('admin.id') != 1) {
-                    if (in_array($v['id'], $authrules)) {
-                        $child = AuthRule::field('href,id')
-                            ->where('status', 1)
-                            ->where('menu_status', 1)
-                            ->where('pid', $v['id'])->find();
-                        //删除下级没有list的菜单权限
-                        if (!$child) {
-                            $v['child'] = [];
-                            $list[] = $v;
-                        } else {
-                            $v['child'] = self::authMenuNode($menu, $v['id']);
-                            $list[] = $v;
-                        }
-                    }
-                } else {
-                    $v['child'] = self::authMenuNode($menu, $v['id']);
-                    $list[] = $v;
-                }
-            }
+            $item['child'] = $children;
+            $list[] = $item;
         }
         return $list;
     }

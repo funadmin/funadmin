@@ -53,7 +53,11 @@ JOIN `fun_auth_rule` r ON FIND_IN_SET(r.`id`, COALESCE(g.`rules`, '')) > 0
 WHERE g.`delete_time` IS NULL
   AND r.`delete_time` IS NULL
   AND r.`status` = 1
-  AND TRIM(BOTH '/' FROM r.`href`) LIKE '%/%';
+  AND TRIM(BOTH '/' FROM r.`href`) LIKE '%/%'
+  AND NOT EXISTS (
+    SELECT 1 FROM `fun_auth_rule` child
+    WHERE child.`pid` = r.`id` AND child.`delete_time` IS NULL
+  );
 
 -- 超级管理员角色绑定兜底；超级管理员请求仍由配置 superAdminId 直接放行。
 INSERT IGNORE INTO `fun_casbin_rule`
@@ -86,4 +90,8 @@ WHERE g.`delete_time` IS NULL
   AND r.`delete_time` IS NULL
   AND r.`status`=1
   AND TRIM(BOTH '/' FROM r.`href`) LIKE '%/%'
+  AND NOT EXISTS (
+    SELECT 1 FROM `fun_auth_rule` child
+    WHERE child.`pid` = r.`id` AND child.`delete_time` IS NULL
+  )
   AND c.`id` IS NULL;

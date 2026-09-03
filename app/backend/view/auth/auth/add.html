@@ -1,6 +1,6 @@
 <style> .layui-iconpicker-body.layui-iconpicker-body-page .hide {display: none;}</style>
 <blockquote class="layui-elem-quote">
-    1、控制器/方法 例如 Wechat/index 或者多级 wechat.sys/index,注意大小写
+    1、权限路由示例：console/index；多级控制器：auth.admin/index。保存后统一转为小写。
 </blockquote>
 <form class="layui-form" lay-filter="form">
     {:form_xmselect('pid',[],['url'=>__u('index'),'verify'=>'',"radio"=>1,'tree'=>true],['id','title'],$formData['pid']??'')}

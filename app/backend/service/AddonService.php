@@ -19,15 +19,8 @@ use app\backend\service\CasbinService;
 use app\common\model\Addon;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
-use fun\helper\SignHelper;
-use think\App;
-use think\db\exception\PDOException;
 use think\Exception;
 use think\facade\Cache;
-use think\facade\Cookie;
-use think\facade\Db;
-use think\facade\Request;
-use think\facade\Session;
 use fun\addons\Service;
 
 class AddonService extends AbstractService

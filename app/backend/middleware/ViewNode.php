@@ -7,7 +7,6 @@ use think\App;
 use think\facade\Lang;
 use think\facade\Request;
 use think\facade\View;
-use think\helper\Str;
 class ViewNode
 {
     public function handle($request, \Closure $next)

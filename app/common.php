@@ -445,6 +445,7 @@ if (!function_exists('getSystemTable')) {
             'auth_group',
             'auth_rule',
             'blacklist',
+            'casbin_rule',
             'builder',
             'builder_dict',
             'builder_dict_value',

@@ -17,7 +17,6 @@ use app\backend\service\casbin\ThinkAdapter;
 use app\common\service\AbstractService;
 use Casbin\Enforcer;
 use think\facade\Db;
-use think\facade\Cache;
 
 /**
  * Casbin 授权统一入口；授权关系只写 fun_casbin_rule。
@@ -25,25 +24,18 @@ use think\facade\Cache;
 class CasbinService extends AbstractService
 {
     private ?Enforcer $enforcer = null;
-    private int $loadedVersion = -1;
 
     public function enforceAdmin(int $adminId, string $obj, string $act, ?string $domain = null): bool
     {
         if ($adminId <= 0) {
             return false;
         }
-        $domain = PermissionResource::domain($domain);
-        foreach ($this->activeGroupIds($this->adminGroupIds($adminId, $domain)) as $groupId) {
-            if ($this->enforcer()->enforce(
-                PermissionResource::role($groupId),
-                $domain,
-                strtolower($obj),
-                strtolower($act)
-            )) {
-                return true;
-            }
-        }
-        return false;
+        return $this->enforcer()->enforce(
+            PermissionResource::subject($adminId),
+            PermissionResource::domain($domain),
+            strtolower($obj),
+            strtolower($act)
+        );
     }
 
     public function adminGroupIds(int $adminId, ?string $domain = null): array
@@ -104,11 +96,21 @@ class CasbinService extends AbstractService
         }
 
         $ruleIds = [];
-        $rules = AuthRule::where('status', 1)->field('id,module,href')->select()->toArray();
+        $rules = AuthRule::where('status', 1)->field('id,pid,module,href')->select()->toArray();
+        $parentById = [];
         foreach ($rules as $rule) {
+            $parentById[(int) $rule['id']] = (int) $rule['pid'];
             $resource = PermissionResource::fromRoute((string) $rule['module'], (string) $rule['href']);
             if ($resource && isset($pairs[$resource['obj'] . "\0" . $resource['act']])) {
                 $ruleIds[] = (int) $rule['id'];
+            }
+        }
+        $queue = $ruleIds;
+        while ($queue) {
+            $parentId = $parentById[array_pop($queue)] ?? 0;
+            if ($parentId > 0 && !in_array($parentId, $ruleIds, true)) {
+                $ruleIds[] = $parentId;
+                $queue[] = $parentId;
             }
         }
         return $this->normalizeIds($ruleIds);
@@ -147,17 +149,11 @@ class CasbinService extends AbstractService
     {
         $domain = PermissionResource::domain($domain);
         $subject = PermissionResource::subject($adminId);
-        $groupingPolicies = array_map(
-            static fn (int $groupId) => [$subject, PermissionResource::role($groupId), $domain],
-            $this->normalizeIds($groupIds)
-        );
-
-        $enforcer = $this->enforcer();
-        $enforcer->removeFilteredGroupingPolicy(0, $subject, '', $domain);
-        if ($groupingPolicies) {
-            $enforcer->addGroupingPoliciesEx($groupingPolicies);
+        $rows = [];
+        foreach ($this->normalizeIds($groupIds) as $groupId) {
+            $rows[] = $this->makeRuleRow('g', [$subject, PermissionResource::role($groupId), $domain]);
         }
-        $this->markDirty();
+        $this->replacePolicies('g', 'v0', $subject, 'v2', $domain, $rows);
     }
 
     public function syncGroupRules(int $groupId, $ruleIds, ?string $domain = null): void
@@ -168,33 +164,37 @@ class CasbinService extends AbstractService
         $rules = $ruleIds
             ? AuthRule::where('status', 1)->whereIn('id', $ruleIds)->field('id,module,href')->select()->toArray()
             : [];
+        $parentIds = $ruleIds
+            ? array_map('intval', AuthRule::whereIn('pid', $ruleIds)->distinct(true)->column('pid'))
+            : [];
 
-        $policies = [];
+        $rows = [];
+        $seen = [];
         foreach ($rules as $rule) {
+            if (in_array((int) $rule['id'], $parentIds, true)) {
+                continue;
+            }
             $resource = PermissionResource::fromRoute((string) $rule['module'], (string) $rule['href']);
-            if ($resource) {
-                $policies[$resource['code']] = [$role, $domain, $resource['obj'], $resource['act']];
+            if ($resource && !isset($seen[$resource['code']])) {
+                $seen[$resource['code']] = true;
+                $rows[] = $this->makeRuleRow('p', [$role, $domain, $resource['obj'], $resource['act']]);
             }
         }
-
-        $enforcer = $this->enforcer();
-        $enforcer->removeFilteredPolicy(0, $role, $domain);
-        if ($policies) {
-            $enforcer->addPoliciesEx(array_values($policies));
-        }
-        $this->markDirty();
+        $this->replacePolicies('p', 'v0', $role, 'v1', $domain, $rows);
     }
 
     public function deleteAdmin(int $adminId): void
     {
-        $this->enforcer()->deleteUser(PermissionResource::subject($adminId));
-        $this->markDirty();
+        Db::name('casbin_rule')->where('ptype', 'g')->where('v0', PermissionResource::subject($adminId))->delete();
+        $this->reload();
     }
 
     public function deleteGroup(int $groupId): void
     {
-        $this->enforcer()->deleteRole(PermissionResource::role($groupId));
-        $this->markDirty();
+        $role = PermissionResource::role($groupId);
+        Db::name('casbin_rule')->where('ptype', 'g')->where('v1', $role)->delete();
+        Db::name('casbin_rule')->where('ptype', 'p')->where('v0', $role)->delete();
+        $this->reload();
     }
 
     public function deleteModulePolicies(string $module): void
@@ -204,7 +204,7 @@ class CasbinService extends AbstractService
             ->where('ptype', 'p')
             ->whereLike('v2', $prefix . '%')
             ->delete();
-        $this->markDirty();
+        $this->reload();
     }
 
     public function deleteResourcePolicies(string $module, string $href): void
@@ -218,34 +218,52 @@ class CasbinService extends AbstractService
             ->where('v2', $resource['obj'])
             ->where('v3', $resource['act'])
             ->delete();
-        $this->markDirty();
+        $this->reload();
     }
 
     public function reload(): void
     {
         $this->enforcer = null;
-        $this->loadedVersion = -1;
     }
 
     public function enforcer(): Enforcer
     {
-        $version = (int) Cache::get('casbin-policy-version', 0);
         if ($this->enforcer === null) {
             $model = config_path() . 'casbin' . DIRECTORY_SEPARATOR . 'rbac_model.conf';
             $this->enforcer = new Enforcer($model, new ThinkAdapter());
-            $this->loadedVersion = $version;
-        } elseif ($this->loadedVersion !== $version) {
-            $this->enforcer->loadPolicy();
-            $this->loadedVersion = $version;
         }
         return $this->enforcer;
     }
 
-    private function markDirty(): void
+    private function replacePolicies(
+        string $ptype,
+        string $field1,
+        string $value1,
+        string $field2,
+        string $value2,
+        array $rows
+    ): void {
+        Db::transaction(function () use ($ptype, $field1, $value1, $field2, $value2, $rows) {
+            Db::name('casbin_rule')
+                ->where('ptype', $ptype)
+                ->where($field1, $value1)
+                ->where($field2, $value2)
+                ->delete();
+            if ($rows) {
+                Db::name('casbin_rule')->insertAll($rows);
+            }
+        });
+        $this->reload();
+    }
+
+    private function makeRuleRow(string $ptype, array $values): array
     {
-        $version = (int) Cache::get('casbin-policy-version', 0) + 1;
-        Cache::set('casbin-policy-version', $version);
-        $this->loadedVersion = $version;
+        $row = ['ptype' => $ptype];
+        for ($index = 0; $index < 6; $index++) {
+            $row['v' . $index] = isset($values[$index]) ? (string) $values[$index] : '';
+        }
+        $row['rule_hash'] = hash('sha256', implode("\x1f", array_merge([$ptype], array_map('strval', $values))));
+        return $row;
     }
 
     private function idsFromNames(array $names, string $prefix): array
