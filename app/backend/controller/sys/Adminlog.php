@@ -14,6 +14,7 @@ namespace app\backend\controller\sys;
 
 use app\common\controller\Backend;
 use app\backend\model\AdminLog as LogModel;
+use app\backend\service\AuthService;
 use think\App;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
@@ -43,7 +44,7 @@ class Adminlog extends Backend {
                 $this->selectList();
             }
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-            if(session('admin.group_id') != 1){
+            if (!AuthService::instance()->isSuperAdmin()) {
                 $where[] = ['admin_id','=',session('admin.id')];
             }
             $count = $this->modelClass

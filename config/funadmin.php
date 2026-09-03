@@ -7,6 +7,8 @@ return [
     //超级管理员id
 
     'superAdminId'=>1,
+    // Casbin RBAC domain；当前单租户统一使用 default。
+    'auth_domain'=>'default',
     //是否演示站点
     'isDemo'=>0,
     //版本

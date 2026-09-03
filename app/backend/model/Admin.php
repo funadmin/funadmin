@@ -32,12 +32,4 @@ class Admin extends BackendModel {
         parent::__construct($data);
     }
 
-    /**
-     * @return \think\model\relation\BelongsTo
-     */
-    public function authGroup(){
-        return  $this->belongsTo(AuthGroup::class,'group_id','id');
-    }
-
-
 }

@@ -11,6 +11,9 @@ use fun\addons\Controller;
 
 class Index extends Controller
 {
+    protected array $noNeedLogin = [];
+    protected array $noNeedRight = [];
+
     public function __construct(App $app)
     {
         parent::__construct($app);

@@ -3,10 +3,12 @@ namespace app\backend\controller\auth;
 use app\backend\model\AuthGroup as AuthGroupModel ;
 use app\backend\model\AuthRule;
 use app\backend\service\AuthService;
+use app\backend\service\CasbinService;
 use app\common\controller\Backend;
 use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Cache;
+use think\facade\Db;
 use think\facade\View;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
@@ -90,7 +92,6 @@ class AuthGroup extends Backend
                 'title' => (string) $post['title'],
                 'pid' => $pid,
                 'status' => 1,
-                'rules' => '',
             ]);
             Cache::clear();
             $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
@@ -192,6 +193,10 @@ class AuthGroup extends Backend
                 if ($this->modelClass->withTrashed()->where('pid', $group['id'])->find()) {
                     throw new \Exception('there is child group in' . $group['title']);
                 }
+                if ($this->casbin()->hasAdminsInGroup((int) $group['id'])) {
+                    throw new \Exception('there is admin in' . $group['title']);
+                }
+                $this->casbin()->deleteGroup((int) $group['id']);
                 $group->force()->delete();
             }
         } catch (\Exception $e) {
@@ -221,7 +226,7 @@ class AuthGroup extends Backend
             if ($this->request->isGet()) {
                 $allowedRuleIds = $auth->isSuperAdmin()
                     ? array_map('intval', AuthRule::where('status', 1)->column('id'))
-                    : array_map('intval', array_filter(explode(',', (string) $auth->getRules(session('admin.group_id')))));
+                    : array_map('intval', array_filter(explode(',', (string) $auth->getRules($auth->currentGroupIds()))));
                 $adminRule = AuthRule::field('id,pid,title,href,module')
                     ->where('status', 1)
                     ->whereIn('id', $allowedRuleIds ?: [0])
@@ -231,7 +236,7 @@ class AuthGroup extends Backend
                     'code' => 1,
                     'msg' => 'ok',
                     'data' => [
-                        'list' => $auth->authChecked($adminRule, 0, (string) $group['rules'], $groupId),
+                        'list' => $auth->authChecked($adminRule, 0, implode(',', $auth->groupRuleIds($groupId)), $groupId),
                         'idList' => $allowedRuleIds,
                         'group_id' => $groupId,
                     ],
@@ -247,16 +252,23 @@ class AuthGroup extends Backend
             if (!$ruleIds || !$auth->canAssignRules($ruleIds)) {
                 $this->error(lang('Permission denied'));
             }
-            $group->rules = implode(',', $ruleIds) . ',';
             try {
-                $group->save();
-            } catch (\Exception $e) {
+                Db::transaction(function () use ($groupId, $ruleIds) {
+                    $this->casbin()->syncGroupRules($groupId, $ruleIds);
+                });
+            } catch (\Throwable $e) {
                 $this->error(lang('rule assign fail'));
             }
             Cache::clear();
             $this->success(lang('rule assign success'));
         }
         return view();
+    }
+
+
+    protected function casbin(): CasbinService
+    {
+        return new CasbinService();
     }
 
     protected function availableParentGroups(): array

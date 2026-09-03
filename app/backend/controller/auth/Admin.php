@@ -13,11 +13,13 @@
 namespace app\backend\controller\auth;
 use app\backend\model\AuthGroup as AuthGroupModel;
 use app\backend\service\AuthService;
+use app\backend\service\CasbinService;
 use app\common\controller\Backend;
 use fun\helper\SignHelper;
 use fun\helper\StringHelper;
 use fun\helper\TreeHelper;
 use think\facade\Cache;
+use think\facade\Db;
 use think\facade\Session;
 use think\facade\View;
 use app\backend\model\Admin as AdminModel;
@@ -55,26 +57,31 @@ class Admin extends Backend
 
             list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
             $auth = AuthService::instance();
+            $query = $this->modelClass->where($where);
             if (!$auth->isSuperAdmin()) {
-                $groupIds = $auth->manageableGroupIds();
-                $adminIds = [];
-                foreach ($groupIds as $groupId) {
-                    $adminIds = array_merge($adminIds, $this->modelClass
-                        ->where($where)->whereFindInSet('group_id', $groupId)->column('id'));
-                }
-                $adminIds = array_values(array_unique(array_map('intval', $adminIds)));
-                $count = $this->modelClass->where($where)->whereIn('id', $adminIds ?: [0])->count();
-                $list = $this->modelClass->where($where)->whereIn('id', $adminIds ?: [0])
-                    ->order($sort)->page($this->page, $this->pageSize)->select()->toArray();
-            } else {
-                $count = $this->modelClass->where($where)->count();
-                $list = $this->modelClass->where($where)->order($sort)
-                    ->page($this->page, $this->pageSize)->select()->toArray();
+                $adminIds = $this->casbin()->adminIdsByGroups($auth->manageableGroupIds());
+                $query->whereIn('id', $adminIds ?: [0]);
             }
+            $count = (clone $query)->count();
+            $list = $query->order($sort)->page($this->page, $this->pageSize)->select()->toArray();
 
-            foreach ($list as $key=>$item){
-                $title = AuthGroupModel::where('id','in',$item['group_id'])->column('title');
-                $list[$key]['authGroup']['title'] = join(',',$title);
+            $adminIds = array_column($list, 'id');
+            $groupIdsByAdmin = $this->casbin()->groupIdsByAdmins($adminIds);
+            $allGroupIds = [];
+            foreach ($groupIdsByAdmin as $groupIds) {
+                $allGroupIds = array_merge($allGroupIds, $groupIds);
+            }
+            $allGroupIds = array_values(array_unique($allGroupIds));
+            $groupTitles = $allGroupIds
+                ? AuthGroupModel::whereIn('id', $allGroupIds)->column('title', 'id')
+                : [];
+            foreach ($list as $key => $item) {
+                $groupIds = $groupIdsByAdmin[(int) $item['id']] ?? [];
+                $list[$key]['group_id'] = implode(',', $groupIds);
+                $list[$key]['authGroup']['title'] = implode(',', array_filter(array_map(
+                    static fn ($groupId) => $groupTitles[$groupId] ?? null,
+                    $groupIds
+                )));
             }
             $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$list,'count'=>$count];
             return json($result);
@@ -115,21 +122,25 @@ class Admin extends Backend
             $post = array_intersect_key($post, array_flip([
                 'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
             ]));
-            $post['group_id'] = $this->normalizeGroupValue($post['group_id']);
+            $groupIds = $this->normalizeIds($post['group_id']);
+            unset($post['group_id']);
             $post['status'] = 1;
             $post['password'] = StringHelper::filterWords($post['password']);
             if (mb_strlen($post['password']) < 8) {
                 $this->error(lang('Password must be at least 8 characters'));
             }
             $post['password'] = SignHelper::password($post['password']);
-            //添加
-
-            $result = $this->modelClass->save($post);
-            if ($result) {
-                $this->success(lang('operation success'));
-            } else {
+            try {
+                Db::transaction(function () use ($post, $groupIds) {
+                    $admin = new AdminModel();
+                    $admin->save($post);
+                    $this->casbin()->syncAdminGroups((int) $admin->id, $groupIds);
+                });
+            } catch (\Throwable $e) {
                 $this->error(lang('operation failed'));
             }
+            Cache::clear();
+            $this->success(lang('operation success'));
         }
         $list = '';
         $authGroup = $this->getAuthGroup();
@@ -167,7 +178,7 @@ class Admin extends Backend
         }
         $formData = $list->toArray();
         $formData['password'] = '';
-        $formData['group_id'] = $formData['group_id'] ? explode(',', $formData['group_id']) : [];
+        $formData['group_id'] = $this->casbin()->adminGroupIds($id);
         View::assign([
             'formData' => $formData,
             'authGroup' => AuthGroupModel::where('status', 1)->whereIn('id', $formData['group_id'])->select(),
@@ -201,7 +212,8 @@ class Admin extends Backend
             $post = array_intersect_key($post, array_flip([
                 'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
             ]));
-            $post['group_id'] = $this->normalizeGroupValue($post['group_id']);
+            $groupIds = $this->normalizeIds($post['group_id']);
+            unset($post['group_id']);
             if (!empty($post['password'])) {
                 if (mb_strlen((string) $post['password']) < 8) {
                     $this->error(lang('Password must be at least 8 characters'));
@@ -211,12 +223,19 @@ class Admin extends Backend
             } else {
                 unset($post['password']);
             }
-            $result = $list->save($post);
+            try {
+                Db::transaction(function () use ($list, $post, $groupIds) {
+                    $list->save($post);
+                    $this->casbin()->syncAdminGroups((int) $list->id, $groupIds);
+                });
+            } catch (\Throwable $e) {
+                $this->error(lang('operation failed'));
+            }
             Cache::clear();
-            $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
+            $this->success(lang('operation success'));
         }
         $formData = $list->toArray();
-        $formData['group_id'] = $formData['group_id'] ? explode(',', $formData['group_id']) : [];
+        $formData['group_id'] = $this->casbin()->adminGroupIds($id);
         $formData['password'] = '';
         View::assign([
             'formData' => $formData,
@@ -281,9 +300,12 @@ class Admin extends Backend
             }
         }
         try {
-            foreach ($list as $admin) {
-                $admin->force()->delete();
-            }
+            Db::transaction(function () use ($list) {
+                foreach ($list as $admin) {
+                    $this->casbin()->deleteAdmin((int) $admin['id']);
+                    $admin->force()->delete();
+                }
+            });
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage()));
         }
@@ -365,9 +387,9 @@ class Admin extends Backend
         $this->success(lang('operation success'));
     }
 
-    protected function normalizeGroupValue($groupIds): string
+    protected function casbin(): CasbinService
     {
-        return implode(',', $this->normalizeIds($groupIds));
+        return new CasbinService();
     }
 
     protected function normalizeIds($ids): array

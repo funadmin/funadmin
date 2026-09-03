@@ -14,6 +14,7 @@
 namespace fun\curd;
 
 use app\backend\model\AuthRule;
+use app\backend\service\CasbinService;
 use app\common\annotation\ControllerAnnotation;
 use think\console\Command;
 use think\console\Input;
@@ -84,6 +85,7 @@ class Menu extends Command
         }
         if(empty($param['controller']) && $param['app']!='backend'){
             if($param['force'] && $param['delete']){
+                CasbinService::instance()->deleteModulePolicies($param['app']);
                 $ids = AuthRule::where('module', $param['app'])->column('id');
                 if(!empty($ids)){
                     AuthRule::destroy($ids, true); // 第二个参数true表示真实删除
@@ -139,6 +141,11 @@ class Menu extends Command
                 ->where('pid',0)
                 ->find();
                 if($topRule){
+                    $children = AuthRule::where('pid', $topRule['id'])->select();
+                    foreach ($children as $child) {
+                        CasbinService::instance()->deleteResourcePolicies((string) $child['module'], (string) $child['href']);
+                    }
+                    CasbinService::instance()->deleteResourcePolicies((string) $topRule['module'], (string) $topRule['href']);
                     $topRule->force()->delete();
                     AuthRule::where('pid',$topRule['id'])->force()->delete();
                 }

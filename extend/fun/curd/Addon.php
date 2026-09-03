@@ -14,6 +14,7 @@
 namespace fun\curd;
 
 use app\backend\model\AuthRule;
+use app\backend\service\CasbinService;
 use app\backend\service\AddonService;
 use Exception;
 use fun\helper\CtrHelper;
@@ -206,6 +207,7 @@ class Addon extends Command
             ];
             if ($param['app']) {
                 if($this->config['delete'] && $this->config['force']){
+                    CasbinService::instance()->deleteModulePolicies($param['app']);
                     AuthRule::where('module', $param['app'])->force()->delete();
                 }
                 if(!$this->config['min']){

@@ -52,15 +52,6 @@ class AuthService extends AbstractService
      * config
      */
     protected $config = [];
-    /**
-     * @var $hrefId ;
-     */
-    protected $hrefId;
-    /**
-     * 当前管理员权限规则id
-     * @var array
-     */
-    protected $adminRules = [];
 
     /**
      * 获取用户信息
@@ -105,7 +96,7 @@ class AuthService extends AbstractService
             $cacheKey = 'auth-node-list-' . session('admin.id');
             $allAuthNode = Cache::get($cacheKey);
             if (empty($allAuthNode)) {
-                $allAuthIds = $this->getRules(session('admin.group_id'));
+                $allAuthIds = $this->getRules($this->currentGroupIds());
                 $allAuthNode = db_cache($cacheKey,function()use($allAuthIds,$cacheKey){
                     $authNode = AuthRule::where('status', 1)->whereIn('id', $allAuthIds)->cache($cacheKey)->column('href', 'href');
                     foreach ($authNode as $k => $v) {
@@ -222,24 +213,22 @@ class AuthService extends AbstractService
     }
 
     /**
-     * 验证权限
-     * @return true|void
+     * 验证当前后台请求权限。
      */
     public function roleAccess()
     {
         $cfg = config('funadmin');
         if ($this->requesturl === '/' || !$this->isLogin()) {
-                $this->error(lang('Please Login First'));
+            $this->error(lang('Please Login First'));
         }
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        if($this->request->isPost() && $cfg['isDemo'] == 1){
+        if ($this->request->isPost() && $cfg['isDemo'] == 1) {
             $this->error(lang('Demo is not allow to change data'));
         }
-        $adminId = (int) session('admin.id');
-        $requestUrl = strtolower(trim($this->requesturl, '/'));
 
+        $requestUrl = strtolower(trim($this->requesturl, '/'));
         if (in_array($requestUrl, config('funadmin.auth_login_only_routes', []), true)) {
             return true;
         }
@@ -249,109 +238,75 @@ class AuthService extends AbstractService
             }
             return true;
         }
-
-        $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
-        $ruleUrl = $aliases[$requestUrl] ?? $this->requesturl;
-        $map = [
-            ['href', '=', $ruleUrl],
-            ['module', '=', $this->app]
-        ];
-        $cacheKey = 'get-rule-id-by-href-' . md5(json_encode($map));
-        $this->hrefId = db_cache($cacheKey, function () use ($map) {
-            return AuthRule::where($map)->where('status', 1)->value('id');
-        });
-        $hrefTemp = trim($ruleUrl, '/');
-        if (Str::endsWith($hrefTemp, '/index')) {
-            $where = [
-                ['href', '=', substr($hrefTemp, 0, strlen($hrefTemp) - 6)],
-                ['module', '=', $this->app]
-            ];
-            $menuCacheKey = 'get-rule-id-by-href-' . md5(json_encode($where));
-            $menuId = db_cache($menuCacheKey, function () use ($where) {
-                return AuthRule::where($where)->where('status', 1)->value('id');
-            });
-            if ($menuId) {
-                $this->hrefId = $menuId;
-            }
+        if ($this->isSuperAdmin()) {
+            return true;
         }
 
-        // 权限节点漏配属于安全错误，后台接口必须默认拒绝。
-        if (!$this->hrefId) {
+        $resource = PermissionResource::fromRequest($this->request, $this->app);
+        $resource = $this->aliasResource($requestUrl, $resource);
+        if ($this->isLoginOnlyResource($resource)) {
+            return true;
+        }
+        if (!$this->casbin()->enforceAdmin((int) session('admin.id'), $resource['obj'], $resource['act'])) {
             $this->error(lang('Permission Denied'));
-        }
-        if ($adminId !== (int) $cfg['superAdminId']) {
-            $rules = $this->getRules(session('admin.group_id'));
-            $this->adminRules = array_unique(array_filter(explode(',', (string) $rules)));
-            if (!in_array((string) $this->hrefId, $this->adminRules, true)) {
-                $this->error(lang('Permission Denied'));
-            }
         }
         return true;
     }
 
     /**
-     * 前台权限节点
-     * @param $url
-     * @return bool
+     * 判断页面菜单或按钮 URL 是否有权限。
      */
     public function nodeAccess($url)
     {
-        // 判断权限验证开关
         $cfg = config('funadmin');
         if (isset($cfg['auth_on']) && $cfg['auth_on'] == false) {
             return true;
         }
-        $parse =  parse_url($url);
-        $url = $parse['path'];
-        if(Str::endsWith($url,'.' . config('view.view_suffix'))){
-            $this->requesturl = (string)$url;
-        }else{
-            $this->requesturl = (string) __u($url);
-        }
-        if (Str::endsWith($this->requesturl, '.' . config('view.view_suffix'))) {
-
-            $this->requesturl = Str::substr($this->requesturl, 0, strlen($this->requesturl) - strlen(config('view.view_suffix')) - 1);
-        }
-        if(!empty($parse['host']) && !empty($parse['scheme'])){
-            $this->requesturl = $this->app.$this->requesturl;
-        }
-        $this->requesturl = trim($this->requesturl, '/');
-        $requesturlArr = explode('/', $this->requesturl);
-        $app = array_shift($requesturlArr);
-        $this->requesturl = implode('/', $requesturlArr);
-        if ($this->requesturl === '/')  return false;
-        if (!$this->isLogin()) return false;
-        $adminId = session('admin.id');
-        if ($adminId != $cfg['superAdminId']) {
-            $map = [
-                ['href', '=', $this->requesturl],
-                ['module', '=', $app]
-            ];
-            $cache_key = 'get-rule-id-by-module-href'.md5(json_encode($map));
-            $this->hrefId = db_cache($cache_key,function()use($map){
-                return AuthRule::where($map)->where('status', 1)->value('id');
-            });
-            $menuid = 0;
-            if (Str::endsWith($this->requesturl, '/index')) {
-                $where[] = [
-                    ['href', '=', substr($this->requesturl, 0, strlen($this->requesturl) - 6)],
-                    ['module', '=', $app]
-                ];
-                $cache_key = 'get-rule-id-by-module-href'.md5(json_encode($where));
-                $menuid = db_cache($cache_key,function()use($where){
-                    return AuthRule::where($where)->where('status', 1)->value('id');
-                });
-            }
-            if ($menuid) $this->hrefId = $menuid;
-            //当前管理员权限
-            $rules = $this->getRules(session('admin.group_id'));
-            //用户权限规则id
-            $this->adminRules = array_unique(array_filter(explode(',', $rules)));
-            if ($this->hrefId && in_array($this->hrefId, $this->adminRules)) return true;
-        } else {//超管
+        if ($this->isSuperAdmin()) {
             return true;
         }
-        return false;
+
+        $resource = PermissionResource::fromRoute($this->app, (string) $url);
+        if (!$resource) {
+            return false;
+        }
+        if ($this->isLoginOnlyResource($resource)) {
+            return true;
+        }
+        return $this->casbin()->enforceAdmin(
+            (int) session('admin.id'),
+            $resource['obj'],
+            $resource['act']
+        );
+    }
+
+    private function isLoginOnlyResource(array $resource): bool
+    {
+        $codes = db_cache('auth-login-only-resource-codes', function () {
+            $result = [];
+            $rules = AuthRule::where('status', 1)
+                ->where('auth_verify', 0)
+                ->field('module,href')
+                ->select()
+                ->toArray();
+            foreach ($rules as $rule) {
+                $item = PermissionResource::fromRoute((string) $rule['module'], (string) $rule['href']);
+                if ($item) {
+                    $result[$item['code']] = true;
+                }
+            }
+            return $result;
+        });
+        return isset($codes[$resource['code']]);
+    }
+
+    private function aliasResource(string $requestUrl, array $resource): array
+    {
+        $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
+        if (!isset($aliases[$requestUrl])) {
+            return $resource;
+        }
+        return PermissionResource::fromRoute($this->app, (string) $aliases[$requestUrl]) ?: $resource;
     }
 
     /**
@@ -499,9 +454,11 @@ class AuthService extends AbstractService
         }
         // 每次请求复核账号状态和登录令牌，确保停用、改密和异地登录立即生效。
         $me = AdminModel::find((int) $admin['id']);
+        $currentGroupIds = $this->adminGroupIds((int) $admin['id']);
+        $sessionGroupIds = $this->normalizeIds($admin['group_ids'] ?? ($admin['group_id'] ?? []));
         if (!$me || (int) $me['status'] !== 1
             || !hash_equals((string) $me['token'], (string) ($admin['token'] ?? ''))
-            || (string) $me['group_id'] !== (string) ($admin['group_id'] ?? '')) {
+            || $currentGroupIds !== $sessionGroupIds) {
             // 仅销毁当前旧会话，不清理数据库中的新登录令牌。
             Session::destroy();
             Cookie:[REDACTED]("rememberMe");
@@ -552,7 +509,8 @@ class AuthService extends AbstractService
             if (!password_verify($password, $admin['password'])) {
                 throw new \Exception(lang('Please check username or password'));
             }
-            if (!$admin['group_id']) {
+            $groupIds = $this->adminGroupIds((int) $admin['id']);
+            if (!$groupIds || !$this->casbin()->activeGroupIds($groupIds)) {
                 throw new \Exception(lang('You dont have permission'));
             }
             $ip = request()->ip();
@@ -561,7 +519,10 @@ class AuthService extends AbstractService
             $admin->token = SignHelper::authSign($admin);
             $admin->save();
             $admin = $admin->toArray();
-            $rules = $this->getRules($admin['group_id']);
+            $admin['group_ids'] = $groupIds;
+            // 保留会话中的旧字段形态，兼容尚未迁移的展示代码与插件。
+            $admin['group_id'] = implode(',', $groupIds);
+            $rules = $this->getRules($groupIds);
             $admin['rules'] = $rules;
             if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
@@ -597,40 +558,40 @@ class AuthService extends AbstractService
 
 
     /**
-     * 获取用户组规则
-     * @param mixed $groups
+     * 获取角色权限规则。
+     *
+     * @param mixed $groups 角色 ID 数组或逗号字符串
      * @return string|null
      */
     public function getRules($groups)
     {
-        if ($groups && in_array(1, explode(",", $groups))) {
-            $rules = db_cache('super-admin-auth-group-rules',function(){
-                $rules = AuthRule::where('status', 1)->cache('superAdmin', 24 * 3600)->column('id');
-                $rules = implode(',', $rules);
-                return $rules;
+        $groupIds = $this->normalizeIds($groups);
+        if (in_array(1, $groupIds, true)) {
+            $ruleIds = db_cache('super-admin-auth-group-rules', function () {
+                return array_map('intval', AuthRule::where('status', 1)->column('id'));
             });
         } else {
-            //这一句有长度限制
-//            $rules  = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->field('group_concat(rules)')->value('group_concat(rules)');
-            $groups = is_string($groups)?explode(',', $groups):$groups;
-            $key = 'auth-group-rules-'.implode(',',$groups);
-            $rules = db_cache($key,function() use ($groups){
-                $rules = AuthGroupModel::where('id', 'in', $groups)->where('status', 1)->column('rules');// 获取所有组的权限规则ID
-                $rules = implode(',', $rules);// 获取用户组权限规则ID
-                $rules = array_unique(explode(',', $rules));// 转换成数组并去重
-                sort($rules);// 重新排序
-                $rules = implode(',', $rules);//重新组合成字符串
-                return $rules;
+            $key = 'auth-group-rules-' . implode(',', $groupIds);
+            $ruleIds = db_cache($key, function () use ($groupIds) {
+                return $this->casbin()->groupRuleIdsForGroups($groupIds);
             });
-            
         }
-        $norules = db_cache('no-rules',function(){
-            $norules = AuthRule::where('auth_verify', 0)->column('id');
-            $norules = $norules ? implode(',', $norules) : '';
-            return $norules;
+
+        $noRuleIds = db_cache('no-rules', function () {
+            return array_map('intval', AuthRule::where('auth_verify', 0)->column('id'));
         });
-        $result = trim($rules . ',' . $norules, ',');
-        return $result !== '' ? $result : null;
+        $ruleIds = $this->normalizeIds(array_merge($ruleIds ?: [], $noRuleIds ?: []));
+        return $ruleIds ? implode(',', $ruleIds) : null;
+    }
+
+    public function adminGroupIds(int $adminId): array
+    {
+        return $this->casbin()->adminGroupIds($adminId);
+    }
+
+    public function groupRuleIds(int $groupId): array
+    {
+        return $this->casbin()->groupRuleIds($groupId);
     }
 
     /**
@@ -646,7 +607,7 @@ class AuthService extends AbstractService
      */
     public function currentGroupIds(): array
     {
-        return $this->normalizeIds(session('admin.group_id'));
+        return $this->adminGroupIds((int) session('admin.id'));
     }
 
     /**
@@ -731,7 +692,7 @@ class AuthService extends AbstractService
         if ($allowSelf && (int) $admin['id'] === (int) session('admin.id')) {
             return true;
         }
-        $groupIds = $this->normalizeIds($admin['group_id'] ?? '');
+        $groupIds = $this->adminGroupIds((int) $admin['id']);
         return $groupIds && !array_diff($groupIds, $this->manageableGroupIds());
     }
 
@@ -747,8 +708,13 @@ class AuthService extends AbstractService
         if ($this->isSuperAdmin()) {
             return true;
         }
-        $ownRuleIds = $this->normalizeIds($this->getRules(session('admin.group_id')));
+        $ownRuleIds = $this->normalizeIds($this->getRules($this->currentGroupIds()));
         return !array_diff($ruleIds, $ownRuleIds);
+    }
+
+    protected function casbin(): CasbinService
+    {
+        return CasbinService::instance();
     }
 
     protected function normalizeIds($ids): array
@@ -764,7 +730,7 @@ class AuthService extends AbstractService
     //获取左侧主菜单树形结构
     protected function authMenuNode($menu, $pid = 0, $rules = [])
     {
-        $authrules = array_unique(explode(',', $this->getRules(session('admin.group_id'))));
+        $authrules = array_unique(explode(',', $this->getRules($this->currentGroupIds())));
         $list = array();
         foreach ($menu as $v) {
             $href = $v['href'];

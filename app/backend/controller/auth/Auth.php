@@ -14,6 +14,7 @@
 namespace app\backend\controller\auth;
 
 use app\backend\service\AuthService;
+use app\backend\service\CasbinService;
 use app\common\controller\Backend;
 use app\backend\model\AuthRule;
 use app\common\traits\Curd;
@@ -101,7 +102,8 @@ class Auth extends Backend
                 $this->error(lang('sort') . lang(' cannot null'));
             }
             $post['icon'] = $post['icon'] ?: 'layui-icon layui-icon-circle-dot';
-            $post['href'] = trim($post['href'], '/');
+            $post['href'] = strtolower(trim($post['href'], '/'));
+            $post['module'] = strtolower(trim((string) $post['module']));
             $where = [
                 'module'=>$post['module'],
                 'href'=>$post['href'],
@@ -147,10 +149,17 @@ class Auth extends Backend
             $post['icon'] = $post['icon'] ?  : 'layui-icon layui-icon-circle-dot';
             $id = $this->request->param('id');
             $model = $this->findModel($id);
+            $oldModule = (string) $model['module'];
+            $oldHref = (string) $model['href'];
+            $post['href'] = strtolower(trim((string) $post['href'], '/'));
+            $post['module'] = strtolower(trim((string) $post['module']));
             if($post['pid'] && $post['pid'] == $id)  $this->error(lang('The superior cannot be set as himself'));
             $childIds = array_filter(explode(',',AuthService::instance()->getAllIdsBypid($id)));
             if($childIds && in_array($post['pid'],$childIds)) $this->error(lang('Parent menu cannot be modified to submenu'));
             if ($model->save($post)) {
+                if ($oldModule !== $post['module'] || $oldHref !== $post['href']) {
+                    CasbinService::instance()->deleteResourcePolicies($oldModule, $oldHref);
+                }
                 Cache::clear();
                 $this->success(lang('operation success'));
             } else {
@@ -185,6 +194,8 @@ class Auth extends Backend
         if (request()->isAjax()) {
             $post = $this->request->post();
             $post['icon'] = $post['icon'] ? : 'layui-icon layui-icon-circle-dot';
+            $post['href'] = strtolower(trim((string) $post['href'], '/'));
+            $post['module'] = strtolower(trim((string) $post['module']));
             $where = [
                 'module'=>$post['module'],
                 'href'=>$post['href'],
@@ -227,9 +238,11 @@ class Auth extends Backend
             $childs  = $this->modelClass->where('id','in',$childIds)->select();
             if($childs){
                 foreach ($childs as $child) {
+                    CasbinService::instance()->deleteResourcePolicies((string) $child['module'], (string) $child['href']);
                     $child->force(true)->delete();
                 }
             }
+            CasbinService::instance()->deleteResourcePolicies((string) $list['module'], (string) $list['href']);
             $list->force(true)->delete();
             Cache::clear();
         }catch (\Exception $e) {

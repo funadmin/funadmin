@@ -16,6 +16,7 @@ class CtrHelper
      */
     public static function getControllersByApp($app):array
     {
+        self::$controllerList = [];
         $dir = app_path($app.'/controller');
         if (!is_dir($dir)) {
             return [];
@@ -79,10 +80,13 @@ class CtrHelper
                 'parameters' => self::getMethodParameters($reflectionMethod)
             ];
         }
-        $relative_path = str_replace(app_path($appName.'/controller'), '', $filePath);
-        $controller_name = substr($relative_path, strrpos($relative_path, DS) + 1);
-        $sub_path = substr($relative_path, 0, strrpos($relative_path, DS));
-        $controller_name = str_replace('.php', '', $controller_name);
+        $relativePath = str_replace('\\', '/', str_replace(app_path($appName . '/controller'), '', $filePath));
+        $relativePath = trim($relativePath, '/');
+        $controller_name = pathinfo($relativePath, PATHINFO_FILENAME);
+        $sub_path = trim(str_replace('/', '.', dirname($relativePath)), '.');
+        if ($sub_path === '') {
+            $sub_path = '';
+        }
         $method_title = implode('.', array_filter([$sub_path, $controller_name]));
         $controllerComment = $controllerComment?:$method_title;
         $route_info = $method_title;

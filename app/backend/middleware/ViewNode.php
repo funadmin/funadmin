@@ -31,7 +31,7 @@ class ViewNode
             'requesturl'          => $requesturl,
             'jspath' => "{$jspath}",
             'autojs'           => $autojs,
-            'superAdmin'           => session('admin.id')==1 || session('admin.group') && in_array(1,session('admin.group')?explode(',',session('admin.group')):'')?true:false,
+            'superAdmin'           => AuthService::instance()->isSuperAdmin(),
             'lang'           =>  strip_tags(Lang::getLangset()),
             'site'           =>   syscfg('site'),
             'upload'           =>  syscfg('upload'),

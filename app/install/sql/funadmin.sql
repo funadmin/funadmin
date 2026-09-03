@@ -62,7 +62,6 @@ CREATE TABLE `fun_admin` (
   `id` int NOT NULL COMMENT '管理员ID',
   `username` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户名',
   `password` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员密码',
-  `group_id` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '分组ID',
   `email` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱',
   `realname` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '真实姓名',
   `mobile` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '电话号码',
@@ -79,8 +78,8 @@ CREATE TABLE `fun_admin` (
 -- 转存表中的数据 `fun_admin`
 --
 
-INSERT INTO `fun_admin` (`id`, `username`, `password`, `group_id`, `email`, `realname`, `mobile`, `ip`, `token`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'admin', '$2y$10$IYTN5uMdfMhTOHJkkmc22.geLEZk03pTfzBrWpD5f5AMObnaBUJ8O', '1,3', 'admin@admin.com', '', '18397423845', '27.38.216.114', 'e618c441c55ffb2a80ac0fe1773b263433ef483c', 1, '\\storage\\upload/20201212\\b824cb34e1d8054a606ae61e664239a4.png', 1482132862, 1662192742, NULL);
+INSERT INTO `fun_admin` (`id`, `username`, `password`, `email`, `realname`, `mobile`, `ip`, `token`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 'admin', '$2y$10$IYTN5uMdfMhTOHJkkmc22.geLEZk03pTfzBrWpD5f5AMObnaBUJ8O', 'admin@admin.com', '', '18397423845', '27.38.216.114', 'e618c441c55ffb2a80ac0fe1773b263433ef483c', 1, '\\storage\\upload/20201212\\b824cb34e1d8054a606ae61e664239a4.png', 1482132862, 1662192742, NULL);
 
 -- --------------------------------------------------------
 
@@ -177,7 +176,6 @@ CREATE TABLE `fun_auth_group` (
   `pid` int DEFAULT '0' COMMENT '父级',
   `title` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
   `status` tinyint(1) DEFAULT '0' COMMENT '状态',
-  `rules` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '规则',
   `create_time` int DEFAULT NULL COMMENT '添加时间',
   `update_time` int DEFAULT NULL COMMENT '更新时间',
   `delete_time` int DEFAULT NULL COMMENT '删除时间'
@@ -187,8 +185,30 @@ CREATE TABLE `fun_auth_group` (
 -- 转存表中的数据 `fun_auth_group`
 --
 
-INSERT INTO `fun_auth_group` (`id`, `pid`, `title`, `status`, `rules`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 0, '超级管理员', 1, '1,44,36,24,43,25,41,29,30,26,27,28,42,32,33,34,35,31,37,38,39,40,2,9,10,11,12,13,14,15,16,17,18,19,20,21,23,3,6,7,8,5,22,45,46,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,', 1554298659, 1599903527, NULL);
+INSERT INTO `fun_auth_group` (`id`, `pid`, `title`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 0, '超级管理员', 1, 1554298659, 1599903527, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `fun_casbin_rule`
+--
+
+CREATE TABLE `fun_casbin_rule` (
+  `id` bigint UNSIGNED NOT NULL,
+  `ptype` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `v0` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `v1` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `v2` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `v3` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `v4` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `v5` varchar(190) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '',
+  `rule_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Casbin授权策略';
+
+INSERT INTO `fun_casbin_rule` (`id`, `ptype`, `v0`, `v1`, `v2`, `v3`, `v4`, `v5`, `rule_hash`) VALUES
+(1, 'g', 'admin:1', 'role:1', 'default', '', '', '', SHA2(CONCAT_WS(CHAR(31), 'g', 'admin:1', 'role:1', 'default'), 256));
+
 
 -- --------------------------------------------------------
 
@@ -4512,8 +4532,7 @@ ALTER TABLE `fun_addon`
 --
 ALTER TABLE `fun_admin`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `username` (`username`),
-  ADD KEY `group_id` (`group_id`);
+  ADD UNIQUE KEY `username` (`username`);
 
 --
 -- 表的索引 `fun_admin_log`
@@ -4546,6 +4565,16 @@ ALTER TABLE `fun_auth_group`
   ADD UNIQUE KEY `id` (`id`) USING BTREE,
   ADD UNIQUE KEY `title` (`title`),
   ADD KEY `pid` (`pid`);
+
+--
+-- 表的索引 `fun_casbin_rule`
+--
+ALTER TABLE `fun_casbin_rule`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_rule_hash` (`rule_hash`),
+  ADD KEY `idx_subject_domain` (`ptype`,`v0`,`v1`),
+  ADD KEY `idx_object_action` (`ptype`,`v2`,`v3`);
+
 
 --
 -- 表的索引 `fun_auth_rule`
@@ -4713,6 +4742,13 @@ ALTER TABLE `fun_attach_group`
 --
 ALTER TABLE `fun_auth_group`
   MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id', AUTO_INCREMENT=2;
+
+--
+-- 使用表AUTO_INCREMENT `fun_casbin_rule`
+--
+ALTER TABLE `fun_casbin_rule`
+  MODIFY `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
 
 --
 -- 使用表AUTO_INCREMENT `fun_auth_rule`

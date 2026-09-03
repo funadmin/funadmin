@@ -15,6 +15,7 @@
 namespace app\backend\service;
 
 use app\backend\model\AuthRule;
+use app\backend\service\CasbinService;
 use app\common\model\Addon;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
@@ -70,16 +71,18 @@ class AddonService extends AbstractService
                 $v['href'] = trim($v['href'],'/');
                 $menu_rule = AuthRule::withTrashed()->where('href',$v['href'])->where('module',$module)->find();
                 if($menu_rule){
-                    $menu_rule->force()->delete();
                     if ($hasChild) {
                         $this->delAddonMenu($v['menulist'],$module);
                     }
+                    CasbinService::instance()->deleteResourcePolicies((string) $menu_rule['module'], (string) $menu_rule['href']);
+                    $menu_rule->force()->delete();
                 }
                 //删除主菜单；
                 $manager = AuthRule::withTrashed()->where('href',$this->myaddon)->find();
                 if($manager){
                     $manager_child =  AuthRule::withTrashed()->where('pid',$manager->id)->find();
                     if(!$manager_child){
+                        CasbinService::instance()->deleteResourcePolicies((string) $manager['module'], (string) $manager['href']);
                         $manager->force()->delete();
                     }
                 }

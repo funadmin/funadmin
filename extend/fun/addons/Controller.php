@@ -7,6 +7,7 @@ use app\common\traits\Jump;
 use think\App;
 use think\facade\Lang;
 use think\facade\View;
+use app\backend\service\AuthService;
 
 /**
  * 插件基类控制器.
@@ -27,14 +28,14 @@ class Controller extends BaseController
      *
      * @var array
      */
-    protected array $noNeedLogin = ['*'];
+    protected array $noNeedLogin = [];
 
     /**
      * 无需鉴权的方法,但需要登录.
      *
      * @var array
      */
-    protected array $noNeedRight = ['*'];
+    protected array $noNeedRight = [];
 
 
     /**
@@ -64,12 +65,21 @@ class Controller extends BaseController
         $this->action = $this->action ? call_user_func($filter, $this->action) : 'index';
         // 父类的调用必须放在设置模板路径之后
         $this->_initialize();
-        if($this->noNeedRight!=['*'] && !in_array($this->action,$this->noNeedRight)){
-            $this->error(__('You dont have role'));
+        if ($this->actionIsPublic($this->noNeedLogin)) {
+            return;
         }
-        if($this->noNeedLogin!=['*'] && !in_array($this->action,$this->noNeedLogin) && (!session('admin') && !session('member'))){
-            $this->error('You must login in first',__u('/'));
+        if (!session('admin')) {
+            $this->error('You must login in first', __u('/'));
         }
+        if (!$this->actionIsPublic($this->noNeedRight)) {
+            AuthService::instance()->roleAccess();
+        }
+    }
+
+
+    protected function actionIsPublic(array $actions): bool
+    {
+        return $actions === ['*'] || in_array($this->action, $actions, true);
     }
 
     protected function _initialize()
