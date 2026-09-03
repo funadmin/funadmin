@@ -244,36 +244,6 @@ if (!function_exists('timeAgo')) {
         }
     }
     /**
-     * 导入数据库
-     */
-    if (!function_exists('importSqlData')) {
-        /**
-         * http 类型
-         * @return string
-         */
-        function importSqlData($sqlFile)
-        {
-            $lines = file($sqlFile);
-            $sqlLine = '';
-            foreach ($lines as $line) {
-                if (substr($line, 0, 2) == '--' || $line == '' || substr($line, 0, 2) == '/*')
-                    continue;
-                $sqlLine .= $line;
-                if (substr(trim($line), -1, 1) == ';' and $line != 'COMMIT;') {
-                    $sqlLine = str_ireplace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'), $sqlLine);
-                    $sqlLine = str_ireplace('INSERT INTO ', 'INSERT IGNORE INTO ', $sqlLine);
-                    try {
-                        Db::execute($sqlLine);
-                    } catch (\PDOException $e) {
-                        throw new PDOException($e->getMessage());
-                    }
-                    $sqlLine = '';
-                }
-            }
-        }
-    }
-
-    /**
      * 动态永久修改 config 文件内容
      * @param $key
      * @param $value
@@ -443,27 +413,21 @@ if (!function_exists('getSystemTable')) {
             'attach',
             'attach_group',
             'auth_group',
-            'auth_rule',
+            'admin_menu',
+            'permission',
             'blacklist',
             'casbin_rule',
-            'builder',
-            'builder_dict',
-            'builder_dict_value',
-            'builder_field',
-            'builder_with',
+            'system_migration',
             'config',
             'config_group',
+            'dict_type',
+            'dict_item',
             'field_type',
             'field_verify',
             'languages',
             'member',
-            'member_account',
-            'member_address',
             'member_group',
             'member_level',
-            'member_third',
-            'oauth2_access_token',
-            'oauth2_client',
             'provinces',
         ];
         if(!empty($table)){

@@ -26,7 +26,6 @@ define(['table','form'], function (Table,Form) {
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
                     {field: 'name', title: __('GroupName'), minWidth: 120,},
-                    {field: 'rules', title: __('Rules'), minWidth: 120,},
                     {
                         field: 'status',
                         title: __('Status'),
@@ -71,7 +70,6 @@ define(['table','form'], function (Table,Form) {
                     {checkbox: true, },
                     {field: 'id', title: 'ID', width: 80, sort: true},
                     {field: 'name', title: __('GroupName'), minWidth: 120,},
-                    {field: 'rules', title: __('Rules'), minWidth: 120,},
                     {
                         field: 'status',
                         title: __('Status'),

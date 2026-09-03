@@ -1,44 +1,27 @@
 <?php
 
-/**
- * FunAdmin
- * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.funadmin.com/
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
- * ============================================================================
- */
-
 declare(strict_types=1);
 
 namespace app\backend\service\casbin;
 
+use app\backend\model\CasbinRule;
 use Casbin\Model\Model;
 use Casbin\Persist\Adapter;
 use Casbin\Persist\AdapterHelper;
 use Casbin\Persist\BatchAdapter;
-use think\facade\Db;
 use think\db\exception\PDOException;
+use think\facade\Db;
 
 /**
- * 使用 ThinkPHP 数据库连接持久化 Casbin 策略，复用项目表前缀与事务连接。
+ * Casbin 的 ThinkPHP 模型适配器。
  */
 class ThinkAdapter implements Adapter, BatchAdapter
 {
     use AdapterHelper;
 
-    private string $table;
-
-    public function __construct(string $table = 'casbin_rule')
-    {
-        $this->table = $table;
-    }
-
     public function loadPolicy(Model $model): void
     {
-        $rows = Db::name($this->table)
-            ->order('id', 'asc')
+        $rows = CasbinRule::order('id', 'asc')
             ->field('ptype,v0,v1,v2,v3,v4,v5')
             ->select()
             ->toArray();
@@ -67,11 +50,10 @@ class ThinkAdapter implements Adapter, BatchAdapter
                 }
             }
         }
-
         Db::transaction(function () use ($rows) {
-            Db::name($this->table)->delete(true);
+            CasbinRule::where('id', '>', 0)->delete();
             if ($rows) {
-                Db::name($this->table)->insertAll($rows);
+                (new CasbinRule())->saveAll($rows);
             }
         });
     }
@@ -79,7 +61,7 @@ class ThinkAdapter implements Adapter, BatchAdapter
     public function addPolicy(string $sec, string $ptype, array $rule): void
     {
         try {
-            Db::name($this->table)->insert($this->makeRow($ptype, $rule));
+            CasbinRule::create($this->makeRow($ptype, $rule));
         } catch (PDOException $e) {
             if (!str_contains(strtolower($e->getMessage()), 'duplicate')) {
                 throw $e;
@@ -101,7 +83,7 @@ class ThinkAdapter implements Adapter, BatchAdapter
 
     public function removePolicy(string $sec, string $ptype, array $rule): void
     {
-        $query = Db::name($this->table)->where('ptype', $ptype);
+        $query = CasbinRule::where('ptype', $ptype);
         foreach (array_values($rule) as $index => $value) {
             $query->where('v' . $index, (string) $value);
         }
@@ -119,7 +101,7 @@ class ThinkAdapter implements Adapter, BatchAdapter
 
     public function removeFilteredPolicy(string $sec, string $ptype, int $fieldIndex, string ...$fieldValues): void
     {
-        $query = Db::name($this->table)->where('ptype', $ptype);
+        $query = CasbinRule::where('ptype', $ptype);
         foreach ($fieldValues as $offset => $value) {
             if ($value !== '') {
                 $query->where('v' . ($fieldIndex + $offset), $value);
@@ -133,7 +115,6 @@ class ThinkAdapter implements Adapter, BatchAdapter
         if (count($rule) > 6) {
             throw new \InvalidArgumentException('Casbin 策略字段不能超过 6 个');
         }
-
         $values = array_map('strval', array_values($rule));
         $row = [
             'ptype' => $ptype,

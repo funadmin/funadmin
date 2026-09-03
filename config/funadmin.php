@@ -7,6 +7,8 @@ return [
     //超级管理员id
 
     'superAdminId'=>1,
+    // 超级角色 ID，与超级管理员账号 ID 分离。
+    'superRoleId'=>1,
     // Casbin RBAC domain；当前单租户统一使用 default。
     'auth_domain'=>'default',
     //是否演示站点
@@ -29,6 +31,7 @@ return [
         'auth.admin/upme', 'auth.admin/base',
         'member.member/getcitys', 'member.member/getgroup',
         'addon/logout',
+        'auth/me', 'auth/menus', 'auth/logout',
     ],
     // 全局配置和缓存只允许超级管理员操作。
     'auth_super_only_routes'=>['ajax/clearcache', 'ajax/setconfig', 'ajax/getlist'],

@@ -14,6 +14,7 @@ class CheckCsrf
 
     public function handle($request, \Closure $next)
     {
+        $this->request = $request;
         if (!in_array($request->method(), ['GET', 'HEAD', 'OPTIONS'], true)) {
             $sessionToken = (string) Session::get('__token__', '');
             $headerToken = (string) $request->header('X-CSRF-TOKEN', '');

@@ -1,0 +1,32 @@
+/*
+ * Tailwind v4：theme 走 layer；utilities 不进 layer，避免被 index.scss / scoped 盖掉布局类。
+ * 不引入 preflight（与 Element Plus 共存）。
+ */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities';
+
+@source '../**/*.{vue,ts,tsx}';
+
+@theme {
+  --color-app-bg: var(--app-app-bg);
+  --color-app-content: var(--app-content-bg);
+  --color-app-card: var(--app-card-bg);
+  --color-app-border: var(--app-border);
+  --color-app-divider: var(--app-divider);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-text-secondary);
+  --color-app-primary: var(--el-color-primary);
+  --radius-app-sm: var(--app-radius-sm);
+  --radius-app: var(--app-radius);
+  --radius-app-lg: var(--app-radius-lg);
+  --radius-app-xl: var(--app-radius-xl);
+  --shadow-app-sm: var(--app-shadow-sm);
+  --shadow-app: var(--app-shadow);
+  --shadow-app-lg: var(--app-shadow-lg);
+  --spacing-app: var(--app-gap);
+  --spacing-app-lg: var(--app-gap-lg);
+  --spacing-app-header: var(--app-header-h);
+  --spacing-app-tabs: var(--app-tabs-h);
+  --width-app-sidebar: var(--app-sidebar-w);
+  --width-app-sidebar-collapsed: var(--app-sidebar-collapsed-w);
+}

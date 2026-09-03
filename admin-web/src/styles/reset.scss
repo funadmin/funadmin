@@ -1,0 +1,19 @@
+/* 轻量重置（仅做必要修正） */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

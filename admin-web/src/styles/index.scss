@@ -1,0 +1,2269 @@
+/* Global style entry */
+@use './reset.scss';
+@use './variables.scss';
+@use './transition.scss';
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  background: var(--app-app-bg);
+  color: var(--app-text);
+  font-size: 14px;
+  line-height: 1.5715;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--el-color-primary-light-5);
+  color: #fff;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
+
+/* 表格 / 卡片 / Pop 圆角与阴影统一 */
+.el-card,
+.el-message-box,
+.el-dialog,
+.el-drawer,
+.el-popover,
+.el-popper,
+.el-dropdown-menu {
+  border-radius: var(--app-radius) !important;
+}
+
+.el-card {
+  border-color: var(--app-border) !important;
+  box-shadow: var(--app-shadow-sm) !important;
+}
+
+/*
+ * 表格：对齐 saiadmin / Arco Table
+ *  - 表头底色用 Arco gray-1 #f7f8fa（比默认的 #f5f7fa 略亮，与卡片白底过渡更柔）
+ *  - 表头描边、行底线统一用 --app-border (#e5e6eb)
+ *  - hover / 当前行：与 var(--el-bg-color) 混合，避免 color-mix(..., transparent) 在暗色行底上合成出发白块
+ *  - 表头字号 13px、字重 600、字色用 #1d2129（Arco gray-10），保证小字可读
+ */
+.el-table {
+  --el-table-border-color: var(--app-border);
+  --el-table-header-bg-color: #f7f8fa;
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 4%, var(--el-bg-color));
+  --el-table-current-row-bg-color: color-mix(in srgb, var(--el-color-primary) 9%, var(--el-bg-color));
+  border-radius: var(--app-radius);
+  overflow: hidden;
+  font-size: 13.5px;
+}
+.el-table th.el-table__cell {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1d2129;
+  letter-spacing: 0.02em;
+  background-color: var(--el-table-header-bg-color) !important;
+}
+/* 表格单元格更舒适的内边距 */
+.el-table .el-table__cell {
+  padding: 10px 12px;
+}
+.el-table.el-table--small .el-table__cell {
+  padding: 6px 12px;
+}
+.el-table.el-table--large .el-table__cell {
+  padding: 14px 12px;
+}
+/* 暗色模式：表头 / 行交互色与行底（fill-blank）混合，highlight-current-row 才不会变成「白底浅字」 */
+html.dark .el-table {
+  --el-table-header-bg-color: #1f2937;
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 16%, var(--el-fill-color-blank));
+  --el-table-current-row-bg-color: color-mix(in srgb, var(--el-color-primary) 26%, var(--el-fill-color-blank));
+}
+html.dark .el-table th.el-table__cell {
+  color: #c9cdd4;
+}
+/* 当前行：保证正文/链接可读（避免继承到异常对比） */
+html.dark .el-table__body tr.current-row > td.el-table__cell {
+  color: var(--el-text-color-regular);
+}
+html.dark .el-table__body tr.current-row > td.el-table__cell .el-button.is-link {
+  --el-button-text-color: var(--el-color-primary);
+}
+html.dark .el-table__body tr.current-row > td.el-table__cell .el-button.is-link.el-button--danger {
+  --el-button-text-color: var(--el-color-danger);
+}
+
+/*
+ * el-empty：减小默认尺寸，匹配表格内嵌空状态
+ *  - 图片 80px → 60px
+ *  - 描述字色对齐 --app-text-secondary
+ */
+.el-empty {
+  --el-empty-padding: 24px 0;
+}
+.el-empty .el-empty__image {
+  width: 60px;
+}
+.el-empty .el-empty__description {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+/* el-tag 全局：彩色圆角标签，语义清晰、质感好 */
+.el-tag {
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+  height: 24px;
+  line-height: 22px;
+  border-width: 1px;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: 0.01em;
+}
+.el-tag--small {
+  height: 20px;
+  line-height: 18px;
+  padding: 0 8px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+.el-tag--large {
+  height: 28px;
+  line-height: 26px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+/*
+ * el-tag 语义配色：对齐 saiadmin-vue Arco 标准色板（不再用 Tailwind slate 冷调）
+ * - success: arco green-1/3/6  #e8ffea / #7be188 / #00b42a
+ * - warning: arco orange-1/3/6 #fff7e8 / #ffcf8b / #ff7d00
+ * - danger : arco red-1/3/6    #ffece8 / #fbaca3 / #f53f3f
+ * - info   : arco gray-2/4/6   #f2f3f5 / #c9cdd4 / #86909c
+ * 三层结构（浅底 / 主色字 / 中度色边），完全复刻 saiadmin .tag.active 观感。
+ */
+.el-tag.el-tag--success {
+  color: #00b42a !important;
+  background-color: #e8ffea !important;
+  border-color: #aff0b5 !important;
+}
+.el-tag.el-tag--warning {
+  color: #ff7d00 !important;
+  background-color: #fff7e8 !important;
+  border-color: #ffcf8b !important;
+}
+.el-tag.el-tag--danger {
+  color: #f53f3f !important;
+  background-color: #ffece8 !important;
+  border-color: #fbaca3 !important;
+}
+.el-tag.el-tag--info {
+  color: #86909c !important;
+  background-color: #f2f3f5 !important;
+  border-color: #c9cdd4 !important;
+}
+.el-tag.el-tag--primary {
+  color: var(--el-color-primary) !important;
+  background-color: var(--el-color-primary-light-9) !important;
+  border-color: var(--el-color-primary-light-7) !important;
+}
+
+/* 深色模式：参考 saiadmin classics 暗色皮肤，用主色 alpha 叠在深底上 */
+/*
+ * 暗色 el-tag：底色 alpha-18%、边色 alpha-40%
+ *  - 字色用 Arco gray-3（#7be188 / #ffcf8b / #fbaca3 / #c9cdd4），在 #161b22 上对比 ≥ 4.5:1
+ *  - 边比浅色版本更显（0.3 → 0.4），避免边在深底上"沉下去"
+ */
+html.dark .el-tag.el-tag--success {
+  color: #7be188 !important;
+  background-color: rgba(0, 180, 42, 0.18) !important;
+  border-color: rgba(0, 180, 42, 0.4) !important;
+}
+html.dark .el-tag.el-tag--warning {
+  color: #ffcf8b !important;
+  background-color: rgba(255, 125, 0, 0.18) !important;
+  border-color: rgba(255, 125, 0, 0.4) !important;
+}
+html.dark .el-tag.el-tag--danger {
+  color: #fbaca3 !important;
+  background-color: rgba(245, 63, 63, 0.18) !important;
+  border-color: rgba(245, 63, 63, 0.4) !important;
+}
+html.dark .el-tag.el-tag--info {
+  color: #c9cdd4 !important;
+  background-color: rgba(134, 144, 156, 0.18) !important;
+  border-color: rgba(134, 144, 156, 0.4) !important;
+}
+
+/* 分页与按钮微调 */
+.el-pagination {
+  --el-pagination-button-color: var(--el-text-color-regular);
+  font-weight: 500;
+}
+
+/* 按钮：圆角、图标与文字对齐、默认/主色层次（列表页查询区通用） */
+.el-button {
+  /* 6px 圆角比默认 4px 更柔和，贴近图1参考设计 */
+  --el-button-border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 500;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.el-button > i,
+.el-button [class*='i-ep-'] {
+  margin: 0 !important;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1em;
+  height: 1em;
+  font-size: 1em;
+  line-height: 1;
+  /* 图标色强制跟随按钮文字色（含 plain 的语义色覆盖；盖过 Uno 图标工具里可能出现的固定色） */
+  color: inherit !important;
+}
+
+/*
+ * 默认按钮（无 type）：白/卡片底 + 中性描边 + 深色字。
+ * hover：底色微染主色 + 描边主色 + 字主色（轻反馈，避免全主色浸染）。
+ * 各主题切换时仅主色变化，结构与质感一致。
+ */
+.el-button--default {
+  --el-button-bg-color: var(--app-card-bg);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--app-card-bg));
+  --el-button-hover-border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--app-border));
+  --el-button-hover-text-color: var(--el-color-primary);
+  --el-button-active-bg-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg));
+  --el-button-active-border-color: var(--el-color-primary);
+  --el-button-active-text-color: var(--el-color-primary);
+}
+
+/*
+ * 主按钮（实色）：所有主题统一语言 —— 实底主色 + 白字 + 轻阴影。
+ * hover 用 dark-2（变暗）而非 light-x（变亮），避免在浅主色（fresh 青/sunset 橙）下「发白发糊」。
+ * 所有语义实色按钮（success/warning/danger/info）也统一使用 dark-2 hover，行为一致。
+ */
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text),
+.el-button--success:not(.is-plain):not(.is-link):not(.is-text),
+.el-button--warning:not(.is-plain):not(.is-link):not(.is-text),
+.el-button--danger:not(.is-plain):not(.is-link):not(.is-text),
+.el-button--info:not(.is-plain):not(.is-link):not(.is-text) {
+  color: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text) {
+  --el-button-hover-bg-color: var(--el-color-primary-dark-2);
+  --el-button-hover-border-color: var(--el-color-primary-dark-2);
+  --el-button-active-bg-color: var(--el-color-primary-dark-2);
+  --el-button-active-border-color: var(--el-color-primary-dark-2);
+  background-color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary) !important;
+}
+/*
+ * 关键：仅 :hover / :active 让实色按钮变暗，:focus 不改背景色。
+ * 原因：ElMessageBox / Dialog / Drawer 弹出时会自动给「确定」按钮 focus，
+ * 若 :focus 也走暗化公式，会被误以为「主色不通透 / 按钮没改」。
+ * 键盘聚焦的可见性用 :focus-visible + outline-ring 解决（不动背景色）。
+ */
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):active {
+  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--el-color-primary) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--el-color-primary) 88%, #000) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
+/* 其它语义实色按钮 hover：统一「主色变暗 12%」，与 primary 行为一致；:focus 同样不改色 */
+.el-button--success:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--success:not(.is-plain):not(.is-link):not(.is-text):active {
+  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--el-color-success) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--el-color-success) 88%, #000) !important;
+}
+.el-button--warning:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--warning:not(.is-plain):not(.is-link):not(.is-text):active {
+  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--el-color-warning) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--el-color-warning) 88%, #000) !important;
+}
+.el-button--danger:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--danger:not(.is-plain):not(.is-link):not(.is-text):active {
+  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--el-color-danger) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--el-color-danger) 88%, #000) !important;
+}
+.el-button--info:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--info:not(.is-plain):not(.is-link):not(.is-text):active {
+  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--el-color-info) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--el-color-info) 88%, #000) !important;
+}
+.el-button--success:not(.is-plain):not(.is-link):not(.is-text):focus-visible,
+.el-button--warning:not(.is-plain):not(.is-link):not(.is-text):focus-visible,
+.el-button--danger:not(.is-plain):not(.is-link):not(.is-text):focus-visible,
+.el-button--info:not(.is-plain):not(.is-link):not(.is-text):focus-visible {
+  outline: 2px solid color-mix(in srgb, currentColor 45%, transparent);
+  outline-offset: 2px;
+}
+
+/*
+ * 语义型 link / text 按钮：保持 EP 原生「彩色文字、无边无底」语义，
+ * 仅在 hover 时染极浅同色底（4%）增强可点击感，绝不被实底主色覆盖。
+ */
+.el-button.is-link,
+.el-button.is-text {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.el-button--primary.is-link,
+.el-button--primary.is-text {
+  color: var(--el-color-primary) !important;
+}
+.el-button--success.is-link,
+.el-button--success.is-text {
+  color: var(--el-color-success) !important;
+}
+.el-button--warning.is-link,
+.el-button--warning.is-text {
+  color: var(--el-color-warning) !important;
+}
+.el-button--danger.is-link,
+.el-button--danger.is-text {
+  color: var(--el-color-danger) !important;
+}
+.el-button--info.is-link,
+.el-button--info.is-text {
+  color: var(--el-color-info) !important;
+}
+.el-button--primary.is-link:hover,
+.el-button--primary.is-text:hover {
+  color: color-mix(in srgb, var(--el-color-primary) 80%, #000) !important;
+}
+.el-button--success.is-link:hover,
+.el-button--success.is-text:hover {
+  color: color-mix(in srgb, var(--el-color-success) 80%, #000) !important;
+}
+.el-button--warning.is-link:hover,
+.el-button--warning.is-text:hover {
+  color: color-mix(in srgb, var(--el-color-warning) 80%, #000) !important;
+}
+.el-button--danger.is-link:hover,
+.el-button--danger.is-text:hover {
+  color: color-mix(in srgb, var(--el-color-danger) 80%, #000) !important;
+}
+.el-button--info.is-link:hover,
+.el-button--info.is-text:hover {
+  color: color-mix(in srgb, var(--el-color-info) 80%, #000) !important;
+}
+
+/*
+ * 暗色 default 按钮：保持卡片底 / 边对齐，hover 用主色 alpha-14% 浅底 + 主色字
+ *  - 浅色态用 8% mix(white)，暗色直接落在 #161b22 卡片上效果偏闷，所以提到 14%
+ *  - 字色 hover 切到 primary，与浅色行为一致
+ */
+html.dark .el-button--default {
+  --el-button-bg-color: var(--app-card-bg);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg));
+  --el-button-hover-border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--app-border));
+  --el-button-hover-text-color: var(--el-color-primary);
+  --el-button-active-bg-color: color-mix(in srgb, var(--el-color-primary) 22%, var(--app-card-bg));
+  --el-button-active-border-color: var(--el-color-primary);
+  --el-button-active-text-color: var(--el-color-primary);
+}
+
+/*
+ * 列表页顶部操作条布局请用 Tailwind：
+ * flex flex-wrap items-center gap-2.5 px-4 py-3 bg-app-card border border-app-border rounded-app shadow-app-sm
+ * 保留 .app-page-toolbar 类名仅作 EP 按钮投影覆盖选择器（可与上述工具类同元素叠加）。
+ */
+
+/*
+ * 列表工具条 / 查询条内的实心主按钮：去掉全局主按钮投影，避免与浅底叠色导致「发污、偏色」，
+ * 颜色完全跟随 --el-color-primary（主题切换时一致）。
+ */
+.search-form .el-button--primary:not(.is-plain),
+.app-page-toolbar .el-button--primary:not(.is-plain) {
+  box-shadow: none !important;
+}
+.search-form .el-button--primary:not(.is-plain):hover,
+.search-form .el-button--primary:not(.is-plain):focus,
+.app-page-toolbar .el-button--primary:not(.is-plain):hover,
+.app-page-toolbar .el-button--primary:not(.is-plain):focus {
+  box-shadow: none !important;
+}
+
+/*
+ * 线框按钮（plain）：白/浅底 + 语义色描边与字/图标，配色来自 Element Plus 变量，
+ * 换预设主题（applyTheme）后自动一致，无需写死色值。
+ */
+.search-form .el-button.is-plain,
+.app-page-toolbar .el-button.is-plain {
+  box-shadow: none !important;
+}
+.search-form .el-button.is-plain:hover,
+.search-form .el-button.is-plain:focus,
+.app-page-toolbar .el-button.is-plain:hover,
+.app-page-toolbar .el-button.is-plain:focus {
+  box-shadow: none !important;
+}
+
+/*
+ * ============== Plain 按钮统一配色（所有主题、所有语义色一致风格） ==============
+ *
+ * 设计原则：
+ * 1. 所有 plain 按钮（primary/success/warning/danger/info）共用一套 color-mix 公式，
+ *    避免 EP 默认派生（light-9/light-5）在不同主色下色相/明度差异巨大的问题。
+ * 2. 浅色模式：底 10% / 边 32% / 字 100%（在白底/卡片底之上保持轻量、可见）。
+ * 3. 深色模式：底 14% / 边 42% / 字 70%混白（在卡片暗底上保证对比度）。
+ * 4. hover 行为一致：填实主色、文字反白，传达「被聚焦」的明确反馈。
+ *
+ * --app-btn-base 局部变量解耦语义：每条规则只换 base 即可，整体逻辑一处定义。
+ */
+
+/* —— 浅色模式 plain：所有语义色统一公式（不含无 type 的默认 plain，由下方独立规则处理） —— */
+html:not(.dark) .el-button.is-plain:not(.el-button--default) {
+  background-color: color-mix(in srgb, var(--app-btn-base) 10%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 32%, #ffffff) !important;
+  color: var(--app-btn-base) !important;
+  box-shadow: none !important;
+}
+html:not(.dark) .el-button.is-plain:not(.el-button--default):hover {
+  background-color: color-mix(in srgb, var(--app-btn-base) 18%, #ffffff) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 50%, #ffffff) !important;
+  color: var(--app-btn-base) !important;
+  box-shadow: none !important;
+}
+html:not(.dark) .el-button.is-plain:not(.el-button--default):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-btn-base) 45%, transparent);
+  outline-offset: 2px;
+}
+html:not(.dark) .el-button.is-plain:not(.el-button--default):active {
+  background-color: color-mix(in srgb, var(--app-btn-base) 26%, #ffffff) !important;
+  border-color: var(--app-btn-base) !important;
+  color: var(--app-btn-base) !important;
+}
+
+/* —— 深色模式 plain：所有语义色统一公式（不含无 type 的默认 plain） —— */
+html.dark .el-button.is-plain:not(.el-button--default) {
+  background-color: color-mix(in srgb, var(--app-btn-base) 14%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 42%, var(--app-card-bg)) !important;
+  color: color-mix(in srgb, var(--app-btn-base) 70%, #ffffff) !important;
+  box-shadow: none !important;
+}
+html.dark .el-button.is-plain:not(.el-button--default):hover {
+  background-color: color-mix(in srgb, var(--app-btn-base) 24%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--app-btn-base) 60%, var(--app-card-bg)) !important;
+  color: color-mix(in srgb, var(--app-btn-base) 85%, #ffffff) !important;
+  box-shadow: none !important;
+}
+html.dark .el-button.is-plain:not(.el-button--default):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--app-btn-base) 55%, transparent);
+  outline-offset: 2px;
+}
+html.dark .el-button.is-plain:not(.el-button--default):active {
+  background-color: color-mix(in srgb, var(--app-btn-base) 32%, var(--app-card-bg)) !important;
+  border-color: var(--app-btn-base) !important;
+  color: color-mix(in srgb, var(--app-btn-base) 90%, #ffffff) !important;
+}
+
+/* —— 默认 plain（无 type，如「折叠」「收起」）：白底灰边灰字，hover 仅主色描边 + 主色字 —— */
+html:not(.dark) .el-button--default.is-plain {
+  background-color: var(--app-card-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+  box-shadow: none !important;
+}
+html:not(.dark) .el-button--default.is-plain:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--app-border)) !important;
+  color: var(--el-color-primary) !important;
+  box-shadow: none !important;
+}
+html:not(.dark) .el-button--default.is-plain:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 45%, transparent);
+  outline-offset: 2px;
+}
+html.dark .el-button--default.is-plain {
+  background-color: var(--app-card-bg) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+  box-shadow: none !important;
+}
+html.dark .el-button--default.is-plain:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg)) !important;
+  border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--app-border)) !important;
+  color: color-mix(in srgb, var(--el-color-primary) 75%, #ffffff) !important;
+  box-shadow: none !important;
+}
+html.dark .el-button--default.is-plain:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 55%, transparent);
+  outline-offset: 2px;
+}
+
+/* —— 各语义色只声明 --app-btn-base，规则由上方两段统一处理 —— */
+.el-button--primary.is-plain {
+  --app-btn-base: var(--el-color-primary);
+}
+.el-button--success.is-plain {
+  --app-btn-base: var(--el-color-success);
+}
+.el-button--warning.is-plain {
+  --app-btn-base: var(--el-color-warning);
+}
+.el-button--danger.is-plain {
+  --app-btn-base: var(--el-color-danger);
+}
+.el-button--info.is-plain {
+  --app-btn-base: var(--el-color-info);
+}
+
+/* 表格操作区容器：统一 flex 布局、无换行、间距归零 */
+.app-table-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  line-height: 1.5;
+  max-width: 100%;
+}
+/* 所有 margin-left 重置（EP 默认按钮组有间距） */
+.app-table-actions .el-button {
+  margin-left: 0 !important;
+  flex: 0 0 auto;
+}
+
+/*
+ * link 型操作按钮（图1风格）：无边框无背景，语义色文字+图标，
+ * hover 时轻底色，分隔符用 ::after 伪元素细竖线。
+ */
+.app-table-actions--link {
+  gap: 0;
+}
+.app-table-actions--link .el-button.is-link {
+  padding: 3px 8px;
+  height: 28px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 0;
+  position: relative;
+}
+/* 按钮间分割线 */
+.app-table-actions--link .el-button.is-link + .el-button.is-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--app-border);
+}
+.app-table-actions--link .el-button.is-link:hover {
+  background-color: var(--el-fill-color-light) !important;
+}
+/* 首尾圆角 */
+.app-table-actions--link .el-button.is-link:first-child {
+  border-radius: 4px 0 0 4px;
+}
+.app-table-actions--link .el-button.is-link:last-child {
+  border-radius: 0 4px 4px 0;
+}
+.app-table-actions--link .el-button.is-link:only-child {
+  border-radius: 4px;
+}
+
+/* 旧 chips 样式保留兼容（plain 按钮分组） */
+.app-table-actions--chips {
+  gap: 6px;
+}
+.app-table-actions--chips .el-button.is-plain {
+  padding: 4px 10px;
+  min-height: 28px;
+  font-weight: 500;
+}
+
+/* link/text 单独使用时（不在 --link 容器内）的通用样式 */
+.app-table-actions .el-button.is-link,
+.app-table-actions .el-button.is-text {
+  padding: 4px 8px;
+  min-height: auto;
+  height: auto;
+  font-weight: 500;
+  border-radius: 4px;
+}
+.app-table-actions .el-button.is-text:not(:disabled):hover {
+  background-color: var(--el-fill-color-light);
+}
+
+@media (max-width: 640px) {
+  .app-table-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* 表格内开关：去掉过矮/过艳的默认感，由业务列旁文案补充语义 */
+.el-table .el-switch {
+  --el-switch-on-color: var(--el-color-primary);
+  vertical-align: middle;
+}
+
+/*
+ * 输入控件 focus：扁平单层描边
+ *  - 仅 1px inset 主色边（不再叠外扩 2px 阴影圈，避免聚焦时视觉「变大一圈」）
+ *  - 外环由下方 input:focus-visible 排除 EP 内层后，不再与 wrapper 套盒
+ */
+.el-input.is-focus,
+.el-textarea.is-focus,
+.el-select__wrapper.is-focused {
+  --el-input-focus-border-color: var(--el-color-primary);
+}
+.el-input.is-focus .el-input__wrapper,
+.el-input__wrapper.is-focus,
+.el-textarea.is-focus .el-textarea__inner,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+/* hover：仅描边略加深，不外扩阴影圈，避免与 focus 抢戏 */
+.el-input:not(.is-disabled):not(.is-focus) .el-input__wrapper:hover,
+.el-textarea:not(.is-disabled):not(.is-focus) .el-textarea__inner:hover,
+.el-select:not(.is-disabled) .el-select__wrapper:hover:not(.is-focused) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 35%, var(--app-border)) inset !important;
+}
+/* 默认态：用 --app-border 同步描边色，与卡片 / 表格统一 */
+.el-input .el-input__wrapper,
+.el-textarea .el-textarea__inner,
+.el-select .el-select__wrapper {
+  box-shadow: 0 0 0 1px var(--app-border) inset;
+}
+
+/*
+ * 暗色：focus 外圈 alpha 提到 28%，主色边在 #161b22 卡片上才足够"亮"
+ * hover 描边主色 mix 也提到 50%，避免与默认态难以分辨
+ */
+html.dark .el-input.is-focus .el-input__wrapper,
+html.dark .el-input__wrapper.is-focus,
+html.dark .el-textarea.is-focus .el-textarea__inner,
+html.dark .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset !important;
+}
+html.dark .el-input:not(.is-disabled):not(.is-focus) .el-input__wrapper:hover,
+html.dark .el-textarea:not(.is-disabled):not(.is-focus) .el-textarea__inner:hover,
+html.dark .el-select:not(.is-disabled) .el-select__wrapper:hover:not(.is-focused) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--el-color-primary) 50%, var(--app-border)) inset !important;
+}
+
+/*
+ * 通用卡片阴影请用 Tailwind：bg-app-card border border-app-border rounded-app shadow-app-sm
+ */
+
+/* 路由进度条：跟随主题主色（applyTheme 会写入 --el-color-primary） */
+#nprogress .bar {
+  background: var(--el-color-primary) !important;
+}
+#nprogress .peg {
+  box-shadow:
+    0 0 10px var(--el-color-primary),
+    0 0 5px var(--el-color-primary) !important;
+}
+
+/*
+ * 菜单折叠/顶栏子菜单浮层：白（或 overlay）底，必须用内容区正文色。
+ * classic 等深色侧栏把 --app-sidebar-text 传给 el-menu，会写进弹层内联变量，
+ * 导致浅灰字贴白底（对比度不足）。!important 压过内联的非 important 声明。
+ */
+.el-menu.el-menu--popup {
+  --el-menu-text-color: var(--app-text) !important;
+  --el-menu-hover-text-color: var(--el-color-primary) !important;
+  --el-menu-active-color: var(--el-color-primary) !important;
+  /* 与 --app-menu-popup-row-h 一致，避免顶栏下拉与折叠侧栏弹层行高脱节 */
+  --el-menu-item-height: var(--app-menu-popup-row-h);
+  /* EP 默认仅 2px 圆角，顶栏/侧栏折叠下拉与嵌套子菜单统一用设计令牌 */
+  border-radius: var(--app-radius) !important;
+  /*
+   * 不可对弹层设 overflow:hidden：横向菜单多级子菜单会在右侧再开一层 popper，
+   * 裁切会导致嵌套层错位、与上一层重叠或出现「套盒」假象。
+   */
+}
+
+/* 横向菜单下拉外层容器（teleport 到 body，与顶栏菜单共用 horizontal-sub-item-height） */
+.el-menu--horizontal.el-menu--popup-container {
+  --el-menu-horizontal-sub-item-height: var(--app-menu-popup-row-h);
+  border-radius: var(--app-radius);
+}
+
+/*
+ * 仅顶栏横向菜单：统一 popper 类名，嵌套子菜单与首层共用样式但不裁切子级 flyout；
+ * 视觉：参考运维类后台——弹层大圆角、柔和阴影、内边距，行高亮为内嵌圆角块（非整行铺满）。
+ */
+.app-top-menu-popper.el-menu--horizontal.el-menu--popup-container {
+  overflow: visible;
+}
+
+.app-top-menu-popper .el-menu.el-menu--popup {
+  overflow: visible;
+  padding: var(--app-top-menu-popup-pad);
+  /* 压过全局 .el-menu--popup 的 var(--app-radius) !important */
+  border-radius: var(--app-radius-lg) !important;
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-lg);
+  /* 顶栏专用行高，与折叠侧栏浮层区分 */
+  --el-menu-item-height: var(--app-top-menu-popup-row-h);
+  --el-menu-horizontal-sub-item-height: var(--app-top-menu-popup-row-h);
+  /* 由下列选择器自行绘制行级 hover/active，避免 EP 默认整行铺色 */
+  --el-menu-hover-bg-color: transparent;
+}
+
+.app-top-menu-popper .el-menu--popup > li {
+  margin: var(--app-top-menu-popup-item-gap-y) 0;
+}
+
+.app-top-menu-popper .el-menu--popup .el-menu-item,
+.app-top-menu-popper .el-menu--popup .el-sub-menu__title {
+  border-radius: var(--app-top-menu-popup-item-radius);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.app-top-menu-popper .el-menu--popup .el-menu-item:hover,
+.app-top-menu-popper .el-menu--popup .el-sub-menu__title:hover {
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+}
+
+.app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
+  background-color: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary) !important;
+  font-weight: 600;
+}
+
+.app-top-menu-popper .el-menu--popup .el-sub-menu.is-active > .el-sub-menu__title {
+  color: var(--el-color-primary) !important;
+}
+
+html.dark .app-top-menu-popper .el-menu.el-menu--popup {
+  background: var(--app-card-bg);
+  border-color: var(--app-border);
+}
+
+html.dark .app-top-menu-popper .el-menu--popup .el-menu-item:hover,
+html.dark .app-top-menu-popper .el-menu--popup .el-sub-menu__title:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: var(--el-color-primary-light-3) !important;
+}
+
+html.dark .app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
+  background-color: rgba(var(--el-color-primary-rgb), 0.18) !important;
+  color: var(--el-color-primary-light-3) !important;
+}
+
+/* 侧栏激活条（::before）若随 teleport 误伤顶栏下拉，去掉条杠 */
+.app-top-menu-popper .el-menu-item.is-active::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* ============================================================
+ * C 方向：弹窗 / 抽屉 / 分页 — 对齐 saiadmin / Arco 克制商务感
+ *  - 头部底色统一用 Arco gray-1 #f7f8fa（与表头一致）
+ *  - 描边、分割线统一 --app-border (#e5e6eb)
+ *  - 头部 / 底部 14px 内边距，主体 16-20px，避免空旷
+ *  - 关闭按钮用次级字色，hover 才切主色
+ * ============================================================ */
+
+/* —— el-dialog —— */
+.el-dialog {
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-lg);
+  overflow: hidden;
+}
+.el-dialog .el-dialog__header {
+  padding: 14px 20px;
+  margin-right: 0;
+  background-color: #f7f8fa;
+  border-bottom: 1px solid var(--app-border);
+}
+.el-dialog .el-dialog__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2129;
+  letter-spacing: 0.02em;
+}
+.el-dialog .el-dialog__headerbtn {
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: var(--app-text-secondary);
+  font-size: 16px;
+}
+.el-dialog .el-dialog__headerbtn:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.el-dialog .el-dialog__headerbtn:hover .el-dialog__close {
+  color: var(--el-color-primary);
+}
+.el-dialog .el-dialog__body {
+  padding: 20px;
+  color: var(--app-text);
+  font-size: 14px;
+}
+.el-dialog .el-dialog__footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--app-border);
+  background-color: var(--app-card-bg);
+}
+
+/* —— el-message-box：保留 Element Plus 默认布局，仅同步品牌圆角 —— */
+
+/* —— el-drawer —— */
+.el-drawer {
+  border-radius: 0 !important;
+}
+.el-drawer .el-drawer__header {
+  margin-bottom: 0;
+  padding: 14px 20px;
+  background-color: #f7f8fa;
+  border-bottom: 1px solid var(--app-border);
+}
+.el-drawer .el-drawer__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2129;
+  letter-spacing: 0.02em;
+}
+.el-drawer .el-drawer__close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--app-text-secondary);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-drawer .el-drawer__close-btn:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-color-primary);
+}
+.el-drawer .el-drawer__body {
+  padding: 20px;
+  color: var(--app-text);
+}
+.el-drawer .el-drawer__footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--app-border);
+}
+
+/* —— 暗色：dialog / drawer 头部沿用 #1f2937 与表头一致；message-box 走 EP 默认 —— */
+html.dark .el-dialog,
+html.dark .el-drawer {
+  background-color: var(--app-card-bg);
+  border-color: var(--app-border);
+}
+html.dark .el-dialog .el-dialog__header,
+html.dark .el-drawer .el-drawer__header {
+  background-color: #1f2937;
+  border-bottom-color: var(--app-border);
+}
+html.dark .el-dialog .el-dialog__title,
+html.dark .el-drawer .el-drawer__title {
+  color: var(--app-text);
+}
+html.dark .el-dialog .el-dialog__footer,
+html.dark .el-drawer .el-drawer__footer {
+  border-top-color: var(--app-border);
+}
+
+/* —— el-pagination：克制留白、与表格底线齐平 —— */
+.el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-bg-color: transparent;
+  --el-pagination-button-disabled-bg-color: transparent;
+  --el-pagination-hover-color: var(--el-color-primary);
+  padding: 12px 4px 4px;
+  font-weight: 500;
+  color: var(--app-text);
+}
+.el-pagination .el-pager li,
+.el-pagination button.btn-prev,
+.el-pagination button.btn-next {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-weight: 500;
+  color: var(--app-text);
+  background-color: transparent !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-pagination .el-pager li:hover,
+.el-pagination button.btn-prev:hover:not(:disabled),
+.el-pagination button.btn-next:hover:not(:disabled) {
+  color: var(--el-color-primary);
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent) !important;
+}
+.el-pagination .el-pager li.is-active,
+.el-pagination .el-pager li.is-active:hover {
+  color: #ffffff !important;
+  background-color: var(--el-color-primary) !important;
+  border-color: var(--el-color-primary) !important;
+}
+.el-pagination .el-pagination__total,
+.el-pagination .el-pagination__jump,
+.el-pagination .el-pagination__sizes {
+  color: var(--app-text-secondary);
+  font-weight: 400;
+}
+/* 分页内的 input/select 走全局 input focus 公式即可，无需额外样式 */
+
+/* ============================================================
+ * D 方向：表单 — label / 必填星号 / 错误态对齐 saiadmin
+ *  - label 用主字色 + 13.5px 字号，避免比 input 内文字更轻
+ *  - 必填星号放在 label 右侧（asterisk-position=right），更接近 Arco 习惯
+ *  - 错误态：input 切 danger 边 + danger alpha-15% 外圈，与 focus 同结构
+ * ============================================================ */
+
+.el-form .el-form-item__label {
+  color: var(--app-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 32px;
+  padding-right: 12px;
+}
+/* 默认 EP 把星号放在 label 左侧，灰白底上偏弱；加深为 danger 主色 */
+.el-form .el-form-item.is-required:not(.is-no-asterisk) > .el-form-item__label::before,
+.el-form .el-form-item.is-required:not(.is-no-asterisk)
+  > .el-form-item__label-wrap
+  > .el-form-item__label::before {
+  color: var(--el-color-danger);
+  margin-right: 4px;
+  font-weight: 600;
+}
+/* 错误提示：12px、行高紧凑，与 input 错误边联动 */
+.el-form .el-form-item__error {
+  padding-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--el-color-danger);
+}
+
+/* —— 错误态：input / textarea / select 描边 + 外圈阴影统一 danger —— */
+.el-form-item.is-error .el-input .el-input__wrapper,
+.el-form-item.is-error .el-input__wrapper,
+.el-form-item.is-error .el-textarea .el-textarea__inner,
+.el-form-item.is-error .el-select .el-select__wrapper {
+  box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+}
+.el-form-item.is-error .el-input.is-focus .el-input__wrapper,
+.el-form-item.is-error .el-input__wrapper.is-focus,
+.el-form-item.is-error .el-textarea.is-focus .el-textarea__inner,
+.el-form-item.is-error .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+}
+
+/* —— inline form：label 右对齐时与 input 基线对齐，去掉默认的下移 —— */
+.el-form--inline .el-form-item {
+  margin-right: 12px;
+}
+
+/* —— 暗色：label / 错误外圈 alpha 与 input 暗色 focus 同步 28% —— */
+html.dark .el-form .el-form-item__label {
+  color: var(--app-text);
+}
+html.dark .el-form-item.is-error .el-input.is-focus .el-input__wrapper,
+html.dark .el-form-item.is-error .el-input__wrapper.is-focus,
+html.dark .el-form-item.is-error .el-textarea.is-focus .el-textarea__inner,
+html.dark .el-form-item.is-error .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-danger) inset !important;
+}
+
+/* ============================================================
+ * E 方向：tooltip / popconfirm / popover — 圆角 + 暗色对比统一
+ *  - tooltip：浅色页用 Arco gray-10 (#1d2129) 实色 + 4px 圆角，与按钮/字色同源
+ *  - popconfirm / popover：跟卡片同源，白底 + --app-border 边 + 阴影
+ *  - 暗色页：tooltip 反转为浅底深字（#f7f8fa），避免黑底贴在 #161b22 上"溶进"卡片
+ * ============================================================ */
+
+/* —— el-tooltip（is-dark 是默认深色态） —— */
+.el-popper.is-dark {
+  --el-bg-color: #1d2129;
+  background-color: #1d2129 !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.el-popper.is-dark .el-popper__arrow::before {
+  background-color: #1d2129 !important;
+  border: none !important;
+}
+
+/* —— light 态 popper（popover / popconfirm 默认走 is-light）—— */
+.el-popper.is-light {
+  --el-bg-color-overlay: var(--app-card-bg);
+  background-color: var(--app-card-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow-lg);
+  color: var(--app-text);
+}
+.el-popper.is-light .el-popper__arrow::before {
+  background-color: var(--app-card-bg) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* —— popconfirm 内部排版微调 —— */
+.el-popconfirm {
+  padding: 4px;
+}
+.el-popconfirm .el-popconfirm__main {
+  padding: 4px 0 12px;
+  font-size: 13px;
+  color: var(--app-text);
+}
+.el-popconfirm .el-popconfirm__icon {
+  color: var(--el-color-warning);
+  margin-right: 6px;
+}
+.el-popconfirm .el-popconfirm__action {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* —— popover 默认 padding 偏大，收一档 —— */
+.el-popover.el-popper {
+  padding: 12px 14px !important;
+  font-size: 13px;
+}
+
+/* —— 暗色：tooltip 反转浅底深字，与卡片拉开层级 —— */
+html.dark .el-popper.is-dark {
+  --el-bg-color: #f7f8fa;
+  background-color: #f7f8fa !important;
+  color: #1d2129 !important;
+}
+html.dark .el-popper.is-dark .el-popper__arrow::before {
+  background-color: #f7f8fa !important;
+}
+/* 暗色 light popper：用 card-bg + border 沿用即可，无需额外覆盖 */
+
+/* ============================================================
+ * F 方向：开关 / 单选 / 多选 — 主色克制、暗色对比补齐
+ *  - el-switch off 态用 #c9cdd4（Arco gray-4），不要默认那种灰白模糊感
+ *  - el-radio / el-checkbox 默认边用 --app-border，hover 切 primary 边
+ *  - 选中态全部走 primary 实心，与按钮 / 分页 active 同源
+ *  - 暗色：off 态用 #4e5969（Arco gray-7），保证可见
+ * ============================================================ */
+
+/* —— el-switch —— */
+.el-switch {
+  --el-switch-on-color: var(--el-color-primary);
+  --el-switch-off-color: #c9cdd4;
+}
+.el-switch.is-checked .el-switch__core {
+  border-color: var(--el-color-primary);
+}
+
+/* —— el-radio —— */
+.el-radio {
+  --el-radio-input-border-color-hover: var(--el-color-primary);
+  font-weight: 400;
+}
+.el-radio .el-radio__inner {
+  border-color: var(--app-border);
+  background-color: var(--app-card-bg);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.el-radio:not(.is-disabled):hover .el-radio__inner {
+  border-color: var(--el-color-primary);
+}
+.el-radio.is-checked .el-radio__inner {
+  border-color: var(--el-color-primary);
+  background-color: var(--el-color-primary);
+}
+.el-radio.is-checked .el-radio__label {
+  color: var(--app-text);
+}
+
+/* —— el-radio-button：用作分段控制器，给个克制的 primary 描边 —— */
+.el-radio-button .el-radio-button__inner {
+  border-color: var(--app-border);
+  color: var(--app-text);
+  background-color: var(--app-card-bg);
+  font-weight: 500;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.el-radio-button:not(.is-disabled):hover .el-radio-button__inner {
+  color: var(--el-color-primary);
+}
+.el-radio-button.is-active .el-radio-button__inner {
+  color: #ffffff;
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  box-shadow: -1px 0 0 0 var(--el-color-primary);
+}
+
+/* —— el-checkbox —— */
+.el-checkbox {
+  --el-checkbox-input-border-color-hover: var(--el-color-primary);
+  font-weight: 400;
+}
+.el-checkbox .el-checkbox__inner {
+  border-color: var(--app-border);
+  background-color: var(--app-card-bg);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.el-checkbox:not(.is-disabled):hover .el-checkbox__inner {
+  border-color: var(--el-color-primary);
+}
+.el-checkbox.is-checked .el-checkbox__inner,
+.el-checkbox.is-indeterminate .el-checkbox__inner {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.el-checkbox.is-checked .el-checkbox__label {
+  color: var(--app-text);
+}
+
+/* —— el-checkbox-button：与 radio-button 对齐 —— */
+.el-checkbox-button .el-checkbox-button__inner {
+  border-color: var(--app-border);
+  color: var(--app-text);
+  background-color: var(--app-card-bg);
+  font-weight: 500;
+}
+.el-checkbox-button:not(.is-disabled):hover .el-checkbox-button__inner {
+  color: var(--el-color-primary);
+}
+.el-checkbox-button.is-checked .el-checkbox-button__inner {
+  color: #ffffff;
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  box-shadow: -1px 0 0 0 var(--el-color-primary);
+}
+
+/* —— 暗色：off 态用 gray-7 #4e5969，未选边沿用 --app-border —— */
+html.dark .el-switch {
+  --el-switch-off-color: #4e5969;
+}
+html.dark .el-radio .el-radio__inner,
+html.dark .el-checkbox .el-checkbox__inner {
+  border-color: var(--app-border);
+  background-color: var(--app-card-bg);
+}
+html.dark .el-radio-button .el-radio-button__inner,
+html.dark .el-checkbox-button .el-checkbox-button__inner {
+  border-color: var(--app-border);
+  background-color: var(--app-card-bg);
+  color: var(--app-text);
+}
+
+/* ============================================================
+ * G 方向：tabs / collapse / steps — 节点元素克制化
+ *  - tabs：去掉 EP 默认厚条 active bar，用 2px primary 细线 + 下划线动效
+ *  - collapse：头部底色用 #f7f8fa（与 dialog/table 头同源），展开后 body 留白
+ *  - steps：节点未激活灰、激活/完成 primary，连接线 1px gray-3
+ * ============================================================ */
+
+/* —— el-tabs：默认线性 tabs —— */
+.el-tabs {
+  --el-tabs-header-height: 40px;
+}
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background-color: var(--app-border);
+}
+.el-tabs__item {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.el-tabs__item:hover {
+  color: var(--el-color-primary);
+}
+.el-tabs__item.is-active {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.el-tabs__active-bar {
+  height: 2px;
+  background-color: var(--el-color-primary);
+  border-radius: 1px;
+}
+
+/* —— card 风格 tabs：白底卡片 + 顶部 primary 条 —— */
+.el-tabs--card > .el-tabs__header {
+  border-bottom: 1px solid var(--app-border);
+}
+.el-tabs--card > .el-tabs__header .el-tabs__nav {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius) var(--app-radius) 0 0;
+  overflow: hidden;
+}
+.el-tabs--card > .el-tabs__header .el-tabs__item {
+  border-left: 1px solid var(--app-border);
+  background-color: #f7f8fa;
+  color: var(--app-text-secondary);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-tabs--card > .el-tabs__header .el-tabs__item:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, white);
+  color: var(--el-color-primary);
+}
+.el-tabs--card > .el-tabs__header .el-tabs__item.is-active {
+  background-color: var(--app-card-bg);
+  color: var(--el-color-primary);
+  border-bottom-color: var(--app-card-bg);
+}
+
+/* —— border-card 风格：与 saiadmin 表头容器一致 —— */
+.el-tabs--border-card {
+  border: 1px solid var(--app-border);
+  box-shadow: none;
+  border-radius: var(--app-radius);
+}
+.el-tabs--border-card > .el-tabs__header {
+  background-color: #f7f8fa;
+  border-bottom-color: var(--app-border);
+}
+.el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+  background-color: var(--app-card-bg);
+  border-right-color: var(--app-border);
+  border-left-color: var(--app-border);
+}
+
+/* —— el-collapse：去掉默认厚边，统一卡片调性 —— */
+.el-collapse {
+  border-top: 1px solid var(--app-border);
+  border-bottom: 1px solid var(--app-border);
+}
+.el-collapse-item__header {
+  height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--app-text);
+  background-color: #f7f8fa;
+  border-bottom: 1px solid var(--app-border);
+  transition: background-color 0.15s ease;
+}
+.el-collapse-item__header:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 4%, #f7f8fa);
+}
+.el-collapse-item__header.is-active {
+  color: var(--el-color-primary);
+  border-bottom-color: var(--app-border);
+}
+.el-collapse-item__wrap {
+  border-bottom: 1px solid var(--app-border);
+  background-color: var(--app-card-bg);
+}
+.el-collapse-item:last-child .el-collapse-item__wrap {
+  border-bottom: none;
+}
+.el-collapse-item__content {
+  padding: 14px;
+  font-size: 13px;
+  color: var(--app-text);
+}
+.el-collapse-item__arrow {
+  color: var(--app-text-secondary);
+}
+
+/* —— el-steps：节点克制化 —— */
+.el-step__head.is-process {
+  color: var(--app-text-secondary);
+  border-color: var(--app-text-secondary);
+}
+.el-step__head.is-finish {
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+}
+.el-step__head.is-wait {
+  color: #c9cdd4;
+  border-color: #c9cdd4;
+}
+.el-step__line {
+  background-color: var(--app-border);
+}
+.el-step__title.is-process {
+  color: var(--app-text);
+  font-weight: 600;
+}
+.el-step__title.is-finish {
+  color: var(--el-color-primary);
+}
+.el-step__title.is-wait {
+  color: var(--app-text-secondary);
+  font-weight: 400;
+}
+.el-step__description {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+}
+
+/* —— 暗色：tab/collapse 头部底色与 dialog 头同源 #1f2937 —— */
+html.dark .el-tabs__nav-wrap::after,
+html.dark .el-tabs--card > .el-tabs__header,
+html.dark .el-tabs--card > .el-tabs__header .el-tabs__nav {
+  border-color: var(--app-border);
+}
+html.dark .el-tabs--card > .el-tabs__header .el-tabs__item {
+  background-color: #1f2937;
+  border-left-color: var(--app-border);
+}
+html.dark .el-tabs--card > .el-tabs__header .el-tabs__item.is-active {
+  background-color: var(--app-card-bg);
+  border-bottom-color: var(--app-card-bg);
+}
+html.dark .el-tabs--border-card,
+html.dark .el-tabs--border-card > .el-tabs__header {
+  background-color: #1f2937;
+  border-color: var(--app-border);
+}
+html.dark .el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+  background-color: var(--app-card-bg);
+}
+html.dark .el-collapse,
+html.dark .el-collapse-item__header,
+html.dark .el-collapse-item__wrap {
+  border-color: var(--app-border);
+}
+html.dark .el-collapse-item__header {
+  background-color: #1f2937;
+  color: var(--app-text);
+}
+html.dark .el-collapse-item__header:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, #1f2937);
+}
+html.dark .el-step__head.is-wait {
+  color: #4e5969;
+  border-color: #4e5969;
+}
+html.dark .el-step__line {
+  background-color: var(--app-border);
+}
+
+/* ============================================================
+ * H 方向：loading 遮罩 + skeleton 骨架 — 与卡片同源
+ *  - loading 遮罩：浅色用白 75% alpha，避免黑色字盖灰底；暗色用 #161b22 75%
+ *  - loading 文字 / 圆环：primary
+ *  - skeleton：底色 gray-2 #f2f3f5，闪光 gray-1 #f7f8fa（与表头同色）
+ * ============================================================ */
+
+/* —— el-loading —— */
+.el-loading-mask {
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(2px);
+}
+.el-loading-spinner .path {
+  stroke: var(--el-color-primary);
+}
+.el-loading-spinner .el-loading-text {
+  color: var(--el-color-primary);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+html.dark .el-loading-mask {
+  background-color: rgba(22, 27, 34, 0.75);
+}
+
+/* —— el-skeleton —— */
+.el-skeleton {
+  --el-skeleton-color: #f2f3f5;
+  --el-skeleton-to-color: #f7f8fa;
+}
+.el-skeleton__item {
+  background: var(--el-skeleton-color);
+  border-radius: 4px;
+}
+.el-skeleton.is-animated .el-skeleton__item {
+  background: linear-gradient(
+    90deg,
+    var(--el-skeleton-color) 25%,
+    var(--el-skeleton-to-color) 37%,
+    var(--el-skeleton-color) 63%
+  );
+  background-size: 400% 100%;
+}
+
+html.dark .el-skeleton {
+  --el-skeleton-color: #1f2937;
+  --el-skeleton-to-color: #2a3340;
+}
+
+/* ============================================================
+ * I 方向：原生滚动条 + el-scrollbar — 主题化
+ *  - thumb 用 Arco gray-4 #c9cdd4，hover 加深到 gray-6 #86909c
+ *  - 暗色 thumb 用 gray-7 #4e5969，hover 到 gray-6 #86909c
+ *  - el-scrollbar（侧栏 / 卡片内长内容）走相同视觉
+ * ============================================================ */
+
+/* —— 覆盖文件顶部那段 rgba 的滚动条配色（最终生效以本段为准）—— */
+::-webkit-scrollbar-thumb {
+  background-color: #c9cdd4;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #86909c;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background-color: #4e5969;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #86909c;
+}
+
+/* —— el-scrollbar：侧栏/抽屉内的虚拟滚动 —— */
+.el-scrollbar__bar.is-vertical > div,
+.el-scrollbar__bar.is-horizontal > div {
+  background-color: #c9cdd4 !important;
+  border-radius: 3px;
+  opacity: 0.85;
+  transition: background-color 0.2s ease;
+}
+.el-scrollbar__bar:hover > div,
+.el-scrollbar__bar.is-vertical > div:hover,
+.el-scrollbar__bar.is-horizontal > div:hover {
+  background-color: #86909c !important;
+  opacity: 1;
+}
+
+html.dark .el-scrollbar__bar.is-vertical > div,
+html.dark .el-scrollbar__bar.is-horizontal > div {
+  background-color: #4e5969 !important;
+}
+html.dark .el-scrollbar__bar:hover > div,
+html.dark .el-scrollbar__bar.is-vertical > div:hover,
+html.dark .el-scrollbar__bar.is-horizontal > div:hover {
+  background-color: #86909c !important;
+}
+
+/* ============================================================
+ * J 方向：date-picker / time-picker / cascader 下拉面板
+ *  - 面板与 popover/popconfirm 同源：--app-card-bg 底 + --app-border 边
+ *    + --app-radius 圆角 + --app-shadow-lg 阴影
+ *  - 当前/选中：primary 实心；hover：primary alpha-10 底
+ *  - 顶部年月切换 / 表头：#f7f8fa（与 dialog/table 头同源）
+ * ============================================================ */
+
+/* —— el-picker__popper（date / time / datetime 共用 popper 容器）—— */
+.el-picker__popper.el-popper {
+  background-color: var(--app-card-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow-lg);
+}
+.el-picker__popper.el-popper .el-popper__arrow::before {
+  background-color: var(--app-card-bg) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* —— date-picker 面板 —— */
+.el-date-picker,
+.el-date-range-picker,
+.el-time-panel {
+  border: none;
+  border-radius: var(--app-radius);
+  background-color: var(--app-card-bg);
+  color: var(--app-text);
+}
+.el-date-picker__header,
+.el-date-range-picker__header {
+  margin: 0;
+  padding: 10px 12px;
+  background-color: #f7f8fa;
+  border-bottom: 1px solid var(--app-border);
+}
+.el-date-picker__header-label,
+.el-date-range-picker__header [class*='__header-label'] {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-text);
+}
+.el-date-picker__header-label:hover,
+.el-date-range-picker__header [class*='__header-label']:hover {
+  color: var(--el-color-primary);
+}
+.el-date-picker__prev-btn,
+.el-date-picker__next-btn,
+.el-date-range-picker__prev-btn,
+.el-date-range-picker__next-btn {
+  color: var(--app-text-secondary);
+}
+.el-date-picker__prev-btn:hover,
+.el-date-picker__next-btn:hover,
+.el-date-range-picker__prev-btn:hover,
+.el-date-range-picker__next-btn:hover {
+  color: var(--el-color-primary);
+}
+
+/* —— 日期单元格 —— */
+.el-date-table th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--app-text-secondary);
+  border-bottom: 1px solid var(--app-border);
+}
+.el-date-table td {
+  font-size: 13px;
+}
+.el-date-table td .el-date-table-cell__text {
+  border-radius: 4px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-date-table td:hover .el-date-table-cell__text {
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+}
+.el-date-table td.today .el-date-table-cell__text {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.el-date-table td.current:not(.disabled) .el-date-table-cell__text {
+  background-color: var(--el-color-primary) !important;
+  color: #ffffff !important;
+}
+.el-date-table td.in-range .el-date-table-cell {
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.el-date-table td.start-date .el-date-table-cell__text,
+.el-date-table td.end-date .el-date-table-cell__text {
+  background-color: var(--el-color-primary) !important;
+  color: #ffffff !important;
+}
+
+/* —— year / month 表 —— */
+.el-year-table td .cell,
+.el-month-table td .cell {
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--app-text);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-year-table td:hover .cell,
+.el-month-table td:hover .cell {
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+}
+.el-year-table td.current .cell,
+.el-month-table td.current .cell {
+  background-color: var(--el-color-primary) !important;
+  color: #ffffff !important;
+}
+
+/* —— time 面板 —— */
+.el-time-panel__footer {
+  border-top: 1px solid var(--app-border);
+}
+.el-time-spinner__item {
+  font-size: 13px;
+  color: var(--app-text);
+}
+.el-time-spinner__item:hover:not(.is-disabled):not(.is-active) {
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+  color: var(--el-color-primary);
+}
+.el-time-spinner__item.is-active:not(.is-disabled) {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+
+/* —— cascader 面板 —— */
+.el-cascader__dropdown.el-popper {
+  background-color: var(--app-card-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow-lg);
+}
+.el-cascader-menu {
+  border-right: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+.el-cascader-menu:last-child {
+  border-right: none;
+}
+.el-cascader-node {
+  font-size: 13px;
+  padding: 0 30px 0 14px;
+  height: 34px;
+  line-height: 34px;
+  transition: background-color 0.15s ease;
+}
+.el-cascader-node:not(.is-disabled):hover,
+.el-cascader-node:not(.is-disabled):focus {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.el-cascader-node.in-active-path,
+.el-cascader-node.is-active {
+  color: var(--el-color-primary);
+  font-weight: 600;
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+
+/* —— 暗色：picker / cascader 顶部带也走 #1f2937 —— */
+html.dark .el-date-picker__header,
+html.dark .el-date-range-picker__header {
+  background-color: #1f2937;
+  border-color: var(--app-border);
+}
+html.dark .el-date-table th {
+  color: var(--app-text-secondary);
+  border-color: var(--app-border);
+}
+html.dark .el-cascader-menu {
+  border-color: var(--app-border);
+}
+
+/* ============================================================
+ * K 方向：upload / image-viewer / progress
+ *  - upload-dragger：白底虚线，hover 切 primary 描边 + alpha-6 底
+ *  - upload-list：每行 hover 显示 primary 文件名，actions 走 link 调
+ *  - image-viewer 操作栏：与 dialog 头同源 + 圆角按钮
+ *  - progress：bar 颜色 primary，文字 13px、字色 --app-text
+ * ============================================================ */
+
+/* —— el-upload-dragger —— */
+.el-upload-dragger {
+  background-color: var(--app-card-bg);
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  color: var(--app-text-secondary);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.el-upload:hover .el-upload-dragger,
+.el-upload-dragger:hover {
+  border-color: var(--el-color-primary);
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+}
+.el-upload-dragger.is-dragover {
+  border-color: var(--el-color-primary);
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.el-upload__text {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+.el-upload__text em {
+  color: var(--el-color-primary);
+  font-style: normal;
+}
+.el-upload__tip {
+  color: var(--app-text-secondary);
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* —— el-upload-list —— */
+.el-upload-list__item {
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--app-text);
+  transition: background-color 0.15s ease;
+}
+.el-upload-list__item:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.el-upload-list__item .el-icon--close,
+.el-upload-list__item .el-icon--upload-success {
+  color: var(--app-text-secondary);
+}
+.el-upload-list__item:hover .el-icon--close {
+  color: var(--el-color-danger);
+}
+
+/* —— picture-card 风格 —— */
+.el-upload--picture-card,
+.el-upload-list--picture-card .el-upload-list__item {
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius);
+  background-color: var(--app-card-bg);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+.el-upload--picture-card:hover {
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  background-color: color-mix(in srgb, var(--el-color-primary) 6%, transparent);
+}
+
+/* —— el-image-viewer 操作栏 —— */
+.el-image-viewer__actions {
+  background-color: rgba(29, 33, 41, 0.85);
+  border-radius: var(--app-radius);
+  backdrop-filter: blur(4px);
+}
+.el-image-viewer__btn {
+  color: #ffffff;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+.el-image-viewer__btn:hover {
+  opacity: 1;
+}
+
+/* —— el-progress —— */
+.el-progress-bar__outer {
+  background-color: var(--app-divider);
+}
+.el-progress-bar__inner {
+  background-color: var(--el-color-primary);
+}
+.el-progress__text {
+  color: var(--app-text);
+  font-size: 13px !important;
+}
+.el-progress.is-success .el-progress-bar__inner {
+  background-color: var(--el-color-success);
+}
+.el-progress.is-warning .el-progress-bar__inner {
+  background-color: var(--el-color-warning);
+}
+.el-progress.is-exception .el-progress-bar__inner {
+  background-color: var(--el-color-danger);
+}
+
+/* —— 暗色：upload 卡片走 #161b22 + #21262d 边 —— */
+html.dark .el-upload-dragger,
+html.dark .el-upload--picture-card,
+html.dark .el-upload-list--picture-card .el-upload-list__item {
+  background-color: var(--app-card-bg);
+  border-color: var(--app-border);
+}
+html.dark .el-progress-bar__outer {
+  background-color: #21262d;
+}
+
+/* ============================================================
+ * L 方向：el-message（顶部提示）/ el-notification（右上通知）
+ *  - 都按 dialog/popover 同源卡片调：--app-card-bg + --app-border + 圆角 + 阴影
+ *  - 语义色只描边/字色，不要满底色（与 saiadmin 一致）
+ *  - notification 标题 14px/600，正文 13px/--app-text-secondary
+ * ============================================================ */
+
+/* —— el-message —— */
+.el-message {
+  min-width: 320px;
+  padding: 10px 14px;
+  background-color: var(--app-card-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow-lg);
+  color: var(--app-text) !important;
+}
+.el-message .el-message__content {
+  font-size: 13px;
+  color: var(--app-text);
+}
+.el-message--info {
+  border-left: 3px solid var(--el-color-info) !important;
+}
+.el-message--info .el-message__icon {
+  color: var(--el-color-info);
+}
+.el-message--success {
+  border-left: 3px solid var(--el-color-success) !important;
+}
+.el-message--success .el-message__icon {
+  color: var(--el-color-success);
+}
+.el-message--warning {
+  border-left: 3px solid var(--el-color-warning) !important;
+}
+.el-message--warning .el-message__icon {
+  color: var(--el-color-warning);
+}
+.el-message--error {
+  border-left: 3px solid var(--el-color-danger) !important;
+}
+.el-message--error .el-message__icon {
+  color: var(--el-color-danger);
+}
+.el-message .el-message__closeBtn {
+  color: var(--app-text-secondary);
+}
+.el-message .el-message__closeBtn:hover {
+  color: var(--el-color-primary);
+}
+
+/* —— el-notification —— */
+.el-notification {
+  width: 360px;
+  padding: 14px 16px;
+  background-color: var(--app-card-bg) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius) !important;
+  box-shadow: var(--app-shadow-lg);
+}
+.el-notification__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text);
+  line-height: 1.4;
+}
+.el-notification__content {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  line-height: 1.5;
+}
+.el-notification__icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+.el-notification.right {
+  border-right: 3px solid var(--app-border) !important;
+}
+.el-notification--info {
+  border-left: 3px solid var(--el-color-info) !important;
+}
+.el-notification--info .el-notification__icon {
+  color: var(--el-color-info);
+}
+.el-notification--success {
+  border-left: 3px solid var(--el-color-success) !important;
+}
+.el-notification--success .el-notification__icon {
+  color: var(--el-color-success);
+}
+.el-notification--warning {
+  border-left: 3px solid var(--el-color-warning) !important;
+}
+.el-notification--warning .el-notification__icon {
+  color: var(--el-color-warning);
+}
+.el-notification--error {
+  border-left: 3px solid var(--el-color-danger) !important;
+}
+.el-notification--error .el-notification__icon {
+  color: var(--el-color-danger);
+}
+.el-notification .el-notification__closeBtn {
+  color: var(--app-text-secondary);
+}
+.el-notification .el-notification__closeBtn:hover {
+  color: var(--el-color-primary);
+}
+
+/* ============================================================
+ * M 方向：el-tree / el-tree-select 节点
+ *  - 节点 hover：primary alpha-8 底（与 sidebar menu 一致）
+ *  - 节点选中：primary alpha-12 底 + primary 字色 + 600 字重
+ *  - 展开/收起箭头：默认 secondary，hover/选中 primary
+ * ============================================================ */
+
+/* —— el-tree —— */
+.el-tree {
+  --el-tree-node-content-height: 32px;
+  background-color: transparent;
+  color: var(--app-text);
+  font-size: 13px;
+}
+.el-tree-node__content {
+  border-radius: 4px;
+  padding-left: 4px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.el-tree-node__content:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+}
+.el-tree-node:focus > .el-tree-node__content {
+  background-color: color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+.el-tree-node.is-current > .el-tree-node__content {
+  background-color: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.el-tree-node__expand-icon {
+  color: var(--app-text-secondary);
+  transition: color 0.15s ease;
+}
+.el-tree-node__expand-icon.is-leaf {
+  color: transparent;
+}
+.el-tree-node__content:hover .el-tree-node__expand-icon:not(.is-leaf),
+.el-tree-node.is-current > .el-tree-node__content .el-tree-node__expand-icon {
+  color: var(--el-color-primary);
+}
+
+/* —— el-tree-select 弹层（弹层走 popover 同源已在 J 段命中，这里只补节点）—— */
+.el-tree-select__popper.el-popper .el-tree-node__content {
+  height: 32px;
+}
+
+/* —— 暗色：tree hover/选中底色加深一档，避免 alpha-8 在 #161b22 上看不到 —— */
+html.dark .el-tree-node__content:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 14%, transparent);
+}
+html.dark .el-tree-node.is-current > .el-tree-node__content {
+  background-color: color-mix(in srgb, var(--el-color-primary) 20%, transparent);
+}
+
+/* ============================================================
+ * N 方向：el-transfer / el-checkbox-group 列表
+ *  - transfer 双栏：卡片同源（--app-card-bg + --app-border + --app-radius）
+ *  - 列表项：与 el-tree 节点同款（hover 8%、checked 12% + primary 字色）
+ *  - 中部按钮组：默认走 default 态（与 el-button 同源）
+ *  - checkbox-group 行内：保留 el-checkbox 本体规则，仅统一 gap 和换行
+ * ============================================================ */
+
+/* —— el-transfer 整体 —— */
+.el-transfer {
+  --el-transfer-panel-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.el-transfer-panel {
+  background-color: var(--app-card-bg);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+.el-transfer-panel__header {
+  height: 40px;
+  padding: 0 14px;
+  background-color: #f7f8fa;
+  border-bottom: 1px solid var(--app-border);
+  font-size: 13px;
+  color: var(--app-text);
+}
+.el-transfer-panel__header .el-checkbox__label {
+  font-size: 13px;
+  color: var(--app-text);
+  font-weight: 500;
+}
+.el-transfer-panel__filter {
+  margin: 8px;
+}
+.el-transfer-panel__list.is-filterable {
+  padding: 4px 0;
+}
+.el-transfer-panel__item {
+  height: 32px;
+  line-height: 32px;
+  padding-left: 14px;
+  padding-right: 8px;
+  color: var(--app-text);
+  font-size: 13px;
+  border-radius: 0;
+  transition: background-color 0.15s ease;
+}
+.el-transfer-panel__item:hover {
+  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
+  color: var(--el-color-primary);
+}
+.el-transfer-panel__item.el-checkbox.is-checked .el-checkbox__label {
+  color: var(--el-color-primary);
+  font-weight: 600;
+}
+.el-transfer-panel__footer {
+  height: 36px;
+  background-color: #f7f8fa;
+  border-top: 1px solid var(--app-border);
+  padding: 0 14px;
+}
+.el-transfer-panel__empty {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+}
+
+/* —— transfer 中间按钮组：走 default 态而不是 primary 实心 —— */
+.el-transfer__buttons {
+  padding: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.el-transfer__buttons .el-button {
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+}
+
+/* —— 暗色：transfer header / footer 用 #1f2937 —— */
+html.dark .el-transfer-panel,
+html.dark .el-transfer-panel__filter .el-input__wrapper {
+  background-color: var(--app-card-bg);
+  border-color: var(--app-border);
+}
+html.dark .el-transfer-panel__header,
+html.dark .el-transfer-panel__footer {
+  background-color: #1f2937;
+  border-color: var(--app-border);
+}
+
+/* —— el-checkbox-group / el-radio-group 横向间距统一（覆盖 EP 默认 0） —— */
+.el-checkbox-group,
+.el-radio-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.el-checkbox-group .el-checkbox,
+.el-radio-group .el-radio {
+  margin-right: 0;
+}
+
+/* ============================================================
+ * O 方向：el-descriptions / el-statistic
+ *  - descriptions：卡片同源 + 头部底色 #f7f8fa；label secondary、value text
+ *  - statistic：title 12 secondary、value 24 text 600；suffix/prefix secondary
+ * ============================================================ */
+
+/* —— el-descriptions —— */
+.el-descriptions {
+  --el-descriptions-table-border: 1px solid var(--app-border);
+}
+.el-descriptions__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-text);
+}
+.el-descriptions__extra {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+}
+.el-descriptions--border .el-descriptions__body {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  overflow: hidden;
+}
+.el-descriptions--border .el-descriptions__body .el-descriptions__table {
+  border: none;
+}
+.el-descriptions--border .el-descriptions__cell {
+  border-color: var(--app-border);
+}
+.el-descriptions__label.el-descriptions__cell.is-bordered-label {
+  background-color: #f7f8fa;
+  color: var(--app-text);
+  font-weight: 500;
+  font-size: 13px;
+}
+.el-descriptions__label:not(.is-bordered-label) {
+  color: var(--app-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+.el-descriptions__content {
+  color: var(--app-text);
+  font-size: 13px;
+}
+
+/* —— el-statistic —— */
+.el-statistic__head {
+  font-size: 12px;
+  color: var(--app-text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.el-statistic__content {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--app-text);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.el-statistic__number {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--app-text);
+}
+.el-statistic__prefix,
+.el-statistic__suffix {
+  font-size: 13px;
+  color: var(--app-text-secondary);
+  font-weight: 400;
+}
+
+/* —— 暗色：descriptions label 头底色 —— */
+html.dark .el-descriptions__label.el-descriptions__cell.is-bordered-label {
+  background-color: #1f2937;
+  color: var(--app-text);
+}
+
+/* ============== 无障碍：键盘 focus 可见环（仅 :focus-visible，不打扰鼠标用户） ============== */
+*:focus {
+  outline: none;
+}
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+/*
+ * EP 的 input / textarea / select 会给内层或 wrapper 写 tabindex，
+ * 若仍套 [tabindex]:focus-visible，会与 .el-input__wrapper 的 focus 描边叠成「双层大框」
+ */
+[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper),
+.el-button:focus-visible,
+.el-checkbox__input:focus-visible .el-checkbox__inner,
+.el-radio__input:focus-visible .el-radio__inner,
+.el-switch:focus-visible .el-switch__core,
+.el-tag:focus-visible,
+.el-pagination button:focus-visible,
+.el-pager li:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--app-radius-sm);
+}
+
+/*
+ * 原生控件键盘焦点环（排除 EP 已包一层的 .el-input__inner / .el-textarea__inner，
+ * 否则 wrapper 描边 + 内层 outline 叠成「双层框、像变大」）
+ * 另排除 .el-range-input：datetimerange / daterange 已由 .el-input__wrapper 统一描边，
+ * 内层两段输入再套 outline 会与外层叠成双圈、视觉过重。
+ */
+input:not(.el-input__inner):not(.el-range-input):focus-visible,
+textarea:not(.el-textarea__inner):focus-visible,
+select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 60%, transparent);
+  outline-offset: 1px;
+}
+
+/* 日期时间范围：内层输入仅承担文本，聚焦态只保留外层一层 inset 边 */
+.el-date-editor .el-range-input {
+  outline: none !important;
+}
+.el-date-editor .el-range-input:focus,
+.el-date-editor .el-range-input:focus-visible {
+  outline: none !important;
+}
+
+/* 跳过链接（屏幕阅读器 / 键盘用户用），默认隐藏，聚焦时浮出来 */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: var(--el-color-primary);
+  color: #fff;
+  border-radius: var(--app-radius);
+  font-size: 14px;
+}
+.skip-to-content:focus-visible {
+  left: 16px;
+  top: 16px;
+}
+
+/* 高对比度模式：让浅色边框不至于消失 */
+@media (prefers-contrast: more) {
+  :root {
+    --app-border: #94a3b8;
+  }
+  html.dark {
+    --app-border: #4b5563;
+  }
+}
+
+/* 减少动画偏好：尊重系统设置，禁用大部分过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

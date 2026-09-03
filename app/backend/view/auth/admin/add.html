@@ -23,8 +23,8 @@
                         <div class="layui-list-item">
                             <p>
                                 <i class="layui-icon layui-icon-release"></i>
-                                {volist name="authGroup" id="vo"}
-                                {if in_array($vo.id,$formData.group_id)}
+                                {volist name="roles" id="vo"}
+                                {if in_array($vo.id,$formData.role_ids)}
                                 {$vo.title}
                                 {/if}
                                 {/volist}
@@ -54,7 +54,7 @@
                                 <form class="layui-form" lay-filter="form">
                                     {:form_input('username','text',['verify'=>'required','disabled'=>true,])}
                                     {if request()->action()=='edit'}
-                                    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>1],'id,ltitle',$formData['group_id']??'')}
+                                    {:form_select('role_ids',$roles,['verify'=>'required','multiple'=>1,'search'=>1],'id,ltitle',$formData['role_ids']??'')}
                                     {/if}
                                     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
                                     {if request()->action()=='edit'}
@@ -82,7 +82,7 @@
 {else/}
 
 <form class="layui-form" lay-filter="form">
-    {:form_select('group_id',$authGroup,['verify'=>'required','multiple'=>1,'search'=>1] ,'id,ltitle',(isset($formData) and isset($formData['group_id']) ?$formData['group_id']:''))}
+    {:form_select('role_ids',$roles,['verify'=>'required','multiple'=>1,'search'=>1] ,'id,ltitle',(isset($formData) and isset($formData['role_ids']) ?$formData['role_ids']:''))}
     {:form_input('username','text',['verify'=>'required','tips'=>'Username is between 4 and 25 characters'] )}
     {:form_input('realname','text',['verify'=>'required','tips'=>'realname'] )}
     {if !$formData}

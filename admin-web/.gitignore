@@ -1,0 +1,42 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.log
+.env
+.env.development
+.env.production
+.env.local
+.env.*.local
+!.env.example
+
+# Editor
+.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Test
+coverage
+*.lcov
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 临时调试文件 / Playwright MCP 产物 / 根目录调试截图
+.tmp*
+.playwright-mcp/
+/messagebox-*.png
+/msgbox-*.png

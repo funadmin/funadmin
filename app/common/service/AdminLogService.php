@@ -12,12 +12,10 @@
  */
 namespace app\common\service;
 
-use app\backend\controller\auth\Admin;
 use app\backend\model\AdminLog;
-use app\backend\model\AuthRule;
+use app\backend\model\Permission;
 use think\App;
 use think\facade\Request;
-use think\facade\Session;
 
 class AdminLogService extends AbstractService
 {
@@ -74,7 +72,8 @@ class AdminLogService extends AbstractService
         }else{
             //权限
             $url = str_replace('.'.config('view.view_suffix'),'',$url);
-            $this->title =  AuthRule::where('href',$url)->where('module',$this->app)->value('title');
+            $resource = \app\backend\service\PermissionResource::fromRoute($this->app, $url);
+            $this->title = $resource ? Permission::where('code', $resource['code'])->value('title') : '';
         }
         if(isset($this->post_data['password'])) unset($this->post_data['password']);
         //插入数据

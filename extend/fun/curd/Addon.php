@@ -13,8 +13,7 @@
 
 namespace fun\curd;
 
-use app\backend\model\AuthRule;
-use app\backend\service\CasbinService;
+use app\backend\service\ResourceRegistryService;
 use app\backend\service\AddonService;
 use Exception;
 use fun\helper\CtrHelper;
@@ -188,27 +187,10 @@ class Addon extends Command
                     'items'=>[
                     ]
                 ],
-                [
-                    'name'=>'install.sql',
-                    'content'=>'',
-                    'fileName'=>$addonPath . 'install.sql',
-                    'tpl'=> $tplPath . 'sql.tpl',
-                    'items'=>[
-                    ]
-                ],
-                [
-                    'name'=>'uninstall.sql',
-                    'content'=>'',
-                    'fileName'=>$addonPath . 'uninstall.sql',
-                    'tpl'=> $tplPath . 'sql.tpl',
-                    'items'=>[
-                    ]
-                ],
             ];
             if ($param['app']) {
                 if($this->config['delete'] && $this->config['force']){
-                    CasbinService::instance()->deleteModulePolicies($param['app']);
-                    AuthRule::where('module', $param['app'])->force()->delete();
+                    ResourceRegistryService::instance()->removeSource('crud', $param['app']);
                 }
                 if(!$this->config['min']){
                     foreach ($fileList as $key => &$value) {
@@ -343,7 +325,7 @@ class Addon extends Command
                 'title' => $title,
                 'status' => 1,
                 'type' => 1,
-                'menu_status' => 1,
+                'visible' => 1,
                 'icon' => 'layui-icon layui-icon-app',
             ];
             foreach ($controller['methods'] as $item) {
@@ -352,7 +334,7 @@ class Addon extends Command
                     'title' => $item['comment'],
                     'status' => 1,
                     'type' => 2,
-                    'menu_status' => 0,
+                    'visible' => 0,
                 ];
             }
             $childMenu[] = $menu;
@@ -364,9 +346,8 @@ class Addon extends Command
                 'href' => ucfirst($this->config['app']) .'Manager',
                 'title' => $this->config['title']?:ucfirst($this->config['app']) .'Manager',
                 'status' => 1,
-                'auth_verify' => 1,
-                'type' => 1,
-                'menu_status' => 1,
+                                'type' => 1,
+                'visible' => 1,
                 'module' => $this->config['app'],
                 'icon' => 'layui-icon layui-icon-app',
                 'menulist' => [

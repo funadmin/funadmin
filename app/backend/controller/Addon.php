@@ -492,18 +492,8 @@ class Addon extends Backend
                 list($menu,$pid) = $this->addonService->getMenu($menu_config);
                 $this->addonService->delAddonMenu($menu,$name);
             }
-            //为了防止文件误删，这里先不卸载sql
-//            uninstallsql($name);
-        }catch (Exception $e){
+        } catch (Exception $e) {
             $this->error($e->getMessage());
-        }
-        $sql = root_path().'addons/'.$name.'/'.'upgrade.sql';
-        if(file_exists($sql)){
-            importSqlData($sql);
-        }
-        $sql = root_path().'addons/'.$name.'/'.'update.sql';
-        if(file_exists($sql)){
-            importSqlData($sql);
         }
         Service::updateAddonsInfo($name,1,0);
         try {

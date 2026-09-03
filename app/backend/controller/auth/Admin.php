@@ -58,28 +58,28 @@ class Admin extends Backend
             $auth = AuthService::instance();
             $query = $this->modelClass->where($where);
             if (!$auth->isSuperAdmin()) {
-                $adminIds = $this->casbin()->adminIdsByGroups($auth->manageableGroupIds());
+                $adminIds = $this->casbin()->adminIdsByRoles($auth->manageableRoleIds());
                 $query->whereIn('id', $adminIds ?: [0]);
             }
             $count = (clone $query)->count();
             $list = $query->order($sort)->page($this->page, $this->pageSize)->select()->toArray();
 
             $adminIds = array_column($list, 'id');
-            $groupIdsByAdmin = $this->casbin()->groupIdsByAdmins($adminIds);
-            $allGroupIds = [];
-            foreach ($groupIdsByAdmin as $groupIds) {
-                $allGroupIds = array_merge($allGroupIds, $groupIds);
+            $roleIdsByAdmin = $this->casbin()->roleIdsByAdmins($adminIds);
+            $allRoleIds = [];
+            foreach ($roleIdsByAdmin as $roleIds) {
+                $allRoleIds = array_merge($allRoleIds, $roleIds);
             }
-            $allGroupIds = array_values(array_unique($allGroupIds));
-            $groupTitles = $allGroupIds
-                ? AuthGroupModel::whereIn('id', $allGroupIds)->column('title', 'id')
+            $allRoleIds = array_values(array_unique($allRoleIds));
+            $roleTitles = $allRoleIds
+                ? AuthGroupModel::whereIn('id', $allRoleIds)->column('title', 'id')
                 : [];
             foreach ($list as $key => $item) {
-                $groupIds = $groupIdsByAdmin[(int) $item['id']] ?? [];
-                $list[$key]['group_id'] = implode(',', $groupIds);
-                $list[$key]['authGroup']['title'] = implode(',', array_filter(array_map(
-                    static fn ($groupId) => $groupTitles[$groupId] ?? null,
-                    $groupIds
+                $roleIds = $roleIdsByAdmin[(int) $item['id']] ?? [];
+                $list[$key]['role_ids'] = $roleIds;
+                $list[$key]['roles']['title'] = implode(',', array_filter(array_map(
+                    static fn ($roleId) => $roleTitles[$roleId] ?? null,
+                    $roleIds
                 )));
             }
             $result = ['code'=>0,'msg'=>lang('get formData success'),'data'=>$list,'count'=>$count];
@@ -109,20 +109,20 @@ class Admin extends Backend
                 'password|密码' =>[
                     'require' => 'require',
                 ],
-                'group_id|用户组'=>[
+                'role_ids|角色'=>[
                     'require' => 'require',
                 ],
             ];
             $this->validate($post, $rule);
             $auth = AuthService::instance();
-            if (!$auth->canAssignGroups($post['group_id'] ?? '')) {
+            if (!$auth->canAssignRoles($post['role_ids'] ?? '')) {
                 $this->error(lang('Permission denied'));
             }
             $post = array_intersect_key($post, array_flip([
-                'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
+                'username', 'password', 'role_ids', 'realname', 'avatar', 'email', 'mobile',
             ]));
-            $groupIds = $this->normalizeIds($post['group_id']);
-            unset($post['group_id']);
+            $roleIds = $this->normalizeIds($post['role_ids']);
+            unset($post['role_ids']);
             $post['status'] = 1;
             $post['password'] = StringHelper::filterWords($post['password']);
             if (mb_strlen($post['password']) < 8) {
@@ -130,10 +130,10 @@ class Admin extends Backend
             }
             $post['password'] = SignHelper::password($post['password']);
             try {
-                Db::transaction(function () use ($post, $groupIds) {
+                Db::transaction(function () use ($post, $roleIds) {
                     $admin = new AdminModel();
                     $admin->save($post);
-                    $this->casbin()->syncAdminGroups((int) $admin->id, $groupIds);
+                    $this->casbin()->syncAdminRoles((int) $admin->id, $roleIds);
                 });
             } catch (\Throwable $e) {
                 $this->error(lang('operation failed'));
@@ -142,10 +142,10 @@ class Admin extends Backend
             $this->success(lang('operation success'));
         }
         $list = '';
-        $authGroup = $this->getAuthGroup();
+        $roles = $this->getRoles();
         $view = [
             'formData'  =>$list,
-            'authGroup' => $authGroup,
+            'roles' => $roles,
             'title' => lang('Add'),
         ];
         View::assign($view);
@@ -177,10 +177,10 @@ class Admin extends Backend
         }
         $formData = $list->toArray();
         $formData['password'] = '';
-        $formData['group_id'] = $this->casbin()->adminGroupIds($id);
+        $formData['role_ids'] = $this->casbin()->adminRoleIds($id);
         View::assign([
             'formData' => $formData,
-            'authGroup' => AuthGroupModel::where('status', 1)->whereIn('id', $formData['group_id'])->select(),
+            'roles' => AuthGroupModel::where('status', 1)->whereIn('id', $formData['role_ids'])->select(),
             'title' => lang('Edit'),
             'type' => $this->request->get('type'),
         ]);
@@ -204,15 +204,15 @@ class Admin extends Backend
         }
         if ($this->request->isPost()) {
             $post = $this->request->post();
-            $this->validate($post, ['group_id' => 'require', 'username' => 'require', 'realname' => 'require']);
-            if (!$auth->canAssignGroups($post['group_id'] ?? '')) {
+            $this->validate($post, ['role_ids' => 'require', 'username' => 'require', 'realname' => 'require']);
+            if (!$auth->canAssignRoles($post['role_ids'] ?? '')) {
                 $this->error(lang('Permission denied'));
             }
             $post = array_intersect_key($post, array_flip([
-                'username', 'password', 'group_id', 'realname', 'avatar', 'email', 'mobile',
+                'username', 'password', 'role_ids', 'realname', 'avatar', 'email', 'mobile',
             ]));
-            $groupIds = $this->normalizeIds($post['group_id']);
-            unset($post['group_id']);
+            $roleIds = $this->normalizeIds($post['role_ids']);
+            unset($post['role_ids']);
             if (!empty($post['password'])) {
                 if (mb_strlen((string) $post['password']) < 8) {
                     $this->error(lang('Password must be at least 8 characters'));
@@ -223,9 +223,9 @@ class Admin extends Backend
                 unset($post['password']);
             }
             try {
-                Db::transaction(function () use ($list, $post, $groupIds) {
+                Db::transaction(function () use ($list, $post, $roleIds) {
                     $list->save($post);
-                    $this->casbin()->syncAdminGroups((int) $list->id, $groupIds);
+                    $this->casbin()->syncAdminRoles((int) $list->id, $roleIds);
                 });
             } catch (\Throwable $e) {
                 $this->error(lang('operation failed'));
@@ -234,11 +234,11 @@ class Admin extends Backend
             $this->success(lang('operation success'));
         }
         $formData = $list->toArray();
-        $formData['group_id'] = $this->casbin()->adminGroupIds($id);
+        $formData['role_ids'] = $this->casbin()->adminRoleIds($id);
         $formData['password'] = '';
         View::assign([
             'formData' => $formData,
-            'authGroup' => $this->getAuthGroup(),
+            'roles' => $this->getRoles(),
             'title' => lang('Edit'),
             'type' => $this->request->get('type'),
         ]);
@@ -388,7 +388,7 @@ class Admin extends Backend
 
     protected function casbin(): CasbinService
     {
-        return new CasbinService();
+        return CasbinService::instance();
     }
 
     protected function normalizeIds($ids): array
@@ -399,19 +399,19 @@ class Admin extends Backend
         return array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0)));
     }
 
-    protected function getAuthGroup()
+    protected function getRoles()
     {
-        $ids = AuthService::instance()->manageableGroupIds();
+        $ids = AuthService::instance()->manageableRoleIds();
         if (!$ids) {
             return [];
         }
-        $authGroup = AuthGroupModel::where('status', 1)->whereIn('id', $ids)->select()->toArray();
-        foreach ($authGroup as $key => $item) {
+        $roles = AuthGroupModel::where('status', 1)->whereIn('id', $ids)->select()->toArray();
+        foreach ($roles as $key => $item) {
             if (!in_array((int) $item['pid'], $ids, true)) {
-                $authGroup[$key]['pid'] = 0;
+                $roles[$key]['pid'] = 0;
             }
         }
-        return TreeHelper::cateTree($authGroup, 'title');
+        return TreeHelper::cateTree($roles, 'title');
     }
 
 }

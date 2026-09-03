@@ -1,20 +1,19 @@
 <?php
 namespace app\backend\controller\auth;
 use app\backend\model\AuthGroup as AuthGroupModel ;
-use app\backend\model\AuthRule;
+use app\backend\model\Permission;
 use app\backend\service\AuthService;
 use app\backend\service\CasbinService;
 use app\common\controller\Backend;
 use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Cache;
-use think\facade\Db;
 use think\facade\View;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
 
 /**
- * @ControllerAnnotation(title="会员组")
+ * @ControllerAnnotation(title="角色")
  * Class AuthGroup
  * @package app\backend\controller\auth
  */
@@ -42,8 +41,8 @@ class AuthGroup extends Backend
             list($this->page, $this->pageSize,$sort, $where) = $this->buildParames();
             if (!AuthService::instance()->isSuperAdmin()) {
                 $ids = array_values(array_unique(array_merge(
-                    AuthService::instance()->currentGroupIds(),
-                    AuthService::instance()->manageableGroupIds()
+                    AuthService::instance()->currentRoleIds(),
+                    AuthService::instance()->manageableRoleIds()
                 )));
                 $where[] = ['id', 'in', $ids ?: [0]];
             }
@@ -81,11 +80,11 @@ class AuthGroup extends Backend
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $this->validate($post, [
-                'title|用户组名' => ['require' => 'require', 'max' => '100', 'unique' => 'auth_group'],
-                'pid|上级用户组' => 'require',
+                'title|角色名称' => ['require' => 'require', 'max' => '100', 'unique' => 'auth_group'],
+                'pid|上级角色' => 'require',
             ]);
             $pid = (int) ($post['pid'] ?? 0);
-            if (!$auth->canUseParentGroup($pid)) {
+            if (!$auth->canUseParentRole($pid)) {
                 $this->error(lang('Permission denied'));
             }
             $result = $this->modelClass->save([
@@ -96,8 +95,8 @@ class AuthGroup extends Backend
             Cache::clear();
             $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
-        $authGroup = $this->availableParentGroups();
-        View::assign(['formData' => null, 'authGroup' => $authGroup]);
+        $roles = $this->availableParentRoles();
+        View::assign(['formData' => null, 'roles' => $roles]);
         return view();
     }
 
@@ -113,26 +112,26 @@ class AuthGroup extends Backend
         $id = (int) $this->request->param('id');
         $auth = AuthService::instance();
         $list = $this->modelClass->find($id);
-        if ($id === 1 || !$list || !$auth->canManageGroup($id)) {
+        if ($id === (int) config('funadmin.superRoleId') || !$list || !$auth->canManageRole($id)) {
             $this->error(lang('Permission denied'));
         }
         if ($this->request->isPost()) {
             $post = $this->request->post();
             $this->validate($post, ['title' => 'require', 'pid' => 'require']);
             $pid = (int) ($post['pid'] ?? 0);
-            $forbiddenParents = array_merge([$id], $auth->descendantGroupIds($id));
-            if (!$auth->canUseParentGroup($pid) || in_array($pid, $forbiddenParents, true)) {
+            $forbiddenParents = array_merge([$id], $auth->descendantRoleIds($id));
+            if (!$auth->canUseParentRole($pid) || in_array($pid, $forbiddenParents, true)) {
                 $this->error(lang('Permission denied'));
             }
             $result = $list->save(['title' => (string) $post['title'], 'pid' => $pid]);
             Cache::clear();
             $result ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
         }
-        $authGroup = array_values(array_filter(
-            $this->availableParentGroups(),
-            static fn ($group) => !in_array((int) $group['id'], array_merge([$id], $auth->descendantGroupIds($id)), true)
+        $roles = array_values(array_filter(
+            $this->availableParentRoles(),
+            static fn ($role) => !in_array((int) $role['id'], array_merge([$id], $auth->descendantRoleIds($id)), true)
         ));
-        View::assign(['formData' => $list, 'authGroup' => $authGroup]);
+        View::assign(['formData' => $list, 'roles' => $roles]);
         return view('add');
     }
 
@@ -149,7 +148,7 @@ class AuthGroup extends Backend
         }
         $id = (int) $this->request->param('id');
         $field = (string) $this->request->param('field');
-        if ($id === 1 || $field !== 'status' || !AuthService::instance()->canManageGroup($id)) {
+        if ($id === (int) config('funadmin.superRoleId') || $field !== 'status' || !AuthService::instance()->canManageRole($id)) {
             $this->error(lang('Permission denied'));
         }
         $list = $this->modelClass->find($id);
@@ -175,12 +174,12 @@ class AuthGroup extends Backend
             $this->error(lang('Invalid data'));
         }
         $ids = $this->normalizeIds($this->request->param('ids', $this->request->param('id')));
-        if (!$ids || in_array(1, $ids, true)) {
+        if (!$ids || in_array((int) config('funadmin.superRoleId'), $ids, true)) {
             $this->error(lang('Permission denied'));
         }
         $auth = AuthService::instance();
         foreach ($ids as $id) {
-            if (!$auth->canManageGroup($id)) {
+            if (!$auth->canManageRole($id)) {
                 $this->error(lang('Permission denied'));
             }
         }
@@ -189,15 +188,15 @@ class AuthGroup extends Backend
             $this->error(lang('Invalid data'));
         }
         try {
-            foreach ($list as $group) {
-                if ($this->modelClass->withTrashed()->where('pid', $group['id'])->find()) {
-                    throw new \Exception('there is child group in' . $group['title']);
+            foreach ($list as $role) {
+                if ($this->modelClass->withTrashed()->where('pid', $role['id'])->find()) {
+                    throw new \Exception('there is child role in' . $role['title']);
                 }
-                if ($this->casbin()->hasAdminsInGroup((int) $group['id'])) {
-                    throw new \Exception('there is admin in' . $group['title']);
+                if ($this->casbin()->roleHasAdmins((int) $role['id'])) {
+                    throw new \Exception('there is admin in' . $role['title']);
                 }
-                $this->casbin()->deleteGroup((int) $group['id']);
-                $group->force()->delete();
+                $this->casbin()->deleteRole((int) $role['id']);
+                $role->force()->delete();
             }
         } catch (\Exception $e) {
             $this->error(lang($e->getMessage() . ' operation error'));
@@ -215,75 +214,106 @@ class AuthGroup extends Backend
      */
     public function access()
     {
-        $groupId = (int) $this->request->param('id');
+        $roleId = (int) $this->request->param('id');
         $auth = AuthService::instance();
-        $group = $this->modelClass->find($groupId);
-        if ($groupId === 1 || !$group || !$auth->canManageGroup($groupId)) {
+        $role = $this->modelClass->find($roleId);
+        if ($roleId === (int) config('funadmin.superRoleId') || !$role || !$auth->canManageRole($roleId)) {
             $this->error(lang('Permission denied'));
         }
 
         if ($this->request->isAjax()) {
             if ($this->request->isGet()) {
-                $allowedRuleIds = $auth->isSuperAdmin()
-                    ? array_map('intval', AuthRule::where('status', 1)->column('id'))
-                    : array_map('intval', array_filter(explode(',', (string) $auth->getRules($auth->currentGroupIds()))));
-                $adminRule = AuthRule::field('id,pid,title,href,module')
+                $allowedPermissionIds = $auth->isSuperAdmin()
+                    ? array_map('intval', Permission::where('status', 1)->column('id'))
+                    : $auth->permissionIdsForRoles($auth->currentRoleIds());
+                $allPermissions = Permission::field('id,pid,title,code,module')
                     ->where('status', 1)
-                    ->whereIn('id', $allowedRuleIds ?: [0])
                     ->order('sort asc')
-                    ->select()->toArray();
+                    ->select()
+                    ->toArray();
+                $allowedPermissionIds = $this->includePermissionAncestors($allPermissions, $allowedPermissionIds);
+                $manageablePermissions = array_values(array_filter(
+                    $allPermissions,
+                    static fn (array $permission): bool => in_array((int) $permission['id'], $allowedPermissionIds, true)
+                ));
                 return json([
                     'code' => 1,
                     'msg' => 'ok',
                     'data' => [
-                        'list' => $auth->authChecked($adminRule, 0, implode(',', $auth->groupRuleIds($groupId)), $groupId),
-                        'idList' => $allowedRuleIds,
-                        'group_id' => $groupId,
+                        'permissions' => $auth->buildPermissionTree(
+                            $manageablePermissions,
+                            0,
+                            $auth->rolePermissionIds($roleId),
+                            $roleId === (int) config('funadmin.superRoleId')
+                        ),
+                        'permissionIds' => $auth->rolePermissionIds($roleId),
+                        'role_id' => $roleId,
                     ],
                 ]);
             }
 
-            $rules = json_decode((string) $this->request->post('rules', ''), true);
-            if (!is_array($rules)) {
-                $this->error(lang('please choose rule'));
+            $permissionTree = json_decode((string) $this->request->post('permission_ids', ''), true);
+            if (!is_array($permissionTree)) {
+                $this->error(lang('Please choose permission'));
             }
-            $ruleIds = array_column($auth->authNormal($rules), 'id');
-            $ruleIds = $this->normalizeIds($ruleIds);
-            if (!$ruleIds || !$auth->canAssignRules($ruleIds)) {
+            $permissionIds = array_column($auth->flattenPermissionTree($permissionTree), 'id');
+            $permissionIds = $this->normalizeIds($permissionIds);
+            $permissionIds = array_map('intval', Permission::whereIn('id', $permissionIds ?: [0])
+                ->where('status', 1)
+                ->where('resource_type', Permission::TYPE_ROUTE)
+                ->column('id'));
+            if (!$auth->canAssignPermissions($permissionIds)) {
                 $this->error(lang('Permission denied'));
             }
             try {
-                Db::transaction(function () use ($groupId, $ruleIds) {
-                    $this->casbin()->syncGroupRules($groupId, $ruleIds);
+                Permission::query()->getConnection()->transaction(function () use ($roleId, $permissionIds) {
+                    $this->casbin()->syncRolePermissions($roleId, $permissionIds);
                 });
             } catch (\Throwable $e) {
-                $this->error(lang('rule assign fail'));
+                $this->error(lang('Permission assignment failed'));
             }
             Cache::clear();
-            $this->success(lang('rule assign success'));
+            $this->success(lang('Permission assignment succeeded'));
         }
         return view();
     }
 
 
-    protected function casbin(): CasbinService
+    private function includePermissionAncestors(array $permissions, array $permissionIds): array
     {
-        return new CasbinService();
+        $ids = $this->normalizeIds($permissionIds);
+        $parents = [];
+        foreach ($permissions as $permission) {
+            $parents[(int) $permission['id']] = (int) $permission['pid'];
+        }
+        foreach ($ids as $id) {
+            $parentId = $parents[$id] ?? 0;
+            while ($parentId > 0 && !in_array($parentId, $ids, true)) {
+                $ids[] = $parentId;
+                $parentId = $parents[$parentId] ?? 0;
+            }
+        }
+        return $ids;
     }
 
-    protected function availableParentGroups(): array
+    protected function casbin(): CasbinService
     {
-        $ids = AuthService::instance()->manageableGroupIds(true);
+        return CasbinService::instance();
+    }
+
+    protected function availableParentRoles(): array
+    {
+        $ids = AuthService::instance()->manageableRoleIds(true);
         if (!$ids) {
             return [];
         }
-        $groups = $this->modelClass->where('status', 1)->whereIn('id', $ids)->select()->toArray();
-        foreach ($groups as $key => $group) {
-            if (!in_array((int) $group['pid'], $ids, true)) {
-                $groups[$key]['pid'] = 0;
+        $roles = $this->modelClass->where('status', 1)->whereIn('id', $ids)->select()->toArray();
+        foreach ($roles as $key => $role) {
+            if (!in_array((int) $role['pid'], $ids, true)) {
+                $roles[$key]['pid'] = 0;
             }
         }
-        return TreeHelper::cateTree($groups);
+        return TreeHelper::cateTree($roles);
     }
 
     protected function normalizeIds($ids): array

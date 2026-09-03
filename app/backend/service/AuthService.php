@@ -16,7 +16,7 @@ namespace app\backend\service;
 
 use app\backend\model\Admin as AdminModel;
 use app\backend\model\AuthGroup as AuthGroupModel;
-use app\backend\model\AuthRule;
+use app\backend\model\Permission;
 use app\common\model\Blacklist;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
@@ -48,12 +48,6 @@ class AuthService extends AbstractService
 
     protected $requesturl;
     /**
-     * @var array
-     * config
-     */
-    protected $config = [];
-
-    /**
      * 获取用户信息
      * @param $name
      * @return mixed
@@ -66,9 +60,6 @@ class AuthService extends AbstractService
     public function __construct()
     {
         parent::__construct();
-        if ($auth = config('auth')) {
-            $this->config = array_merge($this->config, $auth);
-        }
         // 初始化request
         $this->request = Request::instance();
         $this->app = app('http')->getName();
@@ -86,35 +77,8 @@ class AuthService extends AbstractService
     }
 
     /**
-     * 权限节点
-     * @return array|int[]|mixed|string[]
-     */
-    public function nodeList()
-    {
-        $allAuthNode = [];
-        if (session('admin')) {
-            $cacheKey = 'auth-node-list-' . session('admin.id');
-            $allAuthNode = Cache::get($cacheKey);
-            if (empty($allAuthNode)) {
-                $allAuthIds = $this->getRules($this->currentGroupIds());
-                $allAuthNode = db_cache($cacheKey,function()use($allAuthIds,$cacheKey){
-                    $authNode = AuthRule::where('status', 1)->whereIn('id', $allAuthIds)->cache($cacheKey)->column('href', 'href');
-                    foreach ($authNode as $k => $v) {
-                        $authNode[$k] = (parse_name($v, 1));
-                    }
-                    return array_flip( $authNode);
-                });
-                Cache::set($cacheKey, $allAuthNode,3600);
-                
-            }
-        }
-        return $allAuthNode;
-
-    }
-
-    /**
      * 菜单节点
-     * @param $cate
+     * @param array $cate
      * @param $lefthtml
      * @param $pid
      * @param $lvl
@@ -139,52 +103,31 @@ class AuthService extends AbstractService
     }
 
     /**
-     * Summary of auth
-     * @param mixed $cate
-     * @param mixed $rules
-     * @param mixed $pid
-     * @return array
-     */
-    public function auth($cate, $rules, $pid = 0)
-    {
-        $arr = array();
-        $rulesArr = explode(',', $rules);
-        foreach ($cate as $v) {
-            if ($v['pid'] == $pid) {
-                if (in_array($v['id'], $rulesArr)) {
-                    $v['checked'] = true;
-                }
-                $v['open'] = true;
-                $arr[] = $v;
-                $arr = array_merge($arr, self::auth($cate, $v['id'], $rules));
-            }
-        }
-        return $arr;
-    }
-
-    /**
      * 权限设置选中状态
-     * @param array $cate
+     * @param array $permissions
      * @param int $pid
-     * @param string $rules
-     * @param int $group_id
+     * @param array $permissionIds
+     * @param bool $allPermissions
      * @return array
      */
-    public function authChecked(array $cate, int $pid, string $rules, int $group_id)
+    public function buildPermissionTree(array $permissions, int $pid, array $permissionIds, bool $allPermissions = false)
     {
         $list = [];
-        $rulesArr = explode(',', $rules);
-        foreach ($cate as $v) {
+        $permissionIds = $this->normalizeIds($permissionIds);
+        foreach ($permissions as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
-                if (!in_array($v['module'], ['backend'])) $v['href'] = $v['module'] . '/' . $v['href'];
-                $v['title'] = lang($v['title']) .' '. $v['module'].'@' . $v['href'];
-                if (self::authChecked($cate, $v['id'], $rules, $group_id)) {
-                    $v['children'] = self::authChecked($cate, $v['id'], $rules, $group_id);
-                } else {
-                    if (in_array($v['id'], $rulesArr) || $group_id == 1) {
-                        $v['checked'] = true;
-                    }
+                $v['title'] = lang($v['title']) . (!empty($v['code']) ? ' ' . $v['code'] : '');
+                $children = $this->buildPermissionTree(
+                    $permissions,
+                    (int) $v['id'],
+                    $permissionIds,
+                    $allPermissions
+                );
+                if ($children) {
+                    $v['children'] = $children;
+                } elseif (in_array((int) $v['id'], $permissionIds, true) || $allPermissions) {
+                    $v['checked'] = true;
                 }
                 $list[] = $v;
             }
@@ -194,18 +137,18 @@ class AuthService extends AbstractService
 
     /**
      * 权限多维转化为二维
-     * @param $cate
+     * @param array $permissions
      * @return array
      */
-    public function authNormal($cate)
+    public function flattenPermissionTree(array $permissions)
     {
         $list = [];
-        foreach ($cate as $v) {
+        foreach ($permissions as $v) {
             $list[]['id'] = $v['id'];
 //        $list[]['title'] = $v['title'];
 //        $list[]['pid'] = $v['pid'];
             if (!empty($v['children'])) {
-                $listChild = self::authNormal($v['children']);
+                $listChild = $this->flattenPermissionTree($v['children']);
                 $list = array_merge($list, $listChild);
             }
         }
@@ -284,16 +227,12 @@ class AuthService extends AbstractService
     {
         $codes = db_cache('auth-login-only-resource-codes', function () {
             $result = [];
-            $rules = AuthRule::where('status', 1)
-                ->where('auth_verify', 0)
-                ->field('module,href')
-                ->select()
-                ->toArray();
-            foreach ($rules as $rule) {
-                $item = PermissionResource::fromRoute((string) $rule['module'], (string) $rule['href']);
-                if ($item) {
-                    $result[$item['code']] = true;
-                }
+            $permissions = Permission::where('status', 1)
+                ->where('is_public', 1)
+                ->where('code', '<>', '')
+                ->column('code');
+            foreach ($permissions as $code) {
+                $result[(string) $code] = true;
             }
             return $result;
         });
@@ -319,7 +258,7 @@ class AuthService extends AbstractService
         if ($force) {
             Cache::delete('adminmenushtml' . session('admin.id'));
         }
-        $list = $this->authMenuNode($cate);
+        $list = $this->filterAuthorizedMenus($cate);
         $theme = syscfg('site', 'site_theme');
         $cache_key = 'adminmenushtml-'.$theme.md5(json_encode($list));
         $html = db_cache($cache_key,function()use($list,$theme){
@@ -454,11 +393,11 @@ class AuthService extends AbstractService
         }
         // 每次请求复核账号状态和登录令牌，确保停用、改密和异地登录立即生效。
         $me = AdminModel::find((int) $admin['id']);
-        $currentGroupIds = $this->adminGroupIds((int) $admin['id']);
-        $sessionGroupIds = $this->normalizeIds($admin['group_ids'] ?? ($admin['group_id'] ?? []));
+        $currentRoleIds = $this->adminRoleIds((int) $admin['id']);
+        $sessionRoleIds = $this->normalizeIds($admin['role_ids'] ?? []);
         if (!$me || (int) $me['status'] !== 1
             || !hash_equals((string) $me['token'], (string) ($admin['token'] ?? ''))
-            || $currentGroupIds !== $sessionGroupIds) {
+            || $currentRoleIds !== $sessionRoleIds) {
             // 仅销毁当前旧会话，不清理数据库中的新登录令牌。
             Session::destroy();
             Cookie:[REDACTED]("rememberMe");
@@ -509,8 +448,8 @@ class AuthService extends AbstractService
             if (!password_verify($password, $admin['password'])) {
                 throw new \Exception(lang('Please check username or password'));
             }
-            $groupIds = $this->adminGroupIds((int) $admin['id']);
-            if (!$groupIds || !$this->casbin()->activeGroupIds($groupIds)) {
+            $roleIds = $this->adminRoleIds((int) $admin['id']);
+            if (!$roleIds || !$this->casbin()->activeRoleIds($roleIds)) {
                 throw new \Exception(lang('You dont have permission'));
             }
             $ip = request()->ip();
@@ -519,10 +458,8 @@ class AuthService extends AbstractService
             $admin->token = SignHelper::authSign($admin);
             $admin->save();
             $admin = $admin->toArray();
-            $admin['group_ids'] = $groupIds;
-            // group_id 仅保留在会话中兼容现有模板展示，数据库不再存储该字段。
-            $admin['group_id'] = implode(',', $groupIds);
-            if ($rememberMe) {
+            $admin['role_ids'] = $roleIds;
+                                    if ($rememberMe) {
                 $admin['expiretime'] = 30 * 24 * 3600 + time();
             } else {
                 $admin['expiretime'] = config('session.expire') + time();
@@ -556,40 +493,40 @@ class AuthService extends AbstractService
 
 
     /**
-     * 获取角色权限规则。
+     * 获取角色可用的权限 ID。
      *
-     * @param mixed $groups 角色 ID 数组或逗号字符串
-     * @return string|null
+     * @param mixed $roles 角色 ID
+     * @return array<int>
      */
-    public function getRules($groups)
+    public function permissionIdsForRoles($roles)
     {
-        $groupIds = $this->normalizeIds($groups);
-        if (in_array(1, $groupIds, true)) {
-            $ruleIds = db_cache('super-admin-auth-group-rules', function () {
-                return array_map('intval', AuthRule::where('status', 1)->column('id'));
+        $roleIds = $this->normalizeIds($roles);
+        if (in_array((int) config('funadmin.superRoleId'), $roleIds, true)) {
+            $permissionIds = db_cache('super-admin-permission-ids', function () {
+                return array_map('intval', Permission::where('status', 1)->column('id'));
             });
         } else {
-            $key = 'auth-group-rules-' . implode(',', $groupIds);
-            $ruleIds = db_cache($key, function () use ($groupIds) {
-                return $this->casbin()->groupRuleIdsForGroups($groupIds);
+            $key = 'role-permissions-' . implode(',', $roleIds);
+            $permissionIds = db_cache($key, function () use ($roleIds) {
+                return $this->casbin()->permissionIdsForRoles($roleIds);
             });
         }
 
-        $noRuleIds = db_cache('no-rules', function () {
-            return array_map('intval', AuthRule::where('auth_verify', 0)->column('id'));
+        $publicPermissionIds = db_cache('public-permission-ids', function () {
+            return array_map('intval', Permission::where('status', 1)->where('is_public', 1)->column('id'));
         });
-        $ruleIds = $this->normalizeIds(array_merge($ruleIds ?: [], $noRuleIds ?: []));
-        return $ruleIds ? implode(',', $ruleIds) : null;
+        $permissionIds = $this->permissionIdsWithAncestors(array_merge($permissionIds ?: [], $publicPermissionIds ?: []));
+        return $permissionIds;
     }
 
-    public function adminGroupIds(int $adminId): array
+    public function adminRoleIds(int $adminId): array
     {
-        return $this->casbin()->adminGroupIds($adminId);
+        return $this->casbin()->adminRoleIds($adminId);
     }
 
-    public function groupRuleIds(int $groupId): array
+    public function rolePermissionIds(int $roleId): array
     {
-        return $this->casbin()->groupRuleIds($groupId);
+        return $this->casbin()->rolePermissionIds($roleId);
     }
 
     /**
@@ -603,24 +540,24 @@ class AuthService extends AbstractService
     /**
      * 当前管理员所属角色 ID。
      */
-    public function currentGroupIds(): array
+    public function currentRoleIds(): array
     {
-        return $this->adminGroupIds((int) session('admin.id'));
+        return $this->adminRoleIds((int) session('admin.id'));
     }
 
     /**
      * 当前管理员可管理的下级角色；可选包含自己的角色作为新角色父级。
      */
-    public function manageableGroupIds(bool $includeOwn = false): array
+    public function manageableRoleIds(bool $includeOwn = false): array
     {
         if ($this->isSuperAdmin()) {
             return array_map('intval', AuthGroupModel::where('status', 1)->column('id'));
         }
-        $ownIds = $this->currentGroupIds();
-        $groups = AuthGroupModel::where('status', 1)->field('id,pid')->select()->toArray();
+        $ownIds = $this->currentRoleIds();
+        $roles = AuthGroupModel::where('status', 1)->field('id,pid')->select()->toArray();
         $children = [];
-        foreach ($groups as $group) {
-            $children[(int) $group['pid']][] = (int) $group['id'];
+        foreach ($roles as $role) {
+            $children[(int) $role['pid']][] = (int) $role['id'];
         }
         $result = $includeOwn ? $ownIds : [];
         $queue = $ownIds;
@@ -636,24 +573,24 @@ class AuthService extends AbstractService
         return $result;
     }
 
-    public function canManageGroup(int $groupId): bool
+    public function canManageRole(int $roleId): bool
     {
-        return $this->isSuperAdmin() || in_array($groupId, $this->manageableGroupIds(), true);
+        return $this->isSuperAdmin() || in_array($roleId, $this->manageableRoleIds(), true);
     }
 
-    public function descendantGroupIds(int $groupId): array
+    public function descendantRoleIds(int $roleId): array
     {
-        $groups = AuthGroupModel::field('id,pid')->select()->toArray();
+        $roles = AuthGroupModel::field('id,pid')->select()->toArray();
         $children = [];
-        foreach ($groups as $group) {
-            $children[(int) $group['pid']][] = (int) $group['id'];
+        foreach ($roles as $role) {
+            $children[(int) $role['pid']][] = (int) $role['id'];
         }
         $result = [];
-        $queue = [$groupId];
+        $queue = [$roleId];
         while ($queue) {
             $parentId = array_shift($queue);
             foreach ($children[$parentId] ?? [] as $childId) {
-                if ($childId !== $groupId && !in_array($childId, $result, true)) {
+                if ($childId !== $roleId && !in_array($childId, $result, true)) {
                     $result[] = $childId;
                     $queue[] = $childId;
                 }
@@ -662,21 +599,21 @@ class AuthService extends AbstractService
         return $result;
     }
 
-    public function canUseParentGroup(int $groupId): bool
+    public function canUseParentRole(int $roleId): bool
     {
-        if ($groupId <= 0 || !AuthGroupModel::where('id', $groupId)->where('status', 1)->find()) {
+        if ($roleId <= 0 || !AuthGroupModel::where('id', $roleId)->where('status', 1)->find()) {
             return false;
         }
-        return $this->isSuperAdmin() || in_array($groupId, $this->manageableGroupIds(true), true);
+        return $this->isSuperAdmin() || in_array($roleId, $this->manageableRoleIds(true), true);
     }
 
-    public function canAssignGroups($groupIds): bool
+    public function canAssignRoles($roleIds): bool
     {
-        $groupIds = $this->normalizeIds($groupIds);
-        if (!$groupIds || AuthGroupModel::where('status', 1)->whereIn('id', $groupIds)->count() !== count($groupIds)) {
+        $roleIds = $this->normalizeIds($roleIds);
+        if (!$roleIds || AuthGroupModel::where('status', 1)->whereIn('id', $roleIds)->count() !== count($roleIds)) {
             return false;
         }
-        return $this->isSuperAdmin() || !array_diff($groupIds, $this->manageableGroupIds());
+        return $this->isSuperAdmin() || !array_diff($roleIds, $this->manageableRoleIds());
     }
 
     public function canManageAdmin($admin, bool $allowSelf = false): bool
@@ -690,24 +627,27 @@ class AuthService extends AbstractService
         if ($allowSelf && (int) $admin['id'] === (int) session('admin.id')) {
             return true;
         }
-        $groupIds = $this->adminGroupIds((int) $admin['id']);
-        return $groupIds && !array_diff($groupIds, $this->manageableGroupIds());
+        $roleIds = $this->adminRoleIds((int) $admin['id']);
+        return $roleIds && !array_diff($roleIds, $this->manageableRoleIds());
     }
 
     /**
      * 下级角色只能获得当前管理员自身已有的权限。
      */
-    public function canAssignRules($ruleIds): bool
+    public function canAssignPermissions($permissionIds): bool
     {
-        $ruleIds = $this->normalizeIds($ruleIds);
-        if (!$ruleIds || AuthRule::where('status', 1)->whereIn('id', $ruleIds)->count() !== count($ruleIds)) {
+        $permissionIds = $this->normalizeIds($permissionIds);
+        if (!$permissionIds) {
+            return true;
+        }
+        if (Permission::where('status', 1)->whereIn('id', $permissionIds)->count() !== count($permissionIds)) {
             return false;
         }
         if ($this->isSuperAdmin()) {
             return true;
         }
-        $ownRuleIds = $this->normalizeIds($this->getRules($this->currentGroupIds()));
-        return !array_diff($ruleIds, $ownRuleIds);
+        $ownPermissionIds = $this->normalizeIds($this->permissionIdsForRoles($this->currentRoleIds()));
+        return !array_diff($permissionIds, $ownPermissionIds);
     }
 
     protected function casbin(): CasbinService
@@ -726,18 +666,32 @@ class AuthService extends AbstractService
     }
 
     // 获取左侧菜单树：叶子菜单按 Casbin 权限过滤，目录由可见子菜单反向保留。
-    protected function authMenuNode($menu, $pid = 0, $rules = [])
+    private function permissionIdsWithAncestors(array $permissionIds): array
     {
-        $authorizedIds = $this->normalizeIds($this->getRules($this->currentGroupIds()));
+        $ids = $this->normalizeIds($permissionIds);
+        $parents = Permission::where('status', 1)->column('pid', 'id');
+        foreach ($ids as $id) {
+            $parentId = (int) ($parents[$id] ?? 0);
+            while ($parentId > 0 && !in_array($parentId, $ids, true)) {
+                $ids[] = $parentId;
+                $parentId = (int) ($parents[$parentId] ?? 0);
+            }
+        }
+        return $ids;
+    }
+
+    protected function filterAuthorizedMenus(array $menus, int $pid = 0, ?array $permissionIds = null): array
+    {
+        $permissionIds ??= $this->permissionIdsForRoles($this->currentRoleIds());
         $list = [];
-        foreach ($menu as $item) {
-            if ((int) $item['pid'] !== (int) $pid) {
+        foreach ($menus as $item) {
+            if ((int) $item['pid'] !== $pid) {
                 continue;
             }
 
-            $children = $this->authMenuNode($menu, (int) $item['id'], $authorizedIds);
+            $children = $this->filterAuthorizedMenus($menus, (int) $item['id'], $permissionIds);
             $allowed = $this->isSuperAdmin()
-                || in_array((int) $item['id'], $authorizedIds, true)
+                || in_array((int) ($item['permission_id'] ?? 0), $permissionIds, true)
                 || $children !== [];
             if (!$allowed) {
                 continue;
@@ -745,10 +699,10 @@ class AuthService extends AbstractService
 
             $href = (string) $item['href'];
             $url = parse_url($href);
-            if (empty($url['host'])) {
+            if ($href !== '' && empty($url['host'])) {
                 $path = '/' . trim((string) $item['module'] . '/' . trim($href, '/'), '/');
                 $query = trim((string) ($url['query'] ?? '') . '&' . (string) $item['query'], '&');
-                if ((int) $item['menu_status'] === 1 && !Str::endsWith($path, '/index')) {
+                if (!Str::endsWith($path, '/index')) {
                     $path .= '/index';
                 }
                 $item['href'] = $path . ($query !== '' ? '?' . $query : '');
@@ -757,27 +711,6 @@ class AuthService extends AbstractService
             $list[] = $item;
         }
         return $list;
-    }
-
-    /** 
-     * 获取所有子id
-     * @param mixed $pid
-     * @return string
-     */
-    public function getAllIdsBypid($pid)
-    {
-        $res = db_cache('get-rule-ids-by-pid-'.$pid,function()use($pid){
-            $res = AuthRule::where('pid', $pid)->where('status', 1)->select();
-            $ids = [];
-            if (!empty($res)) {
-                foreach ($res as $v) {
-                    $ids[] = $v['id'];
-                    $ids = array_merge($ids, explode(',', $this->getAllIdsBypid($v['id'])));
-                }
-            }
-            return implode(',', array_filter($ids));
-        });
-        return $res;
     }
 
 

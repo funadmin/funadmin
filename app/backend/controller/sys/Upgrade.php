@@ -164,9 +164,9 @@ class Upgrade extends Backend
                 foreach ($dir as $k => $v) {
                     if ($v == '.' || $v == '..') continue;
                     $file = $fileDir . $filename . '/' . $v;
-                    if ($v == 'upgrade.sql') {
-                        importSqlData($file);
-                    } else if (is_file($file)){
+                    if ($v === 'migrations' && is_dir($file)) {
+                        \app\common\service\MigrationService::instance()->runDirectory($file, 'core-upgrade');
+                    } elseif (is_file($file)) {
                         @copy($file,'../'.$v);
                     }else{
                         FileHelper::copyDir($file, '../' . $v);

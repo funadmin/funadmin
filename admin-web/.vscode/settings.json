@@ -1,0 +1,26 @@
+{
+  "//": "强制项目所有文件以 UTF-8 打开/保存，禁止 Cursor/VSCode 自动猜编码（防止中文被存成 ?）",
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "files.eol": "\n",
+  "[vue]": {
+    "files.encoding": "utf8"
+  },
+  "[typescript]": {
+    "files.encoding": "utf8"
+  },
+  "[javascript]": {
+    "files.encoding": "utf8"
+  },
+  "[json]": {
+    "files.encoding": "utf8"
+  },
+  "[scss]": {
+    "files.encoding": "utf8"
+  },
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}

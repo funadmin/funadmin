@@ -7,5 +7,4 @@ return [
         'GroupDel'      => "分组名删除",
         'GroupModify'   => "分组名修改",
         'Status'        => '状态',
-        'Rules'         => '规则',
 ];

@@ -77,35 +77,13 @@ define(['table','form'], function (Table, Form) {
                 ,cols: [[
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80,  sort: true},
-                    {field: 'icons',title: __("icon"), width: 60,templet: Table.templet.icon},
                     {field: 'title', title: __('Auth Name'), minWidth: 120,align: 'left'},
-                    {field: 'href', title: __('Module/Controller/Action'),align: 'left', minWidth: 200,templet: function (d){
-                            return d.module +'@'+ d.href;
-                        }},
+                    {field: 'href', title: __('Permission Code'), align: 'left', minWidth: 220},
                     {
-                        field: 'auth_verify',
-                        title: __('Auth Verify'),
+                        field: 'is_public',
+                        title: __('Public'),
                         width: 100,
-                        tips:__('YES')+'|'+__('NO'),
-                        selectList: {0: __('Disabled'), 1: __('Enabled')},
-                        templet: Table.templet.switch,
-                    },
-                    {
-                        field: 'type',
-                        title: __('IsMenu'),
-                        width: 100,
-                        search: 'select',
                         selectList: {0: __('No'), 1: __('Yes')},
-                        filter: 'status',
-                        templet: Table.templet.switch,
-                    },
-                    {
-                        field: 'menu_status',
-                        title: __('MenuStatus'),
-                        width: 100,
-                        search: 'select',
-                        selectList: {0: __('Disabled'), 1: __('Enabled')},
-                        filter: 'status',
                         templet: Table.templet.switch,
                     },
                     {
@@ -132,7 +110,7 @@ define(['table','form'], function (Table, Form) {
             var url = Fun.url(Table.init.requests.modify);
             Table.api.bindEvent(Table.init.tableId);
 
-            form.on('switch(auth_verify)', function (obj) {
+            form.on('switch(is_public)', function (obj) {
                 Fun.refreshmenu();
                 return false;
             });

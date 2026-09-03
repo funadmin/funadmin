@@ -78,7 +78,6 @@ class Backend extends BaseController
         'status',
         'sort',
         'title',
-        'auth_verify',
     ];
     /**
      * 是否是关联查询

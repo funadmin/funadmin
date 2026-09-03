@@ -15,8 +15,8 @@ define(['table', 'form'], function (Table, Form) {
                         class: 'layui-btn-xs layui-btn-warm',
                         icon: 'layui-icon-set-sm',
                         url: 'auth.authGroup/access',
-                        text: __('Access Group'),
-                        title: __('Access Group'),
+                        text: __('Assign permissions'),
+                        title: __('Assign permissions'),
                         full: 1,
                     },
                 },
@@ -31,7 +31,7 @@ define(['table', 'form'], function (Table, Form) {
                     {checkbox: true, },
                     {field: 'id', title: __('ID'), width: 80, sort: true,align:"left"},
                     // {field: 'pid', title: __('Pid'), width: 150,},
-                    {field: 'ltitle', title: __('GroupName'), minWidth: 120,align:'left'},
+                    {field: 'ltitle', title: __('RoleName'), minWidth: 120,align:'left'},
                     {
                         field: 'status',
                         title: __('Status'),
@@ -82,13 +82,13 @@ define(['table', 'form'], function (Table, Form) {
                 util = layui.util,
                 form = layui.form,
                 tree = layui.tree;
-            var idList = {};
+            var permissionIds = {};
             Fun.ajax({
                 url: window.location.href,
                 method: 'get'
             }, function (res) {
-                idList = res.data.idList;
-                list = res.data.list;
+                permissionIds = res.data.permissionIds;
+                list = res.data.permissions;
                 tree.render({
                     elem: '#tree'
                     , data: list
@@ -108,7 +108,7 @@ define(['table', 'form'], function (Table, Form) {
                     var checkedData = tree.getChecked('treebox'); //获取选中节点的数据
                 }
                 , setChecked: function () {
-                    tree.setChecked('treebox', idList); //勾选指定节点
+                    tree.setChecked('treebox', permissionIds); //勾选指定节点
                 }
                 , reload: function () {
                     //重载实例
@@ -122,7 +122,7 @@ define(['table', 'form'], function (Table, Form) {
                 var dataRule = tree.getChecked('treebox');
                 Fun.ajax({
                     url: window.location.href,
-                    data: {rules: JSON.stringify(dataRule)},
+                    data: {permission_ids: JSON.stringify(dataRule)},
                 }, function (res) {
                     Fun.toastr.success(res.msg, function () {
                         Form.api.closeOpen({refreshTable:true});

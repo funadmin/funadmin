@@ -1,23 +1,14 @@
 <?php
-/**
- * FunAdmin
- * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: http://www.FunAdmin.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
- * ============================================================================
- * Author: yuege
- * Date: 2017/8/2
- */
 
 namespace app\backend\controller\auth;
 
+use app\backend\model\AdminMenu;
+use app\backend\model\CasbinRule;
+use app\backend\model\Permission;
 use app\backend\service\AuthService;
 use app\backend\service\CasbinService;
+use app\backend\service\PermissionResource;
 use app\common\controller\Backend;
-use app\backend\model\AuthRule;
-use app\common\traits\Curd;
 use fun\helper\TreeHelper;
 use think\App;
 use think\facade\Cache;
@@ -26,254 +17,190 @@ use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
 
 /**
- * @ControllerAnnotation(title="权限")
- * Class Auth
- * @package app\backend\controller\auth
+ * @ControllerAnnotation(title="权限资源")
  */
 class Auth extends Backend
 {
-
     public $uid;
-    protected $allowModifyFields = [
-        'menu_status',
-        'type',
-        'auth_verify',
-        'status',
-        'sort',
-    ];
+
+    protected $allowModifyFields = ['is_public', 'status', 'sort'];
+
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->modelClass = new AuthRule();
+        $this->modelClass = new Permission();
         $this->uid = session('admin.id');
     }
 
-
-    /**
-     * @NodeAnnotation(title="权限列表")
-     * @return array|\think\response\View
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     *
-     */
+    /** @NodeAnnotation(title="权限列表") */
     public function index()
     {
         if ($this->request->isAjax()) {
             if ($this->request->param('selectFields')) {
                 $this->selectList();
             }
-            $uid = $this->uid;
-            $list = Cache::get('ruleList_' . $uid);
+            $list = Cache::get('permission-list-' . $this->uid);
             if (!$list) {
-                $list = $this->modelClass
-                    ->order('pid asc,sort asc')
-                    ->select()->toArray();
-                foreach ($list as $k => &$v) {
-                    $v['title'] = lang($v['title']);
-                    $v['icons'] = $v['icon'];
-                    unset($v['icon']);
+                $list = $this->modelClass->order('pid asc,sort asc')->select()->toArray();
+                foreach ($list as &$item) {
+                    $item['title'] = lang($item['title']);
+                    $item['href'] = $item['code'];
                 }
-                unset($v);
+                unset($item);
                 $list = TreeHelper::getTree($list);
-                Cache::set('ruleList_' . $uid, $list, 3600);
+                Cache::set('permission-list-' . $this->uid, $list, 3600);
             }
             sort($list);
-            $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list, 'count' => count($list), 'is' => true, 'tip' => '操作成功'];
-            return json($result);
+            return json(['code' => 0, 'msg' => lang('get info success'), 'data' => $list, 'count' => count($list)]);
         }
         return view();
     }
-    /**
-     * @NodeAnnotation(title="权限增加")
-     * @return \think\response\View
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
+
+    /** @NodeAnnotation(title="权限增加") */
     public function add()
     {
         if ($this->request->isAjax()) {
-            $post = $this->request->post();
-            if (empty($post['title'])) {
-                $this->error(lang('rule name cannot null'));
+            $data = $this->permissionData($this->request->post());
+            if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
+                $this->error(lang('Invalid data'));
             }
-            if (empty($post['sort'])) {
-                $this->error(lang('sort') . lang(' cannot null'));
-            }
-            $post['icon'] = $post['icon'] ?: 'layui-icon layui-icon-circle-dot';
-            $post['href'] = strtolower(trim($post['href'], '/'));
-            $post['module'] = strtolower(trim((string) $post['module']));
-            $where = [
-                'module'=>$post['module'],
-                'href'=>$post['href'],
-            ];
-            if($post['query']){
-                $where['query'] = $post['query'];
-            }
-            if($this->modelClass->where($where)->find()){
+            if ($data['code'] !== null && Permission::where('code', $data['code'])->find()) {
                 $this->error(lang('module href has exist'));
             }
-            if ($this->modelClass->save($post)) {
-                Cache::clear();
-                $this->success(lang('operation success'));
-            } else {
-                $this->error(lang('operation failed'));
-            }
-        } else {
-            $list = $this->modelClass
-                ->order('sort ASC')
-                ->field('id,title,pid')
-                ->select()->toArray();
-            $list = TreeHelper::getTree($list);
-            $view = [
-                'formData' => null,
-                'ruleList' => $list,
-            ];
-            View::assign($view);
-            return view();
+            $this->modelClass->save($data) ? $this->changed() : $this->error(lang('operation failed'));
         }
+        return $this->formView('add');
     }
 
-    /**
-     * @NodeAnnotation(title="修改")
-     * @return \think\response\View
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
+    /** @NodeAnnotation(title="修改") */
     public function edit()
     {
-        if (request()->isAjax()) {
-            $post = $this->request->post();
-            $post['icon'] = $post['icon'] ?  : 'layui-icon layui-icon-circle-dot';
-            $id = $this->request->param('id');
-            $model = $this->findModel($id);
-            $oldModule = (string) $model['module'];
-            $oldHref = (string) $model['href'];
-            $post['href'] = strtolower(trim((string) $post['href'], '/'));
-            $post['module'] = strtolower(trim((string) $post['module']));
-            if($post['pid'] && $post['pid'] == $id)  $this->error(lang('The superior cannot be set as himself'));
-            $childIds = array_filter(explode(',',AuthService::instance()->getAllIdsBypid($id)));
-            if($childIds && in_array($post['pid'],$childIds)) $this->error(lang('Parent menu cannot be modified to submenu'));
-            if ($model->save($post)) {
-                if ($oldModule !== $post['module'] || $oldHref !== $post['href']) {
-                    CasbinService::instance()->deleteResourcePolicies($oldModule, $oldHref);
-                }
-                Cache::clear();
-                $this->success(lang('operation success'));
-            } else {
-                $this->error(lang('operation failed'));
+        $id = (int) $this->request->param('id');
+        $model = $this->findModel($id);
+        if ($this->request->isAjax()) {
+            $data = $this->permissionData($this->request->post());
+            if ((int) $data['pid'] === $id || in_array((int) $data['pid'], Permission::childIds($id), true)) {
+                $this->error(lang('Parent menu cannot be modified to submenu'));
             }
-        } else {
-            $list = $this->modelClass
-                ->order('sort ASC')
-                ->field('id,title,pid')
-                ->select()->toArray();
-            $list = TreeHelper::getTree($list);
-            $id = $this->request->param('id');
-            $one = $this->modelClass->find($id)->toArray();
-            $view = [
-                'formData' => $one,
-                'ruleList' => $list,
-            ];
-            View::assign($view);
-            return view('add');
-        }
-    }
-
-    /**
-     * @NodeAnnotation(title="子权限添加")
-     * @return \think\response\View
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    public function child()
-    {
-        if (request()->isAjax()) {
-            $post = $this->request->post();
-            $post['icon'] = $post['icon'] ? : 'layui-icon layui-icon-circle-dot';
-            $post['href'] = strtolower(trim((string) $post['href'], '/'));
-            $post['module'] = strtolower(trim((string) $post['module']));
-            $where = [
-                'module'=>$post['module'],
-                'href'=>$post['href'],
-            ];
-            if($this->modelClass->where($where)->find()){
+            if ($data['code'] !== null && Permission::where('code', $data['code'])->where('id', '<>', $id)->find()) {
                 $this->error(lang('module href has exist'));
             }
-            $save = $this->modelClass->save($post);
-            Cache::delete('ruleList_' . $this->uid);
-            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
-        } else {
-            $ruleList =$this->modelClass
-                ->order('sort asc')
-                ->select();
-            $ruleList = $this->modelClass->cateTree($ruleList);
-            $parent = $this->modelClass->find($this->request->param('id'));
-            $view = [
-                'formData' => '',
-                'ruleList' => $ruleList,
-                'parent' => $parent,
-            ];
-            View::assign($view);
-            return view('child');
-        }
-    }
-
-    /**
-     * @NodeAnnotation(title="权限删除")
-     * @return mixed|void
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    public function delete()
-    {
-        $ids = $this->request->param('ids')?$this->request->param('ids'):$this->request->param('id');
-        $list = $this->modelClass->find($ids);
-        $childIds = $this->modelClass->getAuthChildIds($ids);
-        try {
-            $childs  = $this->modelClass->where('id','in',$childIds)->select();
-            if($childs){
-                foreach ($childs as $child) {
-                    CasbinService::instance()->deleteResourcePolicies((string) $child['module'], (string) $child['href']);
-                    $child->force(true)->delete();
+            $oldObj = (string) $model->obj;
+            $oldAct = (string) $model->act;
+            if ($model->save($data)) {
+                $resourceChanged = $oldObj !== $data['obj'] || $oldAct !== $data['act'];
+                if ($resourceChanged) {
+                    CasbinRule::where('ptype', 'p')->where('v2', $oldObj)->where('v3', $oldAct)->delete();
+                    CasbinService::instance()->reload();
                 }
+                AdminMenu::where('permission_id', $id)->update([
+                    'module' => $data['module'],
+                    'title' => $data['title'],
+                    'status' => $data['status'],
+                    'sort' => $data['sort'],
+                ]);
+                $this->changed();
             }
-            CasbinService::instance()->deleteResourcePolicies((string) $list['module'], (string) $list['href']);
-            $list->force(true)->delete();
-            Cache::clear();
-        }catch (\Exception $e) {
-            $this->error($e->getMessage());
+            $this->error(lang('operation failed'));
         }
-        $this->success(lang('operation success'));
+        return $this->formView('add', $model->toArray());
     }
 
-    /**
-     * @NodeAnnotation(title="修改")
-     */
-    public function modify()
+    /** @NodeAnnotation(title="添加子权限") */
+    public function child()
     {
-        $uid = session('admin.id');
-        $id = $this->request->param('id');
-        $field = $this->request->param('field');
-        $value = $this->request->param('value');
-        if($id){
-            if($this->allowModifyFields != ['*'] && !in_array($field, $this->allowModifyFields)){
-                $this->error(lang('Field Is Not Allow Modify：' . $field));
-            }
-            $model = $this->findModel($id);
-            if (!$model) {
-                $this->error(lang('Data Is Not 存在'));
-            }
-            $model->$field = $value;
-            $save = $model->save();
-            Cache::delete('ruleList_' . $uid);
-            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-        }else{
+        $parent = $this->modelClass->find((int) $this->request->param('id'));
+        if (!$parent) {
             $this->error(lang('Invalid data'));
         }
+        if ($this->request->isAjax()) {
+            $post = $this->request->post();
+            $post['pid'] = $parent->id;
+            $data = $this->permissionData($post);
+            if ($data['code'] !== null && Permission::where('code', $data['code'])->find()) {
+                $this->error(lang('module href has exist'));
+            }
+            $this->modelClass->save($data) ? $this->changed() : $this->error(lang('operation failed'));
+        }
+        return $this->formView('child', null, $parent->toArray());
+    }
+
+    /** @NodeAnnotation(title="删除") */
+    public function delete()
+    {
+        $id = (int) ($this->request->param('ids') ?: $this->request->param('id'));
+        $ids = array_merge([$id], Permission::childIds($id));
+        $permissions = Permission::whereIn('id', $ids)->field('obj,act')->select()->toArray();
+        Permission::query()->getConnection()->transaction(function () use ($ids, $permissions) {
+            foreach ($permissions as $permission) {
+                if ($permission['obj'] !== '' && $permission['act'] !== '') {
+                    CasbinRule::where('ptype', 'p')->where('v2', $permission['obj'])->where('v3', $permission['act'])->delete();
+                }
+            }
+            AdminMenu::whereIn('permission_id', $ids)->delete();
+            Permission::whereIn('id', $ids)->delete();
+        });
+        CasbinService::instance()->reload();
+        $this->changed();
+    }
+
+    /** @NodeAnnotation(title="修改状态") */
+    public function modify()
+    {
+        $id = (int) $this->request->param('id');
+        $field = (string) $this->request->param('field');
+        if (!in_array($field, $this->allowModifyFields, true)) {
+            $this->error(lang('Field Is Not Allow Modify：' . $field));
+        }
+        $model = $this->findModel($id);
+        $model->$field = $this->request->param('value');
+        $model->save() ? $this->changed(lang('Modify success')) : $this->error(lang('Modify Failed'));
+    }
+
+    private function permissionData(array $post): array
+    {
+        $title = trim((string) ($post['title'] ?? ''));
+        if ($title === '') {
+            $this->error(lang('rule name cannot null'));
+        }
+        $module = strtolower(trim((string) ($post['module'] ?? 'backend'))) ?: 'backend';
+        $href = strtolower(trim((string) ($post['href'] ?? ''), '/'));
+        $resource = $href !== '' ? PermissionResource::fromRoute($module, $href) : null;
+        if ($href !== '' && !$resource) {
+            $this->error(lang('Invalid data'));
+        }
+        return [
+            'pid' => (int) ($post['pid'] ?? 0),
+            'module' => $module,
+            'code' => $resource['code'] ?? null,
+            'obj' => $resource['obj'] ?? '',
+            'act' => $resource['act'] ?? '',
+            'title' => $title,
+            'resource_type' => $resource ? Permission::TYPE_ROUTE : Permission::TYPE_GROUP,
+            'status' => (int) ($post['status'] ?? 1),
+            'is_public' => (int) ($post['is_public'] ?? 0),
+            'sort' => (int) ($post['sort'] ?? 999),
+            'source_type' => 'manual',
+            'source_name' => '',
+        ];
+    }
+
+    private function formView(string $template, ?array $formData = null, ?array $parent = null)
+    {
+        $list = TreeHelper::getTree($this->modelClass->order('sort ASC')->field('id,title,pid')->select()->toArray());
+        if ($formData && ($formData['resource_type'] ?? '') === Permission::TYPE_ROUTE) {
+            $controller = str_starts_with($formData['obj'], $formData['module'] . '/')
+                ? substr($formData['obj'], strlen($formData['module']) + 1)
+                : $formData['obj'];
+            $formData['href'] = $controller . '/' . $formData['act'];
+        }
+        View::assign(['formData' => $formData, 'ruleList' => $list, 'parent' => $parent]);
+        return view($template);
+    }
+
+    private function changed(?string $message = null): void
+    {
+        Cache::clear();
+        $this->success($message ?: lang('operation success'));
     }
 }

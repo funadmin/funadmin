@@ -1,0 +1,247 @@
+/* Admin Console 设计令牌：颜色 / 圆角 / 阴影 / 间距 */
+:root {
+  /* 应用底色 */
+  --app-app-bg: #f5f7fa;
+  --app-content-bg: #f5f7fa;
+  --app-card-bg: #ffffff;
+  /* 边框：对齐 saiadmin / Arco border-2，比 EP 默认 #ebeef5 略深，描边在浅灰底上更耐看 */
+  --app-border: #e5e6eb;
+  --app-divider: #f2f3f5;
+
+  /* 文字色 */
+  --app-text: #1f2937;
+  --app-text-secondary: #6b7280;
+
+  /* 品牌主色（与 ElementPlus 同步，由 app.applyTheme 注入派生色） */
+  --app-primary: var(--el-color-primary);
+  --app-primary-hover: var(--el-color-primary-light-5);
+  --app-primary-active: var(--el-color-primary-dark-2);
+  /* 主题色别名：业务样式可直接 var(--theme-color) */
+  --theme-color: var(--el-color-primary);
+
+  /* 侧栏配色（默认：白侧栏；默认字色与面包屑/标签未选中一致，避免侧栏单独一套灰） */
+  --app-sidebar-bg: #ffffff;
+  --app-sidebar-bg-soft: #fafbfd;
+  --app-sidebar-text: var(--app-text-secondary);
+  --app-sidebar-text-active: var(--el-color-primary);
+  --app-sidebar-active-bg: var(--el-color-primary-light-9);
+  --app-sidebar-hover-bg: #f3f5fa;
+  --app-sidebar-logo-bg: transparent;
+  /* 侧栏内品牌标题（mix/columns 次级栏、窄轨小字）；浅侧栏沿用正文主色 */
+  --app-sidebar-brand-text: var(--app-text);
+  /* 侧栏与窄轨的内部分割线；浅侧栏用全局边框色 */
+  --app-sidebar-separator: var(--app-border);
+
+  /* 顶栏 / 标签页：与内容区浅灰底一致，下拉与卡片用 --app-card-bg 纯白抬起层次（参考 SaiAdmin 类后台） */
+  --app-header-bg: var(--app-app-bg);
+  --app-header-shadow: 0 1px 0 var(--app-border);
+  --app-header-item-hover-bg: rgba(0, 0, 0, 0.045);
+  --app-tabs-bg: var(--app-app-bg);
+  --app-tabs-shadow: inset 0 -1px 0 var(--app-border);
+
+  /* 圆角 */
+  --app-radius-sm: 4px;
+  --app-radius: 8px;
+  --app-radius-lg: 12px;
+  --app-radius-xl: 16px;
+
+  /* 阴影 */
+  --app-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --app-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --app-shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+
+  /* 节奏 */
+  --app-gap: 16px;
+  --app-gap-lg: 24px;
+
+  /* 布局尺寸 */
+  --app-sidebar-w: 220px;
+  --app-sidebar-collapsed-w: 64px;
+  /* 顶栏/Logo/横向菜单（紧凑，低于 EP 默认 60px） */
+  --app-header-h: 48px;
+  /* 与顶栏同高：横向 el-menu 根节点读此变量 */
+  --el-menu-horizontal-height: var(--app-header-h);
+  /*
+   * 横向菜单下拉 / 侧栏折叠浮层内每一行高度，
+   * 写入 .el-menu--horizontal.el-menu--popup-container 的 --el-menu-horizontal-sub-item-height。
+   */
+  --app-menu-popup-row-h: 40px;
+  /*
+   * 顶栏横向下拉（.app-top-menu-popper）：与折叠侧栏浮层解耦，略增高、大圆角、内边距，行内高亮为圆角块。
+   */
+  --app-top-menu-popup-row-h: 42px;
+  --app-top-menu-popup-pad: 8px;
+  --app-top-menu-popup-item-radius: 6px;
+  --app-top-menu-popup-item-gap-y: 2px;
+  /* 标签栏总高，需与 Tabs.vue 内边距 + .app-tab 高度一致 */
+  --app-tabs-h: 38px;
+}
+
+/* ============== 预设主题方案：通过 html[data-preset] 切换氛围色 ============== */
+
+/* 雅致（默认）：浅灰底 + 白侧栏 + 柔蓝主色（参考 SaiAdmin） */
+html[data-preset='elegant'] {
+  --app-app-bg: #f5f7fa;
+  --app-content-bg: #f5f7fa;
+  --app-card-bg: #ffffff;
+  /* 对齐 saiadmin Arco border-2 */
+  --app-border: #e5e6eb;
+  --app-divider: #f2f3f5;
+  --app-text: #1e293b;
+  --app-text-secondary: #64748b;
+
+  --app-sidebar-bg: #ffffff;
+  --app-sidebar-bg-soft: #f8fafc;
+  --app-sidebar-text: var(--app-text-secondary);
+  --app-sidebar-text-active: var(--el-color-primary);
+  --app-sidebar-active-bg: var(--el-color-primary-light-9);
+  --app-sidebar-hover-bg: #f1f5f9;
+  --app-sidebar-logo-bg: transparent;
+
+  --app-header-bg: var(--app-app-bg);
+  --app-header-shadow: 0 1px 0 var(--app-border);
+  --app-tabs-bg: var(--app-app-bg);
+  --app-tabs-shadow: inset 0 -1px 0 var(--app-border);
+
+  /* 更柔的卡片阴影 */
+  --app-shadow-sm: 0 1px 2px rgba(20, 31, 51, 0.04);
+  --app-shadow: 0 2px 8px rgba(20, 31, 51, 0.06);
+  --app-shadow-lg: 0 12px 28px rgba(20, 31, 51, 0.1);
+
+  --app-radius: 8px;
+  --app-radius-lg: 12px;
+}
+
+/* 清新：浅色 + 青蓝，底色略带冷调 */
+html[data-preset='fresh'] {
+  --app-app-bg: #f3f7f9;
+  --app-content-bg: #f3f7f9;
+  --app-card-bg: #ffffff;
+  --app-border: #e6edf2;
+  --app-divider: #eef3f6;
+  --app-text: #1f2a37;
+  --app-text-secondary: #5e6b7a;
+  --app-sidebar-bg: #ffffff;
+  --app-sidebar-bg-soft: #f7fafc;
+  --app-sidebar-text: var(--app-text-secondary);
+  --app-sidebar-text-active: var(--el-color-primary);
+  --app-sidebar-active-bg: var(--el-color-primary-light-9);
+  --app-sidebar-hover-bg: rgba(19, 194, 194, 0.06);
+  --app-sidebar-logo-bg: transparent;
+  --app-header-bg: var(--app-app-bg);
+  --app-header-shadow: 0 1px 0 var(--app-border);
+  --app-tabs-bg: var(--app-app-bg);
+}
+
+/* 经典：浅色内容 + 深色侧栏（保留 Ant 经典暗色侧栏观感） */
+html[data-preset='classic'] {
+  --app-app-bg: #f5f7fa;
+  --app-content-bg: #f5f7fa;
+  --app-card-bg: #ffffff;
+  --app-border: #ebeef5;
+  --app-sidebar-bg: #001529;
+  --app-sidebar-bg-soft: #002140;
+  --app-sidebar-text: #b6c7d8;
+  --app-sidebar-text-active: #ffffff;
+  --app-sidebar-active-bg: var(--theme-color);
+  --app-sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+  --app-sidebar-logo-bg: rgba(255, 255, 255, 0.04);
+  /* 深色侧栏上的品牌/分割线：勿用 --app-text（内容区深灰），否则几乎看不见 */
+  --app-sidebar-brand-text: rgba(255, 255, 255, 0.94);
+  --app-sidebar-separator: rgba(255, 255, 255, 0.12);
+}
+
+/* 极简：纯白基底，黑色主色 */
+html[data-preset='minimal'] {
+  --app-app-bg: #fafafa;
+  --app-content-bg: #fafafa;
+  --app-card-bg: #ffffff;
+  --app-border: #ececec;
+  --app-divider: #f0f0f0;
+  --app-sidebar-bg: #ffffff;
+  --app-sidebar-bg-soft: #fafafa;
+  --app-sidebar-text: var(--app-text-secondary);
+  /* 与标签/面包屑选中态一致：用品牌主色，避免与次级灰字难以区分 */
+  --app-sidebar-text-active: var(--el-color-primary);
+  --app-sidebar-active-bg: #f1f5f9;
+  --app-sidebar-hover-bg: #f5f5f5;
+  --app-shadow-sm: none;
+  --app-shadow: 0 0 0 1px var(--app-border);
+}
+
+/* 活力：品牌渐变侧栏 + 紫色 */
+html[data-preset='vibrant'] {
+  --app-app-bg: #f6f4ff;
+  --app-content-bg: #f6f4ff;
+  --app-card-bg: #ffffff;
+  --app-border: #ece8fb;
+}
+
+/* 暖阳：浅色 + 橙红，底色微暖 */
+html[data-preset='sunset'] {
+  --app-app-bg: #fff8f3;
+  --app-content-bg: #fff8f3;
+  --app-card-bg: #ffffff;
+  --app-border: #f6e7d8;
+  --app-divider: #f8eede;
+  --app-sidebar-bg: #ffffff;
+  --app-sidebar-bg-soft: #fffaf3;
+  /* 与暖阳正文次级字色统一 */
+  --app-text-secondary: #6b5b4d;
+  --app-sidebar-text: var(--app-text-secondary);
+  --app-sidebar-text-active: var(--el-color-primary);
+  --app-sidebar-active-bg: var(--el-color-primary-light-9);
+  --app-sidebar-hover-bg: rgba(249, 115, 22, 0.06);
+}
+
+/* ============== 夜间模式（写在所有 preset 之后，确保源序覆盖 preset 的浅色变量） ============== */
+html.dark {
+  --app-app-bg: #0d1117;
+  --app-content-bg: #0d1117;
+  --app-card-bg: #161b22;
+  --app-border: #21262d;
+  --app-divider: #21262d;
+
+  --app-text: #e6edf3;
+  --app-text-secondary: #7d8590;
+
+  --app-sidebar-bg: #0b0f15;
+  --app-sidebar-bg-soft: #131a22;
+  /* 与顶栏面包屑次级字色同一令牌 */
+  --app-sidebar-text: var(--app-text-secondary);
+  --app-sidebar-text-active: #ffffff;
+  --app-sidebar-active-bg: rgba(255, 255, 255, 0.08);
+  --app-sidebar-hover-bg: rgba(255, 255, 255, 0.05);
+  --app-sidebar-logo-bg: rgba(255, 255, 255, 0.03);
+  --app-sidebar-brand-text: var(--app-text);
+  --app-sidebar-separator: var(--app-border);
+
+  --app-header-bg: #161b22;
+  --app-header-shadow: 0 1px 0 #21262d;
+  --app-header-item-hover-bg: rgba(255, 255, 255, 0.06);
+  --app-tabs-bg: #161b22;
+  --app-tabs-shadow: inset 0 -1px 0 #21262d;
+
+  --app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --app-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --app-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* 暗夜 preset 的专属深色（在通用 dark 之后，特异性更高） */
+html[data-preset='midnight'].dark {
+  --app-app-bg: #0b1120;
+  --app-content-bg: #0b1120;
+  --app-card-bg: #131a2b;
+  --app-border: #1f2937;
+  --app-sidebar-bg: #0b1120;
+  --app-sidebar-bg-soft: #131a2b;
+}
+
+/* 灰色模式（滤镜放最后，永远最后应用） */
+html.gray-mode {
+  filter: grayscale(100%);
+}
+/* 色弱模式 */
+html.weak-mode {
+  filter: invert(80%);
+}

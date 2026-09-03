@@ -1,0 +1,17 @@
+# EditorConfig: https://editorconfig.org
+# 强制项目所有源码文件使用 UTF-8 编码，避免中文被替换为 ? 乱码
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{bat,cmd}]
+end_of_line = crlf

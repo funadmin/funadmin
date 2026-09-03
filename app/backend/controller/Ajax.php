@@ -13,7 +13,7 @@
 
 namespace app\backend\controller;
 
-use app\backend\model\AuthRule;
+use app\backend\model\AdminMenu;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
@@ -56,8 +56,8 @@ class Ajax extends Backend
      */
     public function refreshmenu()
     {
-        $cate = AuthRule::where('menu_status', 1)
-            ->where('type',1)
+        $cate = AdminMenu::query()
+            ->where('status', 1)
             ->order('sort asc')
             ->select()->toArray();
         $menuList = AuthService::instance()->menuhtml($cate);

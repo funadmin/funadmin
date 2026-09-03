@@ -18,6 +18,8 @@ use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
+use app\backend\model\Admin;
+use app\common\service\MigrationService;
 use think\facade\Db;
 
 class Install extends Command
@@ -36,8 +38,8 @@ class Install extends Command
     //模版
     protected $envTpl;
     /**
-     * 安装中要执行的 SQL 脚本文件清单.
-     * 自定义的SQL脚本放在controller同级的sql文件夹,将文件名添加到这个数组中,务必注意脚本依赖顺序,因为系统会按照数组里的顺序依次执行.
+     * 安装期间按文件名顺序执行 database/migrations。
+     * 仅面向空数据库执行只向前 migration，不加载历史升级 SQL。
      */
     protected $sqlFileDir = '';
     //mysql版本
@@ -87,7 +89,7 @@ class Install extends Command
         $this->databaseTpl = app()->getBasePath()  . "install/view/tpl/database.tpl";
         $this->adminTpl = app()->getBasePath()  . "install/view/tpl/admin.tpl";
         $this->envTpl = app()->getBasePath()  . "install/view/tpl/env.example";
-        $this->sqlFileDir = app()->getBasePath()  . "install/sql";
+        $this->sqlFileDir = root_path() . 'database' . DIRECTORY_SEPARATOR . 'migrations';
         $this->config = [
             'siteName' => "FunAdmin",
             'siteVersion' => config('app.version'),
@@ -152,13 +154,15 @@ class Install extends Command
 
         $this->output->info('runtime  is witeable');
 
-        $sqlFiles = glob($this->sqlFileDir. '/*');
-        foreach ($sqlFiles as $i => $value) {
-            if(!is_file($value)) continue;
-            //检测能否读取安装文件
-            $sql = @file_get_contents($value);
-            if (!$sql) {
-                $this->output->error('无法读取{$value}文件，请检查是否有读权限');exit();
+        $sqlFiles = glob($this->sqlFileDir . '/*.sql') ?: [];
+        if (!$sqlFiles) {
+            $this->output->error('migration 文件不存在');
+            exit();
+        }
+        foreach ($sqlFiles as $value) {
+            if (!is_readable($value)) {
+                $this->output->error("无法读取{$value}文件，请检查读权限");
+                exit();
             }
         }
         $this->output->info('sql file is witeable');
@@ -274,6 +278,7 @@ class Install extends Command
 //            $link->query("set global max_allowed_packet=104857600");
             $link->query("USE `{$db['database']}`");//使用数据库
             $config = config('database');
+            $config['default'] = 'mysql';
             $config['connections']['mysql'] = [
                 'type'      => 'mysql',
                 'hostname'  => $db['host'],
@@ -282,7 +287,9 @@ class Install extends Command
                 'password'  => $db['password'],
                 'hostport'  => $db['port'],
                 'params'    => [],
-                'charset'   => 'utf8mb4'
+                'charset'   => 'utf8mb4',
+                'prefix'    => $db['prefix'],
+                'fields_cache' => false
             ];
             config($config, 'database');
 
@@ -308,34 +315,20 @@ class Install extends Command
                     $this->output->error('安装失败、请确定目录是否有写入权限');exit();
                 }
             }
-            $result = @touch($this->lockFile);
-            if (!$result) {
-                $this->output->error("安装失败、请确定install.lock是否有写入权限");exit();
-            }
             try {
                 $instance = Db::connect();
                 $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
-                //逐个执行SQL脚本
-                $sqlFiles = glob($this->sqlFileDir. '/*');
-                foreach ($sqlFiles as $i => $value) {
-                    if(!is_file($value)) continue;
-                    //检测能否读取安装文件
-                    $sql = @file_get_contents($value);
-                    if (!$sql) {
-                        $this->output->error('无法读取{$value}文件，请检查是否有读权限');exit();
-                    }
-                    //替换数据表前缀
-                    $sql = str_replace(["`fun_", 'CREATE TABLE'], ["`{$db['prefix']}", 'CREATE TABLE IF NOT EXISTS'], $sql);
-                    $instance->getPdo()->exec($sql);
-                    sleep(2);
-                }
+                MigrationService::instance()->runDirectory($this->sqlFileDir, 'core');
                 $password = password($admin['password']);
-                $instance->execute("UPDATE {$db['prefix']}admin SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
-                $instance->execute("UPDATE {$db['prefix']}member SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
+                Admin::where('id', 1)->update(['email' => $admin['email'], 'username' => $admin['username'], 'password' => $password]);
             } catch (\PDOException $e) {
                 $this->output->error($e->getMessage());exit();
             }catch(\Exception $e){
                 $this->output->error($e->getMessage());exit();
+            }
+            if (!@touch($this->lockFile)) {
+                $this->output->error('安装完成但无法创建 install.lock，请检查 public 目录权限');
+                exit();
             }
             $this->output->highlight('数据库安装完成...');
 

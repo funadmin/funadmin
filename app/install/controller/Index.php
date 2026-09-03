@@ -5,6 +5,8 @@ namespace app\install\controller;
 use app\common\traits\Jump;
 use think\App;
 use app\BaseController;
+use app\backend\model\Admin;
+use app\common\service\MigrationService;
 use think\facade\Db;
 use think\facade\View;
 
@@ -25,8 +27,8 @@ class Index extends BaseController
     //模版
     protected $envTpl;
     /**
-     * 安装中要执行的 SQL 脚本文件清单.
-     * 自定义的SQL脚本放在controller同级的sql文件夹,将文件名添加到这个数组中,务必注意脚本依赖顺序,因为系统会按照数组里的顺序依次执行.
+     * 安装期间按文件名顺序执行 database/migrations。
+     * 仅面向空数据库执行只向前 migration，不加载历史升级 SQL。
      */
     protected $sqlFileDir = '';
     //mysql版本
@@ -44,7 +46,7 @@ class Index extends BaseController
         $this->databaseTpl = app_path() . "view/tpl/database.tpl";
         $this->adminTpl = app_path() . "view/tpl/admin.tpl";
         $this->envTpl = app_path() . "view/tpl/env.example";
-        $this->sqlFileDir = app_path() . "sql";
+        $this->sqlFileDir = root_path() . 'database' . DIRECTORY_SEPARATOR . 'migrations';
         $this->config = [
             'siteName' => "FunAdmin",
             'siteVersion' => config('app.version'),
@@ -162,6 +164,7 @@ class Index extends BaseController
             $link->select_db($db['database']);
             // 写入数据库
             $config = config('database');
+            $config['default'] = 'mysql';
             $config['connections']['mysql'] = [
                 'type'      => 'mysql',
                 'hostname'  => $db['host'],
@@ -170,7 +173,9 @@ class Index extends BaseController
                 'password'  => $db['password'],
                 'hostport'  => $db['port'],
                 'params'    => [],
-                'charset'   => 'utf8mb4'
+                'charset'   => 'utf8mb4',
+                'prefix'    => $db['prefix'],
+                'fields_cache' => false
             ];
             config($config, 'database');
             //替换数据库相关配置
@@ -192,35 +197,19 @@ class Index extends BaseController
                     $this->error('安装失败、请确定目录是否有写入权限');
                 }
             }
-            $result = @touch($this->lockFile);
-            if (!$result) {
-                $this->error("安装失败、请确定install.lock是否有写入权限");
-            }
             try {
                 $instance = Db::connect();
                 $instance->execute("SELECT 1");     //如果是【数据】增删改查直接运行
-                //逐个执行SQL脚本
-                $sqlFiles = glob($this->sqlFileDir. '/*');
-                foreach ($sqlFiles as $i => $value) {
-                    if(!is_file($value)) continue;
-                    //检测能否读取安装文件
-                    $sql = @file_get_contents($value);
-                    if (!$sql) {
-                        $this->error("无法读取{$value}文件，请检查是否有读权限");
-                    }
-
-                    //替换数据表前缀
-                    $sql = str_replace(["`fun_", 'CREATE TABLE'], ["`{$db['prefix']}", 'CREATE TABLE IF NOT EXISTS'], $sql);
-                    $instance->getPdo()->exec($sql);
-                    sleep(2);
-                }
+                MigrationService::instance()->runDirectory($this->sqlFileDir, 'core');
                 $password = password($admin['password']);
-                $instance->execute("UPDATE {$db['prefix']}admin SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
-                $instance->execute("UPDATE {$db['prefix']}member SET `email`='{$admin['email']}',`username` = '{$admin['username']}',`password` = '{$password}' WHERE `username` = 'admin'");
+                Admin::where('id', 1)->update(['email' => $admin['email'], 'username' => $admin['username'], 'password' => $password]);
             } catch (\PDOException $e) {
                 $this->error($e->getMessage());
             }catch(\Exception $e){
                 $this->error($e->getMessage());
+            }
+            if (!@touch($this->lockFile)) {
+                $this->error('安装完成但无法创建 install.lock，请检查 public 目录权限');
             }
             $adminName = 'backend/login/index';
             if(request()->post('standalone')){

@@ -2,7 +2,6 @@
 
 use fun\helper\FileHelper;
 use think\Exception;
-use think\facade\Db;
 use think\facade\App;
 use think\facade\Event;
 use think\facade\Route;
@@ -536,74 +535,19 @@ function is_really_writable($file)
 }
 
 /**
- * 导入SQL
- *
- * @param string $name 插件名称
- * @return  boolean
+ * 执行插件 migrations/{version}.sql，仅向前执行且不支持卸载 SQL。
  */
-if (!function_exists('importsql')) {
-
-    function importsql($name,$sqlFile=''){
-        $service = App::make('\fun\addons\Service');
-        $addons_path = $service->getAddonsPath(); // 插件列表
-        $sqlFile = $sqlFile?$sqlFile:$addons_path . $name . DS . 'install.sql';
-        if (is_file($sqlFile)) {
-            $gz = fopen($sqlFile, 'r');
-            $sql = '';
-            while(1) {
-                $sql .= fgets($gz);
-                if(preg_match('/.*;$/', trim($sql))) {
-                    $sql = preg_replace('/(\/\*(\s|.)*?\*\/);/','',$sql);
-                    $sql = $sql?str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'),$sql):'';
-                    if(strpos($sql,'CREATE TABLE')!==false || strpos($sql,'INSERT INTO')!==false || strpos($sql,'ALTER TABLE')!==false || strpos($sql,'DROP TABLE')!==false){
-                        try {
-                            Db::execute($sql);
-                        } catch (\Exception $e) {
-                            throw new Exception($e->getMessage());
-                        }
-                    }
-                    $sql = '';
-                }
-                if(feof($gz)) break;
-            }
-        }
-        return true;
-    }
-}
-
-
-/**
- * 卸载SQL
- *
- * @param string $name 插件名称
- * @return  boolean
- */
-if (!function_exists('uninstallsql')) {
-    function uninstallsql($name)
+if (!function_exists('run_addon_migrations')) {
+    function run_addon_migrations(string $name): array
     {
-        $service = App::make('\fun\addons\Service');
-        $addons_path = $service->getAddonsPath(); // 插件列表
-        $sqlFile = $addons_path . $name . DS . 'uninstall.sql';
-        if (is_file($sqlFile)) {
-            $sql = file_get_contents($sqlFile);
-            $sql = preg_replace([
-                '/^--.*$/m',     // 删除注释行
-                '/^\s*$/m'
-                ,'/\n+/'      // 删除空行
-            ], '', $sql);
-            $sql = preg_replace('/\n+/', "\n", $sql);
-            $sql = trim($sql);
-            $sql = str_replace(config('funadmin.mysqlPrefix'), config('database.connections.mysql.prefix'),$sql);
-            $sql = array_filter(explode(";",$sql));
-            foreach ($sql as $k=>$v){
-                try {
-                    $v  = $v.';';
-                    Db::execute($v);
-                } catch (\Exception $e) {
-                    throw new Exception($e->getMessage());
-                }
-            }
+        if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
+            throw new Exception('插件名格式错误');
         }
-        return true;
+        $service = App::make('\fun\addons\Service');
+        $directory = $service->getAddonsPath() . $name . DS . 'migrations';
+        if (!is_dir($directory)) {
+            return [];
+        }
+        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'addon:' . strtolower($name));
     }
 }
