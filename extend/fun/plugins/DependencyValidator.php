@@ -42,6 +42,41 @@ final class DependencyValidator
         }
     }
 
+    public function assertAcyclic(array $manifests): void
+    {
+        $visiting = [];
+        $visited = [];
+        $visit = function (string $name) use (&$visit, &$visiting, &$visited, $manifests): void {
+            if (isset($visiting[$name])) {
+                throw new RuntimeException('检测到插件循环依赖：' . $name);
+            }
+            if (isset($visited[$name]) || !isset($manifests[$name])) {
+                return;
+            }
+            $visiting[$name] = true;
+            foreach ($manifests[$name]->dependencies() as $dependency => $_constraint) {
+                $visit((string) $dependency);
+            }
+            unset($visiting[$name]);
+            $visited[$name] = true;
+        };
+        foreach (array_keys($manifests) as $name) {
+            $visit((string) $name);
+        }
+    }
+
+    public function assertNoEnabledDependents(string $name, array $manifests, array $installed): void
+    {
+        foreach ($manifests as $dependent => $manifest) {
+            if ($dependent === $name || ($installed[$dependent]['lifecycle_state'] ?? '') !== 'enabled') {
+                continue;
+            }
+            if (array_key_exists($name, $manifest->dependencies())) {
+                throw new RuntimeException("存在已启用的反向依赖：{$dependent} -> {$name}");
+            }
+        }
+    }
+
     private function matches(string $version, string $constraint): bool
     {
         foreach (preg_split('/\s*,\s*|\s+/', trim($constraint)) ?: [] as $part) {

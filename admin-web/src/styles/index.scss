@@ -266,23 +266,6 @@ html.dark .el-tag.el-tag--info {
 }
 
 /*
- * 默认按钮（无 type）：白/卡片底 + 中性描边 + 深色字。
- * hover：底色微染主色 + 描边主色 + 字主色（轻反馈，避免全主色浸染）。
- * 各主题切换时仅主色变化，结构与质感一致。
- */
-.el-button--default {
-  --el-button-bg-color: var(--app-card-bg);
-  --el-button-border-color: var(--app-border);
-  --el-button-text-color: var(--app-text);
-  --el-button-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--app-card-bg));
-  --el-button-hover-border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--app-border));
-  --el-button-hover-text-color: var(--el-color-primary);
-  --el-button-active-bg-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg));
-  --el-button-active-border-color: var(--el-color-primary);
-  --el-button-active-text-color: var(--el-color-primary);
-}
-
-/*
  * 主按钮（实色）：所有主题统一语言 —— 实底主色 + 白字 + 轻阴影。
  * hover 用 dark-2（变暗）而非 light-x（变亮），避免在浅主色（fresh 青/sunset 橙）下「发白发糊」。
  * 所有语义实色按钮（success/warning/danger/info）也统一使用 dark-2 hover，行为一致。
@@ -406,23 +389,6 @@ html.dark .el-tag.el-tag--info {
 }
 
 /*
- * 暗色 default 按钮：保持卡片底 / 边对齐，hover 用主色 alpha-14% 浅底 + 主色字
- *  - 浅色态用 8% mix(white)，暗色直接落在 #161b22 卡片上效果偏闷，所以提到 14%
- *  - 字色 hover 切到 primary，与浅色行为一致
- */
-html.dark .el-button--default {
-  --el-button-bg-color: var(--app-card-bg);
-  --el-button-border-color: var(--app-border);
-  --el-button-text-color: var(--app-text);
-  --el-button-hover-bg-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg));
-  --el-button-hover-border-color: color-mix(in srgb, var(--el-color-primary) 55%, var(--app-border));
-  --el-button-hover-text-color: var(--el-color-primary);
-  --el-button-active-bg-color: color-mix(in srgb, var(--el-color-primary) 22%, var(--app-card-bg));
-  --el-button-active-border-color: var(--el-color-primary);
-  --el-button-active-text-color: var(--el-color-primary);
-}
-
-/*
  * 列表页顶部操作条布局请用 Tailwind：
  * flex flex-wrap items-center gap-2.5 px-4 py-3 bg-app-card border border-app-border rounded-app shadow-app-sm
  * 保留 .app-page-toolbar 类名仅作 EP 按钮投影覆盖选择器（可与上述工具类同元素叠加）。
@@ -515,40 +481,6 @@ html.dark .el-button.is-plain:not(.el-button--default):active {
   background-color: color-mix(in srgb, var(--app-btn-base) 32%, var(--app-card-bg)) !important;
   border-color: var(--app-btn-base) !important;
   color: color-mix(in srgb, var(--app-btn-base) 90%, #ffffff) !important;
-}
-
-/* —— 默认 plain（无 type，如「折叠」「收起」）：白底灰边灰字，hover 仅主色描边 + 主色字 —— */
-html:not(.dark) .el-button--default.is-plain {
-  background-color: var(--app-card-bg) !important;
-  border-color: var(--app-border) !important;
-  color: var(--app-text) !important;
-  box-shadow: none !important;
-}
-html:not(.dark) .el-button--default.is-plain:hover {
-  background-color: color-mix(in srgb, var(--el-color-primary) 8%, var(--app-card-bg)) !important;
-  border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--app-border)) !important;
-  color: var(--el-color-primary) !important;
-  box-shadow: none !important;
-}
-html:not(.dark) .el-button--default.is-plain:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 45%, transparent);
-  outline-offset: 2px;
-}
-html.dark .el-button--default.is-plain {
-  background-color: var(--app-card-bg) !important;
-  border-color: var(--app-border) !important;
-  color: var(--app-text) !important;
-  box-shadow: none !important;
-}
-html.dark .el-button--default.is-plain:hover {
-  background-color: color-mix(in srgb, var(--el-color-primary) 14%, var(--app-card-bg)) !important;
-  border-color: color-mix(in srgb, var(--el-color-primary) 60%, var(--app-border)) !important;
-  color: color-mix(in srgb, var(--el-color-primary) 75%, #ffffff) !important;
-  box-shadow: none !important;
-}
-html.dark .el-button--default.is-plain:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--el-color-primary) 55%, transparent);
-  outline-offset: 2px;
 }
 
 /* —— 各语义色只声明 --app-btn-base，规则由上方两段统一处理 —— */
@@ -2173,12 +2105,11 @@ button:focus-visible,
 }
 
 /*
- * 原生控件键盘焦点环（排除 EP 已包一层的 .el-input__inner / .el-textarea__inner，
+ * 原生控件键盘焦点环（排除 EP 已包一层的内部输入，
  * 否则 wrapper 描边 + 内层 outline 叠成「双层框、像变大」）
- * 另排除 .el-range-input：datetimerange / daterange 已由 .el-input__wrapper 统一描边，
- * 内层两段输入再套 outline 会与外层叠成双圈、视觉过重。
+ * el-select__input 和 el-range-input 的焦点状态均由外层 wrapper 统一表达。
  */
-input:not(.el-input__inner):not(.el-range-input):focus-visible,
+input:not(.el-input__inner):not(.el-select__input):not(.el-range-input):focus-visible,
 textarea:not(.el-textarea__inner):focus-visible,
 select:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--el-color-primary) 60%, transparent);

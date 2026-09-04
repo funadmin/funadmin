@@ -88,7 +88,7 @@ trait Apis
                 header($name . ':' . $val);
             }
         }
-        $response =  Response::create($result, $type)->header($header)->options($options);
+        $response = Response::create($result, $type, $code)->header($header)->options($options);
         throw new HttpResponseException($response);
     }
 

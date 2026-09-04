@@ -24,8 +24,6 @@ class Service extends \think\Service
     protected $plugins_data_list_config=[];
     public function register()
     {
-        error_reporting(0);
-
         $this->app->bind('plugins', Service::class);
 
         // 无则创建 plugins 目录
@@ -87,7 +85,10 @@ class Service extends \think\Service
     {
         return new Registry($this->plugins_path, function (): array {
             $records = [];
-            foreach (\app\common\model\Plugin::where('delete_time', 0)->select() as $record) {
+            $query = \app\common\model\Plugin::where(function ($query): void {
+                $query->whereNull('delete_time')->whereOr('delete_time', 0);
+            });
+            foreach ($query->select() as $record) {
                 $records[(string) $record->name] = [
                     'version' => (string) $record->version,
                     'lifecycle_state' => (string) $record->lifecycle_state,

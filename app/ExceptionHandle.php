@@ -60,9 +60,37 @@ class ExceptionHandle extends Handle
      */
     public function render($request, Throwable $e): Response
     {
-        // 添加自定义异常处理机制
+        if ($this->app->http->getName() !== 'api') {
+            return parent::render($request, $e);
+        }
 
-        // 其他错误交给系统处理
-        return parent::render($request, $e);
+        [$status, $message] = $this->apiError($e);
+        return json([
+            'code' => $status,
+            'msg' => $message,
+            'time' => $request->server('REQUEST_TIME', time()),
+            'data' => [],
+        ], $status);
+    }
+
+    /**
+     * 将框架异常转换为稳定的 API 错误。
+     *
+     * @return array{0: int, 1: string}
+     */
+    private function apiError(Throwable $e): array
+    {
+        if ($e instanceof ValidateException) {
+            return [400, $e->getMessage()];
+        }
+        if ($e instanceof ModelNotFoundException || $e instanceof DataNotFoundException) {
+            return [404, 'Resource not found'];
+        }
+        if ($e instanceof HttpException) {
+            $status = $e->getStatusCode();
+            return [$status, $status >= 500 ? 'Internal server error' : ($e->getMessage() ?: 'Request failed')];
+        }
+
+        return [500, $this->app->isDebug() ? $e->getMessage() : 'Internal server error'];
     }
 }

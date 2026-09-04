@@ -1,4 +1,9 @@
 <?php
+
+declare(strict_types=1);
+
+use think\facade\Env;
+
 /**
  * FunAdmin
  * ============================================================================
@@ -10,10 +15,12 @@
  * Author: yuege
  * Date: 2019/10/3
  */
-//配置api 接口
+// API 接口配置
 return [
-    'jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
-    'refresh_jwt_secret'=>'funadmin',//jwtkey，请一定记得修改
-    'access_token_ttl' => 3600 * 2,//token-有效期
-    'refresh_token_ttl' => 3600 * 24 * 30,   //刷新token过期时间
+    'jwt_secret' => Env::get('API_JWT_SECRET', ''),
+    'refresh_jwt_secret' => Env::get('API_REFRESH_JWT_SECRET', ''),
+    'access_token_ttl' => (int) Env::get('API_ACCESS_TOKEN_TTL', 3600 * 2),
+    'refresh_token_ttl' => (int) Env::get('API_REFRESH_TOKEN_TTL', 3600 * 24 * 30),
+    'issuer' => Env::get('API_JWT_ISSUER', 'funadmin.com'),
+    'audience' => Env::get('API_JWT_AUDIENCE', 'funadmin'),
 ];

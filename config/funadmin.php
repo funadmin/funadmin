@@ -52,7 +52,7 @@ return [
     //接口域名
     'api_domain'=>'https://www.funadmin.com',
     //接口地址
-    'api_login_url'=>'/api/v2/token/build',
+    'api_login_url'=>'/api/v2/token',
 ];
 
 

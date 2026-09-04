@@ -11,14 +11,15 @@
  * Date: 2019/9/30
  */
 use think\facade\Route;
-////一般路由规则，访问的url为：v1/member/1,对应的文件为member类下的index方法
-Route::get(':version/member/index','api/:version.member/index');
-Route::get(':version/member/userinfo','api/:version.member/userinfo');
-//
-////资源路由，详情查看tp手册资源路由
-//Route::resource(':version/member','api/:version.member');
-//
-////生成access_token，post访问Token类下的token方法
-Route::post(':version/token','api/:version.token/build');
-Route::post(':version/token/refresh','api/:version.token/refresh');
+Route::group('v2', function (): void {
+    Route::get('member/index', 'api/v2.member/index');
+    Route::get('member/userinfo', 'api/v2.member/userinfo');
+    Route::post('token', 'api/v2.token/build')
+        ->middleware(\think\middleware\Throttle::class, [
+            'visit_method' => ['POST'],
+            'visit_rate' => '10/m',
+            'key' => '__CONTROLLER__/__ACTION__/__IP__',
+        ]);
+    Route::post('token/refresh', 'api/v2.token/refresh');
+});
 

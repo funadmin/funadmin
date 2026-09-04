@@ -1,36 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\api\controller\v2;
 
 
 use app\common\controller\Api;
-use think\App;
 use think\Request;
 
 class Member extends Api
 {
     protected array $noNeedLogin = ['verify'];
-    protected array $noNeedRight = ['index'];
 
-    protected $middleware = [];
-
-    public function __construct(App $app)
+    public function index(Request $request): void
     {
-        parent::__construct($app);
-    }
-    public function index(Request $request)
-    {
-        $this->success('ok',['user'=>$request->member]);
+        $this->success('ok', ['user' => $request->member]);
     }
 
-
-    public function userinfo(Request $request)
+    public function userinfo(Request $request): void
     {
-        $this->success('ok',['user'=>$request->member]);
+        $this->success('ok', ['user' => $request->member]);
     }
-    public function verify(Request $request)
+
+    public function verify(): void
     {
         $this->success('成功');
-
     }
 }

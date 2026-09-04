@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace app\api\controller\v2;
 
 use app\common\controller\Api;
+use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
 use think\App;
-use think\facade\Db;
 use think\Request;
 
 /**
@@ -14,21 +16,16 @@ use think\Request;
 class Token extends Api
 {
 
-    protected TokenService $tokenService;
-    protected array $noNeedLogin = ['build','refresh'];
+    protected array $noNeedLogin = ['build', 'refresh'];
+
+    private TokenService $tokenService;
+    private MemberAuthService $memberAuthService;
 
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->tokenService = TokenService::instance();
-        //跨域
-        header('Access-Control-Allow-Origin:*');
-        header('Access-Control-Allow-Headers:Accept,Referer,Host,Keep-Alive,User-Agent,X-Requested-With,Cache-Control,Content-Type,Cookie,token');
-        header('Access-Control-Allow-Credentials:true');
-        header('Access-Control-Allow-Methods:GET, POST, PATCH, PUT, DELETE,OPTIONS');
-        if(!$app->request->isPost()){
-            $this->error(__('Page not find'),[],404);
-        }
+        $this->memberAuthService = MemberAuthService::instance();
     }
 
     /**
@@ -39,36 +36,24 @@ class Token extends Api
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    public function build(Request $request)
+    public function build(Request $request): void
     {
-        $username = $request->post('username');
-        $password = $request->post('password');
-        // 这里应该有用户验证逻辑，例如查询数据库验证用户名和密码
-        // 为了示例，假设验证通过
-        $member = \app\common\model\Member::where('status', 1)
-            ->where('username', $username)
-            ->whereOr('mobile', $username)
-            ->whereOr('email', $username)
-            ->field('id ,nickname,username,password')
-            ->limit(1)
-            ->find();
-        if ($member) {
-            $member = $member->toArray();
-            if (password_verify($password, $member['password'])) {
-                unset($member['password']);
-                $accessToken = $this->tokenService->build($member);
-                $refreshToken = $this->tokenService->build($member, 'refresh');
-                $this->success(__('Tokens generated successfully'), [
-                    'access_token' => $accessToken,
-                    'refresh_token' => $refreshToken,
-                    'expires_in' => config('api.access_token_ttl'),
-                ]);
-            } else {
-                $this->error(lang('Password is not right'), [], 401);
-            }
-        } else {
-            $this->error(lang('Account is not exist'), [], 401);
+        $account = trim((string) $request->post('username', ''));
+        $password = (string) $request->post('password', '');
+        if ($account === '' || mb_strlen($account) > 100 || strlen($password) < 6 || strlen($password) > 255) {
+            $this->error(__('Invalid parameters'), [], 400);
         }
+
+        $member = $this->memberAuthService->authenticate($account, $password);
+        if (!$member) {
+            $this->error(__('Account or password is incorrect'), [], 401);
+        }
+
+        $this->success(__('Tokens generated successfully'), [
+            'access_token' => $this->tokenService->build($member),
+            'refresh_token' => $this->tokenService->build($member, TokenService::TYPE_REFRESH),
+            'expires_in' => (int) config('api.access_token_ttl'),
+        ]);
     }
 
 
@@ -77,26 +62,27 @@ class Token extends Api
      * @param Request $request
      * @return \think\response\Json
      */
-    public function refresh(Request $request){
-        // 获取 Authorization 头
-        if(input('access_token')){
-            $refreshToken = input('access_token');
-        }else{
-            $authHeader = $request->header('Authorization');
-            if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+    public function refresh(Request $request): void
+    {
+        $refreshToken = trim((string) $request->post('refresh_token', $request->post('access_token', '')));
+        if ($refreshToken === '') {
+            $authHeader = (string) $request->header('Authorization', '');
+            if (!preg_match('/^Bearer\s+(\S+)$/i', $authHeader, $matches)) {
                 $this->error(__('Unauthorized'), [], 401);
             }
             $refreshToken = $matches[1];
         }
-        // 验证 refresh_token
-        $userData = $this->tokenService->validateToken($refreshToken, 'refresh');
-        if (!$userData) {
+
+        $tokenData = $this->tokenService->validateToken($refreshToken, TokenService::TYPE_REFRESH);
+        $memberId = is_array($tokenData) ? (int) ($tokenData['id'] ?? 0) : 0;
+        $member = $memberId > 0 ? $this->memberAuthService->activeMember($memberId) : null;
+        if (!$member) {
             $this->error(__('Invalid refresh token'), [], 401);
         }
-        // 生成新的 access_token
-        $newAccessToken = $this->tokenService->build($userData, config('api.access_token_ttl', 3600*2));
+
         $this->success(__('Access token refreshed successfully'), [
-            'access_token' => $newAccessToken,
+            'access_token' => $this->tokenService->build($member),
+            'expires_in' => (int) config('api.access_token_ttl'),
         ]);
     }
 

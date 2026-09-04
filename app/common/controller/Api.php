@@ -117,18 +117,17 @@ class Api extends BaseController
         //过滤参数
         $this->pageSize = input('limit', 15);
         $this->page = input('page', 1);
-        $auth = [];
-        if(!empty($this->noNeedLogin) && $this->noNeedLogin!=['*']){
-            $auth['except'] = $this->noNeedLogin;
+        $publicActions = array_values(array_unique(array_merge($this->noNeedLogin, $this->noNeedRight)));
+        if ($publicActions === ['*']) {
+            return;
         }
-        if(!empty($this->noNeedRight)){
-            $auth['noNeedRight'] = $this->noNeedRight;
+
+        $middleware = [MApi::class];
+        if ($publicActions !== []) {
+            $middleware[MApi::class] = ['except' => $publicActions];
+            unset($middleware[0]);
         }
-        if(!empty($auth)){
-            $this->middleware = [MApi::class=>$auth] + $this->middleware ;
-        }else{
-            $this->middleware = [MApi::class] + $this->middleware ;
-        }
+        $this->middleware = $middleware + $this->middleware;
     }
 
 

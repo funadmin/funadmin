@@ -1,0 +1,1 @@
+import{At as e,Et as t,Lt as n,Vt as r}from"./element-BZKaL-8n.js";import{c as i,s as a}from"./vue-1vdu15c3.js";var o=e({__name:`index`,setup(e){let o=a(),s=i();return n(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(e,n)=>(r(),t(`div`))}});export{o as default};

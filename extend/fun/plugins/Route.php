@@ -36,13 +36,15 @@ class Route
         $request->plugin = $plugin;
         // 设置当前请求的控制器、操作
         $request->setController($controller)->setAction($action);
-        // 获取插件基础信息
-        $info = get_plugins_info($plugin);
-        if (!$info) {
+        // 仅以数据库生命周期状态判定，避免为未启用插件实例化入口类。
+        $record = \app\common\model\Plugin::where('name', $plugin)
+            ->where(function ($query): void {
+                $query->whereNull('delete_time')->whereOr('delete_time', 0);
+            })
+            ->where('lifecycle_state', 'enabled')
+            ->find();
+        if (!$record) {
             throw new HttpException(404, lang('plugin %s not found', [$plugin]));
-        }
-        if (!$info['status']) {
-            throw new HttpException(500, lang('plugin %s is disabled', [$plugin]));
         }
         // 监听plugin_module_init
         Event::trigger('plugin_module_init', $request);

@@ -22,8 +22,13 @@ final class Registry
             if (!is_file($directory . DIRECTORY_SEPARATOR . 'plugin.json') || !is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php')) {
                 continue;
             }
-            $manifest = Manifest::fromDirectory($directory);
-            $entries[$manifest->name()] = $manifest;
+            try {
+                $manifest = Manifest::fromDirectory($directory);
+                $entries[$manifest->name()] = $manifest;
+            } catch (\Throwable) {
+                // 不兼容或损坏的插件仅从发现结果隔离，绝不加载其入口代码。
+                continue;
+            }
         }
         ksort($entries);
         return $entries;

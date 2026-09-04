@@ -78,6 +78,10 @@ mkdir($root . '/legacy', 0755, true);
 file_put_contents($root . '/legacy/plugin.ini', 'name=legacy');
 file_put_contents($root . '/legacy/Plugin.php', '<?php');
 expect(!isset($registry->discover()['legacy']), '不得兼容仅含 plugin.ini 的旧插件');
+mkdir($root . '/broken', 0755, true);
+file_put_contents($root . '/broken/Plugin.php', '<?php throw new RuntimeException("不应执行插件入口");');
+file_put_contents($root . '/broken/plugin.json', '{invalid');
+expect(!isset($registry->discover()['broken']), '管理发现必须隔离不兼容 manifest，不能拖垮列表');
 
 $validator = new DependencyValidator('1.5.0', PHP_VERSION);
 $validator->assertSatisfied($manifest, [
@@ -90,6 +94,28 @@ expectException(static fn () => $validator->assertSatisfied($manifest, [
 expectException(static fn () => $validator->assertSatisfied($manifest, [
     'base' => ['version' => '2.3.0', 'lifecycle_state' => 'disabled'],
 ]), '未启用');
+mkdir($root . '/base', 0755, true);
+file_put_contents($root . '/base/Plugin.php', '<?php namespace plugins\\base; final class Plugin {}');
+file_put_contents($root . '/base/plugin.json', json_encode([
+    'schema_version' => 1,
+    'name' => 'base',
+    'title' => '基础插件',
+    'version' => '2.3.0',
+    'requires' => ['plugins' => ['demo' => '^1.0']],
+    'load' => [],
+], JSON_UNESCAPED_UNICODE));
+$baseManifest = Manifest::fromDirectory($root . '/base');
+expectException(static fn () => $validator->assertAcyclic([
+    'demo' => $manifest,
+    'base' => $baseManifest,
+]), '循环依赖');
+expectException(static fn () => $validator->assertNoEnabledDependents('base', [
+    'demo' => $manifest,
+    'base' => $baseManifest,
+], [
+    'demo' => ['lifecycle_state' => 'enabled'],
+    'base' => ['lifecycle_state' => 'enabled'],
+]), '反向依赖');
 
 $lockDirectory = $root . '/locks';
 $lock = new LifecycleLock($lockDirectory);
@@ -112,14 +138,29 @@ expectException(static function () use ($root): void {
 
 $routeSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Route.php');
 expect(!str_contains((string) $routeSource, '$pluginsRouteConfig'), 'Route 不得引用未定义的 pluginsRouteConfig');
+expect(!str_contains((string) $routeSource, 'get_plugins_info('), 'Route 判定前不得读取或实例化插件');
+expect(str_contains((string) $routeSource, "where('lifecycle_state', 'enabled')"), 'Route 必须只按数据库 lifecycle_state=enabled 放行');
 $serviceSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Service.php');
+expect(!str_contains((string) $serviceSource, 'error_reporting('), '运行时服务不得抑制 PHP 错误');
 expect(!str_contains((string) $serviceSource, "'plugin.ini'"), '运行时服务不得读取 plugin.ini');
 expect(!str_contains((string) $serviceSource, "'service.ini'"), '运行时服务不得读取 service.ini');
 expect(!str_contains((string) $serviceSource, "config('plugins.route'"), '运行时服务不得加载旧的全局路由配置');
+expect(str_contains((string) $serviceSource, 'whereNull(\'delete_time\')'), 'Registry 查询必须兼容 delete_time=NULL');
+expect(str_contains((string) $serviceSource, "whereOr('delete_time', 0)"), 'Registry 查询必须兼容 delete_time=0');
 expect(str_contains((string) $serviceSource, 'RuntimeLoader'), '运行时服务必须通过显式加载器加载边界');
+$functionsSource = file_get_contents(dirname(__DIR__) . '/extend/fun/functions/plugin.php');
+expect(!str_contains((string) $functionsSource, 'get_class_methods('), '不得扫描插件 public methods 自动生成 hooks');
+expect(!preg_match('/function refreshplugins\(\)[\s\S]*config[^;]*plugins\.php/', (string) $functionsSource), 'refreshplugins 不得回写 config/plugins.php');
+expect(!preg_match('/function get_plugins_info\([^)]*\)[\s\S]{0,300}get_plugins_instance/', (string) $functionsSource), '旧信息读取路径不得实例化插件');
 $pluginServiceSource = file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginService.php');
 expect(str_contains((string) $pluginServiceSource, 'LifecycleLock'), '生命周期服务必须使用互斥锁');
-expect(str_contains((string) $pluginServiceSource, "'lifecycle_state'"), '生命周期状态必须持久化到注册表');
+expect(str_contains((string) $pluginServiceSource, 'finally'), '生命周期服务必须统一 finally 释放锁并清缓存');
+expect(str_contains((string) $pluginServiceSource, 'operation_token'), '生命周期操作必须持久化 operation_token');
+expect(str_contains((string) $pluginServiceSource, "'operation_token' => null"), '生命周期完成或失败必须清空 operation_token');
+expect(!str_contains((string) $pluginServiceSource, '->status'), '插件生命周期逻辑不得读取旧 status');
+expect(!preg_match('/->save\(\[[^]]*[\'\"]lifecycle_state[\'\"]/', (string) $pluginServiceSource), '生命周期状态写入不得绕过 LifecycleState');
+expect(str_contains((string) $pluginServiceSource, 'assertNoEnabledDependents'), '禁用和卸载必须检查反向依赖');
+expect(substr_count((string) $pluginServiceSource, 'assertDependencies(') >= 3, '安装、更新和启用均必须重检依赖');
 $migrationSource = file_get_contents(dirname(__DIR__) . '/database/migrations/007_plugin_registry_state.sql');
 expect(str_contains((string) $migrationSource, '`manifest`'), '007 migration 必须包含 manifest 快照字段');
 expect(str_contains((string) $migrationSource, '`lifecycle_state`'), '007 migration 必须包含显式状态字段');
