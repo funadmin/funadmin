@@ -138,38 +138,7 @@ if (!function_exists('set_plugins_info')) {
 
     function set_plugins_info(string $name, array $array)
     {
-        $service = App::make('\fun\plugins\Service');
-        $plugins_path = $service->getPluginsPath();
-        // 插件列表
-        $file = $plugins_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
-        if(!is_file($file)){
-            $file = $plugins_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
-        }
-        $plugin = get_plugins_instance($name);
-        $array = $plugin->setInfo($name, $array);
-        if (!isset($array['name']) || !isset($array['title']) || !isset($array['version'])) {
-            throw new Exception("Failed to write plugin config");
-        }
-        $res = array();
-        foreach ($array as $key => $val) {
-            if (is_array($val)) {
-                $res[] = "[$key]";
-                foreach ($val as $k => $v)
-                    $res[] = "$k = " . (is_numeric($v) ? $v : $v);
-            } else
-                $res[] = "$key = " . (is_numeric($val) ? $val : $val);
-        }
-
-        if ($handle = fopen($file, 'w')) {
-            fwrite($handle, implode("\n", $res) . "\n");
-            fclose($handle);
-            //清空当前配置缓存
-            config($array, "plugin_{$name}_info");
-            Cache::delete('pluginslist');
-        } else {
-            throw new Exception("File does not have write permission");
-        }
-        return true;
+        throw new Exception('plugin.json 是只读契约，插件状态必须写入数据库注册表');
     }
 }
 

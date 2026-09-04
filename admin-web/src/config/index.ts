@@ -82,4 +82,4 @@ export const RESP_CODE = {
  * 免登录路由白名单（path 前缀匹配）
  * 命中白名单的路由不会触发 token 校验
  */
-export const ROUTE_WHITELIST: string[] = ['/login', '/redirect', '/403', '/404'];
+export const ROUTE_WHITELIST: string[] = ['/install', '/login', '/redirect', '/403', '/404'];

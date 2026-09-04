@@ -817,10 +817,9 @@ html.dark .app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
 
 /* ============================================================
  * C 方向：弹窗 / 抽屉 / 分页 — 对齐 saiadmin / Arco 克制商务感
- *  - 头部底色统一用 Arco gray-1 #f7f8fa（与表头一致）
+ *  - el-dialog 头部沿用 Element Plus 默认样式
  *  - 描边、分割线统一 --app-border (#e5e6eb)
- *  - 头部 / 底部 14px 内边距，主体 16-20px，避免空旷
- *  - 关闭按钮用次级字色，hover 才切主色
+ *  - 底部 14px 内边距，主体 16-20px，避免空旷
  * ============================================================ */
 
 /* —— el-dialog —— */
@@ -828,38 +827,6 @@ html.dark .app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
   border: 1px solid var(--app-border);
   box-shadow: var(--app-shadow-lg);
   overflow: hidden;
-}
-.el-dialog .el-dialog__header {
-  padding: 14px 20px;
-  margin-right: 0;
-  background-color: #f7f8fa;
-  border-bottom: 1px solid var(--app-border);
-}
-.el-dialog .el-dialog__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1d2129;
-  letter-spacing: 0.02em;
-}
-.el-dialog .el-dialog__headerbtn {
-  top: 12px;
-  right: 12px;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-.el-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: var(--app-text-secondary);
-  font-size: 16px;
-}
-.el-dialog .el-dialog__headerbtn:hover {
-  background-color: color-mix(in srgb, var(--el-color-primary) 8%, transparent);
-}
-.el-dialog .el-dialog__headerbtn:hover .el-dialog__close {
-  color: var(--el-color-primary);
 }
 .el-dialog .el-dialog__body {
   padding: 20px;
@@ -912,18 +879,16 @@ html.dark .app-top-menu-popper .el-menu--popup .el-menu-item.is-active {
   border-top: 1px solid var(--app-border);
 }
 
-/* —— 暗色：dialog / drawer 头部沿用 #1f2937 与表头一致；message-box 走 EP 默认 —— */
+/* —— 暗色：dialog 头部走 EP 默认，drawer 头部沿用表头样式 —— */
 html.dark .el-dialog,
 html.dark .el-drawer {
   background-color: var(--app-card-bg);
   border-color: var(--app-border);
 }
-html.dark .el-dialog .el-dialog__header,
 html.dark .el-drawer .el-drawer__header {
   background-color: #1f2937;
   border-bottom-color: var(--app-border);
 }
-html.dark .el-dialog .el-dialog__title,
 html.dark .el-drawer .el-drawer__title {
   color: var(--app-text);
 }

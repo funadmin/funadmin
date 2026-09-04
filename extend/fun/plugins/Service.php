@@ -6,7 +6,6 @@ namespace fun\plugins;
 use fun\helper\FileHelper;
 use think\Route;
 use think\facade\Cache;
-use think\facade\Event;
 use fun\plugins\middleware\Plugins;
 
 /**
@@ -58,62 +57,10 @@ class Service extends \think\Service
 
             // 注册插件控制器路由。
             $route->rule(PLUGIN_DIR . "/:plugin/[:controller]/[:action]", $execute)->middleware(Plugins::class);
-            // 自定义路由
-            $routes = (array) config('plugins.route', []);
-            foreach ($routes as $key => $val) {
-                if (!$val) {
-                    continue;
-                }
-                $rules = [];
-                if (is_array($val)) {
-                    if(!empty($val['app_domain'])){
-                        if(!empty($val['app_rule'])){
-                            \think\facade\Route::domain(((string)$val['app_domain']), function () use ($val){
-                                // 动态注册域名的路由规则
-                                foreach ($val['app_rule'] as $k => $rule) {
-                                    \think\facade\Route::rule($k,$rule);
-                                }
-                            });
-                        }
-                    }
-                    $domain = !empty($val['domain'])?$val['domain']:'';
-                    if($domain){
-                        foreach ($val['rule'] as $k => $rule) {
-                            [$plugin, $controller, $action] = explode('/', $rule);
-                            $rules[$k] = [
-                                'plugin'         => $plugin,
-                                'controller'    => $controller,
-                                'action'        => $action,
-                                'indomain'      => 1,
-                            ];
-                        }
-                        $route->domain((string)$domain, function () use ($rules, $route, $execute) {
-                            // 动态注册域名的路由规则
-                            foreach ($rules as $k => $rule) {
-                                $route->rule($k, $execute)
-                                    ->name($k)
-                                    ->completeMatch(true)
-                                    ->append($rule);
-                            }
-                        });
-                    }else{
-                        foreach ($val['rule'] as $k => $rule) {
-                            [$plugin, $controller, $action] = explode('/', $rule);
-                            $rules[$k] = [
-                                'plugin'         => $plugin,
-                                'controller'    => $controller,
-                                'action'        => $action,
-                            ];
-                        }
-                        foreach ($rules as $k => $rule) {
-                            $route->rule($k, $execute)
-                                ->name($k)
-                                ->completeMatch(true)
-                                ->append($rule);
-                        }
-                    }
-
-                }
+            // 自定义路由只允许由 enabled 插件在 plugin.json 中显式声明。
+            $loader = new RuntimeLoader();
+            foreach ($this->registry()->enabled() as $manifest) {
+                $loader->loadRoutes($route, $manifest);
             }
         });
 
@@ -130,81 +77,33 @@ class Service extends \think\Service
      */
     private function loadService()
     {
-        $results = scandir($this->plugins_path);
-        $bind = [];
-        foreach ($results as $name) {
-            if ($name === '.' or $name === '..') {
-                continue;
-            }
-            if (is_file($this->plugins_path . $name)) {
-                continue;
-            }
-            $pluginDir = $this->plugins_path . $name . DIRECTORY_SEPARATOR;
-            if (!is_dir($pluginDir)) {
-                continue;
-            }
+        $loader = new RuntimeLoader();
+        foreach ($this->registry()->enabled() as $manifest) {
+            $loader->loadServices($this->app, $manifest);
+        }
+    }
 
-            if (!is_file($pluginDir . 'Plugin.php')) {
-                continue;
+    private function registry(): Registry
+    {
+        return new Registry($this->plugins_path, function (): array {
+            $records = [];
+            foreach (\app\common\model\Plugin::where('delete_time', 0)->select() as $record) {
+                $records[(string) $record->name] = [
+                    'version' => (string) $record->version,
+                    'lifecycle_state' => (string) $record->lifecycle_state,
+                ];
             }
-            $service_file = $pluginDir . 'service.ini';
-            if (!is_file($service_file)) {
-                continue;
-            }
-            $services = parse_ini_file($service_file, true, INI_SCANNER_TYPED) ?: [];
-            if($services){
-                foreach ($services as $service) {
-                    if (class_exists($service)) {
-                        $this->app->register($service,$force=true);
-                    }
-                }
-            }
-            $bind[] = $services; // 收集服务
-        }
-        if(!empty($bind)){
-            $this->app->bind($bind);
-        }
-
-        $routes = (array) config('plugins.route', []);
-        foreach ($routes as $key => $val) {
-            if (!$val) {
-                continue;
-            }
-            if (is_array($val)) {
-                if (!empty($val['app_domain'])) {
-                    \config(['domain_bind' =>[$val['app_domain']=>$val['plugins']]],'app');
-                }
-            }
-        }
+            return $records;
+        });
     }
     /**
      * 插件事件
      */
     private function loadEvent()
     {
-        $hooks = $this->app->isDebug() ? [] : Cache::get('hooks', []);
-        if (empty($hooks)) {
-            $hooks = (array)config('plugins.hooks', []);
-            // 初始化钩子
-            foreach ($hooks as $key => $values) {
-                if (is_string($values)) {
-                    $values = explode(',', $values);
-                } else {
-                    $values = (array)$values;
-                }
-                $hooks[$key] = array_filter(array_map(function ($v) use ($key) {
-                    $plugin = get_plugins_class($v);
-                    return $plugin?[$plugin,$key]:[];
-                }, $values));
-            }
-            Cache::set('hooks', $hooks);
-        }
-        Event::listenEvents($hooks);
-        //如果在插件中有定义 PluginsInit，则直接执行
-        if (isset($hooks['PluginsInit'])) {
-            foreach ($hooks['PluginsInit'] as $k => $v) {
-                Event::trigger( 'PluginsInit',$v);
-            }
+        $loader = new RuntimeLoader();
+        foreach ($this->registry()->enabled() as $manifest) {
+            $loader->loadEvents($this->app, $manifest);
         }
     }
 
@@ -220,48 +119,14 @@ class Service extends \think\Service
         }
 
         $config = config('plugins');
-        $base = array_merge(get_class_methods("\\fun\\Plugins"), [
-            'init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled',
-            'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData',
-        ]);
-        foreach (glob($this->getPluginsPath() . '*/*.php') as $pluginFile) {
-            $info = pathinfo($pluginFile);
-            if (!in_array(strtolower($info['filename']), ['plugin'], true)) {
-                continue;
-            }
-            $name = pathinfo($info['dirname'], PATHINFO_FILENAME);
-            $manifest = $info['dirname'] . DS . 'plugin.ini';
-            if (!is_file($manifest)) {
-                $manifest = $info['dirname'] . DS . 'plugin.ini';
-            }
-            if (!is_file($manifest)) {
-                continue;
-            }
-            $pluginConfig = parse_ini_file($manifest, true, INI_SCANNER_TYPED) ?: [];
-            if (empty($pluginConfig['status']) || empty($pluginConfig['install']) || empty($pluginConfig['name'])) {
-                continue;
-            }
-
-            $class = "\\" . PLUGIN_NAMESPACE . "\\" . $name . "\\" . $info['filename'];
-            if (!class_exists($class)) {
-                continue;
-            }
-            $methods = (array) get_class_methods($class);
-            $this->plugins_data[] = $pluginConfig['name'];
-            $this->plugins_data_list[$pluginConfig['name']] = $pluginConfig;
-            $configFile = $this->getPluginsPath() . $pluginConfig['name'] . DS . 'config.php';
-            $this->plugins_data_list_config[$pluginConfig['name']] = is_file($configFile) ? (array) include $configFile : [];
-            foreach (array_diff($methods, $base) as $hook) {
-                if (!isset($config['hooks'][$hook])) {
-                    $config['hooks'][$hook] = [];
-                }
-                if (is_string($config['hooks'][$hook])) {
-                    $config['hooks'][$hook] = explode(',', $config['hooks'][$hook]);
-                }
-                if (!in_array($name, $config['hooks'][$hook], true)) {
-                    $config['hooks'][$hook][] = $name;
-                }
-            }
+        foreach ($this->registry()->enabled() as $name => $manifest) {
+            $pluginConfig = $manifest->toArray();
+            $pluginConfig['status'] = 1;
+            $pluginConfig['install'] = 1;
+            $this->plugins_data[] = $name;
+            $this->plugins_data_list[$name] = $pluginConfig;
+            $configFile = $this->getPluginsPath() . $name . DS . 'config.php';
+            $this->plugins_data_list_config[$name] = is_file($configFile) ? (array) include $configFile : [];
         }
         Cache::set('plugins_config', $config);
         Cache::set('plugins_data', $this->plugins_data);
@@ -403,7 +268,6 @@ class Service extends \think\Service
         $pluginslist[$name]['status'] = $state;
         $pluginslist[$name]['install'] = $install;
         Cache::set('pluginslist', $pluginslist);
-        set_plugins_info($name, ['status' => $state, 'install' => $install]);
     }
 
 }

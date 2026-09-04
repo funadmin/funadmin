@@ -35,17 +35,19 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       port: Number(env.VITE_APP_PORT) || 5173,
       open: env.VITE_APP_OPEN === 'true',
-      proxy:
-        env.VITE_APP_PROXY_TARGET && env.VITE_APP_BASE_API
-          ? {
-              [env.VITE_APP_BASE_API]: {
-                target: env.VITE_APP_PROXY_TARGET,
-                changeOrigin: true,
-                ws: true
-                // 后端已使用 /admin 前缀，无需 rewrite
-              }
+      proxy: env.VITE_APP_PROXY_TARGET
+        ? {
+            [env.VITE_APP_BASE_API || '/backend']: {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true,
+              ws: true
+            },
+            '/install.php': {
+              target: env.VITE_APP_PROXY_TARGET,
+              changeOrigin: true
             }
-          : undefined
+          }
+        : undefined
     },
     css: {
       preprocessorOptions: {

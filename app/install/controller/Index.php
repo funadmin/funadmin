@@ -8,7 +8,6 @@ use app\BaseController;
 use app\backend\model\Admin;
 use app\common\service\MigrationService;
 use think\facade\Db;
-use think\facade\View;
 
 class Index extends BaseController
 {
@@ -35,7 +34,6 @@ class Index extends BaseController
     protected $mysqlVersion = '5.7';
     //database模板
     protected $databaseTpl = '';
-    protected $adminTpl = '';
 
     public function __construct(App $app)
     {
@@ -44,7 +42,6 @@ class Index extends BaseController
         $this->envFile = root_path() . ".env";
         $this->lockFile = public_path() . "install.lock";
         $this->databaseTpl = app_path() . "view/tpl/database.tpl";
-        $this->adminTpl = app_path() . "view/tpl/admin.tpl";
         $this->envTpl = app_path() . "view/tpl/env.example";
         $this->sqlFileDir = root_path() . 'database' . DIRECTORY_SEPARATOR . 'migrations';
         $this->config = [
@@ -55,41 +52,60 @@ class Index extends BaseController
             'lockFile' => $this->lockFile,
         ];
         set_time_limit(0);
-        if (request()->action() != 'step4' && file_exists($this->lockFile)) {
-            $this->error('当前版本已经安装了，如果需要重新安装请先删除install.lock', '/');
-        }
-        View::assign('config', $this->config);
     }
 
     public function index()
     {
-        return view('step1');
+        $route = file_exists($this->lockFile) ? 'login' : 'install';
+        return redirect('/admin-web/#/' . $route);
     }
 
-   /* public function step1()
-    {
-        return view('step1');
-    }*/
-
+    /**
+     * 返回 Vue 安装向导所需的运行环境检查结果。
+     */
     public function step2()
     {
-        $data['php_version'] = PHP_VERSION;
-        $data['pdo'] = extension_loaded("PDO");
-        $data['mysqli'] = extension_loaded("mysqli");
-        $data['open_basedir'] = ini_get('open_basedir');
-        $data['database'] = is_really_writable($this->databaseConfigFile);
-        $data['gd_info'] = function_exists('gd_info') || class_exists('Imagick', false);
-        return view('step2', ['data' => $data]);
+        if (file_exists($this->lockFile)) {
+            $this->result(['installed' => true], 200, '系统已安装', 'json');
+        }
+        $uploadLimit = $this->sizeToBytes((string) ini_get('upload_max_filesize'));
+        $checks = [
+            $this->environmentCheck('os', '操作系统', '不限', php_uname('s'), true, true),
+            $this->environmentCheck('php', 'PHP 版本', '>= 8.1.0', PHP_VERSION, version_compare(PHP_VERSION, '8.1.0', '>='), true),
+            $this->environmentCheck('php_int', 'PHP 架构', '64 位', PHP_INT_SIZE === 8 ? '64 位' : '32 位', PHP_INT_SIZE === 8, true),
+            $this->environmentCheck('json', 'JSON 扩展', '支持', $this->supportLabel(extension_loaded('json')), extension_loaded('json'), true),
+            $this->environmentCheck('session', 'Session', '支持', $this->supportLabel(function_exists('session_start')), function_exists('session_start'), true),
+            $this->environmentCheck('pdo', 'PDO 扩展', '支持', $this->supportLabel(extension_loaded('PDO')), extension_loaded('PDO'), true),
+            $this->environmentCheck('pdo_mysql', 'PDO MySQL 驱动', '支持', $this->supportLabel(extension_loaded('pdo_mysql')), extension_loaded('pdo_mysql'), true),
+            $this->environmentCheck('mysqli', 'MySQLi 扩展', '支持', $this->supportLabel(extension_loaded('mysqli')), extension_loaded('mysqli'), true),
+            $this->environmentCheck('openssl', 'OpenSSL 扩展', '支持', $this->supportLabel(extension_loaded('openssl')), extension_loaded('openssl'), true),
+            $this->environmentCheck('curl', 'CURL 扩展', '支持', $this->supportLabel(function_exists('curl_exec')), function_exists('curl_exec'), true),
+            $this->environmentCheck('fileinfo', 'Fileinfo 扩展', '支持', $this->supportLabel(extension_loaded('fileinfo')), extension_loaded('fileinfo'), true),
+            $this->environmentCheck('image', '图像扩展', 'GD 或 Imagick', $this->imageDriverLabel(), function_exists('gd_info') || class_exists('Imagick'), true),
+            $this->environmentCheck('freetype', 'FreeType', '支持', $this->supportLabel(function_exists('imageftbbox')), function_exists('imageftbbox'), false),
+            $this->environmentCheck('zip', 'ZIP 扩展', '支持', $this->supportLabel(extension_loaded('zip')), extension_loaded('zip'), false),
+            $this->environmentCheck('upload', '文件上传限制', '>= 10 MB', (string) ini_get('upload_max_filesize'), $uploadLimit >= 10 * 1024 * 1024, false),
+            $this->environmentCheck('runtime', 'runtime 目录', '可写', $this->writableLabel(runtime_path()), $this->isWritable(runtime_path()), true),
+            $this->environmentCheck('public', 'public 目录', '可写', $this->writableLabel(public_path()), $this->isWritable(public_path()), true),
+            $this->environmentCheck('config', '数据库配置', '可写', $this->writableLabel($this->databaseConfigFile), $this->isWritable($this->databaseConfigFile), true),
+            $this->environmentCheck('env', '.env 配置', '可写', $this->writableLabel($this->envFile), $this->isWritable($this->envFile), true),
+            $this->environmentCheck('migrations', '数据库迁移', '目录可读且包含 SQL', $this->migrationStatus(), $this->hasMigrations(), true),
+        ];
 
+        $this->result([
+            'installed' => file_exists($this->lockFile),
+            'siteName' => $this->config['siteName'],
+            'siteVersion' => $this->config['siteVersion'],
+            'checks' => $checks,
+        ], 200, '环境检测完成', 'json');
     }
 
     public function step3()
     {
-        // 检测环境页面
-        if (request()->action() === 'step3' && request()->isGet()) {
-            return view('step3');
+        if (!request()->isPost()) {
+            $this->error('请求方法不正确');
         }
-        if (request()->action() === 'step3' && request()->isPost()) {
+        if (request()->isPost()) {
             //执行安装
 
             $this->app_debug = request()->post('app_debug')? true : false;
@@ -115,10 +131,13 @@ class Index extends BaseController
             }
             //php 版本
             if (version_compare(PHP_VERSION, '8.1.0', '<')) {
-                $this->error('当前版本(" . PHP_VERSION . ")过低，请使用PHP8.1.0以上版本');
+                $this->error('当前 PHP 版本 ' . PHP_VERSION . ' 过低，请使用 PHP 8.1.0 以上版本');
             }
-            if (!extension_loaded("PDO")) {
-                $this->error('当前未开启PDO，无法进行安装');
+            if (!extension_loaded('PDO') || !extension_loaded('mysqli')) {
+                $this->error('当前未开启 PDO 或 MySQLi，无法进行安装');
+            }
+            if (!$this->hasMigrations()) {
+                $this->error('数据库迁移文件不存在，无法进行安装');
             }
             //判断两次输入是否一致
             if ($admin['password'] != $admin['repassword']) {
@@ -126,7 +145,21 @@ class Index extends BaseController
             }
             if (!preg_match('/^[0-9a-z_$]{6,16}$/i', $admin['password'])) {
                 $this->error('密码必须6-16位,不能有中文和空格');
-
+            }
+            if (!preg_match('/[a-z]/i', $admin['password']) || !preg_match('/\d/', $admin['password'])) {
+                $this->error('管理员密码必须同时包含字母和数字');
+            }
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $db['database'])) {
+                $this->error('数据库名只能包含字母、数字和下划线');
+            }
+            if ($db['prefix'] !== '' && !preg_match('/^[a-zA-Z][a-zA-Z0-9_]*_$/', $db['prefix'])) {
+                $this->error('数据表前缀必须以字母开头、下划线结尾');
+            }
+            if (strlen($admin['email']) > 60) {
+                $this->error('管理员邮箱不能超过60个字符');
+            }
+            if (!filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+                $this->error('管理员邮箱格式不正确');
             }
             if (!preg_match("/^\w+$/", $admin['username'])) {
                 $this->error('用户名只能输入字母、数字、下划线！');
@@ -139,9 +172,10 @@ class Index extends BaseController
             }
 
             // 连接数据库
-            $link = @new \mysqli("{$db['host']}:{$db['port']}", $db['username'], $db['password']);
-            if (mysqli_connect_errno()) {
-                $this->error(mysqli_connect_error());
+            try {
+                $link = new \mysqli($db['host'], $db['username'], $db['password'], '', (int) $db['port']);
+            } catch (\mysqli_sql_exception $exception) {
+                $this->error('数据库连接失败：' . $exception->getMessage());
             }
             $link->query("SET NAMES 'utf8mb4'");
 //            需要超管
@@ -154,7 +188,7 @@ class Index extends BaseController
             }
             try {
                 // 创建数据库并选中
-                $create_sql = 'CREATE DATABASE IF NOT EXISTS ' . $db['database'] . ' DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;';
+                $create_sql = 'CREATE DATABASE IF NOT EXISTS `' . $db['database'] . '` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;';
                 if (!$link->query($create_sql)) {
                     $this->error('创建数据库失败');
                 }
@@ -187,15 +221,13 @@ class Index extends BaseController
             if (!$putConfig) {
                 $this->error('安装失败、请确定database.php是否有写入权限');
             }
-            if($this->app_debug){
-                $putEnv = str_replace(
-                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-                    [$this->app_debug,$db['host'],$db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-                    file_get_contents($this->envTpl));
-                $putConfig = @file_put_contents($this->envFile, $putEnv);
-                if (!$putConfig) {
-                    $this->error('安装失败、请确定目录是否有写入权限');
-                }
+            $putEnv = str_replace(
+                ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                [$this->app_debug ? 'true' : 'false', $db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+                file_get_contents($this->envTpl));
+            $putConfig = @file_put_contents($this->envFile, $putEnv);
+            if (!$putConfig) {
+                $this->error('安装失败、请确定 .env 是否有写入权限');
             }
             try {
                 $instance = Db::connect();
@@ -211,46 +243,105 @@ class Index extends BaseController
             if (!@touch($this->lockFile)) {
                 $this->error('安装完成但无法创建 install.lock，请检查 public 目录权限');
             }
-            $adminName = 'backend/login/index';
-            if(request()->post('standalone')){
-                //后台入口
-                $putAdmin = @file_get_contents($this->adminTpl);
-                $number = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                $adminName = substr(str_shuffle($number), 0, 10) . '.php';
-                $adminFile = public_path(). $adminName;
-                if (!file_exists($adminFile)) {
-                    @touch($adminFile);
-                }
-                @file_put_contents($adminFile, $putAdmin);
-            }
-            $funadmin = @file_get_contents(config_path().'funadmin.php');
-            $standalone = request()->post('standalone')?1:0;
-            // Match and replace standalone value (1 or 0) to boolean (true or false)
-            $updatedContent = preg_replace_callback(
-                "/('standalone'\s*=>\s*)(1|0|true|false)/",
-                function ($matches) use ($standalone) {
-                    return $matches[1] . $standalone;
-                },
-                $funadmin
-            );
-            @file_put_contents(config_path().'funadmin.php', $updatedContent);
-            $adminUser['username'] = $admin['username'];
-            $adminUser['password'] = $admin['password'];
-            $adminUser['backend'] = $adminName;
+            $adminUser = [
+                'username' => $admin['username'],
+                'password' => $admin['password'],
+                'backend' => '/admin-web/#/login',
+            ];
             session('admin_install', $adminUser);
-            $this->success('安装成功,安装后请重新启动程序');
+            $this->result($adminUser, 200, '安装成功', 'json');
         }
     }
 
     public function step4()
     {
-        //完成安装
-        if (request()->isPost()) {
-            session('admin_install', '');
-            $this->success('OK');
+        $admin = session('admin_install');
+        if (!$admin) {
+            $this->error('安装信息不存在');
         }
-        return view('step4');
+        if (request()->isPost()) {
+            session('admin_install', null);
+        }
+        $this->result($admin, 200, '安装完成', 'json');
     }
 
+    private function environmentCheck(string $key, string $label, string $requiredValue, string $currentValue, bool $passed, bool $required): array
+    {
+        return compact('key', 'label', 'requiredValue', 'currentValue', 'passed', 'required');
+    }
 
+    private function isWritable(string $file): bool
+    {
+        return file_exists($file) ? is_writable($file) : is_writable(dirname($file));
+    }
+
+    private function writableLabel(string $file): string
+    {
+        return $this->isWritable($file) ? '可写' : '不可写';
+    }
+
+    private function supportLabel(bool $supported): string
+    {
+        return $supported ? '支持' : '未安装';
+    }
+
+    private function imageDriverLabel(): string
+    {
+        if (class_exists('Imagick')) {
+            return 'Imagick';
+        }
+        return function_exists('gd_info') ? 'GD' : '未安装';
+    }
+
+    private function sizeToBytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+        $unit = strtolower(substr($value, -1));
+        $size = (float) $value;
+        return match ($unit) {
+            'g' => (int) ($size * 1024 * 1024 * 1024),
+            'm' => (int) ($size * 1024 * 1024),
+            'k' => (int) ($size * 1024),
+            default => (int) $size,
+        };
+    }
+
+    private function migrationFiles(): array
+    {
+        if (!is_dir($this->sqlFileDir) || !is_readable($this->sqlFileDir)) {
+            return [];
+        }
+        return glob($this->sqlFileDir . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+    }
+
+    private function hasMigrations(): bool
+    {
+        $files = $this->migrationFiles();
+        foreach ($files as $file) {
+            if (!is_readable($file)) {
+                return false;
+            }
+        }
+        return count($files) > 0;
+    }
+
+    private function migrationStatus(): string
+    {
+        if (!is_dir($this->sqlFileDir)) {
+            return '目录不存在';
+        }
+        if (!is_readable($this->sqlFileDir)) {
+            return '目录不可读';
+        }
+        $files = $this->migrationFiles();
+        foreach ($files as $file) {
+            if (!is_readable($file)) {
+                return basename($file) . ' 不可读';
+            }
+        }
+        return $files ? count($files) . ' 个迁移文件' : '无迁移文件';
+    }
 }

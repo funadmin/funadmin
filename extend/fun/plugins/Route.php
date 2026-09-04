@@ -23,7 +23,7 @@ class Route
         $request = $app->request;
         Event::trigger('plugins_begin', $request);
         // 是否自动转换控制器和操作名
-        $convert = $pluginsRouteConfig['url_convert']??config('route.url_convert');
+        $convert = (bool) config('route.url_convert');
         $filter = $convert ? 'strtolower' : 'trim';
         $plugin = $plugin ? trim(call_user_func($filter, $plugin)) : '';
         $controller = $controller ? trim(call_user_func($filter, $controller)) :$app->route->config('default_action');

@@ -7,8 +7,8 @@ namespace app\backend\controller;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
-use app\backend\model\Member;
 use app\backend\model\MemberGroup;
+use think\facade\Db;
 use think\Response;
 
 /**
@@ -164,10 +164,8 @@ class SystemMemberGroup extends AdminApiController
         if (count($groups) !== count($ids)) {
             return $this->fail($onlyTrashed ? '部分会员组不存在或不在回收站' : '部分会员组不存在或已在回收站', 404);
         }
-        foreach ($ids as $id) {
-            if (Member::withTrashed()->whereRaw('FIND_IN_SET(?, group_id)', [$id])->count() > 0) {
-                return $this->fail('会员组仍被会员引用，不能删除', 422);
-            }
+        if (Db::name('member_group_relation')->whereIn('group_id', $ids)->count() > 0) {
+            return $this->fail('会员组仍被会员引用，不能删除', 422);
         }
         return $groups;
     }

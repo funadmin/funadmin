@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-hePW80VL.js";import{At as t,Et as n,Lt as r,Vt as i}from"./element-BZKaL-8n.js";import{d as a,u as o}from"./view-error-BolU4k8y.js";var s=t({__name:`index`,setup(e){let t=o(),s=a();return r(()=>{let{params:e,query:n}=t,r=e.path||``;s.replace({path:`/`+r,query:n})}),(e,t)=>(i(),n(`div`))}}),c=e({default:()=>l}),l=s;export{c as t};

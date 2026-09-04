@@ -143,16 +143,10 @@ abstract class Plugins
             return $info;
         }
 
-        // 文件属性
-        $info = $this->info ?? [];
-        // 文件配置
-        $info_file = $this->plugin_path . 'plugin.ini';
-        if (is_file($info_file)) {
-            $_info = parse_ini_file($info_file, true, INI_SCANNER_TYPED) ?: [];
-            $info = array_merge($info,$_info);
-        }
+        $manifest = \fun\plugins\Manifest::fromDirectory($this->plugin_path);
+        $info = $manifest->toArray();
         config($info, $this->plugin_info);
-        return isset($info) ? $info : [];
+        return $info;
     }
 
     /**
@@ -188,13 +182,7 @@ abstract class Plugins
      */
     final public function setInfo($name = '', $value = [])
     {
-        if (empty($name)) {
-            $name = $this->getName();
-        }
-        $info = $this->getInfo($name);
-        $info = array_merge($info, $value);
-        config($info,$name);
-        return $info;
+        throw new \RuntimeException('plugin.json 是只读契约，运行状态必须写入插件注册表');
     }
 
     /**

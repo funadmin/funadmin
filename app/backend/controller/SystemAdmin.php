@@ -247,8 +247,8 @@ class SystemAdmin extends AdminApiController
         if ($create && mb_strlen($data['password']) < 8) {
             return '密码至少 8 位';
         }
-        if ($data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return '邮箱格式不正确';
+        if ($data['email'] !== '' && (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 60)) {
+            return '邮箱格式不正确或超过 60 个字符';
         }
         return null;
     }

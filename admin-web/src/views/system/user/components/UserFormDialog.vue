@@ -20,7 +20,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="邮箱" prop="email">
-            <el-input v-model="form.email" placeholder="user@example.com" />
+            <el-input v-model="form.email" maxlength="60" placeholder="user@example.com" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -130,7 +130,10 @@ const rules: FormRules = {
   ],
   nickname: [{ required: true, message: '请输入昵称', trigger: 'blur' }],
   password: [{ required: true, min: 8, message: '密码至少 8 位', trigger: 'blur' }],
-  email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+  email: [
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+    { max: 60, message: '邮箱不能超过 60 个字符', trigger: 'blur' }
+  ],
   mobile: [{ pattern: /^1\d{10}$/, message: '手机号格式不正确', trigger: 'blur' }],
   deptId: [{ required: true, message: '请选择部门', trigger: 'change' }],
   roleIds: [{ required: true, message: '请选择角色', trigger: 'change' }]

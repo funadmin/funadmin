@@ -64,13 +64,21 @@ class SystemConfig extends AdminApiController
         $groups = ConfigGroup::order('id', 'asc')->select();
         $types = FieldType::where('status', 1)->order('sort', 'asc')->order('id', 'asc')->select();
         $verifies = FieldVerify::order('verify', 'asc')->select();
+        $typeOptions = [];
+        foreach ($types as $type) {
+            $name = trim((string) $type->name);
+            if ($name === '' || isset($typeOptions[$name])) {
+                continue;
+            }
+            $typeOptions[$name] = [
+                'name' => $name,
+                'title' => trim((string) $type->title) ?: $name,
+                'requiresOptions' => (int) $type->isoption === 1,
+            ];
+        }
         return $this->ok([
             'groups' => array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()),
-            'types' => array_values(array_map(static fn (FieldType $type): array => [
-                'name' => (string) $type->name,
-                'title' => (string) $type->title,
-                'requiresOptions' => (int) $type->isoption === 1,
-            ], $types->all())),
+            'types' => array_values($typeOptions),
             'verifies' => array_values(array_map(static fn (FieldVerify $verify): array => [
                 'value' => (string) $verify->verify,
                 'title' => (string) $verify->title,

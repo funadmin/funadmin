@@ -179,11 +179,8 @@ class PluginPackageService extends AbstractService
 
     private function validatePlugin(string $directory, string $expectedName): string
     {
-        $manifest = is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini')
-            ? $directory . DIRECTORY_SEPARATOR . 'plugin.ini'
-            : $directory . DIRECTORY_SEPARATOR . 'plugin.ini';
-        $info = parse_ini_file($manifest, true, INI_SCANNER_TYPED) ?: [];
-        $name = (string) ($info['name'] ?? '');
+        $manifest = \fun\plugins\Manifest::fromDirectory($directory);
+        $name = $manifest->name();
         $this->assertName($name);
         if ($expectedName !== '' && strcasecmp($name, $expectedName) !== 0) {
             throw new RuntimeException('插件包名称与请求名称不一致');
@@ -216,8 +213,8 @@ class PluginPackageService extends AbstractService
 
     private function hasManifest(string $directory): bool
     {
-        return is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini')
-            || is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini');
+        return is_file($directory . DIRECTORY_SEPARATOR . 'plugin.json')
+            && is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php');
     }
 
     private function pluginDirectory(string $name): string
@@ -227,7 +224,7 @@ class PluginPackageService extends AbstractService
 
     private function assertName(string $name): void
     {
-        if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
             throw new RuntimeException('插件名格式错误');
         }
     }

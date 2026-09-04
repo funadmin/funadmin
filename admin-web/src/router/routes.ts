@@ -8,6 +8,12 @@ import Layout from '@/layout/index.vue';
  */
 export const staticRoutes: RouteRecordRaw[] = [
   {
+    path: '/install',
+    name: 'Install',
+    component: () => import('@/views/install/index.vue'),
+    meta: { title: '安装向导', hidden: true }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login/index.vue'),

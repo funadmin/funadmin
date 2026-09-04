@@ -10,6 +10,7 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\Member;
 use app\backend\model\MemberGroup;
 use app\backend\model\MemberLevel;
+use think\facade\Db;
 use think\Response;
 
 /**
@@ -27,10 +28,10 @@ class SystemMember extends AdminApiController
         $query = $this->filteredQuery($recycled);
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
         $items = $result->items();
-        [$groups, $levels] = $this->relationMaps($items);
+        [$memberGroups, $groups, $levels] = $this->relationMaps($items);
 
         return $this->ok([
-            'list' => array_map(fn (Member $member): array => $this->memberData($member, $groups, $levels), $items),
+            'list' => array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels), $items),
             'total' => $result->total(),
             'page' => $page,
             'pageSize' => $pageSize,
@@ -43,8 +44,8 @@ class SystemMember extends AdminApiController
         if (!$member) {
             return $this->fail('会员不存在', 404);
         }
-        [$groups, $levels] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $groups, $levels));
+        [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
+        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels));
     }
 
     public function options(): Response
@@ -65,10 +66,16 @@ class SystemMember extends AdminApiController
             return $this->fail($error, 422);
         }
 
+        $groupIds = $data['groupIds'];
+        unset($data['groupIds']);
         $data['password'] = '';
-        $member = Member::create($data);
-        [$groups, $levels] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $groups, $levels), '创建成功');
+        $member = Db::transaction(function () use ($data, $groupIds): Member {
+            $member = Member::create($data);
+            $member->groups()->sync($groupIds);
+            return $member;
+        });
+        [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
+        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '创建成功');
     }
 
     public function update(int $id): Response
@@ -85,9 +92,14 @@ class SystemMember extends AdminApiController
             return $this->fail($error, 422);
         }
 
-        $member->save($data);
-        [$groups, $levels] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $groups, $levels), '保存成功');
+        $groupIds = $data['groupIds'];
+        unset($data['groupIds']);
+        Db::transaction(function () use ($member, $data, $groupIds): void {
+            $member->save($data);
+            $member->groups()->sync($groupIds);
+        });
+        [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
+        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '保存成功');
     }
 
     public function status(int $id): Response
@@ -97,8 +109,8 @@ class SystemMember extends AdminApiController
             return $this->fail('会员不存在', 404);
         }
         $member->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
-        [$groups, $levels] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $groups, $levels), '状态更新成功');
+        [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
+        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '状态更新成功');
     }
 
     public function recycle(): Response
@@ -135,9 +147,12 @@ class SystemMember extends AdminApiController
         if ($members instanceof Response) {
             return $members;
         }
-        foreach ($members as $member) {
-            $member->force()->delete();
-        }
+        Db::transaction(function () use ($members): void {
+            foreach ($members as $member) {
+                $member->groups()->detach();
+                $member->force()->delete();
+            }
+        });
         return $this->ok(['removed' => count($members)], '永久删除成功');
     }
 
@@ -168,8 +183,13 @@ class SystemMember extends AdminApiController
                 continue;
             }
             try {
+                $groupIds = $data['groupIds'];
+                unset($data['groupIds']);
                 $data['password'] = '';
-                Member::create($data);
+                Db::transaction(function () use ($data, $groupIds): void {
+                    $member = Member::create($data);
+                    $member->groups()->sync($groupIds);
+                });
                 $created++;
             } catch (\Throwable $e) {
                 $errors[] = '第 ' . ($index + 2) . ' 行：保存失败';
@@ -191,8 +211,8 @@ class SystemMember extends AdminApiController
             return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
         }
         $members = $query->order('id', 'desc')->select()->all();
-        [$groups, $levels] = $this->relationMaps($members);
-        return $this->ok(array_map(fn (Member $member): array => $this->memberData($member, $groups, $levels), $members));
+        [$memberGroups, $groups, $levels] = $this->relationMaps($members);
+        return $this->ok(array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels), $members));
     }
 
     private function filteredQuery(bool $recycled)
@@ -213,7 +233,8 @@ class SystemMember extends AdminApiController
             $query->where('status', (int) $status);
         }
         if ($groupId > 0) {
-            $query->whereRaw('FIND_IN_SET(?, group_id)', [$groupId]);
+            $memberIds = Db::name('member_group_relation')->where('group_id', $groupId)->column('member_id');
+            $query->whereIn('id', $memberIds ?: [0]);
         }
         if ($levelId > 0) {
             $query->where('level_id', $levelId);
@@ -242,7 +263,7 @@ class SystemMember extends AdminApiController
             'mobile' => $this->request->post('mobile', $member?->mobile ?? ''),
             'email' => $this->request->post('email', $member?->email ?? ''),
             'sex' => $this->request->post('sex', $member?->sex ?? 0),
-            'groupIds' => $this->request->post('groupIds', $this->parseIds((string) ($member?->group_id ?? ''))),
+            'groupIds' => $this->request->post('groupIds', $member ? $this->memberGroupIds((int) $member->id) : []),
             'levelId' => $this->request->post('levelId', $member?->level_id ?? 0),
             'avatar' => $this->request->post('avatar', $member?->avatar ?? ''),
             'status' => $this->request->post('status', $member?->status ?? 1),
@@ -260,9 +281,9 @@ class SystemMember extends AdminApiController
         return [
             'username' => trim((string) ($row['username'] ?? '')),
             'mobile' => trim((string) ($row['mobile'] ?? '')),
-            'email' => trim((string) ($row['email'] ?? '')),
+            'email' => ($email = trim((string) ($row['email'] ?? ''))) !== '' ? $email : null,
             'sex' => (string) ($row['sex'] ?? '0'),
-            'group_id' => implode(',', $groupIds),
+            'groupIds' => $groupIds,
             'level_id' => (int) ($row['levelId'] ?? $row['level_id'] ?? 0),
             'avatar' => trim((string) ($row['avatar'] ?? '')),
             'status' => (int) ($row['status'] ?? 1) === 1 ? 1 : 0,
@@ -281,17 +302,16 @@ class SystemMember extends AdminApiController
         if ($data['mobile'] === '' || !preg_match('/^[0-9+\- ]{6,20}$/', $data['mobile'])) {
             return '请输入 6 至 20 位有效手机号';
         }
-        if ($data['email'] !== '' && (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 60)) {
+        if ($data['email'] !== null && (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 60)) {
             return '邮箱格式不正确或超过 60 个字符';
         }
         if (!in_array($data['sex'], ['0', '1', '2'], true)) {
             return '性别参数无效';
         }
-        if ($data['group_id'] === '' || strlen($data['group_id']) > 50) {
-            return '请选择有效会员组，且分组数据不能超过 50 个字符';
+        if (!$data['groupIds'] || count($data['groupIds']) > 32) {
+            return '请选择有效会员组，且最多选择 32 个会员组';
         }
-        $groupIds = $this->parseIds($data['group_id']);
-        if (MemberGroup::whereIn('id', $groupIds)->where('status', 1)->count() !== count($groupIds)) {
+        if (MemberGroup::whereIn('id', $data['groupIds'])->where('status', 1)->count() !== count($data['groupIds'])) {
             return '会员组不存在、已删除或已停用';
         }
         if ($data['level_id'] <= 0 || !MemberLevel::where('id', $data['level_id'])->where('status', 1)->find()) {
@@ -307,7 +327,7 @@ class SystemMember extends AdminApiController
     {
         $usernameQuery = Member::withTrashed()->where('username', $data['username']);
         $mobileQuery = Member::withTrashed()->where('mobile', $data['mobile']);
-        $emailQuery = $data['email'] !== '' ? Member::withTrashed()->where('email', $data['email']) : null;
+        $emailQuery = $data['email'] !== null ? Member::withTrashed()->where('email', $data['email']) : null;
         if ($excludeId > 0) {
             $usernameQuery->where('id', '<>', $excludeId);
             $mobileQuery->where('id', '<>', $excludeId);
@@ -327,27 +347,39 @@ class SystemMember extends AdminApiController
 
     private function relationMaps(array $members): array
     {
-        $groupIds = [];
+        $memberIds = [];
+        $memberGroups = [];
         $levelIds = [];
         foreach ($members as $member) {
-            $groupIds = array_merge($groupIds, $this->parseIds((string) $member->group_id));
+            $memberIds[] = (int) $member->id;
+            $memberGroups[(int) $member->id] = [];
             $levelIds[] = (int) $member->level_id;
         }
-        $groupIds = array_values(array_unique(array_filter($groupIds)));
+        $relations = $memberIds ? Db::name('member_group_relation')->whereIn('member_id', $memberIds)
+            ->order('group_id', 'asc')->select()->toArray() : [];
+        $groupIds = [];
+        foreach ($relations as $relation) {
+            $memberId = (int) $relation['member_id'];
+            $groupId = (int) $relation['group_id'];
+            $memberGroups[$memberId][] = $groupId;
+            $groupIds[] = $groupId;
+        }
+        $groupIds = array_values(array_unique($groupIds));
         $levelIds = array_values(array_unique(array_filter($levelIds)));
         $groups = $groupIds ? MemberGroup::withTrashed()->whereIn('id', $groupIds)->column('name', 'id') : [];
         $levels = $levelIds ? MemberLevel::withTrashed()->whereIn('id', $levelIds)->column('name', 'id') : [];
-        return [$groups, $levels];
+        return [$memberGroups, $groups, $levels];
     }
 
-    private function parseIds(string $value): array
+    private function memberGroupIds(int $memberId): array
     {
-        return array_values(array_unique(array_filter(array_map('intval', explode(',', $value)), static fn (int $id): bool => $id > 0)));
+        return array_map('intval', Db::name('member_group_relation')->where('member_id', $memberId)
+            ->order('group_id', 'asc')->column('group_id'));
     }
 
-    private function memberData(Member $member, array $groups, array $levels): array
+    private function memberData(Member $member, array $memberGroups, array $groups, array $levels): array
     {
-        $groupIds = $this->parseIds((string) $member->group_id);
+        $groupIds = $memberGroups[(int) $member->id] ?? [];
         return [
             'id' => (int) $member->id,
             'username' => (string) $member->username,

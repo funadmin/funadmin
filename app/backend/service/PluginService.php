@@ -8,6 +8,10 @@ use app\common\model\SystemMigration;
 use app\common\service\AbstractService;
 use app\common\service\MigrationService;
 use app\common\traits\Jump;
+use fun\plugins\DependencyValidator;
+use fun\plugins\LifecycleLock;
+use fun\plugins\LifecycleState;
+use fun\plugins\Manifest;
 use fun\plugins\Service;
 use RuntimeException;
 use think\Exception;
@@ -24,6 +28,21 @@ class PluginService extends AbstractService
     protected string $myplugin = 'myplugin';
     private ?array $pluginColumns = null;
     private bool $deploymentRollbackAllowed = true;
+
+    private function lifecycleLock(string $name): \fun\plugins\LockHandle
+    {
+        return (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($name);
+    }
+
+    private function transition(Plugin $record, string $to): void
+    {
+        $from = (string) ($record->lifecycle_state ?: ((int) $record->status === 1 ? 'enabled' : 'disabled'));
+        LifecycleState::assertTransition($from, $to);
+        $record->save($this->filterPluginColumns([
+            'lifecycle_state' => $to,
+            'state_changed_at' => time(),
+        ]));
+    }
 
     public function canRollbackDeployment(): bool
     {
@@ -74,12 +93,12 @@ class PluginService extends AbstractService
 
     public function installPlugin(string $name, string $type = ''): bool
     {
+        $lock = $this->lifecycleLock($name);
         $this->deploymentRollbackAllowed = true;
         $this->assertName($name);
         $this->assertLifecycleSchema();
         $plugin = $this->plugin($name);
         $pluginInfo = $this->validatedInfo($name);
-        $this->assertDependencies($pluginInfo);
 
         $record = $this->isInstall($name);
         if ($record && (int) $record->delete_time > 0) {
@@ -92,6 +111,8 @@ class PluginService extends AbstractService
 
         $payload = array_merge($pluginInfo, [
             'status' => 0,
+            'lifecycle_state' => 'installing',
+            'state_changed_at' => time(),
             'db_version' => (string) ($record->db_version ?? ''),
             'migration_pending' => 1,
             'last_error' => null,
@@ -114,18 +135,15 @@ class PluginService extends AbstractService
             'migration_pending' => 0,
         ]);
         Service::copyApp($name);
-        if ($plugin->enabled() === false) {
-            throw new RuntimeException('插件启用钩子执行失败');
-        }
-        $this->registerMenu($name);
-        Service::updatePluginsInfo($name, 1, 1);
-        $record->save(['status' => 1, 'last_error' => null]);
+        $record->save(['status' => 0, 'last_error' => null]);
+        $this->transition($record, 'disabled');
         refreshplugins();
         return true;
     }
 
     public function updatePlugin(string $name, bool $migrate = true): bool
     {
+        $lock = $this->lifecycleLock($name);
         $this->deploymentRollbackAllowed = true;
         $this->assertName($name);
         $this->assertLifecycleSchema();
@@ -139,7 +157,7 @@ class PluginService extends AbstractService
 
         $plugin = $this->plugin($name);
         $pluginInfo = $this->validatedInfo($name);
-        $this->assertDependencies($pluginInfo);
+        $this->transition($record, 'installing');
         $fromVersion = (string) $record->version;
         $toVersion = (string) ($pluginInfo['version'] ?? '');
         if ($fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
@@ -178,12 +196,14 @@ class PluginService extends AbstractService
             'migration_pending' => $migrate ? 0 : $migrationPending,
             'last_error' => null,
         ]));
+        $this->transition($record, 'disabled');
         refreshplugins();
         return true;
     }
 
     public function migratePlugin(string $name): array
     {
+        $lock = $this->lifecycleLock($name);
         $this->assertName($name);
         $this->assertLifecycleSchema();
         $record = Plugin::where('name', $name)->find();
@@ -212,6 +232,8 @@ class PluginService extends AbstractService
             if ($record) {
                 $record->save($this->filterPluginColumns([
                     'status' => 0,
+                    'lifecycle_state' => 'failed',
+                    'state_changed_at' => time(),
                     'last_error' => substr($exception->getMessage(), 0, 2000),
                 ]));
             }
@@ -222,6 +244,7 @@ class PluginService extends AbstractService
 
     public function uninstallPlugin(string $name, bool $purgeData = false): bool
     {
+        $lock = $this->lifecycleLock($name);
         $this->assertName($name);
         $this->assertLifecycleSchema();
         $record = $this->isInstall($name);
@@ -232,6 +255,7 @@ class PluginService extends AbstractService
             throw new RuntimeException(lang('Please disable plugins %s first', [$name]));
         }
 
+        $this->transition($record, 'uninstalling');
         $plugin = $this->plugin($name);
         if ($plugin->uninstall() === false) {
             throw new RuntimeException(lang('plugin uninstall fail'));
@@ -301,6 +325,7 @@ class PluginService extends AbstractService
 
     private function setPluginStatus(string $name, int $status): bool
     {
+        $lock = $this->lifecycleLock($name);
         $this->assertName($name);
         $this->assertLifecycleSchema();
         $info = Plugin::where('name', $name)->find();
@@ -317,6 +342,7 @@ class PluginService extends AbstractService
             throw new RuntimeException('插件最近一次生命周期操作失败，请先修复或重新更新');
         }
 
+        $this->transition($info, $status === 1 ? 'enabling' : 'disabling');
         $plugin = $this->plugin($name);
         if ($status === 1) {
             Service::copyApp($name);
@@ -337,6 +363,7 @@ class PluginService extends AbstractService
 
         Service::updatePluginsInfo($name, $status, 1);
         $info->save(['status' => $status, 'last_error' => null]);
+        $this->transition($info, $status === 1 ? 'enabled' : 'disabled');
         refreshplugins();
         return true;
     }
@@ -368,26 +395,28 @@ class PluginService extends AbstractService
 
     private function validatedInfo(string $name): array
     {
-        $info = get_plugins_info($name);
-        foreach (['name', 'title', 'version'] as $required) {
-            if (!isset($info[$required]) || trim((string) $info[$required]) === '') {
-                throw new RuntimeException('插件信息缺少字段：' . $required);
-            }
-        }
-        if (strcasecmp((string) $info['name'], $name) !== 0) {
-            throw new RuntimeException('插件目录名与插件标识不一致');
-        }
-        return $info;
+        $manifest = Manifest::fromDirectory(Service::getPluginsNamePath($name));
+        $this->assertDependencies($manifest);
+        $data = $manifest->toArray();
+        return [
+            'name' => $manifest->name(),
+            'title' => $manifest->title(),
+            'version' => $manifest->version(),
+            'requires' => (string) ($data['requires']['funadmin'] ?? ''),
+            'manifest' => json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ];
     }
 
-    private function assertDependencies(array $pluginInfo): void
+    private function assertDependencies(Manifest $manifest): void
     {
-        foreach (array_filter(array_map('trim', explode(',', (string) ($pluginInfo['depend'] ?? '')))) as $dependency) {
-            $record = Plugin::where('name', $dependency)->where('status', 1)->find();
-            if (!$record) {
-                throw new RuntimeException('请先安装并启用依赖插件：' . $dependency);
-            }
+        $records = [];
+        foreach (Plugin::whereIn('name', array_keys($manifest->dependencies()))->select() as $record) {
+            $records[(string) $record->name] = [
+                'version' => (string) $record->version,
+                'lifecycle_state' => (string) $record->lifecycle_state,
+            ];
         }
+        (new DependencyValidator((string) config('funadmin.version'), PHP_VERSION))->assertSatisfied($manifest, $records);
     }
 
     private function registerMenu(string $name): void
@@ -439,9 +468,9 @@ class PluginService extends AbstractService
 
     private function assertLifecycleSchema(): void
     {
-        $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at'];
+        $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at', 'manifest', 'lifecycle_state', 'state_changed_at', 'operation_token'];
         if (array_diff($required, $this->pluginColumns())) {
-            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/005_plugin_lifecycle_schema.sql');
+            throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/007_plugin_registry_state.sql');
         }
     }
 }
