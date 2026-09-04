@@ -33,8 +33,10 @@ export function setupRouterGuard(router: Router) {
     if (permissionStore.mounted) return next();
 
     try {
-      if (!userStore.userInfo) await userStore.fetchUserInfo();
-      const dynamicRoutes = await permissionStore.fetchMenus();
+      const [, dynamicRoutes] = await Promise.all([
+        userStore.userInfo ? Promise.resolve() : userStore.fetchUserInfo(),
+        permissionStore.fetchMenus()
+      ]);
       dynamicRoutes.forEach((route) => router.addRoute(route));
       if (!router.hasRoute('NotFound')) {
         router.addRoute({

@@ -3,7 +3,7 @@
   <div class="app-layout-router">
     <router-view v-slot="{ Component, route }">
       <transition :name="transitionName" mode="out-in" appear>
-        <keep-alive :include="cachedNames">
+        <keep-alive :include="cachedNames" :max="12">
           <component v-if="Component" :is="Component" :key="route.fullPath" />
         </keep-alive>
       </transition>

@@ -52,7 +52,7 @@
           <el-table-column prop="name" label="等级名称" min-width="130" />
           <el-table-column label="缩略图" width="92" align="center">
             <template #default="{ row }">
-              <el-image v-if="row.thumb" :src="row.thumb" fit="cover" class="h-10 w-10 rounded" :preview-src-list="[row.thumb]" preview-teleported />
+              <el-image v-if="row.thumb" :src="row.thumb" fit="cover" class="h-10 w-10 rounded" :preview-src-list="[row.thumb]" preview-teleported lazy />
               <span v-else class="text-xs text-[var(--el-text-color-secondary)]">无</span>
             </template>
           </el-table-column>

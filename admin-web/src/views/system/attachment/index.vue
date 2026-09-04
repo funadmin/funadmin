@@ -72,7 +72,7 @@
             <el-table-column type="selection" width="48" align="center" />
             <el-table-column label="预览" width="82" align="center">
               <template #default="{ row }">
-                <el-image v-if="row.mime.startsWith('image/')" :src="row.thumb || row.path" fit="cover" class="h-11 w-11 rounded" :preview-src-list="[row.path]" preview-teleported />
+                <el-image v-if="row.mime.startsWith('image/')" :src="row.thumb || row.path" fit="cover" class="h-11 w-11 rounded" :preview-src-list="[row.path]" preview-teleported lazy />
                 <i v-else :class="fileIcon(row.ext)" class="text-3xl text-[var(--el-text-color-secondary)]" />
               </template>
             </el-table-column>

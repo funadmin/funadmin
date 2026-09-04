@@ -6,21 +6,8 @@
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import {
-  BarChart,
-  LineChart,
-  PieChart,
-  RadarChart,
-  ScatterChart
-} from 'echarts/charts';
-import {
-  GridComponent,
-  TooltipComponent,
-  TitleComponent,
-  LegendComponent,
-  DataZoomComponent,
-  ToolboxComponent
-} from 'echarts/components';
+import { BarChart, LineChart, PieChart, RadarChart } from 'echarts/charts';
+import { GridComponent, TooltipComponent, TitleComponent, LegendComponent } from 'echarts/components';
 import { useDebounceFn } from '@vueuse/core';
 import { useAppStore } from '@/store/modules/app';
 
@@ -30,13 +17,10 @@ echarts.use([
   LineChart,
   PieChart,
   RadarChart,
-  ScatterChart,
   GridComponent,
   TooltipComponent,
   TitleComponent,
-  LegendComponent,
-  DataZoomComponent,
-  ToolboxComponent
+  LegendComponent
 ]);
 
 interface Props {

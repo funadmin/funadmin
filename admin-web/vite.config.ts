@@ -90,7 +90,7 @@ export default defineConfig(({ mode }) => {
           chunkFileNames: 'assets/js/[name]-[hash].js',
           entryFileNames: 'assets/js/[name]-[hash].js',
           assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
-          // 函数式分包：第三方库按域分组；业务视图按一级目录分组，减少首屏 js 数量
+          // 仅稳定拆分第三方依赖；业务路由交给 Rollup 按动态 import 自然拆包
           manualChunks(id) {
             if (id.includes('node_modules')) {
               // 关键三方库单独成 chunk；其余统一归到 vendor，避免互相 import 形成循环 chunk
@@ -101,9 +101,6 @@ export default defineConfig(({ mode }) => {
               if (/[\\/]node_modules[\\/]@iconify[\\/]/.test(id)) return 'iconify';
               return 'vendor';
             }
-            // 业务视图分组：每个一级目录单独 chunk
-            const m = id.match(/[\\/]src[\\/]views[\\/]([^\\/]+)[\\/]/);
-            if (m) return `view-${m[1]}`;
           }
         }
       }
