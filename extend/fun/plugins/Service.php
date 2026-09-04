@@ -262,13 +262,4 @@ class Service extends \think\Service
         ];
     }
 
-    //更新插件状态
-    public static function updatePluginsInfo($name, $state = 1, $install = 1)
-    {
-        $pluginslist = get_plugins_list();
-        $pluginslist[$name]['status'] = $state;
-        $pluginslist[$name]['install'] = $install;
-        Cache::set('pluginslist', $pluginslist);
-    }
-
 }

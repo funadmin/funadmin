@@ -17,7 +17,6 @@ class TokenService extends AbstractService
      * 生成 JWT 令牌
      *
      * @param array $payload
-     * @param int $ttl 令牌有效期（秒）
      * @param string $type 令牌类型 ('access' 或 'refresh')
      * @return string
      */

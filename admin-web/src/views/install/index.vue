@@ -136,19 +136,20 @@ onMounted(loadEnvironment);
 </script>
 
 <style scoped>
-.install-page { display: grid; justify-items: center; width: 100%; min-height: 100vh; padding: 48px 20px; overflow-x: hidden; box-sizing: border-box; background: #f4f6fa; }
+/* 固定到视口并自管滚动：居中只相对可视区计算，不受文档宽度/滚动位置影响 */
+.install-page { position: fixed; inset: 0; overflow: auto; display: grid; justify-items: center; align-content: start; padding: 48px 20px; box-sizing: border-box; background: var(--app-app-bg, #f4f6fa); }
 .install-shell { width: 100%; max-width: 960px; min-width: 0; }
 .install-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
-.install-header h1 { margin: 0; font-size: 25px; color: #1d2129; }
-.install-header p { margin: 5px 0 0; color: #86909c; }
-.version { margin-left: auto; color: #86909c; }
+.install-header h1 { margin: 0; font-size: 25px; color: var(--app-text, #1d2129); }
+.install-header p { margin: 5px 0 0; color: var(--app-text-secondary, #86909c); }
+.version { margin-left: auto; color: var(--app-text-secondary, #86909c); }
 .install-card { margin-top: 28px; border: 0; border-radius: 14px; }
 .install-card h2 { margin: 0 0 18px; font-size: 18px; }
-.agreement { min-height: 220px; padding: 22px; margin-bottom: 18px; border: 1px solid #e5e6eb; border-radius: 8px; background: #fafafa; line-height: 1.9; color: #4e5969; }
+.agreement { min-height: 220px; padding: 22px; margin-bottom: 18px; border: 1px solid var(--app-border, #e5e6eb); border-radius: 8px; background: var(--el-fill-color-lighter, #fafafa); line-height: 1.9; color: var(--app-text-secondary, #4e5969); }
 .section-title { display: flex; justify-content: space-between; align-items: start; }
-.section-title p, .tip { color: #86909c; font-size: 13px; }
+.section-title p, .tip { color: var(--app-text-secondary, #86909c); font-size: 13px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
-.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #f0f0f0; }
-.result-info { margin-bottom: 22px; color: #4e5969; }
+.actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--app-border, #f0f0f0); }
+.result-info { margin-bottom: 22px; color: var(--app-text-secondary, #4e5969); }
 @media (max-width: 640px) { .install-page { padding: 24px 12px; } .form-grid { grid-template-columns: 1fr; } :deep(.el-step__title) { font-size: 12px; } }
 </style>

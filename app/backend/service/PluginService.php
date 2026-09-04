@@ -54,7 +54,9 @@ class PluginService extends AbstractService
             $lock = (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($name);
             return $operation($token);
         } catch (\Throwable $exception) {
-            $this->recordFailure($name, $exception);
+            if ($lock) {
+                $this->recordFailure($name, $exception);
+            }
             throw $exception;
         } finally {
             try {
@@ -65,9 +67,12 @@ class PluginService extends AbstractService
             } catch (\Throwable $cleanupException) {
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
             }
-            Cache::clear();
-            if ($lock) {
-                $lock->release();
+            try {
+                Cache::clear();
+            } finally {
+                if ($lock) {
+                    $lock->release();
+                }
             }
         }
     }
@@ -145,10 +150,10 @@ class PluginService extends AbstractService
                 $record = new Plugin();
                 $record->save($this->filterPluginColumns(array_merge($pluginInfo, [
                     'status' => 0,
-                    'lifecycle_state' => 'discovered',
                     'state_changed_at' => time(),
                     'installed_at' => time(),
                 ])));
+                $record->lifecycle_state = 'discovered';
             }
             $this->beginOperation($record, $token, 'installing');
             $record->save($this->filterPluginColumns(array_merge($pluginInfo, [

@@ -14,8 +14,7 @@ const normalizedSql = migration.replace(/\s+/g, ' ');
 
 describe('006_schema_integrity migration 源码契约', () => {
   it('旧会员分组数据非法、存在空分组或引用不存在会员组时明确中止迁移', () => {
-    expect(normalizedSql).toMatch(/SIGNAL SQLSTATE\s+'45000'/i);
-    expect(normalizedSql).toMatch(/CALL\s+`schema_integrity_signal_006`/i);
+    expect(normalizedSql).toMatch(/SIGNAL SQLSTATE\s+''?45000''?/i);
     expect(normalizedSql).toMatch(/group_id[\s\S]*(?:REGEXP|JSON_VALID|invalid|非法)/i);
     expect(normalizedSql).toMatch(/group_id[\s\S]*(?:empty|空分组|,,|TRIM)/i);
     expect(normalizedSql).toMatch(/(?:LEFT JOIN|NOT EXISTS)[\s\S]*member_group[\s\S]*(?:SIGNAL|不存在)/i);
@@ -32,7 +31,7 @@ describe('006_schema_integrity migration 源码契约', () => {
   });
 
   it('唯一约束遇到历史重复数据时明确失败而不是降级为 SELECT 1', () => {
-    expect(normalizedSql).toMatch(/HAVING COUNT\(\*\) > 1[\s\S]*CALL\s+`schema_integrity_signal_006`/i);
+    expect(normalizedSql).toMatch(/HAVING COUNT\(\*\) > 1[\s\S]*SIGNAL SQLSTATE\s+''?45000''?/i);
     expect(normalizedSql).not.toMatch(
       /HAVING COUNT\(\*\) > 1[\s\S]{0,500}['"]SELECT 1['"]/i
     );

@@ -1,0 +1,1 @@
+import{At as e,Vt as t,wt as n}from"./element-BZKaL-8n.js";import{t as r}from"./ErrorPage-D36opqmO.js";var i=e({__name:`403`,setup(e){return(e,i)=>(t(),n(r,{code:`403`}))}});export{i as default};
