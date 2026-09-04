@@ -1,0 +1,1 @@
+import{Ht as e,Rt as t,xt as n}from"./element-CPQFHYPP.js";import{n as r}from"./view-dashboard-Cs74Cq_N.js";var i={};function a(r,i){let a=e(`router-view`);return t(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

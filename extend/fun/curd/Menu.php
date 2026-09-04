@@ -13,9 +13,7 @@ use think\console\Output;
 class Menu extends Command
 {
     protected $sysController = [
-        'member.Member', 'member.MemberLevel',
-        'sys.Attach', 'sys.AttachGroup', 'sys.Config',
-        'sys.ConfigGroup', 'sys.Upgrade', 'Addon', 'Ajax',
+        'sys.Attach', 'sys.AttachGroup', 'sys.Upgrade', 'Addon', 'Ajax',
         'Error', 'Index', 'Login',
     ];
 

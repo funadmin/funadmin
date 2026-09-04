@@ -5,6 +5,7 @@
  * - 这里直接读取 file 字段，针对图片走 FileReader -> base64 让前端立即可预览
  */
 import { fail, ok, type MockRoute } from '../types';
+import { attachmentGroupExists, registerMockAttachment } from './attachment';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
@@ -32,14 +33,17 @@ export const uploadMockHandlers: MockRoute[] = [
 
       let file: File | null = null;
       let bizType = 'file';
+      let groupId = 1;
 
       if (fd) {
         file = fd.get('file') as File | null;
         bizType = String(fd.get('bizType') || 'file');
+        groupId = Number(fd.get('groupId') || 1);
       } else if (body && typeof body === 'object') {
         // 极少数环境下 body 已被 qs.parse；保底兜一层
         file = (body.file as File) || null;
         bizType = String(body.bizType || 'file');
+        groupId = Number(body.groupId || 1);
       }
 
       if (!file || !(file instanceof File)) {
@@ -47,6 +51,9 @@ export const uploadMockHandlers: MockRoute[] = [
       }
       if (file.size > MAX_BYTES) {
         return fail(`文件大小超过 ${MAX_BYTES / 1024 / 1024}MB`);
+      }
+      if (!attachmentGroupExists(groupId)) {
+        return fail('附件分组不存在', 422);
       }
 
       const ext = getExt(file.name);
@@ -57,12 +64,16 @@ export const uploadMockHandlers: MockRoute[] = [
         ? await readAsDataURL(file)
         : `https://mock.local/${bizType}/${Date.now()}-${encodeURIComponent(file.name)}`;
 
+      registerMockAttachment({ groupId, name: file.name, url, size: file.size, ext, mime: file.type || 'application/octet-stream' });
+
       return ok(
         {
           url,
           name: file.name,
           size: file.size,
           ext,
+          groupId,
+          reused: false,
           uploadedAt: Date.now()
         },
         '上传成功'

@@ -7,6 +7,7 @@ namespace app\backend\controller;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
+use app\backend\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\service\UploadService;
 use think\Response;
@@ -30,6 +31,11 @@ class AdminUpload extends AdminApiController
         if (!in_array($bizType, ['file', 'image', 'avatar'], true)) {
             return $this->fail('上传业务类型不支持', 422);
         }
+        $groupId = (int) $this->request->post('groupId', 1);
+        if ($groupId <= 0 || !AttachGroup::find($groupId)) {
+            return $this->fail('附件分组不存在', 422);
+        }
+        $this->request->withPost(array_merge($this->request->post(), ['group_id' => $groupId]));
         if (in_array($bizType, ['image', 'avatar'], true)) {
             $mime = strtolower((string) $file->getMime());
             if (!in_array($mime, ['image/gif', 'image/jpeg', 'image/png', 'image/bmp', 'image/webp'], true)) {
@@ -41,6 +47,7 @@ class AdminUpload extends AdminApiController
             }
         }
 
+        $existingAttach = Attach::where('md5', $file->md5())->find();
         try {
             $result = UploadService::instance()->uploads(0, (int) Session::get('admin.id', 0));
         } catch (\Throwable $e) {
@@ -58,6 +65,8 @@ class AdminUpload extends AdminApiController
             'name' => (string) $attach->original_name,
             'size' => (int) round((float) $attach->size * 1024),
             'ext' => strtolower((string) $attach->ext),
+            'groupId' => (int) $attach->group_id,
+            'reused' => $existingAttach && (int) $existingAttach->id === (int) $attach->id,
             'uploadedAt' => time() * 1000,
         ], '上传成功');
     }

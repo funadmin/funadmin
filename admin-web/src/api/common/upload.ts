@@ -10,6 +10,10 @@ export interface UploadResult {
   size: number;
   /** 扩展名（小写，不含点） */
   ext: string;
+  /** 附件记录实际所属分组 */
+  groupId: number;
+  /** 是否复用了已有同内容附件 */
+  reused: boolean;
   /** 上传时间戳（毫秒） */
   uploadedAt: number;
 }
@@ -19,10 +23,11 @@ export interface UploadResult {
  * 后端契约：字段名 `file`，可选业务分类 `bizType`
  */
 export const uploadApi = {
-  upload(file: File, bizType: 'image' | 'file' | 'avatar' = 'file'): Promise<UploadResult> {
+  upload(file: File, bizType: 'image' | 'file' | 'avatar' = 'file', groupId?: number): Promise<UploadResult> {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('bizType', bizType);
+    if (groupId) fd.append('groupId', String(groupId));
     return http.upload<UploadResult>('/upload', fd);
   }
 };

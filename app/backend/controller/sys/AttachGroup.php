@@ -15,13 +15,10 @@
 namespace app\backend\controller\sys;
 
 use app\common\controller\Backend;
-use app\common\traits\Curd;
 use app\backend\model\AttachGroup as AttachGroupModel;
 use fun\helper\TreeHelper;
 use think\App;
 use app\common\annotation\ControllerAnnotation;
-use app\common\annotation\NodeAnnotation;
-use think\facade\Cache;
 use think\facade\View;
 
 /**
@@ -39,34 +36,6 @@ class AttachGroup extends Backend
         $this->modelClass = new AttachGroupModel();
         View::assign('groupTreeList', TreeHelper::cateTree($this->modelClass->select()));
     }
-    /**
-     * @NodeAnnotation(title="列表")
-     * @return mixed|\think\response\Json|\think\response\View
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    public function index()
-    {
-        if ($this->request->isAjax()) {
-            if ($this->request->param('selectFields')) {
-                $this->selectList();
-            }
-            $list = $this->modelClass
-                ->order('pid asc,sort asc')
-                ->select()->toArray();
-            foreach ($list as $k => &$v) {
-                $v['title'] = lang($v['title']);
-            }
-            unset($v);
-            $list = TreeHelper::getTree($list);
-            sort($list);
-            $result = ['code' => 0, 'msg' => lang('get info success'), 'data' => $list, 'count' => count($list), 'is' => true, 'tip' => '操作成功'];
-            return json($result);
-        }
-        return view();
-    }
-
     /**
      * @NodeAnnotation(title="删除")
      * @return mixed|void

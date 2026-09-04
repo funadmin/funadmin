@@ -22,6 +22,10 @@ import { permissionMockHandlers } from './modules/permission';
 import { blacklistMockHandlers } from './modules/blacklist';
 import { languageMockHandlers } from './modules/language';
 import { memberGroupMockHandlers } from './modules/memberGroup';
+import { memberLevelMockHandlers } from './modules/memberLevel';
+import { memberMockHandlers } from './modules/member';
+import { attachmentMockHandlers } from './modules/attachment';
+import { configMockHandlers } from './modules/config';
 import type { MockHandler, MockRoute, MockMethod } from './types';
 
 const routes: MockRoute[] = [
@@ -35,7 +39,11 @@ const routes: MockRoute[] = [
   ...permissionMockHandlers,
   ...blacklistMockHandlers,
   ...languageMockHandlers,
-  ...memberGroupMockHandlers
+  ...memberGroupMockHandlers,
+  ...memberLevelMockHandlers,
+  ...memberMockHandlers,
+  ...attachmentMockHandlers,
+  ...configMockHandlers
 ];
 
 function stripBase(url: string): string {

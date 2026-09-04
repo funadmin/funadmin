@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-hePW80VL.js";import{It as t,Mt as n,Tt as r,xt as i}from"./element-qsFIL-PS.js";import{d as a,u as o}from"./view-error-D0ARMZbw.js";var s=r({__name:`index`,setup(e){let r=o(),s=a();return n(()=>{let{params:e,query:t}=r,n=e.path||``;s.replace({path:`/`+n,query:t})}),(e,n)=>(t(),i(`div`))}}),c=e({default:()=>l}),l=s;export{c as t};

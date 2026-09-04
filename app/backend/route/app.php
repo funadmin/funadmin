@@ -85,6 +85,52 @@ Route::delete('system/member-group', 'SystemMemberGroup/recycle');
 Route::post('system/member-group/restore', 'SystemMemberGroup/restore');
 Route::delete('system/member-group/destroy', 'SystemMemberGroup/destroy');
 
+Route::get('system/member-level', 'SystemMemberLevel/index');
+Route::get('system/member-level/export', 'SystemMemberLevel/export');
+Route::get('system/member-level/:id', 'SystemMemberLevel/detail')->pattern(['id' => '\d+']);
+Route::post('system/member-level', 'SystemMemberLevel/create');
+Route::put('system/member-level/:id', 'SystemMemberLevel/update')->pattern(['id' => '\d+']);
+Route::post('system/member-level/:id/status', 'SystemMemberLevel/status')->pattern(['id' => '\d+']);
+Route::delete('system/member-level', 'SystemMemberLevel/recycle');
+Route::post('system/member-level/restore', 'SystemMemberLevel/restore');
+Route::delete('system/member-level/destroy', 'SystemMemberLevel/destroy');
+
+Route::get('system/member', 'SystemMember/index');
+Route::get('system/member/options', 'SystemMember/options');
+Route::get('system/member/export', 'SystemMember/export');
+Route::get('system/member/:id', 'SystemMember/detail')->pattern(['id' => '\d+']);
+Route::post('system/member', 'SystemMember/create');
+Route::put('system/member/:id', 'SystemMember/update')->pattern(['id' => '\d+']);
+Route::post('system/member/:id/status', 'SystemMember/status')->pattern(['id' => '\d+']);
+Route::delete('system/member', 'SystemMember/recycle');
+Route::post('system/member/restore', 'SystemMember/restore');
+Route::delete('system/member/destroy', 'SystemMember/destroy');
+Route::post('system/member/import', 'SystemMember/import');
+
+Route::get('system/config', 'SystemConfig/index');
+Route::get('system/config/options', 'SystemConfig/options');
+Route::get('system/config/:id', 'SystemConfig/detail')->pattern(['id' => '\d+']);
+Route::post('system/config', 'SystemConfig/create');
+Route::put('system/config/:id', 'SystemConfig/update')->pattern(['id' => '\d+']);
+Route::put('system/config/:id/value', 'SystemConfig/value')->pattern(['id' => '\d+']);
+Route::post('system/config/:id/status', 'SystemConfig/status')->pattern(['id' => '\d+']);
+Route::delete('system/config', 'SystemConfig/delete');
+Route::get('system/config-group', 'SystemConfig/groups');
+Route::post('system/config-group', 'SystemConfig/createGroup');
+Route::put('system/config-group/:id', 'SystemConfig/updateGroup')->pattern(['id' => '\d+']);
+Route::delete('system/config-group/:id', 'SystemConfig/deleteGroup')->pattern(['id' => '\d+']);
+
+Route::get('system/attachment', 'SystemAttachment/index');
+Route::get('system/attachment/:id', 'SystemAttachment/detail')->pattern(['id' => '\d+']);
+Route::put('system/attachment/:id/name', 'SystemAttachment/rename')->pattern(['id' => '\d+']);
+Route::post('system/attachment/move', 'SystemAttachment/move');
+Route::delete('system/attachment', 'SystemAttachment/delete');
+Route::get('system/attachment-group/tree', 'SystemAttachmentGroup/tree');
+Route::get('system/attachment-group/:id', 'SystemAttachmentGroup/detail')->pattern(['id' => '\d+']);
+Route::post('system/attachment-group', 'SystemAttachmentGroup/create');
+Route::put('system/attachment-group/:id', 'SystemAttachmentGroup/update')->pattern(['id' => '\d+']);
+Route::delete('system/attachment-group/:id', 'SystemAttachmentGroup/delete')->pattern(['id' => '\d+']);
+
 Route::get('system/log/operation', 'SystemOperationLog/index');
 Route::get('system/log/operation/:id', 'SystemOperationLog/detail')->pattern(['id' => '\d+']);
 Route::delete('system/log/operation/:id', 'SystemOperationLog/delete')->pattern(['id' => '\d+']);

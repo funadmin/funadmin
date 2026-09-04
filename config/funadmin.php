@@ -28,7 +28,6 @@ return [
     'auth_login_only_routes'=>[
         'index/index', 'index/console', 'index/logout', 'index/enlang',
         'ajax/refreshmenu', 'ajax/lang', 'ajax/getattach',
-        'member.member/getcitys', 'member.member/getgroup',
         'addon/logout',
         'auth/me', 'auth/menus', 'auth/logout',
     ],

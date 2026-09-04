@@ -16,3 +16,9 @@
 - **文件**: `app/backend/controller/SystemPermission.php`、`app/backend/controller/SystemBlacklist.php`、`app/backend/route/app.php`、`app/backend/controller/AdminAuth.php`、`admin-web/src/api/system/{permission,blacklist}.ts`、`admin-web/src/views/system/{permission,blacklist}/`、`admin-web/src/mock/modules/{permission,blacklist}.ts`、`database/migrations/{002_rbac_schema,004_organization_rbac_schema}.sql`
 - **决策**: 权限资源仅超级管理员维护；黑名单保留软删、回收站、恢复、永久删除及 CSV 导入导出；删除旧 `auth.Auth` 与 `sys.Blacklist` Layui 实现；保留配置权限 ID 163；HTTP 验证固定使用 PHP 8.4，避免 PHP 8.5 与 ThinkPHP 8.1.3 不兼容。
 - **验证**: 前端 23/23 测试通过，`vue-tsc` 通过，Vite 构建通过；195 个 PHP 文件在 PHP 8.4 下 lint 通过；跨 migration 135 个权限/20 个菜单主键、父子与绑定校验通过；新权限与黑名单路由未登录均返回 401 JSON；剩余 Layui 相关文件 58 个。
+
+## [16:40] - 功能迁移/清理: 完成会员、附件库与配置管理迁移并下线旧入口
+
+- **文件**: `app/backend/controller/{SystemMember,SystemMemberLevel,SystemAttachment,SystemAttachmentGroup,SystemConfig,AdminUpload}.php`、`app/backend/route/app.php`、`app/backend/controller/AdminAuth.php`、`admin-web/src/{api,mock,views}/system/{member,member-level,attachment,config}`、`database/migrations/{002_rbac_schema,004_organization_rbac_schema}.sql`、旧 Layui 会员/配置/附件分组入口
+- **决策**: 保留会员/附件/配置运行时模型；附件旧文件选择器兼容链路暂留；附件物理删除增加共享路径保护；配置值保持字符串语义并按 `config.group` 保护分组；插件管理和系统升级因涉及远程包、文件覆盖、数据库迁移及回滚暂不清理。
+- **验证**: Admin Web 28/28 测试、`vue-tsc`、Vite production build、PHP 8.4 全量 lint 131 个文件、RBAC/旧引用/diff 校验通过；PHP 8.4 临时服务验证上传、附件、附件分组、配置、配置分组 5 个路由未登录均返回 HTTP 401 JSON；临时服务和 `public/install.lock` 已清理。
