@@ -21,7 +21,7 @@ use think\Facade;
  * @see \fun\helper\FormHelper
  * @class   Form
  * @mixin  \fun\helper\FormHelper
- * @package fun-addons
+ * @package fun-plugins
  * @method static string token($name = '__token__', $type = 'md5') 生成Token
  * @method static string label(string $name,  array $options = [], string $value = null) label标签
  * @method static string tags(string $name,  array $options = [], string $value = null) label标签

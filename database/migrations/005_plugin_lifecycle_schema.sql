@@ -2,7 +2,7 @@
 -- 本文件只生成迁移 SQL，不由应用自动执行。
 
 SET @schema_name = DATABASE();
-SET @table_name = CONCAT('fun_', 'addon');
+SET @table_name = CONCAT('fun_', 'plugin');
 
 SET @sql = IF(
   EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'config'),
@@ -50,9 +50,9 @@ SET @sql = IF(
   CONCAT(
     'INSERT INTO `', @permission_table, '` ',
     '(`pid`,`module`,`code`,`obj`,`act`,`title`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`create_time`) ',
-    'SELECT COALESCE((SELECT `id` FROM `', @permission_table, '` WHERE `module` = ''backend'' AND `resource_type` = ''group'' AND LOWER(`title`) = ''addon'' LIMIT 1), 0), ',
-    '''backend'', ''backend/addon:migrate'', ''backend/addon'', ''migrate'', ''更新插件数据库'', ''route'', 1, 0, 50, ''system'', ''core'', UNIX_TIMESTAMP() ',
-    'WHERE NOT EXISTS (SELECT 1 FROM `', @permission_table, '` WHERE `code` = ''backend/addon:migrate'')'
+    'SELECT COALESCE((SELECT `id` FROM `', @permission_table, '` WHERE `module` = ''backend'' AND `resource_type` = ''group'' AND LOWER(`title`) = ''plugin'' LIMIT 1), 0), ',
+    '''backend'', ''backend/plugin:migrate'', ''backend/plugin'', ''migrate'', ''更新插件数据库'', ''route'', 1, 0, 50, ''system'', ''core'', UNIX_TIMESTAMP() ',
+    'WHERE NOT EXISTS (SELECT 1 FROM `', @permission_table, '` WHERE `code` = ''backend/plugin:migrate'')'
   ),
   'SELECT 1'
 );

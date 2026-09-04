@@ -4,7 +4,7 @@ return [
     'commands' => [
         'curd' => 'fun\curd\AdminWebCrud',
         'menu' => 'fun\curd\Menu',
-        'addon' => 'fun\curd\Addon',
+        'plugin' => 'fun\curd\Plugin',
         'install' => 'fun\curd\Install',
         'mcp' => 'fun\mcp\McpServer',
     ],

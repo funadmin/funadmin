@@ -6,17 +6,17 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 table_elem: 'list',
                 tableId: 'list',
                 requests: {
-                    index: 'addon/index',
-                    install: 'addon/install',
-                    uninstall: 'addon/uninstall',
-                    config: 'addon/config',
-                    modify: 'addon/modify',
-                    migrate: 'addon/migrate',
-                    logout: 'addon/logout',
+                    index: 'plugin/index',
+                    install: 'plugin/install',
+                    uninstall: 'plugin/uninstall',
+                    config: 'plugin/config',
+                    modify: 'plugin/modify',
+                    migrate: 'plugin/migrate',
+                    logout: 'plugin/logout',
                     localinstall:{
                         type: 'upload',
                         class: 'layui-btn-sm layui-btn-danger',
-                        url: 'addon/localinstall',
+                        url: 'plugin/localinstall',
                         icon: 'layui-icon layui-icon-upload-drag',
                         text: __('Local Install'),
                         title: __('Local Install'),
@@ -33,7 +33,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     },create:{
                         type: 'open',
                         class: 'layui-btn-sm layui-btn-normal',
-                        url: 'addon/add',
+                        url: 'plugin/add',
                         icon: 'layui-icon layui-icon-addition',
                         text: __('Create'),
                         title: __('Create'),
@@ -41,7 +41,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     },account:{
                         type: 'account',
                         class: 'layui-btn-sm layui-bg-10',
-                        url: 'addon/add',
+                        url: 'plugin/add',
                         icon: 'layui-icon layui-icon-user',
                         text: __('Account'),
                         title: __('Account'),
@@ -67,7 +67,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 cols: [[
                     {
                         field: 'name',
-                        title: __('ADDONAME'),
+                        title: __('PLUGINAME'),
                         width: 150,
                         imageHeight: 40,
                         align: "center",
@@ -99,12 +99,12 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
 
                     // {field: 'description', title: __('Description'), minWidth: 220,align:'left'},
                     {
-                        field: 'version', title: __('Addon version'), width: 100, search: false,
+                        field: 'version', title: __('Plugin version'), width: 100, search: false,
                         templet: function (d) {
                             return d['pluginsVersion'] ? d['pluginsVersion']['0']['version'] : d.version;
                         }
                     },
-                    // {field: 'requires', title: __('Addon require'), width: 160, sort: true, search: false},
+                    // {field: 'requires', title: __('Plugin require'), width: 160, sort: true, search: false},
                     {field: 'author', title: __('Author'), width: 120, templet: function (d) {
                             return layui.util.unescape(d['author']);
                         }
@@ -362,7 +362,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
             var uploadinit = layui.upload.render({
                 elem: '#importFile'
                 ,headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')}
-                ,url: Fun.url(Upload.init.requests.upload)+'?save=1&path=addon' //改成您自己的上传接口
+                ,url: Fun.url(Upload.init.requests.upload)+'?save=1&path=plugin' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
                 ,exts: 'zip' //插件包服务仅接受 ZIP
                 ,size:1024*100

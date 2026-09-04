@@ -3,12 +3,12 @@
 namespace app\backend\service;
 
 use app\backend\model\AdminMenu;
-use app\common\model\Addon;
+use app\common\model\Plugin;
 use app\common\model\SystemMigration;
 use app\common\service\AbstractService;
 use app\common\service\MigrationService;
 use app\common\traits\Jump;
-use fun\addons\Service;
+use fun\plugins\Service;
 use RuntimeException;
 use think\Exception;
 use think\facade\Cache;
@@ -17,12 +17,12 @@ use think\facade\Db;
 /**
  * 插件安装、更新、迁移、启停和卸载生命周期编排。
  */
-class AddonService extends AbstractService
+class PluginService extends AbstractService
 {
     use Jump;
 
-    protected string $myaddon = 'myaddon';
-    private ?array $addonColumns = null;
+    protected string $myplugin = 'myplugin';
+    private ?array $pluginColumns = null;
     private bool $deploymentRollbackAllowed = true;
 
     public function canRollbackDeployment(): bool
@@ -30,26 +30,26 @@ class AddonService extends AbstractService
         return $this->deploymentRollbackAllowed;
     }
 
-    public function addAddonMenu(array $menu, int $pid = 0, string $module = 'backend'): void
+    public function addPluginMenu(array $menu, int $pid = 0, string $module = 'backend'): void
     {
         $parentPermissionId = $pid > 0 ? (int) (AdminMenu::find($pid)->permission_id ?? 0) : 0;
-        AdminMenu::where('source_type', 'addon')->where('source_name', $module)->update(['status' => 1]);
-        ResourceRegistryService::instance()->registerTree($menu, $parentPermissionId, $pid, $module, 'addon', $module);
+        AdminMenu::where('source_type', 'plugin')->where('source_name', $module)->update(['status' => 1]);
+        ResourceRegistryService::instance()->registerTree($menu, $parentPermissionId, $pid, $module, 'plugin', $module);
     }
 
-    public function delAddonMenu(array $menu, string $module = 'backend'): void
+    public function delPluginMenu(array $menu, string $module = 'backend'): void
     {
-        AdminMenu::where('source_type', 'addon')->where('source_name', $module)->update(['status' => 0]);
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myaddon)->find();
+        AdminMenu::where('source_type', 'plugin')->where('source_name', $module)->update(['status' => 0]);
+        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
         if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
             $manager->save(['status' => 0]);
         }
         $this->delMenuCache();
     }
 
-    public function addAddonManager()
+    public function addPluginManager()
     {
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myaddon)->find();
+        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
         if ($manager) {
             $manager->save(['status' => 1]);
         } else {
@@ -61,8 +61,8 @@ class AddonService extends AbstractService
                 'status' => 1,
                 'icon' => 'layui-icon layui-icon-app',
                 'sort' => 50,
-            ]], 0, 0, 'backend', 'system', $this->myaddon);
-            $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myaddon)->find();
+            ]], 0, 0, 'backend', 'system', $this->myplugin);
+            $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
         }
         return $manager;
     }
@@ -72,40 +72,40 @@ class AddonService extends AbstractService
         Cache::clear();
     }
 
-    public function installAddon(string $name, string $type = ''): bool
+    public function installPlugin(string $name, string $type = ''): bool
     {
         $this->deploymentRollbackAllowed = true;
         $this->assertName($name);
         $this->assertLifecycleSchema();
         $plugin = $this->plugin($name);
-        $addonInfo = $this->validatedInfo($name);
-        $this->assertDependencies($addonInfo);
+        $pluginInfo = $this->validatedInfo($name);
+        $this->assertDependencies($pluginInfo);
 
         $record = $this->isInstall($name);
         if ($record && (int) $record->delete_time > 0) {
-            (new Addon())->restore(['id' => $record->id]);
-            $record = Addon::find($record->id);
+            (new Plugin())->restore(['id' => $record->id]);
+            $record = Plugin::find($record->id);
         }
         if (!$record) {
-            $record = new Addon();
+            $record = new Plugin();
         }
 
-        $payload = array_merge($addonInfo, [
+        $payload = array_merge($pluginInfo, [
             'status' => 0,
             'db_version' => (string) ($record->db_version ?? ''),
             'migration_pending' => 1,
             'last_error' => null,
             'installed_at' => (int) ($record->installed_at ?? time()),
         ]);
-        if ($record->save($this->filterAddonColumns($payload)) === false) {
-            throw new RuntimeException(lang('addon install fail'));
+        if ($record->save($this->filterPluginColumns($payload)) === false) {
+            throw new RuntimeException(lang('plugin install fail'));
         }
         // 状态已落库，之后的插件钩子和数据库操作可能产生不可逆副作用。
         $this->deploymentRollbackAllowed = false;
-        Service::updateAddonsInfo($name, 0, 1);
+        Service::updatePluginsInfo($name, 0, 1);
 
         if ($plugin->install() === false) {
-            throw new RuntimeException('install_hook: ' . lang('addon install fail'));
+            throw new RuntimeException('install_hook: ' . lang('plugin install fail'));
         }
 
         $migration = $this->migrate($name);
@@ -118,13 +118,13 @@ class AddonService extends AbstractService
             throw new RuntimeException('插件启用钩子执行失败');
         }
         $this->registerMenu($name);
-        Service::updateAddonsInfo($name, 1, 1);
+        Service::updatePluginsInfo($name, 1, 1);
         $record->save(['status' => 1, 'last_error' => null]);
-        refreshaddons();
+        refreshplugins();
         return true;
     }
 
-    public function updateAddon(string $name, bool $migrate = true): bool
+    public function updatePlugin(string $name, bool $migrate = true): bool
     {
         $this->deploymentRollbackAllowed = true;
         $this->assertName($name);
@@ -134,14 +134,14 @@ class AddonService extends AbstractService
             throw new RuntimeException('插件尚未安装');
         }
         if ((int) $record->status === 1) {
-            throw new RuntimeException(lang('Please disable addons %s first', [$name]));
+            throw new RuntimeException(lang('Please disable plugins %s first', [$name]));
         }
 
         $plugin = $this->plugin($name);
-        $addonInfo = $this->validatedInfo($name);
-        $this->assertDependencies($addonInfo);
+        $pluginInfo = $this->validatedInfo($name);
+        $this->assertDependencies($pluginInfo);
         $fromVersion = (string) $record->version;
-        $toVersion = (string) ($addonInfo['version'] ?? '');
+        $toVersion = (string) ($pluginInfo['version'] ?? '');
         if ($fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
             throw new RuntimeException("插件目标版本 {$toVersion} 必须高于当前版本 {$fromVersion}");
         }
@@ -149,13 +149,13 @@ class AddonService extends AbstractService
         $this->deploymentRollbackAllowed = false;
         $migrationVersion = (string) ($record->db_version ?? '');
         $migrationPending = 1;
-        $record->save($this->filterAddonColumns(array_merge($addonInfo, [
+        $record->save($this->filterPluginColumns(array_merge($pluginInfo, [
             'status' => 0,
             'db_version' => $migrationVersion,
             'migration_pending' => $migrationPending,
             'last_error' => null,
         ])));
-        Service::updateAddonsInfo($name, 0, 1);
+        Service::updatePluginsInfo($name, 0, 1);
         if ($plugin->beforeUpdate($fromVersion, $toVersion, $migrate) === false) {
             throw new RuntimeException('update_hook: 插件更新前置钩子执行失败');
         }
@@ -172,26 +172,26 @@ class AddonService extends AbstractService
         }
 
         Service::copyApp($name);
-        $record->save($this->filterAddonColumns([
+        $record->save($this->filterPluginColumns([
             'status' => 0,
             'db_version' => $migrationVersion,
             'migration_pending' => $migrate ? 0 : $migrationPending,
             'last_error' => null,
         ]));
-        refreshaddons();
+        refreshplugins();
         return true;
     }
 
-    public function migrateAddon(string $name): array
+    public function migratePlugin(string $name): array
     {
         $this->assertName($name);
         $this->assertLifecycleSchema();
-        $record = Addon::where('name', $name)->find();
+        $record = Plugin::where('name', $name)->find();
         if (!$record) {
             throw new RuntimeException('插件尚未安装');
         }
         if ((int) $record->status === 1) {
-            throw new RuntimeException(lang('Please disable addons %s first', [$name]));
+            throw new RuntimeException(lang('Please disable plugins %s first', [$name]));
         }
 
         $migration = $this->migrate($name);
@@ -210,7 +210,7 @@ class AddonService extends AbstractService
         try {
             $record = $this->isInstall($name);
             if ($record) {
-                $record->save($this->filterAddonColumns([
+                $record->save($this->filterPluginColumns([
                     'status' => 0,
                     'last_error' => substr($exception->getMessage(), 0, 2000),
                 ]));
@@ -220,7 +220,7 @@ class AddonService extends AbstractService
         }
     }
 
-    public function uninstallAddon(string $name, bool $purgeData = false): bool
+    public function uninstallPlugin(string $name, bool $purgeData = false): bool
     {
         $this->assertName($name);
         $this->assertLifecycleSchema();
@@ -229,12 +229,12 @@ class AddonService extends AbstractService
             throw new RuntimeException('插件尚未安装');
         }
         if ((int) $record->status === 1) {
-            throw new RuntimeException(lang('Please disable addons %s first', [$name]));
+            throw new RuntimeException(lang('Please disable plugins %s first', [$name]));
         }
 
         $plugin = $this->plugin($name);
         if ($plugin->uninstall() === false) {
-            throw new RuntimeException(lang('addon uninstall fail'));
+            throw new RuntimeException(lang('plugin uninstall fail'));
         }
         if ($purgeData) {
             if ($plugin->purgeData() === false) {
@@ -243,35 +243,35 @@ class AddonService extends AbstractService
             SystemMigration::where('scope', $this->migrationScope($name))->delete();
         }
 
-        ResourceRegistryService::instance()->removeSource('addon', $name);
+        ResourceRegistryService::instance()->removeSource('plugin', $name);
         Service::removeApp($name, true);
-        Service::updateAddonsInfo($name, 0, 0);
+        Service::updatePluginsInfo($name, 0, 0);
         if (!$record->delete()) {
-            throw new RuntimeException(lang('addon uninstall fail'));
+            throw new RuntimeException(lang('plugin uninstall fail'));
         }
-        $this->removeEmptyAddonManager();
-        refreshaddons();
+        $this->removeEmptyPluginManager();
+        refreshplugins();
         return true;
     }
 
-    public function enableAddon(string $name): bool
+    public function enablePlugin(string $name): bool
     {
-        return $this->setAddonStatus($name, 1);
+        return $this->setPluginStatus($name, 1);
     }
 
-    public function disableAddon(string $name): bool
+    public function disablePlugin(string $name): bool
     {
-        return $this->setAddonStatus($name, 0);
+        return $this->setPluginStatus($name, 0);
     }
 
-    public function modifyAddon(string $name): bool
+    public function modifyPlugin(string $name): bool
     {
         $this->assertName($name);
-        $info = Addon::where('name', $name)->find();
+        $info = Plugin::where('name', $name)->find();
         if (!$info) {
-            throw new Exception(lang('addon is not exist'));
+            throw new Exception(lang('plugin is not exist'));
         }
-        return $this->setAddonStatus($name, (int) $info->status === 1 ? 0 : 1);
+        return $this->setPluginStatus($name, (int) $info->status === 1 ? 0 : 1);
     }
 
     public function getMenu(array $menuConfig = []): array
@@ -286,7 +286,7 @@ class AddonService extends AbstractService
                 $menu = array_merge($menu, $item['menulist'] ?? []);
             } elseif ($isNav == 0) {
                 $menu[] = $item;
-                $pid = (int) $this->addAddonManager()->id;
+                $pid = (int) $this->addPluginManager()->id;
             } else {
                 $menu[] = $item;
             }
@@ -296,16 +296,16 @@ class AddonService extends AbstractService
 
     public function isInstall(string $name)
     {
-        return Addon::withTrashed()->where('name', $name)->find();
+        return Plugin::withTrashed()->where('name', $name)->find();
     }
 
-    private function setAddonStatus(string $name, int $status): bool
+    private function setPluginStatus(string $name, int $status): bool
     {
         $this->assertName($name);
         $this->assertLifecycleSchema();
-        $info = Addon::where('name', $name)->find();
+        $info = Plugin::where('name', $name)->find();
         if (!$info) {
-            throw new Exception(lang('addon is not exist'));
+            throw new Exception(lang('plugin is not exist'));
         }
         if ((int) $info->status === $status) {
             return true;
@@ -328,22 +328,22 @@ class AddonService extends AbstractService
             if ($plugin->disabled() === false) {
                 throw new RuntimeException('插件禁用钩子执行失败');
             }
-            $menuConfig = get_addons_menu($name);
+            $menuConfig = get_plugins_menu($name);
             if ($menuConfig) {
                 [$menu] = $this->getMenu($menuConfig);
-                $this->delAddonMenu($menu, $name);
+                $this->delPluginMenu($menu, $name);
             }
         }
 
-        Service::updateAddonsInfo($name, $status, 1);
+        Service::updatePluginsInfo($name, $status, 1);
         $info->save(['status' => $status, 'last_error' => null]);
-        refreshaddons();
+        refreshplugins();
         return true;
     }
 
-    private function removeEmptyAddonManager(): void
+    private function removeEmptyPluginManager(): void
     {
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myaddon)->find();
+        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
         if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
             $manager->save(['status' => 0]);
         }
@@ -353,22 +353,22 @@ class AddonService extends AbstractService
     private function assertName(string $name): void
     {
         if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
-            throw new RuntimeException(lang('addon name is not right'));
+            throw new RuntimeException(lang('plugin name is not right'));
         }
     }
 
     private function plugin(string $name): object
     {
-        $plugin = get_addons_instance($name);
+        $plugin = get_plugins_instance($name);
         if (!$plugin) {
-            throw new RuntimeException(lang('addons %s is not ready', [$name]));
+            throw new RuntimeException(lang('plugins %s is not ready', [$name]));
         }
         return $plugin;
     }
 
     private function validatedInfo(string $name): array
     {
-        $info = get_addons_info($name);
+        $info = get_plugins_info($name);
         foreach (['name', 'title', 'version'] as $required) {
             if (!isset($info[$required]) || trim((string) $info[$required]) === '') {
                 throw new RuntimeException('插件信息缺少字段：' . $required);
@@ -380,10 +380,10 @@ class AddonService extends AbstractService
         return $info;
     }
 
-    private function assertDependencies(array $addonInfo): void
+    private function assertDependencies(array $pluginInfo): void
     {
-        foreach (array_filter(array_map('trim', explode(',', (string) ($addonInfo['depend'] ?? '')))) as $dependency) {
-            $record = Addon::where('name', $dependency)->where('status', 1)->find();
+        foreach (array_filter(array_map('trim', explode(',', (string) ($pluginInfo['depend'] ?? '')))) as $dependency) {
+            $record = Plugin::where('name', $dependency)->where('status', 1)->find();
             if (!$record) {
                 throw new RuntimeException('请先安装并启用依赖插件：' . $dependency);
             }
@@ -392,17 +392,17 @@ class AddonService extends AbstractService
 
     private function registerMenu(string $name): void
     {
-        $menuConfig = get_addons_menu($name);
+        $menuConfig = get_plugins_menu($name);
         if ($menuConfig) {
             [$menu, $pid] = $this->getMenu($menuConfig);
-            $this->addAddonMenu($menu, $pid, $name);
+            $this->addPluginMenu($menu, $pid, $name);
         }
     }
 
     private function migrate(string $name): array
     {
         try {
-            $versions = run_addon_migrations($name);
+            $versions = run_plugin_migrations($name);
             return [
                 'executed' => $versions,
                 'version' => MigrationService::instance()->latestAppliedVersion($this->migrationScope($name)),
@@ -415,32 +415,32 @@ class AddonService extends AbstractService
     private function migrationScope(string $name): string
     {
         // 保持历史 scope，避免目录改名后重复执行已登记的插件 migration。
-        return 'addon:' . strtolower($name);
+        return 'plugin:' . strtolower($name);
     }
 
-    private function filterAddonColumns(array $data): array
+    private function filterPluginColumns(array $data): array
     {
-        return array_intersect_key($data, array_flip($this->addonColumns()));
+        return array_intersect_key($data, array_flip($this->pluginColumns()));
     }
 
-    private function addonColumns(): array
+    private function pluginColumns(): array
     {
-        if ($this->addonColumns !== null) {
-            return $this->addonColumns;
+        if ($this->pluginColumns !== null) {
+            return $this->pluginColumns;
         }
         $prefix = (string) config('database.connections.mysql.prefix');
-        $table = str_replace('`', '``', $prefix . 'addon');
-        $this->addonColumns = array_map(
+        $table = str_replace('`', '``', $prefix . 'plugin');
+        $this->pluginColumns = array_map(
             static fn (array $column): string => (string) $column['Field'],
             Db::query("SHOW COLUMNS FROM `{$table}`")
         );
-        return $this->addonColumns;
+        return $this->pluginColumns;
     }
 
     private function assertLifecycleSchema(): void
     {
         $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at'];
-        if (array_diff($required, $this->addonColumns())) {
+        if (array_diff($required, $this->pluginColumns())) {
             throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/005_plugin_lifecycle_schema.sql');
         }
     }

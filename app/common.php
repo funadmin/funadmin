@@ -407,7 +407,7 @@ if (!function_exists('getSystemTable')) {
     function getSystemTable($table=[],$shift= [])
     {
         $tableList =  [
-            'addon',
+            'plugin',
             'admin',
             'admin_log',
             'attach',

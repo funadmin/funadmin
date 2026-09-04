@@ -17,7 +17,7 @@ namespace fun;
 use think\App;
 use think\facade\View;
 
-abstract class Addons
+abstract class Plugins
 {
     // app 容器
     protected $app;
@@ -28,21 +28,21 @@ abstract class Addons
     // 模板布局
     protected $layout =false;
     // 插件路径
-    protected $addon_path;
+    protected $plugin_path;
     // 视图模型
     protected $view;
     // 插件配置
-    protected $addon_config;
+    protected $plugin_config;
 
     protected $config;
 
     protected $info;
     // 插件信息
-    protected $addon_info;
+    protected $plugin_info;
 
     /**
      * 插件构造函数
-     * Addons constructor.
+     * Plugins constructor.
      * @param \think\App $app
      */
     public function __construct(App $app)
@@ -51,14 +51,14 @@ abstract class Addons
         $this->request = $app->request;
         $this->name = $this->getName();
         $this->layout = false;
-        $this->addon_path = $app->addons->getAddonsPath() . $this->name . DS;
-        $this->addon_config = "addon_{$this->name}_config";
-        $this->addon_info = "addon_{$this->name}_info";
+        $this->plugin_path = $app->plugins->getPluginsPath() . $this->name . DS;
+        $this->plugin_config = "plugin_{$this->name}_config";
+        $this->plugin_info = "plugin_{$this->name}_info";
         $this->info = $this->getInfo();
         $this->view = clone View::engine('Think');
         app()->view->engine()->layout($this->layout);
         $this->view->config([
-            'view_path' => $this->addon_path . 'view' . DS
+            'view_path' => $this->plugin_path . 'view' . DS
         ]);
         // 控制器初始化
         $this->initialize();
@@ -76,7 +76,7 @@ abstract class Addons
     {
         $class = get_class($this);
         list(, $name, ) = explode('\\', $class);
-        $this->request->addon = $name;
+        $this->request->plugin = $name;
 
         return $name;
     }
@@ -138,7 +138,7 @@ abstract class Addons
      */
     final public function getInfo()
     {
-        $info = config($this->addon_info, []);
+        $info = config($this->plugin_info, []);
         if ($info) {
             return $info;
         }
@@ -146,12 +146,12 @@ abstract class Addons
         // 文件属性
         $info = $this->info ?? [];
         // 文件配置
-        $info_file = $this->addon_path . 'plugin.ini';
+        $info_file = $this->plugin_path . 'plugin.ini';
         if (is_file($info_file)) {
             $_info = parse_ini_file($info_file, true, INI_SCANNER_TYPED) ?: [];
             $info = array_merge($info,$_info);
         }
-        config($info, $this->addon_info);
+        config($info, $this->plugin_info);
         return isset($info) ? $info : [];
     }
 
@@ -162,11 +162,11 @@ abstract class Addons
      */
     final public function getConfig($type = false)
     {
-        $config = config($this->addon_config, []);
+        $config = config($this->plugin_config, []);
         if ($config) {
             return $config;
         }
-        $config_file = $this->addon_path . 'config.php';
+        $config_file = $this->plugin_path . 'config.php';
         if (is_file($config_file)) {
             $temp_arr = (array)include $config_file;
             if ($type) {
@@ -177,7 +177,7 @@ abstract class Addons
             }
             unset($temp_arr);
         }
-        config($config, $this->addon_config);
+        config($config, $this->plugin_config);
         return $config;
     }
     /**

@@ -1,40 +1,40 @@
 <?php
 declare(strict_types=1);
 
-namespace fun\addons;
+namespace fun\plugins;
 
 use fun\helper\FileHelper;
 use think\Route;
 use think\facade\Cache;
 use think\facade\Event;
-use fun\addons\middleware\Addons;
+use fun\plugins\middleware\Plugins;
 
 /**
  * 插件服务
  * Class Service
- * @package fun\addons
+ * @package fun\plugins
  */
 class Service extends \think\Service
 {
-    protected $addons_path;
+    protected $plugins_path;
     //存放[插件名称]列表数据
-    protected $addons_data=[];
+    protected $plugins_data=[];
     //存放[插件ini所有信息]列表数据
-    protected $addons_data_list=[];
+    protected $plugins_data_list=[];
     //模块所有[config.php]里的信息存放
-    protected $addons_data_list_config=[];
+    protected $plugins_data_list_config=[];
     public function register()
     {
         error_reporting(0);
 
-        $this->app->bind('addons', Service::class);
+        $this->app->bind('plugins', Service::class);
 
         // 无则创建 plugins 目录
-        $this->addons_path = $this->getAddonsPath();
+        $this->plugins_path = $this->getPluginsPath();
 
         $this->autoload();
 
-        addons_vendor_autoload($this->addons_data_list?$this->addons_data_list:Cache::get('addons_data_list',[]));
+        plugins_vendor_autoload($this->plugins_data_list?$this->plugins_data_list:Cache::get('plugins_data_list',[]));
 
         // 加载系统语言包
         $this->loadLang();
@@ -49,19 +49,17 @@ class Service extends \think\Service
         //注册HttpRun事件监听,触发后注册全局中间件到开始位置
         $this->registerRoutes(function (Route $route) {
             // 路由脚本
-            $execute = '\\fun\\addons\\Route::execute';
+            $execute = '\\fun\\plugins\\Route::execute';
 
             // 注册插件公共中间件
-            if (is_file($this->app->addons->getAddonsPath() . 'middleware.php')) {
-                $this->app->middleware->import(include $this->app->addons->getAddonsPath() . 'middleware.php', 'route');
+            if (is_file($this->app->plugins->getPluginsPath() . 'middleware.php')) {
+                $this->app->middleware->import(include $this->app->plugins->getPluginsPath() . 'middleware.php', 'route');
             }
 
-            // 注册控制器路由
-            $route->rule(PLUGIN_DIR . "/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
-            // 旧 URL 只读兼容，插件文件不再写入 addons 目录。
-            $route->rule("addons/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
+            // 注册插件控制器路由。
+            $route->rule(PLUGIN_DIR . "/:plugin/[:controller]/[:action]", $execute)->middleware(Plugins::class);
             // 自定义路由
-            $routes = (array) config('addons.route', []);
+            $routes = (array) config('plugins.route', []);
             foreach ($routes as $key => $val) {
                 if (!$val) {
                     continue;
@@ -81,9 +79,9 @@ class Service extends \think\Service
                     $domain = !empty($val['domain'])?$val['domain']:'';
                     if($domain){
                         foreach ($val['rule'] as $k => $rule) {
-                            [$addon, $controller, $action] = explode('/', $rule);
+                            [$plugin, $controller, $action] = explode('/', $rule);
                             $rules[$k] = [
-                                'addons'        => $addon,
+                                'plugin'         => $plugin,
                                 'controller'    => $controller,
                                 'action'        => $action,
                                 'indomain'      => 1,
@@ -100,9 +98,9 @@ class Service extends \think\Service
                         });
                     }else{
                         foreach ($val['rule'] as $k => $rule) {
-                            [$addon, $controller, $action] = explode('/', $rule);
+                            [$plugin, $controller, $action] = explode('/', $rule);
                             $rules[$k] = [
-                                'addons'        => $addon,
+                                'plugin'         => $plugin,
                                 'controller'    => $controller,
                                 'action'        => $action,
                             ];
@@ -132,24 +130,24 @@ class Service extends \think\Service
      */
     private function loadService()
     {
-        $results = scandir($this->addons_path);
+        $results = scandir($this->plugins_path);
         $bind = [];
         foreach ($results as $name) {
             if ($name === '.' or $name === '..') {
                 continue;
             }
-            if (is_file($this->addons_path . $name)) {
+            if (is_file($this->plugins_path . $name)) {
                 continue;
             }
-            $addonDir = $this->addons_path . $name . DIRECTORY_SEPARATOR;
-            if (!is_dir($addonDir)) {
+            $pluginDir = $this->plugins_path . $name . DIRECTORY_SEPARATOR;
+            if (!is_dir($pluginDir)) {
                 continue;
             }
 
-            if (!is_file($addonDir .   'Plugin.php') && !is_file($addonDir . 'Addon.php')) {
+            if (!is_file($pluginDir . 'Plugin.php')) {
                 continue;
             }
-            $service_file = $addonDir . 'service.ini';
+            $service_file = $pluginDir . 'service.ini';
             if (!is_file($service_file)) {
                 continue;
             }
@@ -167,14 +165,14 @@ class Service extends \think\Service
             $this->app->bind($bind);
         }
 
-        $routes = (array) config('addons.route', []);
+        $routes = (array) config('plugins.route', []);
         foreach ($routes as $key => $val) {
             if (!$val) {
                 continue;
             }
             if (is_array($val)) {
                 if (!empty($val['app_domain'])) {
-                    \config(['domain_bind' =>[$val['app_domain']=>$val['addons']]],'app');
+                    \config(['domain_bind' =>[$val['app_domain']=>$val['plugins']]],'app');
                 }
             }
         }
@@ -186,7 +184,7 @@ class Service extends \think\Service
     {
         $hooks = $this->app->isDebug() ? [] : Cache::get('hooks', []);
         if (empty($hooks)) {
-            $hooks = (array)config('addons.hooks', []);
+            $hooks = (array)config('plugins.hooks', []);
             // 初始化钩子
             foreach ($hooks as $key => $values) {
                 if (is_string($values)) {
@@ -195,17 +193,17 @@ class Service extends \think\Service
                     $values = (array)$values;
                 }
                 $hooks[$key] = array_filter(array_map(function ($v) use ($key) {
-                    $addon = get_addons_class($v);
-                    return $addon?[$addon,$key]:[];
+                    $plugin = get_plugins_class($v);
+                    return $plugin?[$plugin,$key]:[];
                 }, $values));
             }
             Cache::set('hooks', $hooks);
         }
         Event::listenEvents($hooks);
-        //如果在插件中有定义 AddonsInit，则直接执行
-        if (isset($hooks['AddonsInit'])) {
-            foreach ($hooks['AddonsInit'] as $k => $v) {
-                Event::trigger( 'AddonsInit',$v);
+        //如果在插件中有定义 PluginsInit，则直接执行
+        if (isset($hooks['PluginsInit'])) {
+            foreach ($hooks['PluginsInit'] as $k => $v) {
+                Event::trigger( 'PluginsInit',$v);
             }
         }
     }
@@ -217,24 +215,24 @@ class Service extends \think\Service
      */
     private function autoload()
     {
-        if (!config('addons.autoload', true)) {
+        if (!config('plugins.autoload', true)) {
             return true;
         }
 
-        $config = config('addons');
-        $base = array_merge(get_class_methods("\\fun\\Addons"), [
+        $config = config('plugins');
+        $base = array_merge(get_class_methods("\\fun\\Plugins"), [
             'init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled',
             'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData',
         ]);
-        foreach (glob($this->getAddonsPath() . '*/*.php') as $pluginFile) {
+        foreach (glob($this->getPluginsPath() . '*/*.php') as $pluginFile) {
             $info = pathinfo($pluginFile);
-            if (!in_array(strtolower($info['filename']), ['plugin', 'addon'], true)) {
+            if (!in_array(strtolower($info['filename']), ['plugin'], true)) {
                 continue;
             }
             $name = pathinfo($info['dirname'], PATHINFO_FILENAME);
             $manifest = $info['dirname'] . DS . 'plugin.ini';
             if (!is_file($manifest)) {
-                $manifest = $info['dirname'] . DS . 'addon.ini';
+                $manifest = $info['dirname'] . DS . 'plugin.ini';
             }
             if (!is_file($manifest)) {
                 continue;
@@ -244,15 +242,15 @@ class Service extends \think\Service
                 continue;
             }
 
-            $class = "\\" . ADDON_NAMESPACE . "\\" . $name . "\\" . $info['filename'];
+            $class = "\\" . PLUGIN_NAMESPACE . "\\" . $name . "\\" . $info['filename'];
             if (!class_exists($class)) {
                 continue;
             }
             $methods = (array) get_class_methods($class);
-            $this->addons_data[] = $pluginConfig['name'];
-            $this->addons_data_list[$pluginConfig['name']] = $pluginConfig;
-            $configFile = $this->getAddonsPath() . $pluginConfig['name'] . DS . 'config.php';
-            $this->addons_data_list_config[$pluginConfig['name']] = is_file($configFile) ? (array) include $configFile : [];
+            $this->plugins_data[] = $pluginConfig['name'];
+            $this->plugins_data_list[$pluginConfig['name']] = $pluginConfig;
+            $configFile = $this->getPluginsPath() . $pluginConfig['name'] . DS . 'config.php';
+            $this->plugins_data_list_config[$pluginConfig['name']] = is_file($configFile) ? (array) include $configFile : [];
             foreach (array_diff($methods, $base) as $hook) {
                 if (!isset($config['hooks'][$hook])) {
                     $config['hooks'][$hook] = [];
@@ -265,27 +263,27 @@ class Service extends \think\Service
                 }
             }
         }
-        Cache::set('addons_config', $config);
-        Cache::set('addons_data', $this->addons_data);
-        Cache::set('addons_data_list', $this->addons_data_list);
-        Cache::set('addons_data_list_config', $this->addons_data_list_config);
-        config($config, 'addons');
+        Cache::set('plugins_config', $config);
+        Cache::set('plugins_data', $this->plugins_data);
+        Cache::set('plugins_data_list', $this->plugins_data_list);
+        Cache::set('plugins_data_list_config', $this->plugins_data_list_config);
+        config($config, 'plugins');
         return true;
     }
 
     /**
-     * 获取 addons 路径
+     * 获取 plugins 路径
      * @return string
      */
-    public function getAddonsPath()
+    public function getPluginsPath()
     {
         // 初始化插件目录
-        $addons_path = $this->app->getRootPath() . PLUGIN_DIR . DS;
+        $plugins_path = $this->app->getRootPath() . PLUGIN_DIR . DS;
         // 如果插件目录不存在则创建
-        if (!is_dir($addons_path)) {
-            @mkdir($addons_path, 0755, true);
+        if (!is_dir($plugins_path)) {
+            @mkdir($plugins_path, 0755, true);
         }
-        return $addons_path;
+        return $plugins_path;
     }
 
     /**
@@ -293,14 +291,14 @@ class Service extends \think\Service
      * @param string $name
      * @return array
      */
-    public function getAddonsConfig()
+    public function getPluginsConfig()
     {
-        $name = $this->app->request->addon;
-        $addon = get_addons_instance($name);
-        if (!$addon) {
+        $name = $this->app->request->plugin;
+        $plugin = get_plugins_instance($name);
+        if (!$plugin) {
             return [];
         }
-        return $addon->getConfig();
+        return $plugin->getConfig();
     }
 
     /**
@@ -311,14 +309,14 @@ class Service extends \think\Service
     public static function getAssetsDir($name)
     {
         $assetsDir = [
-            Service::getAddonsNamePath($name) . 'public' . DS =>app()->getRootPath() . str_replace("/", DS, "public/static/{$name}"),
-            Service::getAddonsNamePath($name) . 'storage' . DS=> app()->getRootPath() . str_replace("/", DS, "public/storage/{$name}")];
+            Service::getPluginsNamePath($name) . 'public' . DS =>app()->getRootPath() . str_replace("/", DS, "public/static/{$name}"),
+            Service::getPluginsNamePath($name) . 'storage' . DS=> app()->getRootPath() . str_replace("/", DS, "public/storage/{$name}")];
         return $assetsDir;
     }
 
 
     //获取插件目录
-    public static function getAddonsNamePath($name)
+    public static function getPluginsNamePath($name)
     {
         return app()->getRootPath() . PLUGIN_DIR . DS . $name . DS;
     }
@@ -338,10 +336,10 @@ class Service extends \think\Service
      */
     public static function copyApp($name,$delete = false){
         foreach (Service::getAppDir() as $k => $dir) {
-            $sourcedir =  Service::getAddonsNamePath($name) .$dir. DS . $name;
+            $sourcedir =  Service::getPluginsNamePath($name) .$dir. DS . $name;
             if (is_dir($sourcedir)) {
                 FileHelper::copyDir($sourcedir, app()->getBasePath().DS.$name,$delete);
-                if($delete) FileHelper::delDir(Service::getAddonsNamePath($name).$dir);
+                if($delete) FileHelper::delDir(Service::getPluginsNamePath($name).$dir);
             }else{
                 @copy($sourcedir, app()->getBasePath() .DS.$dir);
                 if($delete) @unlink($sourcedir);
@@ -362,17 +360,17 @@ class Service extends \think\Service
      */
     public static function removeApp($name,$delete =false){
         $appDir = app()->getBasePath().$name;
-        $addonPath =  Service::getAddonsNamePath($name);
+        $pluginPath =  Service::getPluginsNamePath($name);
         if(is_dir($appDir)){
             foreach (scandir($appDir) as $dir){
                 $sourcedir = $appDir.DS.$dir;
                 if(in_array($dir,['.','..'])) continue;
                 if (is_dir($sourcedir)) {
-                    FileHelper::copyDir($sourcedir, $addonPath .'app'. DS. $name . DS .$dir. DS,$delete);
+                    FileHelper::copyDir($sourcedir, $pluginPath .'app'. DS. $name . DS .$dir. DS,$delete);
                     if($delete) FileHelper::delDir($sourcedir);
                 }else{
-                    if(!is_dir(dirname($addonPath .'app'. DS. $name))) @mkdir($addonPath .'app'. DS. $name,0755,true);
-                    @copy($sourcedir,$addonPath .'app'.DS .$name . DS .$dir);
+                    if(!is_dir(dirname($pluginPath .'app'. DS. $name))) @mkdir($pluginPath .'app'. DS. $name,0755,true);
+                    @copy($sourcedir,$pluginPath .'app'.DS .$name . DS .$dir);
                     if($delete) @unlink($sourcedir);
                 }
             }
@@ -399,13 +397,13 @@ class Service extends \think\Service
     }
 
     //更新插件状态
-    public static function updateAddonsInfo($name, $state = 1, $install = 1)
+    public static function updatePluginsInfo($name, $state = 1, $install = 1)
     {
-        $addonslist = get_addons_list();
-        $addonslist[$name]['status'] = $state;
-        $addonslist[$name]['install'] = $install;
-        Cache::set('addonslist', $addonslist);
-        set_addons_info($name, ['status' => $state, 'install' => $install]);
+        $pluginslist = get_plugins_list();
+        $pluginslist[$name]['status'] = $state;
+        $pluginslist[$name]['install'] = $install;
+        Cache::set('pluginslist', $pluginslist);
+        set_plugins_info($name, ['status' => $state, 'install' => $install]);
     }
 
 }

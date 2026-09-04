@@ -14,7 +14,7 @@
 namespace fun\curd;
 
 use app\backend\service\ResourceRegistryService;
-use app\backend\service\AddonService;
+use app\backend\service\PluginService;
 use fun\helper\CtrHelper;
 use think\console\Command;
 use think\console\Input;
@@ -28,11 +28,13 @@ use fun\helper\ZipHelper;
  * @package app\backend\command
  * 功能待完善
  */
-class Addon extends Command
+class Plugin extends Command
 {
+    protected array $config = [];
+
     protected function configure()
     {
-        $this->setName('addon')
+        $this->setName('plugin')
             ->addOption('app', '', Option::VALUE_REQUIRED, '插件名', '')
             ->addOption('title', '', Option::VALUE_REQUIRED, '插件标题', '')
             ->addOption('description', '', Option::VALUE_OPTIONAL, '插件名', '')
@@ -46,7 +48,7 @@ class Addon extends Command
             ->addOption('uninstall', '', Option::VALUE_OPTIONAL, '卸载', 0)
             ->addOption('enable', '', Option::VALUE_OPTIONAL, '启用', 0)
             ->addOption('disable', '', Option::VALUE_OPTIONAL, '禁用', 0)
-            ->setDescription('Addon Command');
+            ->setDescription('Plugin Command');
     }
 
     protected function execute(Input $input, Output $output)
@@ -65,6 +67,7 @@ class Addon extends Command
         $param['uninstall'] = $input->getOption('uninstall');
         $param['enable'] = $input->getOption('enable');
         $param['disable'] = $input->getOption('disable');
+        $this->config = $param;
         if (empty($param['app'])) {
             $output->error("插件名不能为空");
             return false;
@@ -87,17 +90,17 @@ class Addon extends Command
         }
         try {
             if($param['enable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(AddonService::class)->enableAddon($param['app']);
+                app(PluginService::class)->enablePlugin($param['app']);
                 $output->info("启用成功");
                 return true;
             }
             if($param['disable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(AddonService::class)->disableAddon($param['app']);
+                app(PluginService::class)->disablePlugin($param['app']);
                 $output->info("禁用成功");
                 return true;
             }
             if($param['uninstall'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(AddonService::class)->uninstallAddon($param['app']);
+                app(PluginService::class)->uninstallPlugin($param['app']);
                 $output->info("卸载成功");
                 return true;
             }   
@@ -106,31 +109,31 @@ class Addon extends Command
                 return false;
             }
             if($param['install'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(AddonService::class)->installAddon($param['app'],'install');
+                app(PluginService::class)->installPlugin($param['app'],'install');
                 $output->info("安装成功");
                 return true;
             }
-            $tplPath = root_path('extend/fun/curd/tpl/addon');
-            $addonPath = root_path(PLUGIN_DIR . '/'.$param['app']) ;
+            $tplPath = root_path('extend/fun/curd/tpl/plugin');
+            $pluginPath = root_path(PLUGIN_DIR . '/'.$param['app']) ;
             $fileList = [
                 [
                     'name'=>'Plugin.php',
                     'content'=>'',
-                    'fileName'=>$addonPath . "Plugin.php",
+                    'fileName'=>$pluginPath . "Plugin.php",
                     'tpl'=> $tplPath . 'plugin.tpl',
                     'items'=>[
-                        ['name'=>'addon','value'=>$param['app']],
-                        ['name'=>'addon_dir','value'=>ADDON_NAMESPACE],
+                        ['name'=>'plugin','value'=>$param['app']],
+                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
                     ]
                 ],
                 [
                     'name'=>'plugin.ini',
                     'content'=>'',
-                    'fileName'=>$addonPath . "plugin.ini",
+                    'fileName'=>$pluginPath . "plugin.ini",
                     'tpl'=> $tplPath . 'ini.tpl',
                     'items'=>[
-                        ['name'=>'addon','value'=>$param['app']],
-                        ['name'=>'addon_dir','value'=>ADDON_NAMESPACE],
+                        ['name'=>'plugin','value'=>$param['app']],
+                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
                         ['name'=>'title','value'=>$param['title']],
                         ['name'=>'description','value'=>$param['description']],
                         ['name'=>'author','value'=>$param['author']],
@@ -144,7 +147,7 @@ class Addon extends Command
                 [
                     'name'=>'config.php',
                     'content'=>'',
-                    'fileName'=>$addonPath . "config.php",
+                    'fileName'=>$pluginPath . "config.php",
                     'tpl'=> $tplPath . 'config.tpl',
                     'items'=>[
                     ]
@@ -152,32 +155,33 @@ class Addon extends Command
                 [
                     'name'=>'menu.php',
                     'content'=>'',
-                    'fileName'=>$addonPath . "menu.php",
+                    'fileName'=>$pluginPath . "menu.php",
                     'tpl'=> $tplPath . 'menu.tpl',
                     'items'=>[]
                 ],
                 [
                     'name'=>'Index.php',
                     'content'=>'',
-                    'fileName'=>$addonPath . "controller/Index.php",
+                    'fileName'=>$pluginPath . "controller/Index.php",
                     'tpl'=> $tplPath . 'controller.tpl',
                     'items'=>[
-                        ['name'=>'addon','value'=>$param['app']],
+                        ['name'=>'plugin','value'=>$param['app']],
+                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
                     ]
                 ],
                 [
                     'name'=>'index.html',
                     'content'=>'',
-                    'fileName'=>$addonPath . 'view/index/index.html',
+                    'fileName'=>$pluginPath . 'view/index/index.html',
                     'tpl'=> $tplPath . 'view.tpl',
                     'items'=>[
-                        ['name'=>'addon','value'=>$param['app']],
+                        ['name'=>'plugin','value'=>$param['app']],
                     ]
                 ],
                 [
                     'name'=>'plugin.js',
                     'content'=>'',
-                    'fileName'=>$addonPath . 'plugin.js',
+                    'fileName'=>$pluginPath . 'plugin.js',
                     'tpl'=> $tplPath . 'js.tpl',
                     'items'=>[
                     ]
@@ -221,7 +225,7 @@ class Addon extends Command
                         $this->makeFile($value['fileName'], $value['content']);
                     }
                 }else{
-                    //把addons/cms 目录复制到临时目录runtime/cms_min，并把app/cms/复制到runtime/cms_min/app/cms
+                    //把plugins/cms 目录复制到临时目录runtime/cms_min，并把app/cms/复制到runtime/cms_min/app/cms
                     //把public/static/cms/目录复制到runtime/cms_min/public/static/cms
                     //把runtime/cms_min/plugin.ini内部 install改为0
                     $minPath = root_path('runtime/'.$param['app'].'_min_'.date('YmdHis'));

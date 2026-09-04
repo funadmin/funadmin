@@ -1,12 +1,12 @@
 <?php
 declare (strict_types = 1);
 
-namespace {%addon_dir%}\{%addon%}\controller;
+namespace {%plugin_dir%}\{%plugin%}\controller;
 
 use think\Request;
 use think\App;
 use think\facade\View;
-use fun\addons\Controller;
+use fun\plugins\Controller;
 
 
 class Index extends Controller

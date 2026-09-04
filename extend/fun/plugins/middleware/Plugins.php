@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace fun\addons\middleware;
+namespace fun\plugins\middleware;
 
 use think\App;
 
-class Addons
+class Plugins
 {
     protected $app;
 
@@ -23,7 +23,7 @@ class Addons
      */
     public function handle($request, \Closure $next)
     {
-        hook('addon_middleware', $request);
+        hook('plugin_middleware', $request);
 
         return $next($request);
     }

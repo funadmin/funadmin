@@ -1,4 +1,4 @@
-name = {%addon%}
+name = {%plugin%}
 title = {%title%}
 description = {%description%}
 status = 1

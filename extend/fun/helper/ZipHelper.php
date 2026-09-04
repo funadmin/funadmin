@@ -52,7 +52,7 @@ class ZipHelper
      * @param $zipFile 相对文件路劲
      * @param $folderPath 相对文件夹路劲
      */
-    public static function unzip( $zipFile,$folderPath,$addon=0)
+    public static function unzip( $zipFile,$folderPath,$plugin=0)
     {
         // Initialize archive object
         if (!class_exists('ZipArchive')) {

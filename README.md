@@ -187,7 +187,7 @@ Github：https://github.com/funadmin/funadmin
 
 ```
 www  WEB部署目录（或者子目录）
-├─addons           插件目录
+├─plugins           插件目录
 ├─app           目录
 │  ├─backend      应用目录
 │  ├───controller      控制器目录

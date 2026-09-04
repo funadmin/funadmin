@@ -1,5 +1,5 @@
 <?php
-namespace fun\addons\command;
+namespace fun\plugins\command;
 
 use think\console\Command;
 use think\console\Input;
@@ -10,16 +10,16 @@ class Config extends Command
 
     public function configure()
     {
-        $this->setName('addons:config')
+        $this->setName('plugins:config')
             ->setDescription('config to config folder');
     }
 
     public function execute(Input $input, Output $output)
     {
         //获取默认配置文件
-        $content = file_get_contents(root_path() . 'extend/fun/addons/config.php');
+        $content = file_get_contents(root_path() . 'extend/fun/plugins/config.php');
         $configPath = config_path() ;
-        $configFile = $configPath . 'addons.php';
+        $configFile = $configPath . 'plugins.php';
         //判断目录是否存在
         if (!file_exists($configPath)) {
             @mkdir($configPath, 0755, true);
@@ -34,7 +34,7 @@ class Config extends Command
             $output->info(sprintf('The config file "%s" could not be written to "%s"', $configFile,$configPath));
         }
 
-        $output->writeln('create addons config ok');
+        $output->writeln('create plugins config ok');
     }
 
 }

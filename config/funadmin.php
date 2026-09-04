@@ -28,15 +28,15 @@ return [
     'auth_login_only_routes'=>[
         'index/index', 'index/console', 'index/logout', 'index/enlang',
         'ajax/refreshmenu', 'ajax/lang', 'ajax/getattach',
-        'addon/logout',
+        'plugin/logout',
         'auth/me', 'auth/menus', 'auth/logout',
     ],
     // 全局配置和缓存只允许超级管理员操作。
     'auth_super_only_routes'=>['ajax/clearcache', 'ajax/setconfig', 'ajax/getlist'],
     // 复用已有权限节点，避免同一能力出现多个授权口径。
     'auth_route_aliases'=>[
-        'addon/localinstall' => 'addon/install',
-        'addon/uninstall' => 'addon/install',
+        'plugin/localinstall' => 'plugin/install',
+        'plugin/uninstall' => 'plugin/install',
         'system/role/all' => 'systemrole/index',
         'system/role/parent-options' => 'systemrole/index',
         'system/role/permission-tree' => 'systemrole/permissions',

@@ -3,7 +3,7 @@
 
 
 
-CREATE TABLE IF NOT EXISTS `fun_addon` (
+CREATE TABLE IF NOT EXISTS `fun_plugin` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '主键',
   `title` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '中文名',
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '插件名或标识',
@@ -50,7 +50,7 @@ INSERT IGNORE INTO `fun_admin` (`id`, `username`, `dept_id`, `password`, `email`
 CREATE TABLE IF NOT EXISTS `fun_admin_log` (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id',
   `module` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模块',
-  `addons` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '插件',
+  `plugins` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '插件',
   `admin_id` int DEFAULT NULL COMMENT '管理员id',
   `username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '用户名',
   `method` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '请求方式',

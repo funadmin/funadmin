@@ -1,6 +1,6 @@
 <?php
 
-namespace fun\addons;
+namespace fun\plugins;
 
 use app\BaseController;
 use app\common\traits\Jump;
@@ -15,9 +15,9 @@ use app\backend\service\AuthService;
 class Controller extends BaseController
 {
     // 当前插件操作
-    protected $addon = null;
+    protected $plugin = null;
     //插件路径
-    protected $addon_path = null;
+    protected $plugin_path = null;
     protected $controller = null;
     protected $action = null;
     protected $param;
@@ -57,10 +57,10 @@ class Controller extends BaseController
         $filter = $convert ? 'strtolower' : 'trim';
         // 处理路由参数
         $this->controller = $this->request->controller();
-        $this->addon = $this->request->addon;
+        $this->plugin = $this->request->plugin;
         $this->action = $this->request->action();
-        $this->addon =  $this->addon ? call_user_func($filter,  $this->addon) : app()->http->getName();
-        $this->addon_path = $app->addons->getAddonsPath() . $this->addon;
+        $this->plugin =  $this->plugin ? call_user_func($filter,  $this->plugin) : app()->http->getName();
+        $this->plugin_path = $app->plugins->getPluginsPath() . $this->plugin;
         $this->controller = $this->controller ? call_user_func($filter, $this->controller) : 'index';
         $this->action = $this->action ? call_user_func($filter, $this->action) : 'index';
         // 父类的调用必须放在设置模板路径之后
@@ -84,11 +84,11 @@ class Controller extends BaseController
         parent::initialize();
         $view_config = config('view');
          // 渲染配置到视图中
-        if($this->addon){
-            $view_config = array_merge($view_config,['view_path' => $this->addon_path . DS .'view' .DS],);
+        if($this->plugin){
+            $view_config = array_merge($view_config,['view_path' => $this->plugin_path . DS .'view' .DS],);
             View::engine('Think')->config($view_config);
         }else{
-            $view_config = array_merge($view_config,['view_path' => $this->addon_path . DS .'view'.DS.str_replace('.','/',$this->controller) .DS]);
+            $view_config = array_merge($view_config,['view_path' => $this->plugin_path . DS .'view'.DS.str_replace('.','/',$this->controller) .DS]);
             View::engine('Think')->config($view_config);
         }
         // 如果有使用模板布局 可以更换布局
@@ -100,11 +100,11 @@ class Controller extends BaseController
 
         }
 
-        $addon_config = get_addons_config($this->addon);
-        View::assign(['addon_config'=>$addon_config]);
+        $plugin_config = get_plugins_config($this->plugin);
+        View::assign(['plugin_config'=>$plugin_config]);
         // 加载系统语言包
         Lang::load([
-            $this->addon_path . 'lang' . DS . Lang::getLangset() . '.php',
+            $this->plugin_path . 'lang' . DS . Lang::getLangset() . '.php',
         ]);
 
     }

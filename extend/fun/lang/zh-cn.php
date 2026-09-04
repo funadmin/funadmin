@@ -1,11 +1,11 @@
 <?php
 // 插件中文语言包
 return [
-    'addon %s not found'                          => '插件 %s 未找到',
-    'addon %s is disabled'                        => '插件 %s 已禁用',
-    'addon controller %s not found'               => '插件控制器 %s 未找到',
-    'addon action %s not found'                   => '插件控制器方法 %s 未找到',
-    'addon can not be empty'                      => '插件不能为空',
+    'plugin %s not found'                          => '插件 %s 未找到',
+    'plugin %s is disabled'                        => '插件 %s 已禁用',
+    'plugin controller %s not found'               => '插件控制器 %s 未找到',
+    'plugin action %s not found'                   => '插件控制器方法 %s 未找到',
+    'plugin can not be empty'                      => '插件不能为空',
     'Keep login'                                  => '保持会话',
     'Forgot password'                             => '忘记密码?',
     'Username'                                    => '用户名',

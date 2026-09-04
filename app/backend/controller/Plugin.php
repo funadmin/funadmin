@@ -13,8 +13,8 @@
 
 namespace app\backend\controller;
 
-use app\backend\service\AddonService;
-use app\backend\service\AddonConfigService;
+use app\backend\service\PluginService;
+use app\backend\service\PluginConfigService;
 use app\backend\service\PluginPackageService;
 use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
@@ -23,22 +23,22 @@ use think\App;
 use think\facade\Cache;
 use think\facade\Console;
 use think\Exception;
-use app\common\model\Addon as AddonModel;
+use app\common\model\Plugin as PluginModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
 /**
  * @ControllerAnnotation(title="插件管理")
- * Class Addon
+ * Class Plugin
  * @package app\backend\controller
  */
-class Addon extends Backend
+class Plugin extends Backend
 {
 
     protected array $noNeedLogin = [];
     /**
-     * @var AddonService 
+     * @var PluginService 
      */
-    protected AddonService $addonService;
+    protected PluginService $pluginService;
     /**
      * @var AuthCloudService
      */
@@ -48,8 +48,8 @@ class Addon extends Backend
     {
 
         parent::__construct($app);
-        $this->modelClass = new AddonModel();
-        $this->addonService = app(AddonService::class);
+        $this->modelClass = new PluginModel();
+        $this->pluginService = app(PluginService::class);
         $this->authCloudService = app(AuthCloudService::class);
         $this->app_version = config('funadmin.version');
     }
@@ -95,83 +95,83 @@ class Addon extends Backend
                     ->setHeader()
                     ->run();
                 $list = [];
-                $addonNameArr = [];
-                $addonNameArrAll = [];
+                $pluginNameArr = [];
+                $pluginNameArrAll = [];
                 $count = 1;
                 if (isset($res['code']) && $res['code'] == 200) {
                     $list = $res['data']['list'];
                     $allList = $res['data']['allList'];
-                    $addonNameArr = $res['data']['searchNameList'];
-                    $addonNameArrAll = $res['data']['nameList'];
-                    $count = count($addonNameArr);
+                    $pluginNameArr = $res['data']['searchNameList'];
+                    $pluginNameArrAll = $res['data']['nameList'];
+                    $count = count($pluginNameArr);
                 }else if(isset($res['code']) && $res['code']==401){
                     $this->authCloudService->setToken()->setMember();
                 }
-                list($localAddons,$localNameArr) = $this->getLocalAddons();
+                list($localPlugins,$localNameArr) = $this->getLocalPlugins();
                 try {
-                    $addonsInstalled =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
-                    //$list = array_merge($localAddons,$addons,$list?$list:[]);
+                    $pluginsInstalled =  $this->modelClass->where($where)->where('name','<>','')->column('*', 'name');
+                    //$list = array_merge($localPlugins,$plugins,$list?$list:[]);
                     if(!empty($param['cateid']) && $param['cateid'] == 'local'){
-                        $list= $localAddons;
+                        $list= $localPlugins;
                         foreach ($list as $key=>$item) {
-                            if(in_array($key,$addonNameArrAll)) {
+                            if(in_array($key,$pluginNameArrAll)) {
                                 unset($list[$key]);
                             }
                         }
                         $count = 1;
                     }elseif(!empty($param['cateid']) && $param['cateid'] =='installed'){
-                        $list= $addonsInstalled;
+                        $list= $pluginsInstalled;
                         $count =1;
                     }
-                    $addons = [];
+                    $plugins = [];
                     foreach ($list as $key => &$value) {
-                        if(in_array($key,$addonNameArrAll)){
+                        if(in_array($key,$pluginNameArrAll)){
                             $value = $allList[$key];
                         }
                         $value['plugins_id'] = isset($value['id'])?$value['id']:0;
                         unset($value['id']);
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
-                            $config = get_addons_config($key);
-                            $info = get_addons_info($key);
-                            if (empty($addonsInstalled[$key])) {
-                                $class = get_addons_instance($key);
-                                $addons["$key"] = $class->getInfo();
-                                if ($addons[$key]) {
-                                    $addons[$key]['install'] = 0;
-                                    $addons[$key]['status'] = 1;
+                            $config = get_plugins_config($key);
+                            $info = get_plugins_info($key);
+                            if (empty($pluginsInstalled[$key])) {
+                                $class = get_plugins_instance($key);
+                                $plugins["$key"] = $class->getInfo();
+                                if ($plugins[$key]) {
+                                    $plugins[$key]['install'] = 0;
+                                    $plugins[$key]['status'] = 1;
                                 }
-                                $addons[$key] = $value;
+                                $plugins[$key] = $value;
                             } else {
-                                $addons[$key] = array_merge($value,$addonsInstalled[$key]);
-                                $addons[$key]['install'] = 1;
+                                $plugins[$key] = array_merge($value,$pluginsInstalled[$key]);
+                                $plugins[$key]['install'] = 1;
                             }
-                            $addons[$key]['localVersion'] = $info['version'];
+                            $plugins[$key]['localVersion'] = $info['version'];
 //                            if(isset($config['domain']) && $config['domain']['value']){
 //                                $index = strpos($_SERVER['HTTP_HOST'],'.');
 //                                $domain = explode(',', $config['domain']['value'])[0];
 //                                $url = substr_count($_SERVER['HTTP_HOST'],'.')>1?substr($_SERVER['HTTP_HOST'],$index+1):$_SERVER['HTTP_HOST'];
-////                                $addons[$key]['web'] = httpType().$domain.'.'.$url;
+////                                $plugins[$key]['web'] = httpType().$domain.'.'.$url;
 //                            }else{
-////                                $addons[$key]['web'] =(string) addons_url($info['url']);
+////                                $plugins[$key]['web'] =(string) plugins_url($info['url']);
 //                            }
                         }else{
-                            $addons[$key] = $value;
-                            $addons[$key]['insatll'] = 0;
-                            $addons[$key]['status'] = 1;
-                            $addons[$key]['localVersion'] = empty($value['pluginsVersion'])?1:$value['pluginsVersion'][0]['id'];
+                            $plugins[$key] = $value;
+                            $plugins[$key]['insatll'] = 0;
+                            $plugins[$key]['status'] = 1;
+                            $plugins[$key]['localVersion'] = empty($value['pluginsVersion'])?1:$value['pluginsVersion'][0]['id'];
                         }
-                        if(!empty($addons[$key]['pluginsVersion'])){
-                            $addons[$key]['version_id'] = $addons[$key]['pluginsVersion'][0]['id'];
-                            $addons[$key]['lastVersion'] = $addons[$key]['pluginsVersion'][0]['version'];
+                        if(!empty($plugins[$key]['pluginsVersion'])){
+                            $plugins[$key]['version_id'] = $plugins[$key]['pluginsVersion'][0]['id'];
+                            $plugins[$key]['lastVersion'] = $plugins[$key]['pluginsVersion'][0]['version'];
                         }else{
-                            $addons[$key]['version_id'] = 0;
-                            $addons[$key]['lastVersion'] = $addons[$key]['localVersion'];
+                            $plugins[$key]['version_id'] = 0;
+                            $plugins[$key]['lastVersion'] = $plugins[$key]['localVersion'];
                         }
                     }
                     unset($value);
                     $result = ['code' => 0, 'msg' => lang('Get Data Success'),
-                        'data' => $addons, 'count' => $count];
+                        'data' => $plugins, 'count' => $count];
                 }catch (Exception $e){
                     $this->error($e->getMessage());
                 }
@@ -211,7 +211,7 @@ class Addon extends Backend
             array_walk_recursive($arr, function ($value) use (&$result) {
                 array_push($result, $value);
             });
-            $output = Console::call('addon', $result);
+            $output = Console::call('plugin', $result);
             $content = $output->fetch();
             if (strpos($content, 'success')) {
                 $this->success(lang('make success'));
@@ -234,7 +234,7 @@ class Addon extends Backend
         $type = (string) (input('type') ?? $type);
         $migrate = $this->booleanInput('migrate', true);
         if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
-            $this->error(lang('addon name is not right'));
+            $this->error(lang('plugin name is not right'));
         }
 
         try {
@@ -246,7 +246,7 @@ class Addon extends Backend
                 $migrate
             );
         } catch (\Throwable $exception) {
-            $this->addonService->recordFailure($name, $exception);
+            $this->pluginService->recordFailure($name, $exception);
             $this->error($exception->getMessage());
         }
         $this->success($type === 'upgrade' ? 'upgrade success' : 'install success');
@@ -277,20 +277,20 @@ class Addon extends Backend
         try {
             $staged = $packageService->stage($archive);
             $name = (string) $staged['name'];
-            if ($this->addonService->isInstall($name)) {
-                throw new Exception(lang('addons %s is already installed', [$name]));
+            if ($this->pluginService->isInstall($name)) {
+                throw new Exception(lang('plugins %s is already installed', [$name]));
             }
             $backup = $packageService->deploy($staged, $name);
             $deployed = true;
-            $this->addonService->installAddon($name, 'local');
+            $this->pluginService->installPlugin($name, 'local');
             $packageService->finish($staged, $backup);
         } catch (\Throwable $exception) {
-            if ($deployed && $this->addonService->canRollbackDeployment()) {
+            if ($deployed && $this->pluginService->canRollbackDeployment()) {
                 $packageService->rollback((string) $staged['name'], $backup);
             } else {
                 $packageService->discard($staged);
             }
-            $this->addonService->recordFailure((string) ($staged['name'] ?? ''), $exception);
+            $this->pluginService->recordFailure((string) ($staged['name'] ?? ''), $exception);
             $this->error($exception->getMessage());
         }
         $this->success('install success');
@@ -310,7 +310,7 @@ class Addon extends Backend
         set_time_limit(0);
         $name = input("name");
         try {
-            $this->addonService->uninstallAddon((string) $name, $this->booleanInput('purge_data', false));
+            $this->pluginService->uninstallPlugin((string) $name, $this->booleanInput('purge_data', false));
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
@@ -327,9 +327,9 @@ class Addon extends Backend
         }
         $name = (string) input('name', '');
         try {
-            $result = $this->addonService->migrateAddon($name);
+            $result = $this->pluginService->migratePlugin($name);
         } catch (\Throwable $exception) {
-            $this->addonService->recordFailure($name, $exception);
+            $this->pluginService->recordFailure($name, $exception);
             $this->error($exception->getMessage());
         }
         $this->success('database migration success', '', $result);
@@ -348,10 +348,10 @@ class Addon extends Backend
         }
         $name = input("name");
         if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
-            $this->error(lang('addon name is not right'));
+            $this->error(lang('plugin name is not right'));
         }
         try {
-            $this->addonService->modifyAddon($name);
+            $this->pluginService->modifyPlugin($name);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
@@ -370,19 +370,19 @@ class Addon extends Backend
     {
         $name = (string) $this->request->get('name', '');
         if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
-            $this->error(lang('addon name is not right'));
+            $this->error(lang('plugin name is not right'));
         }
         $record = $this->modelClass->where('name', $name)->find();
         if (!$record) {
-            $this->error(lang('addon config is not found'));
+            $this->error(lang('plugin config is not found'));
         }
 
-        $configService = AddonConfigService::instance();
+        $configService = PluginConfigService::instance();
         if ($this->request->isAjax()) {
             try {
                 $params = input('params/a', []);
                 if (!$params) {
-                    throw new Exception(lang('addon can not be empty'));
+                    throw new Exception(lang('plugin can not be empty'));
                 }
                 $configService->save($name, $params);
             } catch (\Throwable $exception) {
@@ -403,9 +403,9 @@ class Addon extends Backend
      * 获取插件列表
      * @return array
      */
-    protected function getLocalAddons(){
+    protected function getLocalPlugins(){
         Cache::clear();
-        $list = get_addons_list();
+        $list = get_plugins_list();
         return [$list,array_keys($list)];
     }
 
@@ -428,15 +428,15 @@ class Addon extends Backend
         string $type = '',
         bool $migrate = true
     ): bool {
-        $installed = $this->addonService->isInstall($name);
+        $installed = $this->pluginService->isInstall($name);
         if ($type !== 'upgrade' && $installed && (int) $installed->delete_time === 0) {
-            throw new Exception(lang('addons %s is already installed', [$name]));
+            throw new Exception(lang('plugins %s is already installed', [$name]));
         }
         if ($type === 'upgrade' && (!$installed || (int) $installed->delete_time > 0)) {
             throw new Exception('插件尚未安装');
         }
         if ($type === 'upgrade' && (int) $installed->status === 1) {
-            throw new Exception(lang('Please disable addons %s first', [$name]));
+            throw new Exception(lang('Please disable plugins %s first', [$name]));
         }
 
         $packageService = PluginPackageService::instance();
@@ -454,13 +454,13 @@ class Addon extends Backend
             }
 
             if ($type === 'upgrade') {
-                $this->addonService->updateAddon($name, $migrate);
+                $this->pluginService->updatePlugin($name, $migrate);
             } else {
-                $this->addonService->installAddon($name, $type);
+                $this->pluginService->installPlugin($name, $type);
             }
             $packageService->finish($staged, $backup);
         } catch (\Throwable $exception) {
-            if ($deployed && $this->addonService->canRollbackDeployment()) {
+            if ($deployed && $this->pluginService->canRollbackDeployment()) {
                 $packageService->rollback($name, $backup);
             } else {
                 $packageService->discard($staged);

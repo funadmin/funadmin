@@ -95,7 +95,7 @@ require(['jquery'], function ($) {
     //直接使用$经常出现未定义
     $ = layui.jquery || layui.$;
     $(function () {
-        require(['fun','backend',BASE_URL+'js/require-addons.js?'+urlArgs], function (Fun,Backend,Addon) {
+        require(['fun','backend',BASE_URL+'js/require-plugins.js?'+urlArgs], function (Fun,Backend,Plugin) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {

@@ -23,10 +23,10 @@ class BaseModel extends Model
         return config('database.connections'.'.'.config('database.default').'.database');
     }
 
-    public static function get_addonstablename($tablename,$addon)
+    public static function get_pluginstablename($tablename,$plugin)
     {
-        $tablename = str_replace($addon.'_','',str_replace('addons_','',$tablename));
-        return $tablename = self::get_table_prefix() .$addon.'_'. $tablename;
+        $tablename = str_replace($plugin.'_','',str_replace('plugins_','',$tablename));
+        return $tablename = self::get_table_prefix() .$plugin.'_'. $tablename;
     }
 
 

@@ -347,7 +347,7 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleCreateJs'], 'js', '生成FunAdmin JS文件')
             ->withTool([self::class, 'handleCreateApi'], 'api', '生成FunAdmin API接口文件')
             ->withTool([self::class, 'handleCurd'], 'curd', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面')
-            ->withTool([self::class, 'handleAddon'], 'addon', '生成FunAdmin 插件模块')
+            ->withTool([self::class, 'handlePlugin'], 'plugin', '生成FunAdmin 插件模块')
             ->withTool([self::class, 'handleMenu'], 'menu', '生成FunAdmin 菜单模块')
             ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，   支持字段信息、类型、注释等')
             ->withTool([self::class, 'handleThinkCommand'], 'think-command', '执行ThinkPHP内置命令')
@@ -1443,13 +1443,13 @@ class {$modelClass} extends BaseModel
     }
 
     /**
-     * 处理插件管理，基于fun/curd/Addon.php功能
+     * 处理插件管理，基于fun/curd/Plugin.php功能
      * @param string $action 操作类型（create/install/uninstall/enable/disable）
-     * @param string $addonName 插件名称
+     * @param string $pluginName 插件名称
      * @param array $options 其他选项
      * @return array
      */
-    public function handleAddon(string $action, string $addonName = '', array $options = []): array
+    public function handlePlugin(string $action, string $pluginName = '', array $options = []): array
     {
         try {
             // 构建命令行参数
@@ -1457,13 +1457,13 @@ class {$modelClass} extends BaseModel
 
             switch ($action) {
                 case 'create':
-                    if (empty($addonName)) {
+                    if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
-                        '--app=' . $addonName,
-                        '--title=' . ($options['title'] ?? $addonName),
-                        '--description=' . ($options['description'] ?? $addonName),
+                        '--app=' . $pluginName,
+                        '--title=' . ($options['title'] ?? $pluginName),
+                        '--description=' . ($options['description'] ?? $pluginName),
                         '--author=' . ($options['author'] ?? 'FunAdmin'),
                         '--ver=' . ($options['version'] ?? '1.0.0'),
                         '--requires=' . ($options['requires'] ?? '1.0.0'),
@@ -1475,46 +1475,46 @@ class {$modelClass} extends BaseModel
                     break;
 
                 case 'install':
-                    if (empty($addonName)) {
+                    if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
                         '--install=1',
-                        '--app=' . $addonName
+                        '--app=' . $pluginName
                     ];
                     break;
 
                 case 'uninstall':
-                    if (empty($addonName)) {
+                    if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
                         '--delete=1',
                         '--force=1',
-                        '--app=' . $addonName,
+                        '--app=' . $pluginName,
                         
 
                     ];
                     break;
 
                 case 'enable':
-                    if (empty($addonName)) {
+                    if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
-                    // 这里需要根据具体的addon命令参数来实现
+                    // 这里需要根据具体的plugin命令参数来实现
                     $parameters = [
-                        '--app=' . $addonName,
+                        '--app=' . $pluginName,
                         '--enable=1',
                     ];
                     break;
 
                 case 'disable':
-                    if (empty($addonName)) {
+                    if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
-                    // 这里需要根据具体的addon命令参数来实现
+                    // 这里需要根据具体的plugin命令参数来实现
                     $parameters = [
-                        '--app=' . $addonName,
+                        '--app=' . $pluginName,
                         '--disable=1',
                     ];
                     break;
@@ -1522,8 +1522,8 @@ class {$modelClass} extends BaseModel
                     throw new \Exception('不支持的操作类型: ' . $action);
             }
 
-            // 调用addon命令
-            $output = \think\facade\Console::call('addon', $parameters);
+            // 调用plugin命令
+            $output = \think\facade\Console::call('plugin', $parameters);
             $content = $output->fetch();
 
             // 检查执行结果
@@ -1533,7 +1533,7 @@ class {$modelClass} extends BaseModel
                     'message' => "插件{$action}操作成功",
                     'data' => [
                         'action' => $action,
-                        'addon_name' => $addonName,
+                        'plugin_name' => $pluginName,
                         'output' => $content
                     ]
                 ];
@@ -1722,14 +1722,14 @@ class {$modelClass} extends BaseModel
                 }
             }
 
-            if (in_array($type, ['addon', 'all'])) {
-                if (!empty($parsedData['addon'])) {
-                    $addonResult = $this->handleAddon(
+            if (in_array($type, ['plugin', 'all'])) {
+                if (!empty($parsedData['plugin'])) {
+                    $pluginResult = $this->handlePlugin(
                         'create',
-                        $parsedData['addon']['name'],
-                        $parsedData['addon']['options'] ?? []
+                        $parsedData['plugin']['name'],
+                        $parsedData['plugin']['options'] ?? []
                     );
-                    $results['addon'] = $addonResult;
+                    $results['plugin'] = $pluginResult;
                 }
             }
 
@@ -1789,7 +1789,7 @@ class {$modelClass} extends BaseModel
             'js' => null,
             'api' => null,
             'view' => null,
-            'addon' => null,
+            'plugin' => null,
             'curd' => null,
             'menu' => null
         ];
@@ -1918,14 +1918,14 @@ class {$modelClass} extends BaseModel
         }
 
         // 解析插件相关操作
-        if (strpos($lowerPrompt, 'addon') !== false || strpos($lowerPrompt, '插件') !== false) {
-            if (preg_match('/(?:创建|生成|建立).*?(?:插件|addon).*?[名为|叫|是]\s*([a-zA-Z_][a-zA-Z0-9_]*)/', $lowerPrompt, $matches)) {
-                $addonName = $matches[1];
-                $parsedData['addon'] = [
-                    'name' => $addonName,
+        if (strpos($lowerPrompt, 'plugin') !== false || strpos($lowerPrompt, '插件') !== false) {
+            if (preg_match('/(?:创建|生成|建立).*?(?:插件|plugin).*?[名为|叫|是]\s*([a-zA-Z_][a-zA-Z0-9_]*)/', $lowerPrompt, $matches)) {
+                $pluginName = $matches[1];
+                $parsedData['plugin'] = [
+                    'name' => $pluginName,
                     'options' => [
-                        'title' => $addonName,
-                        'description' => $addonName . '插件',
+                        'title' => $pluginName,
+                        'description' => $pluginName . '插件',
                         'author' => 'FunAdmin',
                         'version' => '1.0.0',
                         'requires' => '1.0.0'
@@ -3306,11 +3306,11 @@ EOF;
         }
 
         // 处理插件操作
-        if (strpos($lowerPrompt, '插件') !== false || strpos($lowerPrompt, 'addon') !== false) {
-            $results['addon'] = [
+        if (strpos($lowerPrompt, '插件') !== false || strpos($lowerPrompt, 'plugin') !== false) {
+            $results['plugin'] = [
                 'success' => true,
                 'message' => '检测到插件操作',
-                'suggestion' => '请使用 addon 工具进行插件管理'
+                'suggestion' => '请使用 plugin 工具进行插件管理'
             ];
         }
 
@@ -3425,14 +3425,14 @@ EOF;
                 'vendor:publish',
                 // queue 命令组（只允许查看相关的）
                 'queue:failed', 'queue:failed-table', 'queue:table',
-                // addons 命令组
-                'addons:config',
+                // plugins 命令组
+                'plugins:config',
                 // auth 命令组
                 'auth:config',
                 // builder 命令组
                 'builder:config',
                 // FunAdmin 特有命令
-                'addon', 'menu', 'install', 'mcp'
+                'plugin', 'menu', 'install', 'mcp'
             ];
 
             if (!in_array($command, $allowedCommands)) {

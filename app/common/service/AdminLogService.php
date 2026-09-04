@@ -91,7 +91,7 @@ class AdminLogService extends AbstractService
                 'admin_id'    => $this->admin_id,
                 'username'    => $this->username,
                 'url'         => $url,
-                'addons'      => 'app',
+                'plugins'      => 'app',
                 'module'      => $this->app,
                 'controller'      => $this->controller,
                 'action'      => $this->action,

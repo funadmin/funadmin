@@ -181,14 +181,14 @@ class PluginPackageService extends AbstractService
     {
         $manifest = is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini')
             ? $directory . DIRECTORY_SEPARATOR . 'plugin.ini'
-            : $directory . DIRECTORY_SEPARATOR . 'addon.ini';
+            : $directory . DIRECTORY_SEPARATOR . 'plugin.ini';
         $info = parse_ini_file($manifest, true, INI_SCANNER_TYPED) ?: [];
         $name = (string) ($info['name'] ?? '');
         $this->assertName($name);
         if ($expectedName !== '' && strcasecmp($name, $expectedName) !== 0) {
             throw new RuntimeException('插件包名称与请求名称不一致');
         }
-        if (!is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php') && !is_file($directory . DIRECTORY_SEPARATOR . 'Addon.php')) {
+        if (!is_file($directory . DIRECTORY_SEPARATOR . 'Plugin.php')) {
             throw new RuntimeException('插件入口文件不存在');
         }
 
@@ -217,7 +217,7 @@ class PluginPackageService extends AbstractService
     private function hasManifest(string $directory): bool
     {
         return is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini')
-            || is_file($directory . DIRECTORY_SEPARATOR . 'addon.ini');
+            || is_file($directory . DIRECTORY_SEPARATOR . 'plugin.ini');
     }
 
     private function pluginDirectory(string $name): string

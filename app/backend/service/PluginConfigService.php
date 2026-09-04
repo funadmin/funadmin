@@ -2,7 +2,7 @@
 
 namespace app\backend\service;
 
-use app\common\model\Addon;
+use app\common\model\Plugin;
 use app\common\service\AbstractService;
 use RuntimeException;
 use think\facade\Cache;
@@ -11,7 +11,7 @@ use think\facade\Db;
 /**
  * 插件配置读取、校验与原子保存。
  */
-class AddonConfigService extends AbstractService
+class PluginConfigService extends AbstractService
 {
     public function get(string $name): array
     {
@@ -29,7 +29,7 @@ class AddonConfigService extends AbstractService
     {
         $this->assertName($name);
         $this->assertConfigColumn();
-        $record = Addon::where('name', $name)->find();
+        $record = Plugin::where('name', $name)->find();
         if (!$record) {
             throw new RuntimeException('插件尚未安装');
         }
@@ -57,10 +57,10 @@ class AddonConfigService extends AbstractService
             throw $exception;
         }
 
-        config([], "addon_{$name}_config");
-        Cache::delete('addonslist');
-        Cache::delete('addons_data_list');
-        Cache::delete('addons_data_list_config');
+        config([], "plugin_{$name}_config");
+        Cache::delete('pluginslist');
+        Cache::delete('plugins_data_list');
+        Cache::delete('plugins_data_list_config');
         return true;
     }
 
@@ -171,7 +171,7 @@ class AddonConfigService extends AbstractService
     private function assertConfigColumn(): void
     {
         $prefix = (string) config('database.connections.mysql.prefix');
-        $table = str_replace('`', '``', $prefix . 'addon');
+        $table = str_replace('`', '``', $prefix . 'plugin');
         if (Db::query("SHOW COLUMNS FROM `{$table}` LIKE 'config'") === []) {
             throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/005_plugin_lifecycle_schema.sql');
         }
@@ -184,7 +184,7 @@ class AddonConfigService extends AbstractService
 
     private function plugin(string $name): object
     {
-        $plugin = get_addons_instance($name);
+        $plugin = get_plugins_instance($name);
         if (!$plugin) {
             throw new RuntimeException('插件入口类不存在');
         }

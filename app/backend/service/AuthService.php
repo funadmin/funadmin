@@ -268,7 +268,7 @@ class AuthService extends AbstractService
                 foreach ($list as $key => $val) {
                     $html .= '<li class="layui-nav-item">';
                     $badge = '';
-                    if (strtolower($val['title']) === 'addon') {
+                    if (strtolower($val['title']) === 'plugin') {
                         $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
                     }
                     if ($val['child'] and count($val['child']) > 0) {
@@ -293,7 +293,7 @@ class AuthService extends AbstractService
                     $html['nav'] .= '<li class="layui-nav-item ' . $laythis . '"  menu-id="' . $val['id'] . '">';
                     $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
                     $badge = '';
-                    if (strtolower($val['title']) === 'addon') {
+                    if (strtolower($val['title']) === 'plugin') {
                         $badge = '<span class="layui-badge">new</span>';
                     }
                     $hide = '';

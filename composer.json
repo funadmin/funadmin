@@ -77,7 +77,7 @@
     "post-autoload-dump": [
       "@php think service:discover",
       "@php think vendor:publish",
-      "@php think addons:config",
+      "@php think plugins:config",
       "@php think builder:config",
       "@php think auth:config"
     ]

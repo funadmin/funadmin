@@ -1,13 +1,13 @@
 <?php
 
-namespace {%addon_dir%}\{%addon%};
+namespace {%plugin_dir%}\{%plugin%};
 
-use fun\Addons;
+use fun\Plugins;
 
 /**
  * 插件
  */
-class Plugin extends Addons
+class Plugin extends Plugins
 {
 
 

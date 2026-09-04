@@ -12,13 +12,11 @@ use think\helper\{
 
 define('DS', DIRECTORY_SEPARATOR);
 define('PLUGIN_DIR', 'plugins');
-// 兼容旧插件命名空间，物理目录统一使用 plugins。
-define('ADDON_DIR', 'addons');
-define('ADDON_NAMESPACE', ADDON_DIR);
+define('PLUGIN_NAMESPACE', PLUGIN_DIR);
 
 \think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
-        'addons:config' => '\\fun\\addons\\command\\Config',
+        'plugins:config' => '\\fun\\plugins\\command\\Config',
         'auth:config' => '\\fun\\auth\\command\\Config',
         'builder:config' => '\\fun\\builder\\command\\Config'
     ]);
@@ -28,7 +26,7 @@ define('ADDON_NAMESPACE', ADDON_DIR);
 spl_autoload_register(function ($class) {
 
     $class = ltrim($class, '\\');
-    $namespace = ADDON_NAMESPACE;
+    $namespace = PLUGIN_NAMESPACE;
 
     if (strpos($class, $namespace) === 0) {
         $dir = app()->getRootPath() . PLUGIN_DIR;
@@ -82,33 +80,33 @@ if (!function_exists('hook_one')) {
     }
 }
 
-if (!function_exists('get_addons_info')) {
+if (!function_exists('get_plugins_info')) {
     /**
      * 读取插件的基础信息
      * @param string $name 插件名
      * @return array
      */
-    function get_addons_info($name)
+    function get_plugins_info($name)
     {
-        $addon = get_addons_instance($name);
-        if (!$addon) {
+        $plugin = get_plugins_instance($name);
+        if (!$plugin) {
             return [];
         }
 
-        return $addon->getInfo();
+        return $plugin->getInfo();
     }
 }
 
 
-if (!function_exists('addons_vendor_autoload')) {
+if (!function_exists('plugins_vendor_autoload')) {
     /**
      * 加载插件内部第三方类库
-     * @params mixed $addonsName 插件名称或插件数组
+     * @params mixed $pluginsName 插件名称或插件数组
      */
-    function addons_vendor_autoload($addonsName) {
+    function plugins_vendor_autoload($pluginsName) {
         //插件全局类库
-        if (is_array($addonsName)){
-            foreach ($addonsName as $item) {
+        if (is_array($pluginsName)){
+            foreach ($pluginsName as $item) {
                 if ((isset($item['autoload']) && $item['autoload']==1) || isset($item['autoload'])){
                     $autoload_file = root_path() . PLUGIN_DIR . '/' . $item['name'] . '/vendor/autoload.php';
                     if (file_exists($autoload_file)){
@@ -118,9 +116,9 @@ if (!function_exists('addons_vendor_autoload')) {
             }
         }else{
             //插件私有类库
-            $Config = get_addons_info($addonsName);
+            $Config = get_plugins_info($pluginsName);
             if (isset($Config['autoload']) && $Config['autoload']==2){
-                $autoload_file = root_path() . PLUGIN_DIR . '/' . $addonsName . '/vendor/autoload.php';
+                $autoload_file = root_path() . PLUGIN_DIR . '/' . $pluginsName . '/vendor/autoload.php';
                 if (file_exists($autoload_file)){
                     require_once $autoload_file;
                 }
@@ -136,19 +134,19 @@ if (!function_exists('addons_vendor_autoload')) {
  * @return boolean
  * @throws Exception
  */
-if (!function_exists('set_addons_info')) {
+if (!function_exists('set_plugins_info')) {
 
-    function set_addons_info(string $name, array $array)
+    function set_plugins_info(string $name, array $array)
     {
-        $service = App::make('\fun\addons\Service');
-        $addons_path = $service->getAddonsPath();
+        $service = App::make('\fun\plugins\Service');
+        $plugins_path = $service->getPluginsPath();
         // 插件列表
-        $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
+        $file = $plugins_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
         if(!is_file($file)){
-            $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'addon.ini';
+            $file = $plugins_path . $name . DIRECTORY_SEPARATOR . 'plugin.ini';
         }
-        $addon = get_addons_instance($name);
-        $array = $addon->setInfo($name, $array);
+        $plugin = get_plugins_instance($name);
+        $array = $plugin->setInfo($name, $array);
         if (!isset($array['name']) || !isset($array['title']) || !isset($array['version'])) {
             throw new Exception("Failed to write plugin config");
         }
@@ -166,8 +164,8 @@ if (!function_exists('set_addons_info')) {
             fwrite($handle, implode("\n", $res) . "\n");
             fclose($handle);
             //清空当前配置缓存
-            config($array, "addon_{$name}_info");
-            Cache::delete('addonslist');
+            config($array, "plugin_{$name}_info");
+            Cache::delete('pluginslist');
         } else {
             throw new Exception("File does not have write permission");
         }
@@ -197,29 +195,29 @@ if(!function_exists('set_app_route')) {
     }
 }
 
-if (!function_exists('get_addons_instance')) {
+if (!function_exists('get_plugins_instance')) {
     /**
      * 获取插件的单例
      * @param string $name 插件名
      * @return mixed|null
      */
-    function get_addons_instance($name)
+    function get_plugins_instance($name)
     {
-        static $_addons = [];
-        if (isset($_addons[$name])) {
-            return $_addons[$name];
+        static $_plugins = [];
+        if (isset($_plugins[$name])) {
+            return $_plugins[$name];
         }
-        $class = get_addons_class($name);
+        $class = get_plugins_class($name);
         if (class_exists($class)) {
-            $_addons[$name] = App::make($class);
-            return $_addons[$name];
+            $_plugins[$name] = App::make($class);
+            return $_plugins[$name];
         } else {
             return null;
         }
     }
 }
 
-if (!function_exists('get_addons_class')) {
+if (!function_exists('get_plugins_class')) {
     /**
      * 获取插件类的类名
      * @param string $name 插件名
@@ -227,7 +225,7 @@ if (!function_exists('get_addons_class')) {
      * @param string $class 当前类名
      * @return string
      */
-    function get_addons_class($name, $type = 'hook', $class = null)
+    function get_plugins_class($name, $type = 'hook', $class = null)
     {
         $name = trim($name);
         // 处理多级控制器情况
@@ -241,12 +239,12 @@ if (!function_exists('get_addons_class')) {
         }
         switch ($type) {
             case 'controller':
-                $namespace = '\\addons\\' . $name .  '\\controller\\' . $class;
+                $namespace = '\\plugins\\' . $name .  '\\controller\\' . $class;
                 break;
             default:
-                $namespace = '\\addons\\' . $name . '\\Plugin';
+                $namespace = '\\plugins\\' . $name . '\\Plugin';
                 if(!class_exists($namespace)){
-                    $namespace = '\\addons\\' . $name . '\\Addon';
+                    $namespace = '\\plugins\\' . $name . '\\Plugin';
                 }
         }
 
@@ -255,23 +253,23 @@ if (!function_exists('get_addons_class')) {
 }
 
 
-if (!function_exists('get_addons_config')) {
+if (!function_exists('get_plugins_config')) {
     /**
      * 获取插件的配置
      * @param string $name 插件名
      * @return mixed|null
      */
-    function get_addons_config($name)
+    function get_plugins_config($name)
     {
-        $addon = get_addons_instance($name);
-        if (!$addon) {
+        $plugin = get_plugins_instance($name);
+        if (!$plugin) {
             return [];
         }
-        return $addon->getConfig($name);
+        return $plugin->getConfig($name);
     }
 }
 
-if (!function_exists('set_addons_config')) {
+if (!function_exists('set_plugins_config')) {
 
     /**
      * @param $name
@@ -279,14 +277,14 @@ if (!function_exists('set_addons_config')) {
      * @return true
      * @throws Exception
      */
-    function set_addons_config($name, $array)
+    function set_plugins_config($name, $array)
     {
-        $service = App::make('\fun\addons\Service');
-        $addons_path = $service->getAddonsPath();
+        $service = App::make('\fun\plugins\Service');
+        $plugins_path = $service->getPluginsPath();
         // 插件列表
-        $file = $addons_path . $name . DIRECTORY_SEPARATOR . 'config.php';
+        $file = $plugins_path . $name . DIRECTORY_SEPARATOR . 'config.php';
         if (!FileHelper::isWritable($file)) {
-            throw new \Exception(lang("addons.php File does not have write permission"));
+            throw new \Exception(lang("plugins.php File does not have write permission"));
         }
         if ($handle = fopen($file, 'w')) {
             fwrite($handle, "<?php\n\n" . "return " . var_export($array, TRUE) . ";");
@@ -299,7 +297,7 @@ if (!function_exists('set_addons_config')) {
 }
 
 
-if (!function_exists('addons_url')) {
+if (!function_exists('plugins_url')) {
     /**
      * 插件显示内容里生成访问插件的url
      * @param $url
@@ -308,12 +306,12 @@ if (!function_exists('addons_url')) {
      * @param bool|string $domain 域名
      * @return bool|string
      */
-    function addons_url($url = '', $param = [], $suffix = true, $domain = false)
+    function plugins_url($url = '', $param = [], $suffix = true, $domain = false)
     {
         $request = app('request');
         if (empty($url)) {
             // 生成 url 模板变量
-            $addons = $request->addon;
+            $plugins = $request->plugin;
             $controller = $request->controller();
             $controller = str_replace('/', '.', $controller);
             $action = $request->action();
@@ -321,7 +319,7 @@ if (!function_exists('addons_url')) {
             $url = Str::studly($url);
             $url = parse_url($url);
             if (isset($url['scheme'])) {
-                $addons = strtolower($url['scheme']);
+                $plugins = strtolower($url['scheme']);
                 $controller = $url['host'];
                 if(isset($url['path'])){
                     $action = trim($url['path'], '/');
@@ -330,7 +328,7 @@ if (!function_exists('addons_url')) {
                 }
             } else {
                 $route = explode('/', $url['path']);
-                $addons = $request->addon;
+                $plugins = $request->plugin;
                 $action = array_pop($route);
                 $controller = array_pop($route) ?: $request->controller();
             }
@@ -343,7 +341,7 @@ if (!function_exists('addons_url')) {
             }
         }
 
-        return Route::buildUrl("@addons/{$addons}/{$controller}/{$action}", $param)->suffix($suffix)->domain($domain);
+        return Route::buildUrl("@plugins/{$plugins}/{$controller}/{$action}", $param)->suffix($suffix)->domain($domain);
     }
 }
 
@@ -352,33 +350,33 @@ if (!function_exists('addons_url')) {
  * 获得插件列表
  * @return array
  */
-if (!function_exists('get_addons_list')) {
+if (!function_exists('get_plugins_list')) {
 
-    function get_addons_list()
+    function get_plugins_list()
     {
-        if (!Cache::get('addonslist')) {
-            $addons_path = app()->getRootPath() . PLUGIN_DIR . DS; // 插件列表
-            $results = scandir($addons_path);
+        if (!Cache::get('pluginslist')) {
+            $plugins_path = app()->getRootPath() . PLUGIN_DIR . DS; // 插件列表
+            $results = scandir($plugins_path);
             $list = [];
             foreach ($results as $name) {
                 if ($name === '.' or $name === '..')
                     continue;
-                if (is_file($addons_path . $name))
+                if (is_file($plugins_path . $name))
                     continue;
-                $addonDir = $addons_path . $name . DS;
-                if (!is_dir($addonDir))
+                $pluginDir = $plugins_path . $name . DS;
+                if (!is_dir($pluginDir))
                     continue;
-                if (!is_file($addonDir . 'Plugin' . '.php') && !is_file($addonDir . 'Addon' . '.php'))
+                if (!is_file($pluginDir . 'Plugin' . '.php') && !is_file($pluginDir . 'Plugin' . '.php'))
                     continue;
-                $info = get_addons_info($name);
+                $info = get_plugins_info($name);
                 if (!isset($info['name']))
                     continue;
-                $info['url'] =isset($info['url']) && $info['url'] ?(string)addons_url($info['url']):'';
+                $info['url'] =isset($info['url']) && $info['url'] ?(string)plugins_url($info['url']):'';
                 $list[$name] = $info;
             }
-            Cache::set('addonslist', $list);
+            Cache::set('pluginslist', $list);
         } else {
-            $list = Cache::get('addonslist');
+            $list = Cache::get('pluginslist');
         }
         return $list;
     }
@@ -386,9 +384,9 @@ if (!function_exists('get_addons_list')) {
 /**
  * 获取插件菜单
  */
-if (!function_exists('get_addons_menu')) {
+if (!function_exists('get_plugins_menu')) {
 
-    function get_addons_menu($name)
+    function get_plugins_menu($name)
     {
         $menu = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'menu.php';
         if(file_exists($menu)){
@@ -404,30 +402,30 @@ if (!function_exists('get_addons_menu')) {
  * @param bool $chunk 是否清除手动配置的钩子
  * @return array
  */
-if (!function_exists('get_addons_autoload_config')) {
+if (!function_exists('get_plugins_autoload_config')) {
 
-    function get_addons_autoload_config($chunk = false)
+    function get_plugins_autoload_config($chunk = false)
     {
-        // 读取addons的配置
-        $config = (array)config('addons');
+        // 读取plugins的配置
+        $config = (array)config('plugins');
         if ($chunk) {
             // 清空手动配置的钩子
             $config['hooks'] = [];
         }
         $route = [];
         // 读取插件目录及钩子列表
-        $base = get_class_methods("\\fun\\Addons");
+        $base = get_class_methods("\\fun\\Plugins");
         $base = array_merge($base, ['init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled', 'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData']);
         $url_domain_deploy = config('route.url_domain_deploy');
-        $addons = get_addons_list();
+        $plugins = get_plugins_list();
         $domain = [];
-        foreach ($addons as $name => $addon) {
-            if(!$addon['install']) continue;
-            if (!$addon['status']) continue;
+        foreach ($plugins as $name => $plugin) {
+            if(!$plugin['install']) continue;
+            if (!$plugin['status']) continue;
             // 读取出所有公共方法
-            $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . 'Plugin');
+            $methods = (array)get_class_methods("\\plugins\\" . $name . "\\" . 'Plugin');
             if(!$methods){
-                $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . 'Addon');
+                $methods = (array)get_class_methods("\\plugins\\" . $name . "\\" . 'Plugin');
             }
             // 跟插件基类方法做比对，得到差异结果
             $hooks = array_diff($methods, $base);
@@ -445,13 +443,13 @@ if (!function_exists('get_addons_autoload_config')) {
                     $config['hooks'][$hook][] = $name;
                 }
             }
-            $conf = get_addons_config($addon['name']);
+            $conf = get_plugins_config($plugin['name']);
             if ($conf) {
                 $rule = !empty($conf['rewrite']['value'])?$conf['rewrite']['value']:[];
                 $app_rule = !empty($conf['app_rewrite']['value'])?$conf['app_rewrite']['value']:[];
                 if ($url_domain_deploy) {
                     $domain[] = [
-                        'addons' => $addon['name'],
+                        'plugins' => $plugin['name'],
                         'domain' => !empty($conf['domain']['value']) ?$conf['domain']['value']:'',
                         'app_domain' => !empty($conf['app_domain']['value'])?$conf['app_domain']['value']:'',
                         'rule' => $rule,
@@ -474,23 +472,23 @@ if (!function_exists('get_addons_autoload_config')) {
  * @return  boolean
  * @throws  Exception
  */
-if (!function_exists('refreshaddons')) {
-    function refreshaddons()
+if (!function_exists('refreshplugins')) {
+    function refreshplugins()
     {
-        //刷新addons.js
-        $addons = get_addons_list();
+        //刷新plugins.js
+        $plugins = get_plugins_list();
         $jsArr = [];
-        foreach ($addons as $name => $addon) {
+        foreach ($plugins as $name => $plugin) {
             $jsArrFile = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'plugin.js';
             if(!is_file($jsArrFile)){
-                $jsArrFile = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'addon.js';
+                $jsArrFile = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'plugin.js';
             }
-            if ($addon['status'] && $addon['install'] && is_file($jsArrFile)) {
+            if ($plugin['status'] && $plugin['install'] && is_file($jsArrFile)) {
                 $jsArr[] = file_get_contents($jsArrFile);
             }
         }
-        $addonsjsFile = app()->getRootPath() . "public/static/js/require-addons.js";
-        if ($file = fopen($addonsjsFile, 'w')) {
+        $pluginsjsFile = app()->getRootPath() . "public/static/js/require-plugins.js";
+        if ($file = fopen($pluginsjsFile, 'w')) {
             $tpl = <<<EOF
 define([], function () {
     {__PLUGINSJS__}
@@ -499,15 +497,15 @@ EOF;
             fwrite($file, str_replace("{__PLUGINSJS__}", implode("\n", $jsArr), $tpl));
             fclose($file);
         } else {
-            throw new Exception(lang("addons.js File does not have write permission"));
+            throw new Exception(lang("plugins.js File does not have write permission"));
         }
-        $file = app()->getRootPath() . 'config' . DS . 'addons.php';
+        $file = app()->getRootPath() . 'config' . DS . 'plugins.php';
 
-        $config = get_addons_autoload_config(true);
+        $config = get_plugins_autoload_config(true);
         if (!$config['autoload']) return;
 
         if (!is_really_writable($file)) {
-            throw new Exception(lang("addons.js File does not have write permission"));
+            throw new Exception(lang("plugins.js File does not have write permission"));
         }
         if ($handle = fopen($file, 'w')) {
             fwrite($handle, "<?php\n\n" . "return " . var_export($config, TRUE) . ";");
@@ -537,17 +535,17 @@ function is_really_writable($file)
 /**
  * 执行插件 migrations/{version}.sql，仅向前执行且不支持卸载 SQL。
  */
-if (!function_exists('run_addon_migrations')) {
-    function run_addon_migrations(string $name): array
+if (!function_exists('run_plugin_migrations')) {
+    function run_plugin_migrations(string $name): array
     {
         if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
             throw new Exception('插件名格式错误');
         }
-        $service = App::make('\fun\addons\Service');
-        $directory = $service->getAddonsPath() . $name . DS . 'migrations';
+        $service = App::make('\fun\plugins\Service');
+        $directory = $service->getPluginsPath() . $name . DS . 'migrations';
         if (!is_dir($directory)) {
             return [];
         }
-        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'addon:' . strtolower($name));
+        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'plugin:' . strtolower($name));
     }
 }

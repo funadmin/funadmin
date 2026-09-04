@@ -6,7 +6,7 @@ namespace app\common\model;
 use app\common\model\BaseModel;
 use think\model\concern\SoftDelete;
 
-class Addon extends BaseModel {
+class Plugin extends BaseModel {
 
     /**
      * @var bool

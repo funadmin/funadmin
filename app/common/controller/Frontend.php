@@ -19,7 +19,7 @@ use app\backend\service\AuthService;
 use app\BaseController;
 use app\common\traits\Curd;
 use app\common\traits\Jump;
-use fun\addons\Controller;
+use fun\plugins\Controller;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Cookie;

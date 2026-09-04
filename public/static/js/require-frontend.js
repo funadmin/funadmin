@@ -20,7 +20,7 @@ require.config({
         }
     ],
     baseUrl: BASE_URL,
-    include: ['jquery','css','jsoneditor','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','selects','cxSelect','selectPage','cityPicker','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','addons'],
+    include: ['jquery','css','jsoneditor','layCascader','tableSelect','iconPicker','tableFilter', 'toastr','step-lay','inputTags' ,'xmSelect', 'timeago','selects','cxSelect','selectPage','cityPicker','timePicker','autoComplete','Sortable','croppers', 'md5','fun','form','table','upload','plugins'],
     paths: {
         'lang'          : 'empty:',
         'jquery'        : 'plugins/jquery/jquery-3.7.1.min', // jquery
@@ -48,7 +48,7 @@ require.config({
         'form'          : 'js/require-form',
         'table'         : 'js/require-table',
         'upload'        : 'js/require-upload',
-        'addons'        : 'js/require-addons',//编辑器以及其他安装的插件
+        'plugins'        : 'js/require-plugins',//编辑器以及其他安装的插件
     },
     map: {
         '*': {
@@ -87,7 +87,7 @@ require(["jquery"], function ($) {
     // paths['frontend/'] = 'frontend/';
     require.config({paths:paths});
     $(function () {
-        require(['fun','addons'], function (Fun) {
+        require(['fun','plugins'], function (Fun) {
             $(function () {
                 if ('undefined' != typeof Config.autojs && Config.autojs) {
                     require([BASE_URL+Config.jspath+'?'+_t], function (Controller) {
