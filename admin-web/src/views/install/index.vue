@@ -136,8 +136,8 @@ onMounted(loadEnvironment);
 </script>
 
 <style scoped>
-.install-page { min-height: 100vh; padding: 48px 20px; box-sizing: border-box; background: #f4f6fa; }
-.install-shell { width: min(960px, 100%); margin: 0 auto; }
+.install-page { display: grid; justify-items: center; width: 100%; min-height: 100vh; padding: 48px 20px; overflow-x: hidden; box-sizing: border-box; background: #f4f6fa; }
+.install-shell { width: 100%; max-width: 960px; min-width: 0; }
 .install-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
 .install-header h1 { margin: 0; font-size: 25px; color: #1d2129; }
 .install-header p { margin: 5px 0 0; color: #86909c; }

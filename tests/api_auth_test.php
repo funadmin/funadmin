@@ -63,6 +63,7 @@ $responseTraitSource = file_get_contents(dirname(__DIR__) . '/app/common/traits/
 apiExpect(str_contains((string) $responseTraitSource, 'Response::create($result, $type, $code)'), 'API 响应必须设置真实 HTTP 状态码');
 
 $exceptionSource = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
+apiExpect(str_contains((string) $exceptionSource, 'instanceof HttpResponseException'), 'API 主动响应不得被异常处理器改写');
 apiExpect(str_contains((string) $exceptionSource, "getName() !== 'api'"), '统一异常处理必须仅对 API 应用返回 JSON');
 
 $funadminConfigSource = file_get_contents(dirname(__DIR__) . '/config/funadmin.php');

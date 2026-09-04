@@ -27,7 +27,7 @@ const types = [
   ['number', '整数', false], ['datetime', '日期时间', false], ['editor', '编辑器', false],
   ['color', '颜色值', false], ['file', '单文件', false], ['files', '多文件', false],
   ['hidden', '隐藏域', false], ['range', '日期范围', false], ['float', '浮点数', false],
-  ['decimal', '小数', false], ['checkbox', '复选框', true]
+  ['decimal', '小数', false], ['json', 'JSON', false], ['checkbox', '复选框', true]
 ].map(([name, title, requiresOptions]) => ({ name: String(name), title: String(title), requiresOptions: Boolean(requiresOptions) }));
 const verifies = [
   { value: 'required', title: '必须' }, { value: 'email', title: '邮箱' },
@@ -53,6 +53,9 @@ function normalizeValue(type: string, raw: unknown, extra = ''): { value: string
   }
   if (type === 'number' && value && !/^-?\d+$/.test(value)) return { value: '', error: '配置值必须为整数' };
   if (['float', 'decimal'].includes(type) && value && !Number.isFinite(Number(value))) return { value: '', error: '配置值必须为数字' };
+  if (type === 'json' && value) {
+    try { JSON.parse(value); } catch { return { value: '', error: '配置值必须是合法的 JSON' }; }
+  }
   if (['radio', 'select', 'checkbox'].includes(type) && extra) {
     const allowed = options(extra);
     const values = type === 'checkbox' ? value.split('\n').filter(Boolean) : [value];

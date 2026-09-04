@@ -20,7 +20,7 @@
         <Upload v-else-if="row?.type === 'file' || row?.type === 'files'" v-model="fileValue" type="file" biz-type="file" :multiple="row?.type === 'files'" :max-count="row?.type === 'file' ? 1 : 0" />
         <el-input-number v-else-if="row?.type === 'number'" v-model="numberValue" :precision="0" class="w-full" />
         <el-input-number v-else-if="row?.type === 'float' || row?.type === 'decimal'" v-model="numberValue" :precision="row?.type === 'decimal' ? 2 : undefined" class="w-full" />
-        <el-input v-else-if="['textarea', 'array', 'editor'].includes(row?.type || '')" v-model="scalarValue" type="textarea" :rows="8" />
+        <el-input v-else-if="['textarea', 'array', 'json', 'editor'].includes(row?.type || '')" v-model="scalarValue" type="textarea" :rows="8" />
         <el-input v-else v-model="scalarValue" :type="row?.type === 'hidden' ? 'password' : 'text'" />
         <div v-if="row?.remark" class="mt-2 w-full text-xs text-[var(--el-text-color-secondary)]">{{ row.remark }}</div>
       </el-form-item>

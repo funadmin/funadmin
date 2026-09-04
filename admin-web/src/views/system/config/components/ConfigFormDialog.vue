@@ -91,6 +91,7 @@ const fallbackTypes: ConfigTypeOption[] = [
   { name: 'checkbox', title: '复选框', requiresOptions: true },
   { name: 'select', title: '下拉选择', requiresOptions: true },
   { name: 'array', title: '数组', requiresOptions: true },
+  { name: 'json', title: 'JSON', requiresOptions: false },
   { name: 'tags', title: '标签', requiresOptions: false },
   { name: 'datetime', title: '日期时间', requiresOptions: false },
   { name: 'range', title: '日期范围', requiresOptions: false },
@@ -105,13 +106,14 @@ const fallbackTypes: ConfigTypeOption[] = [
 const initialForm = (): ConfigPayload => ({ code: '', group: 'site', type: 'text', verify: '', value: '', extra: '', remark: '', status: 1 });
 const form = reactive<ConfigPayload>(initialForm());
 const availableTypes = computed(() => {
-  const source = props.options.types.length ? props.options.types : fallbackTypes;
+  const source = [...fallbackTypes, ...props.options.types];
   return Array.from(new Map(source.filter((item) => item.name).map((item) => [item.name, item])).values());
 });
 const selectedType = computed(() => availableTypes.value.find((item) => item.name === form.type));
 const valuePlaceholder = computed(() => {
   if (form.type === 'switch') return '请输入 1（开启）或 0（关闭）';
   if (['checkbox', 'array', 'images', 'files'].includes(form.type)) return '每行填写一个值';
+  if (form.type === 'json') return '请输入合法的 JSON，例如 {"key":"value"}';
   if (selectedType.value?.requiresOptions) return '请输入选项定义中左侧的值';
   return '配置值以字符串形式存储';
 });

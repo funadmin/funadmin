@@ -88,12 +88,16 @@ if (!function_exists('get_plugins_info')) {
      */
     function get_plugins_info($name)
     {
-        $plugin = get_plugins_instance($name);
-        if (!$plugin) {
+        if (!is_string($name) || !preg_match('/^[a-z][a-z0-9]*$/', $name)) {
             return [];
         }
-
-        return $plugin->getInfo();
+        try {
+            return \fun\plugins\Manifest::fromDirectory(
+                app()->getRootPath() . PLUGIN_DIR . DS . $name
+            )->toArray();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 }
 
@@ -335,11 +339,19 @@ if (!function_exists('get_plugins_list')) {
                 $pluginDir = $plugins_path . $name . DS;
                 if (!is_dir($pluginDir))
                     continue;
-                if (!is_file($pluginDir . 'Plugin' . '.php') && !is_file($pluginDir . 'Plugin' . '.php'))
+                if (!is_file($pluginDir . 'Plugin.php') || !is_file($pluginDir . 'plugin.json'))
                     continue;
                 $info = get_plugins_info($name);
                 if (!isset($info['name']))
                     continue;
+                $record = \app\common\model\Plugin::where('name', $name)
+                    ->where(function ($query): void {
+                        $query->whereNull('delete_time')->whereOr('delete_time', 0);
+                    })
+                    ->find();
+                $info['install'] = $record ? 1 : 0;
+                $info['lifecycle_state'] = $record ? (string) $record->lifecycle_state : 'discovered';
+                $info['status'] = $info['lifecycle_state'] === 'enabled' ? 1 : 0;
                 $info['url'] =isset($info['url']) && $info['url'] ?(string)plugins_url($info['url']):'';
                 $list[$name] = $info;
             }
@@ -365,75 +377,6 @@ if (!function_exists('get_plugins_menu')) {
     }
 }
 
-
-/**
- * 获得插件自动加载的配置
- * @param bool $chunk 是否清除手动配置的钩子
- * @return array
- */
-if (!function_exists('get_plugins_autoload_config')) {
-
-    function get_plugins_autoload_config($chunk = false)
-    {
-        // 读取plugins的配置
-        $config = (array)config('plugins');
-        if ($chunk) {
-            // 清空手动配置的钩子
-            $config['hooks'] = [];
-        }
-        $route = [];
-        // 读取插件目录及钩子列表
-        $base = get_class_methods("\\fun\\Plugins");
-        $base = array_merge($base, ['init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled', 'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData']);
-        $url_domain_deploy = config('route.url_domain_deploy');
-        $plugins = get_plugins_list();
-        $domain = [];
-        foreach ($plugins as $name => $plugin) {
-            if(!$plugin['install']) continue;
-            if (!$plugin['status']) continue;
-            // 读取出所有公共方法
-            $methods = (array)get_class_methods("\\plugins\\" . $name . "\\" . 'Plugin');
-            if(!$methods){
-                $methods = (array)get_class_methods("\\plugins\\" . $name . "\\" . 'Plugin');
-            }
-            // 跟插件基类方法做比对，得到差异结果
-            $hooks = array_diff($methods, $base);
-            // 循环将钩子方法写入配置中
-            foreach ($hooks as $hook) {
-                $hook = Str::studly($hook);
-                if (!isset($config['hooks'][$hook])) {
-                    $config['hooks'][$hook] = [];
-                }
-                // 兼容手动配置项
-                if (is_string($config['hooks'][$hook])) {
-                    $config['hooks'][$hook] = explode(',', $config['hooks'][$hook]);
-                }
-                if (!in_array($name, $config['hooks'][$hook])) {
-                    $config['hooks'][$hook][] = $name;
-                }
-            }
-            $conf = get_plugins_config($plugin['name']);
-            if ($conf) {
-                $rule = !empty($conf['rewrite']['value'])?$conf['rewrite']['value']:[];
-                $app_rule = !empty($conf['app_rewrite']['value'])?$conf['app_rewrite']['value']:[];
-                if ($url_domain_deploy) {
-                    $domain[] = [
-                        'plugins' => $plugin['name'],
-                        'domain' => !empty($conf['domain']['value']) ?$conf['domain']['value']:'',
-                        'app_domain' => !empty($conf['app_domain']['value'])?$conf['app_domain']['value']:'',
-                        'rule' => $rule,
-                        'app_rule' => $app_rule
-                    ];
-                } else {
-                    $route[] = $rule;
-                }
-            }
-        }
-        $config['route'] = $route;
-        $config['route'] = array_merge($config['route'], $domain);
-        return $config;
-    }
-}
 
 /**
  * 刷新插件缓存文件
@@ -468,20 +411,7 @@ EOF;
         } else {
             throw new Exception(lang("plugins.js File does not have write permission"));
         }
-        $file = app()->getRootPath() . 'config' . DS . 'plugins.php';
-
-        $config = get_plugins_autoload_config(true);
-        if (!$config['autoload']) return;
-
-        if (!is_really_writable($file)) {
-            throw new Exception(lang("plugins.js File does not have write permission"));
-        }
-        if ($handle = fopen($file, 'w')) {
-            fwrite($handle, "<?php\n\n" . "return " . var_export($config, TRUE) . ";");
-            fclose($handle);
-        } else {
-            throw new Exception(lang('File does not have write permission'));
-        }
+        Cache::delete('pluginslist');
         return true;
     }
 }

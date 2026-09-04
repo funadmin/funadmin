@@ -132,19 +132,14 @@ class Plugin extends Backend
                         unset($value['id']);
                         //是否已经安装过
                         if($localNameArr && in_array($key,$localNameArr)){
-                            $config = get_plugins_config($key);
-                            $info = get_plugins_info($key);
+                            $info = $localPlugins[$key];
                             if (empty($pluginsInstalled[$key])) {
-                                $class = get_plugins_instance($key);
-                                $plugins["$key"] = $class->getInfo();
-                                if ($plugins[$key]) {
-                                    $plugins[$key]['install'] = 0;
-                                    $plugins[$key]['status'] = 1;
-                                }
-                                $plugins[$key] = $value;
+                                $plugins[$key] = array_merge($value, $info);
+                                $plugins[$key]['install'] = 0;
                             } else {
                                 $plugins[$key] = array_merge($value,$pluginsInstalled[$key]);
                                 $plugins[$key]['install'] = 1;
+                                $plugins[$key]['status'] = ($plugins[$key]['lifecycle_state'] ?? '') === 'enabled' ? 1 : 0;
                             }
                             $plugins[$key]['localVersion'] = $info['version'];
 //                            if(isset($config['domain']) && $config['domain']['value']){
@@ -435,7 +430,7 @@ class Plugin extends Backend
         if ($type === 'upgrade' && (!$installed || (int) $installed->delete_time > 0)) {
             throw new Exception('插件尚未安装');
         }
-        if ($type === 'upgrade' && (int) $installed->status === 1) {
+        if ($type === 'upgrade' && (string) $installed->lifecycle_state === 'enabled') {
             throw new Exception(lang('Please disable plugins %s first', [$name]));
         }
 

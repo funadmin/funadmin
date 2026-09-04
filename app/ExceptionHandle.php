@@ -60,6 +60,9 @@ class ExceptionHandle extends Handle
      */
     public function render($request, Throwable $e): Response
     {
+        if ($e instanceof HttpResponseException) {
+            return $e->getResponse();
+        }
         if ($this->app->http->getName() !== 'api') {
             return parent::render($request, $e);
         }

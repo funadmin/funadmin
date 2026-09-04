@@ -64,6 +64,9 @@ class SystemConfig extends AdminApiController
         $groups = ConfigGroup::order('id', 'asc')->select();
         $types = FieldType::where('status', 1)->order('sort', 'asc')->order('id', 'asc')->select();
         $verifies = FieldVerify::order('verify', 'asc')->select();
+        $builtInTypes = [
+            'json' => ['title' => 'JSON', 'requiresOptions' => false],
+        ];
         $typeOptions = [];
         foreach ($types as $type) {
             $name = trim((string) $type->name);
@@ -75,6 +78,9 @@ class SystemConfig extends AdminApiController
                 'title' => trim((string) $type->title) ?: $name,
                 'requiresOptions' => (int) $type->isoption === 1,
             ];
+        }
+        foreach ($builtInTypes as $name => $type) {
+            $typeOptions[$name] ??= ['name' => $name] + $type;
         }
         return $this->ok([
             'groups' => array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()),
@@ -249,7 +255,10 @@ class SystemConfig extends AdminApiController
         if ($data['group'] === '' || strlen($data['group']) > 80 || !ConfigGroup::where('name', $data['group'])->find()) {
             return '请选择有效的配置分组';
         }
-        if ($data['type'] === '' || strlen($data['type']) > 30 || !FieldType::where('name', $data['type'])->where('status', 1)->find()) {
+        $builtInTypes = ['json'];
+        $typeExists = in_array($data['type'], $builtInTypes, true)
+            || FieldType::where('name', $data['type'])->where('status', 1)->find();
+        if ($data['type'] === '' || strlen($data['type']) > 30 || !$typeExists) {
             return '请选择有效的字段类型';
         }
         if (strlen($data['verify']) > 30 || ($data['verify'] !== '' && $data['verify'] !== '0' && !FieldVerify::where('verify', $data['verify'])->find())) {
@@ -280,6 +289,12 @@ class SystemConfig extends AdminApiController
         }
         if (in_array($type, ['float', 'decimal'], true) && $value !== '' && !is_numeric($value)) {
             return ['', '配置值必须为数字'];
+        }
+        if ($type === 'json' && $value !== '') {
+            json_decode($value, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return ['', '配置值必须是合法的 JSON'];
+            }
         }
         if (in_array($type, ['radio', 'select', 'checkbox'], true) && $extra !== '') {
             $allowed = array_keys($this->parseOptions($extra));

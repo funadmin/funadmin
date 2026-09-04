@@ -65,6 +65,8 @@ $states = LifecycleState::all();
 expect($states === ['discovered', 'installing', 'disabled', 'enabling', 'enabled', 'disabling', 'uninstalling', 'failed'], '状态集合必须显式固定');
 expect(LifecycleState::canTransition('discovered', 'installing'), '发现态应可进入安装中');
 expect(LifecycleState::canTransition('installing', 'disabled'), '安装完成应保持禁用');
+expect(LifecycleState::canTransition('disabled', 'failed'), '禁用态操作失败必须可落 failed');
+expect(LifecycleState::canTransition('enabled', 'failed'), '启用态操作失败必须可落 failed');
 expect(!LifecycleState::canTransition('discovered', 'enabled'), '不得跳过安装直接启用');
 expectException(static fn () => LifecycleState::assertTransition('enabled', 'installing'), '非法插件状态迁移');
 
@@ -160,7 +162,7 @@ expect(str_contains((string) $pluginServiceSource, "'operation_token' => null"),
 expect(!str_contains((string) $pluginServiceSource, '->status'), '插件生命周期逻辑不得读取旧 status');
 expect(!preg_match('/->save\(\[[^]]*[\'\"]lifecycle_state[\'\"]/', (string) $pluginServiceSource), '生命周期状态写入不得绕过 LifecycleState');
 expect(str_contains((string) $pluginServiceSource, 'assertNoEnabledDependents'), '禁用和卸载必须检查反向依赖');
-expect(substr_count((string) $pluginServiceSource, 'assertDependencies(') >= 3, '安装、更新和启用均必须重检依赖');
+expect(substr_count((string) $pluginServiceSource, 'validatedManifest(') >= 4, '安装、更新和启用均必须重检 manifest 与依赖');
 $migrationSource = file_get_contents(dirname(__DIR__) . '/database/migrations/007_plugin_registry_state.sql');
 expect(str_contains((string) $migrationSource, '`manifest`'), '007 migration 必须包含 manifest 快照字段');
 expect(str_contains((string) $migrationSource, '`lifecycle_state`'), '007 migration 必须包含显式状态字段');
