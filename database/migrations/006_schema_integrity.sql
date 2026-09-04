@@ -1,6 +1,9 @@
 -- 基于现有数据库的增量字段治理；保留 fun_member.group_id 兼容列但不再作为业务来源。
 SET @schema_name = DATABASE();
 
+-- 单语句校验器不需要客户端 DELIMITER，动态分支通过 CALL 触发 SQLSTATE 45000。
+CREATE PROCEDURE `schema_integrity_signal_006`(IN error_message varchar(128)) SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_message;
+
 -- 在写入关联表前严格验证所有旧分组值：不能为空，只允许正整数逗号列表且不得重复。
 SET @invalid_member_group_count = (
   SELECT COUNT(*)
@@ -11,7 +14,7 @@ SET @invalid_member_group_count = (
 );
 SET @sql = IF(
   @invalid_member_group_count > 0,
-  'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''fun_member.group_id invalid or empty''',
+  'CALL `schema_integrity_signal_006`(''fun_member.group_id invalid or empty'')'
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -35,7 +38,7 @@ SET @duplicate_member_group_count = (
 );
 SET @sql = IF(
   @duplicate_member_group_count > 0,
-  'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''fun_member.group_id contains duplicate token''',
+  'CALL `schema_integrity_signal_006`(''fun_member.group_id contains duplicate token'')'
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -57,7 +60,7 @@ SET @missing_member_group_count = (
 );
 SET @sql = IF(
   @missing_member_group_count > 0,
-  'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''fun_member.group_id references missing member_group''',
+  'CALL `schema_integrity_signal_006`(''fun_member.group_id references missing member_group'')'
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -100,7 +103,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` WHERE `username` IS NOT NULL GROUP BY `username` HAVING COUNT(*) > 1),
-    'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''duplicate fun_member.username''',
+    'CALL `schema_integrity_signal_006`(''duplicate fun_member.username'')'
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_username` (`username`)'
   )
 );
@@ -113,7 +116,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` GROUP BY `mobile` HAVING COUNT(*) > 1),
-    'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''duplicate fun_member.mobile''',
+    'CALL `schema_integrity_signal_006`(''duplicate fun_member.mobile'')'
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_mobile` (`mobile`)'
   )
 );
@@ -126,7 +129,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` WHERE `email` IS NOT NULL GROUP BY `email` HAVING COUNT(*) > 1),
-    'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''duplicate fun_member.email''',
+    'CALL `schema_integrity_signal_006`(''duplicate fun_member.email'')'
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_email` (`email`)'
   )
 );
@@ -139,7 +142,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_config_group` GROUP BY `name` HAVING COUNT(*) > 1),
-    'SIGNAL SQLSTATE ''45000'' SET MESSAGE_TEXT = ''duplicate fun_config_group.name''',
+    'CALL `schema_integrity_signal_006`(''duplicate fun_config_group.name'')'
     'ALTER TABLE `fun_config_group` ADD UNIQUE KEY `uk_config_group_name` (`name`)'
   )
 );

@@ -95,17 +95,17 @@ Route::delete('system/member-level', 'SystemMemberLevel/recycle');
 Route::post('system/member-level/restore', 'SystemMemberLevel/restore');
 Route::delete('system/member-level/destroy', 'SystemMemberLevel/destroy');
 
-Route::get('system/member', 'SystemMember/index');
 Route::get('system/member/options', 'SystemMember/options');
 Route::get('system/member/export', 'SystemMember/export');
-Route::get('system/member/:id', 'SystemMember/detail')->pattern(['id' => '\d+']);
-Route::post('system/member', 'SystemMember/create');
-Route::put('system/member/:id', 'SystemMember/update')->pattern(['id' => '\d+']);
-Route::post('system/member/:id/status', 'SystemMember/status')->pattern(['id' => '\d+']);
-Route::delete('system/member', 'SystemMember/recycle');
 Route::post('system/member/restore', 'SystemMember/restore');
 Route::delete('system/member/destroy', 'SystemMember/destroy');
 Route::post('system/member/import', 'SystemMember/import');
+Route::get('system/member/:id', 'SystemMember/detail')->pattern(['id' => '\d+']);
+Route::put('system/member/:id', 'SystemMember/update')->pattern(['id' => '\d+']);
+Route::post('system/member/:id/status', 'SystemMember/status')->pattern(['id' => '\d+']);
+Route::get('system/member', 'SystemMember/index');
+Route::post('system/member', 'SystemMember/create');
+Route::delete('system/member', 'SystemMember/recycle');
 
 Route::get('system/config', 'SystemConfig/index');
 Route::get('system/config/options', 'SystemConfig/options');
