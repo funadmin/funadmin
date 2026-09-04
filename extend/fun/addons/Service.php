@@ -5,12 +5,9 @@ namespace fun\addons;
 
 use fun\helper\FileHelper;
 use think\Route;
-use think\facade\Lang;
 use think\facade\Cache;
 use think\facade\Event;
 use fun\addons\middleware\Addons;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 
 /**
  * 插件服务
@@ -20,7 +17,6 @@ use RecursiveIteratorIterator;
 class Service extends \think\Service
 {
     protected $addons_path;
-    protected $appName;
     //存放[插件名称]列表数据
     protected $addons_data=[];
     //存放[插件ini所有信息]列表数据
@@ -33,7 +29,7 @@ class Service extends \think\Service
 
         $this->app->bind('addons', Service::class);
 
-        // 无则创建addons目录
+        // 无则创建 plugins 目录
         $this->addons_path = $this->getAddonsPath();
 
         $this->autoload();
@@ -61,7 +57,9 @@ class Service extends \think\Service
             }
 
             // 注册控制器路由
-            $route->rule(ADDON_DIR."/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
+            $route->rule(PLUGIN_DIR . "/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
+            // 旧 URL 只读兼容，插件文件不再写入 addons 目录。
+            $route->rule("addons/:addon/[:controller]/[:action]", $execute)->middleware(Addons::class);
             // 自定义路由
             $routes = (array) config('addons.route', []);
             foreach ($routes as $key => $val) {
@@ -219,66 +217,60 @@ class Service extends \think\Service
      */
     private function autoload()
     {
-        // 是否处理自动载入
         if (!config('addons.autoload', true)) {
             return true;
         }
+
         $config = config('addons');
-        // 读取插件目录及钩子列表
-        $base = get_class_methods("\\fun\\Addons");
-        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
-        // 读取插件目录中的php文件
-        foreach (glob($this->getAddonsPath() . '*/*.php') as $addons_file) {
-            // 格式化路径信息
-            $info = pathinfo($addons_file);
-            // 获取插件目录名
+        $base = array_merge(get_class_methods("\\fun\\Addons"), [
+            'init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled',
+            'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData',
+        ]);
+        foreach (glob($this->getAddonsPath() . '*/*.php') as $pluginFile) {
+            $info = pathinfo($pluginFile);
+            if (!in_array(strtolower($info['filename']), ['plugin', 'addon'], true)) {
+                continue;
+            }
             $name = pathinfo($info['dirname'], PATHINFO_FILENAME);
-            // 找到插件入口文件
-            if (strtolower($info['filename']) === 'plugin' || strtolower($info['filename']) === 'addon') {
-                // 读取出所有公共方法
-                if(!class_exists("\\addons\\" . $name . "\\" . $info['filename'])) continue;
-                $methods = (array)get_class_methods("\\addons\\" . $name . "\\" . $info['filename']);
-                $ini= $info['dirname'] .DS. 'plugin.ini';
-                if (!is_file($ini)) {
-                    $ini = $info['dirname'] .DS. 'addon.ini';
-                    if (!is_file($ini)) {
-                        continue;
-                    }
+            $manifest = $info['dirname'] . DS . 'plugin.ini';
+            if (!is_file($manifest)) {
+                $manifest = $info['dirname'] . DS . 'addon.ini';
+            }
+            if (!is_file($manifest)) {
+                continue;
+            }
+            $pluginConfig = parse_ini_file($manifest, true, INI_SCANNER_TYPED) ?: [];
+            if (empty($pluginConfig['status']) || empty($pluginConfig['install']) || empty($pluginConfig['name'])) {
+                continue;
+            }
+
+            $class = "\\" . ADDON_NAMESPACE . "\\" . $name . "\\" . $info['filename'];
+            if (!class_exists($class)) {
+                continue;
+            }
+            $methods = (array) get_class_methods($class);
+            $this->addons_data[] = $pluginConfig['name'];
+            $this->addons_data_list[$pluginConfig['name']] = $pluginConfig;
+            $configFile = $this->getAddonsPath() . $pluginConfig['name'] . DS . 'config.php';
+            $this->addons_data_list_config[$pluginConfig['name']] = is_file($configFile) ? (array) include $configFile : [];
+            foreach (array_diff($methods, $base) as $hook) {
+                if (!isset($config['hooks'][$hook])) {
+                    $config['hooks'][$hook] = [];
                 }
-                $addon_config = parse_ini_file($ini, true, INI_SCANNER_TYPED) ?: [];
-
-                if(!$addon_config['status']) continue;
-                if(!$addon_config['install']) continue;
-
-                $this->addons_data[] = $addon_config['name'];
-                $this->addons_data_list[$addon_config['name']] = $addon_config;
-                $this->addons_data_list_config[$addon_config['name']] = include ($this->getAddonsPath().$addon_config['name'].'/config.php');
-                // 跟插件基类方法做比对，得到差异结果
-                $hooks = array_diff($methods, $base);
-                // 循环将钩子方法写入配置中
-                foreach ($hooks as $hook) {
-                    if (!isset($config['hooks'][$hook])) {
-                        $config['hooks'][$hook] = [];
-                    }
-                    // 兼容手动配置项
-                    if (is_string($config['hooks'][$hook])) {
-                        $config['hooks'][$hook] = explode(',', $config['hooks'][$hook]);
-                    }
-                    if (!in_array($name, $config['hooks'][$hook])) {
-                        $config['hooks'][$hook][] = $name;
-                    }
+                if (is_string($config['hooks'][$hook])) {
+                    $config['hooks'][$hook] = explode(',', $config['hooks'][$hook]);
+                }
+                if (!in_array($name, $config['hooks'][$hook], true)) {
+                    $config['hooks'][$hook][] = $name;
                 }
             }
         }
-        //插件配置信息保存到缓存
-        Cache::set('addons_config',$config);
-        //插件列表
+        Cache::set('addons_config', $config);
         Cache::set('addons_data', $this->addons_data);
-        //插件ini列表
         Cache::set('addons_data_list', $this->addons_data_list);
-        //插件config列表
         Cache::set('addons_data_list_config', $this->addons_data_list_config);
         config($config, 'addons');
+        return true;
     }
 
     /**
@@ -288,7 +280,7 @@ class Service extends \think\Service
     public function getAddonsPath()
     {
         // 初始化插件目录
-        $addons_path = $this->app->getRootPath() . 'addons' . DS;
+        $addons_path = $this->app->getRootPath() . PLUGIN_DIR . DS;
         // 如果插件目录不存在则创建
         if (!is_dir($addons_path)) {
             @mkdir($addons_path, 0755, true);
@@ -328,7 +320,7 @@ class Service extends \think\Service
     //获取插件目录
     public static function getAddonsNamePath($name)
     {
-        return app()->getRootPath() . 'addons' . DS . $name . DS;
+        return app()->getRootPath() . PLUGIN_DIR . DS . $name . DS;
     }
 
     /**

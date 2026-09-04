@@ -15,7 +15,6 @@ declare(strict_types=1);
 namespace fun;
 
 use think\App;
-use think\helper\Str;
 use think\facade\View;
 
 abstract class Addons
@@ -196,6 +195,38 @@ abstract class Addons
         $info = array_merge($info, $value);
         config($info,$name);
         return $info;
+    }
+
+    /**
+     * 更新代码前钩子，返回 false 可中止更新。
+     */
+    public function beforeUpdate(string $fromVersion, string $toVersion, bool $migrate): bool
+    {
+        return true;
+    }
+
+    /**
+     * 更新完成后钩子，插件更新后仍保持禁用。
+     */
+    public function afterUpdate(string $fromVersion, string $toVersion, bool $migrate): bool
+    {
+        return true;
+    }
+
+    /**
+     * 配置持久化后的回调。
+     */
+    public function configChanged(array $config): bool
+    {
+        return true;
+    }
+
+    /**
+     * 显式清理业务数据；默认拒绝，避免卸载时误删数据。
+     */
+    public function purgeData(): bool
+    {
+        return false;
     }
 
     //必须实现安装

@@ -15,7 +15,7 @@ const Blank: RouteComponent = () => import('@/layout/blank.vue');
  * - "Layout"           => 主布局
  * - "Blank"            => 空白布局（用于多级菜单）
  * - "system/user/index" => src/views/system/user/index.vue
- * - "modules/tenant/views/index" => src/modules/tenant/views/index.vue
+ * - "modules/example/views/index" => src/modules/example/views/index.vue
  * - 完整路径 "/views/system/user/index.vue" 也兼容
  */
 function resolveComponent(component?: string): RouteComponent {

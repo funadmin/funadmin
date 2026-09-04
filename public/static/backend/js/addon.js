@@ -11,6 +11,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     uninstall: 'addon/uninstall',
                     config: 'addon/config',
                     modify: 'addon/modify',
+                    migrate: 'addon/migrate',
                     logout: 'addon/logout',
                     localinstall:{
                         type: 'upload',
@@ -127,6 +128,9 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                                         'data-url="' + Table.init.requests.install + '?name=' + d.name+'&plugins_id='+d.plugins_id  + '&id=' + d.id + '">' +
                                         __('Upgrade')+"</button>";
                                 }
+                                if (Number(d.migration_pending || 0) === 1) {
+                                    html += '<button data-auth="'+auth+'" class="layui-btn layui-btn-warm layui-btn-sm" lay-event="migrate" title="更新数据库" data-url="' + Table.init.requests.migrate + '?name=' + d.name + '">更新数据库</button>';
+                                }
                                 html += '<button  data-auth="'+auth+'"  class="layui-btn  layui-btn-sm"  lay-event="open"  title="'+__('Config')+'" data-url="' + Table.init.requests.config + '?name=' + d.name + '&id=' + d.id + '">'+__('Config')+'</button>'
                                 if (d.status == 1 ) {
                                     html += '<button lastversion="'+d.lastVersion  +'" localversion="'+ d.localVersion+'" data-auth="'+auth+'" class="layui-btn layui-btn-sm layui-btn-normal" lay-event="status"  title="'+__('enabled')+'" data-text="disable" data-url="' + Table.init.requests.modify + '?name=' + d.name + '&id=' + d.id + '">'+__('Enabled')+'</button>'
@@ -138,7 +142,7 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                                     html += '<a  data-auth="'+auth+'" href="' + d.website + '"  target="_blank" class="layui-btn  layui-btn-sm">演示</a>';
                                 }
                                 // if(d.url){
-                                    html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='/addons/"+d.name+"'>前台</a>"
+                                    html+="<a data-auth='"+auth+ "' class=\"layui-btn  layui-btn-xs layui-btn-normal\" target='_blank' href='/plugins/"+d.name+"'>前台</a>"
                                 // }
                             } else {
                                 if(d.hasOwnProperty('kinds') && d.kinds==10){
@@ -254,6 +258,15 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                         })
                     });
                 }
+                else if (event === 'migrate') {
+                    Fun.toastr.confirm('确定执行插件数据库迁移吗？执行前请先备份数据库。', function () {
+                        Fun.ajax({url: url}, function (res) {
+                            Fun.toastr.success(res.msg, function () {
+                                layui.table.reloadData(Table.init.tableId);
+                            });
+                        });
+                    });
+                }
                 else if (event === 'status') {
                     Fun.toastr.confirm(__('Are you sure you want to change it'), function () {
                         Fun.ajax({
@@ -279,16 +292,15 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                             ,show: true //外部事件触发即显示
                             ,data: jsondata
                             ,click: function(data, othis){
-                                Fun.toastr.confirm(__('Please backup your data before upgrading!!!'), function () {
-                                    Fun.ajax({
-                                        url: url+"&version_id="+data.id +'&type=upgrade',
-                                    }, function (res) {
-                                        Fun.toastr.success(res.msg, function () {
-                                            Fun.refreshmenu();
-                                            layui.table.reloadData(Table.init.tableId);
-                                            Fun.toastr.close()
-                                        });
-                                    })
+                                layer.confirm('是否同时更新插件数据库？', {
+                                    title: __('Upgrade'),
+                                    btn: ['更新代码和数据库', '仅更新代码', '取消']
+                                }, function (confirmIndex) {
+                                    layer.close(confirmIndex);
+                                    Controller.runUpgrade(url, data.id, true);
+                                }, function (confirmIndex) {
+                                    layer.close(confirmIndex);
+                                    Controller.runUpgrade(url, data.id, false);
                                 });
                             }
                             ,align: 'right' //右对齐弹出（v2.6.8 新增）
@@ -352,8 +364,8 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                 ,headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').prop('content')}
                 ,url: Fun.url(Upload.init.requests.upload)+'?save=1&path=addon' //改成您自己的上传接口
                 ,accept: 'file' //普通文件
-                ,exts: 'zip|rar|7z' //只允许上传压缩文件
-                ,size:1024*50
+                ,exts: 'zip' //插件包服务仅接受 ZIP
+                ,size:1024*100
                 ,before: function(obj){ //obj参数包含的信息，跟 choose回调完全一致，可参见上文。
                     layer.load(); //上传loading
                 }
@@ -470,6 +482,22 @@ define(['table', 'form', 'md5','upload'], function (Table, Form, Md5,Upload) {
                     });
                 }
             }
+        },
+        runUpgrade: function (url, versionId, migrate) {
+            let loading = layer.load();
+            Fun.ajax({
+                url: url + '&version_id=' + versionId + '&type=upgrade&migrate=' + (migrate ? 1 : 0)
+            }, function (res) {
+                Fun.toastr.success(res.msg, function () {
+                    Fun.refreshmenu();
+                    layui.table.reloadData(Table.init.tableId);
+                    layer.close(loading);
+                });
+            }, function (res) {
+                layer.close(loading);
+                Fun.toastr.error(res.msg);
+                layui.table.reloadData(Table.init.tableId);
+            });
         },
         config: function () {
             Controller.api.bindevent()

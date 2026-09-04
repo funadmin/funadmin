@@ -1,0 +1,1 @@
+import{Bt as e,It as t,yt as n}from"./element-qsFIL-PS.js";import{n as r}from"./view-dashboard-DwPSIZ9z.js";var i={};function a(r,i){let a=e(`router-view`);return t(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

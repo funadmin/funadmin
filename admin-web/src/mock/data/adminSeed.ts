@@ -6,10 +6,10 @@ import type { MockRoleRow, MockUserRow } from './adminSeed.types';
 export type { MockRoleRow, MockUserRow } from './adminSeed.types';
 
 /** 默认演示账号 */
-export const ADMIN_DEMO_ACCOUNTS = {
+export const ADMIN_DEMO_ACCOUNTS: Record<'admin' | 'guest', { username: string; password: string }> = {
   admin: { username: 'admin', password: '123456' },
   guest: { username: 'guest', password: '123456' }
-} as const;
+};
 
 export const ADMIN_DEMO_USER = {
   id: 1,
@@ -37,7 +37,7 @@ export const ADMIN_ROLE_ROWS: MockRoleRow[] = [
     code: 'admin',
     remark: '拥有全部菜单与权限',
     status: 1,
-    menuIds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114],
+    menuIds: [100, 101, 102, 103, 107, 108, 109, 110, 111, 112, 113, 114],
     createdAt: unixToDatetime(1554298659)
   },
   {
@@ -84,8 +84,7 @@ export const ADMIN_DEPT_TREE_SEED = [
         phone: '13800000011',
         children: [
           { id: 111, parentId: 11, name: '前端组', sort: 1, status: 1 as const, leader: '王前端' },
-          { id: 112, parentId: 11, name: '后端组', sort: 2, status: 1 as const, leader: '赵后端' },
-          { id: 113, parentId: 11, name: '测试组', sort: 3, status: 1 as const, leader: '钱测试' }
+          { id: 112, parentId: 11, name: '后端组', sort: 2, status: 1 as const, leader: '赵后端' }
         ]
       },
       {
@@ -225,49 +224,49 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           permission: 'system:dict:list'
         },
         {
-          id: 109,
+          id: 114,
           parentId: 100,
-          name: 'SystemUploadDemo',
-          path: 'upload-demo',
-          component: 'system/upload-demo/index',
+          name: 'SystemMemberGroup',
+          path: 'member-group',
+          component: 'system/member-group/index',
           type: 'C',
-          icon: 'i-ep-upload-filled',
-          title: '上传演示',
-          sort: 6,
+          icon: 'i-ep-user-filled',
+          title: '会员组',
+          sort: 10,
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'system:upload:demo'
+          permission: 'system:member-group:list'
         },
         {
           id: 113,
           parentId: 100,
-          name: 'SystemRichEditorDemo',
-          path: 'rich-editor-demo',
-          component: 'system/rich-editor-demo/index',
+          name: 'SystemLanguage',
+          path: 'language',
+          component: 'system/language/index',
           type: 'C',
-          icon: 'i-ep-edit',
-          title: '富文本编辑器',
-          sort: 8,
-          hidden: false,
-          keepAlive: true,
-          affix: false,
-          permission: 'system:rich:demo'
-        },
-        {
-          id: 114,
-          parentId: 100,
-          name: 'SystemSortableDemo',
-          path: 'sortable-demo',
-          component: 'demo/sortable',
-          type: 'C',
-          icon: 'i-ep-rank',
-          title: '拖拽排序演示',
+          icon: 'i-ep-connection',
+          title: '多语言',
           sort: 9,
           hidden: false,
           keepAlive: true,
           affix: false,
-          permission: 'system:demo:sortable'
+          permission: 'system:language:list'
+        },
+        {
+          id: 109,
+          parentId: 100,
+          name: 'SystemPermission',
+          path: 'permission',
+          component: 'system/permission/index',
+          type: 'C',
+          icon: 'i-ep-lock',
+          title: '权限资源',
+          sort: 6,
+          hidden: false,
+          keepAlive: true,
+          affix: false,
+          permission: 'system:permission:list'
         },
         {
           id: 110,
@@ -277,7 +276,7 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           type: 'M',
           icon: 'i-ep-document-copy',
           title: '日志管理',
-          sort: 7,
+          sort: 8,
           hidden: false,
           keepAlive: false,
           affix: false,
@@ -296,68 +295,8 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
               keepAlive: true,
               affix: false,
               permission: 'system:log:operation'
-            },
-            {
-              id: 112,
-              parentId: 110,
-              name: 'SystemLogLogin',
-              path: 'login',
-              component: 'system/log/login',
-              type: 'C',
-              icon: 'i-ep-key',
-              title: '登录日志',
-              sort: 2,
-              hidden: false,
-              keepAlive: true,
-              affix: false,
-              permission: 'system:log:login'
             }
-          ]
-        },
-        {
-          id: 104,
-          parentId: 100,
-          name: 'SystemDemoFolder',
-          path: 'demo-nested',
-          type: 'M' as const,
-          icon: 'i-ep-folder-opened',
-          title: '多级演示',
-          sort: 4,
-          hidden: false,
-          keepAlive: false,
-          affix: false,
-          children: [
-            {
-              id: 105,
-              parentId: 104,
-              name: 'SystemDemoSub',
-              path: 'sub',
-              type: 'M' as const,
-              icon: 'i-ep-files',
-              title: '二级目录',
-              sort: 1,
-              hidden: false,
-              keepAlive: false,
-              affix: false,
-              children: [
-                {
-                  id: 106,
-                  parentId: 105,
-                  name: 'SystemDemoLeaf',
-                  path: 'leaf',
-                  component: 'system/user/index',
-                  type: 'C' as const,
-                  icon: 'i-ep-document',
-                  title: '三级页面',
-                  sort: 1,
-                  hidden: false,
-                  keepAlive: true,
-                  affix: false,
-                  permission: 'system:user:list'
-                }
-              ]
-            }
-          ]
+]
         }
       ]
     }

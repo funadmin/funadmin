@@ -242,10 +242,11 @@ class AuthService extends AbstractService
     private function aliasResource(string $requestUrl, array $resource): array
     {
         $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
-        if (!isset($aliases[$requestUrl])) {
+        $target = $aliases[$requestUrl] ?? $aliases[strtolower((string) ($resource['code'] ?? ''))] ?? null;
+        if ($target === null) {
             return $resource;
         }
-        return PermissionResource::fromRoute($this->app, (string) $aliases[$requestUrl]) ?: $resource;
+        return PermissionResource::fromRoute($this->app, (string) $target) ?: $resource;
     }
 
     /**
@@ -554,23 +555,12 @@ class AuthService extends AbstractService
             return array_map('intval', AuthGroupModel::where('status', 1)->column('id'));
         }
         $ownIds = $this->currentRoleIds();
-        $roles = AuthGroupModel::where('status', 1)->field('id,pid')->select()->toArray();
-        $children = [];
-        foreach ($roles as $role) {
-            $children[(int) $role['pid']][] = (int) $role['id'];
-        }
         $result = $includeOwn ? $ownIds : [];
-        $queue = $ownIds;
-        while ($queue) {
-            $parentId = array_shift($queue);
-            foreach ($children[$parentId] ?? [] as $childId) {
-                if (!in_array($childId, $result, true)) {
-                    $result[] = $childId;
-                    $queue[] = $childId;
-                }
-            }
+        $guard = new RoleGuardService();
+        foreach ($ownIds as $roleId) {
+            $result = array_merge($result, $guard->descendantRoleIds((int) $roleId));
         }
-        return $result;
+        return $this->normalizeIds($result);
     }
 
     public function canManageRole(int $roleId): bool
@@ -580,23 +570,7 @@ class AuthService extends AbstractService
 
     public function descendantRoleIds(int $roleId): array
     {
-        $roles = AuthGroupModel::field('id,pid')->select()->toArray();
-        $children = [];
-        foreach ($roles as $role) {
-            $children[(int) $role['pid']][] = (int) $role['id'];
-        }
-        $result = [];
-        $queue = [$roleId];
-        while ($queue) {
-            $parentId = array_shift($queue);
-            foreach ($children[$parentId] ?? [] as $childId) {
-                if ($childId !== $roleId && !in_array($childId, $result, true)) {
-                    $result[] = $childId;
-                    $queue[] = $childId;
-                }
-            }
-        }
-        return $result;
+        return (new RoleGuardService())->descendantRoleIds($roleId);
     }
 
     public function canUseParentRole(int $roleId): bool

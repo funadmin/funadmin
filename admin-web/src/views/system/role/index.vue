@@ -69,6 +69,20 @@
             min-width="160"
           />
           <el-table-column
+            v-if="columnKeys.includes('level')"
+            prop="level"
+            label="等级"
+            width="90"
+            align="center"
+          />
+          <el-table-column
+            v-if="columnKeys.includes('dataScope')"
+            label="数据范围"
+            width="150"
+          >
+            <template #default="{ row }">{{ dataScopeText((row as RoleModel).dataScope) }}</template>
+          </el-table-column>
+          <el-table-column
             v-if="columnKeys.includes('remark')"
             prop="remark"
             label="备注"
@@ -133,6 +147,8 @@ const roleColumnOptions: DataTableColumnOption[] = [
   { key: 'id', label: 'ID' },
   { key: 'name', label: '名称' },
   { key: 'code', label: '标识' },
+  { key: 'level', label: '等级' },
+  { key: 'dataScope', label: '数据范围' },
   { key: 'remark', label: '备注' },
   { key: 'status', label: '状态' },
   { key: 'action', label: '操作', alwaysVisible: true }
@@ -184,6 +200,17 @@ const displayList = computed(() => {
     return true;
   });
 });
+
+
+function dataScopeText(scope: RoleModel['dataScope']) {
+  return {
+    all: '全部数据',
+    dept_and_children: '本部门及下级',
+    dept: '本部门',
+    self: '仅本人',
+    custom: '自定义部门'
+  }[scope];
+}
 
 /** 客户端过滤：按下「查询」时无需重新请求，仅触发 computed 重新求值 */
 function onSearch() {

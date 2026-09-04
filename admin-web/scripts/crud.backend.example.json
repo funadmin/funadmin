@@ -1,0 +1,32 @@
+{
+  "module": "system",
+  "name": "dict-type-generated",
+  "apiPrefix": "/system/dict-type-generated",
+  "title": "字典类型示例",
+  "subtitle": "仅用于验证后台 CRUD 生成链路，请按业务模型复制后调整",
+  "permPrefix": "system:dict-type-generated",
+  "deleteMode": "pathId",
+  "columns": [
+    { "prop": "id", "label": "ID", "width": 80, "align": "center" },
+    { "prop": "code", "label": "编码", "minWidth": 160 },
+    { "prop": "name", "label": "名称", "minWidth": 160 },
+    { "prop": "status", "label": "状态", "width": 100, "align": "center", "tag": true },
+    { "prop": "createdAt", "label": "创建时间", "width": 170 }
+  ],
+  "search": [
+    { "prop": "keyword", "label": "关键词", "type": "input", "placeholder": "编码 / 名称" }
+  ],
+  "formFields": [
+    { "prop": "code", "label": "编码", "required": true, "span": 12 },
+    { "prop": "name", "label": "名称", "required": true, "span": 12 },
+    { "prop": "status", "label": "状态", "type": "radio01", "span": 12 }
+  ],
+  "backend": {
+    "controller": "GeneratedDictType",
+    "model": "app\\common\\model\\DictType",
+    "writableFields": ["code", "name", "status"],
+    "requiredFields": ["code", "name"],
+    "searchFields": { "keyword": ["code", "name"] },
+    "responseMap": { "createdAt": "create_time" }
+  }
+}

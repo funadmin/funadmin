@@ -31,12 +31,5 @@ export const userApi = {
       requestOptions: { showSuccessMsg: true }
     }),
   toggleStatus: (id: number, status: 0 | 1) =>
-    http.post<void>(`${PREFIX}/${id}/status`, { status }),
-  /** 批量导入（CSV 解析后的对象数组） */
-  batchImport: (rows: Array<Partial<UserModel> & { username: string }>) =>
-    http.post<{ created: number; skipped: number; errors: string[] }>(
-      `${PREFIX}/import`,
-      { rows },
-      { requestOptions: { showSuccessMsg: true } }
-    )
+    http.post<void>(`${PREFIX}/${id}/status`, { status })
 };

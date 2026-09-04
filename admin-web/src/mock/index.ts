@@ -14,22 +14,28 @@ import { APP_CONFIG, RESP_CODE } from '@/config';
 import { authMockHandlers } from './modules/auth';
 import { systemMockHandlers } from './modules/system';
 import { profileMockHandlers } from './modules/profile';
-import { notificationMockHandlers } from './modules/notification';
 import { dictMockHandlers } from './modules/dict';
 import { deptMockHandlers } from './modules/dept';
 import { uploadMockHandlers } from './modules/upload';
 import { logMockHandlers } from './modules/log';
+import { permissionMockHandlers } from './modules/permission';
+import { blacklistMockHandlers } from './modules/blacklist';
+import { languageMockHandlers } from './modules/language';
+import { memberGroupMockHandlers } from './modules/memberGroup';
 import type { MockHandler, MockRoute, MockMethod } from './types';
 
 const routes: MockRoute[] = [
   ...authMockHandlers,
   ...systemMockHandlers,
   ...profileMockHandlers,
-  ...notificationMockHandlers,
   ...dictMockHandlers,
   ...deptMockHandlers,
   ...uploadMockHandlers,
-  ...logMockHandlers
+  ...logMockHandlers,
+  ...permissionMockHandlers,
+  ...blacklistMockHandlers,
+  ...languageMockHandlers,
+  ...memberGroupMockHandlers
 ];
 
 function stripBase(url: string): string {

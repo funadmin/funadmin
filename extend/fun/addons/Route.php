@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace fun\addons;
 
-use think\exception\ClassNotFoundException;
-use think\facade\Lang;
 use think\helper\Str;
 use think\facade\Event;
 use think\exception\HttpException;
-use fun\addons\AddonException;
-use think\validate\ValidateRule;
 
 class Route
 {

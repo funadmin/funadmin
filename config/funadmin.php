@@ -28,7 +28,6 @@ return [
     'auth_login_only_routes'=>[
         'index/index', 'index/console', 'index/logout', 'index/enlang',
         'ajax/refreshmenu', 'ajax/lang', 'ajax/getattach',
-        'auth.admin/upme', 'auth.admin/base',
         'member.member/getcitys', 'member.member/getgroup',
         'addon/logout',
         'auth/me', 'auth/menus', 'auth/logout',
@@ -39,6 +38,11 @@ return [
     'auth_route_aliases'=>[
         'addon/localinstall' => 'addon/install',
         'addon/uninstall' => 'addon/install',
+        'system/role/all' => 'systemrole/index',
+        'system/role/parent-options' => 'systemrole/index',
+        'system/role/permission-tree' => 'systemrole/permissions',
+        'backend/systemoperationlog:detail' => 'systemoperationlog/index',
+        'backend/systempermission:detail' => 'systempermission/tree',
     ],
 
     'sys_app'=>['backend','api','frontend','common','install'],

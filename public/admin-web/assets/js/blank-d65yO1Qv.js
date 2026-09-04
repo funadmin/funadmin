@@ -1,1 +1,0 @@
-import{Ht as e,Rt as t,xt as n}from"./element-CBlE-6FX.js";import{n as r}from"./view-dashboard-BxQCh6iF.js";var i={};function a(r,i){let a=e(`router-view`);return t(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

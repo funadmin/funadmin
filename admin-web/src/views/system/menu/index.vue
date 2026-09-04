@@ -1,7 +1,7 @@
 <template>
   <PageWrapper
     title="菜单管理"
-    subtitle="维护后端菜单与按钮权限；展开全部且无筛选时，可拖动手柄调整同级排序并自动保存"
+    subtitle="维护后台导航目录与页面；按钮权限在角色权限中统一分配"
   >
     <DataTableShell storage-key="system-menu" :loading="loading" @refresh="loadData">
       <template #search>
@@ -301,10 +301,10 @@ async function loadData() {
 }
 
 function typeTag(type: API.MenuItem['type']) {
-  return ({ M: 'primary', C: 'success', B: 'warning' } as const)[type];
+  return ({ M: 'primary', C: 'success' } as const)[type as 'M' | 'C'];
 }
 function typeText(type: API.MenuItem['type']) {
-  return ({ M: '目录', C: '菜单', B: '按钮' } as const)[type] || '未知';
+  return ({ M: '目录', C: '页面' } as const)[type as 'M' | 'C'] || '未知';
 }
 
 function onAdd(parent?: API.MenuItem) {

@@ -1,17 +1,15 @@
 /** Session 认证 Mock，仅用于 VITE_APP_MOCK=true 的前端演示。 */
-import { ADMIN_DEMO_USER, getAdminMenuTreeSeed } from '../data/adminSeed';
+import { ADMIN_DEMO_ACCOUNTS, ADMIN_DEMO_USER, getAdminMenuTreeSeed } from '../data/adminSeed';
 import { fail, ok, type MockRoute } from '../types';
 
 interface MockAccount {
   username: string;
-  password: string;
   user: API.UserInfo;
 }
 
 const accounts: MockAccount[] = [
   {
-    username: 'admin',
-    password: '123456',
+    username: ADMIN_DEMO_ACCOUNTS.admin.username,
     user: {
       id: 1,
       username: 'admin',
@@ -24,8 +22,7 @@ const accounts: MockAccount[] = [
     }
   },
   {
-    username: 'guest',
-    password: '123456',
+    username: ADMIN_DEMO_ACCOUNTS.guest.username,
     user: {
       id: 2,
       username: 'guest',
@@ -53,7 +50,8 @@ export const authMockHandlers: MockRoute[] = [
     url: '/auth/login',
     handler: ({ body }) => {
       const account = accounts.find((item) => item.username === body?.username);
-      if (!account || account.password !== body?.password) return fail('账号或密码错误');
+      const credential = Object.values(ADMIN_DEMO_ACCOUNTS).find((item) => item.username === body?.username);
+      if (!account || !credential || credential.password !== body?.password) return fail('账号或密码错误');
       currentAccount = account;
       return ok<API.LoginResult>({ authenticated: true }, '登录成功');
     }

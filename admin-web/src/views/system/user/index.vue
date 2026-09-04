@@ -33,22 +33,6 @@
         >
           <i class="i-ep-delete" /> 批量删除{{ selection.length ? `(${selection.length})` : '' }}
         </el-button>
-        <el-button type="primary" plain v-perm="'system:user:export'" :loading="exporting" @click="onExport">
-          <i class="i-ep-download" /> 导出
-        </el-button>
-        <el-button type="primary" plain v-perm="'system:user:import'" @click="triggerImport">
-          <i class="i-ep-upload" /> 导入
-        </el-button>
-        <el-button link type="info" @click="onDownloadTemplate">
-          <i class="i-ep-document" /> 模板
-        </el-button>
-        <input
-          ref="fileInputRef"
-          type="file"
-          accept=".csv,text/csv"
-          class="hidden"
-          @change="onFileSelected"
-        />
       </template>
 
       <template #default="{ size, stripe, border, headerCellStyle, columnKeys }">
@@ -161,11 +145,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { userApi, type UserModel } from '@/api/system/user';
 import type { DataTableColumnOption } from '@/components/DataTable';
 import { useCrud } from '@/composables/useCrud';
-import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';
 import UserFormDialog from './components/UserFormDialog.vue';
 
 defineOptions({ name: 'SystemUser' });
@@ -222,105 +205,13 @@ async function onToggleStatus(row: UserModel, v: boolean) {
 
 async function onResetPwd(row: UserModel) {
   const { value } = await ElMessageBox.prompt(`重置 ${row.username} 的密码`, '提示', {
-    inputPlaceholder: '至少 6 位新密码',
-    inputPattern: /^.{6,}$/,
-    inputErrorMessage: '密码长度至少 6 位'
+    inputPlaceholder: '至少 8 位新密码',
+    inputPattern: /^.{8,}$/,
+    inputErrorMessage: '密码长度至少 8 位'
   });
   await userApi.resetPassword(row.id, value);
 }
 
-/* ================== 导入 / 导出 ================== */
-
-/** CSV 列定义：导出 + 导入 + 模板共用一份 */
-const csvColumns: CsvColumn<UserModel>[] = [
-  { key: 'id', label: 'ID' },
-  { key: 'username', label: '账号' },
-  { key: 'nickname', label: '昵称' },
-  { key: 'email', label: '邮箱' },
-  { key: 'mobile', label: '手机' },
-  {
-    key: 'status',
-    label: '状态',
-    formatter: (r) => (r.status === 1 ? '启用' : '禁用'),
-    parser: (v) => (String(v).trim() === '禁用' || v === '0' ? 0 : 1)
-  },
-  { key: 'createdAt', label: '创建时间' }
-];
-
-const exporting = ref(false);
-const fileInputRef = ref<HTMLInputElement | null>(null);
-
-/**
- * 导出策略：
- * 1) 有勾选行 → 仅导出选中
- * 2) 否则 → 拉取「全量」数据后导出（pageSize 设为 9999 兜底）
- */
-async function onExport() {
-  exporting.value = true;
-  try {
-    let rows: UserModel[];
-    if (selection.value.length) {
-      rows = [...selection.value];
-    } else {
-      const res = await userApi.list({ ...query, page: 1, pageSize: 9999 });
-      rows = res.list;
-    }
-    if (!rows.length) {
-      ElMessage.warning('没有可导出的数据');
-      return;
-    }
-    const csv = toCsv(rows, csvColumns);
-    const stamp = new Date().toISOString().slice(0, 10);
-    downloadCsv(`用户列表_${stamp}.csv`, csv);
-    ElMessage.success(`已导出 ${rows.length} 条数据`);
-  } finally {
-    exporting.value = false;
-  }
-}
-
-/** 下载导入模板（仅表头 + 一行示例） */
-function onDownloadTemplate() {
-  const sample = [
-    { username: 'demo', nickname: '示例账号', email: 'demo@example.com', mobile: '13800000000', status: 1 } as any
-  ];
-  const csv = toCsv(sample, csvColumns);
-  downloadCsv('用户导入模板.csv', csv);
-}
-
-function triggerImport() {
-  fileInputRef.value?.click();
-}
-
-async function onFileSelected(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = ''; // 允许重复选同一文件
-  if (!file) return;
-
-  try {
-    const text = await readFileAsText(file);
-    const rows = parseCsv<UserModel>(text, csvColumns);
-    if (!rows.length) {
-      ElMessage.warning('CSV 中没有可导入的数据');
-      return;
-    }
-    await ElMessageBox.confirm(`检测到 ${rows.length} 条数据，确认导入？`, '导入确认', {
-      type: 'info'
-    });
-    const result = await userApi.batchImport(rows as any);
-    if (result.errors?.length) {
-      ElNotification.warning({
-        title: `导入完成（成功 ${result.created}，跳过 ${result.skipped}）`,
-        message: result.errors.slice(0, 5).join('\n') + (result.errors.length > 5 ? '\n…' : ''),
-        duration: 6000
-      });
-    }
-    loadData();
-  } catch (err: any) {
-    if (err === 'cancel' || err?.message === 'cancel') return;
-    ElMessage.error(err?.message || '导入失败');
-  }
-}
 </script>
 
 <style scoped>

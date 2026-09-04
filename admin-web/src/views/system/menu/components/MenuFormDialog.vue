@@ -11,7 +11,6 @@
         <el-radio-group v-model="form.type">
           <el-radio-button value="M">目录</el-radio-button>
           <el-radio-button value="C">菜单</el-radio-button>
-          <el-radio-button value="B">按钮</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
@@ -41,7 +40,7 @@
         </el-col>
       </el-row>
 
-      <template v-if="form.type !== 'B'">
+      <template>
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="路由 name" prop="name">
@@ -68,11 +67,11 @@
         </el-form-item>
       </template>
 
-      <el-form-item v-if="form.type !== 'M'" label="权限标识" prop="permission">
+      <el-form-item v-if="form.type === 'C'" label="权限标识" prop="permission">
         <el-input v-model="form.permission" placeholder="如 system:user:add" />
       </el-form-item>
 
-      <el-row v-if="form.type !== 'B'" :gutter="16">
+      <el-row :gutter="16">
         <el-col :span="8">
           <el-form-item label="隐藏">
             <el-switch v-model="form.hidden" />
@@ -146,15 +145,15 @@ const form = reactive<Partial<API.MenuItem>>(initialForm());
 const rules = computed<FormRules>(() => ({
   title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-  path: form.type !== 'B' ? [{ required: true, message: '请输入 path', trigger: 'blur' }] : [],
+  path: [{ required: true, message: '请输入 path', trigger: 'blur' }],
   component: form.type === 'C' ? [{ required: true, message: '请输入组件', trigger: 'blur' }] : [],
-  permission: form.type === 'B' ? [{ required: true, message: '请输入权限标识', trigger: 'blur' }] : []
+  permission: form.type === 'C' ? [{ required: true, message: '请输入权限标识', trigger: 'blur' }] : []
 }));
 
 const parentOptions = computed<API.MenuItem[]>(() => {
   const onlyDir = (list: API.MenuItem[]): API.MenuItem[] =>
     list
-      .filter((it) => it.type !== 'B')
+      .filter((it) => it.type === 'M')
       .map((it) => ({ ...it, children: it.children ? onlyDir(it.children) : undefined }));
   return onlyDir(props.tree || []);
 });

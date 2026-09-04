@@ -15,7 +15,6 @@ namespace fun\curd;
 
 use app\backend\service\ResourceRegistryService;
 use app\backend\service\AddonService;
-use Exception;
 use fun\helper\CtrHelper;
 use think\console\Command;
 use think\console\Input;
@@ -23,7 +22,6 @@ use think\console\input\Option;
 use think\console\Output;
 use fun\helper\FileHelper;
 use fun\helper\ZipHelper;
-use think\facade\Console;
 
 /**
  * Class Curd
@@ -32,8 +30,6 @@ use think\facade\Console;
  */
 class Addon extends Command
 {
-    protected $config = [];
-    protected $controllerList = [];
     protected function configure()
     {
         $this->setName('addon')
@@ -69,7 +65,6 @@ class Addon extends Command
         $param['uninstall'] = $input->getOption('uninstall');
         $param['enable'] = $input->getOption('enable');
         $param['disable'] = $input->getOption('disable');
-        $this->config = $param;
         if (empty($param['app'])) {
             $output->error("插件名不能为空");
             return false;
@@ -78,54 +73,54 @@ class Addon extends Command
             $output->error("插件名不能为backend或common或frontend或api或install");
             return false;
         }
-        if($param['uninstall'] && !is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+        if($param['uninstall'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
             return false;
         }
-        if($param['enable'] && !is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+        if($param['enable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
             return false;
         }
-        if($param['disable'] && !is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+        if($param['disable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
             return false;
         }
         try {
-            if($param['enable'] && is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+            if($param['enable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(AddonService::class)->enableAddon($param['app']);
                 $output->info("启用成功");
                 return true;
             }
-            if($param['disable'] && is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
-                app(AddonService::class)->modifyAddon($param['app']);
+            if($param['disable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
+                app(AddonService::class)->disableAddon($param['app']);
                 $output->info("禁用成功");
                 return true;
             }
-            if($param['uninstall'] && is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+            if($param['uninstall'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(AddonService::class)->uninstallAddon($param['app']);
                 $output->info("卸载成功");
                 return true;
             }   
-            if($param['install'] && !is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+            if($param['install'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 $output->error("插件目录不存在");
                 return false;
             }
-            if($param['install'] && is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
+            if($param['install'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(AddonService::class)->installAddon($param['app'],'install');
                 $output->info("安装成功");
                 return true;
             }
             $tplPath = root_path('extend/fun/curd/tpl/addon');
-            $addonPath = root_path(ADDON_DIR .'/'.$param['app']) ;
+            $addonPath = root_path(PLUGIN_DIR . '/'.$param['app']) ;
             $fileList = [
                 [
                     'name'=>'Plugin.php',
                     'content'=>'',
                     'fileName'=>$addonPath . "Plugin.php",
-                    'tpl'=> $tplPath . 'Plugin.tpl',
+                    'tpl'=> $tplPath . 'plugin.tpl',
                     'items'=>[
                         ['name'=>'addon','value'=>$param['app']],
-                        ['name'=>'addon_dir','value'=>ADDON_DIR],
+                        ['name'=>'addon_dir','value'=>ADDON_NAMESPACE],
                     ]
                 ],
                 [
@@ -135,13 +130,13 @@ class Addon extends Command
                     'tpl'=> $tplPath . 'ini.tpl',
                     'items'=>[
                         ['name'=>'addon','value'=>$param['app']],
-                        ['name'=>'addon_dir','value'=>ADDON_DIR],
+                        ['name'=>'addon_dir','value'=>ADDON_NAMESPACE],
                         ['name'=>'title','value'=>$param['title']],
                         ['name'=>'description','value'=>$param['description']],
                         ['name'=>'author','value'=>$param['author']],
                         ['name'=>'requires','value'=>$param['requires']],
                         ['name'=>'version','value'=>$param['version']],
-                        ['name'=>'url','value'=> '/'. ADDON_DIR .'/'. $param['app']],
+                        ['name'=>'url','value'=> '/' . PLUGIN_DIR . '/' . $param['app']],
                         ['name'=>'time','value'=>date('Y-m-d H:i:s')],
                         ['name'=>'app','value'=>$param['app']],
                     ]
@@ -233,8 +228,8 @@ class Addon extends Command
                     if(is_dir($minPath)){
                         FileHelper::delDir($minPath);
                     }
-                    if(is_dir(root_path(ADDON_DIR .'/'.$param['app']))){
-                        FileHelper::copyDir(root_path(ADDON_DIR .'/'.$param['app']), $minPath);
+                    if(is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
+                        FileHelper::copyDir(root_path(PLUGIN_DIR . '/'.$param['app']), $minPath);
                     }else{
                         $output->error('插件目录不存在');
                         return false;

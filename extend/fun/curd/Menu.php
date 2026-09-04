@@ -13,9 +13,9 @@ use think\console\Output;
 class Menu extends Command
 {
     protected $sysController = [
-        'auth.Admin', 'auth.Auth', 'auth.AuthGroup', 'member.Member', 'member.MemberLevel',
-        'member.MemberGroup', 'sys.Adminlog', 'sys.Attach', 'sys.AttachGroup', 'sys.Config',
-        'sys.ConfigGroup', 'sys.Blacklist', 'sys.Language', 'sys.Upgrade', 'Addon', 'Ajax',
+        'member.Member', 'member.MemberLevel',
+        'sys.Attach', 'sys.AttachGroup', 'sys.Config',
+        'sys.ConfigGroup', 'sys.Upgrade', 'Addon', 'Ajax',
         'Error', 'Index', 'Login',
     ];
 
@@ -72,7 +72,7 @@ class Menu extends Command
                 'status' => 1,
                 'type' => 1,
                 'visible' => 1,
-                'icon' => 'layui-icon layui-icon-app',
+                'icon' => 'i-ep-menu',
                 'menulist' => $children,
             ];
         }
@@ -84,7 +84,7 @@ class Menu extends Command
                 'type' => 1,
                 'visible' => 1,
                 'module' => $app,
-                'icon' => 'layui-icon layui-icon-app',
+                'icon' => 'i-ep-menu',
                 'menulist' => $menus,
             ]];
         }

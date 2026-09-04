@@ -39,7 +39,6 @@
 import { nextTick, ref, watch } from 'vue';
 import type { ElTree } from 'element-plus';
 import { roleApi, type RoleModel } from '@/api/system/role';
-import { menuApi } from '@/api/system/menu';
 
 interface Props {
   modelValue: boolean;
@@ -71,11 +70,11 @@ watch(visible, (v) => emit('update:modelValue', v));
 async function load() {
   loading.value = true;
   try {
-    tree.value = await menuApi.tree();
+    tree.value = await roleApi.permissionTree();
     await nextTick();
-    if (props.row?.menuIds) {
+    if (props.row?.permissionIds) {
       strictly.value = true;
-      treeRef.value?.setCheckedKeys(props.row.menuIds);
+      treeRef.value?.setCheckedKeys(props.row.permissionIds);
       strictly.value = false;
     }
   } finally {
@@ -119,7 +118,7 @@ async function onSubmit() {
   const ids = strictly.value ? checked : [...checked, ...halfChecked];
   saving.value = true;
   try {
-    await roleApi.assignMenus(props.row.id, ids);
+    await roleApi.assignPermissions(props.row.id, ids);
     emit('success');
     visible.value = false;
   } finally {

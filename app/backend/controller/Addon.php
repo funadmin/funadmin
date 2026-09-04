@@ -14,19 +14,18 @@
 namespace app\backend\controller;
 
 use app\backend\service\AddonService;
+use app\backend\service\AddonConfigService;
+use app\backend\service\PluginPackageService;
 use app\common\controller\Backend;
 use app\common\service\AuthCloudService;
-use fun\helper\FileHelper;
-use fun\addons\Service;
-use fun\helper\ZipHelper;
+use GuzzleHttp\Client;
 use think\App;
 use think\facade\Cache;
+use think\facade\Console;
 use think\Exception;
 use app\common\model\Addon as AddonModel;
 use app\common\annotation\ControllerAnnotation;
 use app\common\annotation\NodeAnnotation;
-use think\facade\Console;
-use think\facade\Cookie;
 /**
  * @ControllerAnnotation(title="插件管理")
  * Class Addon
@@ -225,61 +224,78 @@ class Addon extends Backend
      * @NodeAnnotation(title="安装")
      * @throws Exception
      */
-    public function install(string $name='',string $type='')
+    public function install(string $name = '', string $type = '')
     {
         if (!$this->request->isPost()) {
             $this->error(lang('Invalid data'));
         }
         set_time_limit(0);
-        $name = input("name")??$name;
-        $plugins_id = input("plugins_id",0);
-        $version_id = input("version_id",0);
-        $type = input("type")??$type;
-//        插件名是否为空
-        if (!$name) {
-            $this->error(lang('addon  %s can not be empty', [$name]));
-        }
-        //插件名是否符合规范
-        if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
+        $name = (string) (input('name') ?? $name);
+        $type = (string) (input('type') ?? $type);
+        $migrate = $this->booleanInput('migrate', true);
+        if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
             $this->error(lang('addon name is not right'));
         }
-        if($type =='upgrade'){
-            if(!$this->doUpgrade($name)){
-                $this->error('upgrade failed');
-            };
+
+        try {
+            $this->doInstall(
+                $name,
+                (int) input('plugins_id', 0),
+                (int) input('version_id', 0),
+                $type,
+                $migrate
+            );
+        } catch (\Throwable $exception) {
+            $this->addonService->recordFailure($name, $exception);
+            $this->error($exception->getMessage());
         }
-        if( $this->doInstall( $name, $plugins_id, $version_id, $type)){
-            $this->success('install success');
-        }
+        $this->success($type === 'upgrade' ? 'upgrade success' : 'install success');
     }
+
     /**
      * @NodeAnnotation(title="离线安装")
      * @throws Exception
      */
     public function localinstall()
     {
-        if (!$this->request->isPost()) {
+        if (!$this->request->isPost() || !$this->request->isAjax()) {
             $this->error(lang('Invalid data'));
         }
-        if($this->request->isAjax()){
-            set_time_limit(0);
-            $urls = parse_url(input('url'));
-            $file = $urls['path']??'';
-            if($file && file_exists('.'.$file)){
-                try {
-                    $res = ZipHelper::unzip('.'.$file,'../addons');
-                }catch (Exception $e){
-                    $this->error($e->getMessage());
-                }
-                if($res){
-                    $index = strpos($res, '/');
-                    $addon = $index ? substr($res,0,$index):$res;
-                    $this->install($addon,'local');
-                }
-                $this->success('upload success');
-            }
+        set_time_limit(0);
+        $url = (string) input('url', '');
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
+        $archive = realpath(public_path() . ltrim($path, '/'));
+        $publicRoot = realpath(public_path());
+        if (!$archive || !$publicRoot || !str_starts_with($archive, $publicRoot . DIRECTORY_SEPARATOR)) {
+            $this->error('插件安装包路径无效');
         }
+
+        $packageService = PluginPackageService::instance();
+        $staged = [];
+        $backup = null;
+        $deployed = false;
+        try {
+            $staged = $packageService->stage($archive);
+            $name = (string) $staged['name'];
+            if ($this->addonService->isInstall($name)) {
+                throw new Exception(lang('addons %s is already installed', [$name]));
+            }
+            $backup = $packageService->deploy($staged, $name);
+            $deployed = true;
+            $this->addonService->installAddon($name, 'local');
+            $packageService->finish($staged, $backup);
+        } catch (\Throwable $exception) {
+            if ($deployed && $this->addonService->canRollbackDeployment()) {
+                $packageService->rollback((string) $staged['name'], $backup);
+            } else {
+                $packageService->discard($staged);
+            }
+            $this->addonService->recordFailure((string) ($staged['name'] ?? ''), $exception);
+            $this->error($exception->getMessage());
+        }
+        $this->success('install success');
     }
+
     /**
      * @NodeAnnotation(title="卸载")
      * @throws \think\dbException\DataNotFoundException
@@ -294,11 +310,29 @@ class Addon extends Backend
         set_time_limit(0);
         $name = input("name");
         try {
-            $this->addonService->uninstallAddon($name);
+            $this->addonService->uninstallAddon((string) $name, $this->booleanInput('purge_data', false));
         }catch (Exception $e){
             $this->error($e->getMessage());
         }
         $this->success(lang('Uninstall successful'));
+    }
+
+    /**
+     * @NodeAnnotation(title="更新插件数据库")
+     */
+    public function migrate()
+    {
+        if (!$this->request->isPost()) {
+            $this->error(lang('Invalid data'));
+        }
+        $name = (string) input('name', '');
+        try {
+            $result = $this->addonService->migrateAddon($name);
+        } catch (\Throwable $exception) {
+            $this->addonService->recordFailure($name, $exception);
+            $this->error($exception->getMessage());
+        }
+        $this->success('database migration success', '', $result);
     }
 
     /**
@@ -334,76 +368,35 @@ class Addon extends Backend
      */
     public function config()
     {
-        $name = $this->request->get("name");
-        $id = $this->request->get("id");
-        $one =  $this->modelClass->find($id);
-        $config = get_addons_config($name);
-        if ($this->request->isAjax()) {
-            $params = input('params/a',[],'trim');
-            if ($params) {
-                foreach ($config as $k => &$v) {
-                    if (isset($params[$k])) {
-                        if ($v['type'] == 'array') {
-                            $arr = [];
-                            $params[$k] = is_array($params[$k]) ? $params[$k] :[];
-                            foreach ($params[$k]['key'] as $kk=>$vv){
-                                $arr[$vv] =  $params[$k]['value'][$kk];
-                            }
-                            $params[$k] = $arr;
-                            $value = $params[$k];
-                            $v['content'] = $value;
-                            $v['value'] = $value;
-                        } else {
-                                $value =  $params[$k];
-                            if($v['type']=='radio'){
-                                if($value=='on'){
-                                    $value = 1;
-                                }
-                                if($value=='off'){
-                                    $value = 0;
-                                }
-                            }
-                        }
-                        $v['value'] = $value;
-                    }
-                }
-                unset($v);
-                $config_data = json_encode($config,JSON_UNESCAPED_UNICODE);
-                if($one->save(['config'=>$config_data])){
-                    $class = get_addons_instance($name);
-                    if(method_exists($class,'config')){
-                        $class->config();
-                    }
-                    set_addons_config($name,$config);
-                    if(!empty($config['app_rewrite']['content'])) {
-                        set_app_route($name, $config['app_rewrite']['content']);
-                    }
-                    refreshaddons();
-                    $this->success(lang('operation success'));
-                }else{
-                    $this->error(lang('operation failed'));
-                }
-            }
-            $this->error(lang('addon can not be empty'));
-        }
-        if (!$name) {
-            $this->error(lang('addon name can not be empty'));
-        }
-        if (!preg_match("/^[a-zA-Z0-9]+$/", $name)) {
+        $name = (string) $this->request->get('name', '');
+        if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
             $this->error(lang('addon name is not right'));
         }
-        if (!$one) {
+        $record = $this->modelClass->where('name', $name)->find();
+        if (!$record) {
             $this->error(lang('addon config is not found'));
         }
-        //模板引擎初始化
-        $view = ['formData'=>$config,'title'=>$one['name']];
-        $configFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'config.html';
-        $viewFile = file_exists($configFile) ? $configFile : '';
-        //重新加载引擎
-        app()->view->engine()->layout($this->layout);
-        return view($viewFile,$view);
-    }
 
+        $configService = AddonConfigService::instance();
+        if ($this->request->isAjax()) {
+            try {
+                $params = input('params/a', []);
+                if (!$params) {
+                    throw new Exception(lang('addon can not be empty'));
+                }
+                $configService->save($name, $params);
+            } catch (\Throwable $exception) {
+                $this->error($exception->getMessage());
+            }
+            $this->success(lang('operation success'));
+        }
+
+        $config = $configService->get($name);
+        $view = ['formData' => $config, 'title' => $record['name']];
+        $configFile = root_path() . PLUGIN_DIR . DS . $name . DS . 'config.html';
+        app()->view->engine()->layout($this->layout);
+        return view(is_file($configFile) ? $configFile : '', $view);
+    }
 
 
     /**
@@ -428,80 +421,57 @@ class Addon extends Backend
      * @throws \think\dbException\DbException
      * @throws \think\dbException\ModelNotFoundException
      */
-    protected function doInstall(string $name,int $plugins_id=0,int $version_id=0,string $type=''){
-        //检查插件是否安装
-        $list = $this->addonService->isInstall($name);
-        if ($list && $list->status==1) {
-            $this->error(lang('addons %s is already installed', [$name]));
+    protected function doInstall(
+        string $name,
+        int $pluginsId = 0,
+        int $versionId = 0,
+        string $type = '',
+        bool $migrate = true
+    ): bool {
+        $installed = $this->addonService->isInstall($name);
+        if ($type !== 'upgrade' && $installed && (int) $installed->delete_time === 0) {
+            throw new Exception(lang('addons %s is already installed', [$name]));
         }
-        list($addons,$localNameArr) = $this->getLocalAddons();
-        //本地存在空和更新则请求后端
-        if(empty($type) || $type=='upgrade'){
-            //不存在或者
-            $postData = $this->getCloudData($name,$plugins_id,$version_id);
-            if(!$localNameArr || !in_array($name,$localNameArr) || !isset($addons[$name])
-            ){
-                try {
-                    $this->getCloudAddons($postData);
-                } catch (Exception $e) {
-                    $this->error($e->getMessage());
-                }
-            }
-            if($type =='upgrade'){
-                try {
-                    $this->getCloudAddons($postData);
-                } catch (Exception $e) {
-                    $this->error($e->getMessage());
-                }
-            }
+        if ($type === 'upgrade' && (!$installed || (int) $installed->delete_time > 0)) {
+            throw new Exception('插件尚未安装');
         }
+        if ($type === 'upgrade' && (int) $installed->status === 1) {
+            throw new Exception(lang('Please disable addons %s first', [$name]));
+        }
+
+        $packageService = PluginPackageService::instance();
+        $staged = [];
+        $backup = null;
+        $archive = null;
+        $deployed = false;
         try {
-            $this->addonService->installAddon($name,$type);
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
+            $pluginDirectory = root_path() . PLUGIN_DIR . DS . $name;
+            if ($type === 'upgrade' || !is_dir($pluginDirectory)) {
+                $archive = $this->downloadCloudArchive($this->getCloudData($name, $pluginsId, $versionId));
+                $staged = $packageService->stage($archive, $name);
+                $backup = $packageService->deploy($staged, $name);
+                $deployed = true;
+            }
+
+            if ($type === 'upgrade') {
+                $this->addonService->updateAddon($name, $migrate);
+            } else {
+                $this->addonService->installAddon($name, $type);
+            }
+            $packageService->finish($staged, $backup);
+        } catch (\Throwable $exception) {
+            if ($deployed && $this->addonService->canRollbackDeployment()) {
+                $packageService->rollback($name, $backup);
+            } else {
+                $packageService->discard($staged);
+            }
+            throw $exception;
+        } finally {
+            if ($archive && is_file($archive)) {
+                @unlink($archive);
+            }
         }
         Cache::clear();
-        return true;
-    }
-    /**
-     * 更新 先卸载插件
-     * @return bool
-     * @throws \think\dbException\DataNotFoundException
-     * @throws \think\dbException\DbException
-     * @throws \think\dbException\ModelNotFoundException
-     */
-    protected function doUpgrade(string $name='')
-    {
-        set_time_limit(0);
-        $name = $name?:input("name");
-        //获取插件信息
-        $info =  $this->modelClass->withTrashed()->where('name', $name)->find();
-        if($info && $info->status==1){
-            $this->error(lang('Please disable addons %s first',[$name]));
-        }
-        if ($info && !$info->delete(true)) {
-            $this->error(lang('addon uninstall fail'));
-        }
-        //卸载插件
-        $class = get_addons_instance($name);
-        $class->uninstall();
-        //删除菜单
-        $menu_config=get_addons_menu($name);
-        try {
-            if(!empty($menu_config)){
-                list($menu,$pid) = $this->addonService->getMenu($menu_config);
-                $this->addonService->delAddonMenu($menu,$name);
-            }
-        } catch (Exception $e) {
-            $this->error($e->getMessage());
-        }
-        Service::updateAddonsInfo($name,1,0);
-        try {
-            //刷新addon文件和配置
-            refreshaddons();
-        }catch (Exception $e){
-            $this->error($e->getMessage());
-        }
         return true;
     }
 
@@ -510,44 +480,61 @@ class Addon extends Backend
      * @return void
      * @throws Exception
      */
-    protected function getCloudAddons(array $params=[]): void
+    protected function downloadCloudArchive(array $params): string
     {
         $res = $this->authCloudService
             ->setApiUrl('/api/v2.plugins/down')
             ->setParams($params)
             ->setHeader()
             ->run();
-        if(empty($res)){
-            $this->error(lang('Api request error'));
+        if (empty($res)) {
+            throw new Exception(lang('Api request error'));
         }
-        if(isset($res['code']) && $res['code'] == 401){
+        if (($res['code'] ?? 0) === 401) {
             $this->authCloudService->setToken()->setMember();
-            $this->error(lang('please login again'));
+            throw new Exception(lang('please login again'));
         }
-        if(isset($res['code']) && $res['code']!=200){
-            $url = '';
-            if(!empty($res['data']['url'])) {
-                $url = $res['data']['url'];
-            }
-            $this->error($res['msg'],$url);
+        if (($res['code'] ?? 0) !== 200) {
+            throw new Exception((string) ($res['msg'] ?? lang('Api request error')));
         }
-        $fileDir = '../runtime/addons/';
-        if (!is_dir($fileDir)) {
-            FileHelper::mkdirs($fileDir);
-        }
-        $stream_opts = [
-            "ssl" => [
-                "verify_peer"=>false,
-                "verify_peer_name"=>false,
-            ]
-        ];
-        $content = file_get_contents($res['data']['file_url'],false,stream_context_create($stream_opts));
-        $fileName = $fileDir . $params['name'] . '.zip';
-        @touch($fileName);
-        file_put_contents($fileName, $content);
-        ZipHelper::unzip($fileName, $file =  '../addons');
-        @unlink($fileName);
 
+        $url = (string) ($res['data']['file_url'] ?? '');
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if (!in_array($scheme, ['https', 'http'], true)) {
+            throw new Exception('插件下载地址无效');
+        }
+        $directory = runtime_path('plugins' . DS . 'download');
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new Exception('无法创建插件下载目录');
+        }
+        $archive = $directory . DS . $params['name'] . '-' . bin2hex(random_bytes(6)) . '.zip';
+        try {
+            (new Client())->get($url, [
+                'sink' => $archive,
+                'timeout' => 120,
+                'connect_timeout' => 10,
+                'allow_redirects' => ['max' => 3, 'protocols' => ['https', 'http']],
+                'progress' => static function ($total, $downloaded): void {
+                    if ($total > 104857600 || $downloaded > 104857600) {
+                        throw new Exception('插件安装包超过 100MB 限制');
+                    }
+                },
+            ]);
+        } catch (\Throwable $exception) {
+            @unlink($archive);
+            throw new Exception('插件安装包下载失败：' . $exception->getMessage(), 0, $exception);
+        }
+        if (!is_file($archive) || filesize($archive) === 0 || filesize($archive) > 104857600) {
+            @unlink($archive);
+            throw new Exception('插件安装包无效或超过 100MB 限制');
+        }
+        return $archive;
+    }
+
+    private function booleanInput(string $name, bool $default): bool
+    {
+        $value = input($name, $default ? '1' : '0');
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? $default;
     }
 
     /**

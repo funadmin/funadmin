@@ -26,11 +26,13 @@ CREATE TABLE IF NOT EXISTS `fun_addon` (
 CREATE TABLE IF NOT EXISTS `fun_admin` (
   `id` int NOT NULL AUTO_INCREMENT COMMENT '管理员ID',
   `username` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户名',
+  `dept_id` int unsigned NOT NULL DEFAULT 0 COMMENT '部门ID',
   `password` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '管理员密码',
   `email` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '邮箱',
-  `realname` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '真实姓名',
+  `realname` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '真实姓名',
   `mobile` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '电话号码',
   `ip` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'IP地址',
+  `lastloginip` varchar(45) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '' COMMENT '最后登录IP',
   `token` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'token',
   `status` tinyint DEFAULT '1' COMMENT '审核状态',
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '头像',
@@ -38,11 +40,12 @@ CREATE TABLE IF NOT EXISTS `fun_admin` (
   `update_time` int DEFAULT NULL COMMENT '更新时间',
   `delete_time` int DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
+  UNIQUE KEY `username` (`username`),
+  KEY `idx_admin_dept` (`dept_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=2 COMMENT='后台管理员';
 
-INSERT IGNORE INTO `fun_admin` (`id`, `username`, `password`, `email`, `realname`, `mobile`, `ip`, `token`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 'admin', '$2y$10$IYTN5uMdfMhTOHJkkmc22.geLEZk03pTfzBrWpD5f5AMObnaBUJ8O', 'admin@admin.com', '', '', '', '', 1, '', 0, 0, NULL);
+INSERT IGNORE INTO `fun_admin` (`id`, `username`, `dept_id`, `password`, `email`, `realname`, `mobile`, `ip`, `lastloginip`, `token`, `status`, `avatar`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 'admin', 1, '$2y$10$IYTN5uMdfMhTOHJkkmc22.geLEZk03pTfzBrWpD5f5AMObnaBUJ8O', 'admin@admin.com', '', '', '', '', '', 1, '', 0, 0, NULL);
 
 CREATE TABLE IF NOT EXISTS `fun_admin_log` (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '表id',
@@ -57,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `fun_admin_log` (
   `url` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '请求地址',
   `post_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'POST数据',
   `get_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT 'GET数据',
+  `header_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '脱敏请求头',
   `agent` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '头部信息',
   `ip` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'ip地址',
   `create_time` int DEFAULT NULL COMMENT '日志时间',
@@ -118,17 +122,23 @@ CREATE TABLE IF NOT EXISTS `fun_auth_group` (
   `id` int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '分组id',
   `pid` int DEFAULT '0' COMMENT '父级',
   `title` char(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '标题',
+  `code` varchar(50) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT '' COMMENT '角色标识',
+  `level` smallint unsigned NOT NULL DEFAULT 100 COMMENT '角色等级，数值越小权限越高',
+  `data_scope` varchar(30) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'self' COMMENT '数据范围',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '备注',
   `status` tinyint(1) DEFAULT '0' COMMENT '状态',
   `create_time` int DEFAULT NULL COMMENT '添加时间',
   `update_time` int DEFAULT NULL COMMENT '更新时间',
   `delete_time` int DEFAULT NULL COMMENT '删除时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `title` (`title`),
+  UNIQUE KEY `uk_auth_group_code` (`code`),
+  KEY `idx_auth_group_level` (`level`,`status`),
   KEY `pid` (`pid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci AUTO_INCREMENT=2 COMMENT='管理员分组';
 
-INSERT IGNORE INTO `fun_auth_group` (`id`, `pid`, `title`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
-(1, 0, '超级管理员', 1, 1554298659, 1599903527, NULL);
+INSERT IGNORE INTO `fun_auth_group` (`id`, `pid`, `title`, `code`, `level`, `data_scope`, `remark`, `status`, `create_time`, `update_time`, `delete_time`) VALUES
+(1, 0, '超级管理员', 'super_admin', 1, 'all', '系统内置超级管理员角色', 1, 1554298659, 1599903527, NULL);
 
 CREATE TABLE IF NOT EXISTS `fun_blacklist` (
   `id` int NOT NULL AUTO_INCREMENT,

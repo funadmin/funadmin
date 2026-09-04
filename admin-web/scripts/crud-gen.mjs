@@ -23,11 +23,17 @@ function pascal(str) {
     .join('');
 }
 
+function camel(str) {
+  const value = pascal(str);
+  return value ? value[0].toLowerCase() + value.slice(1) : '';
+}
+
 function readArgs(argv) {
   const dry = argv.includes('--dry');
-  const rest = argv.filter((a) => a !== '--dry');
+  const force = argv.includes('--force');
+  const rest = argv.filter((a) => !['--dry', '--force'].includes(a));
   const configPath = rest[2] || rest[1];
-  return { dry, configPath };
+  return { dry, force, configPath };
 }
 
 function validate(cfg) {
@@ -41,6 +47,37 @@ function validate(cfg) {
   if (!/^[a-z][a-z0-9-]*$/.test(cfg.name)) throw new Error('name 需小写字母开头，仅 a-z0-9-');
   if (!cfg.columns.length) throw new Error('columns 至少一项');
   if (!cfg.formFields.length) throw new Error('formFields 至少一项');
+  if (cfg.backend) {
+    const backend = cfg.backend;
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(backend.controller || '')) {
+      throw new Error('backend.controller 必须是合法的 PHP 类名');
+    }
+    if (!/^app\\[A-Za-z0-9_\\]+$/.test(backend.model || '')) {
+      throw new Error('backend.model 必须是 app\\ 开头的完整模型类名');
+    }
+    if (!Array.isArray(backend.writableFields) || !backend.writableFields.length) {
+      throw new Error('backend.writableFields 至少一项');
+    }
+    const fieldPattern = /^[a-z_][a-z0-9_]*$/;
+    for (const field of backend.writableFields) {
+      if (!fieldPattern.test(field)) throw new Error(`非法可写字段: ${field}`);
+    }
+    for (const field of backend.requiredFields || []) {
+      if (!backend.writableFields.includes(field)) throw new Error(`必填字段不在可写白名单: ${field}`);
+    }
+    for (const [param, fields] of Object.entries(backend.searchFields || {})) {
+      if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(param)) throw new Error(`非法搜索参数: ${param}`);
+      const values = Array.isArray(fields) ? fields : [fields];
+      if (!values.length || values.some((field) => !fieldPattern.test(field))) {
+        throw new Error(`搜索参数 ${param} 包含非法字段`);
+      }
+    }
+    if (backend.dataScope) {
+      for (const key of ['adminField', 'departmentField']) {
+        if (!fieldPattern.test(backend.dataScope[key] || '')) throw new Error(`backend.dataScope.${key} 不合法`);
+      }
+    }
+  }
 }
 
 function normalizeModulePath(value, label) {
@@ -136,7 +173,7 @@ ${opts}
     })
     .join('\n');
   return `
-    <SearchForm v-model="query" :loading="loading" @search="onSearch" @reset="onReset">
+    <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
 ${items}
       <template #extra>
         <el-button type="primary" v-perm="'${cfg.permPrefix}:add'" @click="onAdd">
@@ -194,6 +231,7 @@ function onResetBodyLines(cfg) {
 
 function indexVue(cfg) {
   const Model = pascal(cfg.name);
+  const apiName = camel(cfg.name);
   const compName = `${pascal(viewModule(cfg))}${Model}`;
   const hasSearch = (cfg.search || []).length > 0;
   const topBlock = hasSearch ? searchTemplate(cfg) : toolbarOnly(cfg);
@@ -208,8 +246,8 @@ ${topBlock}
 ${columnsTemplate(cfg)}
       <el-table-column label="操作" width="180" align="center" fixed="right">
         <template #default="{ row }">
-          <el-button text type="primary" v-perm="'${cfg.permPrefix}:edit'" @click="onEdit(row)">编辑</el-button>
-          <el-button text type="danger" v-perm="'${cfg.permPrefix}:delete'" @click="onDelete(row)">删除</el-button>
+          <el-button text type="primary" v-perm="'${cfg.permPrefix}:edit'" @click="onEdit(row as ${Model}Model)">编辑</el-button>
+          <el-button text type="danger" v-perm="'${cfg.permPrefix}:delete'" @click="onDelete(row as ${Model}Model)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -234,7 +272,7 @@ ${columnsTemplate(cfg)}
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
-import { ${cfg.name}Api, type ${Model}Model } from '${apiAlias}/${cfg.name}';
+import { ${apiName}Api, type ${Model}Model } from '${apiAlias}/${cfg.name}';
 import ${Model}FormDialog from './components/${Model}FormDialog.vue';
 
 defineOptions({ name: '${compName}' });
@@ -252,7 +290,7 @@ ${searchInitialState(cfg)}
 async function loadData() {
   loading.value = true;
   try {
-    const res = await ${cfg.name}Api.list(query);
+    const res = await ${apiName}Api.list(query);
     list.value = res.list;
     total.value = res.total;
   } finally {
@@ -283,7 +321,7 @@ function onEdit(row: ${Model}Model) {
 
 async function onDelete(row: ${Model}Model) {
   await ElMessageBox.confirm('确认删除该记录？', '提示', { type: 'warning' });
-  await ${cfg.name}Api.remove(row.id);
+  await ${apiName}Api.remove(row.id);
   loadData();
 }
 
@@ -345,6 +383,7 @@ function defaultValueExpr(f) {
 
 function formDialogVue(cfg) {
   const Model = pascal(cfg.name);
+  const apiName = camel(cfg.name);
   const fields = cfg.formFields.map((f) => formFieldTemplate(f)).join('\n');
   const rulesEntries = cfg.formFields
     .filter((f) => f.required)
@@ -382,7 +421,7 @@ ${fields}
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
-import { ${cfg.name}Api, type ${Model}Model } from '${apiAlias}/${cfg.name}';
+import { ${apiName}Api, type ${Model}Model } from '${apiAlias}/${cfg.name}';
 
 interface Props {
   modelValue: boolean;
@@ -429,9 +468,9 @@ async function onSubmit() {
   saving.value = true;
   try {
     if (isEdit.value && props.row) {
-      await ${cfg.name}Api.update(props.row.id, { ...form });
+      await ${apiName}Api.update(props.row.id, { ...form });
     } else {
-      await ${cfg.name}Api.create({ ...form });
+      await ${apiName}Api.create({ ...form });
     }
     emit('success');
     visible.value = false;
@@ -450,6 +489,7 @@ function onClosed() {
 
 function buildApiSource(cfg) {
   const Model = pascal(cfg.name);
+  const apiName = camel(cfg.name);
   const iface = modelInterface(cfg);
   const deleteBlock =
     cfg.deleteMode === 'pathId'
@@ -466,7 +506,7 @@ const PREFIX = '${cfg.apiPrefix}';
 
 ${iface}
 
-export const ${cfg.name}Api = {
+export const ${apiName}Api = {
   list: (params: API.PageQuery) => http.get<API.PageResult<${Model}Model>>(\`\${PREFIX}\`, params),
   detail: (id: number) => http.get<${Model}Model>(\`\${PREFIX}/\${id}\`),
   create: (data: Partial<${Model}Model>) =>
@@ -487,8 +527,197 @@ async function patchApiIndex(module, name) {
   await fs.writeFile(indexPath, txt.trimEnd() + '\n' + line + '\n', 'utf8');
 }
 
+
+function phpExport(value) {
+  if (Array.isArray(value)) return `[${value.map((item) => phpExport(item)).join(', ')}]`;
+  return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+}
+
+function backendControllerSource(cfg) {
+  const backend = cfg.backend;
+  const controller = backend.controller;
+  const modelClass = backend.model;
+  const modelName = modelClass.split('\\').pop();
+  const writable = backend.writableFields;
+  const required = backend.requiredFields || [];
+  const search = backend.searchFields || {};
+  const responseMap = backend.responseMap || {};
+  const dataScope = backend.dataScope;
+  const searchLines = [];
+  for (const [param, rawFields] of Object.entries(search)) {
+    const fields = Array.isArray(rawFields) ? rawFields : [rawFields];
+    if (fields.length === 1) {
+      searchLines.push(`        $${param} = trim((string) $this->request->get('${param}', ''));`);
+      searchLines.push(`        if ($${param} !== '') {`);
+      searchLines.push(`            $query->where('${fields[0]}', $${param});`);
+      searchLines.push('        }');
+    } else {
+      searchLines.push(`        $${param} = trim((string) $this->request->get('${param}', ''));`);
+      searchLines.push(`        if ($${param} !== '') {`);
+      searchLines.push(`            $query->where(function ($where) use ($${param}) {`);
+      fields.forEach((field, index) => {
+        const method = index === 0 ? 'whereLike' : 'whereOr';
+        const args = index === 0
+          ? `'${field}', '%' . $${param} . '%'`
+          : `'${field}', 'like', '%' . $${param} . '%'`;
+        searchLines.push(`                $where->${method}(${args});`);
+      });
+      searchLines.push('            });');
+      searchLines.push('        }');
+    }
+  }
+  const scopeLine = dataScope
+    ? `        $query = $this->applyDataScope($query, '${dataScope.adminField}', '${dataScope.departmentField}');\n`
+    : '';
+  const mapLines = Object.entries(responseMap).map(
+    ([output, source]) => `        $row['${output}'] = $this->formatMappedValue($row['${source}'] ?? null);`
+  );
+  const unsetLines = [...new Set(Object.values(responseMap))]
+    .filter((source) => !Object.keys(responseMap).includes(source))
+    .map((source) => `        unset($row['${source}']);`);
+
+  return String.raw`<?php
+
+declare(strict_types=1);
+
+namespace app\backend\controller;
+
+use app\backend\middleware\CheckAdminApiCsrf;
+use app\backend\middleware\CheckAdminApiRole;
+use app\backend\middleware\SystemLog;
+use ${modelClass};
+use think\Response;
+
+class ${controller} extends AdminApiController
+{
+    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+
+    private const WRITABLE_FIELDS = ${phpExport(writable)};
+    private const REQUIRED_FIELDS = ${phpExport(required)};
+
+    public function index(): Response
+    {
+        $page = $this->page();
+        $pageSize = $this->pageSize();
+        $query = ${modelName}::order('id', 'desc');
+${scopeLine}${searchLines.join('\n')}
+        $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
+        return $this->ok([
+            'list' => array_map(fn (${modelName} $model): array => $this->serialize($model), $result->items()),
+            'total' => $result->total(),
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ]);
+    }
+
+    public function detail(int $id): Response
+    {
+        $model = $this->findScoped($id);
+        return $model ? $this->ok($this->serialize($model)) : $this->fail('记录不存在或无权访问', 404);
+    }
+
+    public function create(): Response
+    {
+        $data = $this->payload();
+        if ($error = $this->validatePayload($data)) {
+            return $this->fail($error, 422);
+        }
+        $model = ${modelName}::create($data);
+        return $this->ok($this->serialize($model), '创建成功');
+    }
+
+    public function update(int $id): Response
+    {
+        $model = $this->findScoped($id);
+        if (!$model) {
+            return $this->fail('记录不存在或无权访问', 404);
+        }
+        $data = $this->payload();
+        if ($error = $this->validatePayload($data)) {
+            return $this->fail($error, 422);
+        }
+        $model->save($data);
+        return $this->ok($this->serialize($model), '保存成功');
+    }
+
+    public function delete(int $id = 0): Response
+    {
+        $ids = $this->ids();
+        if (!$ids && $id > 0) {
+            $ids = [$id];
+        }
+        if (!$ids) {
+            return $this->fail('请选择要删除的记录', 422);
+        }
+        $query = ${modelName}::whereIn('id', $ids);
+${dataScope ? `        $query = $this->applyDataScope($query, '${dataScope.adminField}', '${dataScope.departmentField}');\n` : ''}        $models = $query->select();
+        if (count($models) !== count($ids)) {
+            return $this->fail('包含不存在或无权操作的记录', 403);
+        }
+        foreach ($models as $model) {
+            $model->delete();
+        }
+        return $this->ok(['removed' => count($models)], '删除成功');
+    }
+
+    private function findScoped(int $id): ?${modelName}
+    {
+        $query = ${modelName}::where('id', $id);
+${dataScope ? `        $query = $this->applyDataScope($query, '${dataScope.adminField}', '${dataScope.departmentField}');\n` : ''}        return $query->find();
+    }
+
+    private function payload(): array
+    {
+        $input = $this->request->param();
+        $data = [];
+        foreach (self::WRITABLE_FIELDS as $field) {
+            if (array_key_exists($field, $input)) {
+                $data[$field] = $input[$field];
+            }
+        }
+        return $data;
+    }
+
+    private function validatePayload(array $data): ?string
+    {
+        foreach (self::REQUIRED_FIELDS as $field) {
+            if (!array_key_exists($field, $data) || $data[$field] === '') {
+                return '缺少必填字段：' . $field;
+            }
+        }
+        return $data ? null : '没有可保存的字段';
+    }
+
+    private function serialize(${modelName} $model): array
+    {
+        $row = $model->toArray();
+${mapLines.join('\n')}${mapLines.length ? '\n' : ''}${unsetLines.join('\n')}${unsetLines.length ? '\n' : ''}        return $row;
+    }
+
+    private function formatMappedValue($value)
+    {
+        if (is_numeric($value) && (int) $value > 1000000000) {
+            return $this->formatTime($value);
+        }
+        return $value;
+    }
+}
+`;
+}
+
+function backendRouteSnippet(cfg) {
+  const controller = cfg.backend.controller;
+  const prefix = cfg.apiPrefix.replace(/^\//, '');
+  return `Route::get('${prefix}', '${controller}/index');
+Route::get('${prefix}/:id', '${controller}/detail')->pattern(['id' => '\\d+']);
+Route::post('${prefix}', '${controller}/create');
+Route::put('${prefix}/:id', '${controller}/update')->pattern(['id' => '\\d+']);
+Route::delete('${prefix}/:id', '${controller}/delete')->pattern(['id' => '\\d+']);
+Route::delete('${prefix}', '${controller}/delete');`;
+}
+
 async function main() {
-  const { dry, configPath } = readArgs(process.argv);
+  const { dry, force, configPath } = readArgs(process.argv);
   if (!configPath) {
     console.error('请指定配置文件，例如: pnpm gen:crud -- scripts/crud.example.json');
     process.exit(1);
@@ -515,17 +744,50 @@ async function main() {
     { file: path.join(viewDir, 'index.vue'), content: indexContent },
     { file: path.join(compDir, `${Model}FormDialog.vue`), content: formContent }
   ];
+  if (cfg.backend) {
+    targets.push({
+      file: path.join(ROOT, '..', 'app/backend/controller', `${cfg.backend.controller}.php`),
+      content: backendControllerSource(cfg)
+    });
+  }
+
+  if (cfg.backend) {
+    const modelFile = path.join(ROOT, '..', `${cfg.backend.model.replace(/\\/g, '/')}.php`);
+    try {
+      await fs.access(modelFile);
+    } catch {
+      throw new Error(`backend.model 对应文件不存在: ${path.relative(path.join(ROOT, '..'), modelFile)}`);
+    }
+  }
 
   console.log('将生成文件:');
   for (const t of targets) console.log(' ', path.relative(ROOT, t.file));
+  if (cfg.backend) {
+    console.log('\n待审阅路由片段：\n' + backendRouteSnippet(cfg));
+  }
   if (dry) {
     console.log('\n--dry 模式，未写入。');
     return;
+  }
+  if (!force) {
+    const existing = [];
+    for (const target of targets) {
+      try {
+        await fs.access(target.file);
+        existing.push(path.relative(ROOT, target.file));
+      } catch {
+        // 文件不存在，可以安全生成。
+      }
+    }
+    if (existing.length) {
+      throw new Error(`目标文件已存在，拒绝覆盖：${existing.join(', ')}。确认后使用 --force。`);
+    }
   }
 
   await fs.mkdir(apiDir, { recursive: true });
   await fs.mkdir(compDir, { recursive: true });
   for (const t of targets) {
+    await fs.mkdir(path.dirname(t.file), { recursive: true });
     await fs.writeFile(t.file, t.content, 'utf8');
   }
   await patchApiIndex(resolvedApiModule, cfg.name);
@@ -533,6 +795,9 @@ async function main() {
   console.log(
     `\n完成。请在后台配置菜单：component ≈ ${resolvedViewModule}/${cfg.name}/index ，权限 ${cfg.permPrefix}:add | edit | delete`
   );
+  if (cfg.backend) {
+    console.log('\n权限资源与菜单种子必须单独审阅后写入 migration，生成器不会修改数据库。');
+  }
 }
 
 main().catch((e) => {

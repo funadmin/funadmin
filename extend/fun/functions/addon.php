@@ -11,11 +11,13 @@ use think\helper\{
 };
 
 define('DS', DIRECTORY_SEPARATOR);
+define('PLUGIN_DIR', 'plugins');
+// 兼容旧插件命名空间，物理目录统一使用 plugins。
 define('ADDON_DIR', 'addons');
+define('ADDON_NAMESPACE', ADDON_DIR);
 
 \think\Console::starting(function (\think\Console $console) {
     $console->addCommands([
-        'curd:config' => '\\fun\\curd\\command\\Config',
         'addons:config' => '\\fun\\addons\\command\\Config',
         'auth:config' => '\\fun\\auth\\command\\Config',
         'builder:config' => '\\fun\\builder\\command\\Config'
@@ -26,10 +28,10 @@ define('ADDON_DIR', 'addons');
 spl_autoload_register(function ($class) {
 
     $class = ltrim($class, '\\');
-    $namespace = ADDON_DIR;
+    $namespace = ADDON_NAMESPACE;
 
     if (strpos($class, $namespace) === 0) {
-        $dir = app()->getRootPath();
+        $dir = app()->getRootPath() . PLUGIN_DIR;
         $class = substr($class, strlen($namespace));
         $path = '';
         if (($pos = strripos($class, '\\')) !== false) {
@@ -37,7 +39,7 @@ spl_autoload_register(function ($class) {
             $class = substr($class, $pos + 1);
         }
         $path .= str_replace('_', '/', $class) . '.php';
-        $dir .= $namespace . $path;
+        $dir .= $path;
 
         if (file_exists($dir)) {
             include $dir;
@@ -108,7 +110,7 @@ if (!function_exists('addons_vendor_autoload')) {
         if (is_array($addonsName)){
             foreach ($addonsName as $item) {
                 if ((isset($item['autoload']) && $item['autoload']==1) || isset($item['autoload'])){
-                    $autoload_file = root_path() . ADDON_DIR.'/' . $item['name'] . '/vendor/autoload.php';
+                    $autoload_file = root_path() . PLUGIN_DIR . '/' . $item['name'] . '/vendor/autoload.php';
                     if (file_exists($autoload_file)){
                         require_once $autoload_file;
                     }
@@ -118,7 +120,7 @@ if (!function_exists('addons_vendor_autoload')) {
             //插件私有类库
             $Config = get_addons_info($addonsName);
             if (isset($Config['autoload']) && $Config['autoload']==2){
-                $autoload_file = root_path() . ADDON_DIR.'/' . $addonsName . '/vendor/autoload.php';
+                $autoload_file = root_path() . PLUGIN_DIR . '/' . $addonsName . '/vendor/autoload.php';
                 if (file_exists($autoload_file)){
                     require_once $autoload_file;
                 }
@@ -147,8 +149,6 @@ if (!function_exists('set_addons_info')) {
         }
         $addon = get_addons_instance($name);
         $array = $addon->setInfo($name, $array);
-        $array['install']==1 && $array['status'] ? $addon->enabled() : $addon->disabled();
-        if($array['install']==0 && $array['status']) $addon->disabled();
         if (!isset($array['name']) || !isset($array['title']) || !isset($array['version'])) {
             throw new Exception("Failed to write plugin config");
         }
@@ -357,7 +357,7 @@ if (!function_exists('get_addons_list')) {
     function get_addons_list()
     {
         if (!Cache::get('addonslist')) {
-            $addons_path = app()->getRootPath().'addons'.DS; // 插件列表
+            $addons_path = app()->getRootPath() . PLUGIN_DIR . DS; // 插件列表
             $results = scandir($addons_path);
             $list = [];
             foreach ($results as $name) {
@@ -390,7 +390,7 @@ if (!function_exists('get_addons_menu')) {
 
     function get_addons_menu($name)
     {
-        $menu = app()->getRootPath() . 'addons' . DS . $name . DS . 'menu.php';
+        $menu = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'menu.php';
         if(file_exists($menu)){
             return include_once $menu;
         }
@@ -417,7 +417,7 @@ if (!function_exists('get_addons_autoload_config')) {
         $route = [];
         // 读取插件目录及钩子列表
         $base = get_class_methods("\\fun\\Addons");
-        $base = array_merge($base, ['init','initialize','install', 'uninstall', 'enabled', 'disabled','config']);
+        $base = array_merge($base, ['init', 'initialize', 'install', 'uninstall', 'enabled', 'disabled', 'config', 'beforeUpdate', 'afterUpdate', 'configChanged', 'purgeData']);
         $url_domain_deploy = config('route.url_domain_deploy');
         $addons = get_addons_list();
         $domain = [];
@@ -481,9 +481,9 @@ if (!function_exists('refreshaddons')) {
         $addons = get_addons_list();
         $jsArr = [];
         foreach ($addons as $name => $addon) {
-            $jsArrFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'plugin.js';
+            $jsArrFile = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'plugin.js';
             if(!is_file($jsArrFile)){
-                $jsArrFile = app()->getRootPath() . 'addons' . DS . $name . DS . 'addon.js';
+                $jsArrFile = app()->getRootPath() . PLUGIN_DIR . DS . $name . DS . 'addon.js';
             }
             if ($addon['status'] && $addon['install'] && is_file($jsArrFile)) {
                 $jsArr[] = file_get_contents($jsArrFile);

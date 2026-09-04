@@ -68,6 +68,19 @@ class MigrationService extends AbstractService
         return $executed;
     }
 
+    public function latestAppliedVersion(string $scope): string
+    {
+        if (!$this->repositoryExists()) {
+            return '';
+        }
+        $versions = SystemMigration::where('scope', $scope)->column('version');
+        if (!$versions) {
+            return '';
+        }
+        usort($versions, 'strnatcmp');
+        return (string) end($versions);
+    }
+
     private function repositoryExists(): bool
     {
         $prefix = config('database.connections.mysql.prefix');

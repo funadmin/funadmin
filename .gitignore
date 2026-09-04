@@ -10,9 +10,9 @@
 *.log
 .env
 ./composer.lock
-/addons
+/plugins
 /runtime
-/public/static/addons
+/public/static/plugins
 /public/static/cms
 /public/static/mocms
 /public/static/curd

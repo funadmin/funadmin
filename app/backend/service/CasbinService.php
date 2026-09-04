@@ -3,6 +3,7 @@
 namespace app\backend\service;
 
 use app\backend\model\AuthGroup;
+use app\backend\model\AuthGroupInherit;
 use app\backend\model\CasbinRule;
 use app\backend\model\Permission;
 use app\backend\service\casbin\ThinkAdapter;
@@ -67,7 +68,8 @@ class CasbinService extends AbstractService
     public function permissionIdsForRoles($roleIds, ?string $domain = null): array
     {
         $result = [];
-        foreach ($this->normalizeIds($roleIds) as $roleId) {
+        $roleIds = (new RoleGuardService())->ancestorRoleIds($this->normalizeIds($roleIds));
+        foreach ($roleIds as $roleId) {
             $result = array_merge($result, $this->rolePermissionIds($roleId, $domain));
         }
         return $this->normalizeIds($result);
@@ -93,6 +95,17 @@ class CasbinService extends AbstractService
             $rows[] = $this->makeRuleRow('g', [$subject, PermissionResource::role($roleId), $domain]);
         }
         $this->replacePolicies('g', 'v0', $subject, 'v2', $domain, $rows);
+    }
+
+    public function syncRoleInheritance(int $roleId, array $parentRoleIds, ?string $domain = null): void
+    {
+        $domain = PermissionResource::domain($domain);
+        $role = PermissionResource::role($roleId);
+        $rows = [];
+        foreach ($this->normalizeIds($parentRoleIds) as $parentRoleId) {
+            $rows[] = $this->makeRuleRow('g', [$role, PermissionResource::role($parentRoleId), $domain]);
+        }
+        $this->replacePolicies('g', 'v0', $role, 'v2', $domain, $rows);
     }
 
     public function syncRolePermissions(int $roleId, $permissionIds, ?string $domain = null): void
@@ -138,8 +151,11 @@ class CasbinService extends AbstractService
     public function deleteRole(int $roleId): void
     {
         $role = PermissionResource::role($roleId);
-        CasbinRule::where('ptype', 'g')->where('v1', $role)->delete();
+        CasbinRule::where('ptype', 'g')->where(function ($query) use ($role) {
+            $query->where('v0', $role)->whereOr('v1', $role);
+        })->delete();
         CasbinRule::where('ptype', 'p')->where('v0', $role)->delete();
+        AuthGroupInherit::where('role_id', $roleId)->whereOr('parent_role_id', $roleId)->delete();
         $this->reload();
     }
 

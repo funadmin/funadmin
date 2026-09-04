@@ -13,14 +13,8 @@ export default {
     SystemMenu: 'Menus',
     SystemDept: 'Departments',
     SystemDict: 'Dictionaries',
-    SystemUploadDemo: 'Upload demo',
-    SystemRichEditorDemo: 'Rich text editor',
     SystemLog: 'Logs',
     SystemLogOperation: 'Operation logs',
-    SystemLogLogin: 'Login logs',
-    SystemDemoFolder: 'Nested demo',
-    SystemDemoSub: 'Level 2',
-    SystemDemoLeaf: 'Level 3 page'
   },
   layout: {
     menuSearch: 'Menu search',

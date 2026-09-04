@@ -10,7 +10,6 @@
       <i :class="isFullscreen ? 'i-ep-aim' : 'i-ep-full-screen'" />
     </button>
 
-    <Notification />
 
     <button class="app-btn-icon" :title="t('layout.toggleTheme')" @click="toggleTheme">
       <i :class="appStore.themeMode === 'dark' ? 'i-ep-sunny' : 'i-ep-partly-cloudy'" />
@@ -78,7 +77,6 @@ import { useAppStore, type LocaleType } from '@/store/modules/app';
 import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
 import { useTabsStore } from '@/store/modules/tabs';
-import Notification from '@/components/Notification/index.vue';
 
 const { t } = useI18n();
 const appStore = useAppStore();

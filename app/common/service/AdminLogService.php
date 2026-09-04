@@ -16,6 +16,7 @@ use app\backend\model\AdminLog;
 use app\backend\model\Permission;
 use think\App;
 use think\facade\Request;
+use think\facade\Session;
 
 class AdminLogService extends AbstractService
 {
@@ -46,9 +47,13 @@ class AdminLogService extends AbstractService
     public function __construct(App $app)
     {
         parent::__construct($app);
-        $this->post_data = json_encode(Request::post(),JSON_UNESCAPED_UNICODE);
-        $this->get_data = json_encode(Request::get(),JSON_UNESCAPED_UNICODE);
-        $this->header_data = json_encode( Request::header(),JSON_UNESCAPED_UNICODE);
+        $this->post_data = json_encode($this->sanitize(Request::post()), JSON_UNESCAPED_UNICODE);
+        $this->get_data = json_encode($this->sanitize(Request::get()), JSON_UNESCAPED_UNICODE);
+        $headers = Request::header();
+        foreach (['authorization', 'cookie', 'x-csrf-token'] as $name) {
+            unset($headers[$name]);
+        }
+        $this->header_data = json_encode($headers, JSON_UNESCAPED_UNICODE);
         $this->method = Request::method();
         $this->ip = Request::ip();
         $this->agent =Request::server('HTTP_USER_AGENT');
@@ -72,10 +77,13 @@ class AdminLogService extends AbstractService
         }else{
             //权限
             $url = str_replace('.'.config('view.view_suffix'),'',$url);
-            $resource = \app\backend\service\PermissionResource::fromRoute($this->app, $url);
+            $resource = null;
+            if ($this->controller !== '' && $this->action !== '') {
+                $resource = \app\backend\service\PermissionResource::fromParts($this->app, $this->controller, $this->action);
+            }
+            $resource ??= \app\backend\service\PermissionResource::fromRoute($this->app, $url);
             $this->title = $resource ? Permission::where('code', $resource['code'])->value('title') : '';
         }
-        if(isset($this->post_data['password'])) unset($this->post_data['password']);
         //插入数据
         if (!empty($this->title) && !empty($content)) {
             AdminLog::create([
@@ -95,6 +103,19 @@ class AdminLogService extends AbstractService
                 'method'      => $this->method,
             ]);
         }
+    }
+
+    private function sanitize(array $data): array
+    {
+        $sensitive = ['password', 'oldpassword', 'newpassword', 'confirmpassword', 'password_confirmation', 'token', 'access_token', 'refresh_token', 'secret', '__token__'];
+        foreach ($data as $key => $value) {
+            if (in_array(strtolower((string) $key), $sensitive, true)) {
+                $data[$key] = '[REDACTED]';
+            } elseif (is_array($value)) {
+                $data[$key] = $this->sanitize($value);
+            }
+        }
+        return $data;
     }
 
 }

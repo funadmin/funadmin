@@ -1,0 +1,121 @@
+-- 后台组织、角色继承、数据范围与 Admin Web 系统管理入口。
+-- 仅用于全新安装；不包含历史升级、删除或清理语句。
+
+CREATE TABLE IF NOT EXISTS `fun_department` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `pid` int unsigned NOT NULL DEFAULT 0 COMMENT '上级部门ID',
+  `name` varchar(100) NOT NULL DEFAULT '' COMMENT '部门名称',
+  `leader` varchar(50) NOT NULL DEFAULT '' COMMENT '负责人',
+  `phone` varchar(30) NOT NULL DEFAULT '' COMMENT '联系电话',
+  `email` varchar(100) NOT NULL DEFAULT '' COMMENT '邮箱',
+  `sort` int unsigned NOT NULL DEFAULT 0 COMMENT '排序',
+  `status` tinyint(1) NOT NULL DEFAULT 1 COMMENT '状态：0停用，1启用',
+  `create_time` int NOT NULL DEFAULT 0,
+  `update_time` int NOT NULL DEFAULT 0,
+  `delete_time` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_department_tree` (`pid`,`status`,`sort`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='组织部门';
+
+CREATE TABLE IF NOT EXISTS `fun_auth_group_inherit` (
+  `role_id` int unsigned NOT NULL COMMENT '子角色ID',
+  `parent_role_id` int unsigned NOT NULL COMMENT '继承的父角色ID',
+  `create_time` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`role_id`,`parent_role_id`),
+  KEY `idx_role_inherit_parent` (`parent_role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色继承关系';
+
+CREATE TABLE IF NOT EXISTS `fun_auth_group_department` (
+  `role_id` int unsigned NOT NULL COMMENT '角色ID',
+  `dept_id` int unsigned NOT NULL COMMENT '自定义数据范围部门ID',
+  `create_time` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`role_id`,`dept_id`),
+  KEY `idx_role_department_dept` (`dept_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色自定义数据范围';
+
+INSERT IGNORE INTO `fun_department` (`id`,`pid`,`name`,`leader`,`phone`,`email`,`sort`,`status`,`create_time`,`update_time`,`delete_time`) VALUES
+(1, 0, '总部', '', '', '', 0, 1, 0, 0, NULL);
+
+-- 系统管理 API 权限资源。
+INSERT IGNORE INTO `fun_permission` (`id`,`pid`,`module`,`code`,`obj`,`act`,`title`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`create_time`,`update_time`) VALUES
+(192, 1, 'backend', NULL, '', '', 'System management', 'group', 1, 0, 10, 'admin_web', 'system', 0, NULL),
+(193, 192, 'backend', NULL, '', '', 'Role management', 'group', 1, 0, 10, 'admin_web', 'role', 0, NULL),
+(194, 193, 'backend', 'backend/systemrole:index', 'backend/systemrole', 'index', 'List roles', 'route', 1, 0, 10, 'admin_web', 'role', 0, NULL),
+(195, 193, 'backend', 'backend/systemrole:detail', 'backend/systemrole', 'detail', 'Role detail', 'route', 1, 0, 20, 'admin_web', 'role', 0, NULL),
+(196, 193, 'backend', 'backend/systemrole:create', 'backend/systemrole', 'create', 'Create role', 'route', 1, 0, 30, 'admin_web', 'role', 0, NULL),
+(197, 193, 'backend', 'backend/systemrole:update', 'backend/systemrole', 'update', 'Update role', 'route', 1, 0, 40, 'admin_web', 'role', 0, NULL),
+(198, 193, 'backend', 'backend/systemrole:delete', 'backend/systemrole', 'delete', 'Delete role', 'route', 1, 0, 50, 'admin_web', 'role', 0, NULL),
+(199, 193, 'backend', 'backend/systemrole:permissions', 'backend/systemrole', 'permissions', 'Assign role permissions', 'route', 1, 0, 60, 'admin_web', 'role', 0, NULL),
+(200, 192, 'backend', NULL, '', '', 'Department management', 'group', 1, 0, 20, 'admin_web', 'department', 0, NULL),
+(201, 200, 'backend', 'backend/systemdepartment:tree', 'backend/systemdepartment', 'tree', 'Department tree', 'route', 1, 0, 10, 'admin_web', 'department', 0, NULL),
+(202, 200, 'backend', 'backend/systemdepartment:detail', 'backend/systemdepartment', 'detail', 'Department detail', 'route', 1, 0, 20, 'admin_web', 'department', 0, NULL),
+(203, 200, 'backend', 'backend/systemdepartment:create', 'backend/systemdepartment', 'create', 'Create department', 'route', 1, 0, 30, 'admin_web', 'department', 0, NULL),
+(204, 200, 'backend', 'backend/systemdepartment:update', 'backend/systemdepartment', 'update', 'Update department', 'route', 1, 0, 40, 'admin_web', 'department', 0, NULL),
+(205, 200, 'backend', 'backend/systemdepartment:delete', 'backend/systemdepartment', 'delete', 'Delete department', 'route', 1, 0, 50, 'admin_web', 'department', 0, NULL),
+(206, 192, 'backend', NULL, '', '', 'Administrator management', 'group', 1, 0, 30, 'admin_web', 'user', 0, NULL),
+(207, 206, 'backend', 'backend/systemadmin:index', 'backend/systemadmin', 'index', 'List administrators', 'route', 1, 0, 10, 'admin_web', 'user', 0, NULL),
+(208, 206, 'backend', 'backend/systemadmin:detail', 'backend/systemadmin', 'detail', 'Administrator detail', 'route', 1, 0, 20, 'admin_web', 'user', 0, NULL),
+(209, 206, 'backend', 'backend/systemadmin:create', 'backend/systemadmin', 'create', 'Create administrator', 'route', 1, 0, 30, 'admin_web', 'user', 0, NULL),
+(210, 206, 'backend', 'backend/systemadmin:update', 'backend/systemadmin', 'update', 'Update administrator', 'route', 1, 0, 40, 'admin_web', 'user', 0, NULL),
+(211, 206, 'backend', 'backend/systemadmin:delete', 'backend/systemadmin', 'delete', 'Delete administrator', 'route', 1, 0, 50, 'admin_web', 'user', 0, NULL),
+(212, 206, 'backend', 'backend/systemadmin:resetpassword', 'backend/systemadmin', 'resetpassword', 'Reset password', 'route', 1, 0, 60, 'admin_web', 'user', 0, NULL),
+(213, 206, 'backend', 'backend/systemadmin:status', 'backend/systemadmin', 'status', 'Change administrator status', 'route', 1, 0, 70, 'admin_web', 'user', 0, NULL),
+(214, 192, 'backend', NULL, '', '', 'Menu management', 'group', 1, 0, 40, 'admin_web', 'menu', 0, NULL),
+(215, 214, 'backend', 'backend/systemmenu:tree', 'backend/systemmenu', 'tree', 'Menu tree', 'route', 1, 0, 10, 'admin_web', 'menu', 0, NULL),
+(216, 214, 'backend', 'backend/systemmenu:detail', 'backend/systemmenu', 'detail', 'Menu detail', 'route', 1, 0, 20, 'admin_web', 'menu', 0, NULL),
+(217, 214, 'backend', 'backend/systemmenu:create', 'backend/systemmenu', 'create', 'Create menu', 'route', 1, 0, 30, 'admin_web', 'menu', 0, NULL),
+(218, 214, 'backend', 'backend/systemmenu:update', 'backend/systemmenu', 'update', 'Update menu', 'route', 1, 0, 40, 'admin_web', 'menu', 0, NULL),
+(219, 214, 'backend', 'backend/systemmenu:delete', 'backend/systemmenu', 'delete', 'Delete menu', 'route', 1, 0, 50, 'admin_web', 'menu', 0, NULL),
+(220, 1, 'backend', NULL, '', '', 'Profile', 'group', 1, 0, 50, 'admin_web', 'profile', 0, NULL),
+(221, 220, 'backend', 'backend/adminprofile:index', 'backend/adminprofile', 'index', 'Read own profile', 'route', 1, 1, 10, 'admin_web', 'profile', 0, NULL),
+(222, 220, 'backend', 'backend/adminprofile:update', 'backend/adminprofile', 'update', 'Update own profile', 'route', 1, 1, 20, 'admin_web', 'profile', 0, NULL),
+(223, 220, 'backend', 'backend/adminprofile:password', 'backend/adminprofile', 'password', 'Change own password', 'route', 1, 1, 30, 'admin_web', 'profile', 0, NULL),
+(224, 192, 'backend', NULL, '', '', 'Operation logs', 'group', 1, 0, 50, 'admin_web', 'operation_log', 0, NULL),
+(225, 224, 'backend', 'backend/systemoperationlog:index', 'backend/systemoperationlog', 'index', 'List operation logs', 'route', 1, 0, 10, 'admin_web', 'operation_log', 0, NULL),
+(226, 224, 'backend', 'backend/systemoperationlog:delete', 'backend/systemoperationlog', 'delete', 'Delete operation logs', 'route', 1, 0, 20, 'admin_web', 'operation_log', 0, NULL),
+(227, 192, 'backend', NULL, '', '', 'Permission resources', 'group', 1, 0, 45, 'admin_web', 'permission', 0, NULL),
+(228, 227, 'backend', 'backend/systempermission:tree', 'backend/systempermission', 'tree', 'Permission tree', 'route', 1, 0, 10, 'admin_web', 'permission', 0, NULL),
+(229, 227, 'backend', 'backend/systempermission:detail', 'backend/systempermission', 'detail', 'Permission detail', 'route', 1, 0, 20, 'admin_web', 'permission', 0, NULL),
+(230, 227, 'backend', 'backend/systempermission:create', 'backend/systempermission', 'create', 'Create permission', 'route', 1, 0, 30, 'admin_web', 'permission', 0, NULL),
+(231, 227, 'backend', 'backend/systempermission:update', 'backend/systempermission', 'update', 'Update permission', 'route', 1, 0, 40, 'admin_web', 'permission', 0, NULL),
+(232, 227, 'backend', 'backend/systempermission:delete', 'backend/systempermission', 'delete', 'Delete permission', 'route', 1, 0, 50, 'admin_web', 'permission', 0, NULL),
+(233, 192, 'backend', NULL, '', '', 'Blacklist management', 'group', 1, 0, 55, 'admin_web', 'blacklist', 0, NULL),
+(234, 233, 'backend', 'backend/systemblacklist:index', 'backend/systemblacklist', 'index', 'List blacklist', 'route', 1, 0, 10, 'admin_web', 'blacklist', 0, NULL),
+(235, 233, 'backend', 'backend/systemblacklist:detail', 'backend/systemblacklist', 'detail', 'Blacklist detail', 'route', 1, 0, 20, 'admin_web', 'blacklist', 0, NULL),
+(236, 233, 'backend', 'backend/systemblacklist:create', 'backend/systemblacklist', 'create', 'Create blacklist', 'route', 1, 0, 30, 'admin_web', 'blacklist', 0, NULL),
+(237, 233, 'backend', 'backend/systemblacklist:update', 'backend/systemblacklist', 'update', 'Update blacklist', 'route', 1, 0, 40, 'admin_web', 'blacklist', 0, NULL),
+(238, 233, 'backend', 'backend/systemblacklist:status', 'backend/systemblacklist', 'status', 'Change blacklist status', 'route', 1, 0, 50, 'admin_web', 'blacklist', 0, NULL),
+(239, 233, 'backend', 'backend/systemblacklist:delete', 'backend/systemblacklist', 'delete', 'Recycle blacklist', 'route', 1, 0, 60, 'admin_web', 'blacklist', 0, NULL),
+(240, 233, 'backend', 'backend/systemblacklist:restore', 'backend/systemblacklist', 'restore', 'Restore blacklist', 'route', 1, 0, 70, 'admin_web', 'blacklist', 0, NULL),
+(241, 233, 'backend', 'backend/systemblacklist:destroy', 'backend/systemblacklist', 'destroy', 'Destroy blacklist', 'route', 1, 0, 80, 'admin_web', 'blacklist', 0, NULL),
+(242, 233, 'backend', 'backend/systemblacklist:import', 'backend/systemblacklist', 'import', 'Import blacklist', 'route', 1, 0, 90, 'admin_web', 'blacklist', 0, NULL),
+(243, 233, 'backend', 'backend/systemblacklist:export', 'backend/systemblacklist', 'export', 'Export blacklist', 'route', 1, 0, 100, 'admin_web', 'blacklist', 0, NULL),
+(244, 192, 'backend', NULL, '', '', 'Language management', 'group', 1, 0, 60, 'admin_web', 'language', 0, NULL),
+(245, 244, 'backend', 'backend/systemlanguage:index', 'backend/systemlanguage', 'index', 'List languages', 'route', 1, 0, 10, 'admin_web', 'language', 0, NULL),
+(246, 244, 'backend', 'backend/systemlanguage:detail', 'backend/systemlanguage', 'detail', 'Language detail', 'route', 1, 0, 20, 'admin_web', 'language', 0, NULL),
+(247, 244, 'backend', 'backend/systemlanguage:create', 'backend/systemlanguage', 'create', 'Create language', 'route', 1, 0, 30, 'admin_web', 'language', 0, NULL),
+(248, 244, 'backend', 'backend/systemlanguage:update', 'backend/systemlanguage', 'update', 'Update language', 'route', 1, 0, 40, 'admin_web', 'language', 0, NULL),
+(249, 244, 'backend', 'backend/systemlanguage:delete', 'backend/systemlanguage', 'delete', 'Delete language', 'route', 1, 0, 50, 'admin_web', 'language', 0, NULL),
+(250, 192, 'backend', NULL, '', '', 'Member group management', 'group', 1, 0, 70, 'admin_web', 'member_group', 0, NULL),
+(251, 250, 'backend', 'backend/systemmembergroup:index', 'backend/systemmembergroup', 'index', 'List member groups', 'route', 1, 0, 10, 'admin_web', 'member_group', 0, NULL),
+(252, 250, 'backend', 'backend/systemmembergroup:detail', 'backend/systemmembergroup', 'detail', 'Member group detail', 'route', 1, 0, 20, 'admin_web', 'member_group', 0, NULL),
+(253, 250, 'backend', 'backend/systemmembergroup:create', 'backend/systemmembergroup', 'create', 'Create member group', 'route', 1, 0, 30, 'admin_web', 'member_group', 0, NULL),
+(254, 250, 'backend', 'backend/systemmembergroup:update', 'backend/systemmembergroup', 'update', 'Update member group', 'route', 1, 0, 40, 'admin_web', 'member_group', 0, NULL),
+(255, 250, 'backend', 'backend/systemmembergroup:status', 'backend/systemmembergroup', 'status', 'Change member group status', 'route', 1, 0, 50, 'admin_web', 'member_group', 0, NULL),
+(256, 250, 'backend', 'backend/systemmembergroup:recycle', 'backend/systemmembergroup', 'recycle', 'Recycle member group', 'route', 1, 0, 60, 'admin_web', 'member_group', 0, NULL),
+(257, 250, 'backend', 'backend/systemmembergroup:restore', 'backend/systemmembergroup', 'restore', 'Restore member group', 'route', 1, 0, 70, 'admin_web', 'member_group', 0, NULL),
+(258, 250, 'backend', 'backend/systemmembergroup:destroy', 'backend/systemmembergroup', 'destroy', 'Destroy member group', 'route', 1, 0, 80, 'admin_web', 'member_group', 0, NULL),
+(259, 250, 'backend', 'backend/systemmembergroup:export', 'backend/systemmembergroup', 'export', 'Export member groups', 'route', 1, 0, 90, 'admin_web', 'member_group', 0, NULL),
+(260, 1, 'backend', 'backend/adminupload:upload', 'backend/adminupload', 'upload', 'Upload files', 'route', 1, 1, 60, 'admin_web', 'upload', 0, NULL);
+
+-- Admin Web 导航菜单；按钮权限由 permission code 返回，不作为导航节点。
+INSERT IGNORE INTO `fun_admin_menu` (`id`,`pid`,`permission_id`,`module`,`title`,`href`,`query`,`target`,`icon`,`status`,`sort`,`source_type`,`source_name`,`create_time`,`update_time`) VALUES
+(21, 0, 194, 'backend', '角色管理', '/system/role', 'component=system/role/index&name=SystemRole', '_self', 'i-ep-avatar', 1, 20, 'admin_web', 'role', 0, NULL),
+(22, 0, 201, 'backend', '部门管理', '/system/dept', 'component=system/dept/index&name=SystemDept', '_self', 'i-ep-office-building', 1, 30, 'admin_web', 'department', 0, NULL),
+(23, 0, 207, 'backend', '管理员管理', '/system/user', 'component=system/user/index&name=SystemUser', '_self', 'i-ep-user', 1, 10, 'admin_web', 'user', 0, NULL),
+(24, 0, 215, 'backend', '菜单管理', '/system/menu', 'component=system/menu/index&name=SystemMenu', '_self', 'i-ep-menu', 1, 40, 'admin_web', 'menu', 0, NULL),
+(25, 0, 225, 'backend', '操作日志', '/system/log/operation', 'component=system/log/operation&name=SystemLogOperation', '_self', 'i-ep-document', 1, 50, 'admin_web', 'operation_log', 0, NULL),
+(26, 0, 228, 'backend', '权限资源', '/system/permission', 'component=system/permission/index&name=SystemPermission', '_self', 'i-ep-lock', 1, 45, 'admin_web', 'permission', 0, NULL),
+(27, 0, 234, 'backend', '黑名单', '/system/blacklist', 'component=system/blacklist/index&name=SystemBlacklist', '_self', 'i-ep-circle-close', 1, 55, 'admin_web', 'blacklist', 0, NULL),
+(28, 0, 245, 'backend', '多语言', '/system/language', 'component=system/language/index&name=SystemLanguage', '_self', 'i-ep-connection', 1, 60, 'admin_web', 'language', 0, NULL),
+(29, 0, 251, 'backend', '会员组', '/system/member-group', 'component=system/member-group/index&name=SystemMemberGroup', '_self', 'i-ep-user-filled', 1, 70, 'admin_web', 'member_group', 0, NULL);

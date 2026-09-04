@@ -49,12 +49,6 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '个人中心', icon: 'i-ep-user', hidden: true }
-      },
-      {
-        path: 'demo/sortable',
-        name: 'DemoSortable',
-        component: () => import('@/views/demo/sortable.vue'),
-        meta: { title: '拖拽排序 Demo', icon: 'i-ep-rank', rank: 999 }
       }
     ]
   },

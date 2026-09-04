@@ -14,14 +14,8 @@ export default {
     SystemMenu: '菜单管理',
     SystemDept: '部门管理',
     SystemDict: '字典管理',
-    SystemUploadDemo: '上传演示',
-    SystemRichEditorDemo: '富文本编辑器',
     SystemLog: '日志管理',
     SystemLogOperation: '操作日志',
-    SystemLogLogin: '登录日志',
-    SystemDemoFolder: '多级演示',
-    SystemDemoSub: '二级目录',
-    SystemDemoLeaf: '三级页面'
   },
   layout: {
     menuSearch: '菜单搜索',

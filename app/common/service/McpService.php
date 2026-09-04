@@ -346,7 +346,7 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleCreateView'], 'view', '生成FunAdmin视图文件')
             ->withTool([self::class, 'handleCreateJs'], 'js', '生成FunAdmin JS文件')
             ->withTool([self::class, 'handleCreateApi'], 'api', '生成FunAdmin API接口文件')
-            ->withTool([self::class, 'handleCurd'], 'curd', '生成FunAdmin CURD模块')
+            ->withTool([self::class, 'handleCurd'], 'curd', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面')
             ->withTool([self::class, 'handleAddon'], 'addon', '生成FunAdmin 插件模块')
             ->withTool([self::class, 'handleMenu'], 'menu', '生成FunAdmin 菜单模块')
             ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，   支持字段信息、类型、注释等')
@@ -1424,62 +1424,20 @@ class {$modelClass} extends BaseModel
      * @param array $options 其他选项
      * @return array
      */
-    public function handleCurd(string $tableName, string $module = 'backend', array $fields = [], string $description = '', array $options = []): array
+    public function handleCurd(string $configPath, bool $dryRun = true, bool $force = false): array
     {
         try {
-            // 构建命令行参数
-            $parameters = [
-                '--table=' . $tableName,
-                '--app=' . $module,
-                '--controller=' . $this->convertTableNameToControllerName($tableName),
-                '--model=' . $this->convertTableNameToModelName($tableName),
-                '--validate=' . $this->convertTableNameToModelName($tableName),
+            $result = (new AdminWebCrudGenerator())->run($configPath, $dryRun, $force);
+            return [
+                'success' => true,
+                'message' => $dryRun ? 'CRUD 生成预览成功' : 'CRUD 模块生成成功',
+                'data' => $result,
             ];
-
-            // 添加可选参数
-            if (!empty($options['force'])) {
-                $parameters[] = '--force=1';
-            }
-            if (!empty($options['menu'])) {
-                $parameters[] = '--menu=1';
-            }
-            if (!empty($options['menuname'])) {
-                $parameters[] = '--menuname=' . $options['menuname'];
-            }
-            if (!empty($options['common'])) {
-                $parameters[] = '--common=1';
-            }
-
-            // 调用curd命令
-            $output = \think\facade\Console::call('curd', $parameters);
-            $content = $output->fetch();
-
-            // 检查执行结果
-            if (strpos($content, 'success') !== false || strpos($content, 'make success') !== false) {
-                return [
-                    'success' => true,
-                    'message' => 'CRUD模块生成成功',
-                    'data' => [
-                        'table' => $tableName,
-                        'module' => $module,
-                        'controller' => $this->convertTableNameToControllerName($tableName),
-                        'model' => $this->convertTableNameToModelName($tableName),
-                        'output' => $content
-                    ]
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'error' => 'CRUD模块生成失败',
-                    'output' => $content
-                ];
-            }
-
-        } catch (\Exception $e) {
-            Log::error('CRUD生成错误: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('CRUD 生成错误: ' . $e->getMessage());
             return [
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -1778,11 +1736,9 @@ class {$modelClass} extends BaseModel
             if (in_array($type, ['curd', 'all'])) {
                 if (!empty($parsedData['curd'])) {
                     $curdResult = $this->handleCurd(
-                        $parsedData['curd']['name'],
-                        $parsedData['curd']['module'] ?? 'backend',
-                        $parsedData['curd']['fields'] ?? [],
-                        $parsedData['curd']['description'] ?? '',
-                        $parsedData['curd']['options'] ?? []
+                        (string) ($parsedData['curd']['config'] ?? ''),
+                        (bool) ($parsedData['curd']['dryRun'] ?? true),
+                        (bool) ($parsedData['curd']['force'] ?? false)
                     );
                     $results['curd'] = $curdResult;
                 }   
@@ -3475,10 +3431,8 @@ EOF;
                 'auth:config',
                 // builder 命令组
                 'builder:config',
-                // curd 命令组
-                'curd:config',
                 // FunAdmin 特有命令
-                'addon', 'curd', 'menu', 'install', 'mcp'
+                'addon', 'menu', 'install', 'mcp'
             ];
 
             if (!in_array($command, $allowedCommands)) {

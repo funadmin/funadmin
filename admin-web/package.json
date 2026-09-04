@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Neutral Vue admin console for the Laravel admin backend",
+  "description": "Vue admin console for the FunAdmin ThinkPHP backend",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
@@ -22,8 +22,6 @@
     "@element-plus/icons-vue": "^2.3.1",
     "@iconify/vue": "^5.0.0",
     "@vueuse/core": "^14.2.1",
-    "@wangeditor/editor": "^5.1.23",
-    "@wangeditor/editor-for-vue": "^5.1.12",
     "axios": "^1.15.2",
     "dayjs": "^1.11.13",
     "echarts": "^6.0.0",

@@ -91,30 +91,34 @@ class AdminAuth extends BaseController
     {
         $auth = AuthService::instance();
         $permissionIds = $auth->permissionIdsForRoles($auth->currentRoleIds());
-        $menu = AdminMenu::where('source_type', 'admin_web')
-            ->where('source_name', 'dictionary')
+        $menus = AdminMenu::where('source_type', 'admin_web')
             ->where('status', 1)
-            ->find();
-        if (!$menu || (!$auth->isSuperAdmin() && !in_array((int) $menu->permission_id, $permissionIds, true))) {
+            ->order('sort', 'asc')
+            ->order('id', 'asc')
+            ->select();
+        $allowed = [];
+        foreach ($menus as $menu) {
+            if ($auth->isSuperAdmin() || (int) $menu->permission_id === 0 || in_array((int) $menu->permission_id, $permissionIds, true)) {
+                $allowed[(int) $menu->id] = $this->menuData($menu);
+            }
+        }
+        if (!$allowed) {
             return $this->ok([]);
         }
 
-        return $this->ok([[
-            'id' => (int) $menu->id,
-            'parentId' => 0,
-            'name' => 'SystemDict',
-            'path' => '/system/dict',
-            'component' => 'system/dict/index',
-            'type' => 'C',
-            'icon' => (string) ($menu->icon ?: 'i-ep-collection'),
-            'title' => '字典管理',
-            'sort' => (int) $menu->sort,
-            'hidden' => false,
-            'keepAlive' => true,
-            'affix' => false,
-            'permission' => 'system:dict:list',
-            'children' => [],
-        ]]);
+        $allById = [];
+        foreach ($menus as $menu) {
+            $allById[(int) $menu->id] = $menu;
+        }
+        foreach (array_keys($allowed) as $id) {
+            $parentId = (int) ($allById[$id]->pid ?? 0);
+            while ($parentId > 0 && isset($allById[$parentId])) {
+                $allowed[$parentId] = $this->menuData($allById[$parentId]);
+                $parentId = (int) $allById[$parentId]->pid;
+            }
+        }
+
+        return $this->ok($this->menuTree(array_values($allowed)));
     }
 
     public function logout(): Response
@@ -125,10 +129,6 @@ class AdminAuth extends BaseController
 
     private function frontendPermissions(array $permissionCodes, bool $isSuperAdmin): array
     {
-        if ($isSuperAdmin) {
-            return ['system:dict:list', 'system:dict:add', 'system:dict:edit', 'system:dict:delete'];
-        }
-
         $mapping = [
             'backend/systemdict:types' => 'system:dict:list',
             'backend/systemdict:items' => 'system:dict:list',
@@ -142,7 +142,63 @@ class AdminAuth extends BaseController
             'backend/systemdict:deletetypes' => 'system:dict:delete',
             'backend/systemdict:deleteitem' => 'system:dict:delete',
             'backend/systemdict:deleteitems' => 'system:dict:delete',
+            'backend/systemrole:index' => 'system:role:list',
+            'backend/systemrole:detail' => 'system:role:list',
+            'backend/systemrole:create' => 'system:role:add',
+            'backend/systemrole:update' => 'system:role:edit',
+            'backend/systemrole:delete' => 'system:role:delete',
+            'backend/systemrole:permissions' => 'system:role:perm',
+            'backend/systemdepartment:tree' => 'system:dept:list',
+            'backend/systemdepartment:detail' => 'system:dept:list',
+            'backend/systemdepartment:create' => 'system:dept:add',
+            'backend/systemdepartment:update' => 'system:dept:edit',
+            'backend/systemdepartment:delete' => 'system:dept:delete',
+            'backend/systemadmin:index' => 'system:user:list',
+            'backend/systemadmin:detail' => 'system:user:list',
+            'backend/systemadmin:create' => 'system:user:add',
+            'backend/systemadmin:update' => 'system:user:edit',
+            'backend/systemadmin:delete' => 'system:user:delete',
+            'backend/systemadmin:resetpassword' => 'system:user:reset',
+            'backend/systemadmin:status' => 'system:user:status',
+            'backend/systemmenu:tree' => 'system:menu:list',
+            'backend/systemmenu:detail' => 'system:menu:list',
+            'backend/systemmenu:create' => 'system:menu:add',
+            'backend/systemmenu:update' => 'system:menu:edit',
+            'backend/systemmenu:delete' => 'system:menu:delete',
+            'backend/systempermission:tree' => 'system:permission:list',
+            'backend/systempermission:create' => 'system:permission:add',
+            'backend/systempermission:update' => 'system:permission:edit',
+            'backend/systempermission:delete' => 'system:permission:delete',
+            'backend/systemblacklist:index' => 'system:blacklist:list',
+            'backend/systemblacklist:detail' => 'system:blacklist:list',
+            'backend/systemblacklist:create' => 'system:blacklist:add',
+            'backend/systemblacklist:update' => 'system:blacklist:edit',
+            'backend/systemblacklist:status' => 'system:blacklist:status',
+            'backend/systemblacklist:delete' => 'system:blacklist:delete',
+            'backend/systemblacklist:restore' => 'system:blacklist:restore',
+            'backend/systemblacklist:destroy' => 'system:blacklist:destroy',
+            'backend/systemblacklist:import' => 'system:blacklist:import',
+            'backend/systemblacklist:export' => 'system:blacklist:export',
+            'backend/systemlanguage:index' => 'system:language:list',
+            'backend/systemlanguage:detail' => 'system:language:list',
+            'backend/systemlanguage:create' => 'system:language:add',
+            'backend/systemlanguage:update' => 'system:language:edit',
+            'backend/systemlanguage:delete' => 'system:language:delete',
+            'backend/systemmembergroup:index' => 'system:member-group:list',
+            'backend/systemmembergroup:detail' => 'system:member-group:list',
+            'backend/systemmembergroup:create' => 'system:member-group:add',
+            'backend/systemmembergroup:update' => 'system:member-group:edit',
+            'backend/systemmembergroup:status' => 'system:member-group:status',
+            'backend/systemmembergroup:recycle' => 'system:member-group:delete',
+            'backend/systemmembergroup:restore' => 'system:member-group:restore',
+            'backend/systemmembergroup:destroy' => 'system:member-group:destroy',
+            'backend/systemmembergroup:export' => 'system:member-group:export',
+            'backend/systemoperationlog:index' => 'system:log:operation:list',
+            'backend/systemoperationlog:delete' => 'system:log:operation:delete',
         ];
+        if ($isSuperAdmin) {
+            return array_values(array_unique(array_values($mapping)));
+        }
         $result = [];
         foreach ($permissionCodes as $code) {
             $frontendCode = $mapping[strtolower((string) $code)] ?? null;
@@ -151,6 +207,44 @@ class AdminAuth extends BaseController
             }
         }
         return array_keys($result);
+    }
+
+    private function menuData(AdminMenu $menu): array
+    {
+        parse_str((string) $menu->query, $meta);
+        $permission = $menu->permission_id > 0 ? Permission::find((int) $menu->permission_id) : null;
+        return [
+            'id' => (int) $menu->id,
+            'parentId' => (int) $menu->pid,
+            'name' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
+            'path' => '/' . ltrim((string) $menu->href, '/'),
+            'component' => (string) ($meta['component'] ?? ''),
+            'redirect' => (string) ($meta['redirect'] ?? ''),
+            'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
+            'icon' => (string) $menu->icon,
+            'title' => (string) $menu->title,
+            'sort' => (int) $menu->sort,
+            'hidden' => filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'permission' => (string) ($permission->code ?? ''),
+        ];
+    }
+
+    private function menuTree(array $rows, int $parentId = 0): array
+    {
+        $result = [];
+        foreach ($rows as $row) {
+            if ((int) $row['parentId'] !== $parentId) {
+                continue;
+            }
+            $children = $this->menuTree($rows, (int) $row['id']);
+            if ($children) {
+                $row['children'] = $children;
+            }
+            $result[] = $row;
+        }
+        return $result;
     }
 
     private function ok($data = null, string $msg = '操作成功'): Response
