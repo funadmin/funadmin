@@ -23,7 +23,7 @@
       </template>
       <template #toolbar-left>
         <el-button type="primary" plain v-perm="'system:config:add'" @click="openAdd"><i class="i-ep-plus" /> 新增配置</el-button>
-        <el-button plain v-perm="'system:config-group:list'" @click="groupDrawer = true"><i class="i-ep-folder" /> 配置分组</el-button>
+        <el-button v-perm="'system:config-group:list'" @click="groupDrawer = true"><i class="i-ep-folder" /> 配置分组</el-button>
         <el-button type="danger" plain :disabled="!deletableSelection.length" v-perm="'system:config:delete'" @click="removeSelected"><i class="i-ep-delete" /> 删除{{ deletableSelection.length ? `(${deletableSelection.length})` : '' }}</el-button>
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">

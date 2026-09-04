@@ -14,9 +14,9 @@ final class LifecycleState
     private const TRANSITIONS = [
         'discovered' => ['installing'],
         'installing' => ['disabled', 'failed'],
-        'disabled' => ['enabling', 'uninstalling', 'installing'],
+        'disabled' => ['enabling', 'uninstalling', 'installing', 'failed'],
         'enabling' => ['enabled', 'failed'],
-        'enabled' => ['disabling'],
+        'enabled' => ['disabling', 'failed'],
         'disabling' => ['disabled', 'failed'],
         'uninstalling' => ['discovered', 'failed'],
         'failed' => ['disabled', 'installing', 'uninstalling'],

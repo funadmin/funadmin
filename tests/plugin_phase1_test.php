@@ -163,6 +163,7 @@ expect(!str_contains((string) $pluginServiceSource, '->status'), '插件生命�
 expect(!preg_match('/->save\(\[[^]]*[\'\"]lifecycle_state[\'\"]/', (string) $pluginServiceSource), '生命周期状态写入不得绕过 LifecycleState');
 expect(str_contains((string) $pluginServiceSource, 'assertNoEnabledDependents'), '禁用和卸载必须检查反向依赖');
 expect(substr_count((string) $pluginServiceSource, 'validatedManifest(') >= 4, '安装、更新和启用均必须重检 manifest 与依赖');
+expect(!str_contains((string) $serviceSource, 'updatePluginsInfo'), '不得保留可绕过 LifecycleState 的状态缓存写入口');
 $migrationSource = file_get_contents(dirname(__DIR__) . '/database/migrations/007_plugin_registry_state.sql');
 expect(str_contains((string) $migrationSource, '`manifest`'), '007 migration 必须包含 manifest 快照字段');
 expect(str_contains((string) $migrationSource, '`lifecycle_state`'), '007 migration 必须包含显式状态字段');

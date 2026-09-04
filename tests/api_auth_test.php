@@ -25,9 +25,9 @@ $app->config->set([
 ], 'api');
 
 $service = new TokenService();
-$accessToken = $service->build(['id' => 7, 'username' => 'tester']);
+$accessToken = $service->build(['id' => 7]);
 $accessPayload = $service->validateToken($accessToken);
-apiExpect($accessPayload === ['id' => 7, 'username' => 'tester'], 'Access Token 应返回原始用户数据');
+apiExpect($accessPayload === ['id' => 7], 'Access Token 只应返回会员标识');
 apiExpect($service->validateToken($accessToken, TokenService::TYPE_REFRESH) === false, 'Access Token 不得作为 Refresh Token 使用');
 
 $refreshToken = $service->build(['id' => 7], TokenService::TYPE_REFRESH);

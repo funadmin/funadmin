@@ -50,8 +50,8 @@ class Token extends Api
         }
 
         $this->success(__('Tokens generated successfully'), [
-            'access_token' => $this->tokenService->build($member),
-            'refresh_token' => $this->tokenService->build($member, TokenService::TYPE_REFRESH),
+            'access_token' => $this->tokenService->build(['id' => $member['id']]),
+            'refresh_token' => $this->tokenService->build(['id' => $member['id']], TokenService::TYPE_REFRESH),
             'expires_in' => (int) config('api.access_token_ttl'),
         ]);
     }
@@ -81,7 +81,7 @@ class Token extends Api
         }
 
         $this->success(__('Access token refreshed successfully'), [
-            'access_token' => $this->tokenService->build($member),
+            'access_token' => $this->tokenService->build(['id' => $member['id']]),
             'expires_in' => (int) config('api.access_token_ttl'),
         ]);
     }
