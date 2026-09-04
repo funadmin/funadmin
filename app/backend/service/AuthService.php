@@ -20,6 +20,7 @@ use app\backend\model\Permission;
 use app\common\model\Blacklist;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
+use fun\helper\SignHelper;
 use think\facade\Cache;
 use think\facade\Cookie;
 use think\facade\Request;

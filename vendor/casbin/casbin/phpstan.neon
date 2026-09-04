@@ -1,0 +1,8 @@
+parameters:
+    reportUnmatchedIgnoredErrors: false
+    tipsOfTheDay: false
+    level: 8
+    paths:
+        - src
+    ignoreErrors:
+        - identifier: missingType.iterableValue
