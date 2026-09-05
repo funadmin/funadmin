@@ -19,7 +19,7 @@ class SystemMenu extends AdminApiController
 
     public function tree(): Response
     {
-        $query = AdminMenu::where('source_type', 'admin_web')->where('status', 1)->order('sort', 'asc')->order('id', 'asc');
+        $query = AdminMenu::where('source_type', 'admin_web')->where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
         $name = trim((string) $this->request->get('name', ''));
         $path = trim((string) $this->request->get('path', ''));
         if ($name !== '') {
@@ -115,7 +115,7 @@ class SystemMenu extends AdminApiController
             'target' => '_self',
             'icon' => trim((string) $this->request->post('icon', $current['icon'] ?? '')),
             'status' => 1,
-            'sort' => max(0, (int) $this->request->post('sort', $current['sort'] ?? 0)),
+            'sort_order' => max(0, (int) $this->request->post('sort', $current['sort'] ?? 0)),
             'source_type' => 'admin_web',
             'source_name' => trim((string) ($menu->source_name ?? 'custom')) ?: 'custom',
         ];
@@ -161,7 +161,7 @@ class SystemMenu extends AdminApiController
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
             'icon' => (string) $menu->icon,
             'name' => (string) $menu->name,
-            'sort' => (int) $menu->sort,
+            'sort' => (int) $menu->sort_order,
             'hidden' => $this->booleanValue($meta['hidden'] ?? false),
             'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
             'affix' => $this->booleanValue($meta['affix'] ?? false),

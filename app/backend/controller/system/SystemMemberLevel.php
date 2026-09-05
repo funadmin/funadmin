@@ -25,7 +25,7 @@ class SystemMemberLevel extends AdminApiController
         $pageSize = $this->pageSize();
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = $this->filteredQuery($recycled);
-        $result = $query->order('sort', 'asc')->order('id', 'asc')->paginate([
+        $result = $query->order('sort_order', 'asc')->order('id', 'asc')->paginate([
             'list_rows' => $pageSize,
             'page' => $page,
         ]);
@@ -135,7 +135,7 @@ class SystemMemberLevel extends AdminApiController
         if ((clone $query)->count() > 10000) {
             return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
         }
-        $levels = $query->order('sort', 'asc')->order('id', 'asc')->select();
+        $levels = $query->order('sort_order', 'asc')->order('id', 'asc')->select();
         return $this->ok(array_map(fn (MemberLevel $level): array => $this->levelData($level), $levels->all()));
     }
 
@@ -178,7 +178,7 @@ class SystemMemberLevel extends AdminApiController
             'discount' => (int) $this->request->post('discount', $level?->discount ?? 100),
             'thumb' => trim((string) $this->request->post('thumb', $level?->thumb ?? '')),
             'status' => $this->binaryStatus($this->request->post('status', $level?->status ?? 1)),
-            'sort' => (int) $this->request->post('sort', $level?->sort ?? 0),
+            'sort_order' => (int) $this->request->post('sort', $level?->sort_order ?? 0),
             'description' => trim((string) $this->request->post('description', $level?->description ?? '')),
         ];
     }
@@ -200,7 +200,7 @@ class SystemMemberLevel extends AdminApiController
         if ($data['discount'] < 0 || $data['discount'] > 100) {
             return '等级折扣必须在 0 至 100 之间';
         }
-        if ($data['sort'] < 0) {
+        if ($data['sort_order'] < 0) {
             return '排序不能小于 0';
         }
         if ($descriptionLength > 200) {
@@ -221,11 +221,11 @@ class SystemMemberLevel extends AdminApiController
             'discount' => (int) $level->discount,
             'thumb' => (string) ($level->thumb ?? ''),
             'status' => (int) $level->status,
-            'sort' => (int) $level->sort,
+            'sort' => (int) $level->sort_order,
             'description' => (string) ($level->description ?? ''),
-            'createdAt' => $this->formatTime($level->create_time),
-            'updatedAt' => $this->formatTime($level->update_time),
-            'deletedAt' => $this->formatTime($level->delete_time),
+            'createdAt' => $this->formatTime($level->created_at),
+            'updatedAt' => $this->formatTime($level->updated_at),
+            'deletedAt' => $this->formatTime($level->deleted_at),
         ];
     }
 }

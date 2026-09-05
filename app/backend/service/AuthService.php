@@ -413,7 +413,7 @@ class AuthService extends AbstractService
         }
         //判断管理员IP是否变动
         $requestIp = MemberInput::normalizeIp(request()->ip());
-        if (config('funadmin.ip_check') && (!isset($admin['lastloginip']) || $admin['lastloginip'] != $requestIp)) {
+        if (config('funadmin.ip_check') && (!isset($admin['last_login_ip']) || $admin['last_login_ip'] != $requestIp)) {
             $this->logout();
             return false;
         }

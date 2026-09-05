@@ -46,10 +46,10 @@ class SystemOperationLog extends AdminApiController
             $query->where('status', $this->binaryStatus($status));
         }
         if ($startTime !== '' && strtotime($startTime) !== false) {
-            $query->where('create_time', '>=', strtotime($startTime));
+            $query->where('created_at', '>=', date('Y-m-d H:i:s', strtotime($startTime)));
         }
         if ($endTime !== '' && strtotime($endTime) !== false) {
-            $query->where('create_time', '<=', strtotime($endTime));
+            $query->where('created_at', '<=', date('Y-m-d H:i:s', strtotime($endTime)));
         }
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
         return $this->ok($this->paginationData(
@@ -112,7 +112,7 @@ class SystemOperationLog extends AdminApiController
             'responseCode' => (int) $log->response_code,
             'durationMs' => (int) $log->duration_ms,
             'requestId' => (string) $log->request_id,
-            'createdAt' => $this->formatTime($log->create_time),
+            'createdAt' => $this->formatTime($log->created_at),
         ];
         if ($detail) {
             $data['getData'] = (string) $log->get_data;

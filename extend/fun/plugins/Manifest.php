@@ -12,8 +12,6 @@ use RuntimeException;
  */
 final class Manifest
 {
-    private const LOAD_KEYS = ['services', 'events', 'routes'];
-
     private function __construct(
         private readonly string $directory,
         private readonly array $data
@@ -70,8 +68,13 @@ final class Manifest
 
     public function loadPath(string $type): ?string
     {
-        $path = $this->data['load'][$type] ?? null;
+        $path = $this->data[$type] ?? null;
         return is_string($path) ? $this->directory . DIRECTORY_SEPARATOR . $path : null;
+    }
+
+    public function directory(): string
+    {
+        return $this->directory;
     }
 
     public function toArray(): array
@@ -81,43 +84,52 @@ final class Manifest
 
     private static function validate(string $directory, array $data): void
     {
-        if (($data['schema_version'] ?? null) !== 1) {
-            throw new RuntimeException('plugin.json schema_version 仅支持 1');
-        }
-        foreach (['name', 'title', 'version'] as $field) {
-            if (!is_string($data[$field] ?? null) || trim($data[$field]) === '') {
-                throw new RuntimeException('plugin.json 缺少字段：' . $field);
-            }
-        }
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $data['name'])) {
-            throw new RuntimeException('插件 name 仅允许小写字母和数字');
-        }
+        $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin-manifest-v1.schema.json';
+        JsonSchemaValidator::fromFile($schema)->validate($data);
         if (basename($directory) !== $data['name']) {
             throw new RuntimeException('插件目录名与 plugin.json name 不一致');
         }
-        if (!preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $data['version'])) {
-            throw new RuntimeException('插件 version 必须是语义化版本');
+        $expectedClass = 'plugins\\' . $data['name'] . '\\Plugin';
+        if (($data['entry']['class'] ?? '') !== $expectedClass) {
+            throw new RuntimeException('plugin.json entry namespace 必须是 ' . $expectedClass);
         }
-        $requires = $data['requires'] ?? [];
-        if (!is_array($requires) || !is_array($requires['plugins'] ?? [])) {
-            throw new RuntimeException('plugin.json requires.plugins 必须是对象');
-        }
-        foreach ($requires['plugins'] as $name => $constraint) {
-            if (!preg_match('/^[a-z][a-z0-9]*$/', (string) $name) || !is_string($constraint) || $constraint === '') {
-                throw new RuntimeException('plugin.json 插件依赖格式无效');
-            }
-        }
-        $load = $data['load'] ?? [];
-        if (!is_array($load) || array_diff(array_keys($load), self::LOAD_KEYS)) {
-            throw new RuntimeException('plugin.json 仅允许显式 services/events/routes 加载边界');
-        }
-        foreach ($load as $path) {
-            if (!is_string($path) || $path === '' || str_starts_with($path, '/') || str_contains($path, '..') || str_contains($path, "\0")) {
-                throw new RuntimeException('plugin.json 加载路径无效');
-            }
-            $absolute = $directory . DIRECTORY_SEPARATOR . $path;
-            if (!is_file($absolute)) {
+        foreach (['services', 'events', 'routes'] as $type) {
+            $path = $data[$type] ?? null;
+            if (is_string($path) && !is_file($directory . DIRECTORY_SEPARATOR . $path)) {
                 throw new RuntimeException('plugin.json 加载文件不存在：' . $path);
+            }
+        }
+        $source = (string) file_get_contents($directory . DIRECTORY_SEPARATOR . 'Plugin.php');
+        if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['name']) {
+            throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['name']);
+        }
+        if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
+            throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
+        }
+        self::validateAdminWeb($directory, $data['admin_web'] ?? null);
+        self::validateResourceSources($directory, $data['resources'] ?? []);
+        if (isset($data['migrations']['path']) && !is_dir($directory . DIRECTORY_SEPARATOR . $data['migrations']['path'])) {
+            throw new RuntimeException('plugin.json migrations.path 目录不存在');
+        }
+    }
+
+    private static function validateAdminWeb(string $directory, mixed $adminWeb): void
+    {
+        if ($adminWeb === null) {
+            return;
+        }
+        $sourceEntry = $directory . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $adminWeb['entry']);
+        if (!is_file($sourceEntry)) {
+            throw new RuntimeException('plugin.json admin_web.entry 发布源文件不存在：' . $adminWeb['entry']);
+        }
+    }
+
+    private static function validateResourceSources(string $directory, array $resources): void
+    {
+        foreach ($resources as $resource) {
+            $source = $directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $resource['source']);
+            if (!is_dir($source)) {
+                throw new RuntimeException('plugin.json resources.source 目录不存在：' . $resource['source']);
             }
         }
     }

@@ -102,15 +102,18 @@ final class PluginCenterQueryService extends AbstractService
             if (!is_array($admin) || !is_string($admin['entry'] ?? null)) {
                 continue;
             }
-            $entry = ltrim((string) $admin['entry'], '/');
-            if ($entry === '' || str_contains($entry, '..') || !preg_match('/^[A-Za-z0-9._\/-]+$/', $entry)) {
+            $entry = (string) $admin['entry'];
+            $publishRoot = root_path() . 'public' . DIRECTORY_SEPARATOR . 'plugin-assets' . DIRECTORY_SEPARATOR . $name;
+            $realPublishRoot = realpath($publishRoot);
+            $realFile = realpath($publishRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $entry));
+            if ($realPublishRoot === false || $realFile === false || !is_file($realFile)) {
                 continue;
             }
-            $file = root_path() . 'public' . DIRECTORY_SEPARATOR . 'plugin-assets' . DIRECTORY_SEPARATOR . $name . DIRECTORY_SEPARATOR . $entry;
-            if (!is_file($file)) {
+            $prefix = rtrim($realPublishRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            if (!str_starts_with($realFile, $prefix)) {
                 continue;
             }
-            $hash = hash_file('sha256', $file);
+            $hash = hash_file('sha256', $realFile);
             $modules[] = [
                 'name' => $name,
                 'version' => (string) $record->version,

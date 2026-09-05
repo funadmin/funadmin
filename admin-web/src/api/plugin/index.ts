@@ -64,7 +64,7 @@ export interface PluginOperation {
   source: string;
   result: string;
   error_message?: string;
-  create_time: string | number;
+  createdAt: string;
 }
 
 export interface PluginRouteDto {

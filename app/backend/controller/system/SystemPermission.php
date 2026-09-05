@@ -31,7 +31,7 @@ class SystemPermission extends AdminApiController
         if ($denied = $this->requireSuperAdmin()) {
             return $denied;
         }
-        $permissions = Permission::order('sort', 'asc')->order('id', 'asc')->select()->all();
+        $permissions = Permission::order('sort_order', 'asc')->order('id', 'asc')->select()->all();
         $rows = array_map(
             fn (Permission $permission): array => $this->permissionData($permission),
             $permissions
@@ -120,7 +120,7 @@ class SystemPermission extends AdminApiController
                 'module' => $data['module'],
                 'name' => $data['name'],
                 'status' => $data['status'],
-                'sort' => $data['sort'],
+                'sort_order' => $data['sort_order'],
             ]);
             if ($resourceChanged && $oldObj !== '' && $oldAct !== '') {
                 CasbinRule::where('ptype', 'p')->where('v2', $oldObj)->where('v3', $oldAct)->delete();
@@ -214,7 +214,7 @@ class SystemPermission extends AdminApiController
             'resource_type' => $resourceType,
             'status' => $this->binaryStatus($this->request->post('status', $current['status'] ?? 1)),
             'is_public' => $this->binaryStatus($this->request->post('isPublic', $current['isPublic'] ?? 0)),
-            'sort' => max(0, (int) $this->request->post('sort', $current['sort'] ?? 999)),
+            'sort_order' => max(0, (int) $this->request->post('sort', $current['sort'] ?? 999)),
             'source_type' => (string) ($permission->source_type ?? 'manual'),
             'source_name' => (string) ($permission->source_name ?? ''),
         ];
@@ -288,11 +288,11 @@ class SystemPermission extends AdminApiController
             'resourceType' => (string) $permission->resource_type,
             'status' => (int) $permission->status,
             'isPublic' => (int) $permission->is_public,
-            'sort' => (int) $permission->sort,
+            'sort' => (int) $permission->sort_order,
             'sourceType' => (string) $permission->source_type,
             'sourceName' => (string) $permission->source_name,
-            'createdAt' => $this->formatTime($permission->create_time),
-            'updatedAt' => $this->formatTime($permission->update_time),
+            'createdAt' => $this->formatTime($permission->created_at),
+            'updatedAt' => $this->formatTime($permission->updated_at),
         ];
     }
 }

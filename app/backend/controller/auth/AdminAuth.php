@@ -85,7 +85,7 @@ class AdminAuth extends BaseController
         return $this->ok([
             'id' => (int) ($admin['id'] ?? 0),
             'username' => (string) ($admin['username'] ?? ''),
-            'nickname' => (string) (($admin['realname'] ?? '') ?: ($admin['username'] ?? '')),
+            'nickname' => (string) (($admin['real_name'] ?? '') ?: ($admin['username'] ?? '')),
             'avatar' => (string) ($admin['avatar'] ?? ''),
             'email' => (string) ($admin['email'] ?? ''),
             'mobile' => (string) ($admin['mobile'] ?? ''),
@@ -100,7 +100,7 @@ class AdminAuth extends BaseController
         $permissionIds = $auth->permissionIdsForRoles($auth->currentRoleIds());
         $menus = AdminMenu::where('source_type', 'admin_web')
             ->where('status', 1)
-            ->order('sort', 'asc')
+            ->order('sort_order', 'asc')
             ->order('id', 'asc')
             ->select();
         $allowed = [];
@@ -299,7 +299,7 @@ class AdminAuth extends BaseController
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
             'icon' => (string) $menu->icon,
             'name' => (string) $menu->name,
-            'sort' => (int) $menu->sort,
+            'sort' => (int) $menu->sort_order,
             'hidden' => $this->booleanValue($meta['hidden'] ?? false),
             'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
             'affix' => $this->booleanValue($meta['affix'] ?? false),

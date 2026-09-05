@@ -101,6 +101,103 @@ final class InstallSupport
     }
 
     /**
+     * 归一化数据库参数，支持 hostname:port 的简写。
+     */
+    public static function normalizeDatabaseInput(array $db): array
+    {
+        $db = array_map(static fn (mixed $value): string => (string) $value, $db);
+        if (preg_match('/^([^:]+):(\d+)$/', $db['host'] ?? '', $matches)) {
+            $db['host'] = $matches[1];
+            $db['port'] = $matches[2];
+        }
+        return $db;
+    }
+
+    /**
+     * 安装器统一路径，Web 与 CLI 不再各自维护。
+     */
+    public static function paths(string $rootPath): array
+    {
+        $root = rtrim($rootPath, DIRECTORY_SEPARATOR);
+        return [
+            'lock' => $root . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'install.lock',
+            'env' => $root . DIRECTORY_SEPARATOR . '.env',
+            'env_template' => $root . DIRECTORY_SEPARATOR . '.env.example',
+            'migrations' => $root . DIRECTORY_SEPARATOR . 'database' . DIRECTORY_SEPARATOR . 'migrations',
+            'runtime' => $root . DIRECTORY_SEPARATOR . 'runtime',
+            'public' => $root . DIRECTORY_SEPARATOR . 'public',
+        ];
+    }
+
+    /**
+     * 构建当前进程使用的数据库连接配置，并保留项目已有扩展项。
+     */
+    public static function databaseConfig(array $db, array $config): array
+    {
+        $connection = $config['connections']['mysql'] ?? [];
+        $config['default'] = 'mysql';
+        $config['connections']['mysql'] = array_merge($connection, [
+            'type' => 'mysql',
+            'hostname' => $db['host'],
+            'database' => $db['database'],
+            'username' => $db['username'],
+            'password' => $db['password'],
+            'hostport' => $db['port'],
+            'params' => [],
+            'charset' => 'utf8mb4',
+            'prefix' => $db['prefix'],
+            'fields_cache' => false,
+        ]);
+        return $config;
+    }
+
+    /**
+     * 执行完整安装流水线，入口层只负责采集参数和展示结果。
+     */
+    public static function install(
+        array $db,
+        array $admin,
+        bool $debug,
+        string $rootPath,
+        string $minMysqlVersion = '5.7',
+        ?callable $progress = null
+    ): array {
+        $db = self::normalizeDatabaseInput($db);
+        $error = self::validate($db, $admin);
+        if ($error !== '') {
+            throw new RuntimeException($error);
+        }
+        $paths = self::paths($rootPath);
+        $progress?->__invoke('database');
+        self::prepareDatabase($db, $minMysqlVersion);
+        config(self::databaseConfig($db, config('database')), 'database');
+        $progress?->__invoke('configuration');
+        self::writeEnvironment($paths['env'], $paths['env_template'], $db, $debug);
+        self::installSchemaAndAdmin($paths['migrations'], $admin);
+        if (!@touch($paths['lock'])) {
+            throw new RuntimeException('安装完成但无法创建 install.lock，请检查 public 目录权限');
+        }
+        $progress?->__invoke('complete');
+        return [
+            'username' => $admin['username'],
+            'password' => $admin['password'],
+            'backend' => '/admin-web/#/login',
+        ];
+    }
+
+    /**
+     * 合并写入安装环境配置。
+     */
+    public static function writeEnvironment(string $envFile, string $templatePath, array $db, bool $debug): void
+    {
+        $existing = is_file($envFile) ? (string) file_get_contents($envFile) : null;
+        $content = self::renderEnv($templatePath, $existing, $db, $debug);
+        if (!@file_put_contents($envFile, $content)) {
+            throw new RuntimeException('安装失败、请确定 .env 是否有写入权限');
+        }
+    }
+
+    /**
      * 构建 .env 中由安装器负责的键值集合。
      */
     public static function buildEnvUpdates(array $db, bool $debug): array

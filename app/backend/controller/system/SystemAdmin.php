@@ -34,7 +34,7 @@ class SystemAdmin extends AdminApiController
         $status = $this->request->get('status', null);
         if ($keyword !== '') {
             $query->where(function ($where) use ($keyword) {
-                $where->whereLike('username', '%' . $keyword . '%')->whereOr('realname', 'like', '%' . $keyword . '%');
+                $where->whereLike('username', '%' . $keyword . '%')->whereOr('real_name', 'like', '%' . $keyword . '%');
             });
         }
         if ($status !== null && $status !== '') {
@@ -73,7 +73,7 @@ class SystemAdmin extends AdminApiController
                 $admin = Admin::create([
                     'username' => $data['username'],
                     'password' => SignHelper::password($data['password']),
-                    'realname' => $data['nickname'],
+                    'real_name' => $data['nickname'],
                     'email' => $data['email'],
                     'mobile' => $data['mobile'],
                     'dept_id' => $data['deptId'],
@@ -110,7 +110,7 @@ class SystemAdmin extends AdminApiController
             $this->assertPayloadAccess($data);
             Db::transaction(function () use ($admin, $data): void {
                 $admin->save([
-                    'realname' => $data['nickname'],
+                    'real_name' => $data['nickname'],
                     'email' => $data['email'],
                     'mobile' => $data['mobile'],
                     'dept_id' => $data['deptId'],
@@ -230,7 +230,7 @@ class SystemAdmin extends AdminApiController
     {
         return [
             'username' => trim(strip_tags((string) $this->request->post('username', $admin ? $admin->username : ''))),
-            'nickname' => trim(strip_tags((string) $this->request->post('nickname', $admin ? $admin->realname : ''))),
+            'nickname' => trim(strip_tags((string) $this->request->post('nickname', $admin ? $admin->real_name : ''))),
             'email' => trim((string) $this->request->post('email', $admin ? $admin->email : '')),
             'mobile' => trim((string) $this->request->post('mobile', $admin ? $admin->mobile : '')),
             'password' => $create ? (string) $this->request->post('password', '') : '',
@@ -283,14 +283,14 @@ class SystemAdmin extends AdminApiController
         return [
             'id' => (int) $admin->id,
             'username' => (string) $admin->username,
-            'nickname' => (string) $admin->realname,
+            'nickname' => (string) $admin->real_name,
             'email' => (string) $admin->email,
             'mobile' => (string) $admin->mobile,
             'status' => (int) $admin->status,
             'deptId' => (int) $admin->dept_id,
             'roleIds' => AuthService::instance()->adminRoleIds((int) $admin->id),
-            'createdAt' => $this->formatTime($admin->create_time),
-            'updatedAt' => $this->formatTime($admin->update_time),
+            'createdAt' => $this->formatTime($admin->created_at),
+            'updatedAt' => $this->formatTime($admin->updated_at),
         ];
     }
 

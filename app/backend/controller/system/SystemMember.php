@@ -54,7 +54,7 @@ class SystemMember extends AdminApiController
     {
         return $this->ok([
             'groups' => MemberGroup::where('status', 1)->order('id', 'asc')->field('id,name')->select()->toArray(),
-            'levels' => MemberLevel::where('status', 1)->order('sort', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
+            'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
         ]);
     }
 
@@ -74,7 +74,7 @@ class SystemMember extends AdminApiController
         try {
             $member = Db::transaction(function () use ($data, $groupIds): Member {
                 $member = Member::create($data);
-                $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
+                $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 return $member;
             });
         } catch (\Throwable $exception) {
@@ -106,7 +106,7 @@ class SystemMember extends AdminApiController
         try {
             Db::transaction(function () use ($member, $data, $groupIds): void {
                 $member->save($data);
-                $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
+                $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
             });
         } catch (\Throwable $exception) {
             if ($message = $this->duplicateError($exception)) {
@@ -204,7 +204,7 @@ class SystemMember extends AdminApiController
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds): void {
                     $member = Member::create($data);
-                    $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
+                    $member->groups()->syncWithPivotValues($groupIds, ['created_at' => date('Y-m-d H:i:s')]);
                 });
                 $created++;
             } catch (\Throwable $exception) {
@@ -426,9 +426,9 @@ class SystemMember extends AdminApiController
             'loginCount' => (int) $member->login_num,
             'lastLoginAt' => $this->formatTime($member->last_login),
             'lastLoginIp' => (string) $member->last_ip,
-            'createdAt' => $this->formatTime($member->create_time),
-            'updatedAt' => $this->formatTime($member->update_time),
-            'deletedAt' => $this->formatTime($member->delete_time),
+            'createdAt' => $this->formatTime($member->created_at),
+            'updatedAt' => $this->formatTime($member->updated_at),
+            'deletedAt' => $this->formatTime($member->deleted_at),
         ];
     }
 }

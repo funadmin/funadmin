@@ -4,9 +4,22 @@
 namespace app\common\model;
 
 use think\Model;
-use think\model\concern\SoftDelete;
+
 class BaseModel extends Model
 {
+    /**
+     * 业务模型统一切换到 Laravel 风格时间字段。
+     */
+    protected function getBaseOptions(): array
+    {
+        return [
+            'autoWriteTimestamp' => 'datetime',
+            'dateFormat' => 'Y-m-d H:i:s',
+            'createTime' => 'created_at',
+            'updateTime' => 'updated_at',
+            'deleteTime' => 'deleted_at',
+        ];
+    }
 
     public function __construct(array $data = [])
     {

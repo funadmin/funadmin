@@ -160,8 +160,8 @@ class SystemAttachment extends AdminApiController
             'width' => (int) $attach->width,
             'height' => (int) $attach->height,
             'status' => (int) $attach->status,
-            'createdAt' => $this->formatTime($attach->create_time),
-            'updatedAt' => $this->formatTime($attach->update_time),
+            'createdAt' => $this->formatTime($attach->created_at),
+            'updatedAt' => $this->formatTime($attach->updated_at),
         ];
     }
 }

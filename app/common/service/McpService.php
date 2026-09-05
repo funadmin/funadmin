@@ -549,7 +549,7 @@ class McpService extends AbstractService
             switch ($action) {
                 case 'list':
                     $users = Db::name('admin')
-                        ->field('id,username,email,mobile,create_time,status')
+                        ->field('id,username,email,mobile,created_at,status')
                         ->limit($limit)
                         ->select();
                     
@@ -564,7 +564,7 @@ class McpService extends AbstractService
                     }
 
                     $user = Db::name('admin')
-                        ->field('id,username,nickname,email,mobile,create_time,status')
+                        ->field('id,username,nickname,email,mobile,created_at,status')
                         ->where('id', $userId)
                         ->find();
 
@@ -1198,7 +1198,7 @@ class {$modelClass} extends BaseModel
      * 软删除字段
      * @var string
      */
-    protected \$deleteTime = 'delete_time';
+    protected \$deleteTime = 'deleted_at';
 
 {$fieldDefinitions}
 
@@ -1333,15 +1333,15 @@ class {$modelClass} extends BaseModel
 
         // 添加默认字段（如果不存在）
         $hasId = false;
-        $hasCreateTime = false;
-        $hasUpdateTime = false;
-        $hasDeleteTime = false;
+        $hasCreatedAt = false;
+        $hasUpdatedAt = false;
+        $hasDeletedAt = false;
 
         foreach ($fields as $field) {
             if ($field['name'] === 'id') $hasId = true;
-            if ($field['name'] === 'create_time') $hasCreateTime = true;
-            if ($field['name'] === 'update_time') $hasUpdateTime = true;
-            if ($field['name'] === 'delete_time') $hasDeleteTime = true;
+            if ($field['name'] === 'created_at') $hasCreatedAt = true;
+            if ($field['name'] === 'updated_at') $hasUpdatedAt = true;
+            if ($field['name'] === 'deleted_at') $hasDeletedAt = true;
         }
 
         // 如果没有ID字段，添加默认ID字段
@@ -1349,15 +1349,15 @@ class {$modelClass} extends BaseModel
             array_unshift($fieldDefinitions, "    `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID'");
         }
 
-        // 添加默认时间字段
-        if (!$hasCreateTime) {
-            $fieldDefinitions[] = "    `create_time` int(11) DEFAULT NULL COMMENT '创建时间'";
+        // 添加 Laravel 风格默认时间字段
+        if (!$hasCreatedAt) {
+            $fieldDefinitions[] = "    `created_at` datetime DEFAULT NULL COMMENT '创建时间'";
         }
-        if (!$hasUpdateTime) {
-            $fieldDefinitions[] = "    `update_time` int(11) DEFAULT NULL COMMENT '更新时间'";
+        if (!$hasUpdatedAt) {
+            $fieldDefinitions[] = "    `updated_at` datetime DEFAULT NULL COMMENT '更新时间'";
         }
-        if (!$hasDeleteTime) {
-            $fieldDefinitions[] = "    `delete_time` int(11) DEFAULT NULL COMMENT '删除时间'";
+        if (!$hasDeletedAt) {
+            $fieldDefinitions[] = "    `deleted_at` datetime DEFAULT NULL COMMENT '删除时间'";
         }
 
         $sql .= implode(",\n", $fieldDefinitions);
@@ -2013,12 +2013,12 @@ class {$modelClass} extends BaseModel
             'price' => ['价格', 'price', '金额'],
             'amount' => ['数量', 'amount', '数量'],
             'category_id' => ['分类', 'category', '分类ID'],
-            'sort' => ['排序', 'sort', '顺序'],
+            'sort_order' => ['排序', 'sort_order', '顺序'],
             'remark' => ['备注', 'remark', '说明'],
             
             // 时间相关字段
-            'create_time' => ['创建时间', 'create_time'],
-            'update_time' => ['更新时间', 'update_time'],
+            'created_at' => ['创建时间', 'created_at'],
+            'updated_at' => ['更新时间', 'updated_at'],
             'publish_time' => ['发布时间', 'publish_time'],
             'expire_time' => ['过期时间', 'expire_time']
         ];
@@ -2174,8 +2174,8 @@ class {$modelClass} extends BaseModel
                 'null' => false,
                 'default' => 0
             ],
-            'sort' => [
-                'name' => 'sort',
+            'sort_order' => [
+                'name' => 'sort_order',
                 'type' => 'int(11)',
                 'comment' => '排序',
                 'null' => false,
@@ -2338,6 +2338,10 @@ class {$modelClass} extends BaseModel
 
             // 生成API内容
             $apiContent = $this->generateApiContent($module, $controllerClass, $fields, $description);
+            $routePath = "app/{$module}/route/api.php";
+            $routeContent = is_file($routePath) ? (string) file_get_contents($routePath) : '';
+            $routeName = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controllerClass));
+            $routeDefinition = $this->generateApiRouteDefinition($routeName, $controllerClass);
             
             // 确保目录存在
             $dir = dirname($apiPath);
@@ -2345,18 +2349,29 @@ class {$modelClass} extends BaseModel
                 mkdir($dir, 0755, true);
             }
 
-            // 写入文件
-            if (file_put_contents($apiPath, $apiContent)) {
-                Log::info("FunAdmin API文件生成成功: {$apiPath}");
-                return [
-                    'success' => true,
-                    'message' => 'API文件生成成功',
-                    'file_path' => $apiPath,
-                    'content' => $apiContent
-                ];
-            } else {
-                throw new Exception('文件写入失败');
+            if ($routeContent === '' || !str_contains($routeContent, '    // API_ROUTE_END')) {
+                throw new Exception('API 路由文件缺少 API_ROUTE_END 标记');
             }
+            $newRouteContent = str_replace(
+                '    // API_ROUTE_END',
+                $routeDefinition . "\n    // API_ROUTE_END",
+                $routeContent
+            );
+            if (file_put_contents($apiPath, $apiContent) === false) {
+                throw new Exception('API 文件写入失败');
+            }
+            if (file_put_contents($routePath, $newRouteContent) === false) {
+                unlink($apiPath);
+                throw new Exception('API 路由写入失败');
+            }
+
+            Log::info("FunAdmin API文件生成成功: {$apiPath}");
+            return [
+                'success' => true,
+                'message' => 'API文件生成成功',
+                'file_path' => $apiPath,
+                'content' => $apiContent
+            ];
 
         } catch (Exception $e) {
             Log::error('FunAdmin API文件生成错误: ' . $e->getMessage());
@@ -2407,8 +2422,8 @@ class {$modelClass} extends BaseModel
                     {type: 'checkbox'},
                     {field: 'id', title: 'ID', width: 80, sort: true},
 {$jsCols}
-                    {field: 'create_time', title: '创建时间', width: 180, sort: true},
-                    {field: 'update_time', title: '更新时间', width: 180, sort: true},
+                    {field: 'created_at', title: '创建时间', width: 180, sort: true},
+                    {field: 'updated_at', title: '更新时间', width: 180, sort: true},
                     {title: '操作', width: 250, align: 'center', operat: ['index','copy', 'destroy']}
                 ]],
                 limits: [10, 15, 20, 25, 50, 100],
@@ -2440,8 +2455,8 @@ class {$modelClass} extends BaseModel
                     {type: 'checkbox'},
                     {field: 'id', title: 'ID', width: 80, sort: true},
 {$jsCols}
-                    {field: 'create_time', title: '创建时间', width: 180, sort: true},
-                    {field: 'update_time', title: '更新时间', width: 180, sort: true},
+                    {field: 'created_at', title: '创建时间', width: 180, sort: true},
+                    {field: 'updated_at', title: '更新时间', width: 180, sort: true},
                     {title: '操作', width: 250, align: 'center', operat: ['restore', 'delete']}
                 ]],
                 limits: [10, 15, 20, 25, 50, 100,500,1000,5000],
@@ -2480,7 +2495,7 @@ class {$modelClass} extends BaseModel
         $allowedFields = array_values(array_filter(array_map(
             static fn (array $field): string => (string) ($field['name'] ?? ''),
             $fields
-        ), static fn (string $field): bool => $field !== '' && !in_array($field, ['id', 'create_time', 'update_time', 'delete_time'], true)));
+        ), static fn (string $field): bool => $field !== '' && !in_array($field, ['id', 'created_at', 'updated_at', 'deleted_at'], true)));
         $allowedFieldsCode = var_export($allowedFields, true);
         
         $content = "<?php
@@ -2634,7 +2649,7 @@ class {$controllerClass} extends Api
             $fieldType = $field['type'] ?? 'varchar';
             
             // 跳过系统字段
-            if (in_array($fieldName, ['id', 'create_time', 'update_time', 'delete_time'])) {
+            if (in_array($fieldName, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
                 continue;
             }
             
@@ -2674,6 +2689,18 @@ class {$controllerClass} extends Api
                     export: '{$controller}/export',";
     }
 
+    private function generateApiRouteDefinition(string $routeName, string $controllerClass): string
+    {
+        $controller = strtolower($controllerClass);
+        return "    Route::group('{$routeName}', function (): void {\n"
+            . "        Route::get('', 'v2.{$controller}/index');\n"
+            . "        Route::get('<id>', 'v2.{$controller}/show');\n"
+            . "        Route::post('', 'v2.{$controller}/create');\n"
+            . "        Route::put('<id>', 'v2.{$controller}/update');\n"
+            . "        Route::delete('<id>', 'v2.{$controller}/delete');\n"
+            . "    })->middleware(MApi::class);";
+    }
+
     /**
      * 生成API验证规则
      * @param array $fields 字段信息
@@ -2691,7 +2718,7 @@ class {$controllerClass} extends Api
             $fieldName = $field['name'] ?? '';
             $fieldType = $field['type'] ?? 'varchar';
             
-            if (empty($fieldName) || in_array($fieldName, ['id', 'create_time', 'update_time', 'delete_time'])) {
+            if (empty($fieldName) || in_array($fieldName, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
                 continue;
             }
             
@@ -2860,7 +2887,7 @@ EOF;
         $content = "<form class=\"layui-form\" lay-filter=\"form\">\n";
         
         foreach ($fields as $field) {
-            if (in_array($field['name'], ['id', 'create_time', 'update_time', 'delete_time'])) {
+            if (in_array($field['name'], ['id', 'created_at', 'updated_at', 'deleted_at'])) {
                 continue;
             }
             $fieldName = $field['name'];

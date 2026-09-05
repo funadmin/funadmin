@@ -15,7 +15,7 @@
 namespace app\backend\model;
 
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class AttachGroup extends BackendModel
 {
@@ -23,7 +23,7 @@ class AttachGroup extends BackendModel
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
 

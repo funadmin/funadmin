@@ -22,5 +22,8 @@ Route::group('v2', function (): void {
     ]);
     Route::post('token/refresh', 'v2.token/refresh');
     Route::get('member', 'v2.member/show')->middleware(MApi::class);
+
+    // API_ROUTE_START
+    // API_ROUTE_END
 });
 

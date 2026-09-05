@@ -15,9 +15,6 @@ use think\console\Output;
 
 class Install extends Command
 {
-    /** MySQL 最低版本 */
-    private const MYSQL_MIN_VERSION = '5.7';
-
     protected function configure()
     {
         $config = config('database.connections')[config('database.default')] ?? [];
@@ -27,9 +24,9 @@ class Install extends Command
             ->addOption('database', 'd', Option::VALUE_OPTIONAL, 'database name', $config['database'] ?? 'funadmin')
             ->addOption('prefix', 'x', Option::VALUE_OPTIONAL, 'table prefix', $config['prefix'] ?? 'fun_')
             ->addOption('username', 'u', Option::VALUE_OPTIONAL, 'mysql username', $config['username'] ?? 'root')
-            ->addOption('password', 'p', Option::VALUE_OPTIONAL, 'mysql password', $config['password'] ?? '')
+            ->addOption('password', 'p', Option::VALUE_OPTIONAL, 'mysql password', '')
             ->addOption('force', 'f', Option::VALUE_OPTIONAL, 'force reinstall when install.lock exists', false)
-            ->addOption('app_debug', 'debug', Option::VALUE_OPTIONAL, 'enable app debug after install', 1)
+            ->addOption('app_debug', null, Option::VALUE_OPTIONAL, 'enable app debug after install', 1)
             ->setDescription('FunAdmin install command');
     }
 
@@ -40,27 +37,24 @@ class Install extends Command
             $output->highlight('已经安装了,如需重新安装请输入 -f 1或 --force 1');
             return 0;
         }
-        $appDebug = (bool) $input->getOption('app_debug');
         $this->detectEnvironment();
         $installInput = $this->collectInstallInput($input);
-        $error = InstallSupport::validate($installInput['db'], $installInput['admin']);
-        if ($error !== '') {
-            $output->error($error);
-            return 1;
-        }
         try {
-            $output->highlight('连接数据库...');
-            InstallSupport::prepareDatabase($installInput['db'], self::MYSQL_MIN_VERSION);
-            $output->highlight('修改数据配置中...');
-            $this->applyDatabaseConfig($installInput['db']);
-            $this->writeEnvConfig($installInput['db'], $appDebug);
-            InstallSupport::installSchemaAndAdmin($this->sqlFileDir(), $installInput['admin']);
+            InstallSupport::install(
+                $installInput['db'],
+                $installInput['admin'],
+                (bool) $input->getOption('app_debug'),
+                root_path(),
+                progress: static function (string $stage) use ($output): void {
+                    match ($stage) {
+                        'database' => $output->highlight('连接数据库...'),
+                        'configuration' => $output->highlight('修改数据配置中...'),
+                        default => null,
+                    };
+                }
+            );
         } catch (\Throwable $e) {
             $output->error($e->getMessage());
-            return 1;
-        }
-        if (!@touch($this->lockFile())) {
-            $output->error('安装完成但无法创建 install.lock，请检查 public 目录权限');
             return 1;
         }
         $output->highlight('数据库安装完成...');
@@ -93,7 +87,7 @@ class Install extends Command
             $this->output->error('runtime path is not writeable');
             exit(1);
         }
-        $sqlFiles = glob($this->sqlFileDir() . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+        $sqlFiles = glob(InstallSupport::paths(root_path())['migrations'] . DIRECTORY_SEPARATOR . '*.sql') ?: [];
         if (!$sqlFiles) {
             $this->output->error('migration 文件不存在');
             exit(1);
@@ -120,8 +114,9 @@ class Install extends Command
             'username' => (string) $input->getOption('username'),
             'password' => (string) $input->getOption('password'),
         ];
-        if (is_file($this->envFile())) {
-            $env = parse_ini_file($this->envFile(), false, INI_SCANNER_RAW) ?: [];
+        $envFile = InstallSupport::paths(root_path())['env'];
+        if (is_file($envFile)) {
+            $env = parse_ini_file($envFile, false, INI_SCANNER_RAW) ?: [];
             $base = [
                 'host' => (string) ($env['DB_HOST'] ?? $base['host']),
                 'port' => (string) ($env['DB_PORT'] ?? $base['port']),
@@ -140,11 +135,7 @@ class Install extends Command
             'username' => $ask('👉 Set mysql username default(' . $base['username'] . ')', $base['username']),
             'password' => $ask('👉 Set mysql password', $base['password']),
         ];
-        $hostData = explode(':', $db['host']);
-        if (count($hostData) > 1) {
-            $db['host'] = $hostData[0];
-            $db['port'] = $hostData[1];
-        }
+        $db = InstallSupport::normalizeDatabaseInput($db);
         $admin = [
             'username' => $ask('👉 Set admin username default(admin)', 'admin'),
             'password' => $ask('👉 Set admin password default(admin123456)', 'admin123456'),
@@ -154,61 +145,10 @@ class Install extends Command
         return ['db' => $db, 'admin' => $admin];
     }
 
-    /**
-     * 将安装参数应用到当前进程，供随后的迁移使用，不写入受版本控制的配置文件。
-     */
-    private function applyDatabaseConfig(array $db): void
-    {
-        $config = config('database');
-        $config['default'] = 'mysql';
-        $config['connections']['mysql'] = [
-            'type' => 'mysql',
-            'hostname' => $db['host'],
-            'database' => $db['database'],
-            'username' => $db['username'],
-            'password' => $db['password'],
-            'hostport' => $db['port'],
-            'params' => [],
-            'charset' => 'utf8mb4',
-            'prefix' => $db['prefix'],
-            'fields_cache' => false,
-        ];
-        config($config, 'database');
-    }
-
-    /**
-     * 回写 .env：已存在时合并更新保留 JWT 等自定义键，全新安装才按模板写入。
-     */
-    private function writeEnvConfig(array $db, bool $debug): void
-    {
-        $existing = is_file($this->envFile()) ? (string) file_get_contents($this->envFile()) : null;
-        $putEnv = InstallSupport::renderEnv($this->envTemplate(), $existing, $db, $debug);
-        if (!@file_put_contents($this->envFile(), $putEnv)) {
-            throw new \RuntimeException('安装失败、请确定 .env 是否有写入权限');
-        }
-    }
-
     /** 安装锁文件，存在即视为已安装 */
     private function lockFile(): string
     {
-        return public_path() . 'install.lock';
+        return InstallSupport::paths(root_path())['lock'];
     }
 
-    /** 安装时回写的 .env 文件 */
-    private function envFile(): string
-    {
-        return root_path() . '.env';
-    }
-
-    /** .env 基础模板 */
-    private function envTemplate(): string
-    {
-        return root_path() . '.env.example';
-    }
-
-    /** 迁移 SQL 目录：安装期间按文件名顺序执行，仅向前 */
-    private function sqlFileDir(): string
-    {
-        return root_path() . 'database' . DIRECTORY_SEPARATOR . 'migrations';
-    }
 }

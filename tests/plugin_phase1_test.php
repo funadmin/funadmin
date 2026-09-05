@@ -31,6 +31,8 @@ function expectException(callable $callback, string $contains): void
 
 $root = sys_get_temp_dir() . '/funadmin-plugin-phase1-' . bin2hex(random_bytes(4));
 mkdir($root . '/demo/config', 0755, true);
+mkdir($root . '/demo/resources/admin', 0755, true);
+file_put_contents($root . '/demo/resources/admin/entry.js', 'export const register = () => ({ components: {} });');
 file_put_contents($root . '/demo/Plugin.php', '<?php namespace plugins\\demo; final class Plugin {}');
 file_put_contents($root . '/demo/config/service.php', '<?php return ["DemoService"];');
 file_put_contents($root . '/demo/config/event.php', '<?php return ["listen" => []];');
@@ -45,10 +47,13 @@ file_put_contents($root . '/demo/plugin.json', json_encode([
         'funadmin' => '>=1.0.0',
         'plugins' => ['base' => '^2.0'],
     ],
-    'load' => [
-        'services' => 'config/service.php',
-        'events' => 'config/event.php',
-        'routes' => 'config/route.php',
+    'entry' => ['class' => 'plugins\\demo\\Plugin'],
+    'services' => 'config/service.php',
+    'events' => 'config/event.php',
+    'routes' => 'config/route.php',
+    'admin_web' => [
+        'entry' => 'entry.js',
+        'routes' => [],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
@@ -60,9 +65,19 @@ expect($manifest->loadPath('services') === $root . '/demo/config/service.php', '
 expectException(static fn () => Manifest::fromDirectory($root . '/missing'), 'plugin.json');
 file_put_contents($root . '/demo/plugin.ini', 'name=legacy');
 expect(Manifest::fromDirectory($root . '/demo')->name() === 'demo', '不得读取 plugin.ini');
+$invalidAdminManifest = json_decode((string) file_get_contents($root . '/demo/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
+$invalidAdminManifest['admin_web']['entry'] = 'resources/admin/entry.js';
+file_put_contents($root . '/demo/plugin.json', json_encode($invalidAdminManifest, JSON_UNESCAPED_UNICODE));
+expectException(static fn () => Manifest::fromDirectory($root . '/demo'), 'admin_web.entry');
+$invalidAdminManifest['admin_web']['entry'] = '../entry.js';
+file_put_contents($root . '/demo/plugin.json', json_encode($invalidAdminManifest, JSON_UNESCAPED_UNICODE));
+expectException(static fn () => Manifest::fromDirectory($root . '/demo'), 'admin_web.entry');
+$invalidAdminManifest['admin_web']['entry'] = 'entry.js';
+file_put_contents($root . '/demo/plugin.json', json_encode($invalidAdminManifest, JSON_UNESCAPED_UNICODE));
+$manifest = Manifest::fromDirectory($root . '/demo');
 
 $states = LifecycleState::all();
-expect($states === ['discovered', 'installing', 'disabled', 'enabling', 'enabled', 'disabling', 'uninstalling', 'failed'], '状态集合必须显式固定');
+expect($states === ['discovered', 'installing', 'disabled', 'updating', 'enabling', 'enabled', 'disabling', 'uninstalling', 'failed'], '状态集合必须显式固定');
 expect(LifecycleState::canTransition('discovered', 'installing'), '发现态应可进入安装中');
 expect(LifecycleState::canTransition('discovered', 'failed'), '发现态预校验失败必须可落 failed');
 expect(LifecycleState::canTransition('installing', 'disabled'), '安装完成应保持禁用');
@@ -105,7 +120,7 @@ file_put_contents($root . '/base/plugin.json', json_encode([
     'title' => '基础插件',
     'version' => '2.3.0',
     'requires' => ['plugins' => ['demo' => '^1.0']],
-    'load' => [],
+    'entry' => ['class' => 'plugins\\base\\Plugin'],
 ], JSON_UNESCAPED_UNICODE));
 $baseManifest = Manifest::fromDirectory($root . '/base');
 expectException(static fn () => $validator->assertAcyclic([
@@ -134,10 +149,10 @@ expect(array_keys($boundaries) === ['services', 'events', 'routes'], '仅允许�
 expect(!in_array($root . '/demo/config.php', $boundaries, true), '不得隐式加载插件文件');
 expectException(static function () use ($root): void {
     $data = json_decode((string) file_get_contents($root . '/demo/plugin.json'), true);
-    $data['load']['routes'] = '../outside.php';
+    $data['routes'] = '../outside.php';
     file_put_contents($root . '/demo/plugin.json', json_encode($data));
     Manifest::fromDirectory($root . '/demo');
-}, '加载路径');
+}, '$.routes 格式无效');
 
 $routeSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Route.php');
 expect(!str_contains((string) $routeSource, '$pluginsRouteConfig'), 'Route 不得引用未定义的 pluginsRouteConfig');
@@ -148,9 +163,13 @@ expect(!str_contains((string) $serviceSource, 'error_reporting('), '运行时服
 expect(!str_contains((string) $serviceSource, "'plugin.ini'"), '运行时服务不得读取 plugin.ini');
 expect(!str_contains((string) $serviceSource, "'service.ini'"), '运行时服务不得读取 service.ini');
 expect(!str_contains((string) $serviceSource, "config('plugins.route'"), '运行时服务不得加载旧的全局路由配置');
-expect(str_contains((string) $serviceSource, 'whereNull(\'delete_time\')'), 'Registry 查询必须兼容 delete_time=NULL');
-expect(str_contains((string) $serviceSource, "whereOr('delete_time', 0)"), 'Registry 查询必须兼容 delete_time=0');
+expect(str_contains((string) $serviceSource, "whereNull('deleted_at')"), 'Registry 查询必须只读取未软删除记录');
 expect(str_contains((string) $serviceSource, 'RuntimeLoader'), '运行时服务必须通过显式加载器加载边界');
+expect(!str_contains((string) $serviceSource, '$this->autoload()'), '运行时服务不得保留旧 autoload 状态旁路');
+expect(!str_contains((string) $serviceSource, 'plugins_vendor_autoload'), '运行时服务不得隐式加载插件 vendor');
+expect(!str_contains((string) $serviceSource, 'middleware.php'), '运行时服务不得导入插件全局中间件');
+expect(!str_contains((string) $serviceSource, 'Route::execute'), '运行时服务不得注册旧通配控制器路由');
+expect(!str_contains((string) $serviceSource, 'Cache::'), '运行时服务不得建立旧缓存状态旁路');
 $functionsSource = file_get_contents(dirname(__DIR__) . '/extend/fun/functions/plugin.php');
 expect(!str_contains((string) $functionsSource, 'get_class_methods('), '不得扫描插件 public methods 自动生成 hooks');
 expect(!preg_match('/function refreshplugins\(\)[\s\S]*config[^;]*plugins\.php/', (string) $functionsSource), 'refreshplugins 不得回写 config/plugins.php');
@@ -161,6 +180,11 @@ expect(str_contains((string) $pluginServiceSource, 'finally'), '生命周期服�
 expect(str_contains((string) $pluginServiceSource, 'operation_token'), '生命周期操作必须持久化 operation_token');
 expect(str_contains((string) $pluginServiceSource, "'operation_token' => null"), '生命周期完成或失败必须清空 operation_token');
 expect(!str_contains((string) $pluginServiceSource, '->status'), '插件生命周期逻辑不得读取旧 status');
+$beforeUpdatePosition = strpos((string) $pluginServiceSource, '$plugin->beforeUpdate(');
+$rollbackBoundaryPosition = strpos((string) $pluginServiceSource, '$this->deploymentRollbackAllowed = false;', $beforeUpdatePosition);
+expect($beforeUpdatePosition !== false && $rollbackBoundaryPosition !== false && $beforeUpdatePosition < $rollbackBoundaryPosition, 'beforeUpdate 成功前必须保持部署可回滚');
+expect(str_contains((string) $pluginServiceSource, 'captureDeploymentState'), '包部署必须捕获 Plugin 数据库旧快照');
+expect(str_contains((string) $pluginServiceSource, 'suppressFailureRecording'), '恢复旧快照后不得再覆盖为 failed');
 expect(!preg_match('/->save\(\[[^]]*[\'\"]lifecycle_state[\'\"]/', (string) $pluginServiceSource), '生命周期状态写入不得绕过 LifecycleState');
 expect(str_contains((string) $pluginServiceSource, 'assertNoEnabledDependents'), '禁用和卸载必须检查反向依赖');
 expect(substr_count((string) $pluginServiceSource, 'validatedManifest(') >= 4, '安装、更新和启用均必须重检 manifest 与依赖');

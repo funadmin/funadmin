@@ -20,6 +20,9 @@ final class PluginPackagePipeline
      * @param null|callable(array): mixed $history
      * @param null|callable(string): void $logger
      * @param null|callable(string, string, callable): mixed $coordinator
+     * @param null|callable(string): array $captureState
+     * @param null|callable(string, array): void $restoreState
+     * @param null|callable(string, string, string): void $deployGuard
      */
     public function __construct(
         private readonly object $packages,
@@ -27,7 +30,10 @@ final class PluginPackagePipeline
         private readonly mixed $rollbackAllowed,
         private readonly mixed $history = null,
         private readonly mixed $logger = null,
-        private readonly mixed $coordinator = null
+        private readonly mixed $coordinator = null,
+        private readonly mixed $captureState = null,
+        private readonly mixed $restoreState = null,
+        private readonly mixed $deployGuard = null
     ) {
     }
 
@@ -41,7 +47,12 @@ final class PluginPackagePipeline
             static fn (): bool => $plugins->canRollbackDeployment(),
             static fn (array $data): mixed => PluginPackageHistoryService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
-            static fn (string $operation, string $name, callable $callback): mixed => $plugins->runPackageOperation($operation, $name, $callback)
+            static fn (string $operation, string $name, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $name, $callback, $context),
+            static fn (string $name): array => $plugins->captureDeploymentState($name),
+            static function (string $name, array $state) use ($plugins): void {
+                $plugins->restoreDeploymentState($name, $state);
+            },
+            static fn (string $name, string $version, string $maxDbVersion): mixed => $plugins->assertPackageDeployable($name, $version, $maxDbVersion)
         );
     }
 
@@ -126,6 +137,16 @@ final class PluginPackagePipeline
 
         $staged = $this->packages->stage($archive, $expectedName, $expectedVersion);
         $name = (string) ($staged['name'] ?? '');
+        $targetVersion = (string) ($staged['version'] ?? '');
+        $maxDbVersion = $this->maxDatabaseVersion($staged);
+        if (is_callable($this->deployGuard)) {
+            ($this->deployGuard)($name, $targetVersion, $maxDbVersion);
+        }
+        $context = [
+            'source' => $source,
+            'package_hash' => $packageHash,
+            'code_version' => $targetVersion,
+        ];
         $executionStarted = false;
         $execute = function (string $fromVersion = '') use (
             &$executionStarted,
@@ -135,17 +156,19 @@ final class PluginPackagePipeline
             $source,
             $migrate,
             $packageHash,
+            $maxDbVersion,
             $verification
         ): array {
             $executionStarted = true;
             $backup = null;
             $deployed = false;
+            $deploymentState = is_callable($this->captureState) ? ($this->captureState)($name) : [];
             try {
                 $backup = $this->packages->deploy($staged, $name);
                 $deployed = true;
                 ($this->lifecycle)($operation, $name, $migrate);
             } catch (\Throwable $exception) {
-                $this->cleanupFailure($staged, $name, $backup, $deployed, $exception);
+                $this->cleanupFailure($staged, $name, $backup, $deployed, $deploymentState, $exception);
                 $this->recordHistory([
                     'name' => $name,
                     'version' => (string) ($staged['version'] ?? ''),
@@ -153,6 +176,7 @@ final class PluginPackagePipeline
                     'operation' => $operation,
                     'source' => $source,
                     'package_hash' => $packageHash,
+                    'max_db_version' => $maxDbVersion,
                     'status' => 'failed',
                     'error' => $exception->getMessage(),
                 ] + $verification);
@@ -167,6 +191,7 @@ final class PluginPackagePipeline
                 'operation' => $operation,
                 'source' => $source,
                 'package_hash' => $packageHash,
+                'max_db_version' => $maxDbVersion,
             ] + $verification;
             if ($cleanupWarning !== null) {
                 $result['warnings'] = [$cleanupWarning];
@@ -179,7 +204,7 @@ final class PluginPackagePipeline
 
         try {
             return is_callable($this->coordinator)
-                ? ($this->coordinator)($operation, $name, $execute)
+                ? ($this->coordinator)($operation, $name, $execute, $context)
                 : $execute('');
         } catch (\Throwable $exception) {
             if (!$executionStarted) {
@@ -189,15 +214,31 @@ final class PluginPackagePipeline
         }
     }
 
-    private function cleanupFailure(array $staged, string $name, ?string $backup, bool $deployed, \Throwable $original): void
+    private function maxDatabaseVersion(array $staged): string
+    {
+        $manifest = (array) ($staged['manifest'] ?? []);
+        $relative = (string) ($manifest['migrations']['path'] ?? 'migrations');
+        $directory = rtrim((string) ($staged['plugin_directory'] ?? ''), DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        $versions = array_map('basename', glob($directory . DIRECTORY_SEPARATOR . '*.sql') ?: []);
+        sort($versions, SORT_NATURAL);
+        return (string) ($versions === [] ? '' : end($versions));
+    }
+
+    private function cleanupFailure(array $staged, string $name, ?string $backup, bool $deployed, array $deploymentState, \Throwable $original): void
     {
         try {
             if ($deployed && ($this->rollbackAllowed)()) {
                 $this->packages->rollback($name, $backup);
+                if (is_callable($this->restoreState)) {
+                    ($this->restoreState)($name, $deploymentState);
+                }
                 $this->packages->discard($staged);
                 return;
             }
-            $this->packages->finish($staged, $backup);
+            $this->packages->discard($staged);
+            $recoveryPath = $backup ?: (string) ($staged['stage_directory'] ?? '');
+            $this->log('插件包发生不可回滚失败，已保留人工恢复路径：' . $recoveryPath . '；原异常：' . $original->getMessage());
         } catch (\Throwable $cleanupException) {
             $this->log('插件包失败清理异常：' . $cleanupException->getMessage() . '；原异常：' . $original->getMessage());
         }

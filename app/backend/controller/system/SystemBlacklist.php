@@ -224,9 +224,9 @@ class SystemBlacklist extends AdminApiController
             'ip' => (string) $item->ip,
             'remark' => (string) ($item->remark ?? ''),
             'status' => (int) $item->status,
-            'createdAt' => $this->formatTime($item->create_time),
-            'updatedAt' => $this->formatTime($item->update_time),
-            'deletedAt' => $this->formatTime($item->delete_time),
+            'createdAt' => $this->formatTime($item->created_at),
+            'updatedAt' => $this->formatTime($item->updated_at),
+            'deletedAt' => $this->formatTime($item->deleted_at),
         ];
     }
 }

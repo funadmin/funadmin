@@ -13,14 +13,14 @@
  */
 namespace app\backend\model;
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Admin extends BackendModel {
 
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

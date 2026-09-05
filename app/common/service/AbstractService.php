@@ -47,11 +47,6 @@ abstract class AbstractService
         return $this;
     }
 
-    protected function clearApplicationCache(): void
-    {
-        Cache::clear();
-    }
-
     /**
      * 静态实例对象
      * @param array $args
@@ -60,5 +55,13 @@ abstract class AbstractService
     public static function instance(...$args)
     {
         return Container::getInstance()->make(static::class, $args);
+    }
+
+    /**
+     * 清理应用级全局缓存，供确有全局失效需求的服务复用。
+     */
+    protected function clearApplicationCache(): void
+    {
+        Cache::clear();
     }
 }

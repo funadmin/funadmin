@@ -92,7 +92,7 @@ class SystemRole extends AdminApiController
     public function permissionTree(): Response
     {
         $auth = AuthService::instance();
-        $query = Permission::where('status', 1)->order('sort', 'asc')->order('id', 'asc');
+        $query = Permission::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
         if (!$auth->isSuperAdmin()) {
             $query->whereIn('id', $auth->permissionIdsForRoles($auth->currentRoleIds()) ?: [0]);
         }
@@ -104,7 +104,7 @@ class SystemRole extends AdminApiController
                 'name' => (string) $permission->name,
                 'type' => (string) $permission->resource_type === Permission::TYPE_GROUP ? 'M' : 'B',
                 'path' => '',
-                'sort' => (int) $permission->sort,
+                'sort' => (int) $permission->sort_order,
                 'hidden' => false,
                 'keepAlive' => false,
                 'affix' => false,
@@ -322,7 +322,7 @@ class SystemRole extends AdminApiController
         $inheritRows = array_map(static fn (int $parentId): array => [
             'role_id' => $roleId,
             'parent_role_id' => $parentId,
-            'create_time' => time(),
+            'created_at' => time()
         ], $data['parentRoleIds']);
         if ($inheritRows) {
             (new AuthGroupInherit())->saveAll($inheritRows);
@@ -333,7 +333,7 @@ class SystemRole extends AdminApiController
             $departmentRows = array_map(static fn (int $departmentId): array => [
                 'role_id' => $roleId,
                 'dept_id' => $departmentId,
-                'create_time' => time(),
+                'created_at' => time()
             ], $data['departmentIds']);
             (new AuthGroupDepartment())->saveAll($departmentRows);
         }
@@ -354,7 +354,7 @@ class SystemRole extends AdminApiController
             'parentRoleIds' => array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
             'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->column('dept_id')),
             'permissionIds' => AuthService::instance()->rolePermissionIds($roleId),
-            'createdAt' => $this->formatTime($role->create_time),
+            'createdAt' => $this->formatTime($role->created_at),
         ];
     }
 

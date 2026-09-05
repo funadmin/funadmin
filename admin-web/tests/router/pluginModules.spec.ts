@@ -33,6 +33,17 @@ describe('pluginModules', () => {
     expect(isAllowedPluginModuleUrl('/plugin-assets/../admin/index.js', 'https://admin.example.com')).toBe(false);
   });
 
+  it('加载标准 fixture 发布根下的 entry.js', async () => {
+    const router = routerStub();
+    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
+    const result = await syncPluginModules(router, [
+      descriptor('example', '/plugin-assets/example/entry.js?v=' + 'a'.repeat(64))
+    ], { origin: 'https://admin.example.com', importer });
+
+    expect(result.loaded).toEqual(['example']);
+    expect(importer).toHaveBeenCalledWith(`https://admin.example.com/plugin-assets/example/entry.js?v=${'a'.repeat(64)}`);
+  });
+
   it('隔离单个插件加载失败并挂载其余插件', async () => {
     const router = routerStub();
     const importer = vi.fn(async (url: string): Promise<PluginEsmModule> => {

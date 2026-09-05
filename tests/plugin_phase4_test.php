@@ -48,7 +48,10 @@ $manifest = Manifest::fromDirectory($fixture);
 phase4Expect($manifest->name() === 'example', 'fixture manifest 名称无效');
 phase4Expect(array_keys((new RuntimeLoader())->boundaries($manifest)) === ['services', 'events', 'routes'], 'fixture 必须声明完整显式加载边界');
 $fixtureManifest = $manifest->toArray();
-phase4Expect(($fixtureManifest['admin_web']['entry'] ?? null) === 'resources/admin/entry.js', 'fixture 必须声明 Admin ESM 入口');
+phase4Expect(($fixtureManifest['admin_web']['entry'] ?? null) === 'entry.js', 'fixture Admin ESM 入口必须相对于发布根');
+phase4Expect(is_file($fixture . '/resources/admin/' . $fixtureManifest['admin_web']['entry']), '标准 fixture 的发布源入口必须存在');
+$template = (string) file_get_contents($templateDirectory . '/json.tpl');
+phase4Expect(str_contains($template, '"entry": "entry.js"'), '生成器 manifest 入口必须相对于发布根');
 phase4Expect(is_dir($fixture . '/resources/public'), 'fixture 必须包含公开资源目录');
 phase4Expect(is_dir($fixture . '/migrations'), 'fixture 必须包含 migration 目录');
 

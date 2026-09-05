@@ -27,7 +27,7 @@ class SystemDict extends AdminApiController
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = DictType::order('sort', 'asc')->order('id', 'asc');
+        $query = DictType::order('sort_order', 'asc')->order('id', 'asc');
 
         $name = trim((string) $this->request->get('name', ''));
         $code = trim((string) $this->request->get('code', ''));
@@ -115,7 +115,7 @@ class SystemDict extends AdminApiController
         $page = $this->page();
         $pageSize = $this->pageSize();
         $typeCode = trim((string) $this->request->get('typeCode', ''));
-        $query = DictItem::order('sort', 'asc')->order('id', 'asc');
+        $query = DictItem::order('sort_order', 'asc')->order('id', 'asc');
 
         if ($typeCode !== '') {
             $type = DictType::where('code', $typeCode)->find();
@@ -228,7 +228,7 @@ class SystemDict extends AdminApiController
 
         $items = DictItem::where('type_id', $type->id)
             ->where('status', 1)
-            ->order('sort', 'asc')
+            ->order('sort_order', 'asc')
             ->order('id', 'asc')
             ->select();
 
@@ -264,7 +264,7 @@ class SystemDict extends AdminApiController
 
         $items = DictItem::whereIn('type_id', array_keys($typeCodes))
             ->where('status', 1)
-            ->order('sort', 'asc')
+            ->order('sort_order', 'asc')
             ->order('id', 'asc')
             ->select();
         foreach ($items as $item) {
@@ -327,6 +327,10 @@ class SystemDict extends AdminApiController
         if (isset($result['status'])) {
             $result['status'] = $this->binaryStatus($result['status']);
         }
+        if (array_key_exists('sort', $result)) {
+            $result['sort_order'] = $result['sort'];
+            unset($result['sort']);
+        }
         return $result;
     }
 
@@ -371,9 +375,9 @@ class SystemDict extends AdminApiController
             'code' => (string) $type->code,
             'name' => (string) $type->name,
             'status' => (int) $type->status,
-            'sort' => (int) $type->sort,
+            'sort' => (int) $type->sort_order,
             'remark' => (string) $type->remark,
-            'createdAt' => $this->formatTime($type->create_time),
+            'createdAt' => $this->formatTime($type->created_at),
         ];
     }
 
@@ -384,7 +388,7 @@ class SystemDict extends AdminApiController
             'typeCode' => $typeCode,
             'label' => (string) $item->label,
             'value' => (string) $item->value,
-            'sort' => (int) $item->sort,
+            'sort' => (int) $item->sort_order,
             'status' => (int) $item->status,
             'cssClass' => (string) $item->css_class,
             'remark' => (string) $item->remark,

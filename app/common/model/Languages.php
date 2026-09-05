@@ -12,7 +12,7 @@
  */
 
 namespace app\common\model;
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Languages extends BaseModel
 {
@@ -20,7 +20,7 @@ class Languages extends BaseModel
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

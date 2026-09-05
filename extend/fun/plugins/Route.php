@@ -39,9 +39,7 @@ class Route
         $request->setController($controller)->setAction($action);
         // 仅以数据库生命周期状态判定，避免为未启用插件实例化入口类。
         $record = \app\common\model\Plugin::where('name', $plugin)
-            ->where(function ($query): void {
-                $query->whereNull('delete_time')->whereOr('delete_time', 0);
-            })
+            ->whereNull('deleted_at')
             ->where('lifecycle_state', 'enabled')
             ->find();
         if (!$record) {

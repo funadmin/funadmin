@@ -8,11 +8,13 @@ const readProjectFile = (relativePath: string) => readFileSync(
 );
 
 const migration = readProjectFile('../database/migrations/006_schema_integrity.sql');
-const followup = readProjectFile('../database/migrations/014_schema_integrity_followup.sql');
+const integrityFollowup = readProjectFile('../database/migrations/018_schema_integrity_followup.sql');
+const followup = readProjectFile('../database/migrations/020_schema_integrity_finalize.sql');
 const migrationService = readProjectFile('../app/common/service/MigrationService.php');
 const systemMember = readProjectFile('../app/backend/controller/system/SystemMember.php');
 
 const normalizedSql = migration.replace(/\s+/g, ' ');
+const normalizedIntegrityFollowup = integrityFollowup.replace(/\s+/g, ' ');
 const normalizedFollowup = followup.replace(/\s+/g, ' ');
 const filteredQuery = systemMember.match(
   /private function filteredQuery\([\s\S]*?(?=\n    private function )/
@@ -63,7 +65,14 @@ describe('006_schema_integrity migration 源码契约', () => {
     expect(mobileDuplicateCheckAt).toBeGreaterThan(normalizeMobileAt);
   });
 
-  it('已存在会员分组关联表时校验两端外键约束', () => {
+  it('复合主键与 group-first 索引按顺序正确聚合且保持严格列数', () => {
+    for (const source of [normalizedIntegrityFollowup, normalizedFollowup]) {
+      expect(source).toMatch(/HAVING COUNT\(\*\) = 2 AND MAX\(IF\((?:ORDINAL_POSITION|SEQ_IN_INDEX) = 1 AND COLUMN_NAME = ['"]member_id['"], 1, 0\)\) = 1 AND MAX\(IF\((?:ORDINAL_POSITION|SEQ_IN_INDEX) = 2 AND COLUMN_NAME = ['"]group_id['"], 1, 0\)\) = 1/i);
+      expect(source).toMatch(/GROUP BY INDEX_NAME HAVING MAX\(IF\(SEQ_IN_INDEX = 1 AND COLUMN_NAME = ['"]group_id['"], 1, 0\)\) = 1/i);
+    }
+  });
+
+  it('已存在会员分组关联表时严格校验两端外键删除规则', () => {
     const constraintInspectionAt = normalizedFollowup.search(
       /information_schema\.(?:TABLE_CONSTRAINTS|KEY_COLUMN_USAGE|REFERENTIAL_CONSTRAINTS)[\s\S]{0,800}TABLE_NAME\s*=\s*['"]fun_member_group_relation['"]/i
     );
@@ -74,8 +83,10 @@ describe('006_schema_integrity migration 源码契约', () => {
     expect(constraintInspectionAt).toBeGreaterThan(-1);
     expect(existingTableHandling).toMatch(/(?:member_id|fk_member_group_relation_member)/i);
     expect(existingTableHandling).toMatch(/(?:group_id|fk_member_group_relation_group)/i);
+    expect(existingTableHandling).toMatch(/DELETE_RULE\s*=\s*['"]CASCADE['"]/i);
+    expect(existingTableHandling).toMatch(/DELETE_RULE\s*=\s*['"]RESTRICT['"]/i);
     expect(existingTableHandling).toMatch(
-      /(?:schema_integrity_(?:guard|error)_014|SIGNAL\s+SQLSTATE)/i
+      /(?:schema_integrity_(?:guard|error)_020|SIGNAL\s+SQLSTATE)/i
     );
   });
 

@@ -25,6 +25,16 @@ final class RuntimeLoader
         return $boundaries;
     }
 
+    public function loadEntry(Manifest $manifest): void
+    {
+        $file = $manifest->directory() . DIRECTORY_SEPARATOR . 'Plugin.php';
+        require_once $file;
+        $class = (string) ($manifest->toArray()['entry']['class'] ?? '');
+        if ($class === '' || !class_exists($class, false)) {
+            throw new RuntimeException('插件入口类加载失败：' . $class);
+        }
+    }
+
     public function loadServices(App $app, Manifest $manifest): void
     {
         $file = $manifest->loadPath('services');

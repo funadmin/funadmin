@@ -38,7 +38,7 @@ class AdminProfile extends AdminApiController
         $input = $this->request->param();
         $data = [];
         $fieldMap = [
-            'nickname' => 'realname',
+            'nickname' => 'real_name',
             'avatar' => 'avatar',
             'email' => 'email',
             'mobile' => 'mobile',
@@ -48,8 +48,8 @@ class AdminProfile extends AdminApiController
                 $data[$modelField] = trim(strip_tags((string) $input[$inputField]));
             }
         }
-        $data['realname'] = $data['realname'] ?? (string) $admin->realname;
-        if ($data['realname'] === '' || mb_strlen($data['realname']) > 50) {
+        $data['real_name'] = $data['real_name'] ?? (string) $admin->real_name;
+        if ($data['real_name'] === '' || mb_strlen($data['real_name']) > 50) {
             return $this->fail('昵称不能为空且不能超过 50 个字符', 422);
         }
         if (isset($data['email']) && $data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
@@ -110,11 +110,11 @@ class AdminProfile extends AdminApiController
         return [
             'id' => (int) $admin->id,
             'username' => (string) $admin->username,
-            'nickname' => (string) (($admin->realname ?: $admin->username)),
+            'nickname' => (string) (($admin->real_name ?: $admin->username)),
             'avatar' => (string) $admin->avatar,
             'email' => (string) $admin->email,
             'mobile' => (string) $admin->mobile,
-            'lastLoginIp' => (string) $admin->lastloginip,
+            'lastLoginIp' => (string) $admin->last_login_ip,
         ];
     }
 }

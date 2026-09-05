@@ -143,8 +143,8 @@ class SystemLanguage extends AdminApiController
             'name' => (string) $language->name,
             'isDefault' => (int) $language->is_default,
             'status' => (int) $language->status,
-            'createdAt' => $this->formatTime($language->create_time),
-            'updatedAt' => $this->formatTime($language->update_time),
+            'createdAt' => $this->formatTime($language->created_at),
+            'updatedAt' => $this->formatTime($language->updated_at),
         ];
     }
 }

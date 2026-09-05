@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const migration = readFileSync(
-  resolve(process.cwd(), '../database/migrations/009_user_management_menu.sql'),
+  resolve(process.cwd(), '../database/migrations/014_user_management_menu.sql'),
   'utf8'
 );
 

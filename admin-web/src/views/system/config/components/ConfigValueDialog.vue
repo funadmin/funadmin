@@ -59,7 +59,7 @@ watch(() => [props.modelValue, props.row] as const, ([opened, row]) => {
   switchValue.value = row.value === '1';
   numberValue.value = row.value === '' ? undefined : Number(row.value);
   dateRange.value = row.type === 'range' && row.value ? row.value.split(/\s+-\s+/, 2) : [];
-  fileValue.value = row.value ? row.value.split(/\r?\n/).filter(Boolean).map((url) => ({ url, name: url.split('/').pop() || url, size: 0, ext: url.split('.').pop() || '', groupId: 1, reused: true, uploadedAt: 0 })) : [];
+  fileValue.value = row.value ? row.value.split(/\r?\n/).filter(Boolean).map((url) => ({ url, name: url.split('/').pop() || url, size: 0, ext: url.split('.').pop() || '', groupId: 1, driver: 'local', reused: true, uploadedAt: 0 })) : [];
 }, { immediate: true });
 function submitValue(): string | string[] {
   const type = props.row?.type || 'text';

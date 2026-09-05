@@ -2,11 +2,11 @@
 
 namespace app\common\model;
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class DictType extends BaseModel
 {
-    use SoftDelete;
+    use LaravelSoftDelete;
 
     protected $name = 'dict_type';
 

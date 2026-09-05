@@ -14,9 +14,6 @@ class Index extends BaseController
 {
     use Jump;
 
-    /** MySQL 最低版本 */
-    private const MYSQL_MIN_VERSION = '5.7';
-
     /**
      * 入口：按安装状态引导到 Vue 安装页或登录页。
      */
@@ -57,19 +54,18 @@ class Index extends BaseController
         set_time_limit(0);
         $input = $this->collectInstallInput();
         $this->assertEnvironmentReady();
-        $error = InstallSupport::validate($input['db'], $input['admin']);
-        if ($error !== '') {
-            $this->error($error);
-        }
         try {
-            InstallSupport::prepareDatabase($input['db'], self::MYSQL_MIN_VERSION);
-            $this->applyDatabaseConfig($input['db']);
-            $this->writeEnvConfig($input['db'], $input['debug']);
-            InstallSupport::installSchemaAndAdmin($this->sqlFileDir(), $input['admin']);
+            $result = InstallSupport::install(
+                $input['db'],
+                $input['admin'],
+                $input['debug'],
+                root_path()
+            );
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
         }
-        $this->finishInstall($input['admin']);
+        session('admin_install', $result);
+        $this->result($result, 200, '安装成功', 'json');
     }
 
     /**
@@ -129,11 +125,7 @@ class Index extends BaseController
             'database' => request()->post('database') ?: 'funadmin',
             'prefix' => (string) request()->post('prefix'),
         ];
-        $hostData = explode(':', $db['host']);
-        if (count($hostData) > 1) {
-            $db['host'] = $hostData[0];
-            $db['port'] = $hostData[1];
-        }
+        $db = InstallSupport::normalizeDatabaseInput($db);
         $admin = [
             'username' => request()->post('adminUserName') ?: 'admin',
             'password' => request()->post('adminPassword') ?: '123456',
@@ -159,57 +151,6 @@ class Index extends BaseController
         }
     }
 
-    /**
-     * 将安装参数应用到当前进程，供随后的迁移使用，不写入受版本控制的配置文件。
-     */
-    private function applyDatabaseConfig(array $db): void
-    {
-        $config = config('database');
-        $config['default'] = 'mysql';
-        $config['connections']['mysql'] = [
-            'type' => 'mysql',
-            'hostname' => $db['host'],
-            'database' => $db['database'],
-            'username' => $db['username'],
-            'password' => $db['password'],
-            'hostport' => $db['port'],
-            'params' => [],
-            'charset' => 'utf8mb4',
-            'prefix' => $db['prefix'],
-            'fields_cache' => false,
-        ];
-        config($config, 'database');
-    }
-
-    /**
-     * 回写 .env：已存在时合并更新保留 JWT 等自定义键，全新安装才按模板写入。
-     */
-    private function writeEnvConfig(array $db, bool $debug): void
-    {
-        $existing = is_file($this->envFile()) ? (string) file_get_contents($this->envFile()) : null;
-        $putEnv = InstallSupport::renderEnv($this->envTemplate(), $existing, $db, $debug);
-        if (!@file_put_contents($this->envFile(), $putEnv)) {
-            $this->error('安装失败、请确定 .env 是否有写入权限');
-        }
-    }
-
-    /**
-     * 落安装锁并暂存安装结果供 step4 展示。
-     */
-    private function finishInstall(array $admin): void
-    {
-        if (!@touch($this->lockFile())) {
-            $this->error('安装完成但无法创建 install.lock，请检查 public 目录权限');
-        }
-        $adminUser = [
-            'username' => $admin['username'],
-            'password' => $admin['password'],
-            'backend' => '/admin-web/#/login',
-        ];
-        session('admin_install', $adminUser);
-        $this->result($adminUser, 200, '安装成功', 'json');
-    }
-
     private function environmentCheck(string $key, string $label, string $requiredValue, string $currentValue, bool $passed, bool $required): array
     {
         return compact('key', 'label', 'requiredValue', 'currentValue', 'passed', 'required');
@@ -218,25 +159,13 @@ class Index extends BaseController
     /** 安装锁文件，存在即视为已安装 */
     private function lockFile(): string
     {
-        return public_path() . 'install.lock';
+        return InstallSupport::paths(root_path())['lock'];
     }
 
     /** 安装时回写的 .env 文件 */
     private function envFile(): string
     {
-        return root_path() . '.env';
-    }
-
-    /** .env 基础模板 */
-    private function envTemplate(): string
-    {
-        return root_path() . '.env.example';
-    }
-
-    /** 迁移 SQL 目录：安装期间按文件名顺序执行，仅向前 */
-    private function sqlFileDir(): string
-    {
-        return root_path() . 'database' . DIRECTORY_SEPARATOR . 'migrations';
+        return InstallSupport::paths(root_path())['env'];
     }
 
     private function isWritable(string $file): bool
@@ -280,7 +209,7 @@ class Index extends BaseController
 
     private function migrationFiles(): array
     {
-        $sqlFileDir = $this->sqlFileDir();
+        $sqlFileDir = InstallSupport::paths(root_path())['migrations'];
         if (!is_dir($sqlFileDir) || !is_readable($sqlFileDir)) {
             return [];
         }
@@ -300,7 +229,7 @@ class Index extends BaseController
 
     private function migrationStatus(): string
     {
-        $sqlFileDir = $this->sqlFileDir();
+        $sqlFileDir = InstallSupport::paths(root_path())['migrations'];
         if (!is_dir($sqlFileDir)) {
             return '目录不存在';
         }

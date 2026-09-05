@@ -18,13 +18,13 @@ use app\common\validate\MemberValidate;
 use fun\helper\StringHelper;
 use think\exception\ValidateException;
 use think\facade\Db;
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class  Member extends BaseModel{
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
 
@@ -92,7 +92,7 @@ class  Member extends BaseModel{
             $data = request()->post();
             $email = trim((string) ($data['email'] ?? ''));
             $data['email'] = $email === '' ? null : MemberInput::normalizeEmail($email);
-            $member = self::withTrashed()->where('email', $data['email'])->find();
+            $member = $data['email'] === null ? null : self::withTrashed()->where('email', $data['email'])->find();
             if ($member) throw new \Exception('email already exists');
             if ($data['password'] != $data['repassword']) throw new \Exception('inconsistent passwords');
             try {
@@ -112,6 +112,7 @@ class  Member extends BaseModel{
             MemberGroupRelation::create([
                 'member_id' => (int) $member->id,
                 'group_id' => 1,
+                'created_at' => date('Y-m-d H:i:s'),
             ]);
             Db::commit();
             return true;

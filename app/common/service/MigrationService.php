@@ -17,10 +17,14 @@ class MigrationService extends AbstractService
             throw new RuntimeException('Migration 目录不存在：' . $directory);
         }
         $files = glob(rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.sql') ?: [];
-        sort($files, SORT_NATURAL);
         if (!$files) {
             throw new RuntimeException('Migration 目录没有 SQL 文件：' . $directory);
         }
+        $this->assertVersionSequence($files, $scope);
+        usort($files, fn (string $left, string $right): int => strcmp(
+            $this->migrationSortKey($left),
+            $this->migrationSortKey($right)
+        ));
 
         $executed = [];
         foreach ($files as $index => $file) {
@@ -66,6 +70,35 @@ class MigrationService extends AbstractService
             $executed[] = $version;
         }
         return $executed;
+    }
+
+    /**
+     * 所有 migration 都要求数字版本唯一。
+     */
+    private function assertVersionSequence(array $files, string $scope): void
+    {
+        $versions = [];
+        foreach ($files as $file) {
+            $name = pathinfo($file, PATHINFO_FILENAME);
+            if (!preg_match('/^(\d+)_/', $name, $matches)) {
+                throw new RuntimeException('Migration 文件缺少数字版本：' . $file);
+            }
+            $versions[$matches[1]][] = $name;
+        }
+        foreach ($versions as $number => $names) {
+            if (count($names) === 1) {
+                continue;
+            }
+            sort($names, SORT_STRING);
+            throw new RuntimeException("Migration 数字版本重复：{$number}（" . implode('、', $names) . '）');
+        }
+    }
+
+    private function migrationSortKey(string $file): string
+    {
+        $name = pathinfo($file, PATHINFO_FILENAME);
+        preg_match('/^(\d+)_/', $name, $matches);
+        return str_pad((string) ((int) ($matches[1] ?? 0)), 20, '0', STR_PAD_LEFT) . '_' . $name;
     }
 
     public function latestAppliedVersion(string $scope): string

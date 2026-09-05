@@ -13,14 +13,14 @@
 
 
 namespace app\common\model;
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class ConfigGroup extends BaseModel
 {
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

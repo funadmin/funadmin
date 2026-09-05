@@ -14,7 +14,7 @@
 namespace app\backend\model;
 
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Member extends BackendModel {
 
@@ -22,7 +22,7 @@ class Member extends BackendModel {
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

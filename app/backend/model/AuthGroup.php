@@ -15,7 +15,7 @@
 namespace app\backend\model;
 
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class AuthGroup extends BackendModel
 {
@@ -23,7 +23,7 @@ class AuthGroup extends BackendModel
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

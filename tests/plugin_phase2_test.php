@@ -249,8 +249,25 @@ $failedPipeline = new PluginPackagePipeline(
     static function (string $message) use (&$failedHistoryErrors): void { $failedHistoryErrors[] = $message; }
 );
 phase2Exception(static fn () => $failedPipeline->updateLocal($localArchive, 'demo'), 'migration failed');
-phase2Expect(array_column($failedOperations->calls, 0) === ['stage', 'deploy', 'finish'], 'migration 后不可回滚时必须清理 stage 与 backup，不得泄漏备份');
+phase2Expect(array_column($failedOperations->calls, 0) === ['stage', 'deploy', 'discard'], '不可回滚失败只能清理 stage，必须保留 backup 供人工恢复');
+phase2Expect(str_contains(implode("\n", $failedHistoryErrors), '/backup'), '不可回滚失败必须记录明确的备份恢复路径');
 phase2Expect($failedHistoryErrors !== [], '历史写入失败必须独立记录日志');
+
+$restoredSnapshots = [];
+$rollbackOperations = new FakePackageOperations();
+$rollbackPipeline = new PluginPackagePipeline(
+    $rollbackOperations,
+    static function (): bool { throw new RuntimeException('before update failed'); },
+    static fn (): bool => true,
+    null,
+    null,
+    null,
+    static fn (string $name): array => ['name' => $name, 'version' => '1.0.0'],
+    static function (string $name, array $snapshot) use (&$restoredSnapshots): void { $restoredSnapshots[] = [$name, $snapshot]; }
+);
+phase2Exception(static fn () => $rollbackPipeline->updateLocal($localArchive, 'demo'), 'before update failed');
+phase2Expect(array_column($rollbackOperations->calls, 0) === ['stage', 'deploy', 'rollback', 'discard'], '可回滚失败必须恢复目录并清理 stage');
+phase2Expect(($restoredSnapshots[0][1]['version'] ?? '') === '1.0.0', '目录回滚后必须恢复 Plugin 数据库旧快照');
 
 $historyFailureOperations = new FakePackageOperations();
 $historyFailurePipeline = new PluginPackagePipeline(
@@ -295,9 +312,9 @@ $originalFailurePipeline = new PluginPackagePipeline(
 );
 phase2Exception(static fn () => $originalFailurePipeline->updateLocal($localArchive, 'demo'), 'original migration failed');
 phase2Expect(
-    str_contains(implode('\n', $originalFailureLogs), '/stage')
+    str_contains(implode('\n', $originalFailureLogs), '/backup')
     && str_contains(implode('\n', $originalFailureLogs), 'original migration failed'),
-    '失败清理异常必须保留定位路径且不得覆盖原异常'
+    '不可回滚失败必须保留 backup 恢复路径且不得覆盖原异常'
 );
 unlink($localArchive);
 

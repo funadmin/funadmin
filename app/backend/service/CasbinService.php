@@ -78,7 +78,7 @@ class CasbinService extends AbstractService
     public function activeRoleIds($roleIds): array
     {
         $roleIds = $this->normalizeIds($roleIds);
-        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->whereNull('delete_time')->column('id')) : [];
+        return $roleIds ? $this->normalizeIds(AuthGroup::whereIn('id', $roleIds)->where('status', 1)->whereNull('deleted_at')->column('id')) : [];
     }
 
     public function roleHasAdmins(int $roleId, ?string $domain = null): bool

@@ -22,7 +22,7 @@ class SystemAttachmentGroup extends AdminApiController
 
     public function tree(): Response
     {
-        $groups = AttachGroup::order('sort', 'asc')->order('id', 'asc')->select();
+        $groups = AttachGroup::order('sort_order', 'asc')->order('id', 'asc')->select();
         $rows = array_map(fn (AttachGroup $group): array => $this->groupData($group), $groups->all());
         return $this->ok($this->buildTree($rows));
     }
@@ -84,7 +84,7 @@ class SystemAttachmentGroup extends AdminApiController
             'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
             'thumb' => trim((string) $this->request->post('thumb', $group?->thumb ?? '')),
             'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
-            'sort' => max(0, (int) $this->request->post('sort', $group?->sort ?? 999)),
+            'sort_order' => max(0, (int) $this->request->post('sort', $group?->sort_order ?? 999)),
         ];
     }
 
@@ -130,10 +130,10 @@ class SystemAttachmentGroup extends AdminApiController
             'name' => (string) $group->name,
             'thumb' => (string) ($group->thumb ?? ''),
             'status' => (int) $group->status,
-            'sort' => (int) $group->sort,
+            'sort' => (int) $group->sort_order,
             'isDefault' => (int) $group->id === 1 ? 1 : 0,
-            'createdAt' => $this->formatTime($group->create_time),
-            'updatedAt' => $this->formatTime($group->update_time),
+            'createdAt' => $this->formatTime($group->created_at),
+            'updatedAt' => $this->formatTime($group->updated_at),
         ];
     }
 }

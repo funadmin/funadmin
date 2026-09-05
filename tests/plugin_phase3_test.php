@@ -105,8 +105,11 @@ phase3Expect(str_contains($source, 'getSize()'), '本地 ZIP 必须校验上传�
 phase3Expect(str_contains($source, 'purgeConfirm'), 'purge 必须要求二次确认字段');
 $querySource = (string) file_get_contents($root . '/app/backend/service/PluginCenterQueryService.php');
 phase3Expect(str_contains($querySource, 'plugin-assets'), 'enabled modules 必须输出受控 plugin-assets URL');
-$runtimeService = (string) file_get_contents($root . '/extend/fun/plugins/Service.php');
-phase3Expect(str_contains($runtimeService, "'resources' . DS . 'admin'"), '插件资源发布必须读取 resources/admin');
-phase3Expect(str_contains($runtimeService, 'public/plugin-assets/{$name}'), '插件 Admin ESM 必须发布到 public/plugin-assets');
+$publisherSource = (string) file_get_contents($root . '/extend/fun/plugins/PluginResourcePublisher.php');
+phase3Expect(str_contains($publisherSource, "['resources']"), '插件资源发布必须以 manifest resources 为唯一来源');
+phase3Expect(str_contains($publisherSource, "['source']") && str_contains($publisherSource, "['target']"), '资源发布必须读取 manifest source/target');
+$fixtureManifest = json_decode((string) file_get_contents($root . '/tests/fixtures/plugins/example/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
+phase3Expect(($fixtureManifest['resources']['admin']['source'] ?? '') === 'resources/admin', '标准契约必须声明 Admin 资源源目录');
+phase3Expect(($fixtureManifest['resources']['admin']['target'] ?? '') === 'plugin-assets/example', '标准契约必须声明受控 plugin-assets 目标');
 
 echo "plugin phase3 tests passed\n";

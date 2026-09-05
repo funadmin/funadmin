@@ -21,7 +21,7 @@ class SystemDepartment extends AdminApiController
 
     public function tree(): Response
     {
-        $query = Department::order('sort', 'asc')->order('id', 'asc');
+        $query = Department::order('sort_order', 'asc')->order('id', 'asc');
         $allowedIds = $this->allowedDepartmentIds();
         if ($allowedIds !== null) {
             $query->whereIn('id', $allowedIds ?: [0]);
@@ -166,7 +166,8 @@ class SystemDepartment extends AdminApiController
             $data['pid'] = max(0, (int) $this->request->post('parentId', 0));
         }
         if (isset($data['sort'])) {
-            $data['sort'] = max(0, (int) $data['sort']);
+            $data['sort_order'] = max(0, (int) $data['sort']);
+            unset($data['sort']);
         }
         if (isset($data['status'])) {
             $data['status'] = $this->binaryStatus($data['status']);
@@ -199,7 +200,7 @@ class SystemDepartment extends AdminApiController
             'leader' => (string) $department->leader,
             'phone' => (string) $department->phone,
             'email' => (string) $department->email,
-            'sort' => (int) $department->sort,
+            'sort' => (int) $department->sort_order,
             'status' => (int) $department->status,
         ];
     }

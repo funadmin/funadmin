@@ -1,4 +1,8 @@
 <?php
+
+$marketplacePublicKey = getenv('PLUGIN_MARKETPLACE_PUBLIC_KEY');
+$marketplacePublicKey = str_replace('\\n', "\n", trim($marketplacePublicKey === false ? '' : $marketplacePublicKey));
+
 /**
  * FunAdmin
  * ============================================================================
@@ -15,4 +19,12 @@ return [
     'hooks' => [],
     'route' => [],
     'service' => [],
+    'marketplace' => [
+        'public_key' => $marketplacePublicKey,
+        'unsigned_policy' => 'reject_unsigned',
+        'request_timeout' => 30,
+        'connect_timeout' => 10,
+        'max_redirects' => 3,
+        'max_package_bytes' => 104857600,
+    ],
 ];

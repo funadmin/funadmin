@@ -18,12 +18,11 @@ SET `icon` = CASE `source_name`
     WHEN 'member' THEN 'i-ep-user'
     WHEN 'attachment' THEN 'i-ep-picture-filled'
     WHEN 'config' THEN 'i-ep-setting'
-    WHEN 'plugin_center' THEN 'i-ep-grid'
     ELSE 'i-ep-menu'
 END,
 `update_time` = UNIX_TIMESTAMP()
 WHERE `source_type` = 'admin_web'
   AND (
       COALESCE(NULLIF(TRIM(`icon`), ''), '') = ''
-      OR `icon` IN ('i-ep-circle-close', 'i-ep-medal', 'i-ep-box')
+      OR `icon` IN ('i-ep-circle-close', 'i-ep-medal')
   );

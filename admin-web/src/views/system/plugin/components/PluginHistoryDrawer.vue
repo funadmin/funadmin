@@ -6,7 +6,7 @@
       <el-table-column prop="source" label="来源" width="90" />
       <el-table-column prop="result" label="结果" width="90" />
       <el-table-column prop="error_message" label="错误详情" min-width="220" show-overflow-tooltip />
-      <el-table-column prop="create_time" label="时间" width="170" />
+      <el-table-column prop="createdAt" label="时间" width="170" />
     </el-table>
   </el-drawer>
 </template>

@@ -111,5 +111,7 @@ apiExpect(str_contains($apiGeneratorSource, 'private readonly'), 'API 生成模�
 apiExpect(str_contains($apiGeneratorSource, 'use think\\\\Response;'), 'API 生成模板必须声明响应类型');
 apiExpect(str_contains((string) $generatorSource, 'app/{$module}/controller/v2/{$controllerClass}.php'), 'API 必须生成到 v2 控制器目录');
 apiExpect(str_contains((string) $generatorSource, "if (strtolower(\$module) === 'api')"), '通用控制器生成器必须拒绝生成 API 控制器');
+apiExpect(str_contains((string) $generatorSource, 'API_ROUTE_END'), 'API 生成器必须维护显式路由标记');
+apiExpect(str_contains((string) $generatorSource, 'MApi::class'), 'API 生成路由必须绑定认证中间件');
 
 echo "api auth tests: PASS\n";

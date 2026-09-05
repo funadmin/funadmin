@@ -328,6 +328,9 @@ class UploadService extends AbstractService
                 $analyzeFileInfo = unserialize($analyzeFileInfo);
                 $this->duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
             }
+            if ($this->width && $storageDriver->name() === 'local') {
+                $this->createWater($path);
+            }
             $data = [
                 'admin_id' => $admin_id ?: (session('admin.id') ?: 0),
                 'member_id' => $uid ?: (session('member.id') ?: 0),

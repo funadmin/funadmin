@@ -345,9 +345,7 @@ if (!function_exists('get_plugins_list')) {
                 if (!isset($info['name']))
                     continue;
                 $record = \app\common\model\Plugin::where('name', $name)
-                    ->where(function ($query): void {
-                        $query->whereNull('delete_time')->whereOr('delete_time', 0);
-                    })
+                    ->whereNull('deleted_at')
                     ->find();
                 $info['install'] = $record ? 1 : 0;
                 $info['lifecycle_state'] = $record ? (string) $record->lifecycle_state : 'discovered';

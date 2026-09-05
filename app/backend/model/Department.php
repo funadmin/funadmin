@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace app\backend\model;
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Department extends BackendModel
 {
-    use SoftDelete;
+    use LaravelSoftDelete;
 
     protected $name = 'department';
 }

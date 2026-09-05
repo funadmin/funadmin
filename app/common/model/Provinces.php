@@ -4,14 +4,14 @@
 namespace app\common\model;
 
 
-use think\model\concern\SoftDelete;
+use app\common\model\concern\LaravelSoftDelete;
 
 class Provinces extends BaseModel {
 
     /**
      * @var bool
      */
-    use SoftDelete;
+    use LaravelSoftDelete;
 
 
     

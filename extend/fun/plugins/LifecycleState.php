@@ -14,12 +14,13 @@ final class LifecycleState
     private const TRANSITIONS = [
         'discovered' => ['installing', 'failed'],
         'installing' => ['disabled', 'failed'],
-        'disabled' => ['enabling', 'uninstalling', 'installing', 'failed'],
+        'disabled' => ['enabling', 'uninstalling', 'installing', 'updating', 'failed'],
+        'updating' => ['disabled', 'failed'],
         'enabling' => ['enabled', 'failed'],
         'enabled' => ['disabling', 'failed'],
         'disabling' => ['disabled', 'failed'],
         'uninstalling' => ['discovered', 'failed'],
-        'failed' => ['disabled', 'installing', 'uninstalling'],
+        'failed' => ['disabled', 'installing', 'updating', 'uninstalling'],
     ];
 
     public static function all(): array

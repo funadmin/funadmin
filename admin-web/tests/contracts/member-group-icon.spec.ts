@@ -6,7 +6,7 @@ const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relat
 
 describe('会员组图标字段', () => {
   it('migration 为会员组表新增 icon 列', () => {
-    const sql = read('../database/migrations/011_member_group_icon.sql');
+    const sql = read('../database/migrations/019_member_group_icon.sql');
 
     expect(sql).toMatch(/ALTER TABLE `fun_member_group` ADD COLUMN `icon`/);
   });

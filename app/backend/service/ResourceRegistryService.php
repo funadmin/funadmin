@@ -116,7 +116,7 @@ class ResourceRegistryService extends AbstractService
                 'resource_type' => $permissionType,
                 'status' => (int) ($item['status'] ?? 1),
                 'is_public' => (int) ($item['is_public'] ?? 0),
-                'sort' => (int) ($item['sort'] ?? 999),
+                'sort_order' => (int) ($item['sort'] ?? 999),
                 'source_type' => $sourceType,
                 'source_name' => $sourceName,
             ]);
@@ -134,7 +134,7 @@ class ResourceRegistryService extends AbstractService
                     'target' => (string) ($item['target'] ?? '_self'),
                     'icon' => (string) ($item['icon'] ?? 'layui-icon layui-icon-circle-dot'),
                     'status' => (int) ($item['status'] ?? 1),
-                    'sort' => (int) ($item['sort'] ?? 999),
+                    'sort_order' => (int) ($item['sort'] ?? 999),
                     'source_type' => $sourceType,
                     'source_name' => $sourceName,
                 ]);

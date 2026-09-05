@@ -204,9 +204,9 @@ class SystemMemberGroup extends AdminApiController
             'icon' => (string) ($group->icon ?? ''),
             'status' => (int) $group->status,
             'isDefault' => (int) $group->id === 1 ? 1 : 0,
-            'createdAt' => $this->formatTime($group->create_time),
-            'updatedAt' => $this->formatTime($group->update_time),
-            'deletedAt' => $this->formatTime($group->delete_time),
+            'createdAt' => $this->formatTime($group->created_at),
+            'updatedAt' => $this->formatTime($group->updated_at),
+            'deletedAt' => $this->formatTime($group->deleted_at),
         ];
     }
 }

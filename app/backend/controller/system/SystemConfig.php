@@ -63,7 +63,7 @@ class SystemConfig extends AdminApiController
     public function options(): Response
     {
         $groups = ConfigGroup::order('id', 'asc')->select();
-        $types = FieldType::where('status', 1)->order('sort', 'asc')->order('id', 'asc')->select();
+        $types = FieldType::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->select();
         $verifies = FieldVerify::order('verify', 'asc')->select();
         $builtInTypes = [
             'json' => ['title' => 'JSON', 'requiresOptions' => false],
@@ -372,8 +372,8 @@ class SystemConfig extends AdminApiController
             'remark' => (string) ($config->remark ?? ''),
             'status' => (int) $config->status,
             'isSystem' => (int) $config->is_system === 1 ? 1 : 0,
-            'createdAt' => $this->formatTime($config->create_time),
-            'updatedAt' => $this->formatTime($config->update_time),
+            'createdAt' => $this->formatTime($config->created_at),
+            'updatedAt' => $this->formatTime($config->updated_at),
         ];
     }
 
@@ -384,8 +384,8 @@ class SystemConfig extends AdminApiController
             'name' => (string) $group->name,
             'title' => (string) $group->title,
             'status' => (int) $group->status,
-            'createdAt' => $this->formatTime($group->create_time),
-            'updatedAt' => $this->formatTime($group->update_time),
+            'createdAt' => $this->formatTime($group->created_at),
+            'updatedAt' => $this->formatTime($group->updated_at),
         ];
     }
 

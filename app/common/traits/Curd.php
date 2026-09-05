@@ -210,11 +210,11 @@ trait Curd
             try {
                 $data = $list->toArray();
                 $data = array_merge($data,$post);
-                if(isset($data['create_time'])){
-                    unset($data['create_time']);
+                if(isset($data['created_at'])){
+                    unset($data['created_at']);
                 }
-                if(isset($data['update_time'])){
-                    unset($data['update_time']);
+                if(isset($data['updated_at'])){
+                    unset($data['updated_at']);
                 }
                 unset($data[$this->modelClass->getPk()]);
                 $this->modelClass->save($data);
@@ -292,7 +292,7 @@ trait Curd
         $model = $this->findModel($id);
         if(empty($model))$this->error('Data is not exist');
         $sort = request()->param('sort');
-        $save = $model->sort = $sort;
+        $save = $model->sort_order = $sort;
         $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
     }
 
@@ -413,7 +413,7 @@ trait Curd
                         $field = array_search($k,$tableField);
                         if($this->importFields!=['*'] && !in_array($field,$this->importFields)) continue;
                         if($field=='admin_id' && is_string($v)){
-                            $admin = Admin::where('username|realname',$v)->find();
+                            $admin = Admin::where('username|real_name',$v)->find();
                             if($admin){
                                 $v = $admin->id;
                             }else{
@@ -470,7 +470,7 @@ trait Curd
             if($this->exportFields !=['*'] && !in_array($vo['Field'],$this->exportFields)) continue;
             $comment = !empty($vo['Comment']) ? $vo['Comment'] : $vo['Field'];
             $comment = explode('=',$comment)[0];
-            if(!in_array($vo['Field'],['update_time','delete_time'])) {
+            if(!in_array($vo['Field'],['updated_at','deleted_at'])) {
                 $headerArr[$vo['Field']] =$comment;
             } ;
         }

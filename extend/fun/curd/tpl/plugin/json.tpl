@@ -10,13 +10,16 @@
         "funadmin": "{%funadmin_version%}",
         "plugins": {}
     },
-    "load": {
-        "services": "config/services.php",
-        "events": "config/events.php",
-        "routes": "routes/plugin.php"
+    "entry": {
+        "class": "plugins\\{%plugin%}\\Plugin"
     },
+    "services": "config/services.php",
+    "events": "config/events.php",
+    "routes": "routes/plugin.php",
+    "permissions": [],
+    "menus": [],
     "admin_web": {
-        "entry": "resources/admin/entry.js",
+        "entry": "entry.js",
         "routes": [
             {
                 "path": "/plugin/{%plugin%}/index",
@@ -27,5 +30,12 @@
                 }
             }
         ]
-    }
+    },
+    "resources": {
+        "public": { "source": "resources/public", "target": "plugin-assets/{%plugin%}/public" },
+        "admin": { "source": "resources/admin", "target": "plugin-assets/{%plugin%}" }
+    },
+    "migrations": { "path": "migrations" },
+    "storage": { "path": "storage/{%plugin%}" },
+    "purge": { "supported": false }
 }

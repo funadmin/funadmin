@@ -544,7 +544,9 @@ function backendControllerSource(cfg) {
   const responseMap = backend.responseMap || {};
   const dataScope = backend.dataScope;
   const prefix = cfg.apiPrefix.replace(/^\//, '');
-  const deleteRule = cfg.deleteMode === 'pathId' ? `${prefix}/:id` : prefix;
+  const deleteByPathId = cfg.deleteMode === 'pathId';
+  const deleteRule = deleteByPathId ? `${prefix}/:id` : prefix;
+  const deletePatternAttribute = deleteByPathId ? "\n    #[Pattern('id', '\\\\d+')]" : '';
   const searchLines = [];
   for (const [param, rawFields] of Object.entries(search)) {
     const fields = Array.isArray(rawFields) ? rawFields : [rawFields];
@@ -654,7 +656,7 @@ ${scopeLine}${searchLines.join('\n')}
         return $this->ok($this->serialize($model), '保存成功');
     }
 
-    #[Delete('${deleteRule}')]
+    #[Delete('${deleteRule}')]${deletePatternAttribute}
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
