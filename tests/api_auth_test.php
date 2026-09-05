@@ -64,6 +64,8 @@ apiExpect(str_contains((string) $routeSource, 'Throttle::class'), '登录接口�
 
 $apiControllerSource = file_get_contents(dirname(__DIR__) . '/app/common/controller/Api.php');
 apiExpect(str_contains((string) $apiControllerSource, 'use JsonResponse;'), 'API 基类必须复用公共 JSON 响应 Trait');
+apiExpect(str_contains((string) $apiControllerSource, 'use ApiAuthentication;'), 'API 基类必须复用认证配置 Trait');
+apiExpect(str_contains((string) $apiControllerSource, '$this->registerApiAuthentication();'), 'API 基类必须通过 Trait 注册认证中间件');
 apiExpect(!str_contains((string) $apiControllerSource, 'protected function ok('), 'API 基类不得重复实现 ok 响应');
 apiExpect(!str_contains((string) $apiControllerSource, 'protected function fail('), 'API 基类不得重复实现 fail 响应');
 apiExpect(!str_contains((string) $tokenControllerSource, '$this->success('), 'Token 控制器不得继续使用 success 响应');

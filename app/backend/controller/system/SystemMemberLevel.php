@@ -84,7 +84,7 @@ class SystemMemberLevel extends AdminApiController
         if (!$level) {
             return $this->fail('会员等级不存在', 404);
         }
-        $level->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+        $level->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         return $this->ok($this->levelData($level), '状态更新成功');
     }
 
@@ -177,7 +177,7 @@ class SystemMemberLevel extends AdminApiController
             'amount' => trim((string) $this->request->post('amount', $level?->amount ?? '0')),
             'discount' => (int) $this->request->post('discount', $level?->discount ?? 100),
             'thumb' => trim((string) $this->request->post('thumb', $level?->thumb ?? '')),
-            'status' => (int) $this->request->post('status', $level?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $level?->status ?? 1)),
             'sort' => (int) $this->request->post('sort', $level?->sort ?? 0),
             'description' => trim((string) $this->request->post('description', $level?->description ?? '')),
         ];

@@ -11,11 +11,11 @@
       <slot :model="model" />
       <el-form-item class="!mb-0 ml-auto">
         <div class="inline-flex flex-nowrap items-center gap-2">
-          <el-button type="primary" plain @click="onReset">
-            <i class="i-ep-refresh-right" /> {{ t('table.reset') }}
-          </el-button>
           <el-button type="primary" plain :loading="loading" @click="onSearch">
             <i class="i-ep-search" /> {{ t('table.search') }}
+          </el-button>
+          <el-button type="primary" plain @click="onReset">
+            <i class="i-ep-refresh-right" /> {{ t('table.reset') }}
           </el-button>
           <slot name="extra" />
         </div>

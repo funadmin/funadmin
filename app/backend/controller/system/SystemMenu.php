@@ -101,9 +101,9 @@ class SystemMenu extends AdminApiController
             'name' => trim((string) $this->request->post('name', $current['name'] ?? '')),
             'component' => trim((string) $this->request->post('component', $current['component'] ?? '')),
             'redirect' => trim((string) $this->request->post('redirect', $current['redirect'] ?? '')),
-            'hidden' => $this->boolValue($this->request->post('hidden', $current['hidden'] ?? false)),
-            'keepAlive' => $this->boolValue($this->request->post('keepAlive', $current['keepAlive'] ?? false)),
-            'affix' => $this->boolValue($this->request->post('affix', $current['affix'] ?? false)),
+            'hidden' => $this->booleanValue($this->request->post('hidden', $current['hidden'] ?? false)),
+            'keepAlive' => $this->booleanValue($this->request->post('keepAlive', $current['keepAlive'] ?? false)),
+            'affix' => $this->booleanValue($this->request->post('affix', $current['affix'] ?? false)),
         ];
         return [
             'pid' => max(0, (int) $this->request->post('parentId', $current['parentId'] ?? 0)),
@@ -162,9 +162,9 @@ class SystemMenu extends AdminApiController
             'icon' => (string) $menu->icon,
             'title' => (string) $menu->title,
             'sort' => (int) $menu->sort,
-            'hidden' => $this->boolValue($meta['hidden'] ?? false),
-            'keepAlive' => $this->boolValue($meta['keepAlive'] ?? false),
-            'affix' => $this->boolValue($meta['affix'] ?? false),
+            'hidden' => $this->booleanValue($meta['hidden'] ?? false),
+            'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
+            'affix' => $this->booleanValue($meta['affix'] ?? false),
             'permission' => (string) ($permission->code ?? ''),
         ];
     }
@@ -191,8 +191,4 @@ class SystemMenu extends AdminApiController
         return $result;
     }
 
-    private function boolValue($value): bool
-    {
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
-    }
 }

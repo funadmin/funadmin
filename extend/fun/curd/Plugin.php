@@ -70,48 +70,52 @@ class Plugin extends Command
         $this->config = $param;
         if (empty($param['app'])) {
             $output->error("插件名不能为空");
-            return false;
+            return 1;
+        }
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $param['app'])) {
+            $output->error("插件名仅允许小写字母和数字，且必须以字母开头");
+            return 1;
         }
         if($param['app']=='backend' || $param['app']=='common' || $param['app']=='frontend' || $param['app']=='api' || $param['app']=='install'){
             $output->error("插件名不能为backend或common或frontend或api或install");
-            return false;
+            return 1;
         }
         if($param['uninstall'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
-            return false;
+            return 1;
         }
         if($param['enable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
-            return false;
+            return 1;
         }
         if($param['disable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
             $output->error("插件目录不存在");
-            return false;
+            return 1;
         }
         try {
             if($param['enable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(PluginService::class)->enablePlugin($param['app']);
                 $output->info("启用成功");
-                return true;
+                return 0;
             }
             if($param['disable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(PluginService::class)->disablePlugin($param['app']);
                 $output->info("禁用成功");
-                return true;
+                return 0;
             }
             if($param['uninstall'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(PluginService::class)->uninstallPlugin($param['app']);
                 $output->info("卸载成功");
-                return true;
+                return 0;
             }   
             if($param['install'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 $output->error("插件目录不存在");
-                return false;
+                return 1;
             }
             if($param['install'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
                 app(PluginService::class)->installPlugin($param['app'],'install');
                 $output->info("安装成功");
-                return true;
+                return 0;
             }
             $tplPath = root_path('extend/fun/curd/tpl/plugin');
             $pluginPath = root_path(PLUGIN_DIR . '/'.$param['app']) ;
@@ -124,6 +128,19 @@ class Plugin extends Command
                     'items'=>[
                         ['name'=>'plugin','value'=>$param['app']],
                         ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
+                    ]
+                ],
+                [
+                    'name'=>'plugin.json',
+                    'content'=>'',
+                    'fileName'=>$pluginPath . "plugin.json",
+                    'tpl'=> $tplPath . 'json.tpl',
+                    'items'=>[
+                        ['name'=>'plugin','value'=>$param['app']],
+                        ['name'=>'title','value'=>$param['title']],
+                        ['name'=>'description','value'=>$param['description']],
+                        ['name'=>'author','value'=>$param['author']],
+                        ['name'=>'version','value'=>$param['version']],
                     ]
                 ],
                 [
@@ -236,7 +253,7 @@ class Plugin extends Command
                         FileHelper::copyDir(root_path(PLUGIN_DIR . '/'.$param['app']), $minPath);
                     }else{
                         $output->error('插件目录不存在');
-                        return false;
+                        return 1;
                     }
                     if(is_dir(app_path($param['app']))){
                         FileHelper::copyDir(app_path($param['app']), $minPath.'/app/'.$param['app']);
@@ -257,7 +274,7 @@ class Plugin extends Command
                     // 检查目录权限
                     if (!is_writable($runtimeDir)) {
                         $output->error('runtime目录没有写权限: ' . $runtimeDir);
-                        return false;
+                        return 1;
                     }
                     try {
                         // 使用完整路径并确保目录存在
@@ -275,19 +292,21 @@ class Plugin extends Command
                             }
                         } else {
                             $output->error('打包失败：压缩文件未创建或为空');
-                            return false;
+                            return 1;
                         }
                     } catch (\Exception $e) {
                         $output->error('打包异常: ' . $e->getMessage());
-                        return false;
+                        return 1;
                     }
                 }
             }
             $output->info('make success');
+            return 0;
         }catch (\Exception $e){
             $output->writeln('----------------');
             $output->error($e->getMessage());
             $output->writeln('----------------');
+            return 1;
         }
     }
 

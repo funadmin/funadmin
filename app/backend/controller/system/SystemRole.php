@@ -274,7 +274,7 @@ class SystemRole extends AdminApiController
             'level' => (int) $this->request->post('level', $defaults['level']),
             'dataScope' => trim((string) $this->request->post('dataScope', $defaults['dataScope'])),
             'remark' => trim(strip_tags((string) $this->request->post('remark', $defaults['remark']))),
-            'status' => (int) $this->request->post('status', $defaults['status']) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $defaults['status'])),
             'parentRoleIds' => $this->normalizeIds($this->request->post('parentRoleIds', $defaults['parentRoleIds'])),
             'departmentIds' => $this->normalizeIds($this->request->post('departmentIds', $defaults['departmentIds'])),
         ];

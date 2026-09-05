@@ -14,7 +14,7 @@
 namespace app\common\controller;
 
 use app\BaseController;
-use app\common\middleware\MApi;
+use app\common\traits\ApiAuthentication;
 use app\common\traits\JsonResponse;
 use think\App;
 use think\exception\ValidateException;
@@ -23,6 +23,7 @@ use think\helper\Str;
 
 class Api extends BaseController
 {
+    use ApiAuthentication;
     use JsonResponse;
 
     protected $middleware =[];
@@ -117,17 +118,7 @@ class Api extends BaseController
         //过滤参数
         $this->pageSize = input('limit', 15);
         $this->page = input('page', 1);
-        $publicActions = array_values(array_unique(array_merge($this->noNeedLogin, $this->noNeedRight)));
-        if ($publicActions === ['*']) {
-            return;
-        }
-
-        $middleware = [MApi::class];
-        if ($publicActions !== []) {
-            $middleware[MApi::class] = ['except' => $publicActions];
-            unset($middleware[0]);
-        }
-        $this->middleware = $middleware + $this->middleware;
+        $this->registerApiAuthentication();
     }
 
     //自动加载语言

@@ -169,7 +169,7 @@ class SystemDepartment extends AdminApiController
             $data['sort'] = max(0, (int) $data['sort']);
         }
         if (isset($data['status'])) {
-            $data['status'] = (int) $data['status'] === 1 ? 1 : 0;
+            $data['status'] = $this->binaryStatus($data['status']);
         }
         foreach (['name', 'leader', 'phone', 'email'] as $field) {
             if (isset($data[$field])) {

@@ -18,21 +18,28 @@ class SystemLog
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $startedAt = microtime(true);
         try {
             $response = $next($request);
         } catch (Throwable $exception) {
-            $this->record($request, null, 0);
+            $this->record($request, null, 0, $startedAt, $exception->getMessage());
             throw $exception;
         }
 
-        $this->record($request, $response);
+        $this->record($request, $response, null, $startedAt);
         return $response;
     }
 
-    private function record(Request $request, ?Response $response, ?int $status = null): void
-    {
+    private function record(
+        Request $request,
+        ?Response $response,
+        ?int $status,
+        float $startedAt,
+        string $errorMessage = ''
+    ): void {
         try {
-            AdminLogService::instance()->save($request, $response, $status);
+            $durationMs = max(0, (int) round((microtime(true) - $startedAt) * 1000));
+            AdminLogService::instance()->save($request, $response, $status, $durationMs, $errorMessage);
         } catch (Throwable $exception) {
             Log::error('后台操作日志写入失败：' . $exception->getMessage());
         }

@@ -325,7 +325,7 @@ class SystemDict extends AdminApiController
             }
         }
         if (isset($result['status'])) {
-            $result['status'] = $result['status'] === 1 ? 1 : 0;
+            $result['status'] = $this->binaryStatus($result['status']);
         }
         return $result;
     }

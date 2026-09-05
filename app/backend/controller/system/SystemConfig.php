@@ -149,7 +149,7 @@ class SystemConfig extends AdminApiController
         if (!$config) {
             return $this->fail('配置项不存在', 404);
         }
-        $config->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+        $config->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         $this->clearConfigCache();
         return $this->ok($this->configData($config), '状态更新成功');
     }
@@ -244,7 +244,7 @@ class SystemConfig extends AdminApiController
             'value' => (string) $this->request->post('value', $config?->value ?? ''),
             'extra' => trim((string) $this->request->post('extra', $config?->extra ?? '')),
             'remark' => trim((string) $this->request->post('remark', $config?->remark ?? '')),
-            'status' => (int) $this->request->post('status', $config?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $config?->status ?? 1)),
         ];
     }
 
@@ -328,7 +328,7 @@ class SystemConfig extends AdminApiController
         return [
             'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
             'title' => trim((string) $this->request->post('title', $group?->title ?? '')),
-            'status' => (int) $this->request->post('status', $group?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
         ];
     }
 

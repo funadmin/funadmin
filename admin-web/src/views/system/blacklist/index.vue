@@ -57,7 +57,7 @@
           <el-table-column prop="id" label="ID" width="80" align="center" />
           <el-table-column prop="ip" label="IP/规则" min-width="180" />
           <el-table-column prop="remark" label="备注" min-width="220" show-overflow-tooltip />
-          <el-table-column label="状态" width="130" align="center">
+          <el-table-column label="状态" width="90" align="center">
             <template #default="{ row }">
               <div v-if="!recycled" class="app-status-switch">
                 <el-switch
@@ -66,9 +66,6 @@
                   :disabled="!hasPermission('system:blacklist:status')"
                   @change="(value: string | number | boolean) => toggleStatus(row as BlacklistModel, value === true)"
                 />
-                <span class="app-status-switch__text" :class="row.status === 1 ? 'is-on' : 'is-off'">
-                  {{ row.status === 1 ? '启用' : '停用' }}
-                </span>
               </div>
               <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">
                 {{ row.status === 1 ? '启用' : '停用' }}

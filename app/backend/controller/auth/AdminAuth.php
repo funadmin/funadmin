@@ -8,7 +8,9 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\model\AdminMenu;
 use app\backend\model\Permission;
 use app\backend\service\AuthService;
+use app\backend\traits\AdminDataFormat;
 use app\backend\traits\AdminJsonResponse;
+use app\backend\traits\AdminTree;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\Response;
@@ -19,7 +21,9 @@ use think\facade\Session;
  */
 class AdminAuth extends BaseController
 {
+    use AdminDataFormat;
     use AdminJsonResponse;
+    use AdminTree;
 
     protected $middleware = [
         CheckAdminApiCsrf::class => ['only' => ['login', 'logout']],
@@ -121,7 +125,7 @@ class AdminAuth extends BaseController
             }
         }
 
-        return $this->ok($this->menuTree(array_values($allowed)));
+        return $this->ok($this->buildTree(array_values($allowed)));
     }
 
     public function logout(): Response
@@ -270,27 +274,11 @@ class AdminAuth extends BaseController
             'icon' => (string) $menu->icon,
             'title' => (string) $menu->title,
             'sort' => (int) $menu->sort,
-            'hidden' => filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOLEAN),
-            'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'hidden' => $this->booleanValue($meta['hidden'] ?? false),
+            'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
+            'affix' => $this->booleanValue($meta['affix'] ?? false),
             'permission' => (string) ($permission->code ?? ''),
         ];
-    }
-
-    private function menuTree(array $rows, int $parentId = 0): array
-    {
-        $result = [];
-        foreach ($rows as $row) {
-            if ((int) $row['parentId'] !== $parentId) {
-                continue;
-            }
-            $children = $this->menuTree($rows, (int) $row['id']);
-            if ($children) {
-                $row['children'] = $children;
-            }
-            $result[] = $row;
-        }
-        return $result;
     }
 
 }

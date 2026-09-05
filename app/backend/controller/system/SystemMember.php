@@ -109,7 +109,7 @@ class SystemMember extends AdminApiController
         if (!$member) {
             return $this->fail('会员不存在', 404);
         }
-        $member->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+        $member->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
         return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '状态更新成功');
     }
@@ -284,7 +284,7 @@ class SystemMember extends AdminApiController
             'groupIds' => $groupIds,
             'level_id' => (int) ($row['levelId'] ?? $row['level_id'] ?? 0),
             'avatar' => trim((string) ($row['avatar'] ?? '')),
-            'status' => (int) ($row['status'] ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($row['status'] ?? 1),
         ];
     }
 

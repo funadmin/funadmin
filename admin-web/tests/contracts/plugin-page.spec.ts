@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 
 const page = readFileSync(resolve(process.cwd(), 'src/views/system/plugin/index.vue'), 'utf8');
 const actions = readFileSync(resolve(process.cwd(), 'src/views/system/plugin/pluginActions.ts'), 'utf8');
+const configDrawer = readFileSync(resolve(process.cwd(), 'src/views/system/plugin/components/PluginConfigDrawer.vue'), 'utf8');
 
 describe('插件中心页面契约', () => {
   it('提供已安装、本地包、云市场三个标签和关键状态字段', () => {
@@ -27,5 +28,16 @@ describe('插件中心页面契约', () => {
     for (const marker of ['PluginAccountDrawer', 'PluginMarketDrawer', 'PluginConfigDrawer', 'PluginHistoryDrawer', 'accept=".zip"']) {
       expect(page).toContain(marker);
     }
+  });
+
+  it('动态配置支持开关、选择、复选、多选和数值输入', () => {
+    for (const marker of ['el-switch', 'el-select', 'el-checkbox-group', 'multiple', 'el-input-number']) {
+      expect(configDrawer).toContain(marker);
+    }
+  });
+
+  it('已安装列表调用更新检查并合并 latestVersion', () => {
+    expect(page).toContain('pluginApi.checkUpdates');
+    expect(page).toContain('latestVersion: updates[item.name]');
   });
 });

@@ -11,10 +11,14 @@ export interface OperationLog {
   url: string;
   ip: string;
   status: 0 | 1;
+  responseCode: number;
+  durationMs: number;
+  requestId: string;
   createdAt: string;
   getData?: string;
   postData?: string;
   agent?: string;
+  errorMessage?: string;
 }
 
 export interface OperationLogQuery {

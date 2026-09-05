@@ -70,6 +70,10 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column v-if="columnKeys.includes('responseCode')" prop="responseCode" label="状态码" width="90" align="center" />
+          <el-table-column v-if="columnKeys.includes('durationMs')" label="耗时" width="100" align="center">
+            <template #default="{ row }">{{ row.durationMs }} ms</template>
+          </el-table-column>
           <el-table-column v-if="columnKeys.includes('createdAt')" prop="createdAt" label="时间" width="170" />
           <el-table-column v-if="columnKeys.includes('actions')" label="操作" width="150" fixed="right" align="center">
             <template #default="{ row }">
@@ -100,7 +104,10 @@
         <el-descriptions-item label="资源">{{ detail.controller }} / {{ detail.action }}</el-descriptions-item>
         <el-descriptions-item label="操作">{{ detail.title || '-' }}</el-descriptions-item>
         <el-descriptions-item label="请求">{{ detail.method }} {{ detail.url }}</el-descriptions-item>
+        <el-descriptions-item label="响应">HTTP {{ detail.responseCode }} · {{ detail.durationMs }} ms</el-descriptions-item>
+        <el-descriptions-item label="请求 ID">{{ detail.requestId || '-' }}</el-descriptions-item>
         <el-descriptions-item label="IP">{{ detail.ip }}</el-descriptions-item>
+        <el-descriptions-item v-if="detail.errorMessage" label="失败原因">{{ detail.errorMessage }}</el-descriptions-item>
         <el-descriptions-item label="GET 参数"><pre>{{ detail.getData || '{}' }}</pre></el-descriptions-item>
         <el-descriptions-item label="请求参数"><pre>{{ detail.postData || '{}' }}</pre></el-descriptions-item>
         <el-descriptions-item label="User-Agent"><span class="break-all">{{ detail.agent || '-' }}</span></el-descriptions-item>
@@ -128,6 +135,8 @@ const columnOptions: DataTableColumnOption[] = [
   { key: 'url', label: 'URL' },
   { key: 'ip', label: 'IP' },
   { key: 'status', label: '状态' },
+  { key: 'responseCode', label: '状态码' },
+  { key: 'durationMs', label: '耗时' },
   { key: 'createdAt', label: '时间' },
   { key: 'actions', label: '操作', alwaysVisible: true }
 ];

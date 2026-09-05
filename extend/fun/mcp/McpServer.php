@@ -99,7 +99,7 @@ class McpServer extends Command
             } elseif ($transport === 'stdio') {
                 if (PHP_OS_FAMILY === 'Windows') {
                     $output->error('在Windows系统上，STDIO传输不支持非阻塞管道');
-                    $output->info('建议使用SSE传输: php think mcp:server start --transport=sse');
+                    $output->info('建议使用SSE传输: php think mcp start --transport=sse');
                     return 1;
                 }
                 $output->info('使用STDIO传输协议启动服务器...');
@@ -180,9 +180,9 @@ class McpServer extends Command
             
             $output->info('');
             $output->info('=== 使用说明 ===');
-            $output->info('启动STDIO服务器: php think mcp:server start');
-            $output->info('启动HTTP服务器: php think mcp:server start --transport=http');
-            $output->info('查看服务器信息: php think mcp:server info');
+            $output->info('启动STDIO服务器: php think mcp start --transport=stdio');
+            $output->info('启动HTTP服务器: php think mcp start --transport=http');
+            $output->info('查看服务器信息: php think mcp info');
 
             return 0;
 

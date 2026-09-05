@@ -74,7 +74,7 @@ class SystemBlacklist extends AdminApiController
         if (!$item) {
             return $this->fail('黑名单记录不存在', 404);
         }
-        $item->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+        $item->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         return $this->ok($this->itemData($item), '状态更新成功');
     }
 
@@ -146,7 +146,7 @@ class SystemBlacklist extends AdminApiController
             $data = [
                 'ip' => trim((string) ($row['ip'] ?? '')),
                 'remark' => trim((string) ($row['remark'] ?? '')),
-                'status' => (int) ($row['status'] ?? 1) === 1 ? 1 : 0,
+                'status' => $this->binaryStatus($row['status'] ?? 1),
             ];
             if ($error = $this->validatePayload($data)) {
                 $errors[] = '第 ' . ($index + 2) . ' 行：' . $error;
@@ -197,7 +197,7 @@ class SystemBlacklist extends AdminApiController
         return [
             'ip' => trim((string) $this->request->post('ip', $item?->ip ?? '')),
             'remark' => trim((string) $this->request->post('remark', $item?->remark ?? '')),
-            'status' => (int) $this->request->post('status', $item?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $item?->status ?? 1)),
         ];
     }
 

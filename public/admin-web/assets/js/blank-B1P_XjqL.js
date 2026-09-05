@@ -1,0 +1,1 @@
+import{Ut as e,qt as t,wt as n}from"./element-Cv5vGE3z.js";import{d as r}from"./index-e_Y9Q09P.js";var i={};function a(r,i){let a=t(`router-view`);return e(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

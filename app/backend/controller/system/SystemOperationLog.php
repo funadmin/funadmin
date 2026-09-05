@@ -35,7 +35,7 @@ class SystemOperationLog extends AdminApiController
             $query->where('module', $module);
         }
         if ($status !== null && $status !== '') {
-            $query->where('status', (int) $status === 1 ? 1 : 0);
+            $query->where('status', $this->binaryStatus($status));
         }
         if ($startTime !== '' && strtotime($startTime) !== false) {
             $query->where('create_time', '>=', strtotime($startTime));
@@ -99,12 +99,16 @@ class SystemOperationLog extends AdminApiController
             'url' => (string) $log->url,
             'ip' => (string) $log->ip,
             'status' => (int) $log->status,
+            'responseCode' => (int) $log->response_code,
+            'durationMs' => (int) $log->duration_ms,
+            'requestId' => (string) $log->request_id,
             'createdAt' => $this->formatTime($log->create_time),
         ];
         if ($detail) {
             $data['getData'] = (string) $log->get_data;
             $data['postData'] = (string) $log->post_data;
             $data['agent'] = (string) $log->agent;
+            $data['errorMessage'] = (string) $log->error_message;
         }
         return $data;
     }

@@ -86,7 +86,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="levelName" label="会员等级" min-width="120" />
-          <el-table-column label="状态" width="130" align="center">
+          <el-table-column label="状态" width="90" align="center">
             <template #default="{ row }">
               <div v-if="!recycled" class="app-status-switch">
                 <el-switch
@@ -95,7 +95,6 @@
                   :disabled="!hasPermission('system:member:status')"
                   @change="(value: string | number | boolean) => toggleStatus(row as MemberModel, value === true)"
                 />
-                <span class="app-status-switch__text" :class="row.status === 1 ? 'is-on' : 'is-off'">{{ row.status === 1 ? '启用' : '停用' }}</span>
               </div>
               <el-tag v-else :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
             </template>

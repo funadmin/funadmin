@@ -21,13 +21,21 @@ use think\Response;
 
 class AdminLogService extends AbstractService
 {
-    public function save(Request $request, ?Response $response = null, ?int $status = null): void
-    {
-        $module = app('http')->getName();
+    public function save(
+        Request $request,
+        ?Response $response = null,
+        ?int $status = null,
+        int $durationMs = 0,
+        string $errorMessage = ''
+    ): void {
+        $pluginName = trim((string) ($request->plugin ?? ''));
+        $appName = trim((string) ($request->plugin_app_name ?? app('http')->getName()));
+        $sourceType = $pluginName === '' ? 'system' : 'plugin';
+        $sourceName = $pluginName === '' ? 'core' : $pluginName;
         $controller = (string) $request->controller(true);
         $action = (string) ($request->action() ?: 'index');
         $url = str_replace('.' . config('view.view_suffix'), '', $request->pathinfo());
-        $resource = PermissionResource::fromParts($module, $controller, $action);
+        $resource = PermissionResource::fromParts($appName, $controller, $action);
         $title = (string) (Permission::where('code', $resource['code'])->value('title') ?: '');
         if ($title === '') {
             $title = $controller . '/' . $action;
@@ -41,14 +49,19 @@ class AdminLogService extends AbstractService
         }
         $responseCode = $response?->getCode() ?? 500;
         $succeeded = $status ?? ($responseCode >= 200 && $responseCode < 400 ? 1 : 0);
+        $requestId = trim((string) $request->header('X-Request-ID', ''));
+        if ($requestId === '' || strlen($requestId) > 64) {
+            $requestId = bin2hex(random_bytes(16));
+        }
 
         AdminLog::create([
             'title' => $title,
             'admin_id' => (int) Session::get('admin.id', 0),
             'username' => (string) Session::get('admin.username', 'Unknown'),
             'url' => $url,
-            'plugins' => 'app',
-                'module' => $module,
+            'app_name' => $appName,
+            'source_type' => $sourceType,
+            'source_name' => $sourceName,
             'controller' => $controller,
             'action' => $action,
             'get_data' => $this->encode($this->sanitize($request->get())),
@@ -58,6 +71,10 @@ class AdminLogService extends AbstractService
             'ip' => $request->ip(),
             'method' => $request->method(),
             'status' => $succeeded,
+            'response_code' => $responseCode,
+            'duration_ms' => $durationMs,
+            'request_id' => $requestId,
+            'error_message' => mb_substr($errorMessage, 0, 500),
         ]);
     }
 

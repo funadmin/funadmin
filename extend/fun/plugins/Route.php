@@ -31,6 +31,7 @@ class Route
         if (empty($plugin) || empty($controller) || empty($action)) {
             throw new HttpException(500, lang('plugin can not be empty'));
         }
+        $request->plugin_app_name = $app->http->getName();
         $app->http->name($plugin);
 
         $request->plugin = $plugin;

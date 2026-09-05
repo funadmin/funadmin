@@ -1,0 +1,1 @@
+import{At as e,Ut as t,wt as n}from"./element-Cv5vGE3z.js";import{t as r}from"./ErrorPage-CLiE9K4o.js";var i=e({__name:`403`,setup(e){return(e,i)=>(t(),n(r,{code:`403`}))}});export{i as default};

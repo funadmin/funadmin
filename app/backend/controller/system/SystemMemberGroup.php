@@ -89,7 +89,7 @@ class SystemMemberGroup extends AdminApiController
         if (!$group) {
             return $this->fail('会员组不存在', 404);
         }
-        $group->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+        $group->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         return $this->ok($this->groupData($group), '状态更新成功');
     }
 
@@ -176,7 +176,7 @@ class SystemMemberGroup extends AdminApiController
         return [
             'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
             'icon' => trim((string) $this->request->post('icon', $group?->icon ?? '')),
-            'status' => (int) $this->request->post('status', $group?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
         ];
     }
 

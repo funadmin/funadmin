@@ -189,7 +189,7 @@ class SystemAdmin extends AdminApiController
             if (!$this->isInDataScope($admin)) {
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
-            $admin->save(['status' => (int) $this->request->post('status', 0) === 1 ? 1 : 0]);
+            $admin->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
             return $this->ok(null, '状态已更新');
         } catch (InvalidArgumentException $e) {
             return $this->fail($e->getMessage(), 403);
@@ -231,7 +231,7 @@ class SystemAdmin extends AdminApiController
             'email' => trim((string) $this->request->post('email', $admin ? $admin->email : '')),
             'mobile' => trim((string) $this->request->post('mobile', $admin ? $admin->mobile : '')),
             'password' => $create ? (string) $this->request->post('password', '') : '',
-            'status' => (int) $this->request->post('status', $admin ? $admin->status : 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $admin ? $admin->status : 1)),
             'deptId' => max(0, (int) $this->request->post('deptId', $admin ? $admin->dept_id : 0)),
             'roleIds' => $this->normalizeIds($this->request->post('roleIds', $admin ? AuthService::instance()->adminRoleIds((int) $admin->id) : [])),
         ];

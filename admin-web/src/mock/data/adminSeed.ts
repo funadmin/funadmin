@@ -284,6 +284,21 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           permission: 'system:member-level:list'
         },
         {
+          id: 116,
+          parentId: 100,
+          name: 'SystemPlugin',
+          path: 'plugin',
+          component: 'system/plugin/index',
+          type: 'C',
+          icon: 'i-ep-box',
+          title: '插件中心',
+          sort: 13,
+          hidden: false,
+          keepAlive: true,
+          affix: false,
+          permission: 'system:plugin:list'
+        },
+        {
           id: 114,
           parentId: 100,
           name: 'SystemMemberGroup',

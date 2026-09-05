@@ -1527,7 +1527,7 @@ class {$modelClass} extends BaseModel
             $content = $output->fetch();
 
             // 检查执行结果
-            if (strpos($content, 'success') !== false || strpos($content, 'make success') !== false) {
+            if (strpos($content, 'success') !== false || strpos($content, 'make success') !== false || strpos($content, '成功') !== false) {
                 return [
                     'success' => true,
                     'message' => "插件{$action}操作成功",

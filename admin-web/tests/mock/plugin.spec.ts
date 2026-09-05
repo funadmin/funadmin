@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { pluginMockHandlers } from '@/mock/modules/plugin';
 import type { MockContext, MockMethod, MockRoute } from '@/mock/types';
+import { getAdminMenuTreeSeed } from '@/mock/data/adminSeed';
 
 function route(method: MockMethod, pattern: string): MockRoute {
   const item = pluginMockHandlers.find((handler) => handler.method === method && String(handler.url) === pattern);
@@ -19,5 +20,10 @@ describe('mock/plugin safeguards', () => {
   it('提供 enabled modules 空列表避免影响核心路由', async () => {
     const response = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
     expect(response.data).toEqual([]);
+  });
+
+  it('在 mock 菜单中提供可访问的插件中心', () => {
+    const system = getAdminMenuTreeSeed().find((item) => item.name === 'System');
+    expect(system?.children?.some((item) => item.name === 'SystemPlugin' && item.component === 'system/plugin/index')).toBe(true);
   });
 });

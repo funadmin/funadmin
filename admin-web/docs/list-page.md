@@ -225,10 +225,10 @@ onMounted(loadData);
 <el-table-column v-if="columnKeys.includes('mobile')" prop="mobile" label="手机" width="140" />
 ```
 
-### 5.2 状态开关 + 文字（用户/角色都用过）
+### 5.2 状态开关（仅开关，不带文字）
 
 ```vue
-<el-table-column v-if="columnKeys.includes('status')" label="状态" width="120" align="center">
+<el-table-column v-if="columnKeys.includes('status')" label="状态" width="90" align="center">
   <template #default="{ row }">
     <div class="app-status-switch">
       <el-switch
@@ -236,9 +236,6 @@ onMounted(loadData);
         :model-value="row.status === 1"
         @change="(v: string | number | boolean) => onToggleStatus(row, v === true)"
       />
-      <span class="app-status-switch__text" :class="row.status === 1 ? 'is-on' : 'is-off'">
-        {{ row.status === 1 ? '启用' : '禁用' }}
-      </span>
     </div>
   </template>
 </el-table-column>

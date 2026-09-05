@@ -5,6 +5,11 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 
+use app\backend\traits\AdminCrudRequest;
+use app\backend\traits\AdminDataFormat;
+use app\backend\traits\AdminDataScope;
+use app\backend\traits\AdminPagination;
+use app\backend\traits\AdminTree;
 use app\common\service\BearerTokenExtractor;
 use app\common\traits\JsonResponse;
 use think\App;
@@ -82,8 +87,10 @@ foreach ($adminResponseFiles as $file) {
 }
 
 $adminApiSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/base/AdminApiController.php');
-responseExpect(str_contains($adminApiSource, 'protected function normalizeIds('), '后台基类必须提供统一 ID 规范化');
-responseExpect(str_contains($adminApiSource, 'protected function paginationData('), '后台基类必须提供统一分页数据组装');
+foreach (['AdminCrudRequest', 'AdminPagination', 'AdminTree', 'AdminDataFormat', 'AdminDataScope'] as $traitName) {
+    responseExpect(str_contains($adminApiSource, "use {$traitName};"), "后台 API 基类必须组合 {$traitName} Trait");
+}
+responseExpect(!preg_match('/protected function (page|pageSize|ids|normalizeIds|paginationData|buildTree|formatTime)\s*\(/', $adminApiSource), '后台 API 基类不得直接实现公共 CRUD 操作');
 $adminUtilities = new class($app) extends \app\backend\controller\base\AdminApiController {
     public function normalizedIds(mixed $ids): array
     {
@@ -102,6 +109,39 @@ responseExpect($adminUtilities->pageResult([['id' => 1]], 3, 2, 10) === [
     'page' => 2,
     'pageSize' => 10,
 ], '分页数据结构必须保持统一');
+
+$traitUtilities = new class {
+    use AdminCrudRequest;
+    use AdminPagination;
+    use AdminTree;
+    use AdminDataFormat;
+
+    public function flag(mixed $value): int
+    {
+        return $this->binaryStatus($value);
+    }
+
+    public function boolean(mixed $value): bool
+    {
+        return $this->booleanValue($value);
+    }
+
+    public function tree(array $rows): array
+    {
+        return $this->buildTree($rows);
+    }
+};
+responseExpect($traitUtilities->flag('1') === 1 && $traitUtilities->flag('true') === 0, '数据库状态转换必须保持严格二值语义');
+responseExpect($traitUtilities->boolean('true') && !$traitUtilities->boolean('false'), '前端布尔值转换必须复用数据格式化 Trait');
+responseExpect($traitUtilities->tree([
+    ['id' => 1, 'parentId' => 0],
+    ['id' => 2, 'parentId' => 1],
+]) === [['id' => 1, 'parentId' => 0, 'children' => [['id' => 2, 'parentId' => 1]]]], '树构建 Trait 必须正确组装父子节点');
+
+$adminAuthSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/auth/AdminAuth.php');
+responseExpect(str_contains($adminAuthSource, 'use AdminTree;'), '后台认证菜单必须复用树构建 Trait');
+responseExpect(str_contains($adminAuthSource, 'use AdminDataFormat;'), '后台认证菜单必须复用数据格式化 Trait');
+responseExpect(!str_contains($adminAuthSource, 'private function menuTree('), '后台认证不得重复实现菜单树');
 
 $systemDictSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/system/SystemDict.php');
 responseExpect(str_contains($systemDictSource, 'extends AdminApiController'), 'SystemDict 必须复用后台 API 基类');

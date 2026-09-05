@@ -78,7 +78,7 @@
             label="手机"
             width="140"
           />
-          <el-table-column v-if="columnKeys.includes('status')" label="状态" width="120" align="center">
+          <el-table-column v-if="columnKeys.includes('status')" label="状态" width="90" align="center">
             <template #default="{ row }">
               <div class="app-status-switch">
                 <el-switch
@@ -86,12 +86,6 @@
                   :model-value="row.status === 1"
                   @change="(v: string | number | boolean) => onToggleStatus(row as UserModel, v === true)"
                 />
-                <span
-                  class="app-status-switch__text"
-                  :class="row.status === 1 ? 'is-on' : 'is-off'"
-                >
-                  {{ row.status === 1 ? '启用' : '禁用' }}
-                </span>
               </div>
             </template>
           </el-table-column>
@@ -219,19 +213,6 @@ async function onResetPwd(row: UserModel) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-}
-.app-status-switch__text {
-  font-size: 12px;
-  font-weight: 500;
-  user-select: none;
-  white-space: nowrap;
-}
-.app-status-switch__text.is-on {
-  color: var(--el-color-primary);
-}
-.app-status-switch__text.is-off {
-  color: var(--el-text-color-secondary);
 }
 
 /* 分页条：放在 PageWrapper 底部，与表格统一视觉 */

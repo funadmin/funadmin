@@ -79,7 +79,7 @@ const configVisible = ref(false);
 const historyVisible = ref(false);
 
 function dependencies(value: Record<string, string>) { return Object.entries(value || {}).map(([name, version]) => `${name} ${version}`).join(', ') || '-'; }
-async function load() { if (activeTab.value === 'market') return loadMarket(); loading.value = true; try { items.value = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered(); } finally { loading.value = false; } }
+async function load() { if (activeTab.value === 'market') return loadMarket(); loading.value = true; try { const loaded = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered(); if (activeTab.value !== 'installed') { items.value = loaded; return; } const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ name: item.name, version: item.version }))); items.value = loaded.map((item) => ({ ...item, latestVersion: updates[item.name] || '' })); } finally { loading.value = false; } }
 async function loadMarket() { loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } finally { loading.value = false; } }
 async function uploadZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file) return; try { await pluginApi.installLocal(file); activeTab.value = 'installed'; await load(); } finally { input.value = ''; } }
 async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { await pluginApi[action](row.name); await load(); }

@@ -83,7 +83,7 @@ class SystemAttachmentGroup extends AdminApiController
             'pid' => (int) $this->request->post('parentId', $group?->pid ?? 0),
             'title' => trim((string) $this->request->post('title', $group?->title ?? '')),
             'thumb' => trim((string) $this->request->post('thumb', $group?->thumb ?? '')),
-            'status' => (int) $this->request->post('status', $group?->status ?? 1) === 1 ? 1 : 0,
+            'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
             'sort' => max(0, (int) $this->request->post('sort', $group?->sort ?? 999)),
         ];
     }

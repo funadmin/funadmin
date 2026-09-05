@@ -34,18 +34,18 @@ class Menu extends Command
         $sourceName = $controller !== '' ? strtolower(str_replace(['\\', '/'], '.', $controller)) : $app;
         if ($app === 'backend' && in_array($controller, $this->sysController, true)) {
             $output->error("{$controller}系统控制器不能生成");
-            return false;
+            return 1;
         }
         if ($controller === '' && $app === 'backend') {
             $output->error('Backend应用控制器不能为空');
-            return false;
+            return 1;
         }
 
         $registry = ResourceRegistryService::instance();
         if ($input->getOption('force') && $input->getOption('delete')) {
             $controller === '' ? $registry->removeModule($app) : $registry->removeSource('crud', $sourceName);
             $output->info('delete success');
-            return true;
+            return 0;
         }
 
         $controllers = $controller === ''
@@ -87,7 +87,7 @@ class Menu extends Command
         }
         $registry->registerTree($menus, 0, 0, $app, 'crud', $sourceName);
         $output->info('make success');
-        return true;
+        return 0;
     }
 
     private function analyzeController(string $app, string $controller): array
