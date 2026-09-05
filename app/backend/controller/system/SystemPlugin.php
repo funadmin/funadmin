@@ -133,6 +133,13 @@ final class SystemPlugin extends AdminApiController
         if (!$file || !$file->isValid() || strtolower($file->getOriginalExtension()) !== 'zip') {
             return $this->fail('请选择有效的 ZIP 插件安装包', 422);
         }
+        if ($file->getSize() < 1 || $file->getSize() > 100 * 1024 * 1024) {
+            return $this->fail('插件安装包大小必须在 100MB 以内', 422);
+        }
+        $mime = strtolower((string) $file->getMime());
+        if (!in_array($mime, ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'], true)) {
+            return $this->fail('插件安装包 MIME 类型无效', 422);
+        }
         set_time_limit(0);
         return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
     }
