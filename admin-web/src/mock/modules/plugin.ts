@@ -3,7 +3,7 @@ import type { MockRoute } from '../types';
 import { fail, ok, page } from '../types';
 
 let account: Record<string, unknown> | null = null;
-const initialInstalled = (): PluginItem[] => [{ name: 'demo', title: '演示插件', version: '1.0.0', latestVersion: '1.1.0', dbVersion: '1.0.0', state: 'disabled', dependencies: {}, migrationPending: false, lastError: '', source: 'installed' }];
+const initialInstalled = (): PluginItem[] => [{ name: 'demo', title: '演示插件', version: '1.0.0', latestVersion: '1.1.0', dbVersion: '1.0.0', state: 'disabled', dependencies: {}, migrationPending: false, lastError: '', source: 'installed', needsReinstall: false, operation: '', progress: 0 }];
 const installed: PluginItem[] = initialInstalled();
 
 export function resetPluginMockState(): void {
@@ -27,13 +27,14 @@ function enabledModules(): EnabledPluginModule[] {
 }
 const local = [{ name: 'localdemo', title: '本地示例', version: '1.0.0', latestVersion: '', dbVersion: '', state: 'discovered', dependencies: {}, migrationPending: false, lastError: '', source: 'local' }];
 const market = [{ id: 1, name: 'marketdemo', title: '市场示例', description: '云市场插件', author: 'FunAdmin', versions: [
-  { id: 1, pluginName: 'marketdemo', version: '1.0.0', changelog: '初始版本', compatible: true },
-  { id: 2, pluginName: 'marketdemo', version: '1.1.0', changelog: '功能更新', compatible: true }
+  { id: 1, pluginName: 'marketdemo', version: '1.0.0', changelog: '初始版本', compatible: true, requires: {}, compatibleRange: '^1.0', publishedAt: '2026-01-01T00:00:00Z', sha256: 'a'.repeat(64), signature: null, signatureAlgorithm: null, size: 1024 },
+  { id: 2, pluginName: 'marketdemo', version: '1.1.0', changelog: '功能更新', compatible: true, requires: {}, compatibleRange: '^1.0', publishedAt: '2026-02-01T00:00:00Z', sha256: 'b'.repeat(64), signature: null, signatureAlgorithm: null, size: 2048 }
 ] }];
 
 export const pluginMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/system/plugin/account/current', handler: () => ok(account) },
   { method: 'POST', url: '/system/plugin/account/login', handler: ({ body }) => { account = { id: 1, username: body.account, nickname: body.account, avatar: '' }; return ok(account); } },
+  { method: 'POST', url: '/system/plugin/account/refresh', handler: () => account ? ok(account) : fail('请先登录云账号', 401) },
   { method: 'POST', url: '/system/plugin/account/logout', handler: () => { account = null; return ok({ authenticated: false }); } },
   { method: 'GET', url: '/system/plugin/market/categories', handler: () => ok([{ id: 1, name: '工具' }]) },
   { method: 'GET', url: '/system/plugin/market/search', handler: () => ok(page(market, market.length, 1, 20)) },
@@ -55,12 +56,16 @@ export const pluginMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/system/plugin/local/discovered', handler: () => ok(local) },
   { method: 'GET', url: '/system/plugin/local/installed', handler: () => ok(installed) },
   { method: 'POST', url: '/system/plugin/local/install', handler: () => ok({ installed: true }) },
+  { method: 'POST', url: /^\/system\/plugin\/local\/([a-z][a-z0-9]*)\/install$/, paramNames: ['name'], handler: () => ok({ installed: true }) },
+  { method: 'POST', url: /^\/system\/plugin\/local\/([a-z][a-z0-9]*)\/update$/, paramNames: ['name'], handler: () => ok({ updated: true }) },
   { method: 'GET', url: '/system/plugin/modules/enabled', handler: () => ok(enabledModules()) },
   { method: 'GET', url: /^\/system\/plugin\/local\/([a-z][a-z0-9]*)$/, paramNames: ['name'], handler: () => ok(local[0]) },
   { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/config$/, paramNames: ['name'], handler: () => ok({ enabled: { title: '启用功能', type: 'switch', value: true } }) },
   { method: 'PUT', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/config$/, paramNames: ['name'], handler: () => ok(true) },
-  { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/history$/, paramNames: ['name'], handler: () => ok([]) },
+  { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/history$/, paramNames: ['name'], handler: ({ pathParams }) => ok([{ id: 1, plugin_name: pathParams.name, version: '1.0.0', source: 'cloud', package_hash: 'a'.repeat(64), signature_verified: true, downloadable: true, createdAt: '2026-01-01T00:00:00Z' }]) },
   { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/operations$/, paramNames: ['name'], handler: () => ok([]) },
+  { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/recovery$/, paramNames: ['name'], handler: () => ok({ available: false, stage: '', message: '当前没有待处理的插件恢复记录。' }) },
+  { method: 'POST', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/history\/(\d+)\/redeploy$/, paramNames: ['name', 'id'], handler: () => ok(true) },
   {
     method: 'POST',
     url: /^\/system\/plugin\/cloud\/([a-z][a-z0-9]*)\/install$/,
@@ -81,7 +86,10 @@ export const pluginMockHandlers: MockRoute[] = [
         dependencies: {},
         migrationPending: false,
         lastError: '',
-        source: 'cloud'
+        source: 'cloud',
+        needsReinstall: false,
+        operation: '',
+        progress: 0
       });
       return ok(true);
     }

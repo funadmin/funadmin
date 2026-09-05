@@ -134,6 +134,7 @@ final class PluginCenterQueryService extends AbstractService
     {
         $data = $manifest?->toArray() ?? $this->decodedManifest($record);
         $dependencies = is_array($data['requires']['plugins'] ?? null) ? $data['requires']['plugins'] : [];
+        $operation = $record ? PluginOperation::where('plugin_name', (string) $record->name)->order('id', 'desc')->find() : null;
         return [
             'name' => (string) ($record?->name ?? $manifest?->name() ?? ''),
             'title' => (string) ($record?->title ?? $manifest?->title() ?? ''),
@@ -146,8 +147,8 @@ final class PluginCenterQueryService extends AbstractService
             'lastError' => (string) ($record?->last_error ?? ''),
             'source' => $source,
             'needsReinstall' => (bool) ($record?->needs_reinstall ?? false),
-            'operation' => (string) ($record?->operation_token ?? ''),
-            'progress' => $this->operationProgress((string) ($record?->name ?? '')),
+            'operation' => (string) ($record?->operation_token ?? '') !== '' ? (string) ($operation?->operation ?? 'unknown') : '',
+            'progress' => (int) ($operation?->progress ?? 0),
             'disabledReason' => $this->disabledReason($record, $dependencies),
         ];
     }
@@ -189,15 +190,6 @@ final class PluginCenterQueryService extends AbstractService
         return $result;
     }
 
-    private function operationProgress(string $name): int
-    {
-        if ($name === '') {
-            return 0;
-        }
-        $operation = PluginOperation::where('plugin_name', $name)->order('id', 'desc')->find();
-        return (int) ($operation?->progress ?? 0);
-    }
-
     private function disabledReason(?Plugin $record, array $dependencies): string
     {
         if (!$record) {
@@ -212,7 +204,53 @@ final class PluginCenterQueryService extends AbstractService
         if ((bool) ($record->migration_pending ?? false)) {
             return '数据库迁移尚未完成';
         }
-        return $dependencies === [] ? '' : '请确认依赖插件均已安装并启用';
+        return $this->dependencyReason($dependencies);
+    }
+
+    private function dependencyReason(array $dependencies): string
+    {
+        if ($dependencies === []) {
+            return '';
+        }
+        $records = [];
+        foreach (Plugin::whereIn('name', array_keys($dependencies))->select() as $record) {
+            $records[(string) $record->name] = $record;
+        }
+        foreach ($dependencies as $name => $constraint) {
+            $dependency = $records[$name] ?? null;
+            if (!$dependency) {
+                return '依赖插件未安装：' . $name;
+            }
+            if ((string) $dependency->lifecycle_state !== 'enabled' || (int) ($dependency->needs_reinstall ?? 0) === 1) {
+                return '依赖插件未启用：' . $name;
+            }
+            if (!$this->matchesVersion((string) $dependency->version, (string) $constraint)) {
+                return "依赖插件 {$name} 版本不满足 {$constraint}，当前 {$dependency->version}";
+            }
+        }
+        return '';
+    }
+
+    private function matchesVersion(string $version, string $constraint): bool
+    {
+        foreach (preg_split('/\s*,\s*|\s+/', trim($constraint)) ?: [] as $part) {
+            if ($part === '') {
+                continue;
+            }
+            if (str_starts_with($part, '^')) {
+                $minimum = substr($part, 1);
+                $major = (int) explode('.', $minimum)[0];
+                if (version_compare($version, $minimum, '<') || version_compare($version, ($major + 1) . '.0.0', '>=')) {
+                    return false;
+                }
+                continue;
+            }
+            if (!preg_match('/^(>=|<=|>|<|=)?(.+)$/', $part, $matches)
+                || !version_compare($version, $matches[2], $matches[1] ?: '=')) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function assertName(string $name): void

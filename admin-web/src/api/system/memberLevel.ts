@@ -22,12 +22,17 @@ export interface MemberLevelQuery {
   name?: string;
   status?: 0 | 1;
   recycled?: 0 | 1;
+  amountRange?: [string?, string?];
+  discountRange?: [number?, number?];
+  createdAtRange?: [string?, string?];
+  sort?: 'id' | 'name' | 'amount' | 'discount' | 'sort' | 'status' | 'createdAt';
+  order?: 'asc' | 'desc';
 }
 
 export type MemberLevelPayload = Pick<MemberLevelModel, 'name' | 'amount' | 'discount' | 'thumb' | 'status' | 'sort' | 'description'>;
 
 export const memberLevelApi = {
-  list: (params: MemberLevelQuery) => http.get<API.PageResult<MemberLevelModel>>(PREFIX, { params }),
+  list: (params: MemberLevelQuery) => http.get<API.PageResult<MemberLevelModel>>(PREFIX, params),
   detail: (id: number) => http.get<MemberLevelModel>(`${PREFIX}/${id}`),
   create: (data: MemberLevelPayload) =>
     http.post<MemberLevelModel>(PREFIX, data, { requestOptions: { showSuccessMsg: true } }),
@@ -41,6 +46,8 @@ export const memberLevelApi = {
     http.post<{ restored: number }>(`${PREFIX}/restore`, { ids }, { requestOptions: { showSuccessMsg: true } }),
   destroy: (ids: number[]) =>
     http.delete<{ removed: number }>(`${PREFIX}/destroy`, { ids }, { requestOptions: { showSuccessMsg: true } }),
+  importRows: (rows: MemberLevelPayload[]) =>
+    http.post<{ created: number }>(`${PREFIX}/import`, { rows }, { requestOptions: { showSuccessMsg: true } }),
   exportRows: (params: Omit<MemberLevelQuery, 'page' | 'pageSize'>) =>
-    http.get<MemberLevelModel[]>(`${PREFIX}/export`, { params })
+    http.get<MemberLevelModel[]>(`${PREFIX}/export`, params)
 };

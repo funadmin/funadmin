@@ -33,6 +33,47 @@ class SystemMemberLevel extends AdminApiController
         return ['sort_order' => 'asc', 'id' => 'asc'];
     }
 
+    protected function crudSortFields(): array
+    {
+        return ['id' => 'id', 'name' => 'name', 'amount' => 'amount', 'discount' => 'discount', 'sort' => 'sort_order', 'status' => 'status', 'createdAt' => 'created_at'];
+    }
+
+    protected function crudRangeFilters(): array
+    {
+        return ['amountRange' => 'amount', 'discountRange' => 'discount', 'createdAtRange' => 'created_at'];
+    }
+
+    protected function crudImportFields(): array
+    {
+        return [
+            'name' => 'name',
+            'amount' => 'amount',
+            'discount' => 'discount',
+            'thumb' => 'thumb',
+            'status' => 'status',
+            'sort' => 'sort_order',
+            'description' => 'description',
+        ];
+    }
+
+    protected function crudExportFields(): array
+    {
+        return ['id', 'name', 'amount', 'discount', 'thumb', 'status', 'sort', 'description', 'createdAt', 'deletedAt'];
+    }
+
+    protected function crudImportPayload(array $row): array
+    {
+        $data = $this->crudMapImportRow($row);
+        $data['name'] = trim((string) ($data['name'] ?? ''));
+        $data['amount'] = trim((string) ($data['amount'] ?? '0'));
+        $data['discount'] = (int) ($data['discount'] ?? 100);
+        $data['thumb'] = trim((string) ($data['thumb'] ?? ''));
+        $data['status'] = $this->binaryStatus($data['status'] ?? 1);
+        $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
+        $data['description'] = trim((string) ($data['description'] ?? ''));
+        return $data;
+    }
+
     protected function crudPayload(?Model $model = null): array
     {
         return [

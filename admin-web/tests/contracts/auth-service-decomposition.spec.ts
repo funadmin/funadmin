@@ -77,7 +77,7 @@ describe('AuthService 职责拆分源码契约', () => {
     }
     expect(methodBody(authService, 'roleAccess')).not.toContain('enforceAdmin');
     expect(apiRoleMiddleware).toMatch(/roleAccess\s*\(\s*true\s*\)/);
-    expect(methodBody(authorizationService, 'roleAccess')).toMatch(/bool\s+\$authenticated\s*=\s*false/);
+    expect(authorizationService).toMatch(/function\s+roleAccess\s*\(\s*bool\s+\$authenticated\s*=\s*false\s*\)/);
   });
 
   it('角色范围实现有单一归属且 RoleGuardService 不再依赖 AuthService', () => {

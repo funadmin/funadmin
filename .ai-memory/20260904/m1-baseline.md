@@ -19,7 +19,7 @@
 |---|---|---|
 | `plugins/` | 目录存在，普通文件数 `0` | 文件系统插件目录当前为空；空目录不代表插件迁移逻辑可删除。 |
 | `addons/` | 目录不存在 | 运行时目录已硬切为 `plugins/`；历史文本、IDE 元数据或兼容 migration 中仍可能出现 `addons`，不能据此恢复 `addons/`。 |
-| `config/console.php` | 存在并已扫描 | 注册 `curd`、`menu`、`plugin`、`install`、`mcp` 命令；Laravel command 等价替代前保留。 |
+| `config/console.php` | 存在并已扫描 | 注册 `crud`、`menu`、`plugin`、`install`、`mcp` 命令；Laravel command 等价替代前保留。 |
 | `app/backend/service/PluginService.php` | 存在并已扫描 | 当前插件安装、更新、迁移、启停、卸载及回滚编排的核心行为参照。 |
 | `app/backend/service/ResourceRegistryService.php` | 存在并已扫描 | 菜单、权限与 Casbin 资源注册/移除入口；插件资源迁移必须保持幂等和缓存刷新语义。 |
 | `extend/fun/helper/FormHelper.php` | 存在并已扫描 | 旧表单 HTML/Layui 实现仍存在，配置表单与附件选择兼容链未完全替代前不能删除。 |
@@ -28,7 +28,7 @@
 | `app/backend/controller`、`app/backend/view`、`app/common/service` | 已扫描旧后台入口和生成路径 | 识别 Layui/RequireJS、旧页面控制器、插件管理和代码生成依赖。 |
 | `extend/fun`、`config`、`database/migrations` | 已扫描插件、表单、console、配置与 schema | migration 仅作只读证据；未执行、未恢复、未改写。 |
 
-## 3. Layui / RequireJS / 旧 curd 清单
+## 3. Layui / RequireJS / 旧 crud 清单
 
 ### 必须迁移
 
@@ -36,7 +36,7 @@
 |---|---|---|
 | 旧后台壳与登录 | `app/backend/controller/Index.php`、`Login.php`、`Error.php` 及旧 view/layout | 新管理端接管登录、主布局、控制台、错误页和动态菜单后迁移。 |
 | 旧插件管理 | `app/backend/controller/Plugin.php`、旧插件视图，以及 `PluginService` | 云市场、本地包、配置、启停、迁移、卸载、失败回滚能力等价后迁移。 |
-| 插件命令与资源 | `config/console.php`、`ResourceRegistryService`、`extend/fun/curd/Plugin.php`、`extend/fun/functions/plugin.php` | 新 command 与资源注册机制验证前保留；不得恢复 `addons/`。 |
+| 插件命令与资源 | `config/console.php`、`ResourceRegistryService`、`extend/fun/crud/Plugin.php`、`extend/fun/functions/plugin.php` | 新 command 与资源注册机制验证前保留；不得恢复 `addons/`。 |
 | 系统升级 | 数据菜单 `href=sys.upgrade`、旧权限对象 `backend/sys.upgrade` | 先实现备份、文件替换、数据库升级、失败回滚与权限门禁。 |
 | 旧 AJAX/表单兼容 | `app/backend/controller/Ajax.php`、`backend/ajax:uploads`、`FormHelper`/FormBuilder | 先提供 Admin Web 等价附件选择和动态表单组件。 |
 | 旧代码生成 | `app/common/service/McpService.php` 及旧 RequireJS/Layui 模板 | 生成目标切换为 API + Admin Web Vue。 |

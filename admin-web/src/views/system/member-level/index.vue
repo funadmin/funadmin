@@ -33,9 +33,13 @@
             <i class="i-ep-delete-filled" /> 永久删除{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
+        <el-button type="success" plain v-perm="'system:member-level:import'" @click="fileInput?.click()">
+          <i class="i-ep-upload" /> CSV 导入
+        </el-button>
         <el-button type="info" plain v-perm="'system:member-level:export'" @click="exportRows">
           <i class="i-ep-download" /> CSV 导出
         </el-button>
+        <input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />
       </template>
       <template #default="{ size, stripe, border, headerCellStyle }">
         <el-table
@@ -101,10 +105,10 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
-import { memberLevelApi, type MemberLevelModel, type MemberLevelQuery } from '@/api/system/memberLevel';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { memberLevelApi, type MemberLevelModel, type MemberLevelPayload, type MemberLevelQuery } from '@/api/system/memberLevel';
 import { useUserStore } from '@/store/modules/user';
-import { downloadCsv, toCsv, type CsvColumn } from '@/utils/csv';
+import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';
 import MemberLevelFormDialog from './components/MemberLevelFormDialog.vue';
 
 defineOptions({ name: 'SystemMemberLevel' });
@@ -117,7 +121,17 @@ const selection = ref<MemberLevelModel[]>([]);
 const recycled = ref(false);
 const dialogVisible = ref(false);
 const current = ref<MemberLevelModel | null>(null);
+const fileInput = ref<HTMLInputElement>();
 const query = reactive<MemberLevelQuery>({ page: 1, pageSize: 20, name: '', status: undefined, recycled: 0 });
+const csvColumns: CsvColumn<MemberLevelPayload>[] = [
+  { key: 'name', label: '等级名称' },
+  { key: 'amount', label: '等级金额' },
+  { key: 'discount', label: '等级折扣' },
+  { key: 'thumb', label: '缩略图' },
+  { key: 'status', label: '状态' },
+  { key: 'sort', label: '排序' },
+  { key: 'description', label: '描述' }
+];
 
 function hasPermission(permission: string) {
   return userStore.permissions.some((item) => item === '*' || item === '*:*:*' || item === permission);
@@ -190,6 +204,28 @@ async function destroySelected() {
     confirmButtonText: '永久删除'
   });
   await memberLevelApi.destroy(selection.value.map((item) => item.id));
+  await loadData();
+}
+
+async function importCsv(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  const rows = parseCsv<MemberLevelPayload>(await readFileAsText(file), csvColumns).map((row) => ({
+    name: String(row.name ?? ''),
+    amount: String(row.amount ?? '0'),
+    discount: Number(row.discount ?? 100),
+    thumb: String(row.thumb ?? ''),
+    status: Number(row.status) === 0 ? 0 : 1,
+    sort: Number(row.sort ?? 0),
+    description: String(row.description ?? '')
+  }));
+  if (!rows.length) {
+    ElMessage.warning('CSV 中没有可导入的数据');
+    return;
+  }
+  await memberLevelApi.importRows(rows);
   await loadData();
 }
 

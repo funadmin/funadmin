@@ -6,7 +6,7 @@ SET @plugin_permission_id = (
 );
 
 INSERT IGNORE INTO `fun_permission`
-(`pid`,`module`,`code`,`obj`,`act`,`title`,`resource_type`,`status`,`is_public`,`sort`,`source_type`,`source_name`,`created_at`,`updated_at`) VALUES
+(`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`) VALUES
 (@plugin_permission_id,'backend','backend/systemplugin:accountrefresh','backend/systemplugin','accountrefresh','刷新市场令牌','route',1,0,28,'admin_web','plugin_center',NOW(),NOW()),
 (@plugin_permission_id,'backend','backend/systemplugin:installdiscovered','backend/systemplugin','installdiscovered','安装发现插件','route',1,0,32,'admin_web','plugin_center',NOW(),NOW()),
 (@plugin_permission_id,'backend','backend/systemplugin:updatelocal','backend/systemplugin','updatelocal','本地 ZIP 更新插件','route',1,0,41,'admin_web','plugin_center',NOW(),NOW()),

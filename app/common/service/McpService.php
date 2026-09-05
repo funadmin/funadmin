@@ -1071,7 +1071,7 @@ class {$controllerClass} extends {$baseController}
             }
             \$rule = [];
             try {
-                \$this->validate(\$post, \$rule);
+                \$this->validateData(\$post, \$rule);
             }catch (ValidateException \$e){
                 \$this->error(lang(\$e->getMessage()));
             }
@@ -1102,7 +1102,7 @@ class {$controllerClass} extends {$baseController}
             \$post = request()->post();
             \$rule = [];
             try {
-                \$this->validate(\$post, \$rule);
+                \$this->validateData(\$post, \$rule);
             }catch (ValidateException \$e){
                 \$this->error(lang(\$e->getMessage()));
             }
@@ -1929,7 +1929,7 @@ class {$model} extends BaseModel
         }
 
         // 解析CRUD相关操作
-        if (strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
+        if (strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
             if (!empty($parsedData['crud'])) {
                 $parsedData['crud']['description'] = 'CRUD模块';
             }

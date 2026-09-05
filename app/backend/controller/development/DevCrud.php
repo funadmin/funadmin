@@ -83,7 +83,7 @@ final class DevCrud extends AdminApiController
             $this->definition(),
             trim((string) $this->request->post('confirmToken', '')),
             array_values(array_filter($allowOverwrite, 'is_string')),
-            (bool) AuthService::instance()->nodeAccess('development/crud/overwrite'),
+            (bool) AuthService::instance()->nodeAccess('backend/devcrud/overwrite'),
             (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
         ), 'CRUD 生成完成');
     }

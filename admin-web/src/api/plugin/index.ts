@@ -89,7 +89,6 @@ export interface PluginOperation {
   operation: string;
   stage: string;
   progress: number;
-  recovery_path?: string;
   from_version: string;
   to_version: string;
   source: string;

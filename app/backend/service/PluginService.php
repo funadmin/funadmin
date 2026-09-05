@@ -223,7 +223,17 @@ class PluginService extends AbstractService
 
     public function updatePlugin(string $name, bool $migrate = true): bool
     {
-        return $this->operate($name, function (string $token) use ($name, $migrate): bool {
+        return $this->performUpdate($name, $migrate, false);
+    }
+
+    public function redeployPlugin(string $name, bool $migrate = false): bool
+    {
+        return $this->performUpdate($name, $migrate, true);
+    }
+
+    private function performUpdate(string $name, bool $migrate, bool $allowCodeDowngrade): bool
+    {
+        return $this->operate($name, function (string $token) use ($name, $migrate, $allowCodeDowngrade): bool {
             $this->deploymentRollbackAllowed = true;
             $record = $this->installedRecord($name);
             $this->assertRunnableRecord($record);
@@ -231,7 +241,7 @@ class PluginService extends AbstractService
             $manifest = $this->validatedManifest($name);
             $fromVersion = (string) $record->version;
             $toVersion = $manifest->version();
-            if ($fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
+            if (!$allowCodeDowngrade && $fromVersion !== '' && version_compare($toVersion, $fromVersion, '<=')) {
                 throw new RuntimeException("插件目标版本 {$toVersion} 必须高于当前版本 {$fromVersion}");
             }
             $plugin = $this->plugin($name);
@@ -239,12 +249,13 @@ class PluginService extends AbstractService
             $record->save($this->filterPluginColumns(array_merge($this->manifestInfo($manifest), $this->packageContext($name), [
                 'migration_pending' => 1,
             ])));
-            $this->recordStage($name, 'update', 'hooks');
+            $operation = $allowCodeDowngrade ? 'redeploy' : 'update';
+            $this->recordStage($name, $operation, 'hooks');
             if ($plugin->beforeUpdate($fromVersion, $toVersion, $migrate) === false) {
                 throw new RuntimeException('update_hook: 插件更新前置钩子执行失败');
             }
             $this->deploymentRollbackAllowed = false;
-            $this->recordStage($name, 'update', 'migration');
+            $this->recordStage($name, $operation, 'migration');
             $migrationVersion = (string) ($record->db_version ?? '');
             if ($migrate) {
                 $migrationVersion = $this->migrate($name)['version'];
@@ -252,15 +263,15 @@ class PluginService extends AbstractService
             if ($plugin->afterUpdate($fromVersion, $toVersion, $migrate) === false) {
                 throw new RuntimeException('update_hook: 插件更新后置钩子执行失败');
             }
-            $this->recordStage($name, 'update', 'resources');
+            $this->recordStage($name, $operation, 'resources');
             $this->infrastructure()->publisher()->publish($manifest);
-            $this->recordStage($name, 'update', 'permissions');
+            $this->recordStage($name, $operation, 'permissions');
             $record->save([
                 'db_version' => $migrationVersion,
                 'migration_pending' => $migrate ? 0 : 1,
             ]);
             $this->transition($record, 'disabled');
-            $this->recordStage($name, 'update', 'complete');
+            $this->recordStage($name, $operation, 'complete');
             return true;
         });
     }

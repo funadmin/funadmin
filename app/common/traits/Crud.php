@@ -192,7 +192,7 @@ trait Crud
         }
 
         return $this->ok(data: array_map(
-            fn (Model $model): array => $this->crudData($model),
+            fn (Model $model): array => $this->crudExportData($model),
             $query->select()->all()
         ));
     }
@@ -212,24 +212,20 @@ trait Crud
         return ['status' => 'status'];
     }
 
+    protected function crudRangeFilters(): array
+    {
+        return [];
+    }
+
+    protected function crudSortFields(): array
+    {
+        return [];
+    }
+
     protected function crudQuery(bool $recycled)
     {
         $query = $recycled ? ($this->model)::onlyTrashed() : ($this->model)::where('id', '>', 0);
-
-        foreach ($this->crudSearchFields() as $parameter => $field) {
-            $value = trim((string) $this->request->get($parameter, ''));
-            if ($value !== '') {
-                $query->whereLike($field, '%' . $value . '%');
-            }
-        }
-        foreach ($this->crudExactFilters() as $parameter => $field) {
-            $value = $this->request->get($parameter, null);
-            if ($value !== null && $value !== '') {
-                $query->where($field, $value);
-            }
-        }
-
-        return $query;
+        return $this->crudApplyFilters($query);
     }
 
     protected function crudOrder(): array
@@ -237,9 +233,19 @@ trait Crud
         return ['id' => 'asc'];
     }
 
+    protected function crudImportFields(): array
+    {
+        return [];
+    }
+
+    protected function crudExportFields(): array
+    {
+        return [];
+    }
+
     protected function crudImportPayload(array $row): array
     {
-        throw new InvalidArgumentException(static::class . ' 未配置导入字段映射');
+        return $this->crudMapImportRow($row);
     }
 
     protected function crudImportLimit(): int
@@ -268,11 +274,81 @@ trait Crud
 
     private function crudOrderedQuery(bool $recycled)
     {
-        $query = $this->crudQuery($recycled);
-        foreach ($this->crudOrder() as $field => $direction) {
+        return $this->crudApplyOrder($this->crudQuery($recycled));
+    }
+
+    private function crudApplyFilters($query)
+    {
+        foreach ($this->crudSearchFields() as $parameter => $field) {
+            $value = trim((string) $this->request->get($parameter, ''));
+            if ($value !== '') {
+                $query->whereLike($field, '%' . $value . '%');
+            }
+        }
+        foreach ($this->crudExactFilters() as $parameter => $field) {
+            $value = $this->request->get($parameter, null);
+            if ($value !== null && $value !== '') {
+                $query->where($field, $value);
+            }
+        }
+        foreach ($this->crudRangeFilters() as $parameter => $field) {
+            $range = $this->crudRangeValue($this->request->get($parameter, null));
+            if ($range[0] !== null) {
+                $query->where($field, '>=', $range[0]);
+            }
+            if ($range[1] !== null) {
+                $query->where($field, '<=', $range[1]);
+            }
+        }
+        return $query;
+    }
+
+    private function crudApplyOrder($query)
+    {
+        $orders = $this->crudOrder();
+        $sort = trim((string) $this->request->get('sort', ''));
+        $sortFields = $this->crudSortFields();
+        if ($sort !== '' && isset($sortFields[$sort])) {
+            $orders = [$sortFields[$sort] => $this->request->get('order', 'asc')];
+        }
+        foreach ($orders as $field => $direction) {
             $query->order($field, strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
         }
         return $query;
+    }
+
+    private function crudRangeValue(mixed $value): array
+    {
+        if (is_array($value)) {
+            $parts = array_values($value);
+        } else {
+            $parts = preg_split('/\s+-\s+|,/', trim((string) $value), 2) ?: [];
+        }
+        $begin = isset($parts[0]) && $parts[0] !== '' ? $parts[0] : null;
+        $end = isset($parts[1]) && $parts[1] !== '' ? $parts[1] : null;
+        return [$begin, $end];
+    }
+
+    protected function crudMapImportRow(array $row): array
+    {
+        $fields = $this->crudImportFields();
+        if (!$fields) {
+            throw new InvalidArgumentException(static::class . ' 未配置导入字段映射');
+        }
+        $data = [];
+        foreach ($fields as $input => $field) {
+            if (array_key_exists($input, $row)) {
+                $data[$field] = $row[$input];
+            }
+        }
+        return $data;
+    }
+
+    private function crudExportData(Model $model): array
+    {
+        $data = $this->crudData($model);
+        $fields = $this->crudExportFields();
+        return $fields ? array_intersect_key($data, array_flip($fields)) : $data;
     }
 
     private function crudFind(int $id, bool $withTrashed = false): ?Model

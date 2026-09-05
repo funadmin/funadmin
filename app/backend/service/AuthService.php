@@ -26,9 +26,8 @@ class AuthService extends AbstractService
         return (new AdminSessionService())->logout();
     }
 
-    public function roleAccess(): bool
+    public function roleAccess(bool $authenticated = false): bool
     {
-        $authenticated = func_num_args() > 0 && (bool) func_get_arg(0);
         return (new AdminAuthorizationService())->roleAccess($authenticated);
     }
 

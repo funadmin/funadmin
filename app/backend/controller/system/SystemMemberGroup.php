@@ -28,6 +28,30 @@ class SystemMemberGroup extends AdminApiController
         return ['name' => 'name'];
     }
 
+    protected function crudSortFields(): array
+    {
+        return ['id' => 'id', 'name' => 'name', 'status' => 'status', 'createdAt' => 'created_at'];
+    }
+
+    protected function crudImportFields(): array
+    {
+        return ['name' => 'name', 'icon' => 'icon', 'status' => 'status'];
+    }
+
+    protected function crudExportFields(): array
+    {
+        return ['id', 'name', 'icon', 'status', 'isDefault', 'createdAt', 'deletedAt'];
+    }
+
+    protected function crudImportPayload(array $row): array
+    {
+        $data = $this->crudMapImportRow($row);
+        $data['name'] = trim((string) ($data['name'] ?? ''));
+        $data['icon'] = trim((string) ($data['icon'] ?? ''));
+        $data['status'] = $this->binaryStatus($data['status'] ?? 1);
+        return $data;
+    }
+
     protected function crudPayload(?Model $model = null): array
     {
         return [

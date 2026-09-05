@@ -1,7 +1,6 @@
 import type { Component } from 'vue';
 import type { RouteRecordRaw, Router } from 'vue-router';
 import type { EnabledPluginModule, PluginRouteDto } from '@/api/plugin';
-import PluginModuleError from '@/views/system/plugin/PluginModuleError.vue';
 
 export type { EnabledPluginModule } from '@/api/plugin';
 
@@ -24,6 +23,7 @@ interface SyncOptions {
 const mounted = new Map<string, { signature: string; routeNames: string[] }>();
 
 const dynamicImporter = async (url: string): Promise<PluginEsmModule> => import(/* @vite-ignore */ url);
+const PluginModuleError = () => import('@/views/system/plugin/PluginModuleError.vue');
 
 export function isAllowedPluginModuleUrl(value: string, origin = window.location.origin, base = '/'): boolean {
   try {

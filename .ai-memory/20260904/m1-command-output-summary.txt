@@ -30,7 +30,7 @@ D  app/install/view/tpl/env.example
  M config/database.php
  M database/migrations/012_admin_log_audit.sql
  M database/migrations/013_field_hygiene.sql
- M extend/fun/curd/Install.php
+ M extend/fun/crud/Install.php
 ?? .ai-memory/20260904/m1-baseline.md
 ?? admin-web/tests/contracts/member-registration-admin-scope.spec.ts
 ?? admin-web/tests/contracts/service-cache-invalidation.spec.ts

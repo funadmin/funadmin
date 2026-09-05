@@ -41,9 +41,11 @@ final class PluginPackagePipeline
     {
         return new self(
             $packages ?? PluginPackageService::instance(),
-            static fn (string $operation, string $name, bool $migrate): bool => $operation === 'install'
-                ? $plugins->installPlugin($name, 'package')
-                : $plugins->updatePlugin($name, $migrate),
+            static fn (string $operation, string $name, bool $migrate): bool => match ($operation) {
+                'install' => $plugins->installPlugin($name, 'package'),
+                'redeploy' => $plugins->redeployPlugin($name, $migrate),
+                default => $plugins->updatePlugin($name, $migrate),
+            },
             static fn (): bool => $plugins->canRollbackDeployment(),
             static fn (array $data): mixed => PluginPackageHistoryService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
@@ -68,7 +70,7 @@ final class PluginPackagePipeline
 
     public function redeployHistory(string $archive, string $expectedName, string $expectedVersion, bool $migrate = false): array
     {
-        return $this->run($archive, $expectedName, $expectedVersion, 'update', 'history', $migrate);
+        return $this->run($archive, $expectedName, $expectedVersion, 'redeploy', 'history', $migrate);
     }
 
     public function installCloud(

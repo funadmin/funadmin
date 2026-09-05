@@ -13,10 +13,10 @@ use think\annotation\route\Middleware;
 use think\Request;
 
 #[Group('v2/member')]
-#[Middleware(MApi::class)]
 class Member extends Api
 {
     #[Get('')]
+    #[Middleware(MApi::class)]
     public function show(Request $request): \think\Response
     {
         return $this->ok(data: ['user' => $request->member]);

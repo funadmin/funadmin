@@ -110,6 +110,7 @@ Route::delete('system/language', 'system.SystemLanguage/delete');
 
 Route::get('system/member-group', 'system.SystemMemberGroup/index');
 Route::get('system/member-group/export', 'system.SystemMemberGroup/export');
+Route::post('system/member-group/import', 'system.SystemMemberGroup/import');
 Route::get('system/member-group/:id', 'system.SystemMemberGroup/detail')->pattern(['id' => '\d+']);
 Route::post('system/member-group', 'system.SystemMemberGroup/create');
 Route::put('system/member-group/:id', 'system.SystemMemberGroup/update')->pattern(['id' => '\d+']);
@@ -120,6 +121,7 @@ Route::delete('system/member-group/destroy', 'system.SystemMemberGroup/destroy')
 
 Route::get('system/member-level', 'system.SystemMemberLevel/index');
 Route::get('system/member-level/export', 'system.SystemMemberLevel/export');
+Route::post('system/member-level/import', 'system.SystemMemberLevel/import');
 Route::get('system/member-level/:id', 'system.SystemMemberLevel/detail')->pattern(['id' => '\d+']);
 Route::post('system/member-level', 'system.SystemMemberLevel/create');
 Route::put('system/member-level/:id', 'system.SystemMemberLevel/update')->pattern(['id' => '\d+']);

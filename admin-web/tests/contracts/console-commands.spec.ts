@@ -9,6 +9,10 @@ const consoleConfig = readProject('config/console.php');
 
 const commands: Record<string, string> = {
   crud: 'extend/fun/crud/AdminWebCrud.php',
+  'crud:inspect': 'extend/fun/command/CrudInspect.php',
+  'crud:validate': 'extend/fun/command/CrudValidate.php',
+  'crud:preview': 'extend/fun/command/CrudPreview.php',
+  'crud:generate': 'extend/fun/command/CrudGenerate.php',
   menu: 'extend/fun/crud/Menu.php',
   plugin: 'extend/fun/crud/Plugin.php',
   install: 'extend/fun/crud/Install.php',
@@ -28,18 +32,15 @@ describe('console 命令注册契约', () => {
     expect(readProject('extend/fun/mcp/McpServer.php')).not.toContain('mcp:server');
   });
 
-  it('plugin 命令生成新架构要求的 plugin.json', () => {
-    expect(readProject('extend/fun/crud/Plugin.php')).toContain("'plugin.json'");
-    expect(existsSync(resolve(projectRoot, 'extend/fun/crud/tpl/plugin/json.tpl'))).toBe(true);
+  it('crud 命令仅提供只读预览入口', () => {
+    const command = readProject('extend/fun/crud/AdminWebCrud.php');
+    expect(command).toContain("setName('crud')");
+    expect(command).toContain('只读');
+    expect(command).not.toContain("getOption('write')");
   });
 
-  it('menu 与 plugin 命令失败时返回非零退出码', () => {
-    const menu = readProject('extend/fun/crud/Menu.php');
-    const plugin = readProject('extend/fun/crud/Plugin.php');
-    expect(menu).toContain('return 1;');
-    expect(plugin).toContain('return 1;');
-    expect(menu).not.toContain('return false;');
-    expect(plugin).not.toContain('return false;');
+  it('menu、plugin、install 使用 crud 命名空间注册', () => {
+    expect(consoleConfig).toMatch(/'(?:menu|plugin|install)'\s*=>\s*'fun\\crud\\/);
   });
 
   it('MCP plugin 工具识别中文成功输出', () => {

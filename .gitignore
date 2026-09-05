@@ -9,7 +9,7 @@
 /public/static/plugins
 /public/static/cms
 /public/static/mocms
-/public/static/curd
+/public/static/crud
 /public/static/storage
 /.trae
 /.cursor

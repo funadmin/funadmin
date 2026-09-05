@@ -20,9 +20,15 @@ use app\common\plugin\marketplace\dto\UpdateCheckDto;
  */
 final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 {
-    /** @param callable(string, array, string): array $request */
-    public function __construct(private readonly mixed $request, private readonly CloudAccountSession $session)
-    {
+    /**
+     * @param callable(string, array, string): array $request
+     * @param null|callable(): int $clock
+     */
+    public function __construct(
+        private readonly mixed $request,
+        private readonly CloudAccountSession $session,
+        private readonly mixed $clock = null
+    ) {
     }
 
     public function login(LoginRequestDto $request): CloudAccountDto
@@ -208,6 +214,7 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
     private function expiresAt(array $tokenData): int
     {
         $expiresAt = (int) ($tokenData['expires_at'] ?? 0);
-        return $expiresAt > time() ? $expiresAt : time() + max(1, (int) ($tokenData['expires_in'] ?? 3600));
+        $now = is_callable($this->clock) ? (int) ($this->clock)() : time();
+        return $expiresAt > $now ? $expiresAt : $now + max(1, (int) ($tokenData['expires_in'] ?? 3600));
     }
 }

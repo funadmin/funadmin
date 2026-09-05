@@ -25,6 +25,6 @@
 
 ## [17:26] - 重构完成: 插件体系由 Addon/addons 硬切为 Plugin/plugins
 
-- **文件**: `app/backend/controller/Plugin.php`、`app/backend/service/{PluginService,PluginConfigService,PluginPackageService}.php`、`app/common/model/Plugin.php`、`extend/fun/{Plugins.php,plugins/,functions/plugin.php,curd/Plugin.php,curd/tpl/plugin/}`、`config/plugins.php`、`public/static/backend/js/plugin.js`、`public/static/js/require-plugins.js`、`database/migrations/{001_core_schema,002_rbac_schema,005_plugin_lifecycle_schema}.sql` 及相关引用文件
+- **文件**: `app/backend/controller/Plugin.php`、`app/backend/service/{PluginService,PluginConfigService,PluginPackageService}.php`、`app/common/model/Plugin.php`、`extend/fun/{Plugins.php,plugins/,functions/plugin.php,crud/Plugin.php,crud/tpl/plugin/}`、`config/plugins.php`、`public/static/backend/js/plugin.js`、`public/static/js/require-plugins.js`、`database/migrations/{001_core_schema,002_rbac_schema,005_plugin_lifecycle_schema}.sql` 及相关引用文件
 - **决策**: 按用户选择执行硬切，不保留旧类、命名空间、函数、路由、配置、命令、事件、权限或数据库运行时兼容；项目插件目录和命名空间统一为 `plugins`，实体与控制器统一为 `Plugin`。第三方 npm 标准包 `node-addon-api` 不改。数据库未执行，只更新可审阅 SQL；操作前备份位于 `/tmp/funadmin-plugin-hardcut-20260904170500.tar`。
 - **验证**: 190 个 PHP 文件 lint 通过；ThinkPHP `plugin`、`plugins:config` 命令注册通过；关键类/函数自动加载通过；临时插件生成、生成文件 PHP lint 和旧命名扫描通过并已清理；7 个相关 JS 文件 `node --check` 通过；Vitest 5 文件/28 用例通过；Vue 生产构建通过；Composer validate 通过；`git diff --check` 通过；除 `admin-web/package-lock.json` 的第三方 `node-addon-api` 外，项目代码/路径旧命名为 0。

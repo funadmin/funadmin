@@ -19,10 +19,14 @@ export interface MemberGroupQuery {
   name?: string;
   status?: 0 | 1;
   recycled?: 0 | 1;
+  sort?: 'id' | 'name' | 'status' | 'createdAt';
+  order?: 'asc' | 'desc';
 }
 
+export type MemberGroupImportRow = Pick<MemberGroupModel, 'name' | 'icon' | 'status'>;
+
 export const memberGroupApi = {
-  list: (params: MemberGroupQuery) => http.get<API.PageResult<MemberGroupModel>>(PREFIX, { params }),
+  list: (params: MemberGroupQuery) => http.get<API.PageResult<MemberGroupModel>>(PREFIX, params),
   detail: (id: number) => http.get<MemberGroupModel>(`${PREFIX}/${id}`),
   create: (data: Pick<MemberGroupModel, 'name' | 'icon' | 'status'>) =>
     http.post<MemberGroupModel>(PREFIX, data, { requestOptions: { showSuccessMsg: true } }),
@@ -36,6 +40,8 @@ export const memberGroupApi = {
     http.post<{ restored: number }>(`${PREFIX}/restore`, { ids }, { requestOptions: { showSuccessMsg: true } }),
   destroy: (ids: number[]) =>
     http.delete<{ removed: number }>(`${PREFIX}/destroy`, { ids }, { requestOptions: { showSuccessMsg: true } }),
+  importRows: (rows: MemberGroupImportRow[]) =>
+    http.post<{ created: number }>(`${PREFIX}/import`, { rows }, { requestOptions: { showSuccessMsg: true } }),
   exportRows: (params: Omit<MemberGroupQuery, 'page' | 'pageSize'>) =>
-    http.get<MemberGroupModel[]>(`${PREFIX}/export`, { params })
+    http.get<MemberGroupModel[]>(`${PREFIX}/export`, params)
 };

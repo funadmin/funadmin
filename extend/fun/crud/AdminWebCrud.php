@@ -12,11 +12,11 @@ use think\console\Output;
 use Throwable;
 
 /**
- * Vue 后台 CRUD 生成命令。
+ * CRUD 只读预览兼容入口。
  */
-class AdminWebCrud extends Command
+final class AdminWebCrud extends Command
 {
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('crud')
             ->setDescription('兼容转发到只读 crud:preview')
@@ -33,8 +33,8 @@ class AdminWebCrud extends Command
             }
             $output->info('CRUD preview 完成');
             return 0;
-        } catch (Throwable $e) {
-            $output->error($e->getMessage());
+        } catch (Throwable $exception) {
+            $output->error($exception->getMessage());
             return 1;
         }
     }

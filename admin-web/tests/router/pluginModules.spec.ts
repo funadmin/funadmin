@@ -64,7 +64,10 @@ describe('pluginModules', () => {
     expect(result.loaded).toEqual(['healthy']);
     expect(result.errors[0]).toMatchObject({ name: 'broken', stage: expectedStage });
     expect(router.addRoute).toHaveBeenCalledTimes(2);
-    expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Plugin_broken_Error' }));
+    expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Plugin_broken_Error',
+      component: expect.any(Function)
+    }));
   });
 
   it('隔离单个插件加载失败并挂载其余插件', async () => {

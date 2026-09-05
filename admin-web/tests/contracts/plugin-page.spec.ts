@@ -50,7 +50,7 @@ describe('插件中心页面契约', () => {
     for (const marker of ['PluginAccountDrawer', 'PluginMarketDrawer', 'PluginConfigDrawer', 'PluginHistoryDrawer', 'accept=".zip"']) {
       expect(page).toContain(marker);
     }
-    for (const field of ['stage', 'progress', 'recovery_path']) {
+    for (const field of ['stage', 'progress', 'recoveryInfo']) {
       expect(configDrawer + marketDrawer + readFileSync(resolve(process.cwd(), 'src/views/system/plugin/components/PluginHistoryDrawer.vue'), 'utf8')).toContain(field);
     }
   });

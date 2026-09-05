@@ -53,7 +53,7 @@ class Login extends Backend {
             if(config('captcha.check')){
                 $rule["captcha|验证码"] = 'require|captcha';
             }
-            $this->validate($post, $rule);
+            $this->validateData($post, $rule);
             // 用户信息验证
             try {
                 $auth = AuthService::instance();

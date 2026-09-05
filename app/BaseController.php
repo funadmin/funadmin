@@ -83,7 +83,7 @@ abstract class BaseController
      * @return array|string|true
      * @throws ValidateException
      */
-    protected function validate(array $data, $validate, array $message = [], bool $batch = false)
+    protected function validateData(array $data, $validate, array $message = [], bool $batch = false)
     {
         if (is_array($validate)) {
             $v = new Validate();
