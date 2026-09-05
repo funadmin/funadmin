@@ -44,7 +44,7 @@ function phase2Exception(callable $callback, string $contains): void
 
 phase2Expect(interface_exists(PluginMarketplaceGateway::class), '必须定义 PluginMarketplaceGateway 契约');
 $methods = array_map(static fn (ReflectionMethod $method): string => $method->getName(), (new ReflectionClass(PluginMarketplaceGateway::class))->getMethods());
-phase2Expect($methods === ['login', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'download'], 'Gateway 方法必须明确且完整');
+phase2Expect($methods === ['login', 'refreshToken', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'download'], 'Gateway 方法必须明确且完整');
 
 $login = new LoginRequestDto('demo@example.com', 'secret');
 phase2Expect($login->account === 'demo@example.com' && $login->password === 'secret', '登录请求 DTO 必须不可变承载凭据');
@@ -151,7 +151,7 @@ $downloader = new PluginPackageDownloader(
     $downloadRoot,
     static function (string $url, string $target, array $options) use ($payload): void {
         phase2Expect($options['max_bytes'] === 104857600, '下载必须限制 100MB');
-        phase2Expect($options['max_redirects'] === 3 && $options['protocols'] === ['https', 'http'], '重定向必须限制次数和协议');
+        phase2Expect($options['max_redirects'] === 3 && $options['protocols'] === ['https'], '重定向必须限制次数且生产下载仅允许 HTTPS');
         file_put_contents($target, $payload);
     },
     null,
@@ -325,7 +325,7 @@ phase2Expect(str_contains($packageSource, 'expectedVersion') && str_contains($pa
 phase2Expect(!str_contains($packageSource, '@rmdir') && !str_contains($packageSource, '@unlink'), 'stage/backup 清理不得忽略删除结果');
 
 $marketplaceMethods = array_map(static fn (ReflectionMethod $method): string => $method->getName(), (new ReflectionClass(PluginMarketplaceService::class))->getMethods(ReflectionMethod::IS_PUBLIC));
-foreach (['login', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'installCloud', 'updateCloud', 'installLocal', 'updateLocal'] as $method) {
+foreach (['login', 'refreshToken', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'installCloud', 'updateCloud', 'installLocal', 'updateLocal'] as $method) {
     phase2Expect(in_array($method, $marketplaceMethods, true), 'Controller 可调用 service API 缺失：' . $method);
 }
 

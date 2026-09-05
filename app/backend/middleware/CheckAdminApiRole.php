@@ -23,7 +23,7 @@ class CheckAdminApiRole
         }
 
         try {
-            $auth->roleAccess();
+            $auth->roleAccess(true);
         } catch (HttpResponseException $e) {
             return json([
                 'code' => 403,
