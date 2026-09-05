@@ -46,7 +46,7 @@ class SystemAttachment extends AdminApiController
             $this->applyMimeFilter($query, $mimeType);
         }
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (Attach $attach): array => $this->attachmentData($attach), $result->items()),
             $result->total(),
             $page,
@@ -57,53 +57,53 @@ class SystemAttachment extends AdminApiController
     public function detail(int $id): Response
     {
         $attach = Attach::find($id);
-        return $attach ? $this->ok($this->attachmentData($attach)) : $this->fail('附件不存在', 404);
+        return $attach ? $this->ok(data: $this->attachmentData($attach)) : $this->fail(msg: '附件不存在', code: 404);
     }
 
     public function rename(int $id): Response
     {
         $attach = Attach::find($id);
         if (!$attach) {
-            return $this->fail('附件不存在', 404);
+            return $this->fail(msg: '附件不存在', code: 404);
         }
         $name = trim((string) $this->request->post('name', ''));
         $length = function_exists('mb_strlen') ? mb_strlen($name) : strlen($name);
         if ($name === '' || $length > 255) {
-            return $this->fail('文件名称不能为空且不能超过 255 个字符', 422);
+            return $this->fail(msg: '文件名称不能为空且不能超过 255 个字符', code: 422);
         }
         $attach->save(['original_name' => $name]);
-        return $this->ok($this->attachmentData($attach), '重命名成功');
+        return $this->ok('重命名成功', $this->attachmentData($attach));
     }
 
     public function move(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要移动的附件', 422);
+            return $this->fail(msg: '请选择要移动的附件', code: 422);
         }
         $groupId = (int) $this->request->post('groupId', 0);
         if ($groupId > 0 && !AttachGroup::find($groupId)) {
-            return $this->fail('目标附件分组不存在', 422);
+            return $this->fail(msg: '目标附件分组不存在', code: 422);
         }
         $attachments = Attach::whereIn('id', $ids)->select();
         if (count($attachments) !== count($ids)) {
-            return $this->fail('部分附件不存在', 404);
+            return $this->fail(msg: '部分附件不存在', code: 404);
         }
         foreach ($attachments as $attach) {
             $attach->save(['group_id' => $groupId]);
         }
-        return $this->ok(['moved' => count($attachments)], '移动成功');
+        return $this->ok('移动成功', ['moved' => count($attachments)]);
     }
 
     public function delete(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要删除的附件', 422);
+            return $this->fail(msg: '请选择要删除的附件', code: 422);
         }
         $attachments = Attach::whereIn('id', $ids)->select();
         if (count($attachments) !== count($ids)) {
-            return $this->fail('部分附件不存在', 404);
+            return $this->fail(msg: '部分附件不存在', code: 404);
         }
 
         $checkedPaths = [];
@@ -128,7 +128,7 @@ class SystemAttachment extends AdminApiController
             }
             $attach->force()->delete();
         }
-        return $this->ok(['removed' => count($attachments)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($attachments)]);
     }
 
     private function applyMimeFilter($query, string $mimeType): void
