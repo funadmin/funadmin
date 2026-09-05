@@ -90,18 +90,12 @@ describe('006_schema_integrity migration 源码契约', () => {
     );
   });
 
-  it('pivot create_time 要么移除，要么所有 sync 写入真实时间', () => {
-    const relationDefinition = normalizedSql.match(
-      /CREATE TABLE IF NOT EXISTS\s+`fun_member_group_relation`\s*\([\s\S]*?\) ENGINE=/i
-    )?.[0] ?? '';
-    if (!/`create_time`/i.test(relationDefinition)) {
-      return;
-    }
-
+  it('pivot 关联写入统一使用 created_at，不再写 legacy create_time', () => {
     const syncCalls = systemMember.match(/groups\(\)->sync(?:WithPivotValues)?\([\s\S]{0,240}?\);/g) ?? [];
     expect(syncCalls.length).toBeGreaterThan(0);
     for (const syncCall of syncCalls) {
-      expect(syncCall).toMatch(/['"]create_time['"]\s*=>\s*(?:time\(\)|Date::|Carbon::)/);
+      expect(syncCall).toMatch(/['"]created_at['"]\s*=>\s*date\(['"]Y-m-d H:i:s['"]\)/);
+      expect(syncCall).not.toMatch(/['"]create_time['"]\s*=>/);
     }
   });
 

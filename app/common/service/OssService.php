@@ -2,17 +2,10 @@
 
 namespace app\common\service;
 
-use app\common\model\Config as ConfigModel;
-use think\App;
 use think\facade\Event;
 
 class OssService extends AbstractService
 {
-
-    public function __construct(App $app)
-    {
-        parent::__construct($app);
-    }
     /**
      * @param $driver 驱动
      * @param $object 远程地址
@@ -27,10 +20,6 @@ class OssService extends AbstractService
             'localpath'=>$path,
             'save'=>$save,
         ];
-        try {
-            return Event::trigger('OssUpload', $param, true);
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
-        }
+        return Event::trigger('OssUpload', $param, true);
     }
 }

@@ -1,0 +1,1 @@
+import{At as e,Ut as t,wt as n}from"./element-Cv5vGE3z.js";import{t as r}from"./ErrorPage-BsT48nJm.js";var i=e({__name:`500`,setup(e){return(e,i)=>(t(),n(r,{code:`500`}))}});export{i as default};

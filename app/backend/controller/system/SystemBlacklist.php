@@ -26,7 +26,7 @@ class SystemBlacklist extends AdminApiController
         $query = $this->filteredQuery($recycled);
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (Blacklist $item): array => $this->itemData($item), $result->items()),
             $result->total(),
             $page,
@@ -38,102 +38,102 @@ class SystemBlacklist extends AdminApiController
     {
         $item = Blacklist::withTrashed()->find($id);
         return $item
-            ? $this->ok($this->itemData($item))
-            : $this->fail('黑名单记录不存在', 404);
+            ? $this->ok(data: $this->itemData($item))
+            : $this->fail(msg: '黑名单记录不存在', code: 404);
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $item = Blacklist::create($data);
-        return $this->ok($this->itemData($item), '创建成功');
+        return $this->ok('创建成功', $this->itemData($item));
     }
 
     public function update(int $id): Response
     {
         $item = Blacklist::find($id);
         if (!$item) {
-            return $this->fail('黑名单记录不存在', 404);
+            return $this->fail(msg: '黑名单记录不存在', code: 404);
         }
         $data = $this->payload($item);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $item->save($data);
-        return $this->ok($this->itemData($item), '保存成功');
+        return $this->ok('保存成功', $this->itemData($item));
     }
 
     public function status(int $id): Response
     {
         $item = Blacklist::find($id);
         if (!$item) {
-            return $this->fail('黑名单记录不存在', 404);
+            return $this->fail(msg: '黑名单记录不存在', code: 404);
         }
         $item->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        return $this->ok($this->itemData($item), '状态更新成功');
+        return $this->ok('状态更新成功', $this->itemData($item));
     }
 
     public function delete(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要移入回收站的记录', 422);
+            return $this->fail(msg: '请选择要移入回收站的记录', code: 422);
         }
         $items = Blacklist::whereIn('id', $ids)->select();
         if (count($items) !== count($ids)) {
-            return $this->fail('部分黑名单记录不存在或已在回收站', 404);
+            return $this->fail(msg: '部分黑名单记录不存在或已在回收站', code: 404);
         }
         foreach ($items as $item) {
             $item->delete();
         }
-        return $this->ok(['removed' => count($items)], '已移入回收站');
+        return $this->ok('已移入回收站', ['removed' => count($items)]);
     }
 
     public function restore(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要恢复的记录', 422);
+            return $this->fail(msg: '请选择要恢复的记录', code: 422);
         }
         $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->select();
         if (count($items) !== count($ids)) {
-            return $this->fail('部分黑名单记录不存在或不在回收站', 404);
+            return $this->fail(msg: '部分黑名单记录不存在或不在回收站', code: 404);
         }
         foreach ($items as $item) {
             $item->restore();
         }
-        return $this->ok(['restored' => count($items)], '恢复成功');
+        return $this->ok('恢复成功', ['restored' => count($items)]);
     }
 
     public function destroy(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要永久删除的记录', 422);
+            return $this->fail(msg: '请选择要永久删除的记录', code: 422);
         }
         $items = Blacklist::onlyTrashed()->whereIn('id', $ids)->select();
         if (count($items) !== count($ids)) {
-            return $this->fail('部分黑名单记录不存在或不在回收站', 404);
+            return $this->fail(msg: '部分黑名单记录不存在或不在回收站', code: 404);
         }
         foreach ($items as $item) {
             $item->force()->delete();
         }
-        return $this->ok(['removed' => count($items)], '永久删除成功');
+        return $this->ok('永久删除成功', ['removed' => count($items)]);
     }
 
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
         if (!is_array($rows) || !$rows) {
-            return $this->fail('导入数据不能为空', 422);
+            return $this->fail(msg: '导入数据不能为空', code: 422);
         }
         if (count($rows) > 1000) {
-            return $this->fail('单次最多导入 1000 条记录', 422);
+            return $this->fail(msg: '单次最多导入 1000 条记录', code: 422);
         }
 
         $created = 0;
@@ -160,11 +160,11 @@ class SystemBlacklist extends AdminApiController
             }
         }
 
-        return $this->ok([
+        return $this->ok($errors ? '导入完成，部分记录已跳过' : '导入成功', [
             'created' => $created,
             'skipped' => count($errors),
             'errors' => $errors,
-        ], $errors ? '导入完成，部分记录已跳过' : '导入成功');
+        ]);
     }
 
     public function export(): Response
@@ -172,10 +172,10 @@ class SystemBlacklist extends AdminApiController
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = $this->filteredQuery($recycled);
         if ((clone $query)->count() > 10000) {
-            return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
+            return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
         $items = $query->order('id', 'desc')->select();
-        return $this->ok(array_map(fn (Blacklist $item): array => $this->itemData($item), $items->all()));
+        return $this->ok(data: array_map(fn (Blacklist $item): array => $this->itemData($item), $items->all()));
     }
 
     private function filteredQuery(bool $recycled)

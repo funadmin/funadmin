@@ -14,13 +14,8 @@
 namespace app\common\service;
 
 use PhpMcp\Server\Server;
-use PhpMcp\Server\ServerBuilder;
 use PhpMcp\Server\Transports\StdioServerTransport;
 use PhpMcp\Server\Defaults\BasicContainer;
-use PhpMcp\Schema\Tool;
-use PhpMcp\Schema\Resource;
-use PhpMcp\Schema\ToolAnnotations;
-use PhpMcp\Schema\Annotations;
 use think\facade\Db;
 use think\facade\Log;
 use think\facade\App;
@@ -2233,33 +2228,6 @@ class {$modelClass} extends BaseModel
     }
 
     /**
-     * 转换表名为控制器名
-     * @param string $tableName
-     * @return string
-     */
-    private function convertTableNameToControllerName(string $tableName): string
-    {
-        // 移除表前缀
-        $prefix = config('database.connections.mysql.prefix');
-        if (strpos($tableName, $prefix) === 0) {
-            $tableName = substr($tableName, strlen($prefix));
-        }
-        
-        // 转换为驼峰命名
-        return ucfirst(\think\helper\Str::camel($tableName));
-    }
-
-    /**
-     * 转换表名为模型名
-     * @param string $tableName
-     * @return string
-     */
-    private function convertTableNameToModelName(string $tableName): string
-    {
-        return $this->convertTableNameToControllerName($tableName);
-    }
-
-    /**
      * 生成FunAdmin JS文件
      * @param string $module 模块名称 (backend/api/frontend等)
      * @param string $controller 控制器名称
@@ -2546,7 +2514,7 @@ class {$controllerClass} extends Api
             ->order('id', 'desc')
             ->paginate(['list_rows' => \$pageSize, 'page' => \$page]);
 
-        return \$this->ok([
+        return \$this->ok(data: [
             'list' => \$result->items(),
             'total' => \$result->total(),
             'page' => \$page,
@@ -2561,9 +2529,9 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->model->find(\$id);
         if (!\$row) {
-            return \$this->fail('记录不存在', 404);
+            return \$this->fail(msg: '记录不存在', code: 404);
         }
-        return \$this->ok(\$row, '获取成功');
+        return \$this->ok(msg: '获取成功', data: \$row);
     }
 
     /**
@@ -2579,14 +2547,14 @@ class {$controllerClass} extends Api
                 {$validationRules}
             ])->check(\$params);
         } catch (ValidateException \$e) {
-            return \$this->fail(\$e->getError(), 422);
+            return \$this->fail(msg: \$e->getError(), code: 422);
         }
         
         \$result = \$this->model->save(\$params);
         if (!\$result) {
-            return \$this->fail('添加失败');
+            return \$this->fail(msg: '添加失败');
         }
-        return \$this->ok(null, '添加成功');
+        return \$this->ok(msg: '添加成功');
     }
 
     /**
@@ -2596,7 +2564,7 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->model->find(\$id);
         if (!\$row) {
-            return \$this->fail('记录不存在', 404);
+            return \$this->fail(msg: '记录不存在', code: 404);
         }
         
         \$params = \$request->only(self::ALLOWED_FIELDS, 'put');
@@ -2607,14 +2575,14 @@ class {$controllerClass} extends Api
                 {$validationRules}
             ])->check(\$params);
         } catch (ValidateException \$e) {
-            return \$this->fail(\$e->getError(), 422);
+            return \$this->fail(msg: \$e->getError(), code: 422);
         }
         
         \$result = \$row->save(\$params);
         if (!\$result) {
-            return \$this->fail('更新失败');
+            return \$this->fail(msg: '更新失败');
         }
-        return \$this->ok(null, '更新成功');
+        return \$this->ok(msg: '更新成功');
     }
 
     /**
@@ -2624,14 +2592,14 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->model->find(\$id);
         if (!\$row) {
-            return \$this->fail('记录不存在', 404);
+            return \$this->fail(msg: '记录不存在', code: 404);
         }
         
         \$result = \$row->delete();
         if (!\$result) {
-            return \$this->fail('删除失败');
+            return \$this->fail(msg: '删除失败');
         }
-        return \$this->ok(null, '删除成功');
+        return \$this->ok(msg: '删除成功');
     }
 }";
         
@@ -2680,20 +2648,6 @@ class {$controllerClass} extends Api
         }
         
         return implode("\n", $cols);
-    }
-
-    /**
-     * 生成JS请求配置
-     * @param string $controller 控制器名称
-     * @return string
-     */
-    private function generateJsRequests(string $controller): string
-    {
-        return "                    index: '{$controller}/index',
-                    add: '{$controller}/add',
-                    edit: '{$controller}/edit',
-                    delete: '{$controller}/delete',
-                    export: '{$controller}/export',";
     }
 
     private function atomicWrite(string $file, string $content): void

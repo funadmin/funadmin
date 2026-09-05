@@ -21,11 +21,6 @@ class BaseModel extends Model
         ];
     }
 
-    public function __construct(array $data = [])
-    {
-        parent::__construct($data);
-    }
-
     //表前缀
     public static function get_table_prefix(){
 

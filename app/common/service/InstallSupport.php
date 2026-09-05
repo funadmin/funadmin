@@ -171,6 +171,8 @@ final class InstallSupport
         $progress?->__invoke('database');
         self::prepareDatabase($db, $minMysqlVersion);
         config(self::databaseConfig($db, config('database')), 'database');
+        // 切换配置后必须强制重建连接实例，否则模型与迁移仍复用进程早期建立的旧连接
+        Db::connect('mysql', true);
         $progress?->__invoke('configuration');
         self::writeEnvironment($paths['env'], $paths['env_template'], $db, $debug);
         self::installSchemaAndAdmin($paths['migrations'], $admin);

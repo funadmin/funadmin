@@ -30,7 +30,7 @@ final class SystemStorage extends AdminApiController
     {
         $configured = strtolower(trim((string) syscfg('upload', 'upload_driver')));
         $active = $this->drivers->resolve($configured)->name();
-        return $this->ok([
+        return $this->ok(data: [
             'driver' => $active,
             'fallback' => $configured !== '' && $configured !== $active,
             'drivers' => $this->drivers->all(),
@@ -41,15 +41,15 @@ final class SystemStorage extends AdminApiController
     {
         $driver = strtolower(trim((string) $this->request->post('driver', '')));
         if (!$this->drivers->has($driver)) {
-            return $this->fail('存储驱动不存在或当前不可用', 422);
+            return $this->fail(msg: '存储驱动不存在或当前不可用', code: 422);
         }
         $config = Config::where('group', 'upload')->where('code', 'upload_driver')->find();
         if (!$config) {
-            return $this->fail('上传驱动配置项不存在', 500);
+            return $this->fail(msg: '上传驱动配置项不存在', code: 500);
         }
         $config->save(['value' => $driver, 'extra' => $this->driverOptions()]);
         Cache::clear();
-        return $this->ok(['driver' => $driver], '存储驱动已更新');
+        return $this->ok('存储驱动已更新', ['driver' => $driver]);
     }
 
     private function driverOptions(): string

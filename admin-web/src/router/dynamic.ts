@@ -161,16 +161,3 @@ function ensureLeadingSlash(path: string): string {
   if (!path) return '/';
   return path.startsWith('/') ? path : `/${path}`;
 }
-
-/** 收集所有按钮权限标识（用于 v-perm 全量校验） */
-export function collectPermissions(menus: API.MenuItem[]): string[] {
-  const list: string[] = [];
-  const walk = (items: API.MenuItem[]) => {
-    items.forEach((m) => {
-      if (m.permission) list.push(m.permission);
-      if (m.children?.length) walk(m.children);
-    });
-  };
-  walk(menus);
-  return list;
-}

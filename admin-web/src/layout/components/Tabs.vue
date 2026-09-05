@@ -6,7 +6,7 @@
       :always="false"
       @wheel.passive="onWheel"
     >
-      <div ref="innerRef" class="app-tabs__inner">
+      <div class="app-tabs__inner">
         <div
           v-for="tab in tabsStore.tabs"
           :key="tab.path"
@@ -91,9 +91,8 @@ import { useMenuTitle } from '@/composables/useMenuTitle';
 
 const { t, locale } = useI18n();
 
-// el-scrollbar 实例 / 内层容器 / 单个 tab 元素的 ref
+// el-scrollbar 实例 / 单个 tab 元素的 ref
 const scrollRef = ref<any>(null);
-const innerRef = ref<HTMLElement | null>(null);
 
 // 拿到 el-scrollbar 内部真正可滚的 wrap DOM
 function getWrap(): HTMLElement | null {

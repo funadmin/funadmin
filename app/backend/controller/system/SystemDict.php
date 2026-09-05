@@ -45,69 +45,69 @@ class SystemDict extends AdminApiController
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
         $list = array_map(fn (DictType $type) => $this->typeData($type), $result->items());
 
-        return $this->ok($this->paginationData($list, $result->total(), $page, $pageSize));
+        return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
     public function createType(): Response
     {
         $data = $this->typePayload();
         if ($error = $this->validateTypePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (DictType::where('code', $data['code'])->find()) {
-            return $this->fail('字典编码已存在', 422);
+            return $this->fail(msg: '字典编码已存在', code: 422);
         }
 
         $type = DictType::create($data);
-        return $this->ok($this->typeData($type), '创建成功');
+        return $this->ok('创建成功', $this->typeData($type));
     }
 
     public function updateType(int $id): Response
     {
         $type = DictType::find($id);
         if (!$type) {
-            return $this->fail('字典类型不存在', 404);
+            return $this->fail(msg: '字典类型不存在', code: 404);
         }
 
         $data = $this->typePayload(false);
         unset($data['code']);
         if ($error = $this->validateTypePayload($data, false)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $type->save($data);
-        return $this->ok($this->typeData($type), '保存成功');
+        return $this->ok('保存成功', $this->typeData($type));
     }
 
     public function deleteType(int $id): Response
     {
         $type = DictType::find($id);
         if (!$type) {
-            return $this->fail('字典类型不存在', 404);
+            return $this->fail(msg: '字典类型不存在', code: 404);
         }
         if (DictItem::where('type_id', $id)->count() > 0) {
-            return $this->fail('请先删除该类型下的字典项', 422);
+            return $this->fail(msg: '请先删除该类型下的字典项', code: 422);
         }
 
         $type->delete();
-        return $this->ok(null, '删除成功');
+        return $this->ok('删除成功');
     }
 
     public function deleteTypes(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要删除的字典类型', 422);
+            return $this->fail(msg: '请选择要删除的字典类型', code: 422);
         }
         if (DictItem::whereIn('type_id', $ids)->count() > 0) {
-            return $this->fail('所选类型中仍存在字典项，请先删除字典项', 422);
+            return $this->fail(msg: '所选类型中仍存在字典项，请先删除字典项', code: 422);
         }
 
         $types = DictType::whereIn('id', $ids)->select();
         foreach ($types as $type) {
             $type->delete();
         }
-        return $this->ok(['removed' => count($types)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($types)]);
     }
 
     public function items(): Response
@@ -120,7 +120,7 @@ class SystemDict extends AdminApiController
         if ($typeCode !== '') {
             $type = DictType::where('code', $typeCode)->find();
             if (!$type) {
-                return $this->ok($this->paginationData([], 0, $page, $pageSize));
+                return $this->ok(data: $this->paginationData([], 0, $page, $pageSize));
             }
             $query->where('type_id', (int) $type->id);
         }
@@ -146,84 +146,84 @@ class SystemDict extends AdminApiController
             return $this->itemData($item, (string) ($typeCodes[(int) $item->type_id] ?? ''));
         }, $items);
 
-        return $this->ok($this->paginationData($list, $result->total(), $page, $pageSize));
+        return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
     public function createItem(): Response
     {
         $data = $this->itemPayload();
         if ($error = $this->validateItemPayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $type = DictType::where('code', $data['typeCode'])->find();
         if (!$type) {
-            return $this->fail('字典类型不存在', 422);
+            return $this->fail(msg: '字典类型不存在', code: 422);
         }
         if (DictItem::where('type_id', $type->id)->where('value', $data['value'])->find()) {
-            return $this->fail('同一字典类型下的字典值不能重复', 422);
+            return $this->fail(msg: '同一字典类型下的字典值不能重复', code: 422);
         }
 
         unset($data['typeCode']);
         $data['type_id'] = (int) $type->id;
         $item = DictItem::create($data);
-        return $this->ok($this->itemData($item, (string) $type->code), '创建成功');
+        return $this->ok('创建成功', $this->itemData($item, (string) $type->code));
     }
 
     public function updateItem(int $id): Response
     {
         $item = DictItem::find($id);
         if (!$item) {
-            return $this->fail('字典项不存在', 404);
+            return $this->fail(msg: '字典项不存在', code: 404);
         }
 
         $data = $this->itemPayload(false);
         unset($data['typeCode']);
         if ($error = $this->validateItemPayload($data, false)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (isset($data['value']) && DictItem::where('type_id', $item->type_id)
             ->where('value', $data['value'])
             ->where('id', '<>', $id)
             ->find()) {
-            return $this->fail('同一字典类型下的字典值不能重复', 422);
+            return $this->fail(msg: '同一字典类型下的字典值不能重复', code: 422);
         }
 
         $item->save($data);
         $type = DictType::find((int) $item->type_id);
-        return $this->ok($this->itemData($item, $type ? (string) $type->code : ''), '保存成功');
+        return $this->ok('保存成功', $this->itemData($item, $type ? (string) $type->code : ''));
     }
 
     public function deleteItem(int $id): Response
     {
         $item = DictItem::find($id);
         if (!$item) {
-            return $this->fail('字典项不存在', 404);
+            return $this->fail(msg: '字典项不存在', code: 404);
         }
 
         $item->delete();
-        return $this->ok(null, '删除成功');
+        return $this->ok('删除成功');
     }
 
     public function deleteItems(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要删除的字典项', 422);
+            return $this->fail(msg: '请选择要删除的字典项', code: 422);
         }
 
         $items = DictItem::whereIn('id', $ids)->select();
         foreach ($items as $item) {
             $item->delete();
         }
-        return $this->ok(['removed' => count($items)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($items)]);
     }
 
     public function options(string $code): Response
     {
         $type = DictType::where('code', $code)->where('status', 1)->find();
         if (!$type) {
-            return $this->ok([]);
+            return $this->ok(data: []);
         }
 
         $items = DictItem::where('type_id', $type->id)
@@ -232,24 +232,24 @@ class SystemDict extends AdminApiController
             ->order('id', 'asc')
             ->select();
 
-        return $this->ok(array_map(fn (DictItem $item) => $this->optionData($item), $items->all()));
+        return $this->ok(data: array_map(fn (DictItem $item) => $this->optionData($item), $items->all()));
     }
 
     public function batch(): Response
     {
         $codes = $this->request->param('codes', []);
         if (!is_array($codes)) {
-            return $this->fail('codes 必须是数组', 422);
+            return $this->fail(msg: 'codes 必须是数组', code: 422);
         }
         $codes = array_values(array_unique(array_filter(array_map(
             static fn ($code) => trim((string) $code),
             $codes
         ))));
         if (count($codes) > 50) {
-            return $this->fail('单次最多查询 50 个字典', 422);
+            return $this->fail(msg: '单次最多查询 50 个字典', code: 422);
         }
         if (!$codes) {
-            return $this->ok([]);
+            return $this->ok(data: []);
         }
 
         $types = DictType::whereIn('code', $codes)->where('status', 1)->select();
@@ -259,7 +259,7 @@ class SystemDict extends AdminApiController
         }
         $result = array_fill_keys($codes, []);
         if (!$typeCodes) {
-            return $this->ok($result);
+            return $this->ok(data: $result);
         }
 
         $items = DictItem::whereIn('type_id', array_keys($typeCodes))
@@ -271,7 +271,7 @@ class SystemDict extends AdminApiController
             $result[$typeCodes[(int) $item->type_id]][] = $this->optionData($item);
         }
 
-        return $this->ok($result);
+        return $this->ok(data: $result);
     }
 
     private function typePayload(bool $creating = true): array

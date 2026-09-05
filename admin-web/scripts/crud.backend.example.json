@@ -27,6 +27,6 @@
     "writableFields": ["code", "name", "status"],
     "requiredFields": ["code", "name"],
     "searchFields": { "keyword": ["code", "name"] },
-    "responseMap": { "createdAt": "create_time" }
+    "responseMap": { "createdAt": "created_at" }
   }
 }

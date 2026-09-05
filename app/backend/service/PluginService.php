@@ -406,7 +406,8 @@ class PluginService extends AbstractService
                     'recovery_path' => null,
                     'status' => 1,
                 ]);
-            }
+            },
+            new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks'))
         );
         $coordinator->purge($name, $confirmation);
         return true;

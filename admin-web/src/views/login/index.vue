@@ -173,7 +173,7 @@
 import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { APP_CONFIG } from '@/config';
 import Captcha from '@/components/Captcha/index.vue';

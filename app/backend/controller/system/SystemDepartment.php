@@ -45,63 +45,63 @@ class SystemDepartment extends AdminApiController
             }
             unset($row);
         }
-        return $this->ok($this->buildTree($rows));
+        return $this->ok(data: $this->buildTree($rows));
     }
 
     public function detail(int $id): Response
     {
         $department = Department::find($id);
         if (!$department || !$this->canAccessDepartment($id)) {
-            return $this->fail('部门不存在或无权访问', 404);
+            return $this->fail(msg: '部门不存在或无权访问', code: 404);
         }
-        return $this->ok($this->departmentData($department));
+        return $this->ok(data: $this->departmentData($department));
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] <= 0 && !AuthService::instance()->isSuperAdmin()) {
-            return $this->fail('只有超级管理员可以创建顶级部门', 403);
+            return $this->fail(msg: '只有超级管理员可以创建顶级部门', code: 403);
         }
         if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->find() || !$this->canAccessDepartment($data['pid']))) {
-            return $this->fail('上级部门不存在、已停用或无权访问', 422);
+            return $this->fail(msg: '上级部门不存在、已停用或无权访问', code: 422);
         }
-        return $this->ok($this->departmentData(Department::create($data)), '创建成功');
+        return $this->ok('创建成功', $this->departmentData(Department::create($data)));
     }
 
     public function update(int $id): Response
     {
         $department = Department::find($id);
         if (!$department || !$this->canAccessDepartment($id)) {
-            return $this->fail('部门不存在或无权访问', 404);
+            return $this->fail(msg: '部门不存在或无权访问', code: 404);
         }
         $data = $this->payload(false);
         if ($error = $this->validatePayload($data, false)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (isset($data['pid'])) {
             if ($data['pid'] <= 0 && !AuthService::instance()->isSuperAdmin()) {
-                return $this->fail('只有超级管理员可以移动为顶级部门', 403);
+                return $this->fail(msg: '只有超级管理员可以移动为顶级部门', code: 403);
             }
             if ($data['pid'] > 0) {
                 $parent = Department::where('id', (int) $data['pid'])->where('status', 1)->find();
                 if (!$parent) {
-                    return $this->fail('上级部门不存在或已停用', 422);
+                    return $this->fail(msg: '上级部门不存在或已停用', code: 422);
                 }
                 if (!$this->canAccessDepartment((int) $data['pid'])) {
-                    return $this->fail('不能移动到数据范围外的部门', 403);
+                    return $this->fail(msg: '不能移动到数据范围外的部门', code: 403);
                 }
             }
             $forbidden = (new DataScopeService())->departmentSubtreeIds($id);
             if (in_array((int) $data['pid'], $forbidden, true)) {
-                return $this->fail('不能将部门移动到自身或下级部门', 422);
+                return $this->fail(msg: '不能将部门移动到自身或下级部门', code: 422);
             }
         }
         $department->save($data);
-        return $this->ok($this->departmentData($department), '保存成功');
+        return $this->ok('保存成功', $this->departmentData($department));
     }
 
     public function delete(int $id = 0): Response
@@ -111,31 +111,31 @@ class SystemDepartment extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的部门', 422);
+            return $this->fail(msg: '请选择要删除的部门', code: 422);
         }
         $scopeService = new DataScopeService();
         $subtreeIds = [];
         foreach ($ids as $departmentId) {
             if (!$this->canAccessDepartment($departmentId)) {
-                return $this->fail('包含数据范围外的部门', 403);
+                return $this->fail(msg: '包含数据范围外的部门', code: 403);
             }
             $subtreeIds = array_merge($subtreeIds, $scopeService->departmentSubtreeIds($departmentId));
         }
         $subtreeIds = array_values(array_unique(array_map('intval', $subtreeIds)));
         if (array_diff($subtreeIds, $ids)) {
-            return $this->fail('请同时选择全部下级部门后再删除', 422);
+            return $this->fail(msg: '请同时选择全部下级部门后再删除', code: 422);
         }
         if (Admin::whereIn('dept_id', $subtreeIds)->count() > 0) {
-            return $this->fail('部门或下级部门仍有管理员，不能删除', 422);
+            return $this->fail(msg: '部门或下级部门仍有管理员，不能删除', code: 422);
         }
         if (AuthGroupDepartment::whereIn('dept_id', $subtreeIds)->count() > 0) {
-            return $this->fail('部门或下级部门仍被角色数据范围引用，不能删除', 422);
+            return $this->fail(msg: '部门或下级部门仍被角色数据范围引用，不能删除', code: 422);
         }
         $departments = Department::whereIn('id', $subtreeIds)->select();
         foreach ($departments as $department) {
             $department->delete();
         }
-        return $this->ok(['removed' => count($departments)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($departments)]);
     }
 
     private function allowedDepartmentIds(): ?array

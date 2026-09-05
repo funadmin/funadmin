@@ -22,3 +22,22 @@
 ## 当前剩余旧导航
 - 插件管理 `addon`
 - 系统升级 `sys.upgrade`
+
+# 2026-09-05 迁移链写冲突协调单（title→name 后续：legacy 时间列删除）
+
+## 背景
+- 用户要求：时间字段统一 datetime 三件套（created_at/updated_at/deleted_at），删除旧 create_time/update_time/delete_time。
+- 022 已完成三件套切换与回填；运行时代码（app/、extend/、admin-web）对旧 int 三件套引用为零。
+- 本会话产出 `028_drop_legacy_time_columns.sql`（62 列守卫式 DROP + 7 个时间索引重建到 created_at）与契约 `admin-web/tests/contracts/legacy-time-columns-drop.spec.ts`；隔离 Docker MySQL 全链 001→028 通过、重跑幂等。两文件已被提交后又被删除（git status 可见 D），可用 `git restore` 恢复。
+
+## live 库（funadmin_git）当前不一致状态
+- 迁移仓库 fun_system_migration 仅登记到 021（+012/013/015）；016–027 效果大多已在 live 但未登记（016 非幂等、019 效果经 011 存在）。
+- fun_languages/fun_provinces 的旧时间列已被手工删除，导致已提交版 017 无法再跑完（其 INSERT..SELECT 仍读旧列）。
+- 017 被中断应用过一次：fun_admin.real_name/last_login_ip 已加列并回填（与其意图一致，无害）。
+- 011/013/020 等已执行迁移正被修改：将触发 MigrationService「已执行 migration 内容变化」拒绝，需回滚这些文件或改走新迁移。
+
+## 恢复步骤（单一迁移写者就位后）
+1. `git restore database/migrations/028_drop_legacy_time_columns.sql admin-web/tests/contracts/legacy-time-columns-drop.spec.ts`
+2. 回滚对已执行迁移（011/013/020 等）的修改，或将其改动改写到新编号迁移。
+3. 按序补齐 live：017 剩余部分需先修复其对 languages/provinces 旧列的依赖（改读 created_at 或守卫跳过），再 018→027 幂等应用；016/019 仅登记。
+4. 登记 016–028 checksum 后应用 028；核对旧列计数=0、fun_admin_log 时间索引位于 created_at。

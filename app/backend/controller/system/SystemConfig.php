@@ -46,7 +46,7 @@ class SystemConfig extends AdminApiController
             $query->where('status', (int) $status);
         }
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (Config $config): array => $this->configData($config), $result->items()),
             $result->total(),
             $page,
@@ -57,7 +57,7 @@ class SystemConfig extends AdminApiController
     public function detail(int $id): Response
     {
         $config = Config::find($id);
-        return $config ? $this->ok($this->configData($config)) : $this->fail('配置项不存在', 404);
+        return $config ? $this->ok(data: $this->configData($config)) : $this->fail(msg: '配置项不存在', code: 404);
     }
 
     public function options(): Response
@@ -83,7 +83,7 @@ class SystemConfig extends AdminApiController
         foreach ($builtInTypes as $name => $type) {
             $typeOptions[$name] ??= ['name' => $name] + $type;
         }
-        return $this->ok([
+        return $this->ok(data: [
             'groups' => array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()),
             'types' => array_values($typeOptions),
             'verifies' => array_values(array_map(static fn (FieldVerify $verify): array => [
@@ -97,61 +97,61 @@ class SystemConfig extends AdminApiController
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (Config::withTrashed()->where('code', $data['code'])->find()) {
-            return $this->fail('配置编码已存在', 422);
+            return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config = Config::create($data + ['is_system' => 0]);
         $this->clearConfigCache();
-        return $this->ok($this->configData($config), '创建成功');
+        return $this->ok('创建成功', $this->configData($config));
     }
 
     public function update(int $id): Response
     {
         $config = Config::find($id);
         if (!$config) {
-            return $this->fail('配置项不存在', 404);
+            return $this->fail(msg: '配置项不存在', code: 404);
         }
         $data = $this->payload($config);
         if ((int) $config->is_system === 1 && $data['code'] !== (string) $config->code) {
-            return $this->fail('系统配置编码不能修改', 422);
+            return $this->fail(msg: '系统配置编码不能修改', code: 422);
         }
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (Config::withTrashed()->where('code', $data['code'])->where('id', '<>', $id)->find()) {
-            return $this->fail('配置编码已存在', 422);
+            return $this->fail(msg: '配置编码已存在', code: 422);
         }
         $config->save($data);
         $this->clearConfigCache();
-        return $this->ok($this->configData($config), '保存成功');
+        return $this->ok('保存成功', $this->configData($config));
     }
 
     public function value(int $id): Response
     {
         $config = Config::find($id);
         if (!$config) {
-            return $this->fail('配置项不存在', 404);
+            return $this->fail(msg: '配置项不存在', code: 404);
         }
         [$value, $error] = $this->normalizeValue((string) $config->type, $this->request->post('value', ''), (string) ($config->extra ?? ''));
         if ($error) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         $config->save(['value' => $value]);
         $this->clearConfigCache();
-        return $this->ok($this->configData($config), '配置值已更新');
+        return $this->ok('配置值已更新', $this->configData($config));
     }
 
     public function status(int $id): Response
     {
         $config = Config::find($id);
         if (!$config) {
-            return $this->fail('配置项不存在', 404);
+            return $this->fail(msg: '配置项不存在', code: 404);
         }
         $config->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         $this->clearConfigCache();
-        return $this->ok($this->configData($config), '状态更新成功');
+        return $this->ok('状态更新成功', $this->configData($config));
     }
 
     public function delete(int $id = 0): Response
@@ -161,47 +161,47 @@ class SystemConfig extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的配置项', 422);
+            return $this->fail(msg: '请选择要删除的配置项', code: 422);
         }
         $configs = Config::whereIn('id', $ids)->select();
         if (count($configs) !== count($ids)) {
-            return $this->fail('部分配置项不存在', 404);
+            return $this->fail(msg: '部分配置项不存在', code: 404);
         }
         foreach ($configs as $config) {
             if ((int) $config->is_system === 1) {
-                return $this->fail('系统配置不能删除', 422);
+                return $this->fail(msg: '系统配置不能删除', code: 422);
             }
         }
         foreach ($configs as $config) {
             $config->force()->delete();
         }
         $this->clearConfigCache();
-        return $this->ok(['removed' => count($configs)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($configs)]);
     }
 
     public function groups(): Response
     {
         $groups = ConfigGroup::order('id', 'asc')->select();
-        return $this->ok(array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()));
+        return $this->ok(data: array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()));
     }
 
     public function createGroup(): Response
     {
         $data = $this->groupPayload();
         if ($error = $this->validateGroup($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (ConfigGroup::withTrashed()->where('name', $data['name'])->find()) {
-            return $this->fail('配置分组编码已存在', 422);
+            return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
             $group = ConfigGroup::create($data);
             $this->clearConfigCache();
-            return $this->ok($this->groupData($group), '创建成功');
+            return $this->ok('创建成功', $this->groupData($group));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
-                return $this->fail('配置分组编码已存在', 422);
+                return $this->fail(msg: '配置分组编码已存在', code: 422);
             }
             throw $exception;
         }
@@ -211,26 +211,26 @@ class SystemConfig extends AdminApiController
     {
         $group = ConfigGroup::find($id);
         if (!$group) {
-            return $this->fail('配置分组不存在', 404);
+            return $this->fail(msg: '配置分组不存在', code: 404);
         }
         $data = $this->groupPayload($group);
         if ($error = $this->validateGroup($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($data['name'] !== (string) $group->name && Config::withTrashed()->where('group', (string) $group->name)->count() > 0) {
-            return $this->fail('配置分组已被配置项引用，不能修改编码', 422);
+            return $this->fail(msg: '配置分组已被配置项引用，不能修改编码', code: 422);
         }
         if (ConfigGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
-            return $this->fail('配置分组编码已存在', 422);
+            return $this->fail(msg: '配置分组编码已存在', code: 422);
         }
         try {
             $group->save($data);
             $this->clearConfigCache();
-            return $this->ok($this->groupData($group), '保存成功');
+            return $this->ok('保存成功', $this->groupData($group));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
-                return $this->fail('配置分组编码已存在', 422);
+                return $this->fail(msg: '配置分组编码已存在', code: 422);
             }
             throw $exception;
         }
@@ -240,14 +240,14 @@ class SystemConfig extends AdminApiController
     {
         $group = ConfigGroup::find($id);
         if (!$group) {
-            return $this->fail('配置分组不存在', 404);
+            return $this->fail(msg: '配置分组不存在', code: 404);
         }
         if (Config::withTrashed()->where('group', (string) $group->name)->count() > 0) {
-            return $this->fail('配置分组仍被配置项引用，不能删除', 422);
+            return $this->fail(msg: '配置分组仍被配置项引用，不能删除', code: 422);
         }
         $group->force()->delete();
         $this->clearConfigCache();
-        return $this->ok(null, '删除成功');
+        return $this->ok('删除成功');
     }
 
     private function payload(?Config $config = null): array

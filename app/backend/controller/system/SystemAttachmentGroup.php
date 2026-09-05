@@ -24,57 +24,57 @@ class SystemAttachmentGroup extends AdminApiController
     {
         $groups = AttachGroup::order('sort_order', 'asc')->order('id', 'asc')->select();
         $rows = array_map(fn (AttachGroup $group): array => $this->groupData($group), $groups->all());
-        return $this->ok($this->buildTree($rows));
+        return $this->ok(data: $this->buildTree($rows));
     }
 
     public function detail(int $id): Response
     {
         $group = AttachGroup::find($id);
-        return $group ? $this->ok($this->groupData($group)) : $this->fail('附件分组不存在', 404);
+        return $group ? $this->ok(data: $this->groupData($group)) : $this->fail(msg: '附件分组不存在', code: 404);
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         $group = AttachGroup::create($data);
-        return $this->ok($this->groupData($group), '创建成功');
+        return $this->ok('创建成功', $this->groupData($group));
     }
 
     public function update(int $id): Response
     {
         $group = AttachGroup::find($id);
         if (!$group) {
-            return $this->fail('附件分组不存在', 404);
+            return $this->fail(msg: '附件分组不存在', code: 404);
         }
         $data = $this->payload($group);
         if ($error = $this->validatePayload($data, $id)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         $group->save($data);
-        return $this->ok($this->groupData($group), '保存成功');
+        return $this->ok('保存成功', $this->groupData($group));
     }
 
     public function delete(int $id): Response
     {
         if ($id === 1) {
-            return $this->fail('默认附件分组不能删除', 422);
+            return $this->fail(msg: '默认附件分组不能删除', code: 422);
         }
         $group = AttachGroup::find($id);
         if (!$group) {
-            return $this->fail('附件分组不存在', 404);
+            return $this->fail(msg: '附件分组不存在', code: 404);
         }
         if (AttachGroup::where('pid', $id)->count() > 0) {
-            return $this->fail('请先删除下级附件分组', 422);
+            return $this->fail(msg: '请先删除下级附件分组', code: 422);
         }
 
         Db::transaction(function () use ($group, $id): void {
             Attach::where('group_id', $id)->update(['group_id' => 0]);
             $group->force()->delete();
         });
-        return $this->ok(null, '删除成功，组内附件已移至未分组');
+        return $this->ok('删除成功，组内附件已移至未分组');
     }
 
     private function payload(?AttachGroup $group = null): array

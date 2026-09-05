@@ -29,43 +29,43 @@ class SystemMenu extends AdminApiController
             $query->whereLike('href', '%' . $path . '%');
         }
         $rows = array_map(fn (AdminMenu $menu): array => $this->menuData($menu), $query->select()->all());
-        return $this->ok($this->buildTree($rows));
+        return $this->ok(data: $this->buildTree($rows));
     }
 
     public function detail(int $id): Response
     {
         $menu = $this->findMenu($id);
-        return $menu ? $this->ok($this->menuData($menu)) : $this->fail('菜单不存在', 404);
+        return $menu ? $this->ok(data: $this->menuData($menu)) : $this->fail(msg: '菜单不存在', code: 404);
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] > 0 && !$this->findMenu($data['pid'])) {
-            return $this->fail('上级菜单不存在', 422);
+            return $this->fail(msg: '上级菜单不存在', code: 422);
         }
         $menu = AdminMenu::create($data);
-        return $this->ok($this->menuData($menu), '创建成功');
+        return $this->ok('创建成功', $this->menuData($menu));
     }
 
     public function update(int $id): Response
     {
         $menu = $this->findMenu($id);
         if (!$menu) {
-            return $this->fail('菜单不存在', 404);
+            return $this->fail(msg: '菜单不存在', code: 404);
         }
         $data = $this->payload(false, $menu);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (in_array($data['pid'], $this->descendantIds($id), true) || $data['pid'] === $id) {
-            return $this->fail('不能将菜单移动到自身或下级菜单', 422);
+            return $this->fail(msg: '不能将菜单移动到自身或下级菜单', code: 422);
         }
         $menu->save($data);
-        return $this->ok($this->menuData($menu), '保存成功');
+        return $this->ok('保存成功', $this->menuData($menu));
     }
 
     public function delete(int $id = 0): Response
@@ -75,16 +75,16 @@ class SystemMenu extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的菜单', 422);
+            return $this->fail(msg: '请选择要删除的菜单', code: 422);
         }
         if (AdminMenu::where('source_type', 'admin_web')->whereIn('pid', $ids)->count() > 0) {
-            return $this->fail('请先删除下级菜单', 422);
+            return $this->fail(msg: '请先删除下级菜单', code: 422);
         }
         $menus = AdminMenu::where('source_type', 'admin_web')->whereIn('id', $ids)->select();
         foreach ($menus as $menu) {
             $menu->delete();
         }
-        return $this->ok(['removed' => count($menus)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($menus)]);
     }
 
     private function payload(bool $create = true, ?AdminMenu $menu = null): array

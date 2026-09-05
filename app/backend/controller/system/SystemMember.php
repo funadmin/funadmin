@@ -34,7 +34,7 @@ class SystemMember extends AdminApiController
         $items = $result->items();
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps($items);
 
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), $items),
             $result->total(),
             $page,
@@ -46,15 +46,15 @@ class SystemMember extends AdminApiController
     {
         $member = Member::withTrashed()->find($id);
         if (!$member) {
-            return $this->fail('会员不存在', 404);
+            return $this->fail(msg: '会员不存在', code: 404);
         }
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
+        return $this->ok(data: $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
     public function options(): Response
     {
-        return $this->ok([
+        return $this->ok(data: [
             'groups' => MemberGroup::where('status', 1)->order('id', 'asc')->field('id,name')->select()->toArray(),
             'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
             'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
@@ -65,10 +65,10 @@ class SystemMember extends AdminApiController
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($error = $this->validateUnique($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $groupIds = $data['groupIds'];
@@ -84,26 +84,26 @@ class SystemMember extends AdminApiController
             });
         } catch (\Throwable $exception) {
             if ($message = $this->duplicateError($exception)) {
-                return $this->fail($message, 422);
+                return $this->fail(msg: $message, code: 422);
             }
             throw $exception;
         }
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), '创建成功');
+        return $this->ok('创建成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
     public function update(int $id): Response
     {
         $member = Member::find($id);
         if (!$member) {
-            return $this->fail('会员不存在', 404);
+            return $this->fail(msg: '会员不存在', code: 404);
         }
         $data = $this->payload($member);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($error = $this->validateUnique($data, $id)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
 
         $groupIds = $data['groupIds'];
@@ -117,23 +117,23 @@ class SystemMember extends AdminApiController
             });
         } catch (\Throwable $exception) {
             if ($message = $this->duplicateError($exception)) {
-                return $this->fail($message, 422);
+                return $this->fail(msg: $message, code: 422);
             }
             throw $exception;
         }
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), '保存成功');
+        return $this->ok('保存成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
     public function status(int $id): Response
     {
         $member = Member::find($id);
         if (!$member) {
-            return $this->fail('会员不存在', 404);
+            return $this->fail(msg: '会员不存在', code: 404);
         }
         $member->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps([$member]);
-        return $this->ok($this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), '状态更新成功');
+        return $this->ok('状态更新成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
     public function recycle(): Response
@@ -145,23 +145,23 @@ class SystemMember extends AdminApiController
         foreach ($members as $member) {
             $member->delete();
         }
-        return $this->ok(['removed' => count($members)], '已移入回收站');
+        return $this->ok('已移入回收站', ['removed' => count($members)]);
     }
 
     public function restore(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要恢复的会员', 422);
+            return $this->fail(msg: '请选择要恢复的会员', code: 422);
         }
         $members = Member::onlyTrashed()->whereIn('id', $ids)->select();
         if (count($members) !== count($ids)) {
-            return $this->fail('部分会员不存在或不在回收站', 404);
+            return $this->fail(msg: '部分会员不存在或不在回收站', code: 404);
         }
         foreach ($members as $member) {
             $member->restore();
         }
-        return $this->ok(['restored' => count($members)], '恢复成功');
+        return $this->ok('恢复成功', ['restored' => count($members)]);
     }
 
     public function destroy(): Response
@@ -177,17 +177,17 @@ class SystemMember extends AdminApiController
                 $member->force()->delete();
             }
         });
-        return $this->ok(['removed' => count($members)], '永久删除成功');
+        return $this->ok('永久删除成功', ['removed' => count($members)]);
     }
 
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
         if (!is_array($rows) || !$rows) {
-            return $this->fail('导入数据不能为空', 422);
+            return $this->fail(msg: '导入数据不能为空', code: 422);
         }
         if (count($rows) > 1000) {
-            return $this->fail('单次最多导入 1000 条会员', 422);
+            return $this->fail(msg: '单次最多导入 1000 条会员', code: 422);
         }
 
         $created = 0;
@@ -222,11 +222,11 @@ class SystemMember extends AdminApiController
             }
         }
 
-        return $this->ok([
+        return $this->ok($errors ? '导入完成，部分数据未导入' : '导入成功', [
             'created' => $created,
             'skipped' => count($rows) - $created,
             'errors' => $errors,
-        ], $errors ? '导入完成，部分数据未导入' : '导入成功');
+        ]);
     }
 
     public function export(): Response
@@ -234,11 +234,11 @@ class SystemMember extends AdminApiController
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = $this->filteredQuery($recycled);
         if ((clone $query)->count() > 10000) {
-            return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
+            return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
         $members = $query->order('id', 'desc')->select()->all();
         [$memberGroups, $groups, $levels, $memberTags, $tags] = $this->relationMaps($members);
-        return $this->ok(array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), $members));
+        return $this->ok(data: array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags), $members));
     }
 
     private function filteredQuery(bool $recycled)
@@ -276,12 +276,12 @@ class SystemMember extends AdminApiController
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要操作的会员', 422);
+            return $this->fail(msg: '请选择要操作的会员', code: 422);
         }
         $query = $onlyTrashed ? Member::onlyTrashed() : Member::where('id', '>', 0);
         $members = $query->whereIn('id', $ids)->select();
         if (count($members) !== count($ids)) {
-            return $this->fail($onlyTrashed ? '部分会员不存在或不在回收站' : '部分会员不存在或已在回收站', 404);
+            return $this->fail(msg: $onlyTrashed ? '部分会员不存在或不在回收站' : '部分会员不存在或已在回收站', code: 404);
         }
         return $members;
     }

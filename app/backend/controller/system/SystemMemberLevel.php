@@ -30,7 +30,7 @@ class SystemMemberLevel extends AdminApiController
             'page' => $page,
         ]);
 
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (MemberLevel $level): array => $this->levelData($level), $result->items()),
             $result->total(),
             $page,
@@ -42,50 +42,50 @@ class SystemMemberLevel extends AdminApiController
     {
         $level = MemberLevel::withTrashed()->find($id);
         return $level
-            ? $this->ok($this->levelData($level))
-            : $this->fail('会员等级不存在', 404);
+            ? $this->ok(data: $this->levelData($level))
+            : $this->fail(msg: '会员等级不存在', code: 404);
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (MemberLevel::withTrashed()->where('name', $data['name'])->find()) {
-            return $this->fail('会员等级名称已存在', 422);
+            return $this->fail(msg: '会员等级名称已存在', code: 422);
         }
 
         $level = MemberLevel::create($data);
-        return $this->ok($this->levelData($level), '创建成功');
+        return $this->ok('创建成功', $this->levelData($level));
     }
 
     public function update(int $id): Response
     {
         $level = MemberLevel::find($id);
         if (!$level) {
-            return $this->fail('会员等级不存在', 404);
+            return $this->fail(msg: '会员等级不存在', code: 404);
         }
         $data = $this->payload($level);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (MemberLevel::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
-            return $this->fail('会员等级名称已存在', 422);
+            return $this->fail(msg: '会员等级名称已存在', code: 422);
         }
 
         $level->save($data);
-        return $this->ok($this->levelData($level), '保存成功');
+        return $this->ok('保存成功', $this->levelData($level));
     }
 
     public function status(int $id): Response
     {
         $level = MemberLevel::find($id);
         if (!$level) {
-            return $this->fail('会员等级不存在', 404);
+            return $this->fail(msg: '会员等级不存在', code: 404);
         }
         $level->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        return $this->ok($this->levelData($level), '状态更新成功');
+        return $this->ok('状态更新成功', $this->levelData($level));
     }
 
     public function recycle(): Response
@@ -97,23 +97,23 @@ class SystemMemberLevel extends AdminApiController
         foreach ($levels as $level) {
             $level->delete();
         }
-        return $this->ok(['removed' => count($levels)], '已移入回收站');
+        return $this->ok('已移入回收站', ['removed' => count($levels)]);
     }
 
     public function restore(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要恢复的会员等级', 422);
+            return $this->fail(msg: '请选择要恢复的会员等级', code: 422);
         }
         $levels = MemberLevel::onlyTrashed()->whereIn('id', $ids)->select();
         if (count($levels) !== count($ids)) {
-            return $this->fail('部分会员等级不存在或不在回收站', 404);
+            return $this->fail(msg: '部分会员等级不存在或不在回收站', code: 404);
         }
         foreach ($levels as $level) {
             $level->restore();
         }
-        return $this->ok(['restored' => count($levels)], '恢复成功');
+        return $this->ok('恢复成功', ['restored' => count($levels)]);
     }
 
     public function destroy(): Response
@@ -125,7 +125,7 @@ class SystemMemberLevel extends AdminApiController
         foreach ($levels as $level) {
             $level->force()->delete();
         }
-        return $this->ok(['removed' => count($levels)], '永久删除成功');
+        return $this->ok('永久删除成功', ['removed' => count($levels)]);
     }
 
     public function export(): Response
@@ -133,10 +133,10 @@ class SystemMemberLevel extends AdminApiController
         $recycled = (int) $this->request->get('recycled', 0) === 1;
         $query = $this->filteredQuery($recycled);
         if ((clone $query)->count() > 10000) {
-            return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
+            return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
         $levels = $query->order('sort_order', 'asc')->order('id', 'asc')->select();
-        return $this->ok(array_map(fn (MemberLevel $level): array => $this->levelData($level), $levels->all()));
+        return $this->ok(data: array_map(fn (MemberLevel $level): array => $this->levelData($level), $levels->all()));
     }
 
     private function filteredQuery(bool $recycled)
@@ -157,15 +157,15 @@ class SystemMemberLevel extends AdminApiController
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要操作的会员等级', 422);
+            return $this->fail(msg: '请选择要操作的会员等级', code: 422);
         }
         $query = $onlyTrashed ? MemberLevel::onlyTrashed() : MemberLevel::where('id', '>', 0);
         $levels = $query->whereIn('id', $ids)->select();
         if (count($levels) !== count($ids)) {
-            return $this->fail($onlyTrashed ? '部分会员等级不存在或不在回收站' : '部分会员等级不存在或已在回收站', 404);
+            return $this->fail(msg: $onlyTrashed ? '部分会员等级不存在或不在回收站' : '部分会员等级不存在或已在回收站', code: 404);
         }
         if (Member::withTrashed()->whereIn('level_id', $ids)->count() > 0) {
-            return $this->fail('会员等级仍被会员引用，不能删除', 422);
+            return $this->fail(msg: '会员等级仍被会员引用，不能删除', code: 422);
         }
         return $levels;
     }

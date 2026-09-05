@@ -52,7 +52,7 @@ class SystemOperationLog extends AdminApiController
             $query->where('created_at', '<=', date('Y-m-d H:i:s', strtotime($endTime)));
         }
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (AdminLog $log): array => $this->logData($log), $result->items()),
             $result->total(),
             $page,
@@ -63,7 +63,7 @@ class SystemOperationLog extends AdminApiController
     public function detail(int $id): Response
     {
         $log = $this->scopedQuery()->where('id', $id)->find();
-        return $log ? $this->ok($this->logData($log, true)) : $this->fail('日志不存在或无权访问', 404);
+        return $log ? $this->ok(data: $this->logData($log, true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
     }
 
     public function delete(int $id = 0): Response
@@ -73,16 +73,16 @@ class SystemOperationLog extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的日志', 422);
+            return $this->fail(msg: '请选择要删除的日志', code: 422);
         }
         $logs = $this->scopedQuery()->whereIn('id', $ids)->select();
         if (count($logs) !== count($ids)) {
-            return $this->fail('包含不存在或无权删除的日志', 403);
+            return $this->fail(msg: '包含不存在或无权删除的日志', code: 403);
         }
         foreach ($logs as $log) {
             $log->delete();
         }
-        return $this->ok(['removed' => count($logs)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($logs)]);
     }
 
     private function scopedQuery()

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
+use fun\plugins\LifecycleLock;
 use fun\plugins\PluginPurgeCoordinator;
 
 function purgeExpect(bool $condition, string $message): void
@@ -59,5 +60,26 @@ $failed = new PluginPurgeCoordinator(
 );
 purgeReject(static fn () => $failed->purge('demo', 'demo'), '拒绝');
 purgeExpect(($failedAudit[0]['operation'] ?? '') === 'purge' && ($failedAudit[0]['result'] ?? '') === 'failed', 'purge 失败也必须独立审计');
+
+$lockDirectory = sys_get_temp_dir() . '/funadmin-plugin-purge-lock-' . bin2hex(random_bytes(4));
+$heldLock = (new LifecycleLock($lockDirectory))->acquire('demo');
+$lockedCoordinator = new PluginPurgeCoordinator(
+    static fn (): object => new class {
+        public function purgeData(): bool
+        {
+            return true;
+        }
+    },
+    static function (): void {},
+    new LifecycleLock($lockDirectory)
+);
+purgeReject(static fn () => $lockedCoordinator->purge('demo', 'demo'), '正在执行生命周期操作');
+$heldLock->release();
+$lockedCoordinator->purge('demo', 'demo');
+unlink($lockDirectory . '/demo.lock');
+rmdir($lockDirectory);
+
+$serviceSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginService.php');
+purgeExpect(str_contains($serviceSource, 'new PluginPurgeCoordinator(') && str_contains($serviceSource, 'new LifecycleLock('), 'PluginService purge 必须注入生命周期互斥锁');
 
 echo "plugin purge service tests: PASS\n";

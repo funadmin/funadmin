@@ -35,7 +35,7 @@ class SystemMemberGroup extends AdminApiController
         }
         $result = $query->order('id', 'asc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (MemberGroup $group): array => $this->groupData($group), $result->items()),
             $result->total(),
             $page,
@@ -47,50 +47,50 @@ class SystemMemberGroup extends AdminApiController
     {
         $group = MemberGroup::withTrashed()->find($id);
         return $group
-            ? $this->ok($this->groupData($group))
-            : $this->fail('会员组不存在', 404);
+            ? $this->ok(data: $this->groupData($group))
+            : $this->fail(msg: '会员组不存在', code: 404);
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (MemberGroup::withTrashed()->where('name', $data['name'])->find()) {
-            return $this->fail('会员组名称已存在', 422);
+            return $this->fail(msg: '会员组名称已存在', code: 422);
         }
 
         $group = MemberGroup::create($data);
-        return $this->ok($this->groupData($group), '创建成功');
+        return $this->ok('创建成功', $this->groupData($group));
     }
 
     public function update(int $id): Response
     {
         $group = MemberGroup::find($id);
         if (!$group) {
-            return $this->fail('会员组不存在', 404);
+            return $this->fail(msg: '会员组不存在', code: 404);
         }
         $data = $this->payload($group);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (MemberGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
-            return $this->fail('会员组名称已存在', 422);
+            return $this->fail(msg: '会员组名称已存在', code: 422);
         }
 
         $group->save($data);
-        return $this->ok($this->groupData($group), '保存成功');
+        return $this->ok('保存成功', $this->groupData($group));
     }
 
     public function status(int $id): Response
     {
         $group = MemberGroup::find($id);
         if (!$group) {
-            return $this->fail('会员组不存在', 404);
+            return $this->fail(msg: '会员组不存在', code: 404);
         }
         $group->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        return $this->ok($this->groupData($group), '状态更新成功');
+        return $this->ok('状态更新成功', $this->groupData($group));
     }
 
     public function recycle(): Response
@@ -102,23 +102,23 @@ class SystemMemberGroup extends AdminApiController
         foreach ($groups as $group) {
             $group->delete();
         }
-        return $this->ok(['removed' => count($groups)], '已移入回收站');
+        return $this->ok('已移入回收站', ['removed' => count($groups)]);
     }
 
     public function restore(): Response
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要恢复的会员组', 422);
+            return $this->fail(msg: '请选择要恢复的会员组', code: 422);
         }
         $groups = MemberGroup::onlyTrashed()->whereIn('id', $ids)->select();
         if (count($groups) !== count($ids)) {
-            return $this->fail('部分会员组不存在或不在回收站', 404);
+            return $this->fail(msg: '部分会员组不存在或不在回收站', code: 404);
         }
         foreach ($groups as $group) {
             $group->restore();
         }
-        return $this->ok(['restored' => count($groups)], '恢复成功');
+        return $this->ok('恢复成功', ['restored' => count($groups)]);
     }
 
     public function destroy(): Response
@@ -130,7 +130,7 @@ class SystemMemberGroup extends AdminApiController
         foreach ($groups as $group) {
             $group->force()->delete();
         }
-        return $this->ok(['removed' => count($groups)], '永久删除成功');
+        return $this->ok('永久删除成功', ['removed' => count($groups)]);
     }
 
     public function export(): Response
@@ -146,27 +146,27 @@ class SystemMemberGroup extends AdminApiController
             $query->where('status', (int) $status);
         }
         if ((clone $query)->count() > 10000) {
-            return $this->fail('导出数据超过 10000 条，请缩小筛选范围', 422);
+            return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
         }
-        return $this->ok(array_map(fn (MemberGroup $group): array => $this->groupData($group), $query->order('id', 'asc')->select()->all()));
+        return $this->ok(data: array_map(fn (MemberGroup $group): array => $this->groupData($group), $query->order('id', 'asc')->select()->all()));
     }
 
     private function groupsForAction(bool $onlyTrashed)
     {
         $ids = $this->ids();
         if (!$ids) {
-            return $this->fail('请选择要操作的会员组', 422);
+            return $this->fail(msg: '请选择要操作的会员组', code: 422);
         }
         if (in_array(1, $ids, true)) {
-            return $this->fail('默认会员组不能删除', 422);
+            return $this->fail(msg: '默认会员组不能删除', code: 422);
         }
         $query = $onlyTrashed ? MemberGroup::onlyTrashed() : MemberGroup::where('id', '>', 0);
         $groups = $query->whereIn('id', $ids)->select();
         if (count($groups) !== count($ids)) {
-            return $this->fail($onlyTrashed ? '部分会员组不存在或不在回收站' : '部分会员组不存在或已在回收站', 404);
+            return $this->fail(msg: $onlyTrashed ? '部分会员组不存在或不在回收站' : '部分会员组不存在或已在回收站', code: 404);
         }
         if (MemberGroupRelation::whereIn('group_id', $ids)->count() > 0) {
-            return $this->fail('会员组仍被会员引用，不能删除', 422);
+            return $this->fail(msg: '会员组仍被会员引用，不能删除', code: 422);
         }
         return $groups;
     }

@@ -11,7 +11,8 @@ final class PluginPurgeCoordinator
 {
     public function __construct(
         private readonly mixed $loadPlugin,
-        private readonly mixed $audit
+        private readonly mixed $audit,
+        private readonly ?LifecycleLock $lock = null
     ) {
     }
 
@@ -20,7 +21,9 @@ final class PluginPurgeCoordinator
         if ($confirmation !== $name) {
             throw new RuntimeException('彻底清理数据时必须输入插件名称二次确认');
         }
+        $lock = null;
         try {
+            $lock = $this->lock?->acquire($name);
             $plugin = ($this->loadPlugin)($name);
             if (!method_exists($plugin, 'purgeData') || $plugin->purgeData() === false) {
                 throw new RuntimeException('插件拒绝或无法清理业务数据');
@@ -34,6 +37,8 @@ final class PluginPurgeCoordinator
                 'error' => substr($exception->getMessage(), 0, 2000),
             ]);
             throw $exception;
+        } finally {
+            $lock?->release();
         }
     }
 }

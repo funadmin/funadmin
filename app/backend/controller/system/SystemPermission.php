@@ -44,7 +44,7 @@ class SystemPermission extends AdminApiController
             $rows = $this->filterWithAncestors($rows, $name, $resource, $status);
         }
 
-        return $this->ok($this->buildTree($rows));
+        return $this->ok(data: $this->buildTree($rows));
     }
 
     public function detail(int $id): Response
@@ -54,8 +54,8 @@ class SystemPermission extends AdminApiController
         }
         $permission = Permission::find($id);
         return $permission
-            ? $this->ok($this->permissionData($permission))
-            : $this->fail('权限资源不存在', 404);
+            ? $this->ok(data: $this->permissionData($permission))
+            : $this->fail(msg: '权限资源不存在', code: 404);
     }
 
     public function create(): Response
@@ -66,21 +66,21 @@ class SystemPermission extends AdminApiController
         try {
             $data = $this->payload();
         } catch (InvalidArgumentException $exception) {
-            return $this->fail($exception->getMessage(), 422);
+            return $this->fail(msg: $exception->getMessage(), code: 422);
         }
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
-            return $this->fail('上级权限资源不存在', 422);
+            return $this->fail(msg: '上级权限资源不存在', code: 422);
         }
         if ($data['code'] !== null && Permission::where('code', $data['code'])->find()) {
-            return $this->fail('权限标识已存在', 422);
+            return $this->fail(msg: '权限标识已存在', code: 422);
         }
 
         $permission = Permission::create($data);
         Cache::clear();
-        return $this->ok($this->permissionData($permission), '创建成功');
+        return $this->ok('创建成功', $this->permissionData($permission));
     }
 
     public function update(int $id): Response
@@ -90,24 +90,24 @@ class SystemPermission extends AdminApiController
         }
         $permission = Permission::find($id);
         if (!$permission) {
-            return $this->fail('权限资源不存在', 404);
+            return $this->fail(msg: '权限资源不存在', code: 404);
         }
         try {
             $data = $this->payload($permission);
         } catch (InvalidArgumentException $exception) {
-            return $this->fail($exception->getMessage(), 422);
+            return $this->fail(msg: $exception->getMessage(), code: 422);
         }
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if ($data['pid'] > 0 && !Permission::find($data['pid'])) {
-            return $this->fail('上级权限资源不存在', 422);
+            return $this->fail(msg: '上级权限资源不存在', code: 422);
         }
         if ($data['pid'] === $id || in_array($data['pid'], Permission::childIds($id), true)) {
-            return $this->fail('不能将权限资源移动到自身或下级节点', 422);
+            return $this->fail(msg: '不能将权限资源移动到自身或下级节点', code: 422);
         }
         if ($data['code'] !== null && Permission::where('code', $data['code'])->where('id', '<>', $id)->find()) {
-            return $this->fail('权限标识已存在', 422);
+            return $this->fail(msg: '权限标识已存在', code: 422);
         }
 
         $oldObj = (string) $permission->obj;
@@ -130,7 +130,7 @@ class SystemPermission extends AdminApiController
             CasbinService::instance()->reload();
         }
         Cache::clear();
-        return $this->ok($this->permissionData($permission), '保存成功');
+        return $this->ok('保存成功', $this->permissionData($permission));
     }
 
     public function delete(int $id = 0): Response
@@ -143,7 +143,7 @@ class SystemPermission extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的权限资源', 422);
+            return $this->fail(msg: '请选择要删除的权限资源', code: 422);
         }
 
         $existingIds = array_map('intval', Permission::whereIn('id', $ids)->column('id'));
@@ -151,13 +151,13 @@ class SystemPermission extends AdminApiController
         $requestedIds = $ids;
         sort($requestedIds);
         if ($existingIds !== $requestedIds) {
-            return $this->fail('部分权限资源不存在', 404);
+            return $this->fail(msg: '部分权限资源不存在', code: 404);
         }
         if (Permission::whereIn('pid', $ids)->count() > 0) {
-            return $this->fail('请先删除下级权限资源', 422);
+            return $this->fail(msg: '请先删除下级权限资源', code: 422);
         }
         if (AdminMenu::whereIn('permission_id', $ids)->count() > 0) {
-            return $this->fail('权限资源已绑定菜单，不能删除', 422);
+            return $this->fail(msg: '权限资源已绑定菜单，不能删除', code: 422);
         }
 
         $resources = Permission::whereIn('id', $ids)->field('obj,act')->select()->toArray();
@@ -174,14 +174,14 @@ class SystemPermission extends AdminApiController
         });
         CasbinService::instance()->reload();
         Cache::clear();
-        return $this->ok(['removed' => count($ids)], '删除成功');
+        return $this->ok('删除成功', ['removed' => count($ids)]);
     }
 
     private function requireSuperAdmin(): ?Response
     {
         return AuthService::instance()->isSuperAdmin()
             ? null
-            : $this->fail('仅超级管理员可维护权限资源', 403);
+            : $this->fail(msg: '仅超级管理员可维护权限资源', code: 403);
     }
 
     private function payload(?Permission $permission = null): array

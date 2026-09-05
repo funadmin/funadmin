@@ -9,6 +9,11 @@ const groupOptions = [
   { id: 1, name: '默认组' },
   { id: 2, name: 'VIP 会员' }
 ];
+const tagOptions = [
+  { id: 1, name: '新会员' },
+  { id: 2, name: '活跃会员' },
+  { id: 3, name: '重点客户' }
+];
 const levelOptions = [
   { id: 1, name: '倔强青铜' },
   { id: 2, name: '秩序白银' },
@@ -27,6 +32,8 @@ const rows: MockMember[] = [
     sex: '0',
     groupIds: [1],
     groupNames: ['默认组'],
+    tagIds: [1],
+    tagNames: ['新会员'],
     levelId: 1,
     levelName: '倔强青铜',
     avatar: '',
@@ -43,7 +50,7 @@ const rows: MockMember[] = [
 
 function visible(row: MockMember): MemberModel {
   const { deleted: _deleted, ...data } = row;
-  return { ...data, groupIds: [...data.groupIds], groupNames: [...data.groupNames] };
+  return { ...data, groupIds: [...data.groupIds], groupNames: [...data.groupNames], tagIds: [...data.tagIds], tagNames: [...data.tagNames] };
 }
 
 function idsFrom(body: Record<string, any>): number[] {
@@ -55,6 +62,11 @@ function groupNames(ids: number[]) {
   return ids.map((id) => map.get(id) || `#${id}`);
 }
 
+function tagNames(ids: number[]) {
+  const map = new Map(tagOptions.map((item) => [item.id, item.name]));
+  return ids.map((id) => map.get(id) || `#${id}`);
+}
+
 function levelName(id: number) {
   return levelOptions.find((item) => item.id === id)?.name || '';
 }
@@ -63,12 +75,16 @@ function normalize(body: Record<string, any>, current?: MockMember): MemberPaylo
   let groupIds = body.groupIds ?? body.group_ids ?? body.groupId ?? body.group_id ?? current?.groupIds ?? [];
   if (!Array.isArray(groupIds)) groupIds = String(groupIds).split(/[,，]/);
   groupIds = Array.from(new Set(groupIds.map(Number).filter((id: number) => id > 0)));
+  let tagIds = body.tagIds ?? body.tag_ids ?? current?.tagIds ?? [];
+  if (!Array.isArray(tagIds)) tagIds = String(tagIds).split(/[,，]/);
+  tagIds = Array.from(new Set(tagIds.map(Number).filter((id: number) => id > 0)));
   return {
     username: String(body.username ?? current?.username ?? '').trim(),
     mobile: String(body.mobile ?? current?.mobile ?? '').trim(),
     email: String(body.email ?? current?.email ?? '').trim(),
     sex: String(body.sex ?? current?.sex ?? '0') as MemberPayload['sex'],
     groupIds,
+    tagIds,
     levelId: Number(body.levelId ?? body.level_id ?? current?.levelId ?? 0),
     avatar: String(body.avatar ?? current?.avatar ?? '').trim(),
     status: Number(body.status ?? current?.status ?? 1) === 1 ? 1 : 0
@@ -85,6 +101,7 @@ function validate(data: MemberPayload, excludeId = 0): string {
   if (!['0', '1', '2'].includes(data.sex)) return '性别参数无效';
   if (!data.groupIds.length || data.groupIds.join(',').length > 50) return '请选择有效会员组，且分组数据不能超过 50 个字符';
   if (data.groupIds.some((id) => !groupOptions.some((item) => item.id === id))) return '会员组不存在、已删除或已停用';
+  if (data.tagIds.length > 32 || data.tagIds.some((id) => !tagOptions.some((item) => item.id === id))) return '会员标签不存在、已删除或已停用，且最多选择 32 个标签';
   if (!levelOptions.some((item) => item.id === data.levelId)) return '会员等级不存在、已删除或已停用';
   if (data.avatar.length > 255) return '头像地址不能超过 255 个字符';
   if (rows.some((row) => row.id !== excludeId && row.username.toLowerCase() === data.username.toLowerCase())) return '用户名已存在';
@@ -113,6 +130,8 @@ function createRow(data: MemberPayload): MockMember {
     ...data,
     groupIds: [...data.groupIds],
     groupNames: groupNames(data.groupIds),
+    tagIds: [...data.tagIds],
+    tagNames: tagNames(data.tagIds),
     levelName: levelName(data.levelId),
     loginCount: 0,
     lastLoginAt: '',
@@ -139,7 +158,7 @@ export const memberMockHandlers: MockRoute[] = [
   {
     method: 'GET',
     url: '/system/member/options',
-    handler: () => ok({ groups: groupOptions.map((item) => ({ ...item })), levels: levelOptions.map((item) => ({ ...item })) })
+    handler: () => ok({ groups: groupOptions.map((item) => ({ ...item })), levels: levelOptions.map((item) => ({ ...item })), tags: tagOptions.map((item) => ({ ...item })) })
   },
   {
     method: 'GET',
@@ -181,6 +200,8 @@ export const memberMockHandlers: MockRoute[] = [
       Object.assign(row, data, {
         groupIds: [...data.groupIds],
         groupNames: groupNames(data.groupIds),
+        tagIds: [...data.tagIds],
+        tagNames: tagNames(data.tagIds),
         levelName: levelName(data.levelId),
         updatedAt: now()
       });

@@ -138,7 +138,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { userApi, type UserModel } from '@/api/system/user';
 import type { DataTableColumnOption } from '@/components/DataTable';

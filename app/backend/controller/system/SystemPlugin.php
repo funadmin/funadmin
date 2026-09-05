@@ -64,7 +64,7 @@ final class SystemPlugin extends AdminApiController
     public function currentAccount(): Response
     {
         $account = $this->marketplace->currentAccount();
-        return $this->ok($account?->toSession());
+        return $this->ok(data: $account?->toSession());
     }
 
     public function marketCategories(): Response
@@ -109,7 +109,7 @@ final class SystemPlugin extends AdminApiController
         $installed = $this->request->post('installed', []);
         return is_array($installed)
             ? $this->execute(fn () => $this->marketplace->checkUpdates($installed))
-            : $this->fail('installed 必须是数组', 422);
+            : $this->fail(msg: 'installed 必须是数组', code: 422);
     }
 
     public function discovered(): Response
@@ -131,14 +131,14 @@ final class SystemPlugin extends AdminApiController
     {
         $file = $this->request->file('file');
         if (!$file || !$file->isValid() || strtolower($file->getOriginalExtension()) !== 'zip') {
-            return $this->fail('请选择有效的 ZIP 插件安装包', 422);
+            return $this->fail(msg: '请选择有效的 ZIP 插件安装包', code: 422);
         }
         if ($file->getSize() < 1 || $file->getSize() > 100 * 1024 * 1024) {
-            return $this->fail('插件安装包大小必须在 100MB 以内', 422);
+            return $this->fail(msg: '插件安装包大小必须在 100MB 以内', code: 422);
         }
         $mime = strtolower((string) $file->getMime());
         if (!in_array($mime, ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'], true)) {
-            return $this->fail('插件安装包 MIME 类型无效', 422);
+            return $this->fail(msg: '插件安装包 MIME 类型无效', code: 422);
         }
         set_time_limit(0);
         return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
@@ -183,7 +183,7 @@ final class SystemPlugin extends AdminApiController
         $values = $this->request->post('values', []);
         return is_array($values)
             ? $this->execute(fn () => $this->config->save($name, $values), '配置已保存')
-            : $this->fail('values 必须是对象', 422);
+            : $this->fail(msg: 'values 必须是对象', code: 422);
     }
 
     public function uninstall(string $name): Response
@@ -223,15 +223,15 @@ final class SystemPlugin extends AdminApiController
     private function execute(callable $operation, string $message = '操作成功'): Response
     {
         try {
-            return $this->ok($operation(), $message);
+            return $this->ok($message, $operation());
         } catch (InvalidArgumentException $exception) {
-            return $this->fail($exception->getMessage(), 422);
+            return $this->fail(msg: $exception->getMessage(), code: 422);
         } catch (RuntimeException $exception) {
             $message = $exception->getMessage();
             $conflict = str_contains($message, '已安装') || str_contains($message, '请先禁用') || str_contains($message, '操作中');
-            return $this->fail($message, $conflict ? 409 : 422);
+            return $this->fail(msg: $message, code: $conflict ? 409 : 422);
         } catch (\Throwable $exception) {
-            return $this->fail($exception->getMessage(), 500);
+            return $this->fail(msg: $exception->getMessage(), code: 500);
         }
     }
 

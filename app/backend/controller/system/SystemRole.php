@@ -45,7 +45,7 @@ class SystemRole extends AdminApiController
             'list_rows' => $pageSize,
             'page' => $page,
         ]);
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (AuthGroup $role): array => $this->roleData($role), $result->items()),
             $result->total(),
             $page,
@@ -56,7 +56,7 @@ class SystemRole extends AdminApiController
     public function all(): Response
     {
         $roles = $this->manageableQuery()->where('status', 1)->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
+        return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
     }
 
     public function parentOptions(): Response
@@ -72,21 +72,21 @@ class SystemRole extends AdminApiController
         }
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])->where('status', 1)
             ->order('level', 'asc')->order('id', 'asc')->select();
-        return $this->ok(array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
+        return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
     }
 
     public function detail(int $id): Response
     {
         $role = AuthGroup::find($id);
         if (!$role) {
-            return $this->fail('角色不存在', 404);
+            return $this->fail(msg: '角色不存在', code: 404);
         }
         try {
             (new RoleGuardService())->assertManageRole($role);
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
-        return $this->ok($this->roleData($role));
+        return $this->ok(data: $this->roleData($role));
     }
 
     public function permissionTree(): Response
@@ -111,17 +111,17 @@ class SystemRole extends AdminApiController
                 'permission' => (string) $permission->code,
             ];
         }
-        return $this->ok($this->buildTree($rows));
+        return $this->ok(data: $this->buildTree($rows));
     }
 
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (AuthGroup::withTrashed()->where('name', $data['name'])->find() || AuthGroup::withTrashed()->where('code', $data['code'])->find()) {
-            return $this->fail('角色名称或标识已存在', 422);
+            return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
             $this->assertRolePayload(0, $data);
@@ -139,14 +139,14 @@ class SystemRole extends AdminApiController
                 return $role;
             });
             Cache::clear();
-            return $this->ok($this->roleData($role), '创建成功');
+            return $this->ok('创建成功', $this->roleData($role));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
-                return $this->fail('角色名称或标识已存在', 422);
+                return $this->fail(msg: '角色名称或标识已存在', code: 422);
             }
             if ($exception instanceof InvalidArgumentException) {
-                return $this->fail($exception->getMessage(), 422);
+                return $this->fail(msg: $exception->getMessage(), code: 422);
             }
             throw $exception;
         }
@@ -156,16 +156,16 @@ class SystemRole extends AdminApiController
     {
         $role = AuthGroup::find($id);
         if (!$role) {
-            return $this->fail('角色不存在', 404);
+            return $this->fail(msg: '角色不存在', code: 404);
         }
         $data = $this->payload(false, $role);
         if ($error = $this->validatePayload($data)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (AuthGroup::withTrashed()->where('id', '<>', $id)->where(function ($query) use ($data) {
             $query->where('name', $data['name'])->whereOr('code', $data['code']);
         })->find()) {
-            return $this->fail('角色名称或标识已存在', 422);
+            return $this->fail(msg: '角色名称或标识已存在', code: 422);
         }
         try {
             $guard = new RoleGuardService();
@@ -184,14 +184,14 @@ class SystemRole extends AdminApiController
                 $this->syncRelations((int) $role->id, $data);
             });
             Cache::clear();
-            return $this->ok($this->roleData($role), '保存成功');
+            return $this->ok('保存成功', $this->roleData($role));
         } catch (\Throwable $exception) {
             $message = $exception->getMessage();
             if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
-                return $this->fail('角色名称或标识已存在', 422);
+                return $this->fail(msg: '角色名称或标识已存在', code: 422);
             }
             if ($exception instanceof InvalidArgumentException) {
-                return $this->fail($exception->getMessage(), 422);
+                return $this->fail(msg: $exception->getMessage(), code: 422);
             }
             throw $exception;
         }
@@ -204,7 +204,7 @@ class SystemRole extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的角色', 422);
+            return $this->fail(msg: '请选择要删除的角色', code: 422);
         }
         $guard = new RoleGuardService();
         $casbin = CasbinService::instance();
@@ -232,9 +232,9 @@ class SystemRole extends AdminApiController
                 }
             });
             Cache::clear();
-            return $this->ok(['removed' => count($roles)], '删除成功');
+            return $this->ok('删除成功', ['removed' => count($roles)]);
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 422);
+            return $this->fail(msg: $e->getMessage(), code: 422);
         }
     }
 
@@ -242,7 +242,7 @@ class SystemRole extends AdminApiController
     {
         $role = AuthGroup::find($id);
         if (!$role) {
-            return $this->fail('角色不存在', 404);
+            return $this->fail(msg: '角色不存在', code: 404);
         }
         try {
             (new RoleGuardService())->assertManageRole($role);
@@ -252,9 +252,9 @@ class SystemRole extends AdminApiController
             }
             CasbinService::instance()->syncRolePermissions($id, $permissionIds);
             Cache::clear();
-            return $this->ok(null, '权限已保存');
+            return $this->ok('权限已保存');
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 
