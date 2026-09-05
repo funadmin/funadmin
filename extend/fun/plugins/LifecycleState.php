@@ -12,7 +12,7 @@ use RuntimeException;
 final class LifecycleState
 {
     private const TRANSITIONS = [
-        'discovered' => ['installing'],
+        'discovered' => ['installing', 'failed'],
         'installing' => ['disabled', 'failed'],
         'disabled' => ['enabling', 'uninstalling', 'installing', 'failed'],
         'enabling' => ['enabled', 'failed'],

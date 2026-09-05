@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/vendor/autoload.php';
+require_once dirname(__DIR__) . '/vendor/topthink/framework/src/helper.php';
 
 use app\common\service\TokenService;
 use think\App;
@@ -40,7 +41,7 @@ $tokenControllerSource = file_get_contents(dirname(__DIR__) . '/app/api/controll
 apiExpect(!str_contains((string) $tokenControllerSource, "header('Access-Control"), '控制器不得直接设置 CORS Header');
 apiExpect(str_contains((string) $tokenControllerSource, 'MemberAuthService'), '登录数据库查询必须下沉到认证服务');
 apiExpect(!str_contains((string) $tokenControllerSource, '::where('), 'Token 控制器不得直接查询数据库');
-apiExpect(!str_contains((string) $tokenControllerSource, "config('api.access_token_ttl'"), '刷新 Access Token 不得把 TTL 作为 Token 类型传入');
+apiExpect(!str_contains((string) $tokenControllerSource, "->build(\$userData, config('api.access_token_ttl'"), '刷新 Access Token 不得把 TTL 作为 Token 类型传入');
 
 $middlewareSource = file_get_contents(dirname(__DIR__) . '/app/common/middleware/MApi.php');
 apiExpect(!str_contains((string) $middlewareSource, 'ReflectionClass'), 'API 认证中间件不得反射控制器');
@@ -56,11 +57,24 @@ apiExpect(str_contains((string) $configSource, "'refresh_token_ttl'"), 'Refresh 
 
 $routeSource = file_get_contents(dirname(__DIR__) . '/app/api/route/api.php');
 apiExpect(str_contains((string) $routeSource, "Route::group('v2'"), 'API v2 路由必须显式注册');
+apiExpect(str_contains((string) $routeSource, "'v2.member/index'"), '应用内路由必须指向 v2 控制器目录');
+apiExpect(!str_contains((string) $routeSource, "'api/v2."), '应用内路由不得重复包含 api 应用名');
 apiExpect(!str_contains((string) $routeSource, ':version'), 'API 版本不得直接参与控制器路径解析');
 apiExpect(str_contains((string) $routeSource, 'Throttle::class'), '登录接口必须启用独立限流');
 
-$responseTraitSource = file_get_contents(dirname(__DIR__) . '/app/common/traits/Apis.php');
-apiExpect(str_contains((string) $responseTraitSource, 'Response::create($result, $type, $code)'), 'API 响应必须设置真实 HTTP 状态码');
+$apiControllerSource = file_get_contents(dirname(__DIR__) . '/app/common/controller/Api.php');
+apiExpect(str_contains((string) $apiControllerSource, 'protected function ok('), 'API 基类必须提供与后端一致的 ok 响应');
+apiExpect(str_contains((string) $apiControllerSource, 'protected function fail('), 'API 基类必须提供与后端一致的 fail 响应');
+apiExpect(!str_contains((string) $tokenControllerSource, '$this->success('), 'Token 控制器不得继续使用 success 响应');
+apiExpect(!str_contains((string) $tokenControllerSource, '$this->error('), 'Token 控制器不得继续使用 error 响应');
+
+$memberControllerSource = file_get_contents(dirname(__DIR__) . '/app/api/controller/v2/Member.php');
+apiExpect(!str_contains((string) $memberControllerSource, '$this->success('), 'Member 控制器不得继续使用 success 响应');
+apiExpect(str_contains((string) $memberControllerSource, 'return $this->ok('), 'Member 控制器必须显式返回响应');
+
+$middlewareSource = file_get_contents(dirname(__DIR__) . '/app/common/middleware/MApi.php');
+apiExpect(!str_contains((string) $middlewareSource, 'use Apis;'), 'API 中间件不得通过异常式 Trait 返回错误');
+apiExpect(str_contains((string) $middlewareSource, 'return $this->fail('), 'API 中间件必须返回 fail 响应');
 
 $exceptionSource = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
 apiExpect(str_contains((string) $exceptionSource, 'instanceof HttpResponseException'), 'API 主动响应不得被异常处理器改写');

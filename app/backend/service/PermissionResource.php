@@ -80,7 +80,14 @@ class PermissionResource
     {
         $controller = str_replace(['\\', '/'], '.', trim($controller));
         $parts = array_filter(explode('.', $controller), static fn ($item) => $item !== '');
-        return implode('.', array_map([self::class, 'normalizeSegment'], $parts));
+        $normalized = implode('.', array_map([self::class, 'normalizeSegment'], $parts));
+
+        return match ($normalized) {
+            'auth.adminauth' => 'adminauth',
+            'auth.adminprofile' => 'adminprofile',
+            'system.adminupload' => 'adminupload',
+            default => preg_replace('/^system\.(system[a-z0-9_]+)$/', '$1', $normalized) ?? $normalized,
+        };
     }
 
     public static function subject(int $adminId): string

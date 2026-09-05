@@ -16,6 +16,9 @@ namespace app\common\service;
 
 use fun\helper\HttpHelper;
 use fun\helper\StringHelper;
+use app\common\plugin\marketplace\CloudAccountSession;
+use app\common\plugin\marketplace\ThinkSessionStore;
+use app\common\plugin\marketplace\dto\CloudAccountDto;
 use think\App;
 
 
@@ -34,11 +37,13 @@ class AuthCloudService extends AbstractService
     public array $header = [];
     public $cloud_account_key = 'cloud_account';
     public $cloud_access_toke_key = 'cloud_access_token';
+    private CloudAccountSession $accountSession;
 
     public function __construct()
     {
         parent::__construct();
         $this->api_domain = config('funadmin.api_domain');
+        $this->accountSession = new CloudAccountSession(new ThinkSessionStore());
     }
 
     public function getAppVersion(){
@@ -53,21 +58,27 @@ class AuthCloudService extends AbstractService
      */
     public function setMember(array $memberInfo = []): static
     {
-        if(empty($memberInfo)){
-            cookie($this->cloud_account_key,null);
-        }else{
-            cookie($this->cloud_account_key,base64_encode(serialize($memberInfo)),$this->expire);
+        if ($memberInfo === []) {
+            $this->accountSession->logout();
+            return $this;
         }
+        $account = new CloudAccountDto(
+            (int) ($memberInfo['id'] ?? $memberInfo['member_id'] ?? 0),
+            (string) ($memberInfo['username'] ?? $memberInfo['account'] ?? ''),
+            (string) ($memberInfo['nickname'] ?? $memberInfo['name'] ?? ''),
+            (string) ($memberInfo['avatar'] ?? '')
+        );
+        $token = $this->accountSession->token();
+        if ($token === '') {
+            throw new \RuntimeException('云账号会话缺少 access token');
+        }
+        $this->accountSession->login($account, $token);
         return $this;
     }
 
-    /**
-     * @return mixed|string
-     */
-    public function getMember()
+    public function getMember(): array
     {
-        $account = cookie($this->cloud_account_key);
-        return $account?unserialize(base64_decode($account)):'';
+        return $this->accountSession->account()?->toSession() ?? [];
     }
     /**
      * @param string $token
@@ -75,17 +86,18 @@ class AuthCloudService extends AbstractService
      */
     public function setToken(string $token=''): static
     {
-        if($token){
-            cookie($this->cloud_access_toke_key,$token,$this->expire);
-        }else{
-            cookie($this->cloud_access_toke_key,null);
+        if ($token === '') {
+            $this->accountSession->logout();
+            return $this;
         }
+        $account = $this->accountSession->account() ?? new CloudAccountDto(1, 'pending', 'pending');
+        $this->accountSession->login($account, $token);
         return $this;
     }
 
     public function getToken(array $memberInfo = []) : string
     {
-        return cookie($this->cloud_access_toke_key)?:'';
+        return $this->accountSession->token();
     }
 
 
@@ -205,6 +217,11 @@ class AuthCloudService extends AbstractService
             $this->error($result['msg']);
         }
 
+        $token = (string) ($result['data']['access_token'] ?? '');
+        if ($token === '') {
+            throw new \RuntimeException('云登录响应缺少 access token');
+        }
+        $this->setToken($token);
         return $result['data'];
     }
 

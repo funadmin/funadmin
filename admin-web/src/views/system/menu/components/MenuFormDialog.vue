@@ -40,8 +40,7 @@
         </el-col>
       </el-row>
 
-      <template>
-        <el-row :gutter="16">
+      <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="路由 name" prop="name">
               <el-input v-model="form.name" placeholder="对应 RouteName" />
@@ -62,10 +61,9 @@
           <el-input v-model="form.redirect" placeholder="可选，目录的默认重定向" />
         </el-form-item>
 
-        <el-form-item label="图标" prop="icon">
-          <IconSelect v-model="form.icon" />
-        </el-form-item>
-      </template>
+      <el-form-item label="图标" prop="icon">
+        <IconSelect v-model="form.icon" />
+      </el-form-item>
 
       <el-form-item v-if="form.type === 'C'" label="权限标识" prop="permission">
         <el-input v-model="form.permission" placeholder="如 system:user:add" />

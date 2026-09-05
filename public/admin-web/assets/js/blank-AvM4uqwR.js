@@ -1,1 +1,0 @@
-import{Gt as e,Vt as t,wt as n}from"./element-BZKaL-8n.js";import{o as r}from"./index-NAuALlTt.js";var i={};function a(r,i){let a=e(`router-view`);return t(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

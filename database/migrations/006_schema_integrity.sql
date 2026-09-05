@@ -15,7 +15,7 @@ SET @invalid_member_group_count = (
 );
 SET @sql = IF(
   @invalid_member_group_count > 0,
-  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id invalid or empty'')'
+  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id invalid or empty'')',
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -39,7 +39,7 @@ SET @duplicate_member_group_count = (
 );
 SET @sql = IF(
   @duplicate_member_group_count > 0,
-  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id contains duplicate token'')'
+  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id contains duplicate token'')',
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -61,7 +61,7 @@ SET @missing_member_group_count = (
 );
 SET @sql = IF(
   @missing_member_group_count > 0,
-  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id references missing member_group'')'
+  'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''fun_member.group_id references missing member_group'')',
   'DO 0'
 );
 PREPARE stmt FROM @sql;
@@ -104,7 +104,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` WHERE `username` IS NOT NULL GROUP BY `username` HAVING COUNT(*) > 1),
-    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.username'')'
+    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.username'')',
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_username` (`username`)'
   )
 );
@@ -117,7 +117,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` GROUP BY `mobile` HAVING COUNT(*) > 1),
-    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.mobile'')'
+    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.mobile'')',
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_mobile` (`mobile`)'
   )
 );
@@ -130,7 +130,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_member` WHERE `email` IS NOT NULL GROUP BY `email` HAVING COUNT(*) > 1),
-    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.email'')'
+    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_member.email'')',
     'ALTER TABLE `fun_member` ADD UNIQUE KEY `uk_member_email` (`email`)'
   )
 );
@@ -143,7 +143,7 @@ SET @sql = IF(
   'DO 0',
   IF(
     EXISTS(SELECT 1 FROM `fun_config_group` GROUP BY `name` HAVING COUNT(*) > 1),
-    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_config_group.name'')'
+    'INSERT INTO `fun_schema_integrity_guard_006` (`message`) VALUES (''duplicate fun_config_group.name'')',
     'ALTER TABLE `fun_config_group` ADD UNIQUE KEY `uk_config_group_name` (`name`)'
   )
 );

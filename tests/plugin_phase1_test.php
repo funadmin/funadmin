@@ -64,6 +64,7 @@ expect(Manifest::fromDirectory($root . '/demo')->name() === 'demo', '不得读�
 $states = LifecycleState::all();
 expect($states === ['discovered', 'installing', 'disabled', 'enabling', 'enabled', 'disabling', 'uninstalling', 'failed'], '状态集合必须显式固定');
 expect(LifecycleState::canTransition('discovered', 'installing'), '发现态应可进入安装中');
+expect(LifecycleState::canTransition('discovered', 'failed'), '发现态预校验失败必须可落 failed');
 expect(LifecycleState::canTransition('installing', 'disabled'), '安装完成应保持禁用');
 expect(LifecycleState::canTransition('disabled', 'failed'), '禁用态操作失败必须可落 failed');
 expect(LifecycleState::canTransition('enabled', 'failed'), '启用态操作失败必须可落 failed');
@@ -167,6 +168,22 @@ expect(!str_contains((string) $serviceSource, 'updatePluginsInfo'), '不得保�
 $migrationSource = file_get_contents(dirname(__DIR__) . '/database/migrations/007_plugin_registry_state.sql');
 expect(str_contains((string) $migrationSource, '`manifest`'), '007 migration 必须包含 manifest 快照字段');
 expect(str_contains((string) $migrationSource, '`lifecycle_state`'), '007 migration 必须包含显式状态字段');
+$firstAlter = strpos((string) $migrationSource, "CONCAT('ALTER TABLE `', @table_name");
+$pluginDetection = strpos((string) $migrationSource, "TABLE_NAME = @legacy_table_name");
+expect($pluginDetection !== false && $firstAlter !== false && $pluginDetection < $firstAlter, '007 必须在任何 fun_plugin ALTER 前检测 fun_addon 与 fun_plugin');
+expect(str_contains((string) $migrationSource, "CONCAT('RE', 'NAME TABLE `', @legacy_table_name"), '仅旧 fun_addon 存在时必须安全重命名为 fun_plugin');
+expect(str_contains((string) $migrationSource, "INSERT INTO `', @table_name") && str_contains((string) $migrationSource, 'WHERE NOT EXISTS') && str_contains((string) $migrationSource, 'target.`name` = legacy.`name`'), '两张插件表并存时必须按 name 去重合并旧数据');
+expect(str_contains((string) $migrationSource, "CREATE TABLE IF NOT EXISTS `', @table_name"), '插件表都不存在时必须创建后续 ALTER 所需基础表');
+expect(str_contains((string) $migrationSource, '@lifecycle_state_exists'), '生命周期回填必须有重复执行保护');
+expect(!preg_match("/lifecycle_state`\\s*=\\s*''enabled''/i", (string) $migrationSource), '旧插件迁移后绝不能自动进入 enabled');
+expect(str_contains((string) $migrationSource, "THEN ''failed''") && str_contains((string) $migrationSource, "ELSE ''disabled''"), '旧插件必须依据 status/delete_time 安全回填为 disabled 或 failed');
+expect(str_contains((string) $migrationSource, "COLUMN_NAME = 'addons'") && str_contains((string) $migrationSource, "COLUMN_NAME = 'plugins'"), '007 必须检测 admin_log 的 addons/plugins 列');
+expect(str_contains((string) $migrationSource, "CHANGE COLUMN `addons` `plugins`") && str_contains((string) $migrationSource, "COALESCE(NULLIF(`plugins`, ''''), `addons`)") , 'admin_log 必须按列存在性重命名或合并回填');
+expect(str_contains((string) $migrationSource, "REPLACE(`code`, ''backend/addon'', ''backend/plugin'')"), '必须迁移旧插件权限 code 命名');
+expect(str_contains((string) $migrationSource, "REPLACE(`href`, ''backend/addon'', ''backend/plugin'')"), '必须迁移旧插件菜单 href 命名');
+expect(substr_count((string) $migrationSource, 'information_schema.TABLES') >= 4 && substr_count((string) $migrationSource, 'information_schema.COLUMNS') >= 10, '兼容分支必须通过结构存在性检查保持幂等');
+$controllerSource = file_get_contents(dirname(__DIR__) . '/app/backend/controller/Plugin.php');
+expect(preg_match('/function uninstall\\(\\)[\\s\\S]{0,500}catch \\(\\\\Throwable \\$exception\\)/', (string) $controllerSource) === 1, 'uninstall 必须捕获 Throwable');
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),

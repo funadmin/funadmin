@@ -437,47 +437,47 @@ html.dark .el-tag.el-tag--info {
  * --app-btn-base 局部变量解耦语义：每条规则只换 base 即可，整体逻辑一处定义。
  */
 
-/* —— 浅色模式 plain：所有语义色统一公式（不含无 type 的默认 plain，由下方独立规则处理） —— */
-html:not(.dark) .el-button.is-plain:not(.el-button--default) {
+/* —— 浅色模式 plain：只处理明确声明 type 的语义按钮 —— */
+html:not(.dark) .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info) {
   background-color: color-mix(in srgb, var(--app-btn-base) 10%, #ffffff) !important;
   border-color: color-mix(in srgb, var(--app-btn-base) 32%, #ffffff) !important;
   color: var(--app-btn-base) !important;
   box-shadow: none !important;
 }
-html:not(.dark) .el-button.is-plain:not(.el-button--default):hover {
+html:not(.dark) .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):hover {
   background-color: color-mix(in srgb, var(--app-btn-base) 18%, #ffffff) !important;
   border-color: color-mix(in srgb, var(--app-btn-base) 50%, #ffffff) !important;
   color: var(--app-btn-base) !important;
   box-shadow: none !important;
 }
-html:not(.dark) .el-button.is-plain:not(.el-button--default):focus-visible {
+html:not(.dark) .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--app-btn-base) 45%, transparent);
   outline-offset: 2px;
 }
-html:not(.dark) .el-button.is-plain:not(.el-button--default):active {
+html:not(.dark) .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):active {
   background-color: color-mix(in srgb, var(--app-btn-base) 26%, #ffffff) !important;
   border-color: var(--app-btn-base) !important;
   color: var(--app-btn-base) !important;
 }
 
-/* —— 深色模式 plain：所有语义色统一公式（不含无 type 的默认 plain） —— */
-html.dark .el-button.is-plain:not(.el-button--default) {
+/* —— 深色模式 plain：只处理明确声明 type 的语义按钮 —— */
+html.dark .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info) {
   background-color: color-mix(in srgb, var(--app-btn-base) 14%, var(--app-card-bg)) !important;
   border-color: color-mix(in srgb, var(--app-btn-base) 42%, var(--app-card-bg)) !important;
   color: color-mix(in srgb, var(--app-btn-base) 70%, #ffffff) !important;
   box-shadow: none !important;
 }
-html.dark .el-button.is-plain:not(.el-button--default):hover {
+html.dark .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):hover {
   background-color: color-mix(in srgb, var(--app-btn-base) 24%, var(--app-card-bg)) !important;
   border-color: color-mix(in srgb, var(--app-btn-base) 60%, var(--app-card-bg)) !important;
   color: color-mix(in srgb, var(--app-btn-base) 85%, #ffffff) !important;
   box-shadow: none !important;
 }
-html.dark .el-button.is-plain:not(.el-button--default):focus-visible {
+html.dark .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):focus-visible {
   outline: 2px solid color-mix(in srgb, var(--app-btn-base) 55%, transparent);
   outline-offset: 2px;
 }
-html.dark .el-button.is-plain:not(.el-button--default):active {
+html.dark .el-button.is-plain:is(.el-button--primary, .el-button--success, .el-button--warning, .el-button--danger, .el-button--info):active {
   background-color: color-mix(in srgb, var(--app-btn-base) 32%, var(--app-card-bg)) !important;
   border-color: var(--app-btn-base) !important;
   color: color-mix(in srgb, var(--app-btn-base) 90%, #ffffff) !important;
@@ -897,11 +897,11 @@ html.dark .el-drawer .el-drawer__footer {
   margin-right: 4px;
   font-weight: 600;
 }
-/* 错误提示：12px、行高紧凑，与 input 错误边联动 */
+/* 错误提示：小于表单正文一档，保持紧凑且不抢占视觉层级 */
 .el-form .el-form-item__error {
   padding-top: 4px;
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.3;
   color: var(--el-color-danger);
 }
 

@@ -4,7 +4,7 @@
       <header class="install-header">
         <LogoMark :size="42" />
         <div><h1>{{ siteName }} 安装向导</h1><p>快速完成运行环境、数据库与管理员配置</p></div>
-        <span class="version">v{{ siteVersion }}</span>
+        <span v-if="siteVersion" class="version">v{{ siteVersion }}</span>
       </header>
 
       <el-steps :active="active" align-center finish-status="success">
@@ -137,7 +137,7 @@ onMounted(loadEnvironment);
 
 <style scoped>
 /* 固定到视口并自管滚动：居中只相对可视区计算，不受文档宽度/滚动位置影响 */
-.install-page { position: fixed; inset: 0; overflow: auto; display: grid; justify-items: center; align-content: start; padding: 48px 20px; box-sizing: border-box; background: var(--app-app-bg, #f4f6fa); }
+.install-page { position: fixed; inset: 0; overflow: auto; scrollbar-gutter: stable both-edges; display: grid; justify-items: center; align-content: start; padding: 48px 20px; box-sizing: border-box; background: var(--app-app-bg, #f4f6fa); }
 .install-shell { width: 100%; max-width: 960px; min-width: 0; }
 .install-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
 .install-header h1 { margin: 0; font-size: 25px; color: var(--app-text, #1d2129); }

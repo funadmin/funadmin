@@ -9,8 +9,8 @@
           </div>
         </template>
         <div class="mb-3 grid grid-cols-2 gap-2">
-          <el-button :type="query.groupId === undefined ? 'primary' : 'default'" plain @click="selectGroupFilter(undefined)">全部附件</el-button>
-          <el-button :type="query.groupId === 0 ? 'primary' : 'default'" plain @click="selectGroupFilter(0)">未分组</el-button>
+          <el-button :type="query.groupId === undefined ? 'primary' : 'default'" :plain="query.groupId === undefined" @click="selectGroupFilter(undefined)">全部附件</el-button>
+          <el-button :type="query.groupId === 0 ? 'primary' : 'default'" :plain="query.groupId === 0" @click="selectGroupFilter(0)">未分组</el-button>
         </div>
         <el-tree
           :data="groupTree"
@@ -59,7 +59,7 @@
           <el-button type="primary" plain v-perm="'system:attachment:upload'" @click="uploadInput?.click()">
             <i class="i-ep-upload" /> 上传到{{ selectedGroupTitle }}
           </el-button>
-          <el-button plain :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
+          <el-button :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
             <i class="i-ep-folder-opened" /> 移动{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:attachment:delete'" @click="removeSelected">

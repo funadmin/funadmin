@@ -12,14 +12,15 @@
  */
 use think\facade\Route;
 Route::group('v2', function (): void {
-    Route::get('member/index', 'api/v2.member/index');
-    Route::get('member/userinfo', 'api/v2.member/userinfo');
-    Route::post('token', 'api/v2.token/build')
+    Route::get('member/index', 'v2.member/index');
+    Route::get('member/userinfo', 'v2.member/userinfo');
+    Route::get('member/verify', 'v2.member/verify');
+    Route::post('token', 'v2.token/build')
         ->middleware(\think\middleware\Throttle::class, [
             'visit_method' => ['POST'],
             'visit_rate' => '10/m',
             'key' => '__CONTROLLER__/__ACTION__/__IP__',
         ]);
-    Route::post('token/refresh', 'api/v2.token/refresh');
+    Route::post('token/refresh', 'v2.token/refresh');
 });
 

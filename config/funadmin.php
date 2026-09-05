@@ -22,7 +22,7 @@ return [
 
     'ip_check'=>false,
 
-    'public_ajax_url'=>['ajax/uploads', 'ajax/getAttach', 'sys.attach/selectfiles','ajax/export','ajax/import'],
+    'public_ajax_url'=>['ajax/uploads', 'ajax/getAttach', 'ajax/export','ajax/import'],
 
     // 所有后台请求默认按权限节点校验；以下仅为登录后所有管理员共享的基础入口。
     'auth_login_only_routes'=>[
@@ -53,6 +53,15 @@ return [
     'api_domain'=>'https://www.funadmin.com',
     //接口地址
     'api_login_url'=>'/api/v2/token',
+    // 插件市场安全策略：未配置公钥时默认拒绝未签名包，可显式改为 allow_unsigned。
+    'plugin_marketplace'=>[
+        'public_key'=>'',
+        'unsigned_policy'=>'reject_unsigned',
+        'request_timeout'=>30,
+        'connect_timeout'=>10,
+        'max_redirects'=>3,
+        'max_package_bytes'=>104857600,
+    ],
 ];
 
 

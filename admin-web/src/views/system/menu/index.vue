@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onActivated, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import Sortable from 'sortablejs';
 import { menuApi } from '@/api/system/menu';
@@ -365,6 +365,7 @@ async function onBatchDelete() {
 }
 
 onMounted(loadData);
+onActivated(loadData);
 
 onUnmounted(() => {
   destroyMenuRowSortable();

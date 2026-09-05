@@ -52,7 +52,8 @@ class PluginPackageService extends AbstractService
                 $this->extractEntry($zip, $entry, $stageDirectory);
             }
             $pluginDirectory = $this->locatePluginDirectory($stageDirectory, $expectedName);
-            $pluginName = $this->validatePlugin($pluginDirectory, $expectedName);
+            $manifest = $this->validatePlugin($pluginDirectory, $expectedName);
+            $pluginName = $manifest->name();
         } catch (\Throwable $exception) {
             $this->removeDirectory($stageDirectory);
             throw $exception;
@@ -64,6 +65,8 @@ class PluginPackageService extends AbstractService
             'stage_directory' => $stageDirectory,
             'plugin_directory' => $pluginDirectory,
             'name' => $pluginName,
+            'version' => $manifest->version(),
+            'manifest' => $manifest->toArray(),
         ];
     }
 
@@ -177,7 +180,7 @@ class PluginPackageService extends AbstractService
         throw new RuntimeException('插件包目录结构无效');
     }
 
-    private function validatePlugin(string $directory, string $expectedName): string
+    private function validatePlugin(string $directory, string $expectedName): \fun\plugins\Manifest
     {
         $manifest = \fun\plugins\Manifest::fromDirectory($directory);
         $name = $manifest->name();
@@ -198,7 +201,7 @@ class PluginPackageService extends AbstractService
                 throw new RuntimeException('插件包不允许包含符号链接');
             }
         }
-        return $name;
+        return $manifest;
     }
 
     private function isSymbolicLink(ZipArchive $zip, int $index): bool

@@ -12,18 +12,18 @@ class Member extends Api
 {
     protected array $noNeedLogin = ['verify'];
 
-    public function index(Request $request): void
+    public function index(Request $request): \think\Response
     {
-        $this->success('ok', ['user' => $request->member]);
+        return $this->ok(['user' => $request->member]);
     }
 
-    public function userinfo(Request $request): void
+    public function userinfo(Request $request): \think\Response
     {
-        $this->success('ok', ['user' => $request->member]);
+        return $this->ok(['user' => $request->member]);
     }
 
-    public function verify(): void
+    public function verify(): \think\Response
     {
-        $this->success('成功');
+        return $this->ok();
     }
 }

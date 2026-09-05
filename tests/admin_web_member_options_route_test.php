@@ -10,7 +10,7 @@ if ($routeSource === false) {
 }
 
 $optionsPosition = strpos($routeSource, "Route::get('system/member/options'");
-$indexPosition = strpos($routeSource, "Route::get('system/member', 'SystemMember/index')");
+$indexPosition = strpos($routeSource, "Route::get('system/member', 'system.SystemMember/index')");
 
 if ($optionsPosition === false) {
     throw new RuntimeException('缺少会员选项路由');

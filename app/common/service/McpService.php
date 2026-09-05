@@ -2510,7 +2510,6 @@ class {$controllerClass} extends Api
 {
     protected \$modelClass = null;
     protected \$noNeedLogin = ['index', 'read'];
-    protected \$noNeedRight = ['index', 'read'];
 
     public function __construct(App \$app)
     {
@@ -2532,7 +2531,7 @@ class {$controllerClass} extends Api
                 'page' => \$this->request->get('page', 1),
             ]);
         
-        \$this->success('获取成功', \$list);
+        return \$this->ok(\$list, '获取成功');
     }
 
     /**
@@ -2542,9 +2541,9 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->modelClass->find(\$id);
         if (!\$row) {
-            \$this->error('记录不存在');
+            return \$this->fail('记录不存在', 404);
         }
-        \$this->success('获取成功', \$row);
+        return \$this->ok(\$row, '获取成功');
     }
 
     /**
@@ -2561,15 +2560,14 @@ class {$controllerClass} extends Api
                 'content' => 'require',
             ])->check(\$params);
         } catch (ValidateException \$e) {
-            \$this->error(\$e->getError());
+            return \$this->fail(\$e->getError(), 422);
         }
         
         \$result = \$this->modelClass->save(\$params);
-        if (\$result) {
-            \$this->success('添加成功');
-        } else {
-            \$this->error('添加失败');
+        if (!\$result) {
+            return \$this->fail('添加失败');
         }
+        return \$this->ok(null, '添加成功');
     }
 
     /**
@@ -2579,7 +2577,7 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->modelClass->find(\$id);
         if (!\$row) {
-            \$this->error('记录不存在');
+            return \$this->fail('记录不存在', 404);
         }
         
         \$params = \$this->request->put();
@@ -2591,15 +2589,14 @@ class {$controllerClass} extends Api
                 'content' => 'require',
             ])->check(\$params);
         } catch (ValidateException \$e) {
-            \$this->error(\$e->getError());
+            return \$this->fail(\$e->getError(), 422);
         }
         
         \$result = \$row->save(\$params);
-        if (\$result) {
-            \$this->success('更新成功');
-        } else {
-            \$this->error('更新失败');
+        if (!\$result) {
+            return \$this->fail('更新失败');
         }
+        return \$this->ok(null, '更新成功');
     }
 
     /**
@@ -2609,15 +2606,14 @@ class {$controllerClass} extends Api
     {
         \$row = \$this->modelClass->find(\$id);
         if (!\$row) {
-            \$this->error('记录不存在');
+            return \$this->fail('记录不存在', 404);
         }
         
         \$result = \$row->delete();
-        if (\$result) {
-            \$this->success('删除成功');
-        } else {
-            \$this->error('删除失败');
+        if (!\$result) {
+            return \$this->fail('删除失败');
         }
+        return \$this->ok(null, '删除成功');
     }
 }";
         

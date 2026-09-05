@@ -306,8 +306,9 @@ class Plugin extends Backend
         $name = input("name");
         try {
             $this->pluginService->uninstallPlugin((string) $name, $this->booleanInput('purge_data', false));
-        }catch (Exception $e){
-            $this->error($e->getMessage());
+        } catch (\Throwable $exception) {
+            $this->pluginService->recordFailure((string) $name, $exception);
+            $this->error($exception->getMessage());
         }
         $this->success(lang('Uninstall successful'));
     }

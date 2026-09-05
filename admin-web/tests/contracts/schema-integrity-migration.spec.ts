@@ -17,7 +17,7 @@ describe('006_schema_integrity migration 源码契约', () => {
     expect(normalizedSql).toMatch(/SIGNAL SQLSTATE\s+''?45000''?/i);
     expect(normalizedSql).toMatch(/group_id[\s\S]*(?:REGEXP|JSON_VALID|invalid|非法)/i);
     expect(normalizedSql).toMatch(/group_id[\s\S]*(?:empty|空分组|,,|TRIM)/i);
-    expect(normalizedSql).toMatch(/(?:LEFT JOIN|NOT EXISTS)[\s\S]*member_group[\s\S]*(?:SIGNAL|不存在)/i);
+    expect(normalizedSql).toMatch(/(?:LEFT JOIN|NOT EXISTS)[\s\S]*member_group[\s\S]*(?:SIGNAL|schema_integrity_guard|不存在)/i);
     expect(normalizedSql).not.toMatch(/INSERT\s+IGNORE\s+INTO\s+`fun_member_group_relation`/i);
   });
 
@@ -31,7 +31,7 @@ describe('006_schema_integrity migration 源码契约', () => {
   });
 
   it('唯一约束遇到历史重复数据时明确失败而不是降级为 SELECT 1', () => {
-    expect(normalizedSql).toMatch(/HAVING COUNT\(\*\) > 1[\s\S]*SIGNAL SQLSTATE\s+''?45000''?/i);
+    expect(normalizedSql).toMatch(/HAVING COUNT\(\*\) > 1[\s\S]*fun_schema_integrity_guard_006/i);
     expect(normalizedSql).not.toMatch(
       /HAVING COUNT\(\*\) > 1[\s\S]{0,500}['"]SELECT 1['"]/i
     );
