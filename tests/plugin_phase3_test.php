@@ -47,6 +47,7 @@ $requiredRoutes = [
     "Route::get('system/plugin/:name/config'",
     "Route::put('system/plugin/:name/config'",
     "Route::delete('system/plugin/:name/uninstall'",
+    "Route::delete('system/plugin/:name/purge'",
     "Route::delete('system/plugin/:name/package'",
     "Route::get('system/plugin/:name/history'",
     "Route::get('system/plugin/:name/operations'",
@@ -84,6 +85,7 @@ $pluginPermissionMappings = [
     'getconfig' => 'system:plugin:config',
     'saveconfig' => 'system:plugin:config',
     'uninstall' => 'system:plugin:uninstall',
+    'purge' => 'system:plugin:purge',
     'deletepackage' => 'system:plugin:package-delete',
     'history' => 'system:plugin:history',
     'operations' => 'system:plugin:history',
@@ -103,6 +105,8 @@ phase3Expect(str_contains($source, 'getOriginalExtension()'), '本地 ZIP 必须
 phase3Expect(str_contains($source, 'getMime()'), '本地 ZIP 必须校验 MIME');
 phase3Expect(str_contains($source, 'getSize()'), '本地 ZIP 必须校验上传大小');
 phase3Expect(str_contains($source, 'purgeConfirm'), 'purge 必须要求二次确认字段');
+phase3Expect(str_contains($source, 'purgePlugin('), 'purge 必须调用独立 service 动作');
+phase3Expect(!str_contains($source, 'uninstallPlugin($name, $purge)'), 'uninstall 不得再通过参数隐式执行 purge');
 $querySource = (string) file_get_contents($root . '/app/backend/service/PluginCenterQueryService.php');
 phase3Expect(str_contains($querySource, 'plugin-assets'), 'enabled modules 必须输出受控 plugin-assets URL');
 $publisherSource = (string) file_get_contents($root . '/extend/fun/plugins/PluginResourcePublisher.php');

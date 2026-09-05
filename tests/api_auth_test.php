@@ -96,8 +96,7 @@ $apiRouteConfigSource = file_get_contents(dirname(__DIR__) . '/app/api/config/ro
 apiExpect(str_contains((string) $apiRouteConfigSource, "'url_route_must'        => true"), 'API 必须强制使用显式路由');
 
 $apiMiddlewareSource = file_get_contents(dirname(__DIR__) . '/app/api/middleware.php');
-apiExpect(!str_contains((string) $apiMiddlewareSource, 'SessionInit'), 'API 应用不得重复初始化 Session');
-apiExpect(!str_contains((string) $apiMiddlewareSource, 'AllowCrossDomain'), 'API 应用不得重复注册全局跨域中间件');
+apiExpect(str_contains((string) $apiMiddlewareSource, 'return [];'), 'API 应用不得重复注册全局中间件');
 apiExpect(!str_contains((string) $tokenControllerSource, "post('access_token'"), '刷新接口不得兼容旧 access_token 参数');
 apiExpect(!str_contains((string) $tokenControllerSource, '::instance()'), 'Token 控制器必须使用构造器依赖注入');
 apiExpect(!str_contains((string) $tokenControllerSource, 'App $app'), 'Token 控制器不得注入无用 App 实例');

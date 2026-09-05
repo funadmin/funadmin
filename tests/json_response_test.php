@@ -163,4 +163,14 @@ $tokenSource = (string) file_get_contents(dirname(__DIR__) . '/app/api/controlle
 responseExpect(str_contains($middlewareSource, 'BearerTokenExtractor'), 'MApi 必须复用 Bearer Token 解析器');
 responseExpect(!str_contains($tokenSource, 'BearerTokenExtractor'), 'Refresh Token 必须只通过请求体传递');
 
- echo "json response tests: PASS\n";
+$jumpSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/traits/Jump.php');
+responseExpect(!preg_match('/protected function result\s*\(/', $jumpSource), 'Jump 只负责页面跳转，不得重复实现 JSON result');
+responseExpect(!preg_match('/public function __construct\s*\(/', $jumpSource), 'Trait 不得覆盖宿主类构造方法');
+
+$installerSource = (string) file_get_contents(dirname(__DIR__) . '/app/install/controller/Index.php');
+responseExpect(str_contains($installerSource, 'use JsonResponse;'), '安装器 JSON 接口必须复用 JsonResponse');
+responseExpect(!str_contains($installerSource, 'use Jump;'), '安装器不应再依赖页面跳转 Trait');
+responseExpect(!preg_match('/\$this->result\s*\(/', $installerSource), '安装器不得继续调用旧 result 响应');
+responseExpect(!preg_match('/\$this->error\s*\(/', $installerSource), '安装器不得继续调用异常式 error 响应');
+
+echo "json response tests: PASS\n";

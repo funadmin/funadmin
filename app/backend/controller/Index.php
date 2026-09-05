@@ -41,7 +41,7 @@ class Index extends Backend
             $menulist = AuthService::instance()->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }
-        $languages = Db::name('languages')->cache(3600)->select();
+        $languages = Db::name('language')->cache(3600)->select();
         View::assign('menulist', $menulist);
         View::assign('languages', $languages);
         return view();

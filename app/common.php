@@ -118,7 +118,7 @@ if (!function_exists('lang')) {
 if (!function_exists("getProvicesByPid")) {
     function getProvicesByPid($pid = 0)
     {
-        return  \app\common\model\Provinces::cache(true)->find($pid);
+        return  \app\common\model\Region::cache(true)->find($pid);
     }
 }
 

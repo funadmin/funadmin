@@ -100,7 +100,7 @@ class Controller extends BaseController
 
         }
 
-        $plugin_config = get_plugins_config($this->plugin);
+        $plugin_config = get_plugin_config($this->plugin);
         View::assign(['plugin_config'=>$plugin_config]);
         // 加载系统语言包
         Lang::load([

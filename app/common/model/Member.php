@@ -36,15 +36,15 @@ class  Member extends BaseModel{
 
     public function getProvince(){
 
-        $this->hasOne('Provinces','province','id');
+        $this->hasOne('Region','province','id');
     }
     public function getCity(){
 
-        $this->hasOne('Provinces','city','id');
+        $this->hasOne('Region','city','id');
     }
     public function getDistrict(){
 
-        $this->hasOne('Provinces','district','id');
+        $this->hasOne('Region','district','id');
     }
 
     /**

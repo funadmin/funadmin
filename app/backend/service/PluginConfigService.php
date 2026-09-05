@@ -184,7 +184,7 @@ class PluginConfigService extends AbstractService
 
     private function plugin(string $name): object
     {
-        $plugin = get_plugins_instance($name);
+        $plugin = get_plugin_instance($name);
         if (!$plugin) {
             throw new RuntimeException('插件入口类不存在');
         }

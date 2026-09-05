@@ -15,6 +15,7 @@ use fun\plugins\DependencyValidator;
 use fun\plugins\LifecycleLock;
 use fun\plugins\LifecycleState;
 use fun\plugins\Manifest;
+use fun\plugins\PluginPurgeCoordinator;
 use fun\plugins\PluginResourcePublisher;
 use fun\plugins\Registry;
 use fun\plugins\Service;
@@ -341,9 +342,9 @@ class PluginService extends AbstractService
         }
     }
 
-    public function uninstallPlugin(string $name, bool $purgeData = false): bool
+    public function uninstallPlugin(string $name): bool
     {
-        return $this->operate($name, function (string $token) use ($name, $purgeData): bool {
+        return $this->operate($name, function (string $token) use ($name): bool {
             $record = $this->installedRecord($name);
             $this->assertDisabled($record, $name);
             $this->assertNoEnabledDependents($name);
@@ -351,11 +352,6 @@ class PluginService extends AbstractService
             $this->beginOperation($record, $token, 'uninstalling');
             if ($plugin->uninstall() === false) {
                 throw new RuntimeException('插件卸载失败');
-            }
-            if ($purgeData) {
-                if ($plugin->purgeData() === false) {
-                    throw new RuntimeException('插件拒绝或无法清理业务数据');
-                }
             }
             ResourceRegistryService::instance()->removeSource('plugin', $name);
             $this->resourcePublisher()->remove($name);
@@ -366,6 +362,34 @@ class PluginService extends AbstractService
             $this->removeEmptyPluginManager();
             return true;
         });
+    }
+
+    public function purgePlugin(string $name, string $confirmation): bool
+    {
+        $this->assertName($name);
+        $record = $this->installedRecord($name);
+        $this->assertDisabled($record, $name);
+        $coordinator = new PluginPurgeCoordinator(
+            fn (string $pluginName): object => $this->plugin($pluginName),
+            static function (array $audit): void {
+                PluginOperation::create([
+                    'plugin_name' => $audit['name'],
+                    'operation' => 'purge',
+                    'stage' => 'complete',
+                    'progress' => $audit['result'] === 'success' ? 100 : 0,
+                    'from_version' => '',
+                    'to_version' => '',
+                    'source' => 'local',
+                    'package_hash' => str_repeat('0', 64),
+                    'result' => $audit['result'],
+                    'error_message' => $audit['error'] ?? null,
+                    'recovery_path' => null,
+                    'status' => 1,
+                ]);
+            }
+        );
+        $coordinator->purge($name, $confirmation);
+        return true;
     }
 
     public function enablePlugin(string $name): bool
@@ -441,10 +465,9 @@ class PluginService extends AbstractService
                 if ($plugin->disabled() === false) {
                     throw new RuntimeException('插件禁用钩子执行失败');
                 }
-                $menuConfig = get_plugins_menu($name);
-                if ($menuConfig) {
-                    [$menu] = $this->getMenu($menuConfig);
-                    $this->delPluginMenu($menu, $name);
+                $menus = (array) ($this->validatedManifest($name)->toArray()['menus'] ?? []);
+                if ($menus !== []) {
+                    $this->delPluginMenu($menus, $name);
                 }
             }
             $this->transition($record, $enabled ? 'enabled' : 'disabled');
@@ -486,11 +509,14 @@ class PluginService extends AbstractService
 
     private function plugin(string $name): object
     {
-        $plugin = get_plugins_instance($name);
-        if (!$plugin) {
-            throw new RuntimeException(sprintf('插件 %s 尚未就绪', $name));
+        $manifest = $this->validatedManifest($name);
+        (new \fun\plugins\RuntimeLoader())->loadEntry($manifest);
+        $class = (string) $manifest->toArray()['entry']['class'];
+        try {
+            return app()->make($class);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException(sprintf('插件 %s 尚未就绪：%s', $name, $exception->getMessage()), 0, $exception);
         }
-        return $plugin;
     }
 
     private function validatedManifest(string $name): Manifest
@@ -606,17 +632,21 @@ class PluginService extends AbstractService
 
     private function registerMenu(string $name): void
     {
-        $menuConfig = get_plugins_menu($name);
-        if ($menuConfig) {
-            [$menu, $pid] = $this->getMenu($menuConfig);
-            $this->addPluginMenu($menu, $pid, $name);
+        $menus = (array) ($this->validatedManifest($name)->toArray()['menus'] ?? []);
+        if ($menus !== []) {
+            $this->addPluginMenu($menus, 0, $name);
         }
     }
 
     private function migrate(string $name): array
     {
         try {
-            $versions = run_plugin_migrations($name);
+            $manifest = $this->validatedManifest($name);
+            $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
+            $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $versions = is_dir($directory)
+                ? MigrationService::instance()->runDirectory($directory, $this->migrationScope($name))
+                : [];
             return [
                 'executed' => $versions,
                 'version' => MigrationService::instance()->latestAppliedVersion($this->migrationScope($name)),

@@ -27,9 +27,11 @@ class Service extends \think\Service
     {
         $this->registerRoutes(function (Route $route): void {
             $loader = new RuntimeLoader();
-            foreach ($this->registry()->enabled() as $manifest) {
-                $this->isolate($manifest, 'routes', static fn () => $loader->loadRoutes($route, $manifest));
-            }
+            $this->booter()->each(
+                $this->registry()->enabled(),
+                'routes',
+                static fn (Manifest $manifest) => $loader->loadRoutes($route, $manifest)
+            );
         });
 
     }
@@ -43,25 +45,17 @@ class Service extends \think\Service
     private function loadRuntimeBoundaries(): void
     {
         $loader = new RuntimeLoader();
-        foreach ($this->registry()->enabled() as $manifest) {
-            $this->isolate($manifest, 'entry', static fn () => $loader->loadEntry($manifest));
-            $this->isolate($manifest, 'services', fn () => $loader->loadServices($this->app, $manifest));
-            $this->isolate($manifest, 'events', fn () => $loader->loadEvents($this->app, $manifest));
-        }
+        $enabled = $this->registry()->enabled();
+        $this->booter()->each($enabled, 'entry', static fn (Manifest $manifest) => $loader->loadEntry($manifest));
+        $this->booter()->each($enabled, 'services', fn (Manifest $manifest) => $loader->loadServices($this->app, $manifest));
+        $this->booter()->each($enabled, 'events', fn (Manifest $manifest) => $loader->loadEvents($this->app, $manifest));
     }
 
-    private function isolate(Manifest $manifest, string $boundary, callable $load): void
+    private function booter(): PluginRuntimeBooter
     {
-        try {
-            $load();
-        } catch (\Throwable $exception) {
-            error_log(sprintf(
-                '插件 %s 的 %s 边界加载失败：%s',
-                $manifest->name(),
-                $boundary,
-                $exception->getMessage()
-            ));
-        }
+        return new PluginRuntimeBooter(static function (string $plugin, string $boundary, \Throwable $exception): void {
+            error_log(sprintf('插件 %s 的 %s 边界加载失败：%s', $plugin, $boundary, $exception->getMessage()));
+        });
     }
 
     private function registry(): Registry
@@ -96,21 +90,6 @@ class Service extends \think\Service
             @mkdir($plugins_path, 0755, true);
         }
         return $plugins_path;
-    }
-
-    /**
-     * 获取插件的配置信息
-     * @param string $name
-     * @return array
-     */
-    public function getPluginsConfig()
-    {
-        $name = $this->app->request->plugin;
-        $plugin = get_plugins_instance($name);
-        if (!$plugin) {
-            return [];
-        }
-        return $plugin->getConfig();
     }
 
     //获取插件目录

@@ -154,10 +154,6 @@ expectException(static function () use ($root): void {
     Manifest::fromDirectory($root . '/demo');
 }, '$.routes 格式无效');
 
-$routeSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Route.php');
-expect(!str_contains((string) $routeSource, '$pluginsRouteConfig'), 'Route 不得引用未定义的 pluginsRouteConfig');
-expect(!str_contains((string) $routeSource, 'get_plugins_info('), 'Route 判定前不得读取或实例化插件');
-expect(str_contains((string) $routeSource, "where('lifecycle_state', 'enabled')"), 'Route 必须只按数据库 lifecycle_state=enabled 放行');
 $serviceSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Service.php');
 expect(!str_contains((string) $serviceSource, 'error_reporting('), '运行时服务不得抑制 PHP 错误');
 expect(!str_contains((string) $serviceSource, "'plugin.ini'"), '运行时服务不得读取 plugin.ini');
@@ -173,7 +169,13 @@ expect(!str_contains((string) $serviceSource, 'Cache::'), '运行时服务不得
 $functionsSource = file_get_contents(dirname(__DIR__) . '/extend/fun/functions/plugin.php');
 expect(!str_contains((string) $functionsSource, 'get_class_methods('), '不得扫描插件 public methods 自动生成 hooks');
 expect(!preg_match('/function refreshplugins\(\)[\s\S]*config[^;]*plugins\.php/', (string) $functionsSource), 'refreshplugins 不得回写 config/plugins.php');
-expect(!preg_match('/function get_plugins_info\([^)]*\)[\s\S]{0,300}get_plugins_instance/', (string) $functionsSource), '旧信息读取路径不得实例化插件');
+expect(!preg_match('/function get_plugin_info\([^)]*\)[\s\S]{0,300}get_plugin_instance/', (string) $functionsSource), '旧信息读取路径不得实例化插件');
+foreach (['refreshplugins', 'plugins_vendor_autoload', 'set_app_route', 'set_plugin_config', 'set_plugin_info', 'get_plugin_class', 'get_plugin_instance', 'get_plugin_menu', 'run_plugin_migrations'] as $legacyFunction) {
+    expect(!preg_match('/function\\s+' . preg_quote($legacyFunction, '/') . '\\s*\\(/', (string) $functionsSource), 'plugin.php 不得保留运行时旁路：' . $legacyFunction);
+}
+expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
+expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/Route.php'), '旧插件通配路由执行器必须移除');
+expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');
 $pluginServiceSource = file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginService.php');
 expect(str_contains((string) $pluginServiceSource, 'LifecycleLock'), '生命周期服务必须使用互斥锁');
 expect(str_contains((string) $pluginServiceSource, 'finally'), '生命周期服务必须统一 finally 释放锁并清缓存');

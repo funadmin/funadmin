@@ -37,6 +37,11 @@ class Member extends BackendModel {
         return $this->belongsToMany(MemberGroup::class, 'member_group_relation', 'group_id', 'member_id');
     }
 
+    public function tags()
+    {
+        return $this->belongsToMany(MemberTag::class, 'member_tag_relation', 'tag_id', 'member_id');
+    }
+
     public function level()
     {
         return $this->belongsTo('MemberLevel', 'level_id', 'id', [], 'LEFT');

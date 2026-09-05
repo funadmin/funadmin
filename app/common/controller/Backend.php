@@ -13,7 +13,7 @@
 
 namespace app\common\controller;
 use app\BaseController;
-use app\common\model\Languages;
+use app\common\model\Language;
 use app\common\traits\Jump;
 use app\common\traits\Curd;
 use think\App;
@@ -161,7 +161,7 @@ class Backend extends BaseController
     public function enlang()
     {
         $lang = $this->request->get('lang');
-        $language = Languages::where('name',$lang)->find();
+        $language = Language::where('name',$lang)->find();
         if(!$language) $this->error(lang('please check language config'));
         if(strtolower($lang)=='zh-cn' || !$lang){
             Cookie::set('think_lang', 'zh-cn');

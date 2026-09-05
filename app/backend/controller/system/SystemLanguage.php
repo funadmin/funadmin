@@ -8,7 +8,7 @@ use app\backend\controller\base\AdminApiController;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
-use app\common\model\Languages;
+use app\common\model\Language;
 use think\Response;
 use think\facade\Cache;
 
@@ -23,7 +23,7 @@ class SystemLanguage extends AdminApiController
     {
         $page = $this->page();
         $pageSize = $this->pageSize();
-        $query = Languages::order('is_default', 'desc')->order('id', 'asc');
+        $query = Language::order('is_default', 'desc')->order('id', 'asc');
         $name = trim((string) $this->request->get('name', ''));
         if ($name !== '') {
             $query->whereLike('name', '%' . $name . '%');
@@ -31,7 +31,7 @@ class SystemLanguage extends AdminApiController
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
         return $this->ok($this->paginationData(
-            array_map(fn (Languages $language): array => $this->languageData($language), $result->items()),
+            array_map(fn (Language $language): array => $this->languageData($language), $result->items()),
             $result->total(),
             $page,
             $pageSize
@@ -40,7 +40,7 @@ class SystemLanguage extends AdminApiController
 
     public function detail(int $id): Response
     {
-        $language = Languages::find($id);
+        $language = Language::find($id);
         return $language
             ? $this->ok($this->languageData($language))
             : $this->fail('语言不存在', 404);
@@ -52,11 +52,11 @@ class SystemLanguage extends AdminApiController
         if ($error = $this->validateName($name)) {
             return $this->fail($error, 422);
         }
-        if (Languages::withTrashed()->where('name', $name)->find()) {
+        if (Language::withTrashed()->where('name', $name)->find()) {
             return $this->fail('语言名称已存在', 422);
         }
 
-        $language = Languages::create([
+        $language = Language::create([
             'name' => $name,
             'is_default' => 0,
             'status' => 1,
@@ -67,7 +67,7 @@ class SystemLanguage extends AdminApiController
 
     public function update(int $id): Response
     {
-        $language = Languages::find($id);
+        $language = Language::find($id);
         if (!$language) {
             return $this->fail('语言不存在', 404);
         }
@@ -79,7 +79,7 @@ class SystemLanguage extends AdminApiController
         if ($error = $this->validateName($name)) {
             return $this->fail($error, 422);
         }
-        if (Languages::withTrashed()->where('name', $name)->where('id', '<>', $id)->find()) {
+        if (Language::withTrashed()->where('name', $name)->where('id', '<>', $id)->find()) {
             return $this->fail('语言名称已存在', 422);
         }
 
@@ -98,7 +98,7 @@ class SystemLanguage extends AdminApiController
             return $this->fail('请选择要删除的语言', 422);
         }
 
-        $languages = Languages::withTrashed()->whereIn('id', $ids)->select();
+        $languages = Language::withTrashed()->whereIn('id', $ids)->select();
         if (count($languages) !== count($ids)) {
             return $this->fail('部分语言不存在', 404);
         }
@@ -131,12 +131,12 @@ class SystemLanguage extends AdminApiController
         return null;
     }
 
-    private function isDefault(Languages $language): bool
+    private function isDefault(Language $language): bool
     {
         return (int) $language->is_default === 1 || strtolower((string) $language->name) === 'zh-cn';
     }
 
-    private function languageData(Languages $language): array
+    private function languageData(Language $language): array
     {
         return [
             'id' => (int) $language->id,

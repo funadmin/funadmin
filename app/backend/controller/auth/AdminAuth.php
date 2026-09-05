@@ -268,6 +268,7 @@ class AdminAuth extends BaseController
             'backend/systemplugin:getconfig' => 'system:plugin:config',
             'backend/systemplugin:saveconfig' => 'system:plugin:config',
             'backend/systemplugin:uninstall' => 'system:plugin:uninstall',
+            'backend/systemplugin:purge' => 'system:plugin:purge',
             'backend/systemplugin:deletepackage' => 'system:plugin:package-delete',
             'backend/systemplugin:history' => 'system:plugin:history',
             'backend/systemplugin:operations' => 'system:plugin:history',

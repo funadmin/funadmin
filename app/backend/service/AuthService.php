@@ -456,7 +456,7 @@ class AuthService extends AbstractService
             if (!$roleIds || !$this->casbin()->activeRoleIds($roleIds)) {
                 throw new \Exception(lang('You dont have permission'));
             }
-            $admin->lastloginip = $ip;
+            $admin->last_login_ip = $ip;
             $admin->ip = $ip;
             $admin->token = SignHelper::authSign($admin);
             $admin->save();

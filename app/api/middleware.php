@@ -12,7 +12,5 @@
  */
 
 
-return [
-    \think\middleware\LoadLangPack::class,
-];
+return [];
 

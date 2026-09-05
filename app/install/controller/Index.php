@@ -2,9 +2,9 @@
 
 namespace app\install\controller;
 
-use app\common\traits\Jump;
 use app\BaseController;
 use app\common\service\InstallSupport;
+use app\common\traits\JsonResponse;
 
 /**
  * 安装向导后端接口（Vue 安装页 /admin-web/#/install 调用）。
@@ -12,7 +12,7 @@ use app\common\service\InstallSupport;
  */
 class Index extends BaseController
 {
-    use Jump;
+    use JsonResponse;
 
     /**
      * 入口：按安装状态引导到 Vue 安装页或登录页。
@@ -30,14 +30,14 @@ class Index extends BaseController
     public function step2()
     {
         if (file_exists($this->lockFile())) {
-            $this->result(['installed' => true], 200, '系统已安装', 'json');
+            return $this->ok(['installed' => true], '系统已安装');
         }
-        $this->result([
+        return $this->ok([
             'installed' => false,
             'siteName' => 'FunAdmin',
             'siteVersion' => config('app.version'),
             'checks' => $this->buildEnvironmentChecks(),
-        ], 200, '环境检测完成', 'json');
+        ], '环境检测完成');
     }
 
     /**
@@ -46,10 +46,10 @@ class Index extends BaseController
     public function step3()
     {
         if (!request()->isPost()) {
-            $this->error('请求方法不正确');
+            return $this->fail('请求方法不正确', 405);
         }
         if (file_exists($this->lockFile())) {
-            $this->error('当前版本已经安装了，如果需要重新安装请先删除install.lock');
+            return $this->fail('当前版本已经安装了，如果需要重新安装请先删除install.lock', 409);
         }
         set_time_limit(0);
         $input = $this->collectInstallInput();
@@ -62,10 +62,10 @@ class Index extends BaseController
                 root_path()
             );
         } catch (\Throwable $e) {
-            $this->error($e->getMessage());
+            return $this->fail($e->getMessage() ?: '安装失败', 422);
         }
         session('admin_install', $result);
-        $this->result($result, 200, '安装成功', 'json');
+        return $this->ok($result, '安装成功');
     }
 
     /**
@@ -75,12 +75,12 @@ class Index extends BaseController
     {
         $admin = session('admin_install');
         if (!$admin) {
-            $this->error('安装信息不存在');
+            return $this->fail('安装信息不存在', 404);
         }
         if (request()->isPost()) {
             session('admin_install', null);
         }
-        $this->result($admin, 200, '安装完成', 'json');
+        return $this->ok($admin, '安装完成');
     }
 
     /**
@@ -141,13 +141,13 @@ class Index extends BaseController
     private function assertEnvironmentReady(): void
     {
         if (version_compare(PHP_VERSION, '8.1.0', '<')) {
-            $this->error('当前 PHP 版本 ' . PHP_VERSION . ' 过低，请使用 PHP 8.1.0 以上版本');
+            throw new \RuntimeException('当前 PHP 版本 ' . PHP_VERSION . ' 过低，请使用 PHP 8.1.0 以上版本');
         }
         if (!extension_loaded('PDO') || !extension_loaded('mysqli')) {
-            $this->error('当前未开启 PDO 或 MySQLi，无法进行安装');
+            throw new \RuntimeException('当前未开启 PDO 或 MySQLi，无法进行安装');
         }
         if (!$this->hasMigrations()) {
-            $this->error('数据库迁移文件不存在，无法进行安装');
+            throw new \RuntimeException('数据库迁移文件不存在，无法进行安装');
         }
     }
 

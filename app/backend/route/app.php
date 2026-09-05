@@ -38,6 +38,7 @@ Route::post('system/plugin/:name/disable', 'system.SystemPlugin/disable')->patte
 Route::get('system/plugin/:name/config', 'system.SystemPlugin/getConfig')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::put('system/plugin/:name/config', 'system.SystemPlugin/saveConfig')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::delete('system/plugin/:name/uninstall', 'system.SystemPlugin/uninstall')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::delete('system/plugin/:name/purge', 'system.SystemPlugin/purge')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::delete('system/plugin/:name/package', 'system.SystemPlugin/deletePackage')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/:name/history', 'system.SystemPlugin/history')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/:name/operations', 'system.SystemPlugin/operations')->pattern(['name' => '[a-z][a-z0-9]*']);
