@@ -3,7 +3,9 @@ import http from '@/utils/http';
 export interface OperationLog {
   id: number;
   username: string;
-  module: string;
+  appName: string;
+  sourceType: 'system' | 'plugin';
+  sourceName: string;
   controller: string;
   action: string;
   title: string;
@@ -25,7 +27,9 @@ export interface OperationLogQuery {
   page?: number;
   pageSize?: number;
   username?: string;
-  module?: string;
+  appName?: string;
+  sourceType?: 'system' | 'plugin' | '';
+  sourceName?: string;
   status?: 0 | 1;
   startTime?: string;
   endTime?: string;

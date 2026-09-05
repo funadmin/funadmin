@@ -27,7 +27,8 @@ describe('会员分组关联后端契约', () => {
     const source = readProjectFile('../app/backend/controller/system/SystemMemberGroup.php');
 
     expect(source).not.toContain('FIND_IN_SET');
-    expect(source).toContain('member_group_relation');
+    expect(source).toContain('MemberGroupRelation');
+    expect(source).not.toContain("Db::name('member_group_relation')");
   });
 });
 

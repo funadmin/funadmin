@@ -10,6 +10,7 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\Member;
 use app\backend\model\MemberGroup;
+use app\backend\model\MemberGroupRelation;
 use app\backend\model\MemberLevel;
 use think\facade\Db;
 use think\Response;
@@ -70,11 +71,18 @@ class SystemMember extends AdminApiController
         $groupIds = $data['groupIds'];
         unset($data['groupIds']);
         $data['password'] = '';
-        $member = Db::transaction(function () use ($data, $groupIds): Member {
-            $member = Member::create($data);
-            $member->groups()->sync($groupIds);
-            return $member;
-        });
+        try {
+            $member = Db::transaction(function () use ($data, $groupIds): Member {
+                $member = Member::create($data);
+                $member->groups()->sync($groupIds);
+                return $member;
+            });
+        } catch (\Throwable $exception) {
+            if ($message = $this->duplicateError($exception)) {
+                return $this->fail($message, 422);
+            }
+            throw $exception;
+        }
         [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
         return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '创建成功');
     }
@@ -95,10 +103,17 @@ class SystemMember extends AdminApiController
 
         $groupIds = $data['groupIds'];
         unset($data['groupIds']);
-        Db::transaction(function () use ($member, $data, $groupIds): void {
-            $member->save($data);
-            $member->groups()->sync($groupIds);
-        });
+        try {
+            Db::transaction(function () use ($member, $data, $groupIds): void {
+                $member->save($data);
+                $member->groups()->sync($groupIds);
+            });
+        } catch (\Throwable $exception) {
+            if ($message = $this->duplicateError($exception)) {
+                return $this->fail($message, 422);
+            }
+            throw $exception;
+        }
         [$memberGroups, $groups, $levels] = $this->relationMaps([$member]);
         return $this->ok($this->memberData($member, $memberGroups, $groups, $levels), '保存成功');
     }
@@ -192,8 +207,8 @@ class SystemMember extends AdminApiController
                     $member->groups()->sync($groupIds);
                 });
                 $created++;
-            } catch (\Throwable $e) {
-                $errors[] = '第 ' . ($index + 2) . ' 行：保存失败';
+            } catch (\Throwable $exception) {
+                $errors[] = '第 ' . ($index + 2) . ' 行：' . ($this->duplicateError($exception) ?? '保存失败');
             }
         }
 
@@ -234,8 +249,12 @@ class SystemMember extends AdminApiController
             $query->where('status', (int) $status);
         }
         if ($groupId > 0) {
-            $memberIds = Db::name('member_group_relation')->where('group_id', $groupId)->column('member_id');
-            $query->whereIn('id', $memberIds ?: [0]);
+            $query->alias('member')->whereExists(function ($relationQuery) use ($groupId): void {
+                $relationQuery->table((new MemberGroupRelation())->getTable() . ' member_group_relation')
+                    ->field('member_group_relation.member_id')
+                    ->whereColumn('member_group_relation.member_id', 'member.id')
+                    ->where('member_group_relation.group_id', $groupId);
+            });
         }
         if ($levelId > 0) {
             $query->where('level_id', $levelId);
@@ -278,7 +297,7 @@ class SystemMember extends AdminApiController
 
         return [
             'username' => trim((string) ($row['username'] ?? '')),
-            'mobile' => trim((string) ($row['mobile'] ?? '')),
+            'mobile' => ($mobile = trim((string) ($row['mobile'] ?? ''))) !== '' ? $mobile : null,
             'email' => ($email = trim((string) ($row['email'] ?? ''))) !== '' ? $email : null,
             'sex' => (string) ($row['sex'] ?? '0'),
             'groupIds' => $groupIds,
@@ -297,7 +316,7 @@ class SystemMember extends AdminApiController
         if (preg_match('/[\x00-\x1F\x7F<>]/u', $data['username'])) {
             return '用户名包含非法字符';
         }
-        if ($data['mobile'] === '' || !preg_match('/^[0-9+\- ]{6,20}$/', $data['mobile'])) {
+        if ($data['mobile'] === null || !preg_match('/^[0-9+\- ]{6,20}$/', $data['mobile'])) {
             return '请输入 6 至 20 位有效手机号';
         }
         if ($data['email'] !== null && (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 60)) {
@@ -324,23 +343,37 @@ class SystemMember extends AdminApiController
     private function validateUnique(array $data, int $excludeId = 0): ?string
     {
         $usernameQuery = Member::withTrashed()->where('username', $data['username']);
-        $mobileQuery = Member::withTrashed()->where('mobile', $data['mobile']);
+        $mobileQuery = $data['mobile'] !== null ? Member::withTrashed()->where('mobile', $data['mobile']) : null;
         $emailQuery = $data['email'] !== null ? Member::withTrashed()->where('email', $data['email']) : null;
         if ($excludeId > 0) {
             $usernameQuery->where('id', '<>', $excludeId);
-            $mobileQuery->where('id', '<>', $excludeId);
+            $mobileQuery?->where('id', '<>', $excludeId);
             $emailQuery?->where('id', '<>', $excludeId);
         }
         if ($usernameQuery->find()) {
             return '用户名已存在';
         }
-        if ($mobileQuery->find()) {
+        if ($mobileQuery?->find()) {
             return '手机号已存在';
         }
         if ($emailQuery?->find()) {
             return '邮箱已存在';
         }
         return null;
+    }
+
+    private function duplicateError(\Throwable $exception): ?string
+    {
+        $message = $exception->getMessage();
+        if (!str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
+            return null;
+        }
+        foreach (['username' => '用户名已存在', 'mobile' => '手机号已存在', 'email' => '邮箱已存在'] as $field => $error) {
+            if (str_contains($message, $field)) {
+                return $error;
+            }
+        }
+        return '用户名、手机号或邮箱已存在';
     }
 
     private function relationMaps(array $members): array
@@ -353,8 +386,8 @@ class SystemMember extends AdminApiController
             $memberGroups[(int) $member->id] = [];
             $levelIds[] = (int) $member->level_id;
         }
-        $relations = $memberIds ? Db::name('member_group_relation')->whereIn('member_id', $memberIds)
-            ->order('group_id', 'asc')->select()->toArray() : [];
+        $relations = $memberIds ? MemberGroupRelation::whereIn('member_id', $memberIds)
+            ->field('member_id,group_id')->order('group_id', 'asc')->select()->toArray() : [];
         $groupIds = [];
         foreach ($relations as $relation) {
             $memberId = (int) $relation['member_id'];
@@ -371,7 +404,7 @@ class SystemMember extends AdminApiController
 
     private function memberGroupIds(int $memberId): array
     {
-        return array_map('intval', Db::name('member_group_relation')->where('member_id', $memberId)
+        return array_map('intval', MemberGroupRelation::where('member_id', $memberId)
             ->order('group_id', 'asc')->column('group_id'));
     }
 

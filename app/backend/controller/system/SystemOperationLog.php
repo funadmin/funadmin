@@ -24,15 +24,23 @@ class SystemOperationLog extends AdminApiController
         $pageSize = $this->pageSize();
         $query = $this->scopedQuery();
         $username = trim((string) $this->request->get('username', ''));
-        $module = trim((string) $this->request->get('module', ''));
+        $appName = trim((string) $this->request->get('appName', ''));
+        $sourceType = trim((string) $this->request->get('sourceType', ''));
+        $sourceName = trim((string) $this->request->get('sourceName', ''));
         $status = $this->request->get('status', null);
         $startTime = trim((string) $this->request->get('startTime', ''));
         $endTime = trim((string) $this->request->get('endTime', ''));
         if ($username !== '') {
             $query->whereLike('username', '%' . $username . '%');
         }
-        if ($module !== '') {
-            $query->where('module', $module);
+        if ($appName !== '') {
+            $query->where('app_name', $appName);
+        }
+        if ($sourceType !== '') {
+            $query->where('source_type', $sourceType);
+        }
+        if ($sourceName !== '') {
+            $query->where('source_name', $sourceName);
         }
         if ($status !== null && $status !== '') {
             $query->where('status', $this->binaryStatus($status));
@@ -91,7 +99,9 @@ class SystemOperationLog extends AdminApiController
         $data = [
             'id' => (int) $log->id,
             'username' => (string) $log->username,
-            'module' => (string) $log->module,
+            'appName' => (string) $log->app_name,
+            'sourceType' => (string) $log->source_type,
+            'sourceName' => (string) $log->source_name,
             'controller' => (string) $log->controller,
             'action' => (string) $log->action,
             'title' => (string) $log->title,
