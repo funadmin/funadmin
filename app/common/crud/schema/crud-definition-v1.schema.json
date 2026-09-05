@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://funadmin.local/schema/crud-definition-v1.schema.json",
+  "title": "FunAdmin CRUD Definition v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "table", "title", "paths", "apiPrefix", "permissionPrefix", "fields", "relations", "templates"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "table": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "apiPrefix": { "type": "string", "pattern": "^/[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*$" },
+    "permissionPrefix": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$" },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "backend": { "$ref": "#/$defs/relativePath" },
+        "frontend": { "$ref": "#/$defs/relativePath" },
+        "database": { "$ref": "#/$defs/relativePath" }
+      }
+    },
+    "templates": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "backend": { "$ref": "#/$defs/templatePath" },
+        "frontend": { "$ref": "#/$defs/templatePath" },
+        "database": { "$ref": "#/$defs/templatePath" }
+      }
+    },
+    "fields": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "dbType", "nullable"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+          "dbType": { "type": "string", "minLength": 1 },
+          "nullable": { "type": "boolean" },
+          "primary": { "type": "boolean" },
+          "comment": { "type": "string" }
+        }
+      }
+    },
+    "relations": { "type": "array" },
+    "metadata": { "type": "object" }
+  },
+  "$defs": {
+    "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
+    "templatePath": { "type": "string", "pattern": "^(backend|frontend|database)/[A-Za-z0-9._/-]+\\.tpl$" }
+  }
+}
