@@ -127,6 +127,50 @@ class PluginPackageService extends AbstractService
         }
     }
 
+    public function archiveHistoryPackage(array $staged, string $name, string $packageHash): string
+    {
+        $this->assertName($name);
+        if (!preg_match('/^[a-f0-9]{64}$/', $packageHash)) {
+            throw new RuntimeException('历史插件包哈希无效');
+        }
+        $source = $this->pluginDirectory($name);
+        if (!is_dir($source)) {
+            throw new RuntimeException('无法归档不存在的已部署插件目录');
+        }
+        $historyDirectory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'history' . DIRECTORY_SEPARATOR . $name);
+        $this->createDirectory($historyDirectory);
+        $archive = $historyDirectory . DIRECTORY_SEPARATOR . $packageHash . '.zip';
+        if (is_file($archive)) {
+            return $archive;
+        }
+        $temporary = $archive . '.tmp-' . bin2hex(random_bytes(4));
+        $zip = new ZipArchive();
+        if ($zip->open($temporary, ZipArchive::CREATE | ZipArchive::EXCL) !== true) {
+            throw new RuntimeException('无法创建私有历史插件包');
+        }
+        try {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $item) {
+                if ($item->isLink() || !$item->isFile()) {
+                    continue;
+                }
+                $relative = substr($item->getPathname(), strlen($source) + 1);
+                if (!$zip->addFile($item->getPathname(), str_replace(DIRECTORY_SEPARATOR, '/', $relative))) {
+                    throw new RuntimeException('历史插件包归档文件失败：' . $relative);
+                }
+            }
+        } finally {
+            $zip->close();
+        }
+        if (!rename($temporary, $archive)) {
+            if (is_file($temporary) && !unlink($temporary)) {
+                throw new RuntimeException('无法提交私有历史插件包，且临时归档无法清理：' . $temporary);
+            }
+            throw new RuntimeException('无法提交私有历史插件包');
+        }
+        return $archive;
+    }
+
     public function finish(array $staged, ?string $backup): void
     {
         $failures = [];

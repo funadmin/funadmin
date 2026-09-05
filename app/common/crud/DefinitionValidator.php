@@ -13,11 +13,12 @@ final class DefinitionValidator
 {
     private const ROOT_KEYS = [
         'schemaVersion', 'name', 'table', 'title', 'description', 'paths', 'apiPrefix',
-        'permissionPrefix', 'fields', 'relations', 'templates', 'metadata',
+        'permissionPrefix', 'fields', 'relations', 'templates', 'metadata', 'capabilities', 'dataScope',
     ];
     private const FIELD_KEYS = [
         'name', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
-        'valueType', 'managed', 'writable', 'options', 'relation', 'references', 'inferredBy',
+        'valueType', 'managed', 'writable', 'options', 'relation', 'references', 'inferredBy', 'legacy',
+        'list', 'search', 'form', 'detail', 'rules',
     ];
     private const RELATION_KEYS = ['name', 'type', 'field', 'target', 'targetField', 'pivotTable'];
 
@@ -47,6 +48,8 @@ final class DefinitionValidator
         $this->templates($data['templates'] ?? null);
         $this->fields($data['fields'] ?? null);
         $this->relations($data['relations'] ?? null);
+        $this->capabilities($data['capabilities'] ?? null);
+        $this->dataScope($data['dataScope'] ?? null);
     }
 
     private function paths(mixed $paths, string $projectRoot): void
@@ -103,6 +106,12 @@ final class DefinitionValidator
             if (isset($field['comment'])) {
                 $this->text((string) $field['comment'], '字段注释');
             }
+            if (($field['legacy'] ?? false) === true || in_array($field['name'], ['create_time', 'update_time', 'delete_time'], true)) {
+                throw new InvalidArgumentException('发现 legacy 字段，必须先迁移为 Laravel 时间字段：' . $field['name']);
+            }
+            if (isset($field['relation']) && (!isset($field['references']) || trim((string) $field['references']) === '')) {
+                throw new InvalidArgumentException('关系字段必须提供完整 references：' . $field['name']);
+            }
             if (isset($names[$field['name']])) {
                 throw new InvalidArgumentException('字段名重复：' . $field['name']);
             }
@@ -137,6 +146,29 @@ final class DefinitionValidator
             if (!preg_match('/^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$/', $relation['target'])) {
                 throw new InvalidArgumentException('关系目标不合法');
             }
+        }
+    }
+
+    private function capabilities(mixed $capabilities): void
+    {
+        if (!is_array($capabilities) || $capabilities === []) {
+            throw new InvalidArgumentException('capabilities 必须为非空对象');
+        }
+        foreach ($capabilities as $name => $enabled) {
+            if (!in_array($name, ['list', 'search', 'form', 'detail', 'create', 'update', 'delete', 'import', 'export'], true)
+                || !is_bool($enabled)) {
+                throw new InvalidArgumentException('capabilities 包含非法能力');
+            }
+        }
+    }
+
+    private function dataScope(mixed $scope): void
+    {
+        if (!is_array($scope) || !isset($scope['enabled']) || !is_bool($scope['enabled'])) {
+            throw new InvalidArgumentException('dataScope 配置不完整');
+        }
+        if ($scope['enabled'] && (!isset($scope['field']) || !is_string($scope['field']) || $scope['field'] === '')) {
+            throw new InvalidArgumentException('启用数据范围时必须配置字段');
         }
     }
 

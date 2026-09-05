@@ -194,7 +194,7 @@ final class SystemPlugin extends AdminApiController
     public function purge(string $name): Response
     {
         $confirmation = trim((string) $this->request->param('purgeConfirm', ''));
-        return $this->execute(fn () => $this->plugins->purgePlugin($name, $confirmation), '插件业务数据已清除');
+        return $this->execute(fn () => $this->plugins->purgePluginData($name, $confirmation), '插件业务数据已清除');
     }
 
     public function deletePackage(string $name): Response

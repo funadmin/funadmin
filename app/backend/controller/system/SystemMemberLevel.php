@@ -22,7 +22,7 @@ class SystemMemberLevel extends AdminApiController
 
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    protected function crudModelClass(): string
+    protected function model(): string
     {
         return MemberLevel::class;
     }

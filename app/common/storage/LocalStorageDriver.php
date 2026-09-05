@@ -35,6 +35,11 @@ final class LocalStorageDriver implements StorageDriverInterface
 
     public function store(UploadedFile $file, string $directory, string $rule = ''): StoredFile
     {
+        // 目录穿越防护：仅允许字母数字与 - _ / 组成的相对目录
+        if (str_contains($directory, '..')) {
+            throw new RuntimeException('非法的保存目录');
+        }
+        $directory = trim((string) preg_replace('/[^A-Za-z0-9_\-\/]/', '', $directory), '/');
         $key = Filesystem::disk('public')->putFile($directory, $file, $rule);
         if (!$key) {
             throw new RuntimeException('文件写入本地存储失败');

@@ -14,7 +14,7 @@ return [
     //是否演示站点
     'isDemo'=>0,
     //版本
-    'version' => '7.1.0',
+    'version' => '8.0',
 
     'version_data' => date('Y-m-d'),
 
@@ -44,7 +44,7 @@ return [
         'backend/systempermission:detail' => 'systempermission/tree',
     ],
 
-    'sys_app'=>['backend','api','frontend','common','install'],
+    'sys_app'=>['backend','api','index','common','install'],
 
     'curd_deny_app'=>['common','install'],
     //接口域名

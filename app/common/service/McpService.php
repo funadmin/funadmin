@@ -923,8 +923,8 @@ class McpService extends AbstractService
     {
         try {
             // 生成模型类名
-            $modelClass = ucfirst($modelName);
-            $modelPath = "app/common/model/{$modelClass}.php";
+            $model = ucfirst($modelName);
+            $modelPath = "app/common/model/{$model}.php";
             
             // 检查文件是否已存在
             if (file_exists($modelPath)) {
@@ -940,7 +940,7 @@ class McpService extends AbstractService
             }
 
             // 生成模型内容
-            $modelContent = $this->CreateModelContent($modelClass, $tableName, $fields, $description);
+            $modelContent = $this->CreateModelContent($model, $tableName, $fields, $description);
             
             // 确保目录存在
             $dir = dirname($modelPath);
@@ -1033,7 +1033,7 @@ class {$controllerClass} extends {$baseController}
                 \$this->selectList();
             }
             list(\$this->page, \$this->pageSize,\$sort,\$where,\$tableName) = \$this->buildParames();
-            \$list = \$this->modelClass->where(\$where)->order(\$sort)->paginate([
+            \$list = \$this->model->where(\$where)->order(\$sort)->paginate([
                 'list_rows'=> \$this->pageSize,
                 'page' => \$this->page,
             ]);
@@ -1076,7 +1076,7 @@ class {$controllerClass} extends {$baseController}
                 \$this->error(lang(\$e->getMessage()));
             }
             try {
-                \$save = \$this->modelClass->save(\$post);
+                \$save = \$this->model->save(\$post);
             } catch (\Exception \$e) {
                 \$this->error(lang(\$e->getMessage()));
             }
@@ -1095,7 +1095,7 @@ class {$controllerClass} extends {$baseController}
      */
     public function edit()
     {
-        \$id = request()->param(\$this->modelClass->getPk());
+        \$id = request()->param(\$this->model->getPk());
         \$list = \$this->findModel(\$id);
         if(empty(\$list)) \$this->error(lang('Data is not exist'));
         if (request()->isPost()) {
@@ -1134,15 +1134,15 @@ class {$controllerClass} extends {$baseController}
 
     /**
      * 生成模型内容
-     * @param string $modelClass 模型类名
+     * @param string $model 模型类名
      * @param string $tableName 表名
      * @param array $fields 字段信息
      * @param string $description 描述
      * @return string
      */
-    private function CreateModelContent(string $modelClass, string $tableName, array $fields = [], string $description = ''): string
+    private function CreateModelContent(string $model, string $tableName, array $fields = [], string $description = ''): string
     {
-        $description = $description ?: $modelClass;
+        $description = $description ?: $model;
         
         // 生成字段定义
         $fieldDefinitions = '';
@@ -1176,10 +1176,10 @@ use think\\model\\concern\\SoftDelete;
 
 /**
  * {$description}模型
- * Class {$modelClass}
+ * Class {$model}
  * @package app\\common\\model
  */
-class {$modelClass} extends BaseModel
+class {$model} extends BaseModel
 {
     use SoftDelete;
 
@@ -2460,7 +2460,7 @@ class {$modelClass} extends BaseModel
         $version = 'v2';
         $namespace = "app\\{$module}\\controller\\{$version}";
         $description = $description ?: $controllerClass;
-        $modelClass = "\\app\\common\\model\\{$controllerClass}";
+        $model = "\\app\\common\\model\\{$controllerClass}";
         $validationRules = $this->generateApiValidationRules($fields);
         $allowedFields = array_values(array_filter(array_map(
             static fn (array $field): string => (string) ($field['name'] ?? ''),
@@ -2494,7 +2494,7 @@ class {$controllerClass} extends Api
 {
     private const ALLOWED_FIELDS = {$allowedFieldsCode};
 
-    public function __construct(private readonly {$modelClass} \$model)
+    public function __construct(private readonly {$model} \$model)
     {
     }
 

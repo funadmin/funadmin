@@ -29,7 +29,7 @@ class Ajax extends Backend
 
     public function __construct(App $app)
     {
-        $this->modelClass = new AttachModel();
+        $this->model = new AttachModel();
         parent::__construct($app);
     }
 
@@ -135,11 +135,11 @@ class Ajax extends Backend
             if (!AuthService::instance()->isSuperAdmin()) {
                 $where[] = ['admin_id', '=', (int) session('admin.id')];
             }
-            $count = $this->modelClass
+            $count = $this->model
                 ->where($where)
                 ->order($sort)
                 ->count();
-            $list = $this->modelClass->where($where)
+            $list = $this->model->where($where)
                 ->order($sort)
                 ->page($this->page, $this->pageSize)
                 ->select();

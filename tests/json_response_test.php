@@ -197,7 +197,7 @@ foreach (['SystemMemberGroup.php', 'SystemMemberLevel.php'] as $controllerFile) 
     $source = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/system/' . $controllerFile);
     responseExpect(str_contains($source, 'use Curd;'), "{$controllerFile} 必须显式组合 Curd Trait");
     responseExpect(!preg_match('/public function (index|detail|create|update|status|recycle|restore|destroy|export)\s*\(/', $source), "{$controllerFile} 必须复用 Curd 公共动作");
-    foreach (['crudModelClass', 'crudSearchFields', 'crudPayload', 'crudValidate', 'crudData'] as $hookName) {
+    foreach (['model', 'crudSearchFields', 'crudPayload', 'crudValidate', 'crudData'] as $hookName) {
         responseExpect(str_contains($source, "function {$hookName}("), "{$controllerFile} 必须实现 {$hookName} 扩展点");
     }
 }

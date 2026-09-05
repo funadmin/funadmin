@@ -177,12 +177,19 @@ final class PluginPackagePipeline
                     'source' => $source,
                     'package_hash' => $packageHash,
                     'max_db_version' => $maxDbVersion,
+                    'package_path' => null,
                     'status' => 'failed',
                     'error' => $exception->getMessage(),
                 ] + $verification);
                 throw $exception;
             }
 
+            $packagePath = method_exists($this->packages, 'archiveHistoryPackage')
+                ? $this->packages->archiveHistoryPackage($staged, $name, $packageHash)
+                : null;
+            if ($packagePath !== null) {
+                $this->assertPrivatePackagePath($packagePath);
+            }
             $cleanupWarning = $this->finishSafely($staged, $backup);
             $result = [
                 'name' => $name,
@@ -192,6 +199,7 @@ final class PluginPackagePipeline
                 'source' => $source,
                 'package_hash' => $packageHash,
                 'max_db_version' => $maxDbVersion,
+                'package_path' => $packagePath,
             ] + $verification;
             if ($cleanupWarning !== null) {
                 $result['warnings'] = [$cleanupWarning];
@@ -211,6 +219,19 @@ final class PluginPackagePipeline
                 $this->discardSafely($staged);
             }
             throw $exception;
+        }
+    }
+
+    private function assertPrivatePackagePath(string $path): void
+    {
+        $runtimeRoot = realpath(runtime_path());
+        $packagePath = realpath($path);
+        $publicRoot = realpath(public_path());
+        if ($runtimeRoot === false || $packagePath === false || !str_starts_with($packagePath, $runtimeRoot . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('历史插件包必须保存在 runtime 私有目录');
+        }
+        if ($publicRoot !== false && str_starts_with($packagePath, $publicRoot . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('历史插件包不允许保存在 public 目录');
         }
     }
 

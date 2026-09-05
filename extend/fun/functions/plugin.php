@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use fun\plugins\Manifest;
+use fun\plugins\Registry;
+use fun\plugins\RuntimeLoader;
 use think\facade\Route;
 use think\helper\Str;
 
@@ -30,6 +32,51 @@ if (!function_exists('get_plugin_info')) {
         } catch (\Throwable) {
             return [];
         }
+    }
+}
+
+/** 仅允许 Registry 中已启用且无需重装的插件实例化。 */
+if (!function_exists('get_plugin_instance')) {
+    function get_plugin_instance(string $name): ?object
+    {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
+            return null;
+        }
+        $registry = new Registry(root_path() . PLUGIN_DIR, static function (): array {
+            $records = [];
+            try {
+                foreach (\app\common\model\Plugin::whereNull('deleted_at')->select() as $record) {
+                    $records[(string) $record->name] = [
+                        'lifecycle_state' => (string) $record->lifecycle_state,
+                        'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
+                    ];
+                }
+            } catch (\Throwable) {
+                return [];
+            }
+            return $records;
+        });
+        $manifest = $registry->enabled()[$name] ?? null;
+        if (!$manifest instanceof Manifest) {
+            return null;
+        }
+        try {
+            (new RuntimeLoader())->loadEntry($manifest);
+            return app()->make((string) $manifest->toArray()['entry']['class']);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+}
+
+/** 通过正式 MigrationService 执行 manifest 声明的迁移。 */
+if (!function_exists('run_plugin_migrations')) {
+    function run_plugin_migrations(string $name): array
+    {
+        $manifest = Manifest::fromDirectory(root_path() . PLUGIN_DIR . DIRECTORY_SEPARATOR . $name);
+        $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
+        $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        return \app\common\service\MigrationService::instance()->runDirectory($directory, 'plugin:' . strtolower($name));
     }
 }
 

@@ -46,7 +46,7 @@ class Backend extends BaseController
     * @var
      * 模型
      */
-    protected $modelClass;
+    protected $model;
     /**
      * @var
      * 页面大小

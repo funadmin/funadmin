@@ -14,6 +14,16 @@ Route::put('profile', 'auth.AdminProfile/update');
 Route::post('profile/password', 'auth.AdminProfile/password');
 
 Route::post('upload', 'system.AdminUpload/upload');
+
+Route::get('development/crud/connections', 'development.DevCrud/connections');
+Route::get('development/crud/tables', 'development.DevCrud/tables');
+Route::get('development/crud/table/:table', 'development.DevCrud/tableSchema')->pattern(['table' => '[a-z_][a-z0-9_]*']);
+Route::post('development/crud/infer', 'development.DevCrud/infer');
+Route::post('development/crud/validate', 'development.DevCrud/validate');
+Route::post('development/crud/preview', 'development.DevCrud/preview');
+Route::post('development/crud/generate', 'development.DevCrud/generate');
+Route::get('development/crud/generations/:id', 'development.DevCrud/generationDetail')->pattern(['id' => '\d+']);
+
 Route::get('system/storage', 'system.SystemStorage/index');
 Route::put('system/storage', 'system.SystemStorage/update');
 

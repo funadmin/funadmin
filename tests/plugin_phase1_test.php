@@ -172,7 +172,7 @@ $functionsSource = file_get_contents(dirname(__DIR__) . '/extend/fun/functions/p
 expect(!str_contains((string) $functionsSource, 'get_class_methods('), '不得扫描插件 public methods 自动生成 hooks');
 expect(!preg_match('/function refreshplugins\(\)[\s\S]*config[^;]*plugins\.php/', (string) $functionsSource), 'refreshplugins 不得回写 config/plugins.php');
 expect(!preg_match('/function get_plugin_info\([^)]*\)[\s\S]{0,300}get_plugin_instance/', (string) $functionsSource), '旧信息读取路径不得实例化插件');
-foreach (['refreshplugins', 'plugins_vendor_autoload', 'set_app_route', 'set_plugin_config', 'set_plugin_info', 'get_plugin_class', 'get_plugin_instance', 'get_plugin_menu', 'run_plugin_migrations'] as $legacyFunction) {
+foreach (['refreshplugins', 'plugins_vendor_autoload', 'set_app_route', 'set_plugin_config', 'set_plugin_info', 'get_plugin_class', 'get_plugin_menu'] as $legacyFunction) {
     expect(!preg_match('/function\\s+' . preg_quote($legacyFunction, '/') . '\\s*\\(/', (string) $functionsSource), 'plugin.php 不得保留运行时旁路：' . $legacyFunction);
 }
 $repositoryRoot = dirname(__DIR__);
@@ -190,6 +190,9 @@ $pluginsConfig = require $repositoryRoot . '/config/plugins.php';
 foreach (['autoload', 'hooks', 'route', 'service'] as $legacyConfigKey) {
     expect(!array_key_exists($legacyConfigKey, $pluginsConfig), 'plugins 配置不得保留旧 runtime 键：' . $legacyConfigKey);
 }
+expect(preg_match('/function\s+get_plugin_instance\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留 Registry 约束的实例获取薄门面');
+expect(preg_match('/function\s+run_plugin_migrations\s*\(/', (string) $functionsSource) === 1, 'plugin.php 必须保留正式 MigrationService 薄门面');
+expect(str_contains((string) $functionsSource, 'needs_reinstall'), '实例获取必须排除 needs_reinstall 插件');
 expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/Route.php'), '旧插件通配路由执行器必须移除');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');

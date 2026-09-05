@@ -17,11 +17,6 @@ use think\Response;
  */
 trait Curd
 {
-    protected function crudModelClass(): string
-    {
-        throw new LogicException(static::class . ' 必须实现 crudModelClass()');
-    }
-
     protected function crudPayload(?Model $model = null): array
     {
         throw new LogicException(static::class . ' 必须实现 crudPayload()');
@@ -70,8 +65,8 @@ trait Curd
             return $this->fail(msg: $error, code: 422);
         }
 
-        $modelClass = $this->crudModelClass();
-        $model = $modelClass::create($data);
+        $model = $this->model();
+        $model = $model::create($data);
         $this->crudAfterSave($model, true);
 
         return $this->ok('创建成功', $this->crudData($model));
@@ -166,9 +161,9 @@ trait Curd
             return $this->fail(msg: sprintf('单次最多导入 %d 条数据', $this->crudImportLimit()), code: 422);
         }
 
-        $modelClass = $this->crudModelClass();
+        $model = $this->model();
         try {
-            $created = Db::transaction(function () use ($rows, $modelClass): array {
+            $created = Db::transaction(function () use ($rows, $model): array {
                 $models = [];
                 foreach (array_values($rows) as $index => $row) {
                     if (!is_array($row)) {
@@ -178,7 +173,7 @@ trait Curd
                     if ($error = $this->crudValidate($data)) {
                         throw new InvalidArgumentException(sprintf('第 %d 行：%s', $index + 1, $error));
                     }
-                    $model = $modelClass::create($data);
+                    $model = $model::create($data);
                     $this->crudAfterSave($model, true);
                     $models[] = $model;
                 }
@@ -221,8 +216,8 @@ trait Curd
 
     protected function crudQuery(bool $recycled)
     {
-        $modelClass = $this->crudModelClass();
-        $query = $recycled ? $modelClass::onlyTrashed() : $modelClass::where('id', '>', 0);
+        $model = $this->model();
+        $query = $recycled ? $model::onlyTrashed() : $model::where('id', '>', 0);
 
         foreach ($this->crudSearchFields() as $parameter => $field) {
             $value = trim((string) $this->request->get($parameter, ''));
@@ -247,7 +242,7 @@ trait Curd
 
     protected function crudImportPayload(array $row): array
     {
-        return $row;
+        throw new InvalidArgumentException(static::class . ' 未配置导入字段映射');
     }
 
     protected function crudImportLimit(): int
@@ -285,8 +280,8 @@ trait Curd
 
     private function crudFind(int $id, bool $withTrashed = false): ?Model
     {
-        $modelClass = $this->crudModelClass();
-        $query = $withTrashed ? $modelClass::withTrashed() : $modelClass::where('id', '>', 0);
+        $model = $this->model();
+        $query = $withTrashed ? $model::withTrashed() : $model::where('id', '>', 0);
         $model = $query->where('id', $id)->find();
         return $model instanceof Model ? $model : null;
     }
@@ -298,8 +293,8 @@ trait Curd
             return $this->fail(msg: sprintf('请选择要%s的%s', $action, $this->crudResourceName()), code: 422);
         }
 
-        $modelClass = $this->crudModelClass();
-        $query = $onlyTrashed ? $modelClass::onlyTrashed() : $modelClass::where('id', '>', 0);
+        $model = $this->model();
+        $query = $onlyTrashed ? $model::onlyTrashed() : $model::where('id', '>', 0);
         $models = $query->whereIn('id', $ids)->select();
         if (count($models) !== count($ids)) {
             $message = $onlyTrashed

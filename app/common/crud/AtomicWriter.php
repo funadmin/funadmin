@@ -74,6 +74,7 @@ final class AtomicWriter
         $applied = [];
         $createdDirectories = [];
         $safeCommit = new SafeCommit($this->projectRoot);
+        $commitRecoveryError = null;
         try {
             foreach ($files as $file) {
                 if (($file['status'] ?? '') === 'unchanged') {
@@ -113,6 +114,12 @@ final class AtomicWriter
                     ];
                 }
                 if (($commit['ok'] ?? false) !== true) {
+                    if (in_array((string) ($commit['code'] ?? ''), [
+                        'COMMIT_AND_RESTORE_FAILED',
+                        'BACKUP_AND_RESTORE_FAILED',
+                    ], true)) {
+                        $commitRecoveryError = (string) ($commit['message'] ?? '提交失败且旧文件恢复失败');
+                    }
                     throw new RuntimeException((string) ($commit['message'] ?? '安全提交失败'));
                 }
                 if (!isset($commit['hash']) || !hash_equals((string) $file['hash'], (string) $commit['hash'])) {
@@ -130,6 +137,9 @@ final class AtomicWriter
             }
         } catch (Throwable $exception) {
             $rollbackErrors = $this->rollback($safeCommit, $applied, $createdDirectories);
+            if ($commitRecoveryError !== null) {
+                $rollbackErrors[] = $commitRecoveryError;
+            }
             if ($rollbackErrors !== []) {
                 throw new RuntimeException(
                     $exception->getMessage() . '；回滚失败：' . implode('；', $rollbackErrors)

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace fun\plugins;
 
+use app\common\model\Plugin;
+use app\common\model\PluginOperation;
 use think\Route;
 
 /**
@@ -53,9 +55,22 @@ class Service extends \think\Service
 
     private function booter(): PluginRuntimeBooter
     {
-        return new PluginRuntimeBooter(static function (string $plugin, string $boundary, \Throwable $exception): void {
-            error_log(sprintf('插件 %s 的 %s 边界加载失败：%s', $plugin, $boundary, $exception->getMessage()));
+        $recorder = new RuntimeLoadFailureRecorder(static function (array $failure): void {
+            $errorStage = (string) ($failure['error_stage'] ?? 'runtime');
+            unset($failure['error_stage']);
+            PluginOperation::create($failure + [
+                'from_version' => '',
+                'to_version' => '',
+                'recovery_path' => null,
+            ]);
+            Plugin::where('name', $failure['plugin_name'])->update([
+                'status' => 0,
+                'lifecycle_state' => 'failed',
+                'last_error' => $failure['error_message'],
+                'error_stage' => $errorStage,
+            ]);
         });
+        return new PluginRuntimeBooter([$recorder, 'record']);
     }
 
     private function registry(): Registry
@@ -68,6 +83,7 @@ class Service extends \think\Service
                     $records[(string) $record->name] = [
                         'version' => (string) $record->version,
                         'lifecycle_state' => (string) $record->lifecycle_state,
+                        'needs_reinstall' => (int) ($record->needs_reinstall ?? 0),
                     ];
                 }
             } catch (\Throwable) {

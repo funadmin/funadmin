@@ -75,6 +75,8 @@ try {
         '026_plugin_resource_registry.sql',
         '027_plugin_purge_permission.sql',
         '029_plugin_registry_hardening.sql',
+        '031_plugin_resource_registry.sql',
+        '032_plugin_lifecycle_v2.sql',
     ];
 
     foreach ($files as $name) {
@@ -101,8 +103,12 @@ try {
         pluginMigrationExpect(in_array($column, $pluginColumns, true), "插件生命周期字段缺失：{$column}");
     }
     $operationColumns = $database->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_plugin_operation'")->fetchAll(PDO::FETCH_COLUMN);
-    foreach (['stage', 'progress', 'recovery_path'] as $column) {
+    foreach (['stage', 'progress', 'recovery_path', 'operation_token'] as $column) {
         pluginMigrationExpect(in_array($column, $operationColumns, true), "插件操作历史字段缺失：{$column}");
+    }
+    $versionColumns = $database->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_plugin_version_history'")->fetchAll(PDO::FETCH_COLUMN);
+    foreach (['max_db_version', 'package_path'] as $column) {
+        pluginMigrationExpect(in_array($column, $versionColumns, true), "插件版本历史字段缺失：{$column}");
     }
     $resourceIndexes = $database->query("SELECT DISTINCT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='fun_plugin_resource'")->fetchAll(PDO::FETCH_COLUMN);
     pluginMigrationExpect(in_array('uk_plugin_resource_target', $resourceIndexes, true), '资源目标必须具备唯一归属索引');

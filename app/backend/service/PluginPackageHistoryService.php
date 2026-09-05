@@ -49,6 +49,7 @@ final class PluginPackageHistoryService extends AbstractService
             PluginVersionHistory::create($common + [
                 'version' => (string) ($data['version'] ?? ''),
                 'max_db_version' => (string) ($data['max_db_version'] ?? ''),
+                'package_path' => $data['package_path'] ?? null,
                 'signature_algorithm' => $data['signature_algorithm'] ?? null,
                 'signature_verified' => (int) ($data['signature_verified'] ?? 0),
             ]);

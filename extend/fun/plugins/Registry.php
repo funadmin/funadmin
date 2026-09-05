@@ -40,7 +40,11 @@ final class Registry
         $enabled = [];
         foreach ($this->discover() as $name => $manifest) {
             $record = $records[$name] ?? null;
-            if (is_array($record) && ($record['lifecycle_state'] ?? '') === 'enabled') {
+            if (
+                is_array($record)
+                && ($record['lifecycle_state'] ?? '') === 'enabled'
+                && (int) ($record['needs_reinstall'] ?? 0) === 0
+            ) {
                 $enabled[$name] = $manifest;
             }
         }

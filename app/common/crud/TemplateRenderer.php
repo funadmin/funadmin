@@ -41,7 +41,7 @@ final class TemplateRenderer
     private function escape(string $value, string $key): string
     {
         return match (true) {
-            in_array($key, ['phpClass', 'modelClass'], true) => $this->assert($value, '/^[A-Z][A-Za-z0-9]*$/', $key),
+            in_array($key, ['phpClass', 'model'], true) => $this->assert($value, '/^[A-Z][A-Za-z0-9]*$/', $key),
             in_array($key, ['apiPrefix'], true) => $this->assert($value, '#^/[a-z][a-z0-9/-]*$#', $key),
             in_array($key, ['permissionPrefix'], true) => $this->assert($value, '/^[a-z][a-z0-9:-]*$/', $key),
             in_array($key, ['table', 'field', 'name'], true) => $this->assert($value, '/^[a-z_][a-z0-9_-]*$/', $key),

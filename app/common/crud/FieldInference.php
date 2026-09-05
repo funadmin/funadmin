@@ -10,6 +10,7 @@ namespace app\common\crud;
 final class FieldInference
 {
     private const MANAGED_FIELDS = ['created_at', 'updated_at', 'deleted_at'];
+    private const LEGACY_FIELDS = ['create_time', 'update_time', 'delete_time'];
 
     public function infer(array $schema): array
     {
@@ -23,6 +24,12 @@ final class FieldInference
                 'primary' => in_array($name, $schema['primaryKey'] ?? [], true),
                 'managed' => false,
                 'writable' => true,
+                'legacy' => in_array($name, self::LEGACY_FIELDS, true),
+                'list' => true,
+                'search' => false,
+                'form' => !in_array($name, self::MANAGED_FIELDS, true),
+                'detail' => true,
+                'rules' => [],
             ];
             if (isset($foreignKeys[$name])) {
                 return $this->fromForeignKey($field, $foreignKeys[$name]);

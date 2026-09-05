@@ -83,10 +83,12 @@ class UploadService extends AbstractService
         $this->storageDrivers = $this->app->make(StorageDriverRegistry::class);
         $this->driver = $this->storageDrivers->resolve((string) syscfg('upload', 'upload_driver'))->name();
         $configuredTypes = strtolower((string) syscfg('upload', 'upload_file_type'));
-        $this->fileExt = implode(',', array_values(array_diff(
-            array_filter(array_map('trim', explode(',', $configuredTypes ?: 'mp4,mp3,png,gif,jpg,jpeg,webp,rar,zip,7z,tar,gz,csv,xls,xlsx,pdf,doc,docx,ppt,pptx,txt'))),
-            ['php', 'html', 'htm', 'xml', 'ssh', 'bat', 'jar', 'java']
-        )));
+        $listed = array_filter(array_map('trim', explode(',', $configuredTypes)));
+        if ($configuredTypes === '*' || !$listed) {
+            $listed = array_filter(array_map('trim', explode(',', 'mp4,mp3,png,gif,jpg,jpeg,webp,rar,zip,7z,tar,gz,csv,xls,xlsx,pdf,doc,docx,ppt,pptx,txt')));
+        }
+        // 黑名单强制剥离，配置放行也不允许
+        $this->fileExt = implode(',', array_values(array_diff($listed, $this->blockedExtensions())));
         $this->fileMaxsize = (int) (syscfg('upload', 'upload_file_max') ?: 8192) * 1024;
         return $this;
     }
@@ -103,7 +105,7 @@ class UploadService extends AbstractService
         //获取上传文件表单字段名
         $type = input('type', 'file');
         $savePath = input('path', 'uploads');
-        $this->saveFilePath = $savePath =='undefined'?'uploads':$savePath;
+        $this->saveFilePath = ($savePath === 'undefined' || $savePath === '') ? 'uploads' : $this->sanitizeSavePath($savePath);
         $editor = input('editor', '');
         $files = request()->file();
         foreach ($files as $k => $file) {
@@ -242,8 +244,11 @@ class UploadService extends AbstractService
     public function chunkMerge(string $chunkId,int $chunkCount,string $fileName='',string $fileExt='',int $fileSize=0){
         $chunkId = $chunkId?:input('chunkId/d');
         $chunkCount = $chunkCount?:input('chunkCount/d');
-        $fileExt = $fileExt?:input('fileExt/s');
-        $fileSize = $fileSize?:input('fileSize/d');
+        $ext = $this->safeExt($fileExt ?: input('fileExt/s'));
+        if (in_array($ext, $this->blockedExtensions(), true)) {
+            throw new Exception(lang('File format is limited'));
+        }
+        $fileSize = $fileSize ?: input('fileSize/d');
         $fileName = $fileName?:input('fileName/s');
         if (!preg_match('/^[0-9\-]/', $chunkId)) {
             throw new Exception(lang('file name not right'));
@@ -292,12 +297,17 @@ class UploadService extends AbstractService
         } catch (\Exception $e) {
             throw new Exception('The file is abnormal, please upload it again');
         }
-        $newFilePath = $filePath . '.' . $fileExt;
+        $newFilePath = $filePath . '.' . $ext;
         if (filesize($newFilePath) != $fileSize && $fileSize) {
             throw new \Exception(lang('The file size not right, please upload it again'));
         }
+        if (filesize($newFilePath) > $this->fileMaxsize) {
+            @unlink($newFilePath);
+            throw new \Exception(lang('File size is limited'));
+        }
         //设置文件
         $this->file = new UploadedFile($newFilePath,$fileName);
+        $this->file->setExtension($ext);
         try {
 
             return $this->attach($this->file);
@@ -317,7 +327,16 @@ class UploadService extends AbstractService
     public function attach($file,int $uid=0 ,int $admin_id=0 ){
 
         $this->file = $file?:$this->file;
-        $saveFilePath = input('path','uploads') =='undefined'?:$this->saveFilePath;
+        $saveFilePath = input('path','uploads') =='undefined' ? $this->saveFilePath : $this->sanitizeSavePath((string) input('path', 'uploads'));
+        // 落库前强制校验扩展名：直传与分片两条路径都经过这里
+        $ext = $this->safeExt((string) $this->file->getOriginalExtension());
+        if (in_array($ext, $this->blockedExtensions(), true)) {
+            throw new Exception(lang('File format is limited'));
+        }
+        if ($this->fileExt != '*' && ($ext === '' || !in_array($ext, explode(',', $this->fileExt), true))) {
+            throw new Exception(lang('File type is limited'));
+        }
+        $this->file->setExtension($ext);
         $storageDriver = $this->storageDrivers->resolve($this->driver);
         $attach = AttachModel::where('driver', $storageDriver->name())->where('md5',$this->file->md5())->find();
         if(!$attach) {
@@ -342,7 +361,7 @@ class UploadService extends AbstractService
                 'path' => $path,
                 'thumb' => $path,
                 'url' => str_starts_with($path, '/') ? Request::domain() . $path : $path,
-                'ext' => $this->file->getExtension(),
+                'ext' => $ext,
                 'size' => $this->file->getSize() / 1024,
                 'width' => $this->width,
                 'height' => $this->height,
@@ -372,13 +391,9 @@ class UploadService extends AbstractService
      */
     protected function checkFile()
     {
-        //禁止上传PHP和HTML.ssh等脚本文件
-        if (
-//            in_array($this->file->getMime(),
-//                ['application/octet-stream', 'text/html','application/x-javascript','text/x-php','application/x-msdownload','application/java-archive'])
-//            ||
-        in_array($this->file->extension(),
-            ['php', 'html', 'htm','xml','ssh','bat','jar','java'])) {
+        //禁止上传可执行/脚本类文件（小写净化后比对，避免大小写绕过）
+        $ext = $this->safeExt((string) $this->file->extension());
+        if (in_array($ext, $this->blockedExtensions(), true)) {
             throw new Exception(lang('File format is limited'));
         }
         //文件大小限制
@@ -386,10 +401,10 @@ class UploadService extends AbstractService
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制
-        if ($this->fileExt !='*' && $this->file->extension() && !in_array($this->file->extension(),explode(',',$this->fileExt))) {
+        if ($this->fileExt != '*' && ($ext === '' || !in_array($ext, explode(',', $this->fileExt), true))) {
             throw new Exception(lang('File type is limited'));
         }
-        if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($this->fileExt, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
+        if (in_array($this->file->getMime(), ['image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/png', 'image/webp']) || in_array($ext, ['gif', 'jpg', 'jpeg', 'bmp', 'png', 'webp'])) {
             $imgInfo = getimagesize($this->file->getPathname());
             if (!$imgInfo || !isset($imgInfo[0]) || !isset($imgInfo[1])) {
                 throw new Exception(lang('Uploaded file is not a valid image'));
@@ -399,6 +414,45 @@ class UploadService extends AbstractService
         }
         return true;
     }
+    /**
+     * 可执行/脚本扩展名黑名单：webshell 与存储型 XSS 载体一律拒绝，配置放行也无效。
+     */
+    protected function blockedExtensions(): array
+    {
+        return [
+            'php', 'php3', 'php4', 'php5', 'php7', 'phtml', 'phar',
+            'htm', 'html', 'xml', 'ssh', 'bat', 'jar', 'java',
+            'asp', 'aspx', 'cgi', 'pl', 'py', 'sh', 'bash', 'vbs', 'wsf',
+            'com', 'exe', 'dll', 'so', 'js', 'mjs', 'svg', 'htaccess',
+        ];
+    }
+
+    /**
+     * 扩展名净化：小写 + 仅字母数字 + 长度上限，非法返回空串。
+     */
+    protected function safeExt(string $ext): string
+    {
+        $ext = strtolower(trim($ext));
+        if ($ext === '' || !preg_match('/^[a-z0-9]{1,10}$/', $ext)) {
+            return '';
+        }
+        return $ext;
+    }
+
+    /**
+     * 保存目录净化：拒绝穿越与非法字符，空值回退 uploads。
+     */
+    protected function sanitizeSavePath(string $path): string
+    {
+        $path = str_replace('\\', '/', $path);
+        $path = preg_replace('/[^A-Za-z0-9_\-\/]/', '', $path) ?? '';
+        $segments = array_values(array_filter(explode('/', $path), static fn (string $s): bool => $s !== '' && $s !== '.'));
+        if (in_array('..', $segments, true)) {
+            throw new Exception(lang('file name not right'));
+        }
+        return $segments ? implode('/', $segments) : 'uploads';
+    }
+
     //建立水印
     protected function createWater($path){
         // 读取图片
