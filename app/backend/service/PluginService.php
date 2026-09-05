@@ -37,6 +37,7 @@ class PluginService extends AbstractService
     private array $packageOperationTokens = [];
     private array $packageContexts = [];
     private array $operationStages = [];
+    private array $operationProgress = [];
 
     private function transition(Plugin $record, string $to): void
     {
@@ -70,6 +71,12 @@ class PluginService extends AbstractService
             }
             throw $exception;
         } finally {
+            unset(
+                $this->packageOperationTokens[$name],
+                $this->packageContexts[$name],
+                $this->operationStages[$name],
+                $this->operationProgress[$name]
+            );
             $this->suppressFailureRecording = false;
             try {
                 $record = $this->isInstall($name);
@@ -165,14 +172,10 @@ class PluginService extends AbstractService
             }
             $fromVersion = $installed ? (string) $record->version : '';
             $this->packageOperationTokens[$name] = $token;
-            $this->packageContexts[$name] = $context;
-            try {
-                $this->recordStage($name, $operation, 'validate', 5);
-                $this->recordStage($name, $operation, 'deploy', 20);
-                return $callback($fromVersion);
-            } finally {
-                unset($this->packageOperationTokens[$name], $this->packageContexts[$name], $this->operationStages[$name]);
-            }
+            $this->packageContexts[$name] = $context + ['operation' => $operation];
+            $this->recordStage($name, $operation, 'validate', 5);
+            $this->recordStage($name, $operation, 'deploy', 20);
+            return $callback($fromVersion);
         });
     }
 
@@ -330,13 +333,30 @@ class PluginService extends AbstractService
             if ($state !== 'failed' && LifecycleState::canTransition($state, 'failed')) {
                 $this->transition($record, 'failed');
             }
+            $stage = $this->operationStages[$name] ?? 'validate';
+            $recoveryPath = $this->recoveryPath($exception);
             $record->save($this->filterPluginColumns([
                 'status' => 0,
                 'last_error' => substr($exception->getMessage(), 0, 2000),
-                'error_stage' => $this->operationStages[$name] ?? 'validate',
-                'recovery_path' => $this->recoveryPath($exception),
+                'error_stage' => $stage,
+                'recovery_path' => $recoveryPath,
                 'operation_token' => null,
             ]));
+            $context = $this->packageContexts[$name] ?? [];
+            PluginOperation::create([
+                'plugin_name' => $name,
+                'operation' => (string) ($context['operation'] ?? 'lifecycle'),
+                'stage' => $stage,
+                'progress' => $this->operationProgress[$name] ?? 0,
+                'from_version' => '',
+                'to_version' => (string) ($context['code_version'] ?? ''),
+                'source' => (string) ($context['source'] ?? 'local'),
+                'package_hash' => (string) ($context['package_hash'] ?? str_repeat('0', 64)),
+                'result' => 'failed',
+                'error_message' => substr($exception->getMessage(), 0, 2000),
+                'recovery_path' => $recoveryPath,
+                'status' => 1,
+            ]);
         } catch (\Throwable $recordException) {
             error_log('记录插件生命周期错误失败：' . $recordException->getMessage());
         }
@@ -537,6 +557,7 @@ class PluginService extends AbstractService
     private function recordStage(string $name, string $operation, string $stage, int $progress, ?string $recoveryPath = null): void
     {
         $this->operationStages[$name] = $stage;
+        $this->operationProgress[$name] = $progress;
         $context = $this->packageContexts[$name] ?? [];
         PluginOperation::create([
             'plugin_name' => $name,

@@ -46,6 +46,11 @@
           </el-form-item>
         </el-col>
       </el-row>
+      <el-form-item label="会员标签" prop="tagIds">
+        <el-select v-model="form.tagIds" multiple collapse-tags collapse-tags-tooltip clearable class="w-full" placeholder="请选择会员标签">
+          <el-option v-for="item in options.tags" :key="item.id" :label="item.name" :value="item.id" />
+        </el-select>
+      </el-form-item>
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="性别" prop="sex">
@@ -98,7 +103,7 @@ const visible = computed({
 const formRef = ref<FormInstance>();
 const saving = ref(false);
 const initialForm = (): MemberPayload => ({
-  username: '', mobile: '', email: '', sex: '0', groupIds: [], levelId: 0, avatar: '', status: 1
+  username: '', mobile: '', email: '', sex: '0', groupIds: [], tagIds: [], levelId: 0, avatar: '', status: 1
 });
 const form = reactive<MemberPayload>(initialForm());
 const rules: FormRules = {
@@ -127,6 +132,7 @@ watch(
         email: row.email,
         sex: row.sex,
         groupIds: [...row.groupIds],
+        tagIds: [...row.tagIds],
         levelId: row.levelId,
         avatar: row.avatar,
         status: row.status

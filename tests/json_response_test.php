@@ -29,12 +29,12 @@ $plainResponder = new class {
 
     public function successResponse(): \think\Response
     {
-        return $this->ok(['id' => 1]);
+        return $this->ok('查询成功', ['id' => 1]);
     }
 
     public function failureResponse(): \think\Response
     {
-        return $this->fail('参数错误', 422, ['field' => 'name']);
+        return $this->fail('参数错误', ['field' => 'name'], 422);
     }
 };
 
@@ -42,7 +42,7 @@ $success = $plainResponder->successResponse();
 $successData = json_decode((string) $success->getContent(), true, 512, JSON_THROW_ON_ERROR);
 responseExpect($success->getCode() === 200, 'ok HTTP 状态必须为 200');
 responseExpect($successData['code'] === 200, 'ok 响应 code 必须为 200');
-responseExpect($successData['msg'] === '操作成功', 'ok 必须使用默认成功消息');
+responseExpect($successData['msg'] === '查询成功', 'ok 必须保留成功消息');
 responseExpect($successData['data'] === ['id' => 1], 'ok 必须保留响应数据');
 
 $failure = $plainResponder->failureResponse();
@@ -50,6 +50,12 @@ $failureData = json_decode((string) $failure->getContent(), true, 512, JSON_THRO
 responseExpect($failure->getCode() === 422, 'fail HTTP 状态必须与 code 一致');
 responseExpect($failureData['code'] === 422, 'fail 响应 code 必须为 422');
 responseExpect($failureData['data'] === ['field' => 'name'], 'fail 必须支持错误详情');
+
+$reflection = new ReflectionClass($plainResponder);
+foreach (['ok', 'fail'] as $methodName) {
+    $parameters = $reflection->getMethod($methodName)->getParameters();
+    responseExpect(array_map(static fn (ReflectionParameter $parameter): string => $parameter->getName(), $parameters) === ['msg', 'data', 'code'], "{$methodName} 必须统一使用 msg、data、code 参数顺序");
+}
 
 $headerResponder = new class {
     use JsonResponse;

@@ -15,7 +15,7 @@ describe('插件中心页面契约', () => {
   });
 
   it('关键操作均声明 v-perm 权限', () => {
-    for (const permission of ['install', 'update', 'migrate', 'enable', 'disable', 'config', 'uninstall', 'package-delete', 'history']) {
+    for (const permission of ['install', 'update', 'migrate', 'enable', 'disable', 'config', 'uninstall', 'purge', 'package-delete', 'history']) {
       expect(page).toContain(`system:plugin:${permission}`);
     }
     expect(configDrawer).toContain("v-perm=\"'system:plugin:config'\"");
@@ -32,20 +32,26 @@ describe('插件中心页面契约', () => {
   it('所有插件确认操作统一通过 confirmAction 处理取消', () => {
     expect(actions).toContain('export async function confirmAction');
     expect(actions).toContain("reason === 'cancel' || reason === 'close'");
-    for (const operation of ['uploadZip', 'operate', 'updatePlugin', 'uninstall', 'deletePackage', 'installMarket', 'installSelectedVersion']) {
+    for (const operation of ['uploadZip', 'operate', 'updatePlugin', 'uninstall', 'purge', 'deletePackage', 'installMarket', 'installSelectedVersion']) {
       expect(page.match(new RegExp(`async function ${operation}\\([\\s\\S]*?confirmAction\\(`))?.[0]).toBeTruthy();
     }
     expect(page).toContain('if (!completed) return;');
   });
 
-  it('purge 二次确认必须精确输入插件名', () => {
+  it('uninstall 与 purge 是独立动作且 purge 必须精确输入插件名', () => {
     expect(actions).toContain("confirmation !== pluginName");
     expect(actions).toContain('purgeConfirm');
+    expect(page).toContain('pluginApi.uninstall(row.name)');
+    expect(page).toContain('pluginApi.purge(row.name, payload.purgeConfirm)');
+    expect(page).not.toContain('pluginApi.uninstall(row.name,');
   });
 
   it('包含账号登录、市场详情版本、本地 ZIP、动态配置和错误历史 UI', () => {
     for (const marker of ['PluginAccountDrawer', 'PluginMarketDrawer', 'PluginConfigDrawer', 'PluginHistoryDrawer', 'accept=".zip"']) {
       expect(page).toContain(marker);
+    }
+    for (const field of ['stage', 'progress', 'recovery_path']) {
+      expect(configDrawer + marketDrawer + readFileSync(resolve(process.cwd(), 'src/views/system/plugin/components/PluginHistoryDrawer.vue'), 'utf8')).toContain(field);
     }
   });
 

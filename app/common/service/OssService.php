@@ -4,6 +4,7 @@ namespace app\common\service;
 
 use app\common\model\Config as ConfigModel;
 use think\App;
+use think\facade\Event;
 
 class OssService extends AbstractService
 {
@@ -27,7 +28,7 @@ class OssService extends AbstractService
             'save'=>$save,
         ];
         try {
-            return hook_one('OssUpload', $param);
+            return Event::trigger('OssUpload', $param, true);
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }

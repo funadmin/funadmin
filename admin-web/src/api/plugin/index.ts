@@ -2,7 +2,7 @@ import http from '@/utils/http';
 
 const PREFIX = '/system/plugin';
 
-export type PluginState = 'discovered' | 'installing' | 'disabled' | 'enabling' | 'enabled' | 'disabling' | 'uninstalling' | 'failed';
+export type PluginState = 'discovered' | 'installing' | 'disabled' | 'updating' | 'enabling' | 'enabled' | 'disabling' | 'uninstalling' | 'failed';
 
 export interface PluginAccount {
   id: number;
@@ -59,6 +59,9 @@ export interface PluginConfigDefinition {
 export interface PluginOperation {
   id: number;
   operation: string;
+  stage: string;
+  progress: number;
+  recovery_path?: string;
   from_version: string;
   to_version: string;
   source: string;
@@ -108,7 +111,8 @@ export const pluginApi = {
   disable: (name: string) => http.post<unknown>(`${PREFIX}/${name}/disable`, undefined, success),
   config: (name: string) => http.get<Record<string, PluginConfigDefinition>>(`${PREFIX}/${name}/config`),
   saveConfig: (name: string, values: Record<string, unknown>) => http.put<unknown>(`${PREFIX}/${name}/config`, { values }, success),
-  uninstall: (name: string, purge = false, purgeConfirm = '') => http.delete<unknown>(`${PREFIX}/${name}/uninstall`, { purge, purgeConfirm }, success),
+  uninstall: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/uninstall`, undefined, success),
+  purge: (name: string, purgeConfirm: string) => http.delete<unknown>(`${PREFIX}/${name}/purge`, { purgeConfirm }, success),
   deletePackage: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/package`, undefined, success),
   history: (name: string) => http.get<Array<Record<string, unknown>>>(`${PREFIX}/${name}/history`),
   operations: (name: string) => http.get<PluginOperation[]>(`${PREFIX}/${name}/operations`),

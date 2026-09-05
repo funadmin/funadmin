@@ -15,10 +15,6 @@ $marketplacePublicKey = str_replace('\\n', "\n", trim($marketplacePublicKey === 
  * Date: 2019/10/3
  */
 return [
-    'autoload' => true,
-    'hooks' => [],
-    'route' => [],
-    'service' => [],
     'marketplace' => [
         'public_key' => $marketplacePublicKey,
         'unsigned_policy' => 'reject_unsigned',

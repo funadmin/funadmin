@@ -11,14 +11,14 @@ use think\Response;
  */
 trait JsonResponse
 {
-    protected function ok(mixed $data = null, string $msg = '操作成功'): Response
+    protected function ok(string $msg = '操作成功', mixed $data = null, int $code = 200): Response
     {
-        return $this->jsonResponse(200, $msg, $data);
+        return $this->jsonResponse($msg, $data, $code);
     }
 
-    protected function fail(string $msg, int $code = 400, mixed $data = null): Response
+    protected function fail(string $msg = '操作失败', mixed $data = null, int $code = 400): Response
     {
-        return $this->jsonResponse($code, $msg, $data, $code);
+        return $this->jsonResponse($msg, $data, $code);
     }
 
     protected function responseHeaders(): array
@@ -26,13 +26,13 @@ trait JsonResponse
         return [];
     }
 
-    private function jsonResponse(int $code, string $msg, mixed $data, int $httpCode = 200): Response
+    private function jsonResponse(string $msg, mixed $data, int $code): Response
     {
         return json([
             'code' => $code,
             'msg' => $msg,
             'time' => time(),
             'data' => $data,
-        ], $httpCode)->header($this->responseHeaders());
+        ], $code)->header($this->responseHeaders());
     }
 }

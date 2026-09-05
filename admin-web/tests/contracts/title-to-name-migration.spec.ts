@@ -25,6 +25,20 @@ describe('015 title→name 改名迁移契约', () => {
     expect(migration).toContain('RENAME INDEX `title` TO `name`');
   });
 
+  it('015 后的 permission 写入必须使用 name，不得继续写入 title', () => {
+    const laterMigrations = ['027_plugin_purge_permission.sql'];
+
+    for (const migrationName of laterMigrations) {
+      const laterMigration = readProjectFile(`database/migrations/${migrationName}`);
+      const permissionInsertColumns = laterMigration.match(
+        /INSERT\s+INTO\s+`fun_permission`\s*\(([^)]+)\)/i
+      )?.[1] ?? '';
+
+      expect(permissionInsertColumns, migrationName).toMatch(/`name`/i);
+      expect(permissionInsertColumns, migrationName).not.toMatch(/`title`/i);
+    }
+  });
+
   it('迁移不包含裸破坏性语句', () => {
     expect(migration).not.toMatch(/^(DROP|TRUNCATE|RENAME)\s/mi);
   });

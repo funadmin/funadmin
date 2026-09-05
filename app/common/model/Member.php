@@ -18,6 +18,7 @@ use app\common\validate\MemberValidate;
 use fun\helper\StringHelper;
 use think\exception\ValidateException;
 use think\facade\Db;
+use think\facade\Event;
 use app\common\model\concern\LaravelSoftDelete;
 
 class  Member extends BaseModel{
@@ -126,7 +127,6 @@ class  Member extends BaseModel{
 //        $content = '亲爱的Fun用户:' . $data['username'] . '<br>您正在激活邮箱，您的验证码为:' . $code . '，请在' . $time / 60 . '分钟内进行验证';
 //        try {
 //            $param = ['to'=>$data['email'],'subject'=>'FunAdmin邮箱激活邮件','content'=>$content];
-////            hook('sendEmail',$param);
 //            cookie('code', $code, $time);
 //            cookie('email', $data['email'], $time);
 //            cookie('username', $data['username'], $time);
@@ -150,7 +150,7 @@ class  Member extends BaseModel{
         $link = __u('member/emailactive',['token' => $token]);
         $content = $this->_geteamilContent($validity/3600, $link);
         $param = ['to'=>$member->email,'subject'=>'FunAdmin 社区激活邮件','content'=>$content];
-        $mail = json_decode( hook('sendEmail',$param),true);
+        $mail = json_decode((string) Event::trigger('sendEmail', $param, true), true);
         if($mail['code']>0){
             cookie('activeToken', json_encode($tokenData));
         }else{

@@ -39,11 +39,18 @@ describe('pluginApi', () => {
     );
   });
 
-  it('purge 卸载发送独立二次确认字段', async () => {
-    await pluginApi.uninstall('demo', true, 'demo');
+  it('卸载与 purge 使用独立端点和请求契约', async () => {
+    await pluginApi.uninstall('demo');
     expect(http.delete).toHaveBeenCalledWith(
       '/system/plugin/demo/uninstall',
-      { purge: true, purgeConfirm: 'demo' },
+      undefined,
+      expect.any(Object)
+    );
+
+    await pluginApi.purge('demo', 'demo');
+    expect(http.delete).toHaveBeenCalledWith(
+      '/system/plugin/demo/purge',
+      { purgeConfirm: 'demo' },
       expect.any(Object)
     );
   });

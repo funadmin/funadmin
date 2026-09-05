@@ -150,7 +150,7 @@ const recycled = ref(false);
 const dialogVisible = ref(false);
 const current = ref<MemberModel | null>(null);
 const fileInput = ref<HTMLInputElement>();
-const options = reactive<MemberOptions>({ groups: [], levels: [] });
+const options = reactive<MemberOptions>({ groups: [], levels: [], tags: [] });
 const query = reactive<MemberQuery>({
   page: 1,
   pageSize: 20,
@@ -167,6 +167,7 @@ const csvColumns: CsvColumn<any>[] = [
   { key: 'email', label: '邮箱' },
   { key: 'sex', label: '性别' },
   { key: 'groupIds', label: '会员组ID', parser: (raw) => raw.split(/[,，]/).map(Number).filter((id) => id > 0) },
+  { key: 'tagIds', label: '会员标签ID', parser: (raw) => raw.split(/[,，]/).map(Number).filter((id) => id > 0) },
   { key: 'levelId', label: '会员等级ID', parser: (raw) => Number(raw) },
   { key: 'avatar', label: '头像' },
   { key: 'status', label: '状态', parser: (raw) => (raw === '0' || raw === '停用' ? 0 : 1) }
@@ -184,6 +185,7 @@ async function loadOptions() {
   const result = await memberApi.options();
   options.groups = result.groups;
   options.levels = result.levels;
+  options.tags = result.tags;
 }
 
 async function loadData() {
@@ -297,6 +299,8 @@ async function exportRows() {
     { key: 'sex', label: '性别' },
     { key: 'groupIds', label: '会员组ID', formatter: (row) => row.groupIds.join(',') },
     { key: 'groupNames', label: '会员组', formatter: (row) => row.groupNames.join(',') },
+    { key: 'tagIds', label: '会员标签ID', formatter: (row) => row.tagIds.join(',') },
+    { key: 'tagNames', label: '会员标签', formatter: (row) => row.tagNames.join(',') },
     { key: 'levelId', label: '会员等级ID' },
     { key: 'levelName', label: '会员等级' },
     { key: 'avatar', label: '头像' },

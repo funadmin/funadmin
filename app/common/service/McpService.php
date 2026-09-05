@@ -2328,18 +2328,9 @@ class {$modelClass} extends BaseModel
             $controllerClass = ucfirst($controller);
             $apiPath = "app/{$module}/controller/v2/{$controllerClass}.php";
             
-            // 检查文件是否已存在
-            if (file_exists($apiPath)) {
-                return [
-                    'success' => false,
-                    'error' => "API文件 {$apiPath} 已存在"
-                ];
-            }
-
             // 生成API内容
             $apiContent = $this->generateApiContent($module, $controllerClass, $fields, $description);
             $routePath = "app/{$module}/route/api.php";
-            $routeContent = is_file($routePath) ? (string) file_get_contents($routePath) : '';
             $routeName = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controllerClass));
             $routeDefinition = $this->generateApiRouteDefinition($routeName, $controllerClass);
             
@@ -2349,20 +2340,36 @@ class {$modelClass} extends BaseModel
                 mkdir($dir, 0755, true);
             }
 
-            if ($routeContent === '' || !str_contains($routeContent, '    // API_ROUTE_END')) {
-                throw new Exception('API 路由文件缺少 API_ROUTE_END 标记');
+            $lock = fopen($routePath . '.lock', 'c');
+            if ($lock === false || !flock($lock, LOCK_EX)) {
+                throw new Exception('无法锁定 API 路由文件');
             }
-            $newRouteContent = str_replace(
-                '    // API_ROUTE_END',
-                $routeDefinition . "\n    // API_ROUTE_END",
-                $routeContent
-            );
-            if (file_put_contents($apiPath, $apiContent) === false) {
-                throw new Exception('API 文件写入失败');
-            }
-            if (file_put_contents($routePath, $newRouteContent) === false) {
-                unlink($apiPath);
-                throw new Exception('API 路由写入失败');
+            try {
+                if (is_file($apiPath)) {
+                    throw new Exception("API 文件 {$apiPath} 已存在");
+                }
+                $routeContent = is_file($routePath) ? (string) file_get_contents($routePath) : '';
+                if ($routeContent === '' || !str_contains($routeContent, '    // API_ROUTE_END')) {
+                    throw new Exception('API 路由文件缺少 API_ROUTE_END 标记');
+                }
+                if (str_contains($routeContent, "Route::group('{$routeName}'")) {
+                    throw new Exception("API 路由 {$routeName} 已存在");
+                }
+                $newRouteContent = str_replace(
+                    '    // API_ROUTE_END',
+                    $routeDefinition . "\n    // API_ROUTE_END",
+                    $routeContent
+                );
+                $this->atomicWrite($apiPath, $apiContent);
+                try {
+                    $this->atomicWrite($routePath, $newRouteContent);
+                } catch (Exception $exception) {
+                    @unlink($apiPath);
+                    throw $exception;
+                }
+            } finally {
+                flock($lock, LOCK_UN);
+                fclose($lock);
             }
 
             Log::info("FunAdmin API文件生成成功: {$apiPath}");
@@ -2687,6 +2694,24 @@ class {$controllerClass} extends Api
                     edit: '{$controller}/edit',
                     delete: '{$controller}/delete',
                     export: '{$controller}/export',";
+    }
+
+    private function atomicWrite(string $file, string $content): void
+    {
+        $directory = dirname($file);
+        $temporary = tempnam($directory, '.api-');
+        if ($temporary === false) {
+            throw new Exception('无法创建 API 临时文件');
+        }
+        try {
+            if (file_put_contents($temporary, $content, LOCK_EX) === false || !rename($temporary, $file)) {
+                throw new Exception('API 文件原子写入失败');
+            }
+        } finally {
+            if (is_file($temporary)) {
+                @unlink($temporary);
+            }
+        }
     }
 
     private function generateApiRouteDefinition(string $routeName, string $controllerClass): string

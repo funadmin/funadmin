@@ -36,6 +36,7 @@ foreach (['needs_reinstall', 'lifecycle_state', "''disabled''", '`status` = 0', 
 }
 coreGapExpect(!preg_match('/RENAME\s+TABLE/i', $adoption), 'adoption 补偿不得重命名或执行旧插件代码');
 coreGapExpect(!str_contains($adoption, 'legacy.`status`'), '不得采信旧插件运行状态');
+coreGapExpect(str_contains($adoption, '`manifest` IS NULL'), '007 已重命名 fun_addon 时，adoption 必须将无新 manifest 的旧记录标记为需重装');
 
 $lifecycleFiles = glob($root . '/database/migrations/*plugin_lifecycle_capabilities.sql') ?: [];
 coreGapExpect(count($lifecycleFiles) === 1, '必须提供唯一 lifecycle capabilities 扩展 migration');

@@ -173,6 +173,21 @@ expect(!preg_match('/function get_plugin_info\([^)]*\)[\s\S]{0,300}get_plugin_in
 foreach (['refreshplugins', 'plugins_vendor_autoload', 'set_app_route', 'set_plugin_config', 'set_plugin_info', 'get_plugin_class', 'get_plugin_instance', 'get_plugin_menu', 'run_plugin_migrations'] as $legacyFunction) {
     expect(!preg_match('/function\\s+' . preg_quote($legacyFunction, '/') . '\\s*\\(/', (string) $functionsSource), 'plugin.php 不得保留运行时旁路：' . $legacyFunction);
 }
+$repositoryRoot = dirname(__DIR__);
+$runtimePhpFiles = array_filter(array_merge(
+    glob($repositoryRoot . '/app/**/*.php') ?: [],
+    glob($repositoryRoot . '/app/*/**/*.php') ?: [],
+    glob($repositoryRoot . '/app/*/*/**/*.php') ?: []
+));
+foreach ($runtimePhpFiles as $runtimePhpFile) {
+    $runtimeSource = (string) file_get_contents($runtimePhpFile);
+    expect(!preg_match('/\\bhook(?:_one)?\\s*\\(/', $runtimeSource), '应用运行时代码不得调用已删除的旧 hook：' . $runtimePhpFile);
+}
+expect(!is_file($repositoryRoot . '/extend/fun/plugins/Controller.php'), '旧通配插件 Controller 必须删除');
+$pluginsConfig = require $repositoryRoot . '/config/plugins.php';
+foreach (['autoload', 'hooks', 'route', 'service'] as $legacyConfigKey) {
+    expect(!array_key_exists($legacyConfigKey, $pluginsConfig), 'plugins 配置不得保留旧 runtime 键：' . $legacyConfigKey);
+}
 expect(!str_contains((string) $functionsSource, 'spl_autoload_register'), 'plugin.php 不得注册旧插件 autoload');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/Route.php'), '旧插件通配路由执行器必须移除');
 expect(!is_file(dirname(__DIR__) . '/extend/fun/plugins/middleware/Plugins.php'), '旧插件全局 hook 中间件必须移除');

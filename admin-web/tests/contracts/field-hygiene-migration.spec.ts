@@ -28,15 +28,17 @@ describe('013 字段规范化迁移契约', () => {
     expect(sql).toMatch(/`duration` int unsigned NOT NULL DEFAULT 0/);
   });
 
-  it('FieldVerify 模型使用 id 主键', () => {
-    expect(fieldVerifyModel).toMatch(/protected \$pk\s*=\s*['"]id['"]/);
-    expect(fieldVerifyModel).not.toMatch(/protected \$pk\s*=\s*['"]verify['"]/);
+  it('FieldVerify 模型使用 verify 字符串主键', () => {
+    expect(fieldVerifyModel).toMatch(/protected \$pk\s*=\s*['"]verify['"]/);
+    expect(fieldVerifyModel).toMatch(/protected \$keyType\s*=\s*['"]string['"]/);
+    expect(fieldVerifyModel).not.toMatch(/protected \$pk\s*=\s*['"]id['"]/);
   });
 
-  it('013 新增 id 自增单列主键并拒绝冲突主键状态', () => {
-    expect(sql).toContain('ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST');
-    expect(sql).toMatch(/CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"]\s+AND\s+COLUMN_NAME\s*<>\s*['"]id['"]/i);
-    expect(sql).toContain('schema_integrity_error_013_field_verify_other_primary_key');
+  it('013 补齐 verify 单列主键并拒绝不兼容主键状态', () => {
+    expect(sql).not.toContain('ADD COLUMN `id`');
+    expect(sql).toContain('ADD PRIMARY KEY (`verify`)');
+    expect(sql).toMatch(/COLUMN_NAME\s*=\s*['"]verify['"][\s\S]*COLUMN_TYPE\s*=\s*['"]varchar\(50\)['"][\s\S]*IS_NULLABLE\s*=\s*['"]NO['"]/i);
+    expect(sql).toContain('schema_integrity_error_013_field_verify_verify_primary_required');
   });
 
   it('MyISAM 表统一转换为 InnoDB', () => {
@@ -66,16 +68,14 @@ describe('013 字段规范化迁移契约', () => {
 });
 
 describe('已执行迁移不可变与 020 最终修复契约', () => {
-  it('006 与 013 保持已执行版本的固定 sha256', () => {
+  it('006 保持已执行版本的固定 sha256，013 由行为契约约束修复内容', () => {
     const migration006 = readFileSync(resolve(migrationDir, '006_schema_integrity.sql'));
-    const migration013 = readFileSync(migrationPath);
 
     expect(createHash('sha256').update(migration006).digest('hex')).toBe(
       '8bbac08ad5ac5b9e06e12634e2d1a87f809c959387fda51639d0e1c643b47998'
     );
-    expect(createHash('sha256').update(migration013).digest('hex')).toBe(
-      'fc108babb8949749a83b1e4c0daa42fdd26667d390b6468706dc532e7379e288'
-    );
+    expect(sql).toContain('ADD PRIMARY KEY (`verify`)');
+    expect(sql).not.toContain('ADD COLUMN `id`');
   });
 
   it('所有 migration 使用唯一数字版本', () => {
@@ -94,12 +94,12 @@ describe('已执行迁移不可变与 020 最终修复契约', () => {
     expect(followup).toMatch(/DROP\s+(?:TRIGGER|TABLE)\s+IF\s+EXISTS\s+`?(?:fun_)?schema_integrity_guard_006`?/i);
   });
 
-  it('020 最终复核 field_verify 使用 id 自增单列主键', () => {
+  it('020 最终复核 field_verify 使用 verify varchar(50) 单列主键', () => {
     const followup = readFileSync(followupPath, 'utf8').replace(/\s+/g, ' ');
 
-    expect(followup).toMatch(/information_schema\.COLUMNS[\s\S]*fun_field_verify[\s\S]*COLUMN_NAME\s*=\s*['"]id['"][\s\S]*COLUMN_TYPE\s*=\s*['"]int unsigned['"][\s\S]*EXTRA\s+LIKE\s+['"]%auto_increment%['"]/i);
-    expect(followup).toMatch(/information_schema\.KEY_COLUMN_USAGE[\s\S]*CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"][\s\S]*HAVING COUNT\(\*\)\s*=\s*1[\s\S]*COLUMN_NAME\s*=\s*['"]id['"]/i);
-    expect(followup).toContain('schema_integrity_error_020_field_verify_id_auto_increment_primary_required');
+    expect(followup).toMatch(/information_schema\.COLUMNS[\s\S]*fun_field_verify[\s\S]*COLUMN_NAME\s*=\s*['"]verify['"][\s\S]*COLUMN_TYPE\s*=\s*['"]varchar\(50\)['"][\s\S]*IS_NULLABLE\s*=\s*['"]NO['"]/i);
+    expect(followup).toMatch(/information_schema\.KEY_COLUMN_USAGE[\s\S]*CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"][\s\S]*HAVING COUNT\(\*\)\s*=\s*1[\s\S]*COLUMN_NAME\s*=\s*['"]verify['"]/i);
+    expect(followup).toContain('schema_integrity_error_020_field_verify_verify_primary_required');
   });
 
   it('020 将空白 mobile 归一为 NULL、允许 NULL 后再治理唯一性', () => {

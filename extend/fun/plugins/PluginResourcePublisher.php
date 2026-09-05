@@ -168,7 +168,20 @@ final class PluginResourcePublisher
         if (!str_starts_with($target, $public . DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('资源目标路径越界');
         }
+        $this->assertNoTargetSymlink($public, $target);
         return $target;
+    }
+
+    private function assertNoTargetSymlink(string $public, string $target): void
+    {
+        $relative = substr($target, strlen($public) + 1);
+        $current = $public;
+        foreach (explode(DIRECTORY_SEPARATOR, $relative) as $segment) {
+            $current .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($current)) {
+                throw new RuntimeException('资源目标路径禁止符号链接：' . $relative);
+            }
+        }
     }
 
     private function canonicalDirectory(string $directory): string

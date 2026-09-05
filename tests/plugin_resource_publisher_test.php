@@ -86,6 +86,22 @@ $registry[] = ['plugin' => 'third', 'version' => '1.0.0', 'source_path' => 'x', 
 $registry[] = ['plugin' => 'third', 'version' => '1.0.0', 'source_path' => 'y', 'target_path' => 'plugin-assets/other/public/app.css', 'sha256' => hash('sha256', 'y')];
 resourceReject(static fn () => $publisher->publish(Manifest::fromDirectory($plugins . '/other')), '其他插件');
 
+$outside = $root . '/outside';
+mkdir($outside, 0755, true);
+mkdir($public . '/plugin-assets/symlinked', 0755, true);
+resourceExpect(symlink($outside, $public . '/plugin-assets/symlinked/public'), '测试环境必须能创建目标目录符号链接');
+$symlinkManifestData = json_decode((string) file_get_contents($plugins . '/demo/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
+$symlinkManifestData['resources']['public']['target'] = 'plugin-assets/symlinked/public';
+file_put_contents($plugins . '/demo/plugin.json', json_encode($symlinkManifestData, JSON_UNESCAPED_SLASHES));
+resourceReject(static fn () => $publisher->publish(Manifest::fromDirectory($plugins . '/demo')), '符号链接');
+resourceExpect(!is_file($outside . '/app.css'), '目标中间目录符号链接不得逃逸 public 根目录');
+file_put_contents($plugins . '/demo/plugin.json', json_encode(array_replace_recursive($symlinkManifestData, [
+    'resources' => ['public' => ['target' => 'plugin-assets/demo/public']],
+]), JSON_UNESCAPED_SLASHES));
+unlink($public . '/plugin-assets/symlinked/public');
+rmdir($public . '/plugin-assets/symlinked');
+rmdir($outside);
+
 $beforeFailedPublishRegistry = $registry;
 file_put_contents($plugins . '/demo/resources/admin/entry.js', 'demo-entry-v2');
 file_put_contents($plugins . '/demo/resources/admin/fail.js', 'must-rollback');

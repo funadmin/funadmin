@@ -7,6 +7,7 @@ use app\common\traits\Jump;
 use think\App;
 use think\Exception;
 use think\facade\Cache;
+use think\facade\Event;
 use think\facade\Request;
 use think\file\UploadedFile;
 use think\Image;
@@ -323,7 +324,7 @@ class UploadService extends AbstractService
             $storedFile = $storageDriver->store($this->file, $saveFilePath, $this->rule);
             $path = $storedFile->url;
             // 整合上传接口 获取视频音频长度
-            $analyzeFileInfo = hook_one('getID3Hook',['path'=>'.'. "/" .$path]);
+            $analyzeFileInfo = Event::trigger('getID3Hook', ['path' => './' . $path], true);
             if($analyzeFileInfo) {
                 $analyzeFileInfo = unserialize($analyzeFileInfo);
                 $this->duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
@@ -358,7 +359,7 @@ class UploadService extends AbstractService
                 throw $e;
             }
         }
-        hook_one('afterUploadFile',$this->file);
+        Event::trigger('afterUploadFile', $this->file, true);
         return $attach;
 
     }

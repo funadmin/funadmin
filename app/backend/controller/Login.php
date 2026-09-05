@@ -19,6 +19,7 @@ use Exception;
 use fun\helper\SignHelper;
 use http\Header;
 use think\App;
+use think\facade\Event;
 
 class Login extends Backend {
 
@@ -40,7 +41,8 @@ class Login extends Backend {
             if ($admin) {
                 $this->redirect(__u('index/index'));
             }
-            $bg = hook_one('bgHook')?hook_one('bgHook'):'/static/backend/images/admin-bg.jpg';
+            $background = Event::trigger('bgHook', null, true);
+            $bg = is_string($background) && $background !== '' ? $background : '/static/backend/images/admin-bg.jpg';
             $view = ['bg'=>$bg];
             return view('',$view);
         } else {

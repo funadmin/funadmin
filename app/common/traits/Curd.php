@@ -19,6 +19,7 @@ use fun\helper\TreeHelper;
 use OpenAI\Responses\Images\VariationResponse;
 use think\facade\Cache;
 use think\facade\Db;
+use think\facade\Event;
 use think\helper\Str;
 use think\model\concern\SoftDelete;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -482,7 +483,7 @@ trait Curd
             'fileName'=>$fileName,
             'list'=>$list,
         ];
-        $res = hook_one('exportExcel',$param);
+        $res = Event::trigger('exportExcel', $param, true);
         if($res){
             $this->success(lang('export success'));
         }

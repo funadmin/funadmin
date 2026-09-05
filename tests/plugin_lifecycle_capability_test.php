@@ -63,4 +63,12 @@ $guard->assertDeployable('demo', '3.0.0', '004_data.sql');
 lifecycleReject(static fn () => $guard->assertDeployable('demo', '1.0.0', '004_data.sql'), '数据库能力');
 lifecycleReject(static fn () => $guard->assertDeployable('demo', '0.9.0', '004_data.sql'), '版本历史');
 
+$pluginServiceSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginService.php');
+lifecycleExpect(str_contains($pluginServiceSource, "'result' => 'failed'"), '生命周期失败必须写入 operation history');
+lifecycleExpect(str_contains($pluginServiceSource, '$this->operationProgress[$name]'), '最外层操作必须跟踪并清理阶段进度');
+$runPackageStart = strpos($pluginServiceSource, 'public function runPackageOperation');
+$recordFailureStart = strpos($pluginServiceSource, 'public function recordFailure');
+$runPackageSource = substr($pluginServiceSource, $runPackageStart, $recordFailureStart - $runPackageStart);
+lifecycleExpect(!str_contains($runPackageSource, 'unset($this->packageOperationTokens'), 'package 回调不得在失败审计前清空阶段上下文');
+
 echo "plugin lifecycle capability tests: PASS\n";

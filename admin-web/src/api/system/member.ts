@@ -10,6 +10,7 @@ export interface MemberOption {
 export interface MemberOptions {
   groups: MemberOption[];
   levels: MemberOption[];
+  tags: MemberOption[];
 }
 
 export interface MemberModel {
@@ -20,6 +21,8 @@ export interface MemberModel {
   sex: '0' | '1' | '2';
   groupIds: number[];
   groupNames: string[];
+  tagIds: number[];
+  tagNames: string[];
   levelId: number;
   levelName: string;
   avatar: string;
@@ -42,7 +45,7 @@ export interface MemberQuery {
   recycled?: 0 | 1;
 }
 
-export type MemberPayload = Pick<MemberModel, 'username' | 'mobile' | 'email' | 'sex' | 'groupIds' | 'levelId' | 'avatar' | 'status'>;
+export type MemberPayload = Pick<MemberModel, 'username' | 'mobile' | 'email' | 'sex' | 'groupIds' | 'tagIds' | 'levelId' | 'avatar' | 'status'>;
 
 export interface MemberImportResult {
   created: number;

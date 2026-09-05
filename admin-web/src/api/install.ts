@@ -1,18 +1,25 @@
 import axios from 'axios';
 import type { EnvironmentCheck, InstallForm } from '@/views/install/install';
 
-const installHttp = axios.create({
+export const installHttp = axios.create({
   baseURL: '/install.php/index',
   timeout: 120_000,
   withCredentials: true,
   headers: { 'X-Requested-With': 'XMLHttpRequest' }
 });
 
-installHttp.interceptors.response.use((response) => {
-  const payload = response.data as API.Response;
-  if (payload.code === 200) return payload.data;
-  return Promise.reject(new Error(payload.msg || '安装请求失败'));
-});
+installHttp.interceptors.response.use(
+  (response) => {
+    const payload = response.data as API.Response;
+    if (payload.code === 200) return payload.data;
+    return Promise.reject(new Error(payload.msg || '安装请求失败'));
+  },
+  (error) => {
+    // 后端 fail() 走 HTTP 状态码：优先透出业务 msg，避免 axios 通用报错淹没原因
+    const payload = error?.response?.data as API.Response | undefined;
+    return Promise.reject(new Error(payload?.msg || error?.message || '安装请求失败'));
+  }
+);
 
 export interface InstallEnvironment {
   installed: boolean;

@@ -26,6 +26,7 @@ export const pluginMockHandlers: MockRoute[] = [
   { method: 'GET', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/operations$/, paramNames: ['name'], handler: () => ok([]) },
   { method: 'POST', url: /^\/system\/plugin\/cloud\/([a-z][a-z0-9]*)\/install$/, paramNames: ['name'], handler: ({ body }) => body.version ? ok(true) : fail('version 必填', 422) },
   { method: 'POST', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/(update|migrate|enable|disable)$/, paramNames: ['name', 'action'], handler: () => ok(true) },
-  { method: 'DELETE', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/uninstall$/, paramNames: ['name'], handler: ({ params, pathParams }) => params.purge && params.purgeConfirm !== pathParams.name ? fail('二次确认失败', 422) : ok(true) },
+  { method: 'DELETE', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/uninstall$/, paramNames: ['name'], handler: () => ok(true) },
+  { method: 'DELETE', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/purge$/, paramNames: ['name'], handler: ({ params, pathParams }) => params.purgeConfirm !== pathParams.name ? fail('二次确认失败', 422) : ok(true) },
   { method: 'DELETE', url: /^\/system\/plugin\/([a-z][a-z0-9]*)\/package$/, paramNames: ['name'], handler: () => ok(true) }
 ];

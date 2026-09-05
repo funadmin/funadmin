@@ -5,8 +5,6 @@ import { useUserStore } from '@/store/modules/user';
 import { usePermissionStore } from '@/store/modules/permission';
 import { APP_CONFIG, ROUTE_WHITELIST } from '@/config';
 import { i18n } from '@/locales';
-import { isSystemInstalled } from '@/api/install';
-import { anonymousTarget } from '@/views/install/install';
 import { loadPluginModulesSafely } from '@/router/pluginStartup';
 
 const LOGIN_PATH = '/login';
@@ -30,10 +28,7 @@ export function setupRouterGuard(router: Router) {
 
     if (!userStore.isLoggedIn) {
       if (ROUTE_WHITELIST.includes(to.path)) return next();
-      // 未安装时匿名访问统一引导到安装向导，而不是登录页
-      const installed = await isSystemInstalled();
-      const target = anonymousTarget(installed);
-      return next({ path: target, query: target === LOGIN_PATH ? { redirect: to.fullPath } : {} });
+      return next({ path: LOGIN_PATH, query: { redirect: to.fullPath } });
     }
     if (to.path === LOGIN_PATH) return next({ path: HOME_PATH });
     if (permissionStore.mounted) return next();

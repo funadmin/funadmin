@@ -170,13 +170,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus';
 import { useUserStore } from '@/store/modules/user';
 import { APP_CONFIG } from '@/config';
-import { isSystemInstalled } from '@/api/install';
 import Captcha from '@/components/Captcha/index.vue';
 import LogoMark from '@/components/LogoMark.vue';
 
@@ -198,11 +197,6 @@ const form = reactive({
   password: '123456',
   captcha: '',
   remember: true
-});
-
-// 未安装时直接打开登录页也弹回安装向导
-onMounted(async () => {
-  if (!(await isSystemInstalled())) router.replace('/install');
 });
 
 const rules = computed<FormRules>(() => ({
