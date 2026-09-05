@@ -63,7 +63,7 @@ final class PluginResourcePublisher
                         ),
                         'target_path' => $targetPath,
                         'sha256' => $sha256,
-                        'create_time' => date('Y-m-d H:i:s'),
+                        'created_at' => date('Y-m-d H:i:s'),
                     ];
                 }
             }
