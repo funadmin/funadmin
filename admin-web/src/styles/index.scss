@@ -682,6 +682,17 @@ html.dark .el-select:not(.is-disabled) .el-select__wrapper:hover:not(.is-focused
   overflow: visible;
 }
 
+/* EP 展开子菜单时会程序化聚焦父节点；禁止焦点样式包住整个顶栏项或弹层。 */
+.app-top-menu .el-sub-menu:focus,
+.app-top-menu .el-sub-menu:focus-visible,
+.app-top-menu .el-sub-menu__title:focus,
+.app-top-menu .el-sub-menu__title:focus-visible,
+.app-top-menu-popper.el-menu--popup-container:focus,
+.app-top-menu-popper.el-menu--popup-container:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .app-top-menu-popper .el-menu.el-menu--popup {
   overflow: visible;
   padding: var(--app-top-menu-popup-pad);
@@ -2091,7 +2102,7 @@ button:focus-visible,
  * EP 的复合组件会在内部节点写 tabindex；输入框由 wrapper 表达焦点，
  * 菜单和弹层由内部背景表达焦点，均不能再套通用外圈。
  */
-[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper):not(.el-menu):not(.el-menu-item):not(.el-sub-menu__title):not(.el-popper),
+[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper):not(.el-menu):not(.el-menu-item):not(.el-sub-menu):not(.el-sub-menu__title):not(.el-menu--popup-container):not(.el-popper),
 .el-button:focus-visible,
 .el-checkbox__input:focus-visible .el-checkbox__inner,
 .el-radio__input:focus-visible .el-radio__inner,

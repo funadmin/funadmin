@@ -8,8 +8,8 @@ interface MockMemberGroup extends MemberGroupModel {
 const now = () => new Date().toISOString().slice(0, 19).replace('T', ' ');
 const referencedIds = new Set([1]);
 const rows: MockMemberGroup[] = [
-  { id: 1, name: '默认组', status: 1, isDefault: 1, createdAt: '2018-01-08 12:41:08', updatedAt: '', deletedAt: '', deleted: false },
-  { id: 2, name: 'VIP 会员', status: 1, isDefault: 0, createdAt: now(), updatedAt: now(), deletedAt: '', deleted: false }
+  { id: 1, name: '默认组', icon: 'i-ep-user', status: 1, isDefault: 1, createdAt: '2018-01-08 12:41:08', updatedAt: '', deletedAt: '', deleted: false },
+  { id: 2, name: 'VIP 会员', icon: 'i-ep-wallet', status: 1, isDefault: 0, createdAt: now(), updatedAt: now(), deletedAt: '', deleted: false }
 ];
 
 function visible(row: MockMemberGroup): MemberGroupModel {
@@ -83,6 +83,7 @@ export const memberGroupMockHandlers: MockRoute[] = [
       const row: MockMemberGroup = {
         id: Math.max(...rows.map((item) => item.id)) + 1,
         name,
+        icon: String(body.icon ?? '').slice(0, 50),
         status: Number(body.status) === 1 ? 1 : 0,
         isDefault: 0,
         createdAt: now(),
@@ -106,6 +107,7 @@ export const memberGroupMockHandlers: MockRoute[] = [
       if (error) return fail(error, 422);
       if (rows.some((item) => item.id !== id && item.name.toLowerCase() === name.toLowerCase())) return fail('会员组名称已存在', 422);
       row.name = name;
+      row.icon = String(body.icon ?? row.icon).slice(0, 50);
       row.status = Number(body.status ?? row.status) === 1 ? 1 : 0;
       row.updatedAt = now();
       return ok(visible(row), '保存成功');

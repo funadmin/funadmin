@@ -11,6 +11,9 @@
       <el-form-item label="会员组名称" prop="name">
         <el-input v-model="form.name" maxlength="50" show-word-limit placeholder="请输入会员组名称" />
       </el-form-item>
+      <el-form-item label="图标" prop="icon">
+        <IconSelect v-model="form.icon" />
+      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-radio-group v-model="form.status">
           <el-radio :value="1">启用</el-radio>
@@ -29,6 +32,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import type { FormInstance, FormRules } from 'element-plus';
 import { memberGroupApi, type MemberGroupModel } from '@/api/system/memberGroup';
+import IconSelect from '@/components/IconSelect/index.vue';
 
 const props = withDefaults(defineProps<{ modelValue: boolean; row?: MemberGroupModel | null }>(), { row: null });
 const emit = defineEmits<{
@@ -41,7 +45,7 @@ const visible = computed({
 });
 const formRef = ref<FormInstance>();
 const saving = ref(false);
-const initialForm = () => ({ name: '', status: 1 as 0 | 1 });
+const initialForm = () => ({ name: '', icon: '', status: 1 as 0 | 1 });
 const form = reactive(initialForm());
 const rules: FormRules = {
   name: [
@@ -53,7 +57,7 @@ const rules: FormRules = {
 watch(
   () => [props.modelValue, props.row] as const,
   ([opened, row]) => {
-    if (opened) Object.assign(form, initialForm(), row ? { name: row.name, status: row.status } : {});
+    if (opened) Object.assign(form, initialForm(), row ? { name: row.name, icon: row.icon, status: row.status } : {});
   },
   { immediate: true }
 );

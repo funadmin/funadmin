@@ -1,0 +1,1 @@
+import{At as e,Et as t,Ut as n,zt as r}from"./element-Cv5vGE3z.js";import{c as i,s as a}from"./vue-g9lGJFaJ.js";var o=e({__name:`index`,setup(e){let o=a(),s=i();return r(()=>{let{params:e,query:t}=o,n=e.path||``;s.replace({path:`/`+n,query:t})}),(e,r)=>(n(),t(`div`))}});export{o as default};

@@ -4,7 +4,7 @@
       <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">市场账号</el-button>
       <el-button type="success" plain v-perm="'system:plugin:install'" @click="uploadInput?.click()">上传本地 ZIP</el-button>
       <input ref="uploadInput" class="hidden" type="file" accept=".zip" @change="uploadZip" />
-      <el-button plain @click="load">刷新</el-button>
+      <el-button type="info" plain @click="load">刷新</el-button>
     </div>
     <el-tabs v-model="activeTab" @tab-change="load">
       <el-tab-pane label="已安装" name="installed" />
@@ -25,15 +25,15 @@
       <el-table-column prop="lastError" label="error" min-width="180" show-overflow-tooltip />
       <el-table-column label="操作" min-width="430" fixed="right">
         <template #default="{ row }">
-          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:install'" @click="installDiscovered(row)">安装</el-button>
-          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" @click="updatePlugin(row)">更新</el-button>
-          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" @click="operate(row, 'migrate')">迁移</el-button>
-          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" @click="operate(row, 'enable')">启用</el-button>
-          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" @click="operate(row, 'disable')">禁用</el-button>
-          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row)">配置</el-button>
-          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row)">历史</el-button>
-          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" @click="uninstall(row)">卸载</el-button>
-          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row)">删除包</el-button>
+          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:install'" @click="installDiscovered(row as PluginItem)">安装</el-button>
+          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" @click="updatePlugin(row as PluginItem)">更新</el-button>
+          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" @click="operate(row as PluginItem, 'migrate')">迁移</el-button>
+          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" @click="operate(row as PluginItem, 'enable')">启用</el-button>
+          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" @click="operate(row as PluginItem, 'disable')">禁用</el-button>
+          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row as PluginItem)">配置</el-button>
+          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row as PluginItem)">历史</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" @click="uninstall(row as PluginItem)">卸载</el-button>
+          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row as PluginItem)">删除包</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -44,7 +44,7 @@
         <el-table-column prop="name" label="code" width="130" /><el-table-column prop="title" label="名称" width="150" />
         <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
         <el-table-column label="latest version" width="120"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
-        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" @click="installMarket(row)">安装</el-button></template></el-table-column>
+        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row as MarketplacePlugin)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" @click="installMarket(row as MarketplacePlugin)">安装</el-button></template></el-table-column>
       </el-table>
     </template>
 

@@ -7,8 +7,7 @@ import { APP_CONFIG, ROUTE_WHITELIST } from '@/config';
 import { i18n } from '@/locales';
 import { isSystemInstalled } from '@/api/install';
 import { anonymousTarget } from '@/views/install/install';
-import { pluginApi } from '@/api/plugin';
-import { syncPluginModules } from '@/router/pluginModules';
+import { loadPluginModulesSafely } from '@/router/pluginStartup';
 
 const LOGIN_PATH = '/login';
 const HOME_PATH = '/dashboard';
@@ -45,8 +44,7 @@ export function setupRouterGuard(router: Router) {
         permissionStore.fetchMenus()
       ]);
       dynamicRoutes.forEach((route) => router.addRoute(route));
-      const moduleResult = await syncPluginModules(router, await pluginApi.enabledModules());
-      moduleResult.errors.forEach((error) => console.error(`[plugin:${error.name}]`, error.message));
+      await loadPluginModulesSafely(router);
       if (!router.hasRoute('NotFound')) {
         router.addRoute({
           path: '/:pathMatch(.*)*',

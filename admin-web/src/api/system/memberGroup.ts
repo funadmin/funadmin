@@ -5,6 +5,7 @@ const PREFIX = '/system/member-group';
 export interface MemberGroupModel {
   id: number;
   name: string;
+  icon: string;
   status: 0 | 1;
   isDefault: 0 | 1;
   createdAt: string;
@@ -23,9 +24,9 @@ export interface MemberGroupQuery {
 export const memberGroupApi = {
   list: (params: MemberGroupQuery) => http.get<API.PageResult<MemberGroupModel>>(PREFIX, { params }),
   detail: (id: number) => http.get<MemberGroupModel>(`${PREFIX}/${id}`),
-  create: (data: Pick<MemberGroupModel, 'name' | 'status'>) =>
+  create: (data: Pick<MemberGroupModel, 'name' | 'icon' | 'status'>) =>
     http.post<MemberGroupModel>(PREFIX, data, { requestOptions: { showSuccessMsg: true } }),
-  update: (id: number, data: Pick<MemberGroupModel, 'name' | 'status'>) =>
+  update: (id: number, data: Pick<MemberGroupModel, 'name' | 'icon' | 'status'>) =>
     http.put<MemberGroupModel>(`${PREFIX}/${id}`, data, { requestOptions: { showSuccessMsg: true } }),
   updateStatus: (id: number, status: 0 | 1) =>
     http.post<MemberGroupModel>(`${PREFIX}/${id}/status`, { status }, { requestOptions: { showSuccessMsg: true } }),

@@ -1,26 +1,40 @@
 <?php
-/**
- * +
- * | 后台中间件验证权限
- */
+
+declare(strict_types=1);
+
 namespace app\backend\middleware;
 
-
 use app\common\service\AdminLogService;
+use Closure;
+use think\facade\Log;
+use think\Request;
+use think\Response;
+use Throwable;
 
+/**
+ * 在后台请求完成后统一记录操作审计。
+ */
 class SystemLog
 {
-    public function handle($request, \Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
+        try {
+            $response = $next($request);
+        } catch (Throwable $exception) {
+            $this->record($request, null, 0);
+            throw $exception;
+        }
 
-        //进行操作日志的记录
-        AdminLogService::instance()->save();
-        //中间件handle方法的返回值必须是一个Response对象。
-        return $next($request);
+        $this->record($request, $response);
+        return $response;
     }
-    //中间件支持定义请求结束前的回调机制，你只需要在中间件类中添加end方法。
-    public function end(\think\Response $response)
+
+    private function record(Request $request, ?Response $response, ?int $status = null): void
     {
-        // 回调行为
+        try {
+            AdminLogService::instance()->save($request, $response, $status);
+        } catch (Throwable $exception) {
+            Log::error('后台操作日志写入失败：' . $exception->getMessage());
+        }
     }
 }

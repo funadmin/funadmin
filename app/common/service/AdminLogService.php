@@ -14,95 +14,56 @@ namespace app\common\service;
 
 use app\backend\model\AdminLog;
 use app\backend\model\Permission;
-use think\App;
-use think\facade\Request;
+use app\backend\service\PermissionResource;
 use think\facade\Session;
+use think\Request;
+use think\Response;
 
 class AdminLogService extends AbstractService
 {
-    /**
-     * @var string
-     * title
-     */
-    protected  $title = '';
-    //自定义日志内容
-    protected  $post_data = '';
-    protected  $get_data = '';
-    protected  $header_data = '';
-    protected  $method = '';
-    protected  $ip = '';
-    protected  $agent = '';
-    protected  $app = '';
-    protected  $controller = '';
-    protected  $action = '';
-    protected  $admin_id = '';
-    protected  $username = '';
-    /**
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     * 保存记录
-     */
+    public function save(Request $request, ?Response $response = null, ?int $status = null): void
+    {
+        $module = app('http')->getName();
+        $controller = (string) $request->controller(true);
+        $action = (string) ($request->action() ?: 'index');
+        $url = str_replace('.' . config('view.view_suffix'), '', $request->pathinfo());
+        $resource = PermissionResource::fromParts($module, $controller, $action);
+        $title = (string) (Permission::where('code', $resource['code'])->value('title') ?: '');
+        if ($title === '') {
+            $title = $controller . '/' . $action;
+        }
 
-    public function __construct(App $app)
-    {
-        parent::__construct($app);
-        $this->post_data = json_encode($this->sanitize(Request::post()), JSON_UNESCAPED_UNICODE);
-        $this->get_data = json_encode($this->sanitize(Request::get()), JSON_UNESCAPED_UNICODE);
-        $headers = Request::header();
-        foreach (['authorization', 'cookie', 'x-csrf-token'] as $name) {
-            unset($headers[$name]);
-        }
-        $this->header_data = json_encode($headers, JSON_UNESCAPED_UNICODE);
-        $this->method = Request::method();
-        $this->ip = Request::ip();
-        $this->agent =Request::server('HTTP_USER_AGENT');
-        $this->app =  app('http')->getName();
-        $this->admin_id   = Session::get('admin.id',0);
-        $this->username   = Session::get('admin.username','Unknown');
-    }
-    public function save()
-    {
-        $url        = (Request::pathinfo());
-        $content    = Request::param();
-        $this->controller = Request::controller();
-        $this->action = Request::action();
-        if (strpos($url, 'enlang') !== false && Request::isAjax()) {
-            $this->title = '[切换语言]';
-        }elseif (strpos($url, 'ajax/clearData') !== false && Request::isAjax()) {
-            $this->title = '[清楚缓存]';
-        }elseif (strpos($url, 'login/index') !== false && Request::isAjax()) {
-            $this->title = '[登录成功]';
-            $this->username = json_decode($this->post_data,true)['username'];
-        }else{
-            //权限
-            $url = str_replace('.'.config('view.view_suffix'),'',$url);
-            $resource = null;
-            if ($this->controller !== '' && $this->action !== '') {
-                $resource = \app\backend\service\PermissionResource::fromParts($this->app, $this->controller, $this->action);
+        $headers = $request->header();
+        foreach (array_keys($headers) as $name) {
+            if (in_array(strtolower((string) $name), ['authorization', 'cookie', 'x-csrf-token'], true)) {
+                unset($headers[$name]);
             }
-            $resource ??= \app\backend\service\PermissionResource::fromRoute($this->app, $url);
-            $this->title = $resource ? Permission::where('code', $resource['code'])->value('title') : '';
         }
-        //插入数据
-        if (!empty($this->title) && !empty($content)) {
-            AdminLog::create([
-                'title'       => $this->title ?: '',
-                'admin_id'    => $this->admin_id,
-                'username'    => $this->username,
-                'url'         => $url,
-                'plugins'      => 'app',
-                'module'      => $this->app,
-                'controller'      => $this->controller,
-                'action'      => $this->action,
-                'get_data'     => $this->get_data,
-                'post_data'     => $this->post_data,
-                'header_data'     => $this->header_data,
-                'agent'       => $this->agent,
-                'ip'          => $this->ip,
-                'method'      => $this->method,
-            ]);
-        }
+        $responseCode = $response?->getCode() ?? 500;
+        $succeeded = $status ?? ($responseCode >= 200 && $responseCode < 400 ? 1 : 0);
+
+        AdminLog::create([
+            'title' => $title,
+            'admin_id' => (int) Session::get('admin.id', 0),
+            'username' => (string) Session::get('admin.username', 'Unknown'),
+            'url' => $url,
+            'plugins' => 'app',
+                'module' => $module,
+            'controller' => $controller,
+            'action' => $action,
+            'get_data' => $this->encode($this->sanitize($request->get())),
+            'post_data' => $this->encode($this->sanitize($request->post())),
+            'header_data' => $this->encode($headers),
+            'agent' => (string) $request->server('HTTP_USER_AGENT', ''),
+            'ip' => $request->ip(),
+            'method' => $request->method(),
+            'status' => $succeeded,
+        ]);
+    }
+
+    private function encode(array $data): string
+    {
+        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}';
     }
 
     private function sanitize(array $data): array

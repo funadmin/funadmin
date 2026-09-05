@@ -131,11 +131,11 @@ function onSelect(index: string) {
   background: var(--app-header-item-hover-bg) !important;
   color: var(--el-color-primary) !important;
 }
-.app-top-menu :deep(.el-menu-item.is-active),
-.app-top-menu :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+.app-top-menu.el-menu--horizontal > :deep(.el-menu-item.is-active),
+.app-top-menu.el-menu--horizontal > :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
   border-bottom-color: var(--el-color-primary) !important;
   color: var(--el-color-primary) !important;
-  background: transparent !important;
+  background: color-mix(in srgb, var(--el-color-primary) 10%, var(--app-header-bg)) !important;
 }
 .app-top-icon {
   display: inline-block;

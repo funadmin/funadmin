@@ -50,6 +50,11 @@
           <el-table-column type="selection" width="48" align="center" :selectable="(row: MemberGroupModel) => row.id !== 1" />
           <el-table-column prop="id" label="ID" width="80" align="center" />
           <el-table-column prop="name" label="会员组名称" min-width="180" />
+          <el-table-column label="图标" width="70" align="center">
+            <template #default="{ row }">
+              <i v-if="row.icon" :class="row.icon" class="text-base" />
+            </template>
+          </el-table-column>
           <el-table-column label="默认组" width="90" align="center">
             <template #default="{ row }">
               <el-tag :type="row.id === 1 ? 'success' : 'info'" size="small">{{ row.id === 1 ? '是' : '否' }}</el-tag>

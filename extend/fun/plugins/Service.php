@@ -180,8 +180,9 @@ class Service extends \think\Service
     public static function getAssetsDir($name)
     {
         $assetsDir = [
-            Service::getPluginsNamePath($name) . 'public' . DS =>app()->getRootPath() . str_replace("/", DS, "public/static/{$name}"),
-            Service::getPluginsNamePath($name) . 'storage' . DS=> app()->getRootPath() . str_replace("/", DS, "public/storage/{$name}")];
+            Service::getPluginsNamePath($name) . 'public' . DS => app()->getRootPath() . str_replace("/", DS, "public/static/{$name}"),
+            Service::getPluginsNamePath($name) . 'resources' . DS . 'admin' . DS => app()->getRootPath() . str_replace("/", DS, "public/plugin-assets/{$name}"),
+        ];
         return $assetsDir;
     }
 

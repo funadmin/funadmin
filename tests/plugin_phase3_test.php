@@ -61,9 +61,18 @@ foreach (['system:plugin:list', 'system:plugin:install', 'system:plugin:update',
     phase3Expect(str_contains($migration, $permission), '权限 migration 缺少：' . $permission);
 }
 phase3Expect(str_contains($migration, 'system/plugin/index'), '权限 migration 必须注册插件中心菜单');
+foreach (['accountlogout', 'currentaccount', 'marketcategories', 'marketsearch', 'marketdetail', 'marketversions', 'checkupdates', 'discovered', 'localdetail', 'installcloud', 'getconfig', 'operations', 'enabledmodules'] as $action) {
+    phase3Expect(str_contains($migration, "'{$action}'"), '权限 migration 缺少规范化控制器 action：' . $action);
+}
 phase3Expect(str_contains($source, "file('file')"), '本地安装必须接收 multipart ZIP');
+phase3Expect(str_contains($source, 'getOriginalExtension()'), '本地 ZIP 必须校验扩展名');
+phase3Expect(str_contains($source, 'getMime()'), '本地 ZIP 必须校验 MIME');
+phase3Expect(str_contains($source, 'getSize()'), '本地 ZIP 必须校验上传大小');
 phase3Expect(str_contains($source, 'purgeConfirm'), 'purge 必须要求二次确认字段');
 $querySource = (string) file_get_contents($root . '/app/backend/service/PluginCenterQueryService.php');
 phase3Expect(str_contains($querySource, 'plugin-assets'), 'enabled modules 必须输出受控 plugin-assets URL');
+$runtimeService = (string) file_get_contents($root . '/extend/fun/plugins/Service.php');
+phase3Expect(str_contains($runtimeService, "'resources' . DS . 'admin'"), '插件资源发布必须读取 resources/admin');
+phase3Expect(str_contains($runtimeService, 'public/plugin-assets/{$name}'), '插件 Admin ESM 必须发布到 public/plugin-assets');
 
 echo "plugin phase3 tests passed\n";
