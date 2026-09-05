@@ -14,7 +14,7 @@ export const pluginMockHandlers: MockRoute[] = [
   { method: 'GET', url: '/system/plugin/market/search', handler: () => ok(page(market, market.length, 1, 20)) },
   { method: 'GET', url: /^\/system\/plugin\/market\/([a-z][a-z0-9]*)\/versions$/, paramNames: ['name'], handler: () => ok(market[0].versions) },
   { method: 'GET', url: /^\/system\/plugin\/market\/([a-z][a-z0-9]*)$/, paramNames: ['name'], handler: ({ pathParams }) => ok(market.find((item) => item.name === pathParams.name) || market[0]) },
-  { method: 'POST', url: '/system/plugin/market/check-updates', handler: () => ok({ demo: '1.1.0' }) },
+  { method: 'POST', url: '/system/plugin/market/check-updates', handler: () => ok([{ name: 'demo', installedVersion: '1.0.0', latestVersion: '1.1.0', updateAvailable: true }]) },
   { method: 'GET', url: '/system/plugin/local/discovered', handler: () => ok(local) },
   { method: 'GET', url: '/system/plugin/local/installed', handler: () => ok(installed) },
   { method: 'POST', url: '/system/plugin/local/install', handler: () => ok({ installed: true }) },

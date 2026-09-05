@@ -2,9 +2,11 @@
 
 namespace PhpOffice\PhpSpreadsheet\Reader\Xlsx;
 
+use PhpOffice\PhpSpreadsheet\Cell\AddressRange;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Reader\DefaultReadFilter;
 use PhpOffice\PhpSpreadsheet\Reader\IReadFilter;
+use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use SimpleXMLElement;
 
@@ -140,8 +142,8 @@ class ColumnAndRowAttributes extends BaseParserClass
             if ($column !== null) {
                 $startColumn = Coordinate::stringFromColumnIndex((int) $column['min']);
                 $endColumn = Coordinate::stringFromColumnIndex((int) $column['max']);
-                ++$endColumn;
-                for ($columnAddress = $startColumn; $columnAddress !== $endColumn; ++$columnAddress) {
+                StringHelper::stringIncrement($endColumn);
+                for ($columnAddress = $startColumn; $columnAddress !== $endColumn; StringHelper::stringIncrement($columnAddress)) {
                     $columnAttributes[$columnAddress] = $this->readColumnRangeAttributes($column, $readDataOnly);
 
                     if ((int) ($column['max']) == 16384) {
@@ -193,23 +195,31 @@ class ColumnAndRowAttributes extends BaseParserClass
     {
         $rowAttributes = [];
 
+        $rowIndex = 0;
         foreach ($worksheetRow as $rowx) {
             $row = $rowx->attributes();
+            ++$rowIndex;
             if ($row !== null && (!$ignoreRowsWithNoCells || isset($rowx->c))) {
+                if (isset($row['r'])) {
+                    $rowIndex = (int) $row['r'];
+                }
+                if ($rowIndex < 1 || $rowIndex > AddressRange::MAX_ROW) {
+                    continue;
+                }
                 if (isset($row['ht']) && !$readDataOnly) {
-                    $rowAttributes[(int) $row['r']]['rowHeight'] = (float) $row['ht'];
+                    $rowAttributes[$rowIndex]['rowHeight'] = (float) $row['ht'];
                 }
                 if (isset($row['hidden']) && self::boolean($row['hidden'])) {
-                    $rowAttributes[(int) $row['r']]['visible'] = false;
+                    $rowAttributes[$rowIndex]['visible'] = false;
                 }
                 if (isset($row['collapsed']) && self::boolean($row['collapsed'])) {
-                    $rowAttributes[(int) $row['r']]['collapsed'] = true;
+                    $rowAttributes[$rowIndex]['collapsed'] = true;
                 }
                 if (isset($row['outlineLevel']) && (int) $row['outlineLevel'] > 0) {
-                    $rowAttributes[(int) $row['r']]['outlineLevel'] = (int) $row['outlineLevel'];
+                    $rowAttributes[$rowIndex]['outlineLevel'] = (int) $row['outlineLevel'];
                 }
                 if (isset($row['s']) && !$readDataOnly) {
-                    $rowAttributes[(int) $row['r']]['xfIndex'] = (int) $row['s'];
+                    $rowAttributes[$rowIndex]['xfIndex'] = (int) $row['s'];
                 }
             }
         }

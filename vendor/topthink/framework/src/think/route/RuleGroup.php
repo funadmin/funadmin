@@ -265,7 +265,7 @@ class RuleGroup extends Rule
                 $str = $this->fullName;
             }
 
-            if ($str && 0 !== stripos($url, $str)) {
+            if ($str && 0 !== stripos($url . '/', $str . '/')) {
                 return false;
             }
         }
@@ -613,6 +613,7 @@ class RuleGroup extends Rule
         $array  = explode('/', $url, 3);
         $class  = !empty($array[0]) ? $array[0] : $this->config('default_controller');
         $method = !empty($array[1]) ? $array[1] : $this->config('default_action');
+        $class .= $this->config('controller_suffix') ? 'Controller' : '';
 
         if (!empty($array[2])) {
             $this->parseUrlParams($array[2], $param);
@@ -679,12 +680,7 @@ class RuleGroup extends Rule
     public function addRule(string $rule, $route = null, string $method = '*'): RuleItem
     {
         // 读取路由标识
-        if (is_string($route)) {
-            $name = $this->fullName ? $this->fullName . '/' . $route : $route;
-        } else {
-            $name = null;
-        }
-
+        $name   = is_string($route) ? $route : null;
         $method = strtolower($method);
         if ('' === $rule || '/' === $rule) {
             $rule .= '$';

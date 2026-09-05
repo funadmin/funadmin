@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "name": "example",
+  "title": "测试示例插件",
+  "description": "仅供仓库测试使用，不位于生产 plugins 目录",
+  "author": "FunAdmin",
+  "version": "1.0.0",
+  "requires": {
+    "php": ">=8.1",
+    "funadmin": ">=1.0.0",
+    "plugins": {}
+  },
+  "load": {
+    "services": "config/services.php",
+    "events": "config/events.php",
+    "routes": "routes/plugin.php"
+  },
+  "admin_web": {
+    "entry": "resources/admin/entry.js",
+    "routes": [
+      {
+        "path": "/plugin/example/index",
+        "name": "Plugin_example_Index",
+        "component": "Index",
+        "meta": {
+          "title": "测试示例插件"
+        }
+      }
+    ]
+  }
+}

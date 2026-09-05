@@ -25,11 +25,16 @@ class LazyCollection extends DbCollection
      * 延迟预载入关联查询
      * @param array $relation 关联
      * @param mixed $cache    关联缓存
+     * @param bol   $withJoin 是否JOIN
      * @return static
      */
-    public function load(array $relation, $cache = false)
+    public function load(array $relation, $cache = false, $withJoin = false)
     {
-        return new static(function () use ($relation, $cache) {
+        if (empty($relation)) {
+            return $this;
+        }
+
+        return new static(function () use ($relation, $cache, $withJoin) {
             $items = [];
             foreach ($this->getIterator() as $key => $item) {
                 $items[$key] = $item;
@@ -37,7 +42,7 @@ class LazyCollection extends DbCollection
 
             if (!empty($items)) {
                 $first = reset($items);
-                $first->eagerlyResultSet($items, $relation, [], false, $cache);
+                $first->eagerlyResultSet($items, $relation, [], $withJoin, $cache);
             }
 
             foreach ($items as $key => $item) {

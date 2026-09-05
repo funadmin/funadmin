@@ -516,7 +516,7 @@ trait Attribute
      *
      * @return mixed
      */
-    private function setWithAttr(string $name, $value)
+    private function setAttrOfWith(string $name, $value)
     {
         $attr   = Str::studly($name);
         $method = 'set' . $attr . 'Attr';
@@ -572,7 +572,7 @@ trait Attribute
 
         if ($attr) {
             // 通过获取器输出
-            $value = $this->getWithAttr($name, $value, $this->getData());
+            $value = $this->getAttrOfWith($name, $value, $this->getData());
             $this->setWeakData('get', $name, $value);
         }
 
@@ -601,7 +601,7 @@ trait Attribute
      *
      * @return mixed
      */
-    private function getWithAttr(string $name, $value, array $data = [])
+    private function getAttrOfWith(string $name, $value, array $data = [])
     {
         $attr     = Str::studly($name);
         $method   = 'get' . $attr . 'Attr';
@@ -681,6 +681,21 @@ trait Attribute
     public function setAttr(string $name, $value)
     {
         return $this->set($name, $value);
+    }
+
+    /**
+     * 批量设置数据对象值 支持数据类型转换
+     *
+     * @param array $data 数据
+     *
+     * @return void
+     */
+    public function setAttrs(array $data): void
+    {
+        // 进行数据处理
+        foreach ($data as $key => $value) {
+            $this->set($key, $value);
+        }
     }
 
     /**

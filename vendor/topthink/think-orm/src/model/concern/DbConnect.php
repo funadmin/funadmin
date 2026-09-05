@@ -181,6 +181,11 @@ trait DbConnect
     public static function __callStatic($method, $args)
     {
         $model = new static();
+
+        if ('suffix' == $method) {
+            $model->setSuffix($args[0]);
+        }
+
         $db    = $model->db();
 
         if (!empty(self::$weakMap[$model]['autoRelation'])) {

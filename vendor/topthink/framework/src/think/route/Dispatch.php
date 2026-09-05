@@ -29,6 +29,18 @@ use think\Validate;
 abstract class Dispatch
 {
     /**
+     * 控制器名
+     * @var string
+     */
+    protected $controller;
+
+    /**
+     * 操作名
+     * @var string
+     */
+    protected $actionName;
+
+    /**
      * 应用对象
      * @var App
      */
@@ -86,7 +98,14 @@ abstract class Dispatch
         // 添加中间件
         if (!empty($option['middleware'])) {
             if (isset($option['without_middleware'])) {
-                $middleware = !empty($option['without_middleware']) ? array_diff($option['middleware'], $option['without_middleware']) : [];
+                $middleware = [];
+                foreach ($option['middleware'] as $item) {
+                    $middlewareName = is_array($item) ? $item[0] : $item;
+
+                    if (!in_array($middlewareName, $option['without_middleware'], true)) {
+                        $middleware[] = $item;
+                    }
+                }
             } else {
                 $middleware = $option['middleware'];
             }
@@ -132,7 +151,8 @@ abstract class Dispatch
     /**
      * 执行中间件调度
      * @access public
-     * @param object $controller 控制器实例
+     * @param object $instance 控制器实例
+     * @param string $action
      * @return void
      */
     protected function responseWithMiddlewarePipeline($instance, $action)
@@ -185,7 +205,10 @@ abstract class Dispatch
 
         if ($class->hasProperty('middleware')) {
             $reflectionProperty = $class->getProperty('middleware');
-            $reflectionProperty->setAccessible(true);
+
+            if (PHP_VERSION_ID < 80100) {
+                $reflectionProperty->setAccessible(true);
+            }
 
             $middlewares = $reflectionProperty->getValue($controller);
             $action      = $this->request->action(true);
@@ -318,13 +341,25 @@ abstract class Dispatch
 
     abstract public function exec();
 
-    public function __sleep()
+    public function __serialize(): array
     {
-        return ['rule', 'dispatch', 'param', 'controller', 'actionName'];
+        return [
+            'rule'       => $this->rule,
+            'dispatch'   => $this->dispatch,
+            'param'      => $this->param,
+            'controller' => $this->controller,
+            'actionName' => $this->actionName,
+        ];
     }
 
-    public function __wakeup()
+    public function __unserialize(array $data): void
     {
+        $this->rule       = $data['rule'];
+        $this->dispatch   = $data['dispatch'];
+        $this->param      = $data['param'];
+        $this->controller = $data['controller'];
+        $this->actionName = $data['actionName'];
+        
         $this->app     = Container::pull('app');
         $this->request = $this->app->request;
     }

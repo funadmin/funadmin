@@ -57,7 +57,7 @@ class Menu extends Command
             foreach ($item['methods'] as $method) {
                 $children[] = [
                     'href' => $item['route_info'] . '/' . $method['name'],
-                    'title' => $method['comment'],
+                    'name' => $method['comment'],
                     'status' => 1,
                     'type' => 2,
                     'visible' => 0,
@@ -65,7 +65,7 @@ class Menu extends Command
             }
             $menus[] = [
                 'href' => $item['route_info'],
-                'title' => $input->getOption('menuname') ?: $item['comment'],
+                'name' => $input->getOption('menuname') ?: $item['comment'],
                 'status' => 1,
                 'type' => 1,
                 'visible' => 1,
@@ -76,7 +76,7 @@ class Menu extends Command
         if ($controller === '') {
             $menus = [[
                 'href' => '',
-                'title' => ucfirst($app) . 'Manager',
+                'name' => ucfirst($app) . 'Manager',
                 'status' => 1,
                 'type' => 1,
                 'visible' => 1,

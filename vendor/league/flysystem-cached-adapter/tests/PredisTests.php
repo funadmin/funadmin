@@ -1,9 +1,8 @@
 <?php
 
 use League\Flysystem\Cached\Storage\Predis;
-use PHPUnit\Framework\TestCase;
 
-class PredisTests extends TestCase
+class PredisTests extends PHPUnit_Framework_TestCase
 {
     public function testLoadFail()
     {

@@ -10,8 +10,8 @@ let groupSeq = 2;
 let attachmentSeq = 2;
 
 const groups: AttachmentGroupModel[] = [
-  { id: 1, parentId: 0, title: '默认', thumb: '', status: 1, sort: 999, isDefault: 1, createdAt: '', updatedAt: '' },
-  { id: 2, parentId: 1, title: '示例图片', thumb: '', status: 1, sort: 1000, isDefault: 0, createdAt: now(), updatedAt: now() }
+  { id: 1, parentId: 0, name: '默认', thumb: '', status: 1, sort: 999, isDefault: 1, createdAt: '', updatedAt: '' },
+  { id: 2, parentId: 1, name: '示例图片', thumb: '', status: 1, sort: 1000, isDefault: 0, createdAt: now(), updatedAt: now() }
 ];
 
 const attachments: MockAttachment[] = [
@@ -127,16 +127,16 @@ export const attachmentMockHandlers: MockRoute[] = [
     method: 'POST',
     url: '/system/attachment-group',
     handler: ({ body }) => {
-      const title = String(body.title || '').trim();
+      const name = String(body.name || '').trim();
       const parentId = Number(body.parentId || 0);
-      if (!title) return fail('附件分组名称不能为空', 422);
-      if (title.length > 100) return fail('附件分组名称不能超过 100 个字符', 422);
+      if (!name) return fail('附件分组名称不能为空', 422);
+      if (name.length > 100) return fail('附件分组名称不能超过 100 个字符', 422);
       if (parentId > 0 && !attachmentGroupExists(parentId)) return fail('上级附件分组不存在', 422);
       const time = now();
       const group: AttachmentGroupModel = {
         id: ++groupSeq,
         parentId,
-        title,
+        name,
         thumb: String(body.thumb || '').trim(),
         status: Number(body.status) === 1 ? 1 : 0,
         sort: Math.max(0, Number(body.sort) || 0),
@@ -156,15 +156,15 @@ export const attachmentMockHandlers: MockRoute[] = [
       const id = Number(pathParams.id);
       const group = groups.find((item) => item.id === id);
       if (!group) return fail('附件分组不存在', 404);
-      const title = String(body.title ?? group.title).trim();
+      const name = String(body.name ?? group.name).trim();
       const parentId = Number(body.parentId ?? group.parentId);
-      if (!title) return fail('附件分组名称不能为空', 422);
-      if (title.length > 100) return fail('附件分组名称不能超过 100 个字符', 422);
+      if (!name) return fail('附件分组名称不能为空', 422);
+      if (name.length > 100) return fail('附件分组名称不能超过 100 个字符', 422);
       if (parentId > 0 && !attachmentGroupExists(parentId)) return fail('上级附件分组不存在', 422);
       if (parentId === id || isDescendant(parentId, id)) return fail('不能将附件分组移动到自身或下级', 422);
       Object.assign(group, {
         parentId,
-        title,
+        name,
         thumb: String(body.thumb ?? group.thumb).trim(),
         status: Number(body.status ?? group.status) === 1 ? 1 : 0,
         sort: Math.max(0, Number(body.sort ?? group.sort) || 0),

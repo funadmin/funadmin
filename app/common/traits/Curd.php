@@ -775,7 +775,7 @@ trait Curd
         }else{
             $list = $this->modelClass->where($where)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page]);
         }
-        $field = $field ?: 'title';
+        $field = $field ?: 'name';
         if ($list->count() > 0) {
             $list = $list->toArray();
             foreach ($list['data'] as $index => &$item) {
@@ -789,10 +789,10 @@ trait Curd
                 $list['data'] =TreeHelper::cateTree($list['data'], $field);
                     foreach ($list['data'] as &$item) {
                         if (!$ishtml) {
-                            $item['ltitle'] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['ltitle']);
-                            $item['title'] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['title']);
+                            $item['l' . $field] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['l' . $field]);
+                            $item[$field] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item[$field]);
                         }
-                        $item['title'] = $item['ltitle'];
+                        $item[$field] = $item['l' . $field];
                     }
                     unset($item);
             }

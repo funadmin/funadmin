@@ -9,3 +9,4 @@ Thumbs.db
 /.buildpath
 /.project
 .phpunit.result.cache
+.php-cs-fixer.cache

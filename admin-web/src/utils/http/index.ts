@@ -136,8 +136,7 @@ export const http = {
       ...config,
       url,
       method: 'POST',
-      data: formData,
-      headers: { 'Content-Type': 'multipart/form-data', ...(config?.headers || {}) }
+      data: formData
     }),
   download: async (url: string, params?: any, config?: AdminRequestConfig): Promise<Blob> => {
     const res = (await request<AxiosResponse<Blob>>({

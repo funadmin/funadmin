@@ -9,7 +9,7 @@ export interface PermissionModel {
   code: string;
   object: string;
   action: string;
-  title: string;
+  name: string;
   resourceType: 'group' | 'route';
   status: 0 | 1;
   isPublic: 0 | 1;

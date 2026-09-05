@@ -6,8 +6,17 @@
           <el-form-item label="账号" prop="username">
             <el-input v-model="query.username" placeholder="操作账号" clearable />
           </el-form-item>
-          <el-form-item label="模块" prop="module">
-            <el-input v-model="query.module" placeholder="如 backend" clearable class="!w-36" />
+          <el-form-item label="应用" prop="appName">
+            <el-input v-model="query.appName" placeholder="如 backend" clearable class="!w-36" />
+          </el-form-item>
+          <el-form-item label="来源" prop="sourceType">
+            <el-select v-model="query.sourceType" placeholder="全部" clearable class="!w-32">
+              <el-option label="系统" value="system" />
+              <el-option label="插件" value="plugin" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="来源标识" prop="sourceName">
+            <el-input v-model="query.sourceName" placeholder="如 core" clearable class="!w-36" />
           </el-form-item>
           <el-form-item label="状态" prop="status">
             <el-select v-model="query.status" placeholder="全部" clearable class="!w-28">
@@ -54,16 +63,19 @@
           <el-table-column type="selection" width="48" align="center" />
           <el-table-column v-if="columnKeys.includes('id')" prop="id" label="ID" width="80" align="center" />
           <el-table-column v-if="columnKeys.includes('username')" prop="username" label="账号" width="120" />
-          <el-table-column v-if="columnKeys.includes('module')" prop="module" label="模块" width="100" />
-          <el-table-column v-if="columnKeys.includes('title')" prop="title" label="操作" min-width="140" show-overflow-tooltip />
-          <el-table-column v-if="columnKeys.includes('method')" label="方法" width="90" align="center">
+          <el-table-column v-if="columnKeys.includes('appName')" prop="appName" label="应用" width="100" />
+          <el-table-column v-if="columnKeys.includes('source')" label="来源" width="140">
+            <template #default="{ row }">{{ row.sourceType === 'plugin' ? `插件：${row.sourceName}` : '系统' }}</template>
+          </el-table-column>
+          <el-table-column v-if="columnKeys.includes('name')" prop="name" label="操作" min-width="140" show-overflow-tooltip />
+          <el-table-column v-if="columnKeys.includes('method')" label="方法" width="100" align="center" class-name="log-tag-column">
             <template #default="{ row }">
               <el-tag :type="methodTag(row.method)" size="small">{{ row.method }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column v-if="columnKeys.includes('url')" prop="url" label="URL" min-width="180" show-overflow-tooltip />
           <el-table-column v-if="columnKeys.includes('ip')" prop="ip" label="IP" width="140" />
-          <el-table-column v-if="columnKeys.includes('status')" label="状态" width="80" align="center">
+          <el-table-column v-if="columnKeys.includes('status')" label="状态" width="90" align="center" class-name="log-tag-column">
             <template #default="{ row }">
               <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
                 {{ row.status === 1 ? '成功' : '失败' }}
@@ -101,8 +113,10 @@
     <el-drawer v-model="detailVisible" title="操作日志详情" size="560px">
       <el-descriptions v-if="detail" :column="1" border>
         <el-descriptions-item label="账号">{{ detail.username }}</el-descriptions-item>
+        <el-descriptions-item label="应用">{{ detail.appName }}</el-descriptions-item>
+        <el-descriptions-item label="来源">{{ detail.sourceType === 'plugin' ? `插件：${detail.sourceName}` : '系统' }}</el-descriptions-item>
         <el-descriptions-item label="资源">{{ detail.controller }} / {{ detail.action }}</el-descriptions-item>
-        <el-descriptions-item label="操作">{{ detail.title || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="操作">{{ detail.name || '-' }}</el-descriptions-item>
         <el-descriptions-item label="请求">{{ detail.method }} {{ detail.url }}</el-descriptions-item>
         <el-descriptions-item label="响应">HTTP {{ detail.responseCode }} · {{ detail.durationMs }} ms</el-descriptions-item>
         <el-descriptions-item label="请求 ID">{{ detail.requestId || '-' }}</el-descriptions-item>
@@ -129,8 +143,9 @@ defineOptions({ name: 'SystemLogOperation' });
 const columnOptions: DataTableColumnOption[] = [
   { key: 'id', label: 'ID' },
   { key: 'username', label: '账号' },
-  { key: 'module', label: '模块' },
-  { key: 'title', label: '操作' },
+  { key: 'appName', label: '应用' },
+  { key: 'source', label: '来源' },
+  { key: 'name', label: '操作' },
   { key: 'method', label: '方法' },
   { key: 'url', label: 'URL' },
   { key: 'ip', label: 'IP' },
@@ -152,7 +167,7 @@ const {
     remove: (id) => operationLogApi.remove(id),
     removeMany: (ids) => operationLogApi.remove(ids)
   },
-  initialQuery: () => ({ page: 1, pageSize: 10, username: '', module: '', status: undefined, startTime: '', endTime: '' }),
+  initialQuery: () => ({ page: 1, pageSize: 10, username: '', appName: '', sourceType: '', sourceName: '', status: undefined, startTime: '', endTime: '' }),
   pagination: true,
   deleteConfirm: (target) => Array.isArray(target) ? `确认删除选中的 ${target.length} 条日志？` : '确认删除该日志？'
 });
@@ -172,4 +187,5 @@ async function showDetail(row: OperationLog) {
 
 <style scoped>
 pre { margin: 0; white-space: pre-wrap; word-break: break-all; font: inherit; }
+.log-tag-column :deep(.cell) { overflow: visible; text-overflow: clip; }
 </style>

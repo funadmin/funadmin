@@ -5,30 +5,20 @@ declare(strict_types=1);
 namespace app\api\controller\v2;
 
 use app\common\controller\Api;
-use app\common\service\BearerTokenExtractor;
 use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
-use think\App;
 use think\Request;
+use think\Response;
 
 /**
  * 生成token
  */
 class Token extends Api
 {
-
-    protected array $noNeedLogin = ['build', 'refresh'];
-
-    private TokenService $tokenService;
-    private MemberAuthService $memberAuthService;
-    private BearerTokenExtractor $bearerTokenExtractor;
-
-    public function __construct(App $app)
-    {
-        parent::__construct($app);
-        $this->tokenService = TokenService::instance();
-        $this->memberAuthService = MemberAuthService::instance();
-        $this->bearerTokenExtractor = app(BearerTokenExtractor::class);
+    public function __construct(
+        private readonly TokenService $tokenService,
+        private readonly MemberAuthService $memberAuthService
+    ) {
     }
 
     /**
@@ -39,7 +29,7 @@ class Token extends Api
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
-    public function build(Request $request): \think\Response
+    public function build(Request $request): Response
     {
         $account = trim((string) $request->post('username', ''));
         $password = (string) $request->post('password', '');
@@ -65,14 +55,11 @@ class Token extends Api
      * @param Request $request
      * @return \think\response\Json
      */
-    public function refresh(Request $request): \think\Response
+    public function refresh(Request $request): Response
     {
-        $refreshToken = trim((string) $request->post('refresh_token', $request->post('access_token', '')));
+        $refreshToken = trim((string) $request->post('refresh_token', ''));
         if ($refreshToken === '') {
-            $refreshToken = $this->bearerTokenExtractor->extract($request) ?? '';
-            if ($refreshToken === '') {
-                return $this->fail(__('Unauthorized'), 401);
-            }
+            return $this->fail(__('Invalid parameters'), 400);
         }
 
         $tokenData = $this->tokenService->validateToken($refreshToken, TokenService::TYPE_REFRESH);

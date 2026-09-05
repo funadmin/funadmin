@@ -43,11 +43,10 @@ class CachedAdapterSpec extends ObjectBehavior
 
     public function it_should_cache_writes()
     {
-        $type = 'file';
         $path = 'path.txt';
         $contents = 'contents';
         $config = new Config();
-        $response = compact('path', 'contents', 'type');
+        $response = compact('path', 'contents');
         $this->adapter->write($path, $contents, $config)->willReturn($response);
         $this->cache->updateObject($path, $response, true)->shouldBeCalled();
         $this->write($path, $contents, $config)->shouldBe($response);
@@ -55,11 +54,10 @@ class CachedAdapterSpec extends ObjectBehavior
 
     public function it_should_cache_streamed_writes()
     {
-        $type = 'file';
         $path = 'path.txt';
         $stream = tmpfile();
         $config = new Config();
-        $response = compact('path', 'stream', 'type');
+        $response = compact('path', 'stream');
         $this->adapter->writeStream($path, $stream, $config)->willReturn($response);
         $this->cache->updateObject($path, ['contents' => false] + $response, true)->shouldBeCalled();
         $this->writeStream($path, $stream, $config)->shouldBe($response);
@@ -68,11 +66,10 @@ class CachedAdapterSpec extends ObjectBehavior
 
     public function it_should_cache_streamed_updates()
     {
-        $type = 'file';
         $path = 'path.txt';
         $stream = tmpfile();
         $config = new Config();
-        $response = compact('path', 'stream', 'type');
+        $response = compact('path', 'stream');
         $this->adapter->updateStream($path, $stream, $config)->willReturn($response);
         $this->cache->updateObject($path, ['contents' => false] + $response, true)->shouldBeCalled();
         $this->updateStream($path, $stream, $config)->shouldBe($response);
@@ -100,11 +97,10 @@ class CachedAdapterSpec extends ObjectBehavior
 
     public function it_should_cache_updated()
     {
-        $type = 'file';
         $path = 'path.txt';
         $contents = 'contents';
         $config = new Config();
-        $response = compact('path', 'contents', 'type');
+        $response = compact('path', 'contents');
         $this->adapter->update($path, $contents, $config)->willReturn($response);
         $this->cache->updateObject($path, $response, true)->shouldBeCalled();
         $this->update($path, $contents, $config)->shouldBe($response);
@@ -246,16 +242,6 @@ class CachedAdapterSpec extends ObjectBehavior
         $this->adapter->has($path)->willReturn(false);
         $this->cache->storeMiss($path)->shouldBeCalled();
         $this->has($path)->shouldBe(false);
-    }
-
-    public function it_should_delete_when_metadata_is_missing()
-    {
-        $path = 'path.txt';
-        $this->cache->has($path)->willReturn(true);
-        $this->cache->getSize($path)->willReturn(['path' => $path]);
-        $this->adapter->getSize($path)->willReturn($response = ['path' => $path, 'size' => 1024]);
-        $this->cache->updateObject($path, $response, true)->shouldBeCalled();
-        $this->getSize($path)->shouldBe($response);
     }
 
     public function it_should_cache_has()

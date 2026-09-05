@@ -1,0 +1,215 @@
+M1 基线命令输出摘要（脱敏）
+证据时间点：2026-09-05T11:44:43+0800 / 2026-09-05T03:44:43Z
+说明：不含 .env 内容、数据库用户名/密码、JWT、token、插件 config/manifest 或其他密钥。工作区可能并发变化。
+
+[01] 仓库身份、时间点与完整状态
+命令：`printf 'LOCAL='; date '+%Y-%m-%dT%H:%M:%S%z'; printf 'UTC='; date -u '+%Y-%m-%dT%H:%M:%SZ'; printf 'HEAD='; git rev-parse HEAD; git status --branch --porcelain=v1; git status --branch --porcelain=v1 | shasum -a 256`
+退出码：0
+关键原始输出：
+LOCAL=2026-09-05T11:44:43+0800
+UTC=2026-09-05T03:44:43Z
+HEAD=776d4cb6f2e2aa4c2186f551536505a8b812ff2c
+## Rbac...origin/Rbac
+ M admin-web/src/composables/useCrud.ts
+ M admin-web/src/views/system/log/operation.vue
+ M admin-web/src/views/system/plugin/components/PluginConfigDrawer.vue
+ M admin-web/src/views/system/plugin/components/PluginMarketDrawer.vue
+ M admin-web/src/views/system/plugin/index.vue
+ M admin-web/tests/composables/useCrud.spec.ts
+ M admin-web/tests/contracts/field-hygiene-migration.spec.ts
+ M admin-web/tests/contracts/plugin-page.spec.ts
+ M app/backend/controller/system/SystemAdmin.php
+ M app/backend/service/PluginService.php
+ M app/backend/service/ResourceRegistryService.php
+ M app/common/model/Member.php
+ M app/common/service/InstallSupport.php
+ M app/common/service/MigrationService.php
+ M app/install/controller/Index.php
+D  app/install/view/tpl/database.tpl
+D  app/install/view/tpl/env.example
+ M config/database.php
+ M database/migrations/012_admin_log_audit.sql
+ M database/migrations/013_field_hygiene.sql
+ M extend/fun/curd/Install.php
+?? .ai-memory/20260904/m1-baseline.md
+?? admin-web/tests/contracts/member-registration-admin-scope.spec.ts
+?? admin-web/tests/contracts/service-cache-invalidation.spec.ts
+?? app/common/model/MemberGroupRelation.php
+?? app/common/traits/ClearsApplicationCache.php
+?? tests/install_config_security_test.php
+e3f6c6aafbb43e046e24f8026c85083ab41b551f106dbf17435b1c97c708be01  -
+注：此 status 是精确时间点原文；采集后工作区仍可能发生并发变化。
+
+[02] 扫描范围矩阵存在性
+命令：`for d in plugins addons admin-web; do if [ -d "$d" ]; then printf '%s exists files=' "$d"; find "$d" -type f | wc -l | tr -d ' '; else echo "$d absent"; fi; done; for f in config/console.php app/backend/service/PluginService.php app/backend/service/ResourceRegistryService.php extend/fun/helper/FormHelper.php; do test -f "$f" && echo "$f present" || echo "$f absent"; done`
+退出码：0
+关键原始输出：
+plugins exists files=0
+addons absent
+admin-web exists files=19560
+config/console.php present
+app/backend/service/PluginService.php present
+app/backend/service/ResourceRegistryService.php present
+extend/fun/helper/FormHelper.php present
+注：admin-web 文件数包含 node_modules，只用于证明本轮扫描范围存在。
+
+[03] fun_attach_group.sort 只读字段核验
+命令：`/opt/homebrew/Cellar/php@8.1/8.1.32_1/bin/php -r 'require "vendor/autoload.php"; $a=new think\\App(); $a->initialize(); $q="SELECT IS_NULLABLE,COLUMN_DEFAULT,COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?"; echo json_encode(think\\facade\\Db::query($q,["fun_attach_group","sort"])),PHP_EOL;'`
+退出码：0
+关键原始输出：
+[{"IS_NULLABLE":"YES","COLUMN_DEFAULT":"999","COLUMN_TYPE":"int"}]
+
+[04] 数据库版本、表数与脱敏行计数
+命令：`p=/opt/homebrew/Cellar/php@8.1/8.1.32_1/bin/php; "$p" -r 'require "vendor/autoload.php";$a=new think\\App();$a->initialize();$q=["version"=>"SELECT VERSION() v","tables"=>"SELECT COUNT(*) n FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME LIKE ?","rows"=>"SELECT (SELECT COUNT(*) FROM fun_admin_menu) menus,(SELECT COUNT(*) FROM fun_permission) permissions,(SELECT COUNT(*) FROM fun_plugin) plugins,(SELECT COUNT(*) FROM fun_plugin_operation) operations,(SELECT COUNT(*) FROM fun_plugin_version_history) histories,(SELECT COUNT(*) FROM fun_casbin_rule) casbin"];foreach($q as $k=>$s)echo $k,"=",json_encode(think\\facade\\Db::query($s,$k==="tables"?["fun_%"]:[])),PHP_EOL;'`
+退出码：0
+关键原始输出：
+version=[{"v":"8.0.46"}]
+tables=[{"n":29}]
+rows=[{"menus":20,"permissions":168,"plugins":0,"operations":0,"histories":0,"casbin":2}]
+注：只执行 SELECT；未执行 DDL/DML，未输出连接配置或凭据。
+
+[05] PHP lint
+命令：`p=/opt/homebrew/Cellar/php@8.1/8.1.32_1/bin/php; n=0; f=0; while IFS= read -r x; do n=$((n+1)); "$p" -l "$x" >/dev/null 2>&1 || { echo "FAIL $x"; f=$((f+1)); }; done < <(find app extend config tests -type f -name '*.php' | sort); echo "PHP_LINT files=$n failures=$f"; test "$f" -eq 0`
+退出码：0
+关键原始输出：
+PHP_LINT files=232 failures=0
+
+[06] 后端聚焦测试
+命令：`p=/opt/homebrew/Cellar/php@8.1/8.1.32_1/bin/php; n=0; f=0; for x in tests/*.php; do n=$((n+1)); echo "=== $x ==="; "$p" "$x" || f=$((f+1)); done; echo "BACKEND_TESTS scripts=$n failures=$f"; test "$f" -eq 0`
+退出码：0
+关键原始输出：
+Admin Web columns menu migration test passed.
+Admin Web member options route test passed.
+Admin Web menu icons migration test passed.
+Admin Web menu tree page test passed.
+api auth tests: PASS
+api authenticated tests: SKIPPED（未设置 API_TEST_USERNAME/API_TEST_PASSWORD）
+api http tests: PASS
+install config security test passed
+json response tests: PASS
+legacy controller cleanup test passed
+plugin phase1 tests: PASS
+plugin phase2 all focused assertions: ok
+plugin phase3 tests passed
+BACKEND_TESTS scripts=12 failures=0
+
+[07] Admin Web type-check
+命令：`npm --prefix admin-web run type-check`
+退出码：0
+关键原始输出：
+> vue-tsc --noEmit
+
+[08] Admin Web test
+命令：`npm --prefix admin-web test`
+退出码：1
+关键原始输出：
+Test Files  2 failed | 31 passed (33)
+Tests  2 failed | 131 passed (133)
+失败文件：tests/contracts/install-environment.spec.ts
+失败摘要：要求的 environmentCheck 调用源码契约未满足。
+失败文件：tests/contracts/member-registration-admin-scope.spec.ts
+失败摘要：dataScopeAt 为 -1，未满足角色校验后执行数据范围校验的顺序断言。
+
+[09] Admin Web build
+命令：`npm --prefix admin-web run build`
+退出码：0
+关键原始输出：
+> vue-tsc --noEmit && vite build
+vite v8.2.2 building client environment for production...
+✓ 2698 modules transformed.
+✓ built in 5.34s
+
+[10] build 输出限定路径清理
+命令：`git restore --worktree public/admin-web && git clean -fd -- public/admin-web`
+退出码：0
+关键原始输出摘要：
+恢复 tracked public/admin-web 构建文件，并仅删除本次 build 在 public/admin-web 下生成的未跟踪哈希资源。
+边界依据：执行前 2026-09-05T11:30:58+0800 的完整 status 中 public/admin-web 无任何条目；未触碰执行前已有用户改动。
+
+[11] PHP 默认命令可行性探测
+命令：`php -r '执行 information_schema 只读字段查询'`
+退出码：127
+关键原始输出：
+zsh:1: command not found: php
+处置：改用已发现的 PHP 8.1.32 绝对路径重新执行；[03]、[05]、[06] 均为有效当前结果。
+
+[12] 终检时并发变化观测
+命令：`printf 时间与 HEAD; git status --branch --porcelain=v1 | shasum -a 256; git status --branch --porcelain=v1 | wc -l`
+退出码：0
+关键原始输出：
+LOCAL=2026-09-05T11:48:56+0800
+UTC=2026-09-05T03:48:56Z
+HEAD=776d4cb6f2e2aa4c2186f551536505a8b812ff2c
+STATUS_SHA256=af1983b6bd1ec60a50722643d25080c6571b69d0983e7f0af84319615106409d
+STATUS_LINES=958
+注：HEAD 未变，但 status 在 4 分钟内由 [01] 的快照显著变化，证明存在并发工作区活动。[01] 仍是其精确时间点的完整原文；不得拿 [12] 的 hash 反推或覆盖 [01]。
+
+[13] M1 最后修正：fun_field_verify 只读主键核验
+命令：`使用 PHP 8.1.32 查询 information_schema.COLUMNS 与 STATISTICS，仅筛选 fun_field_verify`
+退出码：0
+关键原始输出：
+verify: COLUMN_TYPE=varchar(50), IS_NULLABLE=NO, COLUMN_KEY=PRI, EXTRA='', INDEX_NAME=verify, NON_UNIQUE=0, SEQ_IN_INDEX=1
+name: varchar(100), nullable
+DELETE 标记：delete_time int, nullable
+结论：实际主键是非自增字符串列 verify；FieldVerify 模型已声明 `$pk = 'verify'` 和 `$type = ['verify' => 'string']`。
+风险：013_field_hygiene.sql 当前试图新增 `id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY`，会与现有 verify 主键冲突；013 修复前禁止执行。本轮未修改或执行 migration。
+
+[14] 原两个前端基线失败聚焦复跑
+命令：`npm --prefix admin-web test -- --run tests/contracts/install-environment.spec.ts tests/contracts/member-registration-admin-scope.spec.ts`
+退出码：0
+关键原始输出：
+Test Files  2 passed (2)
+Tests  4 passed (4)
+结论：当前生产代码与契约已一致；未为字符串断言改写模型化实现。
+
+[15] 修正后聚焦契约与 PHP lint
+命令：`php -l app/common/model/FieldVerify.php && npm --prefix admin-web test -- --run tests/contracts/field-hygiene-migration.spec.ts tests/contracts/install-environment.spec.ts tests/contracts/member-registration-admin-scope.spec.ts`
+退出码：0
+关键原始输出：
+No syntax errors detected in app/common/model/FieldVerify.php
+Test Files  3 passed (3)
+Tests  13 passed (13)
+
+[16] Admin Web 全量 test
+命令：`npm --prefix admin-web test`
+退出码：1
+关键原始输出：
+Test Files  1 failed | 34 passed (35)
+Tests  3 failed | 139 passed (142)
+原两个基线失败：install-environment 2/2 通过；member-registration-admin-scope 2/2 通过。
+当前失败文件：tests/contracts/storage-driver.spec.ts，3/3 失败。
+失败摘要：上传 helper 仍显式设置 multipart Content-Type；附件页未包含 storageApi/存储驱动权限入口；UploadResult 未声明 driver。
+注：该测试在本轮执行中由并发工作区活动加入，不属于用户指定的两个 M1 基线失败，故未越界修改。
+
+[17] Admin Web type-check
+命令：`npm --prefix admin-web run type-check`
+退出码：0
+关键原始输出：
+> vue-tsc --noEmit
+
+[18] Admin Web build
+命令：`npm --prefix admin-web run build`
+退出码：0
+关键原始输出：
+vite v8.2.2 building client environment for production...
+✓ 2698 modules transformed.
+✓ built in 10.23s
+清理说明：执行 build 前 `public/admin-web` 已存在大量 tracked 删除与未跟踪哈希资源，无法证明均由本轮生成；为保留用户/并发改动，本轮未执行 git restore 或 git clean。
+
+[19] 最后修正快照
+命令：`printf 时间与 HEAD; git status --branch --porcelain=v1 | shasum -a 256`
+退出码：0
+关键原始输出：
+LOCAL=2026-09-05T12:11:21+0800
+UTC=2026-09-05T04:11:21Z
+HEAD=776d4cb6f2e2aa4c2186f551536505a8b812ff2c
+STATUS_SHA256=5c3ecf077c93eab235d5e734c3316bcb1c311dc8edb8721ce9e620e89970eddb
+注：工作区持续并发变化，该 hash 仅代表精确时间点。
+
+边界声明：
+- 未读取或保存 .env 内容。
+- 未输出数据库密码、JWT、token、插件配置、manifest 或操作令牌。
+- 未执行数据库写入或 migration。
+- 未恢复历史 migration。
+- 未修改计划文件、数据库或 migration；仅修改 FieldVerify 模型、其字段契约测试及两份允许的 M1 证据文件。
+- 未 commit/push，未开展 M2。

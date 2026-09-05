@@ -37,7 +37,6 @@ class ViewNode
             'editor'                => syscfg('editor'),
             'public_ajax_url'         =>config('funadmin.public_ajax_url'),
             'api_domain'         =>config('funadmin.api_domain'),
-            'api_login_url'         =>config('funadmin.api_login_url'),
         ];
         View::assign('CONFIG',$config);
         $request->appname =$appname;

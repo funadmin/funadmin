@@ -51,4 +51,9 @@ class Raw
     {
         return $this->bind;
     }
+
+    public function __toString()
+    {
+        return $this->value;
+    }
 }

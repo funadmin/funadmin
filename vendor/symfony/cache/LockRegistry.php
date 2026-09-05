@@ -26,15 +26,15 @@ use Symfony\Contracts\Cache\ItemInterface;
  */
 final class LockRegistry
 {
-    private static $openedFiles = [];
-    private static $lockedFiles;
-    private static $signalingException;
-    private static $signalingCallback;
+    private static array $openedFiles = [];
+    private static ?array $lockedFiles = null;
+    private static \Exception $signalingException;
+    private static \Closure $signalingCallback;
 
     /**
      * The number of items in this list controls the max number of concurrent processes.
      */
-    private static $files = [
+    private static array $files = [
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'AbstractAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'AbstractTagAwareAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'AdapterInterface.php',
@@ -43,7 +43,6 @@ final class LockRegistry
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'ChainAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'CouchbaseBucketAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'CouchbaseCollectionAdapter.php',
-        __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'DoctrineAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'DoctrineDbalAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'FilesystemAdapter.php',
         __DIR__.\DIRECTORY_SEPARATOR.'Adapter'.\DIRECTORY_SEPARATOR.'FilesystemTagAwareAdapter.php',
@@ -66,12 +65,14 @@ final class LockRegistry
     /**
      * Defines a set of existing files that will be used as keys to acquire locks.
      *
-     * @return array The previously defined set of files
+     * @param list<string> $files A list of existing files
+     *
+     * @return list<string> The previously defined set of files
      */
     public static function setFiles(array $files): array
     {
         $previousFiles = self::$files;
-        self::$files = $files;
+        self::$files = array_values($files);
 
         foreach (self::$openedFiles as $file) {
             if ($file) {
@@ -84,7 +85,7 @@ final class LockRegistry
         return $previousFiles;
     }
 
-    public static function compute(callable $callback, ItemInterface $item, bool &$save, CacheInterface $pool, ?\Closure $setMetadata = null, ?LoggerInterface $logger = null)
+    public static function compute(callable $callback, ItemInterface $item, bool &$save, CacheInterface $pool, ?\Closure $setMetadata = null, ?LoggerInterface $logger = null, ?float $beta = null): mixed
     {
         if ('\\' === \DIRECTORY_SEPARATOR && null === self::$lockedFiles) {
             // disable locking on Windows by default
@@ -97,17 +98,16 @@ final class LockRegistry
             return $callback($item, $save);
         }
 
-        self::$signalingException ?? self::$signalingException = unserialize("O:9:\"Exception\":1:{s:16:\"\0Exception\0trace\";a:0:{}}");
-        self::$signalingCallback ?? self::$signalingCallback = function () { throw self::$signalingException; };
+        self::$signalingException ??= unserialize("O:9:\"Exception\":1:{s:16:\"\0Exception\0trace\";a:0:{}}", ['allowed_classes' => [\Exception::class]]);
+        self::$signalingCallback ??= static fn () => throw self::$signalingException;
 
         while (true) {
             try {
-                $locked = false;
                 // race to get the lock in non-blocking mode
                 $locked = flock($lock, \LOCK_EX | \LOCK_NB, $wouldBlock);
 
                 if ($locked || !$wouldBlock) {
-                    $logger && $logger->info(sprintf('Lock %s, now computing item "{key}"', $locked ? 'acquired' : 'not supported'), ['key' => $item->getKey()]);
+                    $logger?->info(\sprintf('Lock %s, now computing item "{key}"', $locked ? 'acquired' : 'not supported'), ['key' => $item->getKey()]);
                     self::$lockedFiles[$key] = true;
 
                     $value = $callback($item, $save);
@@ -124,16 +124,51 @@ final class LockRegistry
                     return $value;
                 }
                 // if we failed the race, retry locking in blocking mode to wait for the winner
-                $logger && $logger->info('Item "{key}" is locked, waiting for it to be released', ['key' => $item->getKey()]);
-                flock($lock, \LOCK_SH);
+                $logger?->info('Item "{key}" is locked, waiting for it to be released', ['key' => $item->getKey()]);
+
+                $deadline = microtime(true) + 30.0;
+
+                // max_execution_time counts wall time on Windows, on Apple Silicon and on ZTS builds with zend-max-execution-timers
+                // (e.g. FrankenPHP): stop waiting 1s before that limit, to leave time for evicting the slot and computing the value.
+                // A limit that is already past means the timer counts CPU time or was restarted by set_time_limit(): ignore it then.
+                if (0 < $limit = (int) \ini_get('max_execution_time')) {
+                    $end = ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true)) + $limit;
+
+                    if (microtime(true) < $end) {
+                        $deadline = min($deadline, $end - 1.0);
+                    }
+                }
+                $acquired = false;
+                do {
+                    if ($acquired = flock($lock, \LOCK_SH | \LOCK_NB)) {
+                        break;
+                    }
+                    usleep(100_000);
+                } while (microtime(true) < $deadline);
+
+                if (!$acquired) {
+                    $logger?->warning('Lock on item "{key}" timed out, evicting slot', ['key' => $item->getKey()]);
+                    unset(self::$files[$key]);
+                    self::setFiles(self::$files);
+                    $lock = null;
+
+                    return self::compute($callback, $item, $save, $pool, $setMetadata, $logger, $beta);
+                }
+
+                if (\INF === $beta) {
+                    $logger?->info('Force-recomputing item "{key}"', ['key' => $item->getKey()]);
+                    continue;
+                }
             } finally {
-                flock($lock, \LOCK_UN);
+                if ($lock) {
+                    flock($lock, \LOCK_UN);
+                }
                 unset(self::$lockedFiles[$key]);
             }
 
             try {
                 $value = $pool->get($item->getKey(), self::$signalingCallback, 0);
-                $logger && $logger->info('Item "{key}" retrieved after lock was released', ['key' => $item->getKey()]);
+                $logger?->info('Item "{key}" retrieved after lock was released', ['key' => $item->getKey()]);
                 $save = false;
 
                 return $value;
@@ -141,19 +176,22 @@ final class LockRegistry
                 if (self::$signalingException !== $e) {
                     throw $e;
                 }
-                $logger && $logger->info('Item "{key}" not found while lock was released, now retrying', ['key' => $item->getKey()]);
+                $logger?->info('Item "{key}" not found while lock was released, now retrying', ['key' => $item->getKey()]);
             }
         }
 
         return null;
     }
 
+    /**
+     * @return resource|false
+     */
     private static function open(int $key)
     {
         if (null !== $h = self::$openedFiles[$key] ?? null) {
             return $h;
         }
-        set_error_handler(function () {});
+        set_error_handler(static fn () => null);
         try {
             $h = fopen(self::$files[$key], 'r+');
         } finally {

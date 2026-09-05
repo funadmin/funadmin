@@ -93,7 +93,13 @@ class MigrationService extends AbstractService
         $withoutComments = preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
         // 剔除字符串常量，避免 INSERT 数据中的 rename/drop 等词被误判为 DDL。
         $withoutStrings = preg_replace("/'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"/s", "''", (string) $withoutComments);
-        if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutStrings)) {
+        // 允许迁移清理自身临时 guard 对象（仅限 schema_integrity_guard 命名的 TRIGGER/TABLE）。
+        $withoutGuardCleanup = preg_replace(
+            '/\bDROP\s+(?:TRIGGER|TABLE)\s+IF\s+EXISTS\s+`?(?:fun_)?schema_integrity_guard_[A-Za-z0-9_]+`?/i',
+            '',
+            (string) $withoutStrings
+        );
+        if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutGuardCleanup)) {
             throw new RuntimeException('Migration 包含破坏性语句：' . $file);
         }
     }

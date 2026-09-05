@@ -212,4 +212,16 @@ class Mysql extends PDOConnection
             $this->linkID->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
         }
     }
+
+    /**
+     * 获取设置时区的SQL语句.
+     *
+     * @param string $timezone 时区名称，如 'Asia/Shanghai' 或 '+08:00'
+     *
+     * @return string
+     */
+    protected function getSetTimezoneSql(string $timezone): string
+    {
+        return "SET time_zone = '$timezone'";
+    }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { nextTick } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
+import { mount } from '@vue/test-utils';
 
 // 拦截 element-plus 的弹窗：单测里直接走「同意 / 自动通过」
 vi.mock('element-plus', () => ({
@@ -159,5 +160,30 @@ describe('composables/useCrud', () => {
     const c = useCrud<Row, Query>({ api, initialQuery });
     await expect(c.loadData()).rejects.toThrow('boom');
     expect(c.loading.value).toBe(false);
+  });
+
+  it('组件挂载时默认自动加载一次', async () => {
+    const api = makePagedApi([{ id: 1, name: 'a' }]);
+    const Comp = defineComponent({
+      setup() {
+        useCrud<Row, Query>({ api, initialQuery });
+        return () => h('div');
+      }
+    });
+    mount(Comp);
+    await vi.waitFor(() => expect(api.list).toHaveBeenCalledTimes(1));
+  });
+
+  it('immediate 为 false 时挂载不自动加载', async () => {
+    const api = makePagedApi([]);
+    const Comp = defineComponent({
+      setup() {
+        useCrud<Row, Query>({ api, initialQuery, immediate: false });
+        return () => h('div');
+      }
+    });
+    mount(Comp);
+    await nextTick();
+    expect(api.list).not.toHaveBeenCalled();
   });
 });

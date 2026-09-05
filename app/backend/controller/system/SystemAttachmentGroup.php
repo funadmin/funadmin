@@ -81,7 +81,7 @@ class SystemAttachmentGroup extends AdminApiController
     {
         return [
             'pid' => (int) $this->request->post('parentId', $group?->pid ?? 0),
-            'title' => trim((string) $this->request->post('title', $group?->title ?? '')),
+            'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
             'thumb' => trim((string) $this->request->post('thumb', $group?->thumb ?? '')),
             'status' => $this->binaryStatus($this->request->post('status', $group?->status ?? 1)),
             'sort' => max(0, (int) $this->request->post('sort', $group?->sort ?? 999)),
@@ -90,11 +90,11 @@ class SystemAttachmentGroup extends AdminApiController
 
     private function validatePayload(array $data, int $currentId = 0): ?string
     {
-        $titleLength = function_exists('mb_strlen') ? mb_strlen($data['title']) : strlen($data['title']);
-        if ($data['title'] === '') {
+        $nameLength = function_exists('mb_strlen') ? mb_strlen($data['name']) : strlen($data['name']);
+        if ($data['name'] === '') {
             return '附件分组名称不能为空';
         }
-        if ($titleLength > 100) {
+        if ($nameLength > 100) {
             return '附件分组名称不能超过 100 个字符';
         }
         if (strlen($data['thumb']) > 255) {
@@ -127,7 +127,7 @@ class SystemAttachmentGroup extends AdminApiController
         return [
             'id' => (int) $group->id,
             'parentId' => (int) $group->pid,
-            'title' => (string) $group->title,
+            'name' => (string) $group->name,
             'thumb' => (string) ($group->thumb ?? ''),
             'status' => (int) $group->status,
             'sort' => (int) $group->sort,

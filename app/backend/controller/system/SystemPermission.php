@@ -37,11 +37,11 @@ class SystemPermission extends AdminApiController
             $permissions
         );
 
-        $title = trim((string) $this->request->get('title', ''));
+        $name = trim((string) $this->request->get('name', ''));
         $resource = strtolower(trim((string) $this->request->get('resource', '')));
         $status = $this->request->get('status', null);
-        if ($title !== '' || $resource !== '' || ($status !== null && $status !== '')) {
-            $rows = $this->filterWithAncestors($rows, $title, $resource, $status);
+        if ($name !== '' || $resource !== '' || ($status !== null && $status !== '')) {
+            $rows = $this->filterWithAncestors($rows, $name, $resource, $status);
         }
 
         return $this->ok($this->buildTree($rows));
@@ -118,7 +118,7 @@ class SystemPermission extends AdminApiController
             $permission->save($data);
             AdminMenu::where('permission_id', $id)->update([
                 'module' => $data['module'],
-                'title' => $data['title'],
+                'name' => $data['name'],
                 'status' => $data['status'],
                 'sort' => $data['sort'],
             ]);
@@ -210,7 +210,7 @@ class SystemPermission extends AdminApiController
             'code' => $code,
             'obj' => $obj,
             'act' => $act,
-            'title' => trim((string) $this->request->post('title', $current['title'] ?? '')),
+            'name' => trim((string) $this->request->post('name', $current['name'] ?? '')),
             'resource_type' => $resourceType,
             'status' => $this->binaryStatus($this->request->post('status', $current['status'] ?? 1)),
             'is_public' => $this->binaryStatus($this->request->post('isPublic', $current['isPublic'] ?? 0)),
@@ -222,7 +222,7 @@ class SystemPermission extends AdminApiController
 
     private function validatePayload(array $data): ?string
     {
-        if ($data['title'] === '') {
+        if ($data['name'] === '') {
             return '权限资源名称不能为空';
         }
         if ($data['module'] === '' || !preg_match('/^[a-z][a-z0-9_]{0,49}$/', $data['module'])) {
@@ -240,7 +240,7 @@ class SystemPermission extends AdminApiController
         return null;
     }
 
-    private function filterWithAncestors(array $rows, string $title, string $resource, $status): array
+    private function filterWithAncestors(array $rows, string $name, string $resource, $status): array
     {
         $byId = [];
         foreach ($rows as $row) {
@@ -249,7 +249,7 @@ class SystemPermission extends AdminApiController
 
         $keep = [];
         foreach ($rows as $row) {
-            $matchesTitle = $title === '' || str_contains((string) $row['title'], $title);
+            $matchesTitle = $name === '' || str_contains((string) $row['name'], $name);
             $resourceText = strtolower(implode(' ', [$row['code'], $row['object'], $row['action']]));
             $matchesResource = $resource === '' || str_contains($resourceText, $resource);
             $matchesStatus = ($status === null || $status === '') || (int) $row['status'] === (int) $status;
@@ -284,7 +284,7 @@ class SystemPermission extends AdminApiController
             'code' => (string) ($permission->code ?? ''),
             'object' => $object,
             'action' => (string) $permission->act,
-            'title' => (string) $permission->title,
+            'name' => (string) $permission->name,
             'resourceType' => (string) $permission->resource_type,
             'status' => (int) $permission->status,
             'isPublic' => (int) $permission->is_public,

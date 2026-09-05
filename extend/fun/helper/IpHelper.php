@@ -16,13 +16,7 @@ class IpHelper
 {
     public static function is_ip($str)
     {
-        $ip = explode('.', $str);
-        for ($i = 0; $i < count($ip); $i++) {
-            if ($ip[$i] > 255) {
-                return false;
-            }
-        }
-        return preg_match('/^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$/', $str);
+        return filter_var(trim((string) $str), FILTER_VALIDATE_IP) !== false;
     }
 
     public static function  ip(){

@@ -8,7 +8,7 @@ export interface OperationLog {
   sourceName: string;
   controller: string;
   action: string;
-  title: string;
+  name: string;
   method: string;
   url: string;
   ip: string;

@@ -5,12 +5,12 @@ SET @table_name = 'fun_admin_log';
 
 SET @module_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'module');
 SET @app_name_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'app_name');
-SET @sql = IF(@module_exists AND NOT @app_name_exists, 'ALTER TABLE `fun_admin_log` CHANGE COLUMN `module` `app_name` varchar(50) NOT NULL DEFAULT '''' COMMENT ''应用标识''', 'DO 0');
+SET @sql = IF(@module_exists AND NOT @app_name_exists, 'ALTER TABLE `fun_admin_log` CHANGE COLUMN `module` `app_name` varchar(50) NULL COMMENT ''应用标识''', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @plugins_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'plugins');
 SET @source_name_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'source_name');
-SET @sql = IF(@plugins_exists AND NOT @source_name_exists, 'ALTER TABLE `fun_admin_log` CHANGE COLUMN `plugins` `source_name` varchar(100) NOT NULL DEFAULT ''core'' COMMENT ''来源标识''', 'DO 0');
+SET @sql = IF(@plugins_exists AND NOT @source_name_exists, 'ALTER TABLE `fun_admin_log` CHANGE COLUMN `plugins` `source_name` varchar(100) NULL COMMENT ''来源标识''', 'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = @table_name AND COLUMN_NAME = 'source_type'), 'DO 0', 'ALTER TABLE `fun_admin_log` ADD COLUMN `source_type` varchar(20) NOT NULL DEFAULT ''system'' COMMENT ''来源类型'' AFTER `app_name`');

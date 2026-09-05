@@ -18,7 +18,7 @@
         <el-tree-select
           v-model="form.parentId"
           :data="parentOptions"
-          :props="{ label: 'title', children: 'children' }"
+          :props="{ label: 'name', children: 'children' }"
           node-key="id"
           check-strictly
           placeholder="顶级"
@@ -29,8 +29,8 @@
 
       <el-row :gutter="16">
         <el-col :span="12">
-          <el-form-item label="名称" prop="title">
-            <el-input v-model="form.title" placeholder="显示名称" />
+          <el-form-item label="名称" prop="name">
+            <el-input v-model="form.name" placeholder="显示名称" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -42,8 +42,8 @@
 
       <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="路由 name" prop="name">
-              <el-input v-model="form.name" placeholder="对应 RouteName" />
+            <el-form-item label="路由 name" prop="routeName">
+              <el-input v-model="form.routeName" placeholder="对应 RouteName" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -126,8 +126,8 @@ const formRef = ref<FormInstance>();
 const initialForm = (): Partial<API.MenuItem> => ({
   parentId: 0,
   type: 'C',
-  title: '',
   name: '',
+  routeName: '',
   path: '',
   component: '',
   redirect: '',
@@ -141,7 +141,7 @@ const initialForm = (): Partial<API.MenuItem> => ({
 const form = reactive<Partial<API.MenuItem>>(initialForm());
 
 const rules = computed<FormRules>(() => ({
-  title: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   type: [{ required: true, message: '请选择类型', trigger: 'change' }],
   path: [{ required: true, message: '请输入 path', trigger: 'blur' }],
   component: form.type === 'C' ? [{ required: true, message: '请输入组件', trigger: 'blur' }] : [],
@@ -154,7 +154,7 @@ const parentOptions = computed<API.MenuItem[]>(() => {
       .filter((it) => it.type === 'M')
       .map((it) => ({ ...it, children: it.children ? onlyDir(it.children) : undefined }));
   return [
-    { id: 0, parentId: 0, title: '无上级', type: 'M', path: '', name: 'RootMenu' } as API.MenuItem,
+    { id: 0, parentId: 0, name: '无上级', type: 'M', path: '', routeName: 'RootMenu' } as API.MenuItem,
     ...onlyDir(props.tree || [])
   ];
 });

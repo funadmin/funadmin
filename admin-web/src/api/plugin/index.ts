@@ -24,6 +24,13 @@ export interface PluginItem {
   source: 'installed' | 'local' | 'cloud';
 }
 
+export interface UpdateCheck {
+  name: string;
+  installedVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+}
+
 export interface MarketplaceVersion {
   id: number;
   pluginName: string;
@@ -85,7 +92,7 @@ export const pluginApi = {
   marketSearch: (params: API.PageQuery & { categoryId?: number }) => http.get<API.PageResult<MarketplacePlugin>>(`${PREFIX}/market/search`, params),
   marketDetail: (name: string) => http.get<MarketplacePlugin>(`${PREFIX}/market/${name}`),
   marketVersions: (name: string) => http.get<MarketplaceVersion[]>(`${PREFIX}/market/${name}/versions`),
-  checkUpdates: (installed: Array<{ name: string; version: string }>) => http.post<Record<string, string>>(`${PREFIX}/market/check-updates`, { installed }),
+  checkUpdates: (installed: Array<{ name: string; version: string }>) => http.post<UpdateCheck[]>(`${PREFIX}/market/check-updates`, { installed }),
   discovered: () => http.get<PluginItem[]>(`${PREFIX}/local/discovered`),
   installed: () => http.get<PluginItem[]>(`${PREFIX}/local/installed`),
   detail: (name: string) => http.get<PluginItem>(`${PREFIX}/local/${name}`),

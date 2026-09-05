@@ -50,10 +50,7 @@ function expectEnvelope(array $response, int $status): void
     httpExpect(array_key_exists('data', $response['body']), '响应必须包含 data');
 }
 
-$public = apiRequest('GET', $baseUrl . '/api/v2/member/verify');
-expectEnvelope($public, 200);
-
-$unauthorized = apiRequest('GET', $baseUrl . '/api/v2/member/userinfo');
+$unauthorized = apiRequest('GET', $baseUrl . '/api/v2/member');
 expectEnvelope($unauthorized, 401);
 
 $invalidLogin = apiRequest('POST', $baseUrl . '/api/v2/token', [
@@ -83,7 +80,7 @@ if ($testUsername !== '' && $testPassword !== '') {
     $refreshToken = (string) ($login['body']['data']['refresh_token'] ?? '');
     httpExpect($accessToken !== '' && $refreshToken !== '', '登录成功必须返回两个 Token');
 
-    $userinfo = apiRequest('GET', $baseUrl . '/api/v2/member/userinfo', [], [
+    $userinfo = apiRequest('GET', $baseUrl . '/api/v2/member', [], [
         'Authorization: Bearer ' . $accessToken,
     ]);
     expectEnvelope($userinfo, 200);

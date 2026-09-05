@@ -49,13 +49,13 @@ declare namespace API {
   interface MenuItem {
     id: number;
     parentId: number;
-    name: string;
+    routeName: string;
     path: string;
     component?: string;
     redirect?: string;
     type: 'M' | 'C' | 'B';
     icon?: string;
-    title: string;
+    name: string;
     sort: number;
     hidden: boolean;
     keepAlive: boolean;

@@ -762,6 +762,7 @@ class Xlsx extends BaseReader
 
                     $charts = $chartDetails = [];
 
+                    $sheetCreated = false;
                     if ($xmlWorkbookNS->sheets) {
                         foreach ($xmlWorkbookNS->sheets->sheet as $eleSheet) {
                             $eleSheetAttr = self::getAttributes($eleSheet);
@@ -788,6 +789,7 @@ class Xlsx extends BaseReader
 
                             // Load sheet
                             $docSheet = $excel->createSheet();
+                            $sheetCreated = true;
                             //    Use false for $updateFormulaCellReferences to prevent adjustment of worksheet
                             //        references in formula cells... during the load, all formulae should be correct,
                             //        and we're simply bringing the worksheet name in line with the formula, not the
@@ -1246,7 +1248,7 @@ class Xlsx extends BaseReader
                                                 // Set comment properties
                                                 $comment = $docSheet->getComment([$column + 1, $row + 1]);
                                                 $comment->getFillColor()->setRGB($fillColor);
-                                                if (isset($drowingImages[$fillImageRelId])) {
+                                                if (isset($fillImageRelId, $drowingImages[$fillImageRelId])) {
                                                     $objDrawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
                                                     $objDrawing->setName($fillImageTitle);
                                                     $imagePath = str_replace(['../', '/xl/'], 'xl/', $drowingImages[$fillImageRelId]);
@@ -1481,7 +1483,7 @@ class Xlsx extends BaseReader
                                                         );
                                                         if (isset($images[$linkImageKey])) {
                                                             $url = str_replace('xl/drawings/', '', $images[$linkImageKey]);
-                                                            $objDrawing->setPath($url, false, allowExternal: $this->allowExternalImages);
+                                                            $objDrawing->setPath($url, false, allowExternal: $this->allowExternalImages, isWhitelisted: $this->isWhitelisted);
                                                         }
                                                         if ($objDrawing->getPath() === '') {
                                                             continue;
@@ -1579,7 +1581,7 @@ class Xlsx extends BaseReader
                                                         );
                                                         if (isset($images[$linkImageKey])) {
                                                             $url = str_replace('xl/drawings/', '', $images[$linkImageKey]);
-                                                            $objDrawing->setPath($url, false, allowExternal: $this->allowExternalImages);
+                                                            $objDrawing->setPath($url, false, allowExternal: $this->allowExternalImages, isWhitelisted: $this->isWhitelisted);
                                                         }
                                                         if ($objDrawing->getPath() === '') {
                                                             continue;
@@ -1849,6 +1851,9 @@ class Xlsx extends BaseReader
                                 }
                             }
                         }
+                    }
+                    if ($this->createBlankSheetIfNoneRead && !$sheetCreated) {
+                        $excel->createSheet();
                     }
 
                     (new WorkbookView($excel))->viewSettings($xmlWorkbook, $mainNS, $mapSheetId, $this->readDataOnly);
@@ -2413,9 +2418,9 @@ class Xlsx extends BaseReader
                         $lastCol = $firstCol;
                         $lastRow = $firstRow;
                     }
-                    ++$lastCol;
+                    StringHelper::stringIncrement($lastCol);
                     for ($row = $firstRow; $row <= $lastRow; ++$row) {
-                        for ($col = $firstCol; $col !== $lastCol; ++$col) {
+                        for ($col = $firstCol; $col !== $lastCol; StringHelper::stringIncrement($col)) {
                             if ($numberStoredAsText === '1') {
                                 $sheet->getCell("$col$row")->getIgnoredErrors()->setNumberStoredAsText(true);
                             }

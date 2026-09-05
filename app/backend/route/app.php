@@ -14,6 +14,8 @@ Route::put('profile', 'auth.AdminProfile/update');
 Route::post('profile/password', 'auth.AdminProfile/password');
 
 Route::post('upload', 'system.AdminUpload/upload');
+Route::get('system/storage', 'system.SystemStorage/index');
+Route::put('system/storage', 'system.SystemStorage/update');
 
 Route::post('system/plugin/account/login', 'system.SystemPlugin/accountLogin');
 Route::post('system/plugin/account/logout', 'system.SystemPlugin/accountLogout');

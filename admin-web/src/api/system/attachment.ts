@@ -33,7 +33,7 @@ export interface AttachmentQuery {
 export interface AttachmentGroupModel {
   id: number;
   parentId: number;
-  title: string;
+  name: string;
   thumb: string;
   status: 0 | 1;
   sort: number;
@@ -43,7 +43,7 @@ export interface AttachmentGroupModel {
   children?: AttachmentGroupModel[];
 }
 
-export type AttachmentGroupPayload = Pick<AttachmentGroupModel, 'parentId' | 'title' | 'thumb' | 'status' | 'sort'>;
+export type AttachmentGroupPayload = Pick<AttachmentGroupModel, 'parentId' | 'name' | 'thumb' | 'status' | 'sort'>;
 
 export const attachmentApi = {
   list: (params: AttachmentQuery) => http.get<API.PageResult<AttachmentModel>>(PREFIX, { params }),

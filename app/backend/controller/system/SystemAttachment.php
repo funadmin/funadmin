@@ -10,6 +10,8 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\AttachGroup;
 use app\common\model\Attach;
+use app\common\storage\StorageDriverRegistry;
+use think\App;
 use think\Response;
 
 /**
@@ -18,6 +20,11 @@ use think\Response;
 class SystemAttachment extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+
+    public function __construct(App $app, private readonly StorageDriverRegistry $storageDrivers)
+    {
+        parent::__construct($app);
+    }
 
     public function index(): Response
     {
@@ -101,15 +108,22 @@ class SystemAttachment extends AdminApiController
 
         $checkedPaths = [];
         foreach ($attachments as $attach) {
+            $driverName = (string) ($attach->driver ?: 'local');
             $path = (string) $attach->path;
-            if ((string) $attach->driver === 'local' && $path !== '' && !isset($checkedPaths[$path])) {
-                $checkedPaths[$path] = true;
+            $storageKey = (string) ($attach->storage_key ?? '');
+            if ($storageKey === '' && $driverName === 'local' && str_starts_with($path, '/storage/')) {
+                $storageKey = ltrim(substr($path, strlen('/storage/')), '/');
+            }
+            $referenceKey = $driverName . ':' . $storageKey;
+            if ($storageKey !== '' && !isset($checkedPaths[$referenceKey])) {
+                $checkedPaths[$referenceKey] = true;
                 $referencedElsewhere = Attach::withTrashed()
-                    ->where('path', $path)
+                    ->where('driver', $driverName)
+                    ->where('storage_key', $storageKey)
                     ->whereNotIn('id', $ids)
                     ->count() > 0;
                 if (!$referencedElsewhere) {
-                    $this->deleteLocalFile($path);
+                    $this->storageDrivers->resolve($driverName)->delete($storageKey);
                 }
             }
             $attach->force()->delete();
@@ -127,21 +141,6 @@ class SystemAttachment extends AdminApiController
             'archive' => $query->whereIn('ext', ['zip', 'rar', '7z', 'tar', 'gz']),
             default => null,
         };
-    }
-
-    private function deleteLocalFile(string $path): void
-    {
-        $publicRoot = realpath(app()->getRootPath() . 'public');
-        if (!$publicRoot || $path === '') {
-            return;
-        }
-        $candidate = realpath($publicRoot . DIRECTORY_SEPARATOR . ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR));
-        if (!$candidate || !is_file($candidate)) {
-            return;
-        }
-        if ($candidate !== $publicRoot && str_starts_with($candidate, $publicRoot . DIRECTORY_SEPARATOR)) {
-            @unlink($candidate);
-        }
     }
 
     private function attachmentData(Attach $attach): array

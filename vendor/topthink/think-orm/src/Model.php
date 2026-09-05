@@ -109,7 +109,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
     public function __construct(array | object $data = [])
     {
         // 获取实体模型参数
-        $options = $this->getOptions();
+        $options = array_merge($this->getBaseOptions(), $this->getOptions());
 
         if (!self::$weakMap) {
             self::$weakMap = new WeakMap;
@@ -169,6 +169,16 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     protected function init()
     {}
+
+    /**
+     * 定义基础配置参数.
+     *
+     * @return array
+     */
+    protected function getBaseOptions(): array
+    {
+        return [];
+    }
 
     /**
      * 在实体模型中定义 返回相关配置参数.
@@ -240,10 +250,11 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      * 创建新的模型实例.
      *
      * @param array|object $data
+     * @param array $options
      *
      * @return Model|Entity
      */
-    public function newInstance(array | object $data = [])
+    public function newInstance(array | object $data = [], array $options = [])
     {
         $model = new static($data);
         if (!empty($data)) {
@@ -252,10 +263,10 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
 
         if ($this->getEntity()) {
             // 存在对应实体模型实例
-            return $this->getEntity()->newInstance($model);
+            return $this->getEntity()->newInstance($model, $options);
         }
 
-        return $this->fetchModel($model);
+        return $this->fetchModel($model, $options);
     }
 
     /**
@@ -277,11 +288,11 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      *
      * @return Modelable
      */
-    protected function fetchModel(Model $model): Modelable
+    protected function fetchModel(Model $model, array $options = []): Modelable
     {
         $class = $model->getOption('entityClass', str_replace('\\model\\', '\\entity\\', static::class));
         if (class_exists($class) && is_subclass_of($class, Entity::class)) {
-            return new $class($model);
+            return new $class($model, $options);
         }
         return $model;
     }
@@ -441,7 +452,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
             } elseif ($isUpdate && !$this->isForce() && $this->isNotRequireUpdate($name, $val, $origin)) {
                 unset($data[$name]);
             } else {
-                $val = $this->setWithAttr($name, $val);
+                $val = $this->setAttrOfWith($name, $val);
             }
         }
 
@@ -777,7 +788,7 @@ abstract class Model implements JsonSerializable, ArrayAccess, Arrayable, Jsonab
      */
     public function __set(string $name, $value): void
     {
-        if ($value instanceof Modelable && $bind = $this->getBindAttr($this->getOption('bindAttr'), $name)) {
+        if ($value instanceof Modelable && $bind = $this->getAttrOfBind($this->getOption('bindAttr'), $name)) {
             // 关联属性绑定
             $this->bindRelationAttr($value, $bind);
         } else {

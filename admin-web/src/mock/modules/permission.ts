@@ -12,7 +12,7 @@ const permissionList: PermissionModel[] = [
     code: '',
     object: '',
     action: '',
-    title: '系统管理',
+    name: '系统管理',
     resourceType: 'group',
     status: 1,
     isPublic: 0,
@@ -27,7 +27,7 @@ const permissionList: PermissionModel[] = [
     code: '',
     object: '',
     action: '',
-    title: '权限资源',
+    name: '权限资源',
     resourceType: 'group',
     status: 1,
     isPublic: 0,
@@ -41,14 +41,14 @@ const permissionList: PermissionModel[] = [
     [230, 'create', '新增权限资源', 30],
     [231, 'update', '编辑权限资源', 40],
     [232, 'delete', '删除权限资源', 50]
-  ].map(([id, action, title, sort]) => ({
+  ].map(([id, action, name, sort]) => ({
     id: Number(id),
     parentId: 227,
     module: 'backend',
     code: `backend/systempermission:${action}`,
     object: 'systempermission',
     action: String(action),
-    title: String(title),
+    name: String(name),
     resourceType: 'route' as const,
     status: 1 as const,
     isPublic: 0 as const,
@@ -72,7 +72,7 @@ function normalize(body: Record<string, any>, current?: PermissionModel): Permis
     code: resourceType === 'route' && object && action ? `${module}/${object.replace(/[\\/]/g, '.')}:${action}` : '',
     object: object.replace(/[\\/]/g, '.'),
     action,
-    title: String(body.title ?? current?.title ?? '').trim(),
+    name: String(body.name ?? current?.name ?? '').trim(),
     resourceType,
     status: Number(body.status ?? current?.status ?? 1) === 1 ? 1 : 0,
     isPublic: Number(body.isPublic ?? current?.isPublic ?? 0) === 1 ? 1 : 0,
@@ -85,7 +85,7 @@ function normalize(body: Record<string, any>, current?: PermissionModel): Permis
 }
 
 function validate(item: PermissionModel, currentId = 0): string | null {
-  if (!item.title) return '权限资源名称不能为空';
+  if (!item.name) return '权限资源名称不能为空';
   if (!/^[a-z][a-z0-9_]{0,49}$/.test(item.module)) return '应用标识格式不正确';
   if (item.parentId > 0 && !permissionList.some((row) => row.id === item.parentId)) return '上级权限资源不存在';
   if (item.parentId === currentId || descendantIds(currentId).includes(item.parentId)) {

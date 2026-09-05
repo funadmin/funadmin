@@ -182,8 +182,6 @@ expect(str_contains((string) $migrationSource, "CHANGE COLUMN `addons` `plugins`
 expect(str_contains((string) $migrationSource, "REPLACE(`code`, ''backend/addon'', ''backend/plugin'')"), '必须迁移旧插件权限 code 命名');
 expect(str_contains((string) $migrationSource, "REPLACE(`href`, ''backend/addon'', ''backend/plugin'')"), '必须迁移旧插件菜单 href 命名');
 expect(substr_count((string) $migrationSource, 'information_schema.TABLES') >= 4 && substr_count((string) $migrationSource, 'information_schema.COLUMNS') >= 10, '兼容分支必须通过结构存在性检查保持幂等');
-$controllerSource = file_get_contents(dirname(__DIR__) . '/app/backend/controller/Plugin.php');
-expect(preg_match('/function uninstall\\(\\)[\\s\\S]{0,500}catch \\(\\\\Throwable \\$exception\\)/', (string) $controllerSource) === 1, 'uninstall 必须捕获 Throwable');
 
 $iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS),

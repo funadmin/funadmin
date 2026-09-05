@@ -128,4 +128,18 @@ class Sqlsrv extends PDOConnection
 
         return $info;
     }
+
+    /**
+     * 获取设置时区的SQL语句.
+     *
+     * @param string $timezone 时区名称，如 'Asia/Shanghai' 或 '+08:00'
+     *
+     * @return string
+     */
+    protected function getSetTimezoneSql(string $timezone): string
+    {
+        // SQL Server 使用 SET TIME ZONE 命令
+        // 注意：SQL Server 2016 及以上版本才支持此命令
+        return "SET TIME ZONE '$timezone'";
+    }
 }

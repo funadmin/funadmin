@@ -31,8 +31,8 @@ trait ContractsTrait
         doGet as private contractsGet;
     }
 
-    private $callbackWrapper;
-    private $computing = [];
+    private \Closure $callbackWrapper;
+    private array $computing = [];
 
     /**
      * Wraps the callback passed to ->get() in a callable.
@@ -42,43 +42,45 @@ trait ContractsTrait
     public function setCallbackWrapper(?callable $callbackWrapper): callable
     {
         if (!isset($this->callbackWrapper)) {
-            $this->callbackWrapper = \Closure::fromCallable([LockRegistry::class, 'compute']);
+            $this->callbackWrapper = LockRegistry::compute(...);
 
-            if (\in_array(\PHP_SAPI, ['cli', 'phpdbg'], true)) {
+            if (\in_array(\PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
                 $this->setCallbackWrapper(null);
             }
         }
 
+        if (null !== $callbackWrapper && !$callbackWrapper instanceof \Closure) {
+            $callbackWrapper = $callbackWrapper(...);
+        }
+
         $previousWrapper = $this->callbackWrapper;
-        $this->callbackWrapper = $callbackWrapper ?? static function (callable $callback, ItemInterface $item, bool &$save, CacheInterface $pool, \Closure $setMetadata, ?LoggerInterface $logger) {
-            return $callback($item, $save);
-        };
+        $this->callbackWrapper = $callbackWrapper ?? static fn (callable $callback, ItemInterface $item, bool &$save, CacheInterface $pool, \Closure $setMetadata, ?LoggerInterface $logger, ?float $beta = null) => $callback($item, $save);
 
         return $previousWrapper;
     }
 
-    private function doGet(AdapterInterface $pool, string $key, callable $callback, ?float $beta, ?array &$metadata = null)
+    private function doGet(AdapterInterface $pool, string $key, callable $callback, ?float $beta, ?array &$metadata = null): mixed
     {
-        if (0 > $beta = $beta ?? 1.0) {
-            throw new InvalidArgumentException(sprintf('Argument "$beta" provided to "%s::get()" must be a positive number, %f given.', static::class, $beta));
+        if (0 > $beta ??= 1.0) {
+            throw new InvalidArgumentException(\sprintf('Argument "$beta" provided to "%s::get()" must be a positive number, %f given.', static::class, $beta));
         }
 
         static $setMetadata;
 
-        $setMetadata ?? $setMetadata = \Closure::bind(
+        $setMetadata ??= \Closure::bind(
             static function (CacheItem $item, float $startTime, ?array &$metadata) {
                 if ($item->expiry > $endTime = microtime(true)) {
                     $item->newMetadata[CacheItem::METADATA_EXPIRY] = $metadata[CacheItem::METADATA_EXPIRY] = $item->expiry;
                     $item->newMetadata[CacheItem::METADATA_CTIME] = $metadata[CacheItem::METADATA_CTIME] = (int) ceil(1000 * ($endTime - $startTime));
                 } else {
-                    unset($metadata[CacheItem::METADATA_EXPIRY], $metadata[CacheItem::METADATA_CTIME]);
+                    unset($metadata[CacheItem::METADATA_EXPIRY], $metadata[CacheItem::METADATA_CTIME], $metadata[CacheItem::METADATA_TAGS]);
                 }
             },
             null,
             CacheItem::class
         );
 
-        return $this->contractsGet($pool, $key, function (CacheItem $item, bool &$save) use ($pool, $callback, $setMetadata, &$metadata, $key) {
+        return $this->contractsGet($pool, $key, function (CacheItem $item, bool &$save) use ($pool, $callback, $setMetadata, &$metadata, $key, $beta) {
             // don't wrap nor save recursive calls
             if (isset($this->computing[$key])) {
                 $value = $callback($item, $save);
@@ -95,9 +97,9 @@ trait ContractsTrait
             }
 
             try {
-                $value = ($this->callbackWrapper)($callback, $item, $save, $pool, function (CacheItem $item) use ($setMetadata, $startTime, &$metadata) {
+                $value = ($this->callbackWrapper)($callback, $item, $save, $pool, static function (CacheItem $item) use ($setMetadata, $startTime, &$metadata) {
                     $setMetadata($item, $startTime, $metadata);
-                }, $this->logger ?? null);
+                }, $this->logger ?? null, $beta);
                 $setMetadata($item, $startTime, $metadata);
 
                 return $value;

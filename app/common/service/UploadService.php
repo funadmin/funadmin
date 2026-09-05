@@ -2,6 +2,7 @@
 namespace app\common\service;
 
 use app\common\model\Attach as AttachModel;
+use app\common\storage\StorageDriverRegistry;
 use app\common\traits\Jump;
 use think\App;
 use think\Exception;
@@ -9,7 +10,6 @@ use think\facade\Cache;
 use think\facade\Request;
 use think\file\UploadedFile;
 use think\Image;
-use think\facade\Filesystem;
 
 class UploadService extends AbstractService
 {
@@ -41,27 +41,12 @@ class UploadService extends AbstractService
      */
     protected $file;
 
-    /**
-     * 上传对象
-     */
-    protected $filesystem;
-
-    /**
-     * @var
-     */
-    protected $disksdriver;
-
-
     protected $saveFilePath = 'uploads';
+
     /**
-     * @var
+     * 当前应用共享的存储驱动注册表。
      */
-    protected $disksurl;
-    /**
-     * oss
-     * @var
-     */
-    protected $ossService;
+    protected StorageDriverRegistry $storageDrivers;
     /**
      * @var int
      */
@@ -94,13 +79,14 @@ class UploadService extends AbstractService
     protected function initialize()
     {
         $this->rule = syscfg('upload','upload_file_rule')?:'';
-        $this->driver = syscfg('upload','upload_driver');
-        $this->fileExt = syscfg('upload','upload_file_type');
-        $this->fileMaxsize = syscfg('upload', 'upload_file_max') * 1024;
-        $this->filesystem =  Filesystem::instance();
-        $this->disksdriver = config('filesystem.default','public');
-        $this->disksurl = config('filesystem.disks.'.$this->disksdriver.'.url','/storage');
-        $this->ossService = OssService::instance();
+        $this->storageDrivers = $this->app->make(StorageDriverRegistry::class);
+        $this->driver = $this->storageDrivers->resolve((string) syscfg('upload', 'upload_driver'))->name();
+        $configuredTypes = strtolower((string) syscfg('upload', 'upload_file_type'));
+        $this->fileExt = implode(',', array_values(array_diff(
+            array_filter(array_map('trim', explode(',', $configuredTypes ?: 'mp4,mp3,png,gif,jpg,jpeg,webp,rar,zip,7z,tar,gz,csv,xls,xlsx,pdf,doc,docx,ppt,pptx,txt'))),
+            ['php', 'html', 'htm', 'xml', 'ssh', 'bat', 'jar', 'java']
+        )));
+        $this->fileMaxsize = (int) (syscfg('upload', 'upload_file_max') ?: 8192) * 1024;
         return $this;
     }
 
@@ -331,36 +317,27 @@ class UploadService extends AbstractService
 
         $this->file = $file?:$this->file;
         $saveFilePath = input('path','uploads') =='undefined'?:$this->saveFilePath;
-        $savename = $this->filesystem->disk($this->disksdriver)->putFile($saveFilePath, $this->file,$this->rule);
-        $savename = str_replace('\\','/',$savename);
-        $path = $this->disksurl . "/" . $savename;
-        $attach = AttachModel::where('md5',$this->file->md5())->find();
+        $storageDriver = $this->storageDrivers->resolve($this->driver);
+        $attach = AttachModel::where('driver', $storageDriver->name())->where('md5',$this->file->md5())->find();
         if(!$attach) {
+            $storedFile = $storageDriver->store($this->file, $saveFilePath, $this->rule);
+            $path = $storedFile->url;
             // 整合上传接口 获取视频音频长度
             $analyzeFileInfo = hook_one('getID3Hook',['path'=>'.'. "/" .$path]);
             if($analyzeFileInfo) {
                 $analyzeFileInfo = unserialize($analyzeFileInfo);
                 $this->duration = isset($analyzeFileInfo['playtime_seconds'])?$analyzeFileInfo['playtime_seconds']:0;
             }
-            if($this->width){
-                $this->createWater($path);
-            }
-            if ($this->driver != 'local') {
-                try {
-                    $path = $this->ossService->uploads($this->driver,trim($path, "/"), "./" . trim($path, "/"),input('save',1));
-                }catch (\Exception $e) {
-                    throw new Exception($e->getMessage());
-                }
-            }
             $data = [
                 'admin_id' => $admin_id ?: (session('admin.id') ?: 0),
                 'member_id' => $uid ?: (session('member.id') ?: 0),
                 'group_id' => input('group_id', 1),
                 'original_name' => $this->file->getOriginalName(),
-                'name' => basename($savename),
+                'name' => basename($storedFile->key),
+                'storage_key' => $storedFile->key,
                 'path' => $path,
                 'thumb' => $path,
-                'url' => $this->driver == 'local' ? Request::domain() . $path : $path,
+                'url' => str_starts_with($path, '/') ? Request::domain() . $path : $path,
                 'ext' => $this->file->getExtension(),
                 'size' => $this->file->getSize() / 1024,
                 'width' => $this->width,
@@ -369,9 +346,14 @@ class UploadService extends AbstractService
                 'md5' => $this->file->md5(),
                 'sha1' => $this->file->sha1(),
                 'mime' => $this->file->getMime(),
-                'driver' => $this->driver,
+                'driver' => $storageDriver->name(),
             ];
-            $attach = AttachModel::create($data);
+            try {
+                $attach = AttachModel::create($data);
+            } catch (\Throwable $e) {
+                $storageDriver->delete($storedFile->key);
+                throw $e;
+            }
         }
         hook_one('afterUploadFile',$this->file);
         return $attach;
@@ -396,7 +378,7 @@ class UploadService extends AbstractService
             throw new Exception(lang('File format is limited'));
         }
         //文件大小限制
-        if (($this->file->getSize() > $this->fileMaxsize*1024)) {
+        if ($this->file->getSize() > $this->fileMaxsize) {
             throw new Exception(lang('File size is limited'));
         }
         //文件类型限制

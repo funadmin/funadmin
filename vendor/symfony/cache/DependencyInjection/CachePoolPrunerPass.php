@@ -15,7 +15,6 @@ use Symfony\Component\Cache\PruneableInterface;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Reference;
 
 /**
@@ -23,42 +22,23 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 class CachePoolPrunerPass implements CompilerPassInterface
 {
-    private $cacheCommandServiceId;
-    private $cachePoolTag;
-
-    public function __construct(string $cacheCommandServiceId = 'console.command.cache_pool_prune', string $cachePoolTag = 'cache.pool')
-    {
-        if (0 < \func_num_args()) {
-            trigger_deprecation('symfony/cache', '5.3', 'Configuring "%s" is deprecated.', __CLASS__);
-        }
-
-        $this->cacheCommandServiceId = $cacheCommandServiceId;
-        $this->cachePoolTag = $cachePoolTag;
-    }
-
     /**
-     * {@inheritdoc}
+     * @return void
      */
     public function process(ContainerBuilder $container)
     {
-        if (!$container->hasDefinition($this->cacheCommandServiceId)) {
+        if (!$container->hasDefinition('console.command.cache_pool_prune')) {
             return;
         }
 
         $services = [];
 
-        foreach ($container->findTaggedServiceIds($this->cachePoolTag) as $id => $tags) {
-            $class = $container->getParameterBag()->resolveValue($container->getDefinition($id)->getClass());
-
-            if (!$reflection = $container->getReflectionClass($class)) {
-                throw new InvalidArgumentException(sprintf('Class "%s" used for service "%s" cannot be found.', $class, $id));
-            }
-
-            if ($reflection->implementsInterface(PruneableInterface::class)) {
-                $services[$id] = new Reference($id);
+        foreach ($container->findTaggedServiceIds('cache.pool') as $id => $tags) {
+            if ($tags[0]['pruneable'] ?? $container->getReflectionClass($container->getDefinition($id)->getClass(), false)?->implementsInterface(PruneableInterface::class) ?? false) {
+                $services[$tags[0]['name'] ?? $id] = new Reference($id);
             }
         }
 
-        $container->getDefinition($this->cacheCommandServiceId)->replaceArgument(0, new IteratorArgument($services));
+        $container->getDefinition('console.command.cache_pool_prune')->replaceArgument(0, new IteratorArgument($services));
     }
 }

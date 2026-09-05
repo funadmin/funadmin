@@ -141,9 +141,8 @@ class RuleName
         foreach ($this->rule as $rule => $rules) {
             foreach ($rules as $item) {
                 $val = [];
-
                 foreach (['method', 'rule', 'name', 'route', 'domain', 'pattern', 'option'] as $param) {
-                    $call        = 'get' . $param;
+                    $call = 'get' . $param;
                     if ('rule' == $param) {
                         $val[$param] = $item->$call() ?: '/';
                     } else {

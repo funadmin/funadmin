@@ -6,7 +6,6 @@ use app\backend\model\AdminMenu;
 use app\backend\model\CasbinRule;
 use app\backend\model\Permission;
 use app\common\service\AbstractService;
-use think\facade\Cache;
 use think\facade\Db;
 
 /**
@@ -19,7 +18,7 @@ class ResourceRegistryService extends AbstractService
         Db::transaction(function () use ($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName) {
             $this->registerItems($items, $parentPermissionId, $parentMenuId, $module, $sourceType, $sourceName);
         });
-        $this->clearCache();
+        $this->clearApplicationCache();
     }
 
     public function removeRoute(string $module, string $href): void
@@ -42,7 +41,7 @@ class ResourceRegistryService extends AbstractService
             Permission::whereIn('id', $ids)->delete();
         });
         CasbinService::instance()->reload();
-        $this->clearCache();
+        $this->clearApplicationCache();
     }
 
     public function removeSource(string $sourceType, string $sourceName): void
@@ -68,7 +67,7 @@ class ResourceRegistryService extends AbstractService
             Permission::where('source_type', $sourceType)->where('source_name', $sourceName)->delete();
         });
         CasbinService::instance()->reload();
-        $this->clearCache();
+        $this->clearApplicationCache();
     }
 
     public function removeModule(string $module): void
@@ -85,7 +84,7 @@ class ResourceRegistryService extends AbstractService
             Permission::where('module', $module)->delete();
         });
         CasbinService::instance()->reload();
-        $this->clearCache();
+        $this->clearApplicationCache();
     }
 
     private function registerItems(array $items, int $parentPermissionId, int $parentMenuId, string $module, string $sourceType, string $sourceName): void
@@ -102,7 +101,7 @@ class ResourceRegistryService extends AbstractService
                 : [
                     'pid' => $parentPermissionId,
                     'module' => $itemModule,
-                    'title' => (string) ($item['title'] ?? ''),
+                    'name' => (string) ($item['name'] ?? ''),
                     'source_type' => $sourceType,
                     'source_name' => $sourceName,
                 ];
@@ -113,7 +112,7 @@ class ResourceRegistryService extends AbstractService
                 'code' => $resource['code'] ?? null,
                 'obj' => $resource['obj'] ?? '',
                 'act' => $resource['act'] ?? '',
-                'title' => (string) ($item['title'] ?? ''),
+                'name' => (string) ($item['name'] ?? ''),
                 'resource_type' => $permissionType,
                 'status' => (int) ($item['status'] ?? 1),
                 'is_public' => (int) ($item['is_public'] ?? 0),
@@ -129,7 +128,7 @@ class ResourceRegistryService extends AbstractService
                     'pid' => $parentMenuId,
                     'permission_id' => $permission->id,
                     'module' => $itemModule,
-                    'title' => (string) ($item['title'] ?? ''),
+                    'name' => (string) ($item['name'] ?? ''),
                     'href' => $href,
                     'query' => (string) ($item['query'] ?? ''),
                     'target' => (string) ($item['target'] ?? '_self'),
@@ -147,8 +146,4 @@ class ResourceRegistryService extends AbstractService
         }
     }
 
-    private function clearCache(): void
-    {
-        Cache::clear();
-    }
 }

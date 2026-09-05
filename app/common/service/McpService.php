@@ -870,6 +870,9 @@ class McpService extends AbstractService
     public function handleCreateController(string $module, string $controller, array $fields = [], string $description = ''): array
     {
         try {
+            if (strtolower($module) === 'api') {
+                throw new Exception('API 控制器必须使用专用 API 生成器');
+            }
             // 生成控制器类名
             $controllerClass = ucfirst($controller);
             $controllerPath = "app/{$module}/controller/{$controllerClass}.php";
@@ -983,8 +986,8 @@ class McpService extends AbstractService
     private function CreateControllerContent(string $module, string $controllerClass, array $fields = [], string $description = ''): string
     {
         $namespace = "app\\{$module}\\controller";
-        $baseController = $module === 'api' ? 'Api' : 'Backend';
-        $useStatement = $module === 'api' ? 'use app\\common\\controller\\Api;' : 'use app\\common\\controller\\Backend;';
+        $baseController = 'Backend';
+        $useStatement = 'use app\\common\\controller\\Backend;';
         
         $description = $description ?: $controllerClass;
         
@@ -1461,16 +1464,15 @@ class {$modelClass} extends BaseModel
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
-                        '--app=' . $pluginName,
+                        '--name=' . $pluginName,
                         '--title=' . ($options['title'] ?? $pluginName),
                         '--description=' . ($options['description'] ?? $pluginName),
                         '--author=' . ($options['author'] ?? 'FunAdmin'),
-                        '--ver=' . ($options['version'] ?? '1.0.0'),
-                        '--requires=' . ($options['requires'] ?? '1.0.0'),
-
+                        '--version=' . ($options['version'] ?? '1.0.0'),
+                        '--funadmin-version=' . ($options['requires'] ?? '>=1.0.0'),
                     ];
                     if (!empty($options['force'])) {
-                        $parameters[] = '--force=1';
+                        $parameters[] = '--force';
                     }
                     break;
 
@@ -1479,8 +1481,8 @@ class {$modelClass} extends BaseModel
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
-                        '--install=1',
-                        '--app=' . $pluginName
+                        '--install',
+                        '--name=' . $pluginName
                     ];
                     break;
 
@@ -1489,11 +1491,8 @@ class {$modelClass} extends BaseModel
                         throw new \Exception('插件名称不能为空');
                     }
                     $parameters = [
-                        '--delete=1',
-                        '--force=1',
-                        '--app=' . $pluginName,
-                        
-
+                        '--uninstall',
+                        '--name=' . $pluginName,
                     ];
                     break;
 
@@ -1501,10 +1500,9 @@ class {$modelClass} extends BaseModel
                     if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
-                    // 这里需要根据具体的plugin命令参数来实现
                     $parameters = [
-                        '--app=' . $pluginName,
-                        '--enable=1',
+                        '--enable',
+                        '--name=' . $pluginName,
                     ];
                     break;
 
@@ -1512,10 +1510,9 @@ class {$modelClass} extends BaseModel
                     if (empty($pluginName)) {
                         throw new \Exception('插件名称不能为空');
                     }
-                    // 这里需要根据具体的plugin命令参数来实现
                     $parameters = [
-                        '--app=' . $pluginName,
-                        '--disable=1',
+                        '--disable',
+                        '--name=' . $pluginName,
                     ];
                     break;
                 default:
@@ -2329,7 +2326,7 @@ class {$modelClass} extends BaseModel
         try {
             // 生成API控制器类名
             $controllerClass = ucfirst($controller);
-            $apiPath = "app/{$module}/controller/{$controllerClass}.php";
+            $apiPath = "app/{$module}/controller/v2/{$controllerClass}.php";
             
             // 检查文件是否已存在
             if (file_exists($apiPath)) {
@@ -2475,11 +2472,16 @@ class {$modelClass} extends BaseModel
      */
     private function generateApiContent(string $module, string $controllerClass, array $fields = [], string $description = ''): string
     {
-        $namespace = "app\\{$module}\\controller";
+        $version = 'v2';
+        $namespace = "app\\{$module}\\controller\\{$version}";
         $description = $description ?: $controllerClass;
-        
-        // 生成字段验证规则
+        $modelClass = "\\app\\common\\model\\{$controllerClass}";
         $validationRules = $this->generateApiValidationRules($fields);
+        $allowedFields = array_values(array_filter(array_map(
+            static fn (array $field): string => (string) ($field['name'] ?? ''),
+            $fields
+        ), static fn (string $field): bool => $field !== '' && !in_array($field, ['id', 'create_time', 'update_time', 'delete_time'], true)));
+        $allowedFieldsCode = var_export($allowedFields, true);
         
         $content = "<?php
 /**
@@ -2496,50 +2498,46 @@ class {$modelClass} extends BaseModel
 namespace {$namespace};
 
 use app\\common\\controller\\Api;
-use think\\App;
+use think\\exception\\ValidateException;
 use think\\Request;
-use app\\common\\annotation\\ControllerAnnotation;
-use app\\common\\annotation\\NodeAnnotation;
+use think\\Response;
 
 /**
- * @ControllerAnnotation('{$description}')
- * Class {$controllerClass}
- * @package {$namespace}
+ * {$description}
  */
 class {$controllerClass} extends Api
 {
-    protected \$modelClass = null;
-    protected \$noNeedLogin = ['index', 'read'];
+    private const ALLOWED_FIELDS = {$allowedFieldsCode};
 
-    public function __construct(App \$app)
+    public function __construct(private readonly {$modelClass} \$model)
     {
-        parent::__construct(\$app);
-        \$this->modelClass = new \\app\\common\\model\\{$controllerClass}();
     }
 
     /**
      * @NodeAnnotation(title='列表')
      */
-    public function index()
+    public function index(Request \$request): Response
     {
-        \$where = \$this->request->get();
-        \$list = \$this->modelClass
-            ->where(\$where)
-            ->order('id desc')
-            ->paginate([
-                'list_rows' => \$this->request->get('limit', 15),
-                'page' => \$this->request->get('page', 1),
-            ]);
-        
-        return \$this->ok(\$list, '获取成功');
+        \$page = max(1, (int) \$request->get('page', 1));
+        \$pageSize = min(100, max(1, (int) \$request->get('pageSize', 15)));
+        \$result = \$this->model->field(array_merge(['id'], self::ALLOWED_FIELDS))
+            ->order('id', 'desc')
+            ->paginate(['list_rows' => \$pageSize, 'page' => \$page]);
+
+        return \$this->ok([
+            'list' => \$result->items(),
+            'total' => \$result->total(),
+            'page' => \$page,
+            'pageSize' => \$pageSize,
+        ]);
     }
 
     /**
      * @NodeAnnotation(title='详情')
      */
-    public function read(\$id)
+    public function show(int \$id): Response
     {
-        \$row = \$this->modelClass->find(\$id);
+        \$row = \$this->model->find(\$id);
         if (!\$row) {
             return \$this->fail('记录不存在', 404);
         }
@@ -2549,21 +2547,20 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='新增')
      */
-    public function save()
+    public function create(Request \$request): Response
     {
-        \$params = \$this->request->post();
+        \$params = \$request->only(self::ALLOWED_FIELDS, 'post');
         
         // 验证数据
         try {
             validate([
-                'title' => 'require|max:255',
-                'content' => 'require',
+                {$validationRules}
             ])->check(\$params);
         } catch (ValidateException \$e) {
             return \$this->fail(\$e->getError(), 422);
         }
         
-        \$result = \$this->modelClass->save(\$params);
+        \$result = \$this->model->save(\$params);
         if (!\$result) {
             return \$this->fail('添加失败');
         }
@@ -2573,20 +2570,19 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='编辑')
      */
-    public function update(\$id)
+    public function update(Request \$request, int \$id): Response
     {
-        \$row = \$this->modelClass->find(\$id);
+        \$row = \$this->model->find(\$id);
         if (!\$row) {
             return \$this->fail('记录不存在', 404);
         }
         
-        \$params = \$this->request->put();
+        \$params = \$request->only(self::ALLOWED_FIELDS, 'put');
         
         // 验证数据
         try {
             validate([
-                'title' => 'require|max:255',
-                'content' => 'require',
+                {$validationRules}
             ])->check(\$params);
         } catch (ValidateException \$e) {
             return \$this->fail(\$e->getError(), 422);
@@ -2602,9 +2598,9 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='删除')
      */
-    public function delete(\$id)
+    public function delete(int \$id): Response
     {
-        \$row = \$this->modelClass->find(\$id);
+        \$row = \$this->model->find(\$id);
         if (!\$row) {
             return \$this->fail('记录不存在', 404);
         }

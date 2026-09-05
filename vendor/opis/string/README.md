@@ -1,9 +1,10 @@
 Opis String
 ===========
 [![Tests](https://github.com/opis/string/workflows/Tests/badge.svg)](https://github.com/opis/string/actions)
-[![Latest Stable Version](https://poser.pugx.org/opis/string/version.png)](https://packagist.org/packages/opis/string)
-[![Latest Unstable Version](https://poser.pugx.org/opis/string/v/unstable.png)](https://packagist.org/packages/opis/string)
-[![License](https://poser.pugx.org/opis/string/license.png)](https://packagist.org/packages/opis/string)
+[![Packagist Version](https://img.shields.io/packagist/v/opis/string?label=Version)](https://packagist.org/packages/opis/string)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/opis/string?label=Downloads)](https://packagist.org/packages/opis/string)
+[![Packagist License](https://img.shields.io/packagist/l/opis/string?color=teal&label=License)](https://packagist.org/packages/opis/string)
+
 
 Multibyte strings
 ----------------------------
@@ -27,7 +28,7 @@ The full documentation for this library can be found [here][documentation].
 
 ## Installation
 
-**Opis String** is available on [Packagist] and it can be installed from a
+**Opis String** is available on [Packagist], and it can be installed from a
 command line interface by using [Composer].
 
 ```bash
@@ -39,7 +40,7 @@ Or you could directly reference it into your `composer.json` file as a dependenc
 ```json
 {
     "require": {
-        "opis/string": "^2.0"
+        "opis/string": "^2.1"
     }
 }
 ```

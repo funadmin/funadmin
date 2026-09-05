@@ -17,7 +17,7 @@
         <el-input v-else :model-value="inputValue(key)" :type="definition.type === 'password' ? 'password' : 'text'" :show-password="definition.type === 'password'" @update:model-value="values[key] = $event" />
         <div v-if="definition.tip" class="text-xs text-gray-400">{{ definition.tip }}</div>
       </el-form-item>
-      <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
+      <el-button type="primary" :loading="saving" v-perm="'system:plugin:config'" @click="save">保存配置</el-button>
     </el-form>
   </el-drawer>
 </template>

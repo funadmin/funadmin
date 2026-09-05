@@ -10,20 +10,8 @@ use think\Request;
 
 class Member extends Api
 {
-    protected array $noNeedLogin = ['verify'];
-
-    public function index(Request $request): \think\Response
+    public function show(Request $request): \think\Response
     {
         return $this->ok(['user' => $request->member]);
-    }
-
-    public function userinfo(Request $request): \think\Response
-    {
-        return $this->ok(['user' => $request->member]);
-    }
-
-    public function verify(): \think\Response
-    {
-        return $this->ok();
     }
 }

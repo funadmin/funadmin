@@ -321,12 +321,12 @@ phase2Expect(str_contains($historySource, 'Db::transaction'), '历史两表必�
 foreach (['from_version', 'signature_algorithm', 'signature_verified', 'source', 'package_hash'] as $historyField) {
     phase2Expect(str_contains($historySource, $historyField), '历史缺少字段：' . $historyField);
 }
-$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/Plugin.php');
+$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/system/SystemPlugin.php');
 foreach (['AuthCloudService', 'setApiUrl', 'downloadCloudArchive', 'doInstall', 'getCloudData', 'public_path'] as $forbidden) {
-    phase2Expect(!str_contains($controllerSource, $forbidden), 'Plugin Controller 仍存在旁路：' . $forbidden);
+    phase2Expect(!str_contains($controllerSource, $forbidden), 'SystemPlugin Controller 仍存在旁路：' . $forbidden);
 }
-phase2Expect(str_contains($controllerSource, 'PluginMarketplaceService'), 'Plugin Controller 必须统一调用市场应用服务');
-phase2Expect(str_contains($controllerSource, "file('file')"), 'localinstall 必须直接接收 multipart file');
+phase2Expect(str_contains($controllerSource, 'PluginMarketplaceService'), 'SystemPlugin Controller 必须统一调用市场应用服务');
+phase2Expect(str_contains($controllerSource, "file('file')"), 'installLocal 必须直接接收 multipart file');
 $streamSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/package/GuzzlePackageStreamDownloader.php');
 foreach (['FILTER_FLAG_NO_PRIV_RANGE', 'FILTER_FLAG_NO_RES_RANGE', 'Location'] as $ssrfBoundary) {
     phase2Expect(str_contains($streamSource, $ssrfBoundary), '下载器缺少 SSRF/重定向边界：' . $ssrfBoundary);

@@ -261,17 +261,22 @@ class Http
         return $this->app->make(Handle::class)->render($request, $e);
     }
 
-    /**
+/**
      * HttpEnd
      * @param Response $response
      * @return void
      */
     public function end(Response $response): void
     {
-        $this->app->event->trigger(HttpEnd::class, $response);
-
-        //执行中间件
-        $this->app->middleware->end($response);
+        try {
+            // 触发HttpEnd事件
+            $this->app->event->trigger(HttpEnd::class, $response);
+            // 执行中间件
+            $this->app->middleware->end($response);
+        } catch (Throwable $e) {
+            // 记录异常
+            $this->app->log->error($e->getMessage());
+        }
 
         // 写入日志
         $this->app->log->save();

@@ -194,9 +194,16 @@ class SystemConfig extends AdminApiController
         if (ConfigGroup::withTrashed()->where('name', $data['name'])->find()) {
             return $this->fail('配置分组编码已存在', 422);
         }
-        $group = ConfigGroup::create($data);
-        $this->clearConfigCache();
-        return $this->ok($this->groupData($group), '创建成功');
+        try {
+            $group = ConfigGroup::create($data);
+            $this->clearConfigCache();
+            return $this->ok($this->groupData($group), '创建成功');
+        } catch (\Throwable $exception) {
+            if ($message = $this->duplicateGroupError($exception)) {
+                return $this->fail($message, 422);
+            }
+            throw $exception;
+        }
     }
 
     public function updateGroup(int $id): Response
@@ -215,9 +222,16 @@ class SystemConfig extends AdminApiController
         if (ConfigGroup::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
             return $this->fail('配置分组编码已存在', 422);
         }
-        $group->save($data);
-        $this->clearConfigCache();
-        return $this->ok($this->groupData($group), '保存成功');
+        try {
+            $group->save($data);
+            $this->clearConfigCache();
+            return $this->ok($this->groupData($group), '保存成功');
+        } catch (\Throwable $exception) {
+            if ($message = $this->duplicateGroupError($exception)) {
+                return $this->fail($message, 422);
+            }
+            throw $exception;
+        }
     }
 
     public function deleteGroup(int $id): Response
@@ -371,6 +385,15 @@ class SystemConfig extends AdminApiController
             'createdAt' => $this->formatTime($group->create_time),
             'updatedAt' => $this->formatTime($group->update_time),
         ];
+    }
+
+    private function duplicateGroupError(\Throwable $exception): ?string
+    {
+        $message = $exception->getMessage();
+        if (!str_contains($message, '1062') && !str_contains($message, 'Duplicate entry')) {
+            return null;
+        }
+        return '配置分组编码已存在';
     }
 
     private function clearConfigCache(): void

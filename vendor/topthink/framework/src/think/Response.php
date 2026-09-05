@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace think;
 
+use Throwable;
+
 /**
  * 响应输出基础类
  * @package think
@@ -38,7 +40,7 @@ abstract class Response
 
     /**
      * 状态码
-     * @var integer
+     * @var int
      */
     protected $code = 200;
 
@@ -127,29 +129,33 @@ abstract class Response
      */
     public function send(): void
     {
-        // 处理输出数据
-        $data = $this->getContent();
+        try {
+            // 处理输出数据
+            $data = $this->getContent();
+            if (!headers_sent()) {
+                if (!empty($this->header)) {
+                    // 发送状态码
+                    http_response_code($this->code);
+                    // 发送头部信息
+                    foreach ($this->header as $name => $val) {
+                        header($name . (!is_null($val) ? ':' . $val : ''));
+                    }
+                }
 
-        if (!headers_sent()) {
-            if (!empty($this->header)) {
-                // 发送状态码
-                http_response_code($this->code);
-                // 发送头部信息
-                foreach ($this->header as $name => $val) {
-                    header($name . (!is_null($val) ? ':' . $val : ''));
+                if ($this->cookie) {
+                    $this->cookie->save();
                 }
             }
 
-            if ($this->cookie) {
-                $this->cookie->save();
-            }
-        }
+            $this->sendData($data);
 
-        $this->sendData($data);
-
-        if (function_exists('fastcgi_finish_request')) {
-            // 提高页面响应
-            fastcgi_finish_request();
+            if (function_exists('fastcgi_finish_request')) {
+                // 提高页面响应
+                fastcgi_finish_request();
+            }            
+        } catch (Throwable $e) {
+            // 继续执行，不中断响应发送
+            Container::getInstance()->log->error($e->getMessage());
         }
     }
 
@@ -277,7 +283,7 @@ abstract class Response
     /**
      * 发送HTTP状态
      * @access public
-     * @param  integer $code 状态码
+     * @param  int $code 状态码
      * @return $this
      */
     public function code(int $code)
@@ -406,7 +412,7 @@ abstract class Response
     /**
      * 获取状态码
      * @access public
-     * @return integer
+     * @return int
      */
     public function getCode(): int
     {

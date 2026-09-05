@@ -106,6 +106,8 @@ class Mongo extends Connection
         'pk_convert_id'   => false,
         // typeMap
         'type_map'        => ['root' => 'array', 'document' => 'array'],
+        // 时区设置（MongoDB使用UTC，建议在应用层处理时区转换）
+        'timezone'        => '',
     ];
 
     /**
@@ -176,6 +178,13 @@ class Mongo extends Connection
             if (!empty($config['trigger_sql'])) {
                 // 记录数据库连接信息
                 $this->trigger('CONNECT:[ UseTime:' . number_format(microtime(true) - $startTime, 6) . 's ] ' . $config['dsn']);
+            }
+
+            // Note: MongoDB 使用 UTC 时间存储，建议在应用层处理时区转换
+            // 时区配置 $config['timezone'] 可用于记录连接的期望时区
+            if (!empty($config['timezone'])) {
+                // 记录时区配置，但不实际设置（MongoDB 内部使用 UTC）
+                $this->db->log('Timezone setting: ' . $config['timezone'] . ' (Note: MongoDB uses UTC internally)', 'info');
             }
         }
 

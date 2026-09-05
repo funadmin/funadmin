@@ -18,6 +18,7 @@ use app\backend\model\Admin as AdminModel;
 use app\backend\model\AuthGroup as AuthGroupModel;
 use app\backend\model\Permission;
 use app\common\model\Blacklist;
+use app\common\service\MemberInput;
 use app\common\service\AbstractService;
 use app\common\traits\Jump;
 use fun\helper\SignHelper;
@@ -94,7 +95,7 @@ class AuthService extends AbstractService
                 $v['lvl'] = $lvl + 1;
                 $v['leftpin'] = $leftpin + 0;
                 $v['lefthtml'] = str_repeat($lefthtml, $lvl);
-                $v['ltitle'] = $v['lefthtml'] . $v['title'];
+                $v['ltitle'] = $v['lefthtml'] . $v['name'];
                 $arr[] = $v;
                 $arr = array_merge($arr, self::treemenu($cate, $lefthtml, $v['id'], $lvl + 1, $leftpin + 20));
             }
@@ -118,7 +119,7 @@ class AuthService extends AbstractService
         foreach ($permissions as $v) {
             if ($v['pid'] == $pid) {
                 $v['spread'] = true;
-                $v['title'] = lang($v['title']) . (!empty($v['code']) ? ' ' . $v['code'] : '');
+                $v['name'] = lang($v['name']) . (!empty($v['code']) ? ' ' . $v['code'] : '');
                 $children = $this->buildPermissionTree(
                     $permissions,
                     (int) $v['id'],
@@ -146,7 +147,7 @@ class AuthService extends AbstractService
         $list = [];
         foreach ($permissions as $v) {
             $list[]['id'] = $v['id'];
-//        $list[]['title'] = $v['title'];
+//        $list[]['name'] = $v['name'];
 //        $list[]['pid'] = $v['pid'];
             if (!empty($v['children'])) {
                 $listChild = $this->flattenPermissionTree($v['children']);
@@ -269,15 +270,15 @@ class AuthService extends AbstractService
                 foreach ($list as $key => $val) {
                     $html .= '<li class="layui-nav-item">';
                     $badge = '';
-                    if (strtolower($val['title']) === 'plugin') {
+                    if (strtolower($val['name']) === 'plugin') {
                         $badge = '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>';
                     }
                     if ($val['child'] and count($val['child']) > 0) {
-                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['name']) . '" data-tips="' . lang($val['name']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite>' . $badge . '</a>';
                         $html = $this->childmenuhtml($html, $val['child']);
                     } else {
                         $target = $val['target'] ? $val['target'] : '_self';
-                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        $html .= '<a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['name']) . '" data-tips="' . lang($val['name']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite>' . $badge . '</a>';
                     }
                     $html .= '</li>';
                 }
@@ -292,9 +293,9 @@ class AuthService extends AbstractService
                 foreach ($list as $key => $val) {
                     $laythis = $key == 0 ? 'layui-this' : '';
                     $html['nav'] .= '<li class="layui-nav-item ' . $laythis . '"  menu-id="' . $val['id'] . '">';
-                    $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '"  data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite></a></dd>';
+                    $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['name']) . '"  data-tips="' . lang($val['name']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite></a></dd>';
                     $badge = '';
-                    if (strtolower($val['title']) === 'plugin') {
+                    if (strtolower($val['name']) === 'plugin') {
                         $badge = '<span class="layui-badge">new</span>';
                     }
                     $hide = '';
@@ -306,22 +307,22 @@ class AuthService extends AbstractService
                     }
                     $html['menu'] .= '<ul style="display:block"  lay-accordion class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $val['id'] . '" lay-filter="menulist"  lay-shrink="all" id="layui-side-left-menu-ul">';
                     if ($val['child'] and count($val['child']) > 0) {
-                        $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
+                        $html['nav'] .= '<a href="javascript:;" menu-id="' . $val['id'] . '" lay-id="' . $val['id'] . '" data-id="' . $val['id'] . '" title="' . lang($val['name']) . '" data-tips="' . lang($val['name']) . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite>' . $badge . '</a>';
                         foreach ($val['child'] as $k => $v) {
                             if ($v['child'] and count($v['child']) > 0) {
-                                $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $v['id'] . '"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a>';
+                                $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $v['id'] . '"><a href="javascript:;"  lay-id="' . $v['id'] . '" data-id="' . $v['id'] . '" title="' . lang($v['name']) . '" data-tips="' . lang($v['name']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['name']) . '</cite>' . $badge . '</a>';
                                 $html['menu'] .= $this->childmenuhtml('', $v['child']);
                                 $html['menu'] .= '</li>';
                             } else {
                                 $target = $val['target'] ? $val['target'] : '_self';
-                                $html['menu'] .= '<li class="layui-nav-item"  lay-id="' . $v['id'] . '"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite>' . $badge . '</a></li>';
+                                $html['menu'] .= '<li class="layui-nav-item"  lay-id="' . $v['id'] . '"><a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['name']) . '" data-tips="' . lang($v['name']) . '" data-url="' . $v['href'] . '" target="' . $target . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['name']) . '</cite>' . $badge . '</a></li>';
                             }
                         }
                         $html['menu'] .= '</ul>';
                     } else {
                         $target = $val['target'] ? $val['target'] : '_self';
-                        $html['nav'] .= '<a href="javascript:;" lay-event="tab" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a>';
-                        $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="' . $val['id'] . '"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['title']) . '" data-tips="' . lang($val['title']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['title']) . '</cite>' . $badge . '</a></li>';
+                        $html['nav'] .= '<a href="javascript:;" lay-event="tab" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['name']) . '" data-tips="' . lang($val['name']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite>' . $badge . '</a>';
+                        $html['menu'] .= '<li class="layui-nav-item"  menu-id="' . $val['id'] . '"  lay-id="' . $val['id'] . '"><a href="javascript:;" lay-id="' . $val['id'] . '"  data-id="' . $val['id'] . '" title="' . lang($val['name']) . '" data-tips="' . lang($val['name']) . '" data-url="' . $val['href'] . '" target="' . $target . '"><i class="' . $val['icon'] . '"></i><cite> ' . lang($val['name']) . '</cite>' . $badge . '</a></li>';
                     }
                     $html['menu'] .= '</ul>';
                     $html['nav'] .= '</li>';
@@ -347,13 +348,13 @@ class AuthService extends AbstractService
             foreach ($child as $k => $v) {
                 $html .= '<dd >';
                 if ($v['child'] and count($v['child']) > 0) {
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '"  data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['name']) . '"  data-tips="' . lang($v['name']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['name']) . '</cite></a>';
                     $html = self::childmenuhtml($html, $v['child'], $type);
                 } else {
                     $v['target'] = $v['target'] ? $v['target'] : '_self';
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '">
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['name']) . '" data-tips="' . lang($v['name']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '">
                     <i class="' . $v['icon'] . '"></i>
-                    <cite> ' . lang($v['title']) . '</cite></a>';
+                    <cite> ' . lang($v['name']) . '</cite></a>';
                 }
                 $html .= '</dd>';
             };
@@ -363,11 +364,11 @@ class AuthService extends AbstractService
             foreach ($child as $k => $v) {
                 $html .= '<dd >';
                 if ($v['child'] and count($v['child']) > 0) {
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['title']) . '"  data-tips="' . lang($v['title']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"  data-id="' . $v['id'] . '" title="' . lang($v['name']) . '"  data-tips="' . lang($v['name']) . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['name']) . '</cite></a>';
                     $html = self::childmenuhtml($html, $v['child'], $type);
                 } else {
                     $v['target'] = $v['target'] ? $v['target'] : '_self';
-                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['title']) . '" data-tips="' . lang($v['title']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['title']) . '</cite></a>';
+                    $html .= '<a href="javascript:;" lay-id="' . $v['id'] . '"   data-id="' . $v['id'] . '" title="' . lang($v['name']) . '" data-tips="' . lang($v['name']) . '" data-url="' . $v['href'] . '" target="' . $v['target'] . '"><i class="' . $v['icon'] . '"></i><cite> ' . lang($v['name']) . '</cite></a>';
                 }
                 $html .= '</dd>';
             };
@@ -411,7 +412,8 @@ class AuthService extends AbstractService
             return false;
         }
         //判断管理员IP是否变动
-        if (config('funadmin.ip_check') && (!isset($admin['lastloginip']) || $admin['lastloginip'] != request()->ip())) {
+        $requestIp = MemberInput::normalizeIp(request()->ip());
+        if (config('funadmin.ip_check') && (!isset($admin['lastloginip']) || $admin['lastloginip'] != $requestIp)) {
             $this->logout();
             return false;
         }
@@ -428,13 +430,13 @@ class AuthService extends AbstractService
      */
     public function checkLogin($username, $password, $rememberMe)
     {
-        $loginKey = 'admin-login-attempt-' . hash('sha256', request()->ip() . '|' . strtolower(trim((string) $username)));
+        $ip = MemberInput::normalizeIp(request()->ip());
+        $loginKey = 'admin-login-attempt-' . hash('sha256', $ip . '|' . strtolower(trim((string) $username)));
         $attempts = (int) Cache::get($loginKey, 0);
         if ($attempts >= 5) {
             throw new \Exception(lang('Login attempts too frequent'));
         }
         try {
-            $ip = request()->ip();
             if(Blacklist::where('ip',$ip)->where('status',1)->find()){
                 throw new \Exception(lang('You dont have permission'));
             }
@@ -454,7 +456,6 @@ class AuthService extends AbstractService
             if (!$roleIds || !$this->casbin()->activeRoleIds($roleIds)) {
                 throw new \Exception(lang('You dont have permission'));
             }
-            $ip = request()->ip();
             $admin->lastloginip = $ip;
             $admin->ip = $ip;
             $admin->token = SignHelper::authSign($admin);

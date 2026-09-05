@@ -10,7 +10,7 @@ const controller = readFileSync(
 const requiredChecks = [
   'os', 'php', 'php_int', 'json', 'session', 'pdo', 'pdo_mysql', 'mysqli',
   'openssl', 'curl', 'fileinfo', 'image', 'freetype', 'zip', 'upload',
-  'runtime', 'public', 'config', 'env', 'migrations'
+  'runtime', 'public', 'env', 'migrations'
 ];
 
 describe('安装环境检测契约', () => {

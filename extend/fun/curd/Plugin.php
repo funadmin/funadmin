@@ -1,379 +1,215 @@
 <?php
-/**
- * FunAdmin
- * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: https://www.FunAdmin.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
- * ============================================================================
- * Author: yuege
- * Date: 2020/9/21
- */
+
+declare(strict_types=1);
 
 namespace fun\curd;
 
-use app\backend\service\ResourceRegistryService;
 use app\backend\service\PluginService;
-use fun\helper\CtrHelper;
+use fun\helper\FileHelper;
+use fun\helper\ZipHelper;
+use RuntimeException;
 use think\console\Command;
 use think\console\Input;
 use think\console\input\Option;
 use think\console\Output;
-use fun\helper\FileHelper;
-use fun\helper\ZipHelper;
+use Throwable;
 
 /**
- * Class Curd
- * @package app\backend\command
- * 功能待完善
+ * 生成符合 plugin.json 契约的新式插件骨架，并代理插件生命周期命令。
  */
-class Plugin extends Command
+final class Plugin extends Command
 {
-    protected array $config = [];
+    private array $options = [];
 
-    protected function configure()
+    protected function configure(): void
     {
         $this->setName('plugin')
-            ->addOption('app', '', Option::VALUE_REQUIRED, '插件名', '')
-            ->addOption('title', '', Option::VALUE_REQUIRED, '插件标题', '')
-            ->addOption('description', '', Option::VALUE_OPTIONAL, '插件名', '')
-            ->addOption('author', '', Option::VALUE_OPTIONAL, '插件作者', '')
-            ->addOption('ver', '', Option::VALUE_OPTIONAL, '插件版本', '')
-            ->addOption('requires', '', Option::VALUE_OPTIONAL, '插件需求版本', '')
-            ->addOption('force', 'f', Option::VALUE_OPTIONAL, '强制覆盖或删除', 0)
-            ->addOption('delete', 'd', Option::VALUE_OPTIONAL, '删除', 0)
-            ->addOption('min', '', Option::VALUE_OPTIONAL, '打包', 0)
-            ->addOption('install', '', Option::VALUE_OPTIONAL, '安装', 0)
-            ->addOption('uninstall', '', Option::VALUE_OPTIONAL, '卸载', 0)
-            ->addOption('enable', '', Option::VALUE_OPTIONAL, '启用', 0)
-            ->addOption('disable', '', Option::VALUE_OPTIONAL, '禁用', 0)
-            ->setDescription('Plugin Command');
+            ->setDescription('生成 plugin.json 插件骨架或执行插件生命周期操作')
+            ->addOption('name', null, Option::VALUE_REQUIRED, '插件名，小写字母开头且仅含小写字母和数字')
+            ->addOption('title', null, Option::VALUE_OPTIONAL, '插件标题')
+            ->addOption('description', null, Option::VALUE_OPTIONAL, '插件描述')
+            ->addOption('author', null, Option::VALUE_OPTIONAL, '插件作者', 'FunAdmin')
+            ->addOption('version', null, Option::VALUE_OPTIONAL, '插件语义化版本', '1.0.0')
+            ->addOption('funadmin-version', null, Option::VALUE_OPTIONAL, '所需 FunAdmin 版本约束', '>=1.0.0')
+            ->addOption('force', 'f', Option::VALUE_NONE, '覆盖已存在的骨架文件')
+            ->addOption('package', null, Option::VALUE_NONE, '将插件目录打包到 public')
+            ->addOption('install', null, Option::VALUE_NONE, '安装插件')
+            ->addOption('uninstall', null, Option::VALUE_NONE, '卸载插件')
+            ->addOption('enable', null, Option::VALUE_NONE, '启用插件')
+            ->addOption('disable', null, Option::VALUE_NONE, '禁用插件');
     }
 
-    protected function execute(Input $input, Output $output)
+    protected function execute(Input $input, Output $output): int
     {
-        $param = [];
-        $param['app'] = $input->getOption('app');
-        $param['title'] = $input->getOption('title')?$input->getOption('title'):$param['app'];
-        $param['description'] = $input->getOption('description')?$input->getOption('description'):$param['app'];
-        $param['author'] = $input->getOption('author')?$input->getOption('author'):'FunAdmin';
-        $param['version'] = $input->getOption('ver')?$input->getOption('ver'):'1.0.0';
-        $param['requires'] = $input->getOption('requires')?$input->getOption('requires'):'1.0.0';
-        $param['force'] = $input->getOption('force');//强制覆盖或删除
-        $param['delete'] = $input->getOption('delete');
-        $param['min'] = $input->getOption('min');
-        $param['install'] = $input->getOption('install');
-        $param['uninstall'] = $input->getOption('uninstall');
-        $param['enable'] = $input->getOption('enable');
-        $param['disable'] = $input->getOption('disable');
-        $this->config = $param;
-        if (empty($param['app'])) {
-            $output->error("插件名不能为空");
-            return 1;
-        }
-        if (!preg_match('/^[a-z][a-z0-9]*$/', $param['app'])) {
-            $output->error("插件名仅允许小写字母和数字，且必须以字母开头");
-            return 1;
-        }
-        if($param['app']=='backend' || $param['app']=='common' || $param['app']=='frontend' || $param['app']=='api' || $param['app']=='install'){
-            $output->error("插件名不能为backend或common或frontend或api或install");
-            return 1;
-        }
-        if($param['uninstall'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-            $output->error("插件目录不存在");
-            return 1;
-        }
-        if($param['enable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-            $output->error("插件目录不存在");
-            return 1;
-        }
-        if($param['disable'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-            $output->error("插件目录不存在");
-            return 1;
-        }
         try {
-            if($param['enable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(PluginService::class)->enablePlugin($param['app']);
-                $output->info("启用成功");
-                return 0;
+            $this->options = $this->readOptions($input);
+            $this->assertOptions();
+
+            $action = $this->lifecycleAction();
+            if ($action !== null) {
+                return $this->executeLifecycle($action, $output);
             }
-            if($param['disable'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(PluginService::class)->disablePlugin($param['app']);
-                $output->info("禁用成功");
-                return 0;
+            if ($this->options['package']) {
+                return $this->package($output);
             }
-            if($param['uninstall'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(PluginService::class)->uninstallPlugin($param['app']);
-                $output->info("卸载成功");
-                return 0;
-            }   
-            if($param['install'] && !is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                $output->error("插件目录不存在");
-                return 1;
-            }
-            if($param['install'] && is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                app(PluginService::class)->installPlugin($param['app'],'install');
-                $output->info("安装成功");
-                return 0;
-            }
-            $tplPath = root_path('extend/fun/curd/tpl/plugin');
-            $pluginPath = root_path(PLUGIN_DIR . '/'.$param['app']) ;
-            $fileList = [
-                [
-                    'name'=>'Plugin.php',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "Plugin.php",
-                    'tpl'=> $tplPath . 'plugin.tpl',
-                    'items'=>[
-                        ['name'=>'plugin','value'=>$param['app']],
-                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
-                    ]
-                ],
-                [
-                    'name'=>'plugin.json',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "plugin.json",
-                    'tpl'=> $tplPath . 'json.tpl',
-                    'items'=>[
-                        ['name'=>'plugin','value'=>$param['app']],
-                        ['name'=>'title','value'=>$param['title']],
-                        ['name'=>'description','value'=>$param['description']],
-                        ['name'=>'author','value'=>$param['author']],
-                        ['name'=>'version','value'=>$param['version']],
-                    ]
-                ],
-                [
-                    'name'=>'plugin.ini',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "plugin.ini",
-                    'tpl'=> $tplPath . 'ini.tpl',
-                    'items'=>[
-                        ['name'=>'plugin','value'=>$param['app']],
-                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
-                        ['name'=>'title','value'=>$param['title']],
-                        ['name'=>'description','value'=>$param['description']],
-                        ['name'=>'author','value'=>$param['author']],
-                        ['name'=>'requires','value'=>$param['requires']],
-                        ['name'=>'version','value'=>$param['version']],
-                        ['name'=>'url','value'=> '/' . PLUGIN_DIR . '/' . $param['app']],
-                        ['name'=>'time','value'=>date('Y-m-d H:i:s')],
-                        ['name'=>'app','value'=>$param['app']],
-                    ]
-                ],
-                [
-                    'name'=>'config.php',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "config.php",
-                    'tpl'=> $tplPath . 'config.tpl',
-                    'items'=>[
-                    ]
-                ],
-                [
-                    'name'=>'menu.php',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "menu.php",
-                    'tpl'=> $tplPath . 'menu.tpl',
-                    'items'=>[]
-                ],
-                [
-                    'name'=>'Index.php',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . "controller/Index.php",
-                    'tpl'=> $tplPath . 'controller.tpl',
-                    'items'=>[
-                        ['name'=>'plugin','value'=>$param['app']],
-                        ['name'=>'plugin_dir','value'=>PLUGIN_NAMESPACE],
-                    ]
-                ],
-                [
-                    'name'=>'index.html',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . 'view/index/index.html',
-                    'tpl'=> $tplPath . 'view.tpl',
-                    'items'=>[
-                        ['name'=>'plugin','value'=>$param['app']],
-                    ]
-                ],
-                [
-                    'name'=>'plugin.js',
-                    'content'=>'',
-                    'fileName'=>$pluginPath . 'plugin.js',
-                    'tpl'=> $tplPath . 'js.tpl',
-                    'items'=>[
-                    ]
-                ],
-            ];
-            if ($param['app']) {
-                if($this->config['delete'] && $this->config['force']){
-                    ResourceRegistryService::instance()->removeSource('crud', $param['app']);
-                }
-                if(!$this->config['min']){
-                    foreach ($fileList as $key => &$value) {
-                        if($this->config['force'] && $this->config['delete']){
-                            if(file_exists($value['fileName'])){
-                                unlink($value['fileName']);
-                            }
-                            continue;
-                        }
-                        $items = $value['items'];
-                        if($value['name']=='menu.php'){
-                            $items = [['name'=>'menu','value'=>var_export($this->getMenu($param),true)]];
-                            $replaceTpl = [];
-                            $replace = [];
-                            foreach ($items as $item){
-                                $replaceTpl[] = '{%'.$item['name'].'%}';
-                                $replace[] = $item['value'];
-                            }
-                            $value['content'] = str_replace( $replaceTpl, $replace, file_get_contents($value['tpl']));
-                        }else{
-                            if(empty($items)){
-                                $value['content'] = file_get_contents($value['tpl']);
-                            }else{
-                                $replaceTpl = [];
-                                $replace = [];
-                                foreach ($items as $item){
-                                    $replaceTpl[] = '{%'.$item['name'].'%}';
-                                    $replace[] = $item['value'];
-                                }
-                                $value['content'] = str_replace( $replaceTpl, $replace, file_get_contents($value['tpl']));
-                            }
-                        }
-                        $this->makeFile($value['fileName'], $value['content']);
-                    }
-                }else{
-                    //把plugins/cms 目录复制到临时目录runtime/cms_min，并把app/cms/复制到runtime/cms_min/app/cms
-                    //把public/static/cms/目录复制到runtime/cms_min/public/static/cms
-                    //把runtime/cms_min/plugin.ini内部 install改为0
-                    $minPath = root_path('runtime/'.$param['app'].'_min_'.date('YmdHis'));
-                    if(is_dir($minPath)){
-                        FileHelper::delDir($minPath);
-                    }
-                    if(is_dir(root_path(PLUGIN_DIR . '/'.$param['app']))){
-                        FileHelper::copyDir(root_path(PLUGIN_DIR . '/'.$param['app']), $minPath);
-                    }else{
-                        $output->error('插件目录不存在');
-                        return 1;
-                    }
-                    if(is_dir(app_path($param['app']))){
-                        FileHelper::copyDir(app_path($param['app']), $minPath.'/app/'.$param['app']);
-                    }
-                    if(is_dir(public_path('static/'.$param['app']))){
-                        FileHelper::copyDir(public_path('static/'.$param['app']), $minPath.'/public');
-                    }
-                    $pluginIni = $minPath.'/plugin.ini';
-                    $pluginIniContent = file_get_contents($pluginIni);
-                    $pluginIniContent = str_replace('install=1', 'install=0', $pluginIniContent);
-                    file_put_contents($pluginIni, $pluginIniContent);
-                    $zipFile = './public/'.$param['app'].'_min_'.date('YmdHis').'.zip';
-                    // 确保runtime目录存在且有写权限
-                    $runtimeDir = root_path('runtime');
-                    if (!is_dir($runtimeDir)) {
-                        mkdir($runtimeDir, 0755, true);
-                    }
-                    // 检查目录权限
-                    if (!is_writable($runtimeDir)) {
-                        $output->error('runtime目录没有写权限: ' . $runtimeDir);
-                        return 1;
-                    }
-                    try {
-                        // 使用完整路径并确保目录存在
-                        ZipHelper::zip($zipFile, $minPath);
-                        // 检查压缩文件是否创建成功
-                        if (file_exists($zipFile) && filesize($zipFile) > 0) {
-                            $output->info('打包成功');
-                            $output->info('打包文件路径：'.$zipFile);
-                            $fileSize = filesize($zipFile);
-                            $output->info('文件大小：' . ($fileSize > 1024 * 1024 ? round($fileSize / 1024 / 1024, 2) . 'MB' : round($fileSize / 1024, 2) . 'KB'));
-                            // 清理临时目录
-                            if (is_dir($minPath)) {
-                                FileHelper::delDir($minPath);
-                                $output->info('已清理临时目录：'.$minPath);
-                            }
-                        } else {
-                            $output->error('打包失败：压缩文件未创建或为空');
-                            return 1;
-                        }
-                    } catch (\Exception $e) {
-                        $output->error('打包异常: ' . $e->getMessage());
-                        return 1;
-                    }
-                }
-            }
-            $output->info('make success');
+
+            $this->generate();
+            $output->info('插件骨架生成成功：' . $this->pluginDirectory());
             return 0;
-        }catch (\Exception $e){
-            $output->writeln('----------------');
-            $output->error($e->getMessage());
-            $output->writeln('----------------');
+        } catch (Throwable $exception) {
+            $output->error($exception->getMessage());
             return 1;
         }
     }
 
-    /**
-     * @param $fileName
-     * @param $data
-     * @return true
-     */
-    public function makeFile($fileName,$data){
-        $baseDir = dirname($fileName);
-        if(!$this->config['force'] && file_exists($fileName)){
-            return true;
-        }
-        if(!is_dir($baseDir)){
-            mkdir($baseDir,0755,true);
-        }
-        file_put_contents($fileName, $data);
-        return true;
-    }
-    /**
-     *
-     * 生成菜单
-     * @param int $type
-     */
-    protected function getMenu(array $param): array
+    private function readOptions(Input $input): array
     {
-        $controllers = CtrHelper::getControllersByApp($param['app']);
-        $childMenu = [];
-        foreach($controllers as $controller){
-            $href = $controller['route_info'];
-            $title = $controller['comment'];
-            $menu = [
-                'href' => $href,
-                'title' => $title,
-                'status' => 1,
-                'type' => 1,
-                'visible' => 1,
-                'icon' => 'layui-icon layui-icon-app',
-            ];
-            foreach ($controller['methods'] as $item) {
-                $menu['menulist'][] = [
-                    'href' => $href . '/' . $item['name'],
-                    'title' => $item['comment'],
-                    'status' => 1,
-                    'type' => 2,
-                    'visible' => 0,
-                ];
-            }
-            $childMenu[] = $menu;
-        }
-        
-        $menuList = [
-            'is_nav' => 1,//1导航栏；0 非导航栏
-            'menu' => [ //菜单;
-                'href' => ucfirst($this->config['app']) .'Manager',
-                'title' => $this->config['title']?:ucfirst($this->config['app']) .'Manager',
-                'status' => 1,
-                                'type' => 1,
-                'visible' => 1,
-                'module' => $this->config['app'],
-                'icon' => 'layui-icon layui-icon-app',
-                'menulist' => [
-                    $childMenu
-                ]
-            ]
+        $name = trim((string) $input->getOption('name'));
+        return [
+            'name' => $name,
+            'title' => trim((string) ($input->getOption('title') ?: $name)),
+            'description' => trim((string) ($input->getOption('description') ?: $name . ' 插件')),
+            'author' => trim((string) $input->getOption('author')),
+            'version' => trim((string) $input->getOption('version')),
+            'funadmin_version' => trim((string) $input->getOption('funadmin-version')),
+            'force' => (bool) $input->getOption('force'),
+            'package' => (bool) $input->getOption('package'),
+            'install' => (bool) $input->getOption('install'),
+            'uninstall' => (bool) $input->getOption('uninstall'),
+            'enable' => (bool) $input->getOption('enable'),
+            'disable' => (bool) $input->getOption('disable'),
         ];
-        return $menuList;
     }
 
+    private function assertOptions(): void
+    {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $this->options['name'])) {
+            throw new RuntimeException('插件名仅允许小写字母和数字，且必须以字母开头');
+        }
+        if (in_array($this->options['name'], ['backend', 'common', 'frontend', 'api', 'install'], true)) {
+            throw new RuntimeException('插件名不能使用系统应用名称');
+        }
+        if (!preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $this->options['version'])) {
+            throw new RuntimeException('插件版本必须是语义化版本');
+        }
+        $actions = array_filter([
+            'package' => $this->options['package'],
+            'install' => $this->options['install'],
+            'uninstall' => $this->options['uninstall'],
+            'enable' => $this->options['enable'],
+            'disable' => $this->options['disable'],
+        ]);
+        if (count($actions) > 1) {
+            throw new RuntimeException('一次只能执行一个打包或生命周期操作');
+        }
+    }
+
+    private function lifecycleAction(): ?string
+    {
+        foreach (['install', 'uninstall', 'enable', 'disable'] as $action) {
+            if ($this->options[$action]) {
+                return $action;
+            }
+        }
+        return null;
+    }
+
+    private function executeLifecycle(string $action, Output $output): int
+    {
+        if (!is_dir($this->pluginDirectory())) {
+            throw new RuntimeException('插件目录不存在');
+        }
+        $service = app(PluginService::class);
+        match ($action) {
+            'install' => $service->installPlugin($this->options['name'], 'install'),
+            'uninstall' => $service->uninstallPlugin($this->options['name']),
+            'enable' => $service->enablePlugin($this->options['name']),
+            'disable' => $service->disablePlugin($this->options['name']),
+        };
+        $output->info(match ($action) {
+            'install' => '安装成功',
+            'uninstall' => '卸载成功',
+            'enable' => '启用成功',
+            'disable' => '禁用成功',
+        });
+        return 0;
+    }
+
+    private function generate(): void
+    {
+        $files = [
+            'plugin.json' => 'json.tpl',
+            'Plugin.php' => 'plugin.tpl',
+            'config/services.php' => 'services.tpl',
+            'config/events.php' => 'events.tpl',
+            'routes/plugin.php' => 'routes.tpl',
+            'migrations/001_initial.sql' => 'migration.tpl',
+            'resources/admin/entry.js' => 'admin-entry.tpl',
+        ];
+        foreach ($files as $relativePath => $template) {
+            $this->writeFile($relativePath, $this->render($template));
+        }
+        $this->writeFile('resources/public/.gitkeep', '');
+    }
+
+    private function render(string $template): string
+    {
+        $source = file_get_contents($this->templateDirectory() . DIRECTORY_SEPARATOR . $template);
+        if ($source === false) {
+            throw new RuntimeException('插件模板不存在：' . $template);
+        }
+        return str_replace(
+            ['{%plugin%}', '{%plugin_dir%}', '{%title%}', '{%description%}', '{%author%}', '{%version%}', '{%funadmin_version%}'],
+            [$this->options['name'], PLUGIN_NAMESPACE, $this->options['title'], $this->options['description'], $this->options['author'], $this->options['version'], $this->options['funadmin_version']],
+            $source
+        );
+    }
+
+    private function writeFile(string $relativePath, string $content): void
+    {
+        $file = $this->pluginDirectory() . $relativePath;
+        if (is_file($file) && !$this->options['force']) {
+            throw new RuntimeException('文件已存在，使用 --force 覆盖：' . $relativePath);
+        }
+        $directory = dirname($file);
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new RuntimeException('无法创建目录：' . $directory);
+        }
+        if (file_put_contents($file, $content) === false) {
+            throw new RuntimeException('无法写入文件：' . $file);
+        }
+    }
+
+    private function package(Output $output): int
+    {
+        $source = $this->pluginDirectory();
+        if (!is_dir($source)) {
+            throw new RuntimeException('插件目录不存在');
+        }
+        $temporary = root_path('runtime/plugin-package-' . $this->options['name'] . '-' . bin2hex(random_bytes(4)));
+        $archive = public_path($this->options['name'] . '-' . $this->options['version'] . '.zip');
+        try {
+            FileHelper::copyDir($source, $temporary);
+            ZipHelper::zip($archive, $temporary);
+            if (!is_file($archive) || filesize($archive) === 0) {
+                throw new RuntimeException('插件打包失败');
+            }
+        } finally {
+            if (is_dir($temporary)) {
+                FileHelper::delDir($temporary);
+            }
+        }
+        $output->info('打包成功：' . $archive);
+        return 0;
+    }
+
+    private function pluginDirectory(): string
+    {
+        return rtrim(root_path(PLUGIN_DIR . '/' . $this->options['name']), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    }
+
+    private function templateDirectory(): string
+    {
+        return rtrim(root_path('extend/fun/curd/tpl/plugin'), DIRECTORY_SEPARATOR);
+    }
 }

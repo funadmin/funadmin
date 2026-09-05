@@ -2763,6 +2763,7 @@ class Calculation
             'category' => Category::CATEGORY_WEB,
             'functionCall' => [Web\Service::class, 'webService'],
             'argumentCount' => '1',
+            'passCellReference' => true,
         ],
         'WEEKDAY' => [
             'category' => Category::CATEGORY_DATE_AND_TIME,
@@ -4718,7 +4719,7 @@ class Calculation
                         return $this->raiseFormulaError($e->getMessage(), $e->getCode(), $e);
                     }
                 }
-            } elseif (!is_numeric($token) && !is_object($token) && isset(self::BINARY_OPERATORS[$token])) {
+            } elseif (!is_numeric($token) && !is_object($token) && isset($token, self::BINARY_OPERATORS[$token])) {
                 // if the token is a binary operator, pop the top two values off the stack, do the operation, and push the result back on the stack
                 //    We must have two operands, error if we don't
                 $operand2Data = $stack->pop();

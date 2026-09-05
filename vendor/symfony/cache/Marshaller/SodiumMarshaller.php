@@ -21,8 +21,8 @@ use Symfony\Component\Cache\Exception\InvalidArgumentException;
  */
 class SodiumMarshaller implements MarshallerInterface
 {
-    private $marshaller;
-    private $decryptionKeys;
+    private MarshallerInterface $marshaller;
+    private array $decryptionKeys;
 
     /**
      * @param string[] $decryptionKeys The key at index "0" is required and is used to decrypt and encrypt values;
@@ -48,9 +48,6 @@ class SodiumMarshaller implements MarshallerInterface
         return \function_exists('sodium_crypto_box_seal');
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function marshall(array $values, ?array &$failed): array
     {
         $encryptionKey = sodium_crypto_box_publickey($this->decryptionKeys[0]);
@@ -63,18 +60,19 @@ class SodiumMarshaller implements MarshallerInterface
         return $encryptedValues;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function unmarshall(string $value)
+    public function unmarshall(string $value): mixed
     {
+        if ('' === $value) {
+            // an empty value carries no payload and tells session handlers that no session exists
+            return $this->marshaller->unmarshall($value);
+        }
+
         foreach ($this->decryptionKeys as $k) {
             if (false !== $decryptedValue = @sodium_crypto_box_seal_open($value, $k)) {
-                $value = $decryptedValue;
-                break;
+                return $this->marshaller->unmarshall($decryptedValue);
             }
         }
 
-        return $this->marshaller->unmarshall($value);
+        throw new \DomainException('Failed to decrypt value.');
     }
 }

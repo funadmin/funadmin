@@ -22,7 +22,7 @@
         >
           <template #default="{ data }">
             <div class="flex min-w-0 flex-1 items-center justify-between gap-2 pr-1">
-              <span class="truncate">{{ data.title }}</span>
+              <span class="truncate">{{ data.name }}</span>
               <el-dropdown trigger="click" @command="(command: string) => onGroupCommand(command, data as AttachmentGroupModel)">
                 <el-button link @click.stop><i class="i-ep-more-filled" /></el-button>
                 <template #dropdown>
@@ -65,6 +65,12 @@
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:attachment:delete'" @click="removeSelected">
             <i class="i-ep-delete" /> 删除{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
+          <div class="flex items-center gap-2" v-perm="'system:attachment:storage'">
+            <span class="text-sm text-[var(--el-text-color-secondary)]">存储驱动</span>
+            <el-select v-model="storageDriver" class="!w-36" :loading="storageLoading" @change="changeStorageDriver">
+              <el-option v-for="driver in storageDrivers" :key="driver.name" :label="driver.label" :value="driver.name" :disabled="!driver.available" />
+            </el-select>
+          </div>
           <input ref="uploadInput" class="hidden" type="file" multiple @change="uploadFiles" />
         </template>
         <template #default="{ size, stripe, border, headerCellStyle }">
@@ -103,6 +109,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { attachmentApi, attachmentGroupApi, type AttachmentGroupModel, type AttachmentModel, type AttachmentQuery } from '@/api/system/attachment';
 import { uploadApi } from '@/api/common/upload';
+import { storageApi, type StorageDriver } from '@/api/system/storage';
 import AttachmentGroupDialog from './components/AttachmentGroupDialog.vue';
 
 defineOptions({ name: 'SystemAttachment' });
@@ -114,6 +121,9 @@ const groupTree = ref<AttachmentGroupModel[]>([]);
 const groupDialogVisible = ref(false);
 const currentGroup = ref<AttachmentGroupModel | null>(null);
 const uploadInput = ref<HTMLInputElement>();
+const storageLoading = ref(false);
+const storageDriver = ref('local');
+const storageDrivers = ref<StorageDriver[]>([]);
 const query = reactive<AttachmentQuery>({ page: 1, pageSize: 20, keyword: '', groupId: 1, mimeType: '' });
 const flatGroups = computed(() => {
   const result: AttachmentGroupModel[] = [];
@@ -121,9 +131,19 @@ const flatGroups = computed(() => {
   walk(groupTree.value);
   return result;
 });
-const selectedGroupTitle = computed(() => flatGroups.value.find((item) => item.id === query.groupId)?.title || '默认分组');
+const selectedGroupTitle = computed(() => flatGroups.value.find((item) => item.id === query.groupId)?.name || '默认分组');
 
 async function loadGroups() { groupTree.value = await attachmentGroupApi.tree(); }
+async function loadStorageSettings() {
+  storageLoading.value = true;
+  try {
+    const settings = await storageApi.settings();
+    storageDriver.value = settings.driver;
+    storageDrivers.value = settings.drivers;
+    if (settings.fallback) ElMessage.warning('原存储驱动不可用，已回退到本地存储');
+  } finally { storageLoading.value = false; }
+}
+async function changeStorageDriver(driver: string) { await storageApi.update(driver); storageDriver.value = driver; }
 async function reloadGroups() { await loadGroups(); await loadData(); }
 async function loadData() {
   loading.value = true;
@@ -134,12 +154,12 @@ function onSearch() { query.page = 1; loadData(); }
 function onReset() { Object.assign(query, { page: 1, pageSize: 20, keyword: '', groupId: undefined, mimeType: '' }); loadData(); }
 function selectGroupFilter(groupId: number | undefined) { query.groupId = groupId; query.page = 1; loadData(); }
 function selectGroup(data: AttachmentGroupModel) { selectGroupFilter(data.id); }
-function openGroupAdd(parentId: number) { currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, title: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
+function openGroupAdd(parentId: number) { currentGroup.value = null; groupDialogVisible.value = true; if (parentId) setTimeout(() => { currentGroup.value = { id: 0, parentId, name: '', thumb: '', status: 1, sort: 999, isDefault: 0, createdAt: '', updatedAt: '' }; }, 0); }
 function openGroupEdit(group: AttachmentGroupModel) { currentGroup.value = group; groupDialogVisible.value = true; }
 async function onGroupCommand(command: string, group: AttachmentGroupModel) {
   if (command === 'add') return openGroupAdd(group.id);
   if (command === 'edit') return openGroupEdit(group);
-  await ElMessageBox.confirm(`确认删除附件分组“${group.title}”吗？组内附件将移至未分组。`, '删除确认', { type: 'warning' });
+  await ElMessageBox.confirm(`确认删除附件分组“${group.name}”吗？组内附件将移至未分组。`, '删除确认', { type: 'warning' });
   await attachmentGroupApi.remove(group.id);
   if (query.groupId === group.id) query.groupId = 0;
   await reloadGroups();
@@ -150,12 +170,18 @@ async function uploadFiles(event: Event) {
   if (!files.length) return;
   const uploadGroupId = query.groupId && query.groupId > 0 ? query.groupId : 1;
   let reusedOutsideGroup = 0;
+  let uploaded = 0;
+  const failed: string[] = [];
   for (const file of files) {
-    const result = await uploadApi.upload(file, file.type.startsWith('image/') ? 'image' : 'file', uploadGroupId);
-    if (result.reused && result.groupId !== uploadGroupId) reusedOutsideGroup++;
+    try {
+      const result = await uploadApi.upload(file, file.type.startsWith('image/') ? 'image' : 'file', uploadGroupId);
+      uploaded++;
+      if (result.reused && result.groupId !== uploadGroupId) reusedOutsideGroup++;
+    } catch { failed.push(file.name); }
   }
-  if (reusedOutsideGroup > 0) ElMessage.warning(`${reusedOutsideGroup} 个重复文件复用了其他分组中的已有记录`);
-  else ElMessage.success(`成功上传 ${files.length} 个文件`);
+  if (failed.length) ElMessage.warning(`成功 ${uploaded} 个，失败 ${failed.length} 个：${failed.join('、')}`);
+  else if (reusedOutsideGroup > 0) ElMessage.warning(`${reusedOutsideGroup} 个重复文件复用了其他分组中的已有记录`);
+  else ElMessage.success(`成功上传 ${uploaded} 个文件`);
   await loadData();
 }
 async function renameOne(row: AttachmentModel) {
@@ -173,5 +199,5 @@ async function removeSelected() {
 function formatBytes(size: number) { if (size < 1024) return `${size} B`; if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`; return `${(size / 1024 / 1024).toFixed(2)} MB`; }
 function fileIcon(ext: string) { return ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) ? 'i-ep-folder-opened' : ['mp4', 'mov', 'avi'].includes(ext) ? 'i-ep-video-camera' : ['mp3', 'wav'].includes(ext) ? 'i-ep-headset' : 'i-ep-document'; }
 function openFile(url: string) { window.open(url, '_blank', 'noopener,noreferrer'); }
-onMounted(async () => { await loadGroups(); await loadData(); });
+onMounted(async () => { await Promise.all([loadGroups(), loadStorageSettings()]); await loadData(); });
 </script>

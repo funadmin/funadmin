@@ -10,17 +10,17 @@
  * Author: yuege
  * Date: 2019/9/30
  */
+use app\common\middleware\MApi;
 use think\facade\Route;
+use think\middleware\Throttle;
+
 Route::group('v2', function (): void {
-    Route::get('member/index', 'v2.member/index');
-    Route::get('member/userinfo', 'v2.member/userinfo');
-    Route::get('member/verify', 'v2.member/verify');
-    Route::post('token', 'v2.token/build')
-        ->middleware(\think\middleware\Throttle::class, [
-            'visit_method' => ['POST'],
-            'visit_rate' => '10/m',
-            'key' => '__CONTROLLER__/__ACTION__/__IP__',
-        ]);
+    Route::post('token', 'v2.token/build')->middleware(Throttle::class, [
+        'visit_method' => ['POST'],
+        'visit_rate' => '10/m',
+        'key' => '__CONTROLLER__/__ACTION__/__IP__',
+    ]);
     Route::post('token/refresh', 'v2.token/refresh');
+    Route::get('member', 'v2.member/show')->middleware(MApi::class);
 });
 

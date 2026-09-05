@@ -104,7 +104,7 @@ class SystemOperationLog extends AdminApiController
             'sourceName' => (string) $log->source_name,
             'controller' => (string) $log->controller,
             'action' => (string) $log->action,
-            'title' => (string) $log->title,
+            'name' => (string) $log->name,
             'method' => strtoupper((string) $log->method),
             'url' => (string) $log->url,
             'ip' => (string) $log->ip,

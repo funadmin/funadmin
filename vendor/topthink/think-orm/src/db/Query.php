@@ -14,6 +14,7 @@ declare (strict_types = 1);
 namespace think\db;
 
 use PDOStatement;
+use think\Collection;
 use think\db\exception\DbException as Exception;
 use think\model\LazyCollection as ModelLazyCollection;
 
@@ -503,7 +504,7 @@ class Query extends BaseQuery
     }
 
     /**
-     * 使用游标查找记录.（不支持关联查询和查询缓存）
+     * 使用游标查找记录.（不支持查询缓存）
      *
      * @param bool $unbuffered 是否开启无缓冲查询（仅限mysql）
      * 
@@ -512,15 +513,29 @@ class Query extends BaseQuery
     public function cursor(bool $unbuffered = false): LazyCollection
     {
         $connection = clone $this->connection;
+        $class      = $this->model ? ModelLazyCollection::class : LazyCollection::class;
 
-        $class = $this->model ? ModelLazyCollection::class : LazyCollection::class;
-        return new $class(function () use ($connection, $unbuffered) {
-            yield from $connection->cursor($this, $unbuffered);
-        });
+        if (!empty($this->options['with_join'])) {
+            $withJoin  = true;
+            $relations = $this->options['with_join'];
+        } elseif(!empty($this->options['with'])) {
+            $withJoin  = false;
+            $relations = $this->options['with'];
+        }
+
+        if (isset($withJoin)) {
+            return (new $class(function () use ($connection, $unbuffered) {
+                yield from $connection->cursor($this, $unbuffered);
+            }))->load($relations, false, $withJoin);
+        } else {
+            return new $class(function () use ($connection, $unbuffered) {
+                yield from $connection->cursor($this, $unbuffered);
+            });
+        }
     }
 
     /**
-     * 流式处理查询结果（不支持关联查询和查询缓存）
+     * 流式处理查询结果（不支持查询缓存）
      *
      * @param callable $callback    处理回调
      * @param bool     $unbuffered  是否使用无缓冲查询（仅MySQL支持）
@@ -541,62 +556,26 @@ class Query extends BaseQuery
     /**
      * 分批数据返回处理.
      *
-     * @param int               $count    每次处理的数据数量
-     * @param callable          $callback 处理回调方法
-     * @param string|array|null $column   分批处理的字段名
-     * @param string            $order    字段排序
+     * @param int         $size    每次处理的数据数量
+     * @param callable    $callback 处理回调方法
+     * @param string|null $column   分批处理的字段名
+     * @param string      $order    字段排序
      *
      * @throws Exception
      *
      * @return bool
      */
-    public function chunk(int $count, callable $callback, string | array | null $column = null, string $order = 'asc'): bool
+    public function chunk(int $size, callable $callback, string | null $column = null, string $order = 'asc'): bool
     {
-        if ($count < 1) {
-            throw new Exception('The chunk size should be at least 1');
-        }
-
-        $options = $this->getOptions();
-        $column  = $column ?: $this->getPk();
-        $bind    = $this->bind;
-
-        if ($this->getOption('order') || !is_string($column)) {
-            $times = 1;
-            $resultSet = $this->options($options)->page($times, $count)->select();
-        } else {
-            $resultSet = $this->options($options)->order($column, $order)->limit($count)->select();
-
-            if (str_contains($column, '.')) {
-                [$alias, $key] = explode('.', $column);
-            } else {
-                $key = $column;
-            }
-        }
-
-        while (true) {
-            if (false === call_user_func($callback, $resultSet)) {
+        $chunks = $this->lazy($size, $column, $order)->chunk($size);
+        
+        foreach ($chunks as $chunk) {
+            $result = $callback($chunk);
+            if ($result === false) {
                 return false;
             }
-
-            if (count($resultSet) < $count) {
-                break;
-            }
-
-            if (isset($times)) {
-                $times++;
-                $query = $this->options($options)->page($times, $count);
-            } else {
-                $end    = $resultSet->pop();
-                $lastId = is_array($end) ? $end[$key] : $end->getData($key);
-
-                $query = $this->options($options)
-                    ->limit($count)
-                    ->where($column, 'asc' == strtolower($order) ? '>' : '<', $lastId);
-            }
-
-            $resultSet = $query->bind($bind)->order($column, $order)->select();
         }
-
+        
         return true;
     }
 
@@ -607,21 +586,27 @@ class Query extends BaseQuery
      * @param string      $order   字段排序 
      * @return LazyCollection
      */
-    public function lazy(int $count = 1000, ?string $column = null, string $order = 'desc'): LazyCollection
+    public function lazy(int $size = 1000, ?string $column = null, string $order = 'desc'): LazyCollection
     {
-        if ($count < 1) {
+        if ($size < 1) {
             throw new Exception('The chunk size should be at least 1');
         }
 
         $class = $this->model ? ModelLazyCollection::class : LazyCollection::class;
-        return new $class(function () use ($count, $column, $order) {
+        return new $class(function () use ($size, $column, $order) {
             $limit   = (int) $this->getOption('limit', 0);
             $column  = $column ?: $this->getPk();
-            $length  = $limit && $count >= $limit ? $limit : $count;
+            $length  = $limit && $size >= $limit ? $limit : $size;
             $options = $this->getOptions();
             $bind    = $this->bind;
             $times   = 0;
-            if ($this->getOption('order') || !is_string($column)) {
+            $field   = $this->getOption('field');
+            if (is_array($field) && false !== stripos(implode(',', $field), 'distinct')) {
+                $distinct = true;
+            } else {
+                $distinct = false;
+            }
+            if ($this->getOption('order') || !is_string($column) || $distinct) {
                 $page      = 1;
                 $resultSet = $this->options($options)->page($page, $length)->select();
             } else {
@@ -632,7 +617,7 @@ class Query extends BaseQuery
                 foreach ($resultSet as $item) {
                     yield $item;
                     $times++;
-                    if ($limit > $count && $times >= $limit) {
+                    if ($limit > $size && $times >= $limit) {
                         break 2;
                     }
                     if (!isset($page)) {
@@ -640,7 +625,7 @@ class Query extends BaseQuery
                     }
                 }
 
-                if (count($resultSet) < $count) {
+                if (count($resultSet) < $size) {
                     break;
                 }
 

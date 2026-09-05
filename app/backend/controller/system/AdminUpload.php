@@ -48,7 +48,9 @@ class AdminUpload extends AdminApiController
             }
         }
 
-        $existingAttach = Attach::where('md5', $file->md5())->find();
+        $driver = app()->make(\app\common\storage\StorageDriverRegistry::class)
+            ->resolve((string) syscfg('upload', 'upload_driver'))->name();
+        $existingAttach = Attach::where('driver', $driver)->where('md5', $file->md5())->find();
         try {
             $result = UploadService::instance()->uploads(0, (int) Session::get('admin.id', 0));
         } catch (\Throwable $e) {
@@ -67,6 +69,7 @@ class AdminUpload extends AdminApiController
             'size' => (int) round((float) $attach->size * 1024),
             'ext' => strtolower((string) $attach->ext),
             'groupId' => (int) $attach->group_id,
+            'driver' => (string) $attach->driver,
             'reused' => $existingAttach && (int) $existingAttach->id === (int) $attach->id,
             'uploadedAt' => time() * 1000,
         ], '上传成功');

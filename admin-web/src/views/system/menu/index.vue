@@ -6,8 +6,8 @@
     <DataTableShell storage-key="system-menu" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item label="菜单名称" prop="title">
-            <el-input v-model="query.title" placeholder="请输入菜单名称" clearable />
+          <el-form-item label="菜单名称" prop="name">
+            <el-input v-model="query.name" placeholder="请输入菜单名称" clearable />
           </el-form-item>
           <el-form-item label="菜单路由" prop="path">
             <el-input v-model="query.path" placeholder="请输入菜单路由" clearable />
@@ -68,7 +68,7 @@
               <span v-else class="text-xs text-[var(--el-text-color-secondary)]">—</span>
             </template>
           </el-table-column>
-          <el-table-column prop="title" label="名称" min-width="200" />
+          <el-table-column prop="name" label="名称" min-width="200" />
           <el-table-column label="图标" width="80" align="center">
             <template #default="{ row }">
               <SvgIcon v-if="row.icon" :name="row.icon" :size="18" />
@@ -146,7 +146,7 @@ const menuTableRef = ref<{ $el?: HTMLElement } | null>(null);
 let menuRowSortable: Sortable | null = null;
 
 const query = reactive({
-  title: '',
+  name: '',
   path: '',
   hidden: undefined as boolean | undefined
 });
@@ -159,7 +159,7 @@ const treeData = computed(() => {
 
 const displayTree = computed(() =>
   filterTree(treeData.value, (node) => {
-    if (query.title && !node.title.includes(query.title)) return false;
+    if (query.name && !node.name.includes(query.name)) return false;
     if (query.path && !(node.path || '').includes(query.path)) return false;
     if (query.hidden !== undefined && node.hidden !== query.hidden) return false;
     return true;
@@ -169,7 +169,7 @@ const displayTree = computed(() =>
 /** 筛选或折叠时 DOM 与整树不一致，禁用拖拽避免错乱 */
 const dragEnabled = computed(
   () =>
-    !query.title?.trim() &&
+    !query.name?.trim() &&
     !query.path?.trim() &&
     query.hidden === undefined &&
     expandAll.value,
@@ -284,7 +284,7 @@ function onSearch() {
 }
 
 function onReset() {
-  query.title = '';
+  query.name = '';
   query.path = '';
   query.hidden = undefined;
   loadData();
@@ -320,7 +320,7 @@ function onEdit(row: API.MenuItem) {
 }
 
 async function onDelete(row: API.MenuItem) {
-  await ElMessageBox.confirm(`确认删除 ${row.title} ?`, '提示', { type: 'warning' });
+  await ElMessageBox.confirm(`确认删除 ${row.name} ?`, '提示', { type: 'warning' });
   await menuApi.remove(row.id);
   loadData();
 }

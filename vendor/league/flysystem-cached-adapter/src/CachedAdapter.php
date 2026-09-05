@@ -31,23 +31,11 @@ class CachedAdapter implements AdapterInterface
     }
 
     /**
-     * Get the underlying Adapter implementation.
-     *
-     * @return AdapterInterface
+     * {@inheritdoc}
      */
     public function getAdapter()
     {
         return $this->adapter;
-    }
-
-    /**
-     * Get the used Cache implementation.
-     *
-     * @return CacheInterface
-     */
-    public function getCache()
-    {
-        return $this->cache;
     }
 
     /**
@@ -58,7 +46,6 @@ class CachedAdapter implements AdapterInterface
         $result = $this->adapter->write($path, $contents, $config);
 
         if ($result !== false) {
-            $result['type'] = 'file';
             $this->cache->updateObject($path, $result + compact('path', 'contents'), true);
         }
 
@@ -73,7 +60,6 @@ class CachedAdapter implements AdapterInterface
         $result = $this->adapter->writeStream($path, $resource, $config);
 
         if ($result !== false) {
-            $result['type'] = 'file';
             $contents = false;
             $this->cache->updateObject($path, $result + compact('path', 'contents'), true);
         }
@@ -89,7 +75,6 @@ class CachedAdapter implements AdapterInterface
         $result = $this->adapter->update($path, $contents, $config);
 
         if ($result !== false) {
-            $result['type'] = 'file';
             $this->cache->updateObject($path, $result + compact('path', 'contents'), true);
         }
 
@@ -104,7 +89,6 @@ class CachedAdapter implements AdapterInterface
         $result = $this->adapter->updateStream($path, $resource, $config);
 
         if ($result !== false) {
-            $result['type'] = 'file';
             $contents = false;
             $this->cache->updateObject($path, $result + compact('path', 'contents'), true);
         }
@@ -226,7 +210,7 @@ class CachedAdapter implements AdapterInterface
      */
     public function read($path)
     {
-        return $this->callWithFallback('contents', $path, 'read');
+        return $this->callWithFallback('read', $path);
     }
 
     /**
@@ -235,28 +219,6 @@ class CachedAdapter implements AdapterInterface
     public function readStream($path)
     {
         return $this->adapter->readStream($path);
-    }
-
-    /**
-     * Get the path prefix.
-     *
-     * @return string|null path prefix or null if pathPrefix is empty
-     */
-    public function getPathPrefix()
-    {
-        return $this->adapter->getPathPrefix();
-    }
-
-    /**
-     * Prefix a path.
-     *
-     * @param string $path
-     *
-     * @return string prefixed path
-     */
-    public function applyPathPrefix($path)
-    {
-        return $this->adapter->applyPathPrefix($path);
     }
 
     /**
@@ -270,7 +232,7 @@ class CachedAdapter implements AdapterInterface
 
         $result = $this->adapter->listContents($directory, $recursive);
 
-        if ($result !== false) {
+        if ($result) {
             $this->cache->storeContents($directory, $result, $recursive);
         }
 
@@ -282,7 +244,7 @@ class CachedAdapter implements AdapterInterface
      */
     public function getMetadata($path)
     {
-        return $this->callWithFallback(null, $path, 'getMetadata');
+        return $this->callWithFallback('getMetadata', $path);
     }
 
     /**
@@ -290,7 +252,7 @@ class CachedAdapter implements AdapterInterface
      */
     public function getSize($path)
     {
-        return $this->callWithFallback('size', $path, 'getSize');
+        return $this->callWithFallback('getSize', $path);
     }
 
     /**
@@ -298,7 +260,7 @@ class CachedAdapter implements AdapterInterface
      */
     public function getMimetype($path)
     {
-        return $this->callWithFallback('mimetype', $path, 'getMimetype');
+        return $this->callWithFallback('getMimetype', $path);
     }
 
     /**
@@ -306,7 +268,7 @@ class CachedAdapter implements AdapterInterface
      */
     public function getTimestamp($path)
     {
-        return $this->callWithFallback('timestamp', $path, 'getTimestamp');
+        return $this->callWithFallback('getTimestamp', $path);
     }
 
     /**
@@ -314,23 +276,22 @@ class CachedAdapter implements AdapterInterface
      */
     public function getVisibility($path)
     {
-        return $this->callWithFallback('visibility', $path, 'getVisibility');
+        return $this->callWithFallback('getVisibility', $path);
     }
 
     /**
      * Call a method and cache the response.
      *
-     * @param string $property
-     * @param string $path
      * @param string $method
+     * @param string $path
      *
      * @return mixed
      */
-    protected function callWithFallback($property, $path, $method)
+    protected function callWithFallback($method, $path)
     {
         $result = $this->cache->{$method}($path);
 
-        if ($result !== false && ($property === null || array_key_exists($property, $result))) {
+        if ($result !== false) {
             return $result;
         }
 

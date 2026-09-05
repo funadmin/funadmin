@@ -12,6 +12,8 @@ export interface UploadResult {
   ext: string;
   /** 附件记录实际所属分组 */
   groupId: number;
+  /** 实际使用的存储驱动 */
+  driver: string;
   /** 是否复用了已有同内容附件 */
   reused: boolean;
   /** 上传时间戳（毫秒） */

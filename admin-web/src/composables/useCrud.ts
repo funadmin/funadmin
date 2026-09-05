@@ -11,7 +11,7 @@
  *   2) 模板里给批量按钮绑 `:disabled="!selection.length"` + `@click="onBatchDelete"`
  *   3) 弹窗用 `<XxxFormDialog v-model="dialogVisible" :row="current" @success="loadData" />`
  */
-import { reactive, ref, type Ref } from 'vue';
+import { getCurrentInstance, onMounted, reactive, ref, type Ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 export interface UseCrudApi<T, ID = number> {
@@ -39,7 +39,7 @@ export interface UseCrudOptions<T, Q extends Record<string, any>, ID = number> {
 export function useCrud<T extends Record<string, any>, Q extends Record<string, any>, ID = number>(
   options: UseCrudOptions<T, Q, ID>
 ) {
-  const { api, initialQuery, rowKey = 'id', pagination = false, deleteConfirm } = options;
+  const { api, initialQuery, rowKey = 'id', pagination = false, deleteConfirm, immediate = true } = options;
 
   const loading = ref(false);
   const list = ref([]) as Ref<T[]>;
@@ -125,6 +125,11 @@ export function useCrud<T extends Record<string, any>, Q extends Record<string, 
 
   function onSelectionChange(rows: T[]) {
     selection.value = rows;
+  }
+
+  // 组件内默认挂载即首屏加载；非组件上下文（单测等）不注册生命周期
+  if (immediate && getCurrentInstance()) {
+    onMounted(loadData);
   }
 
   return {

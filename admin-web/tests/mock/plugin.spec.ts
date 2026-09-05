@@ -17,6 +17,18 @@ describe('mock/plugin safeguards', () => {
     expect(response.code).toBe(422);
   });
 
+  it('更新检查返回真实 UpdateCheck 数组结构', async () => {
+    const response = await route('POST', '/system/plugin/market/check-updates').handler(
+      context('POST', {}, {})
+    );
+    expect(response.data).toEqual([{
+      name: 'demo',
+      installedVersion: '1.0.0',
+      latestVersion: '1.1.0',
+      updateAvailable: true
+    }]);
+  });
+
   it('提供 enabled modules 空列表避免影响核心路由', async () => {
     const response = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
     expect(response.data).toEqual([]);

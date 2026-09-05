@@ -7,7 +7,7 @@ class MemberValidate extends Validate
 {
     protected $rule = [
         'username|用户名'    => 'require|min:2|max:18|unique:member',
-        'email|邮箱'        => 'require|email|unique:member',
+        'email|邮箱'        => 'require|email|max:60|unique:member',
         'password|密码'     => 'require|min:6|max:20',
         'repassword|确认密码' => 'require|confirm:password',
         'nickname|昵称'     => 'require|min:2|max:20',

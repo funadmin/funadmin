@@ -1,12 +1,15 @@
 <?php
 
 use League\Flysystem\Cached\Storage\Memcached;
-use PHPUnit\Framework\TestCase;
 
-class MemcachedTests extends TestCase
+class MemcachedTests extends PHPUnit_Framework_TestCase
 {
     public function testLoadFail()
     {
+        if (defined('HHVM_VERSION')) {
+            $this->markTestSkipped('HHVM has a bug breaking mockery');
+        }
+
         $client = Mockery::mock('Memcached');
         $client->shouldReceive('get')->once()->andReturn(false);
         $cache = new Memcached($client);
@@ -16,6 +19,10 @@ class MemcachedTests extends TestCase
 
     public function testLoadSuccess()
     {
+        if (defined('HHVM_VERSION')) {
+            $this->markTestSkipped('HHVM has a bug breaking mockery');
+        }
+
         $response = json_encode([[], ['' => true]]);
         $client = Mockery::mock('Memcached');
         $client->shouldReceive('get')->once()->andReturn($response);
@@ -26,6 +33,10 @@ class MemcachedTests extends TestCase
 
     public function testSave()
     {
+        if (defined('HHVM_VERSION')) {
+            $this->markTestSkipped('HHVM has a bug breaking mockery');
+        }
+
         $response = json_encode([[], []]);
         $client = Mockery::mock('Memcached');
         $client->shouldReceive('set')->once()->andReturn($response);

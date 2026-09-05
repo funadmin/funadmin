@@ -30,8 +30,6 @@ class MApi
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $request->member = [];
-        $request->member_id = $request->mid = null;
         $token = $this->bearerTokenExtractor->extract($request);
         if ($token === null) {
             return $this->fail(__('Unauthorized'), 401);
@@ -49,7 +47,7 @@ class MApi
         }
 
         $request->member = $member;
-        $request->member_id = $request->mid = $memberId;
+        $request->member_id = $memberId;
 
         return $next($request);
     }

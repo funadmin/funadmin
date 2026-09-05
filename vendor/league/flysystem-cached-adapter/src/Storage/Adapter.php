@@ -68,8 +68,8 @@ class Adapter extends AbstractCache
         list($cache, $complete, $expire) = json_decode($json, true);
 
         if (! $expire || $expire > $this->getTime()) {
-            $this->cache = is_array($cache) ? $cache : [];
-            $this->complete = is_array($complete) ? $complete : [];
+            $this->cache = $cache;
+            $this->complete = $complete;
         } else {
             $this->adapter->delete($this->file);
         }

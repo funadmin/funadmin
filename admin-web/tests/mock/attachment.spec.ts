@@ -15,7 +15,7 @@ function context(pathParams: Record<string, string>, body: Record<string, unknow
 describe('mock/attachment group safeguards', () => {
   it('拒绝把父分组移动到自己的下级', async () => {
     const route = findRoute('PUT', '/^\\/system\\/attachment-group\\/(\\d+)$/');
-    const response = await route.handler(context({ id: '1' }, { parentId: 2, title: '默认' }));
+    const response = await route.handler(context({ id: '1' }, { parentId: 2, name: '默认' }));
 
     expect(response.code).toBe(422);
     expect(response.msg).toContain('自身或下级');

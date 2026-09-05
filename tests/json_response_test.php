@@ -161,6 +161,6 @@ responseExpect($extractor->extract((new Request())->withHeader(['Authorization' 
 $middlewareSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/middleware/MApi.php');
 $tokenSource = (string) file_get_contents(dirname(__DIR__) . '/app/api/controller/v2/Token.php');
 responseExpect(str_contains($middlewareSource, 'BearerTokenExtractor'), 'MApi 必须复用 Bearer Token 解析器');
-responseExpect(str_contains($tokenSource, 'BearerTokenExtractor'), 'Token 刷新必须复用 Bearer Token 解析器');
+responseExpect(!str_contains($tokenSource, 'BearerTokenExtractor'), 'Refresh Token 必须只通过请求体传递');
 
  echo "json response tests: PASS\n";

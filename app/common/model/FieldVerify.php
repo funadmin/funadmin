@@ -10,6 +10,13 @@ use think\model\concern\SoftDelete;
 class FieldVerify extends BaseModel {
 
     /**
+     * 013 迁移后使用自增 id 主键。
+     *
+     * @var string
+     */
+    protected $pk = 'id';
+
+    /**
      * @var bool
      */
     use SoftDelete;

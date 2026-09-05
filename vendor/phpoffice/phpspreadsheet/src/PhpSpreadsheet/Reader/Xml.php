@@ -5,6 +5,7 @@ namespace PhpOffice\PhpSpreadsheet\Reader;
 use DateTime;
 use DateTimeZone;
 use PhpOffice\PhpSpreadsheet\Cell\AddressHelper;
+use PhpOffice\PhpSpreadsheet\Cell\AddressRange;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\DefinedName;
@@ -17,6 +18,7 @@ use PhpOffice\PhpSpreadsheet\Reader\Xml\Style;
 use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Shared\File;
+use PhpOffice\PhpSpreadsheet\Shared\StringHelper;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\SheetView;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -89,6 +91,7 @@ class Xml extends BaseReader
         ];
 
         // Open file
+        File::assertFile($filename);
         $data = (string) file_get_contents($filename);
         $data = $this->getSecurityScannerOrThrow()->scan($data);
 
@@ -300,6 +303,7 @@ class Xml extends BaseReader
         $worksheetID = 0;
         $xml_ss = $xml->children(self::NAMESPACES_SS);
 
+        $sheetCreated = false;
         /** @var null|SimpleXMLElement $worksheetx */
         foreach ($xml_ss->Worksheet as $worksheetx) {
             $worksheet = $worksheetx ?? new SimpleXMLElement('<xml></xml>');
@@ -314,6 +318,7 @@ class Xml extends BaseReader
 
             // Create new Worksheet
             $spreadsheet->createSheet();
+            $sheetCreated = true;
             $spreadsheet->setActiveSheetIndex($worksheetID);
             $worksheetName = '';
             if (isset($worksheet_ss['Name'])) {
@@ -371,20 +376,24 @@ class Xml extends BaseReader
                         if (isset($columnVisible)) {
                             $spreadsheet->getActiveSheet()->getColumnDimension($columnID)->setVisible($columnVisible);
                         }
-                        ++$columnID;
+                        StringHelper::stringIncrement($columnID);
                         --$colspan;
                     }
                 }
             }
 
-            $rowID = 1;
+            $rowID = 0;
             if (isset($worksheet->Table->Row)) {
                 $additionalMergedCells = 0;
                 foreach ($worksheet->Table->Row as $rowData) {
+                    ++$rowID;
                     $rowHasData = false;
                     $row_ss = self::getAttributes($rowData, self::NAMESPACES_SS);
                     if (isset($row_ss['Index'])) {
                         $rowID = (int) $row_ss['Index'];
+                    }
+                    if ($rowID < 1 || $rowID > AddressRange::MAX_ROW) {
+                        continue;
                     }
                     if (isset($row_ss['Hidden'])) {
                         $rowVisible = ((string) $row_ss['Hidden']) !== '1';
@@ -406,7 +415,7 @@ class Xml extends BaseReader
 
                         if ($this->getReadFilter() !== null) {
                             if (!$this->getReadFilter()->readCell($columnID, $rowID, $worksheetName)) {
-                                ++$columnID;
+                                StringHelper::stringIncrement($columnID);
 
                                 continue;
                             }
@@ -520,9 +529,9 @@ class Xml extends BaseReader
                                     ->applyFromArray($this->styles[$style]);
                             }
                         }
-                        ++$columnID;
+                        StringHelper::stringIncrement($columnID);
                         while ($additionalMergedCells > 0) {
-                            ++$columnID;
+                            StringHelper::stringIncrement($columnID);
                             --$additionalMergedCells;
                         }
                     }
@@ -533,8 +542,6 @@ class Xml extends BaseReader
                             $spreadsheet->getActiveSheet()->getRowDimension($rowID)->setRowHeight((float) $rowHeight);
                         }
                     }
-
-                    ++$rowID;
                 }
             }
 
@@ -661,6 +668,9 @@ class Xml extends BaseReader
                 }
             }
             ++$worksheetID;
+        }
+        if ($this->createBlankSheetIfNoneRead && !$sheetCreated) {
+            $spreadsheet->createSheet();
         }
 
         // Globally scoped defined names

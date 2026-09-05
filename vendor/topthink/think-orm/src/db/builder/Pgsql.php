@@ -83,18 +83,20 @@ class Pgsql extends Builder
             // JSON字段支持
             [$field, $name] = explode('->', $key);
             $key = '"' . $field . '"' . '->>\'' . $name . '\'';
-        } elseif (str_contains($key, '.')) {
-            [$table, $key] = explode('.', $key, 2);
+        } else {
+            if (str_contains($key, '.') && !preg_match('/[,\'\"\(\)`\s]/', $key)) {
+                [$table, $key] = explode('.', $key, 2);
 
-            $alias = $query->getOption('alias');
+                $alias = $query->getOption('alias');
 
-            if ('__TABLE__' == $table) {
-                $table = $query->getOption('table');
-                $table = is_array($table) ? array_shift($table) : $table;
-            }
+                if ('__TABLE__' == $table) {
+                    $table = $query->getOption('table');
+                    $table = is_array($table) ? array_shift($table) : $table;
+                }
 
-            if (isset($alias[$table])) {
-                $table = $alias[$table];
+                if (isset($alias[$table])) {
+                    $table = $alias[$table];
+                }
             }
 
             if ('*' != $key && !preg_match('/[,\"\*\(\).\s]/', $key)) {
@@ -103,7 +105,11 @@ class Pgsql extends Builder
         }
 
         if (isset($table)) {
-            $key = $table . '.' . $key;
+            if (str_contains($table, '.')) {
+                $table = str_replace('.', '"."', $table);
+            }
+
+            $key = '"' . $table . '".' . $key;
         }
 
         return $key;

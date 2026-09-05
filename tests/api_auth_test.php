@@ -57,33 +57,56 @@ apiExpect(str_contains((string) $configSource, "'refresh_token_ttl'"), 'Refresh 
 
 $routeSource = file_get_contents(dirname(__DIR__) . '/app/api/route/api.php');
 apiExpect(str_contains((string) $routeSource, "Route::group('v2'"), 'API v2 路由必须显式注册');
-apiExpect(str_contains((string) $routeSource, "'v2.member/index'"), '应用内路由必须指向 v2 控制器目录');
+apiExpect(str_contains((string) $routeSource, "Route::get('member', 'v2.member/show')"), '会员接口必须使用精简 REST 路由');
+apiExpect(str_contains((string) $routeSource, '->middleware(MApi::class)'), '受保护接口必须在路由层注册认证中间件');
+apiExpect(!str_contains((string) $routeSource, 'member/index'), '不得保留重复会员列表路由');
+apiExpect(!str_contains((string) $routeSource, 'member/verify'), '不得保留无业务健康探针');
 apiExpect(!str_contains((string) $routeSource, "'api/v2."), '应用内路由不得重复包含 api 应用名');
 apiExpect(!str_contains((string) $routeSource, ':version'), 'API 版本不得直接参与控制器路径解析');
 apiExpect(str_contains((string) $routeSource, 'Throttle::class'), '登录接口必须启用独立限流');
 
 $apiControllerSource = file_get_contents(dirname(__DIR__) . '/app/common/controller/Api.php');
 apiExpect(str_contains((string) $apiControllerSource, 'use JsonResponse;'), 'API 基类必须复用公共 JSON 响应 Trait');
-apiExpect(str_contains((string) $apiControllerSource, 'use ApiAuthentication;'), 'API 基类必须复用认证配置 Trait');
-apiExpect(str_contains((string) $apiControllerSource, '$this->registerApiAuthentication();'), 'API 基类必须通过 Trait 注册认证中间件');
+apiExpect(!str_contains((string) $apiControllerSource, 'extends BaseController'), 'API 基类不得继承页面控制器初始化逻辑');
+apiExpect(!str_contains((string) $apiControllerSource, 'ApiAuthentication'), 'API 基类不得动态注册认证中间件');
+foreach (['modelClass', 'pageSize', 'searchFields', 'selectMap', 'relationSearch', 'joinSearch', 'dataLimit', 'exportFields', 'loadlang'] as $legacyMember) {
+    apiExpect(!str_contains((string) $apiControllerSource, $legacyMember), "API 基类不得保留旧 CRUD 成员：{$legacyMember}");
+}
 apiExpect(!str_contains((string) $apiControllerSource, 'protected function ok('), 'API 基类不得重复实现 ok 响应');
 apiExpect(!str_contains((string) $apiControllerSource, 'protected function fail('), 'API 基类不得重复实现 fail 响应');
 apiExpect(!str_contains((string) $tokenControllerSource, '$this->success('), 'Token 控制器不得继续使用 success 响应');
 apiExpect(!str_contains((string) $tokenControllerSource, '$this->error('), 'Token 控制器不得继续使用 error 响应');
 
 $memberControllerSource = file_get_contents(dirname(__DIR__) . '/app/api/controller/v2/Member.php');
-apiExpect(!str_contains((string) $memberControllerSource, '$this->success('), 'Member 控制器不得继续使用 success 响应');
-apiExpect(str_contains((string) $memberControllerSource, 'return $this->ok('), 'Member 控制器必须显式返回响应');
+apiExpect(!str_contains((string) $memberControllerSource, 'noNeedLogin'), 'Member 控制器不得保留方法白名单');
+apiExpect(!str_contains((string) $memberControllerSource, 'function index('), 'Member 控制器不得保留重复 index 方法');
+apiExpect(!str_contains((string) $memberControllerSource, 'function verify('), 'Member 控制器不得保留无业务 verify 方法');
+apiExpect(str_contains((string) $memberControllerSource, 'function show('), 'Member 控制器必须提供 REST 资源读取方法');
 
 $middlewareSource = file_get_contents(dirname(__DIR__) . '/app/common/middleware/MApi.php');
 apiExpect(!str_contains((string) $middlewareSource, 'use Apis;'), 'API 中间件不得通过异常式 Trait 返回错误');
 apiExpect(str_contains((string) $middlewareSource, 'return $this->fail('), 'API 中间件必须返回 fail 响应');
+apiExpect(!str_contains((string) $middlewareSource, '->mid'), 'API 中间件不得写入旧 mid 别名');
 
 $exceptionSource = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.php');
 apiExpect(str_contains((string) $exceptionSource, 'instanceof HttpResponseException'), 'API 主动响应不得被异常处理器改写');
 apiExpect(str_contains((string) $exceptionSource, "getName() !== 'api'"), '统一异常处理必须仅对 API 应用返回 JSON');
 
-$funadminConfigSource = file_get_contents(dirname(__DIR__) . '/config/funadmin.php');
-apiExpect(str_contains((string) $funadminConfigSource, "'api_login_url'=>'/api/v2/token'"), '登录 URL 配置必须与显式路由一致');
+$apiMiddlewareSource = file_get_contents(dirname(__DIR__) . '/app/api/middleware.php');
+apiExpect(!str_contains((string) $apiMiddlewareSource, 'SessionInit'), 'API 应用不得重复初始化 Session');
+apiExpect(!str_contains((string) $apiMiddlewareSource, 'AllowCrossDomain'), 'API 应用不得重复注册全局跨域中间件');
+apiExpect(!str_contains((string) $tokenControllerSource, "post('access_token'"), '刷新接口不得兼容旧 access_token 参数');
+apiExpect(!str_contains((string) $tokenControllerSource, '::instance()'), 'Token 控制器必须使用构造器依赖注入');
+apiExpect(!str_contains((string) $tokenControllerSource, 'App $app'), 'Token 控制器不得注入无用 App 实例');
+
+$generatorSource = file_get_contents(dirname(__DIR__) . '/app/common/service/McpService.php');
+$apiGeneratorSource = substr((string) $generatorSource, strpos((string) $generatorSource, 'private function generateApiContent'));
+apiExpect(!str_contains($apiGeneratorSource, 'protected \\$noNeedLogin'), 'API 生成模板不得生成旧方法白名单');
+apiExpect(!str_contains($apiGeneratorSource, 'protected \\$noNeedRight'), 'API 生成模板不得生成旧权限白名单');
+apiExpect(!str_contains($apiGeneratorSource, 'protected \\$modelClass = null'), 'API 生成模板不得依赖已移除的基类模型属性');
+apiExpect(str_contains($apiGeneratorSource, 'private readonly'), 'API 生成模板必须使用构造器属性提升');
+apiExpect(str_contains($apiGeneratorSource, 'use think\\\\Response;'), 'API 生成模板必须声明响应类型');
+apiExpect(str_contains((string) $generatorSource, 'app/{$module}/controller/v2/{$controllerClass}.php'), 'API 必须生成到 v2 控制器目录');
+apiExpect(str_contains((string) $generatorSource, "if (strtolower(\$module) === 'api')"), '通用控制器生成器必须拒绝生成 API 控制器');
 
 echo "api auth tests: PASS\n";

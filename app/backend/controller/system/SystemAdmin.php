@@ -104,6 +104,9 @@ class SystemAdmin extends AdminApiController
         try {
             $guard = new RoleGuardService();
             $guard->assertManageAdmin($admin);
+            if (!$this->isInDataScope($admin)) {
+                throw new InvalidArgumentException('管理员不在当前数据范围内');
+            }
             $this->assertPayloadAccess($data);
             Db::transaction(function () use ($admin, $data): void {
                 $admin->save([

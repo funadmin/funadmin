@@ -11,6 +11,7 @@ function phase3Expect(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $controller = $root . '/app/backend/controller/system/SystemPlugin.php';
+$authSource = (string) file_get_contents($root . '/app/backend/controller/auth/AdminAuth.php');
 $route = (string) file_get_contents($root . '/app/backend/route/app.php');
 $migrations = glob($root . '/database/migrations/*plugin*admin_web*.sql') ?: [];
 
@@ -61,6 +62,39 @@ foreach (['system:plugin:list', 'system:plugin:install', 'system:plugin:update',
     phase3Expect(str_contains($migration, $permission), '权限 migration 缺少：' . $permission);
 }
 phase3Expect(str_contains($migration, 'system/plugin/index'), '权限 migration 必须注册插件中心菜单');
+$pluginPermissionMappings = [
+    'installed' => 'system:plugin:list',
+    'discovered' => 'system:plugin:list',
+    'localdetail' => 'system:plugin:list',
+    'enabledmodules' => 'system:plugin:list',
+    'accountlogin' => 'system:plugin:account',
+    'accountlogout' => 'system:plugin:account',
+    'currentaccount' => 'system:plugin:account',
+    'marketcategories' => 'system:plugin:list',
+    'marketsearch' => 'system:plugin:list',
+    'marketdetail' => 'system:plugin:list',
+    'marketversions' => 'system:plugin:list',
+    'checkupdates' => 'system:plugin:list',
+    'installlocal' => 'system:plugin:install',
+    'installcloud' => 'system:plugin:install',
+    'update' => 'system:plugin:update',
+    'migrate' => 'system:plugin:migrate',
+    'enable' => 'system:plugin:enable',
+    'disable' => 'system:plugin:disable',
+    'getconfig' => 'system:plugin:config',
+    'saveconfig' => 'system:plugin:config',
+    'uninstall' => 'system:plugin:uninstall',
+    'deletepackage' => 'system:plugin:package-delete',
+    'history' => 'system:plugin:history',
+    'operations' => 'system:plugin:history',
+];
+foreach ($pluginPermissionMappings as $action => $frontendPermission) {
+    phase3Expect(
+        str_contains($authSource, "'backend/systemplugin:{$action}' => '{$frontendPermission}'"),
+        "AdminAuth 缺少插件权限映射：{$action} -> {$frontendPermission}"
+    );
+}
+phase3Expect(str_contains($authSource, "return ['*'];"), '超级管理员必须稳定获得前端权限通配符');
 foreach (['accountlogout', 'currentaccount', 'marketcategories', 'marketsearch', 'marketdetail', 'marketversions', 'checkupdates', 'discovered', 'localdetail', 'installcloud', 'getconfig', 'operations', 'enabledmodules'] as $action) {
     phase3Expect(str_contains($migration, "'{$action}'"), '权限 migration 缺少规范化控制器 action：' . $action);
 }

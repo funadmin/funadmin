@@ -1,9 +1,6 @@
 -- 013 字段规范化：类型、长度、引擎与主键统一；仅向前兼容增强。
 -- 约束：不使用破坏性语句；所有表名保持可直接替换前缀的字面量。
-
--- 会员手机号：空串会占用唯一索引槽位，归一为 NULL 并允许 NULL。
-UPDATE `fun_member` SET `mobile` = NULL WHERE TRIM(COALESCE(`mobile`, '')) = '';
-ALTER TABLE `fun_member` MODIFY COLUMN `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号码';
+-- 会员手机号空串归一与唯一约束治理由 006 负责，此处不重复。
 
 -- 省份表：邮编与区号 int 存储会丢失前导零，改为字符串。
 ALTER TABLE `fun_provinces`
@@ -19,12 +16,19 @@ ALTER TABLE `fun_attach`
   MODIFY COLUMN `height` int unsigned NOT NULL DEFAULT 0 COMMENT '高度',
   MODIFY COLUMN `duration` int unsigned NOT NULL DEFAULT 0 COMMENT '音视频时长秒';
 
--- 验证规则表：原表无主键，补充自增主键。
+-- 验证规则表：补充自增 id 主键；任何不兼容的既有主键状态均明确失败。
 SET @schema_name = DATABASE();
+SET @field_verify_id_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND COLUMN_NAME = 'id');
+SET @field_verify_id_is_primary = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME = 'id');
+SET @field_verify_other_primary_exists = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME <> 'id');
 SET @sql = IF(
-  EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND COLUMN_NAME = 'id'),
+  @field_verify_id_is_primary,
   'DO 0',
-  'ALTER TABLE `fun_field_verify` ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST'
+  IF(
+    @field_verify_id_exists,
+    'SELECT * FROM `schema_integrity_error_013_field_verify_id_not_primary`',
+    IF(@field_verify_other_primary_exists, 'SELECT * FROM `schema_integrity_error_013_field_verify_other_primary_key`', 'ALTER TABLE `fun_field_verify` ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST')
+  )
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

@@ -18,7 +18,7 @@
         ref="treeRef"
         :data="tree"
         node-key="id"
-        :props="{ label: 'title', children: 'children' }"
+        :props="{ label: 'name', children: 'children' }"
         show-checkbox
         :check-strictly="strictly"
         :default-expand-all="false"

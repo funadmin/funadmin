@@ -16,7 +16,6 @@ use fun\plugins\Registry;
 use fun\plugins\Service;
 use RuntimeException;
 use think\Exception;
-use think\facade\Cache;
 use think\facade\Db;
 
 /**
@@ -72,7 +71,7 @@ class PluginService extends AbstractService
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
             }
             try {
-                Cache::clear();
+                $this->clearApplicationCache();
             } finally {
                 if ($lock) {
                     $lock->release();
@@ -135,7 +134,7 @@ class PluginService extends AbstractService
         if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
             $manager->save(['status' => 0]);
         }
-        $this->delMenuCache();
+        $this->clearApplicationCache();
     }
 
     public function addPluginManager()
@@ -145,7 +144,7 @@ class PluginService extends AbstractService
             $manager->save(['status' => 1]);
         } else {
             ResourceRegistryService::instance()->registerTree([[
-                'title' => '已装插件',
+                'name' => '已装插件',
                 'href' => '',
                 'visible' => 1,
                 'type' => 1,
@@ -156,11 +155,6 @@ class PluginService extends AbstractService
             $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
         }
         return $manager;
-    }
-
-    public function delMenuCache(): void
-    {
-        Cache::clear();
     }
 
     public function installPlugin(string $name, string $type = ''): bool
@@ -418,7 +412,7 @@ class PluginService extends AbstractService
         if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
             $manager->save(['status' => 0]);
         }
-        $this->delMenuCache();
+        $this->clearApplicationCache();
     }
 
     private function assertName(string $name): void

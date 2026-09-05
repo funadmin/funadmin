@@ -20,10 +20,10 @@ class SystemMenu extends AdminApiController
     public function tree(): Response
     {
         $query = AdminMenu::where('source_type', 'admin_web')->where('status', 1)->order('sort', 'asc')->order('id', 'asc');
-        $title = trim((string) $this->request->get('title', ''));
+        $name = trim((string) $this->request->get('name', ''));
         $path = trim((string) $this->request->get('path', ''));
-        if ($title !== '') {
-            $query->whereLike('title', '%' . $title . '%');
+        if ($name !== '') {
+            $query->whereLike('name', '%' . $name . '%');
         }
         if ($path !== '') {
             $query->whereLike('href', '%' . $path . '%');
@@ -98,7 +98,7 @@ class SystemMenu extends AdminApiController
         }
         $meta = [
             'type' => $type,
-            'name' => trim((string) $this->request->post('name', $current['name'] ?? '')),
+            'name' => trim((string) $this->request->post('routeName', $current['routeName'] ?? '')),
             'component' => trim((string) $this->request->post('component', $current['component'] ?? '')),
             'redirect' => trim((string) $this->request->post('redirect', $current['redirect'] ?? '')),
             'hidden' => $this->booleanValue($this->request->post('hidden', $current['hidden'] ?? false)),
@@ -109,7 +109,7 @@ class SystemMenu extends AdminApiController
             'pid' => max(0, (int) $this->request->post('parentId', $current['parentId'] ?? 0)),
             'permission_id' => $permissionId,
             'module' => 'backend',
-            'title' => trim(strip_tags((string) $this->request->post('title', $current['title'] ?? ''))),
+            'name' => trim(strip_tags((string) $this->request->post('name', $current['name'] ?? ''))),
             'href' => trim((string) $this->request->post('path', $current['path'] ?? '')),
             'query' => http_build_query($meta),
             'target' => '_self',
@@ -124,7 +124,7 @@ class SystemMenu extends AdminApiController
     private function validatePayload(array $data): ?string
     {
         parse_str((string) $data['query'], $meta);
-        if (($data['title'] ?? '') === '' || mb_strlen((string) $data['title']) > 100) {
+        if (($data['name'] ?? '') === '' || mb_strlen((string) $data['name']) > 100) {
             return '菜单名称不能为空且不能超过 100 个字符';
         }
         if (!in_array($meta['type'] ?? '', ['M', 'C'], true)) {
@@ -154,13 +154,13 @@ class SystemMenu extends AdminApiController
         return [
             'id' => (int) $menu->id,
             'parentId' => (int) $menu->pid,
-            'name' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
+            'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
             'path' => (string) $menu->href,
             'component' => (string) ($meta['component'] ?? ''),
             'redirect' => (string) ($meta['redirect'] ?? ''),
             'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
             'icon' => (string) $menu->icon,
-            'title' => (string) $menu->title,
+            'name' => (string) $menu->name,
             'sort' => (int) $menu->sort,
             'hidden' => $this->booleanValue($meta['hidden'] ?? false),
             'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),

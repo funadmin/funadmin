@@ -15,6 +15,7 @@ namespace app\common\service;
 
 use think\App;
 use think\Container;
+use think\facade\Cache;
 
 /**
  * 自定义服务基类
@@ -44,6 +45,11 @@ abstract class AbstractService
     protected function initialize()
     {
         return $this;
+    }
+
+    protected function clearApplicationCache(): void
+    {
+        Cache::clear();
     }
 
     /**

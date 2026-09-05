@@ -33,7 +33,7 @@ class SystemRole extends AdminApiController
         $code = trim((string) $this->request->get('code', ''));
         $status = $this->request->get('status', null);
         if ($name !== '') {
-            $query->whereLike('title', '%' . $name . '%');
+            $query->whereLike('name', '%' . $name . '%');
         }
         if ($code !== '') {
             $query->whereLike('code', '%' . $code . '%');
@@ -101,9 +101,8 @@ class SystemRole extends AdminApiController
             $rows[] = [
                 'id' => (int) $permission->id,
                 'parentId' => (int) $permission->pid,
-                'title' => (string) $permission->title,
+                'name' => (string) $permission->name,
                 'type' => (string) $permission->resource_type === Permission::TYPE_GROUP ? 'M' : 'B',
-                'name' => 'Permission_' . (int) $permission->id,
                 'path' => '',
                 'sort' => (int) $permission->sort,
                 'hidden' => false,
@@ -121,7 +120,7 @@ class SystemRole extends AdminApiController
         if ($error = $this->validatePayload($data)) {
             return $this->fail($error, 422);
         }
-        if (AuthGroup::where('title', $data['title'])->find() || AuthGroup::where('code', $data['code'])->find()) {
+        if (AuthGroup::withTrashed()->where('name', $data['name'])->find() || AuthGroup::withTrashed()->where('code', $data['code'])->find()) {
             return $this->fail('角色名称或标识已存在', 422);
         }
         try {
@@ -129,7 +128,7 @@ class SystemRole extends AdminApiController
             $role = Db::transaction(function () use ($data): AuthGroup {
                 $role = AuthGroup::create([
                     'pid' => (int) ($data['parentRoleIds'][0] ?? 0),
-                    'title' => $data['title'],
+                    'name' => $data['name'],
                     'code' => $data['code'],
                     'level' => $data['level'],
                     'data_scope' => $data['dataScope'],
@@ -141,8 +140,15 @@ class SystemRole extends AdminApiController
             });
             Cache::clear();
             return $this->ok($this->roleData($role), '创建成功');
-        } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 422);
+        } catch (\Throwable $exception) {
+            $message = $exception->getMessage();
+            if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
+                return $this->fail('角色名称或标识已存在', 422);
+            }
+            if ($exception instanceof InvalidArgumentException) {
+                return $this->fail($exception->getMessage(), 422);
+            }
+            throw $exception;
         }
     }
 
@@ -156,8 +162,8 @@ class SystemRole extends AdminApiController
         if ($error = $this->validatePayload($data)) {
             return $this->fail($error, 422);
         }
-        if (AuthGroup::where('id', '<>', $id)->where(function ($query) use ($data) {
-            $query->where('title', $data['title'])->whereOr('code', $data['code']);
+        if (AuthGroup::withTrashed()->where('id', '<>', $id)->where(function ($query) use ($data) {
+            $query->where('name', $data['name'])->whereOr('code', $data['code']);
         })->find()) {
             return $this->fail('角色名称或标识已存在', 422);
         }
@@ -168,7 +174,7 @@ class SystemRole extends AdminApiController
             Db::transaction(function () use ($role, $data): void {
                 $role->save([
                     'pid' => (int) ($data['parentRoleIds'][0] ?? 0),
-                    'title' => $data['title'],
+                    'name' => $data['name'],
                     'code' => $data['code'],
                     'level' => $data['level'],
                     'data_scope' => $data['dataScope'],
@@ -179,8 +185,15 @@ class SystemRole extends AdminApiController
             });
             Cache::clear();
             return $this->ok($this->roleData($role), '保存成功');
-        } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 422);
+        } catch (\Throwable $exception) {
+            $message = $exception->getMessage();
+            if (str_contains($message, '1062') || str_contains($message, 'Duplicate entry')) {
+                return $this->fail('角色名称或标识已存在', 422);
+            }
+            if ($exception instanceof InvalidArgumentException) {
+                return $this->fail($exception->getMessage(), 422);
+            }
+            throw $exception;
         }
     }
 
@@ -259,7 +272,7 @@ class SystemRole extends AdminApiController
     private function payload(bool $create = true, ?AuthGroup $role = null): array
     {
         $defaults = [
-            'title' => $role ? (string) $role->title : '',
+            'name' => $role ? (string) $role->name : '',
             'code' => $role ? (string) $role->code : '',
             'level' => $role ? (int) $role->level : 100,
             'dataScope' => $role ? (string) $role->data_scope : 'self',
@@ -269,7 +282,7 @@ class SystemRole extends AdminApiController
             'departmentIds' => $role ? array_map('intval', AuthGroupDepartment::where('role_id', (int) $role->id)->column('dept_id')) : [],
         ];
         return [
-            'title' => trim(strip_tags((string) $this->request->post('name', $defaults['title']))),
+            'name' => trim(strip_tags((string) $this->request->post('name', $defaults['name']))),
             'code' => trim((string) $this->request->post('code', $defaults['code'])),
             'level' => (int) $this->request->post('level', $defaults['level']),
             'dataScope' => trim((string) $this->request->post('dataScope', $defaults['dataScope'])),
@@ -282,7 +295,7 @@ class SystemRole extends AdminApiController
 
     private function validatePayload(array $data): ?string
     {
-        if ($data['title'] === '' || mb_strlen($data['title']) > 100) {
+        if ($data['name'] === '' || mb_strlen($data['name']) > 100) {
             return '角色名称不能为空且不能超过 100 个字符';
         }
         if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{1,49}$/', $data['code'])) {
@@ -332,7 +345,7 @@ class SystemRole extends AdminApiController
         $roleId = (int) $role->id;
         return [
             'id' => $roleId,
-            'name' => (string) $role->title,
+            'name' => (string) $role->name,
             'code' => (string) $role->code,
             'level' => (int) $role->level,
             'dataScope' => (string) $role->data_scope,

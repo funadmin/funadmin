@@ -24,8 +24,7 @@ function resolveComponent(component?: string): RouteComponent {
 
   const normalized = component
     .replace(/^\/+/, '')
-    .replace(/^views\//, '')
-    .replace(/^plugins\//, 'modules/');
+    .replace(/^views\//, '');
   const suffix = normalized.endsWith('.vue') ? '' : '.vue';
   const candidates = normalized.startsWith('modules/')
     ? [`/src/${normalized}${suffix}`]
@@ -55,11 +54,11 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
   if (hasChildren || menu.type === 'M' || !menu.component || menu.component === 'Layout') {
     const route: RouteRecordRaw = {
       path: ensureLeadingSlash(menu.path),
-      name: menu.name || `Menu_${menu.id}`,
+      name: menu.routeName || `Menu_${menu.id}`,
       component: Layout,
       redirect: menu.redirect,
       meta: {
-        title: menu.title,
+        title: menu.name,
         icon: menu.icon,
         hidden: Boolean(menu.hidden),
         keepAlive: Boolean(menu.keepAlive),
@@ -85,7 +84,7 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
     path,
     component: Layout,
     meta: {
-      title: menu.title,
+      title: menu.name,
       icon: menu.icon,
       hidden: Boolean(menu.hidden),
       rank: menu.sort
@@ -93,10 +92,10 @@ function transformMenu(menu: API.MenuItem): RouteRecordRaw {
     children: [
       {
         path: '',
-        name: menu.name || `Menu_${menu.id}`,
+        name: menu.routeName || `Menu_${menu.id}`,
         component: resolveComponent(menu.component),
         meta: {
-          title: menu.title,
+          title: menu.name,
           icon: menu.icon,
           hidden: false,
           keepAlive: Boolean(menu.keepAlive),
@@ -118,11 +117,11 @@ function transformChild(menu: API.MenuItem, parentAbsolutePath: string): RouteRe
   const hasChildren = Array.isArray(menu.children) && menu.children.length > 0;
   const route: RouteRecordRaw = {
     path: seg,
-    name: menu.name || `Menu_${menu.id}`,
+    name: menu.routeName || `Menu_${menu.id}`,
     component: hasChildren ? Blank : resolveComponent(menu.component),
     redirect: menu.redirect,
     meta: {
-      title: menu.title,
+      title: menu.name,
       icon: menu.icon,
       hidden: Boolean(menu.hidden),
       keepAlive: Boolean(menu.keepAlive),

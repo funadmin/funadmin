@@ -9,7 +9,7 @@ use think\facade\Env;
         // 自动写入时间戳字段
         // true为自动识别类型 false关闭
         // 字符串则明确指定时间字段类型 支持 int timestamp datetime date
-        'auto_timestamp'  => true,
+        'auto_timestamp'  => 'int',
         // 时间字段取出后的默认时间格式
         'datetime_format' => 'Y-m-d H:i:s',
         // 数据库连接配置信息
@@ -20,11 +20,11 @@ use think\facade\Env;
         // 服务器地址
         'hostname'          => env('DB_HOST', '127.0.0.1'),
         // 数据库名
-        'database'          => env('DB_NAME', 'funadmin_git'),
+        'database'          => env('DB_NAME', 'funadmin'),
         // 用户名
         'username'          => env('DB_USER', 'root'),
-        // 密码
-        'password'          => env('DB_PASS', 'Test123456!'),
+        // 密码仅从环境变量读取，禁止在受版本控制的配置中设置凭据
+        'password'          => env('DB_PASS', ''),
         // 端口
         'hostport'          => env('DB_PORT', '3306'),
         // 数据库连接参数

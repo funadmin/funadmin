@@ -36,7 +36,7 @@ class AdminLogService extends AbstractService
         $action = (string) ($request->action() ?: 'index');
         $url = str_replace('.' . config('view.view_suffix'), '', $request->pathinfo());
         $resource = PermissionResource::fromParts($appName, $controller, $action);
-        $title = (string) (Permission::where('code', $resource['code'])->value('title') ?: '');
+        $title = (string) (Permission::where('code', $resource['code'])->value('name') ?: '');
         if ($title === '') {
             $title = $controller . '/' . $action;
         }
@@ -55,7 +55,7 @@ class AdminLogService extends AbstractService
         }
 
         AdminLog::create([
-            'title' => $title,
+            'name' => $title,
             'admin_id' => (int) Session::get('admin.id', 0),
             'username' => (string) Session::get('admin.username', 'Unknown'),
             'url' => $url,
@@ -68,7 +68,7 @@ class AdminLogService extends AbstractService
             'post_data' => $this->encode($this->sanitize($request->post())),
             'header_data' => $this->encode($headers),
             'agent' => (string) $request->server('HTTP_USER_AGENT', ''),
-            'ip' => $request->ip(),
+            'ip' => MemberInput::normalizeIp($request->ip()),
             'method' => $request->method(),
             'status' => $succeeded,
             'response_code' => $responseCode,

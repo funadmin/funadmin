@@ -6,7 +6,7 @@
         <el-table-column prop="version" label="版本" width="120" />
         <el-table-column prop="changelog" label="更新说明" min-width="240" />
         <el-table-column label="兼容" width="80"><template #default="{ row }"><el-tag :type="row.compatible ? 'success' : 'danger'">{{ row.compatible ? '是' : '否' }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="100"><template #default="{ row }"><el-button type="primary" link :disabled="!row.compatible" @click="emit('install', row.version)">安装</el-button></template></el-table-column>
+        <el-table-column label="操作" width="100"><template #default="{ row }"><el-button type="primary" link :disabled="!row.compatible" v-perm="'system:plugin:install'" @click="emit('install', row.version)">安装</el-button></template></el-table-column>
       </el-table>
     </div>
   </el-drawer>

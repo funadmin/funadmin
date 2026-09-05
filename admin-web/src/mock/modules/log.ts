@@ -6,7 +6,7 @@ interface OperationLog {
   module: string;
   controller: string;
   action: string;
-  title: string;
+  name: string;
   method: string;
   url: string;
   ip: string;
@@ -24,7 +24,7 @@ const operationLogs: OperationLog[] = [
     module: 'backend',
     controller: 'SystemRole',
     action: 'update',
-    title: 'Update role',
+    name: 'Update role',
     method: 'PUT',
     url: 'system/role/2',
     ip: '127.0.0.1',

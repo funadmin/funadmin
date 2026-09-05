@@ -33,12 +33,31 @@ class ConditionalTypeNode implements TypeNode
 	{
 		return sprintf(
 			'(%s %s %s ? %s : %s)',
-			$this->subjectType,
+			// "?Foo is Bar ? ... : ..." reads as a nullable type followed by
+			// something else, so the subject keeps the parentheses it was read
+			// with
+			$this->subjectType instanceof NullableTypeNode
+				? '(' . $this->subjectType . ')'
+				: $this->subjectType,
 			$this->negated ? 'is not' : 'is',
 			$this->targetType,
 			$this->if,
 			$this->else,
 		);
+	}
+
+	/**
+	 * @param array<string, mixed> $properties
+	 */
+	public static function __set_state(array $properties): self
+	{
+		$instance = new self($properties['subjectType'], $properties['targetType'], $properties['if'], $properties['else'], $properties['negated']);
+		if (isset($properties['attributes'])) {
+			foreach ($properties['attributes'] as $key => $value) {
+				$instance->setAttribute($key, $value);
+			}
+		}
+		return $instance;
 	}
 
 }

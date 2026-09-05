@@ -31,21 +31,24 @@ abstract class View extends Entity
      * 架构函数.
      *
      * @param Model $model 模型连接对象
+     * @param array $options
      */
-    public function __construct(?Model $model = null)
+    public function __construct(?Model $model = null, array $options = [])
     {
         parent::__construct($model);
 
+        $with = !empty($options['with']) ? true : false;
         // 初始化模型数据
-        $this->initData();
+        $this->initData($with);
     }
 
     /**
      * 初始化实体数据属性.
+     * @param bool $with 是否包含预载入关联查询
      *
      * @return void
      */
-    protected function initData()
+    protected function initData(bool $with = false)
     {
         // 获取属性映射关系
         $properties = $this->getEntityPropertiesMap();
@@ -56,13 +59,13 @@ abstract class View extends Entity
         foreach ($properties as $key => $field) {
             if (is_int($key)) {
                 // 主模型同名属性
-                $this->$field = $this->fetchViewAttr($field, $data);
+                $this->$field = $this->fetchViewAttr($field, $data, $with);
             } elseif (strpos($field, '->')) {
                 // 关联属性或JSON字段映射
-                $this->$key = $this->getRelationMapAttr($field, $data);
+                $this->$key = $this->getAttrOfRelationMap($field, $data);
             } else {
                 // 主模型属性映射
-                $this->$key = $this->fetchViewAttr($field, $data);
+                $this->$key = $this->fetchViewAttr($field, $data, $with);
             }
         }
         // 标记数据存在
@@ -77,7 +80,7 @@ abstract class View extends Entity
      *
      * @return mixed
      */
-    private function getRelationMapAttr(string $field, array $data)
+    private function getAttrOfRelationMap(string $field, array $data)
     {
         $items    = explode('->', $field);
         $relation = array_shift($items);
@@ -99,14 +102,15 @@ abstract class View extends Entity
      *
      * @param string $field 视图属性
      * @param array  $data  模型数据
+     * @param bool   $with  是否包含关联查询
      *
      * @return mixed
      */
-    private function fetchViewAttr(string $field, array $data)
+    private function fetchViewAttr(string $field, array $data, bool $with = false)
     {
         $method = 'get' . Str::camel($field) . 'Attr';
         $model  = $this->model();
-        if (method_exists($this, $method)) {
+        if (!$with && method_exists($this, $method)) {
             // 视图获取器
             $value = $this->$method($model); 
         } elseif ($model->hasData($field)) {
@@ -338,12 +342,14 @@ abstract class View extends Entity
      *  设置模型.
      *
      * @param Model $model 模型对象
+     * @param array $options 查询参数
      * @return $this
      */
-    public function setModel(Model $model)
+    public function setModel(Model $model, array $options = [])
     {
         parent::setModel($model);
-        $this->initData();
+        $with = !empty($options['with']) ? true : false;
+        $this->initData($with);
         return $this;
     }
 
@@ -721,6 +727,11 @@ abstract class View extends Entity
     {
         $entity = new static();
         $model  = $entity->model();
+
+        if ('suffix' == $method) {
+            $model->setSuffix($args[0]);
+        }
+
         if (in_array($method, ['destroy'])) {
             $db = $model;
         } else {

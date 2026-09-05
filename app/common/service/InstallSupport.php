@@ -38,6 +38,11 @@ final class InstallSupport
         if (!filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
             return '管理员邮箱格式不正确';
         }
+        foreach ($db as $value) {
+            if (str_contains((string) $value, "\0") || preg_match('/\R/', (string) $value)) {
+                return '数据库配置不能包含换行或空字节';
+            }
+        }
         if (!preg_match("/^\w+$/", $admin['username'])) {
             return '用户名只能输入字母、数字、下划线！';
         }
@@ -73,29 +78,12 @@ final class InstallSupport
     }
 
     /**
-     * 按模板渲染 config/database.php 内容。
-     */
-    public static function renderDatabaseConfig(string $templatePath, array $db): string
-    {
-        return str_replace(
-            ['%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-            [$db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-            (string) file_get_contents($templatePath));
-    }
-
-    /**
-     * 渲染 .env 内容：已有文件时合并更新保留 JWT 等自定义键，全新安装才按模板写入。
+     * 渲染 .env 内容：已有文件时合并更新，全新安装以标准示例为基础生成。
      */
     public static function renderEnv(string $templatePath, ?string $existing, array $db, bool $debug): string
     {
-        $updates = self::buildEnvUpdates($db, $debug);
-        if ($existing !== null) {
-            return self::mergeEnv($existing, $updates);
-        }
-        return str_replace(
-            ['%debug%', '%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-            [$updates['APP_DEBUG'], $db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-            (string) file_get_contents($templatePath));
+        $template = $existing ?? (string) file_get_contents($templatePath);
+        return self::mergeEnv($template, self::buildEnvUpdates($db, $debug));
     }
 
     /**
@@ -140,15 +128,23 @@ final class InstallSupport
         $found = [];
         foreach ($lines as $i => $line) {
             if (preg_match('/^\s*([A-Z][A-Z0-9_]*)\s*=/', $line, $m) && array_key_exists($m[1], $updates)) {
-                $lines[$i] = $m[1] . ' = ' . $updates[$m[1]];
+                $lines[$i] = $m[1] . ' = ' . self::encodeEnvValue((string) $updates[$m[1]]);
                 $found[$m[1]] = true;
             }
         }
         foreach ($updates as $key => $value) {
             if (!isset($found[$key])) {
-                $lines[] = $key . ' = ' . $value;
+                $lines[] = $key . ' = ' . self::encodeEnvValue((string) $value);
             }
         }
         return implode("\n", $lines);
+    }
+
+    /**
+     * 将环境变量值编码为 parse_ini_file 可无损读取的双引号字符串。
+     */
+    private static function encodeEnvValue(string $value): string
+    {
+        return '"' . $value . '"';
     }
 }

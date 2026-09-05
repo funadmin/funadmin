@@ -39,10 +39,11 @@
     "ramsey/uuid": "^4.7",
     "phpoffice/phpspreadsheet": "^3.4",
     "guzzlehttp/guzzle": "^7.9",
-    "firebase/php-jwt": "*",
+    "firebase/php-jwt": "^7.1",
     "overtrue/pinyin": "^5.3",
     "php-mcp/server": "^3.3",
-    "casbin/casbin": "^4.0"
+    "casbin/casbin": "^4.0",
+    "topthink/think-annotation": "^3.0"
   },
   "require-dev": {
         "symfony/var-dumper": ">=6.4",

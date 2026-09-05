@@ -265,7 +265,7 @@ export const systemMockHandlers: MockRoute[] = [
         redirect: body.redirect,
         type: body.type || 'C',
         icon: body.icon,
-        title: body.title,
+        name: body.name,
         sort: body.sort ?? 0,
         hidden: !!body.hidden,
         keepAlive: !!body.keepAlive,

@@ -193,6 +193,38 @@ class LazyCollection implements IteratorAggregate, Countable, JsonSerializable, 
     }
 
     /**
+     * 分页获取数据
+     * @param int $page 页码（从1开始）
+     * @param int $listRows 每页数量
+     * @return static
+     */
+    public function page(int $page, int $listRows = 15)
+    {
+        if ($page < 1 || $listRows < 1) {
+            throw new \InvalidArgumentException(
+                $page < 1 ? 'Page should be at least 1' : 'Per page should be at least 1'
+            );
+        }
+
+        $offset = ($page - 1) * $listRows;
+        return new static(function () use ($offset, $listRows) {
+            $index = 0;
+            $taken = 0;
+            foreach ($this->getIterator() as $key => $value) {
+                if ($index++ < $offset) {
+                    continue;
+                }
+
+                yield $key => $value;
+                
+                if (++$taken >= $listRows) {
+                    break;
+                }
+            }
+        });
+    }
+
+    /**
      * 扁平化集合
      * @param int|float $depth 深度
      * @return static
@@ -214,31 +246,6 @@ class LazyCollection implements IteratorAggregate, Countable, JsonSerializable, 
                 } else {
                     yield $item;
                 }
-            }
-        });
-    }
-
-    /**
-     * 延迟预载入关联查询
-     * @param array $relation 关联
-     * @param mixed $cache    关联缓存
-     * @return static
-     */
-    public function load(array $relation, $cache = false)
-    {
-        return new static(function () use ($relation, $cache) {
-            $items = [];
-            foreach ($this->getIterator() as $key => $item) {
-                $items[$key] = $item;
-            }
-
-            if (!empty($items) && $items[0] instanceof Model) {
-                $first = reset($items);
-                $first->eagerlyResultSet($items, $relation, [], false, $cache);
-            }
-
-            foreach ($items as $key => $item) {
-                yield $key => $item;
             }
         });
     }
@@ -576,5 +583,37 @@ class LazyCollection implements IteratorAggregate, Countable, JsonSerializable, 
     public function whereNotBetween(string $field, $value)
     {
         return $this->where($field, 'not between', $value);
+    }
+
+    /**
+     * 分块处理数据
+     * @param int $size 块大小
+     * @return static
+     */
+    public function chunk(int $size)
+    {
+        if ($size <= 0) {
+            throw new \InvalidArgumentException('Size should be greater than 0');
+        }
+
+        return new static(function () use ($size) {
+            $chunk = [];
+            $count = 0;
+
+            foreach ($this->getIterator() as $key => $value) {
+                $chunk[$key] = $value;
+                $count++;
+
+                if ($count >= $size) {
+                    yield new Collection($chunk);
+                    $chunk = [];
+                    $count = 0;
+                }
+            }
+
+            if (!empty($chunk)) {
+                yield new Collection($chunk);
+            }
+        });
     }
 }

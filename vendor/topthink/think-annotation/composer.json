@@ -1,0 +1,33 @@
+{
+    "name": "topthink/think-annotation",
+    "description": "Annotation For ThinkPHP",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "yunwuxin",
+            "email": "448901948@qq.com"
+        }
+    ],
+    "require": {
+        "topthink/framework": "^8.0",
+        "topthink/think-orm": "^4.0"
+    },
+    "require-dev": {
+        "topthink/think-ide-helper": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "think\\annotation\\": "src"
+        }
+    },
+    "extra": {
+        "think": {
+            "services": [
+                "think\\annotation\\Service"
+            ],
+            "config": {
+                "annotation": "src/config.php"
+            }
+        }
+    }
+}

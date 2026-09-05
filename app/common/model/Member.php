@@ -12,6 +12,8 @@
  */
 namespace app\common\model;
 
+use app\common\model\MemberGroupRelation;
+use app\common\service\MemberInput;
 use app\common\validate\MemberValidate;
 use fun\helper\StringHelper;
 use think\exception\ValidateException;
@@ -68,7 +70,7 @@ class  Member extends BaseModel{
         if (!password_verify($data['password'], $member->password))  throw new \Exception('wrong_password');
         $data['password'] = password($data['password']);
         $member->login_num = $member->login_num + 1;
-        $member->last_ip = $_SERVER['REMOTE_ADDR'];
+        $member->last_ip = MemberInput::normalizeIp(request()->ip());
         $member->last_login = time();
         $member->token = token();
         if (!$member->save())  throw new \Exception('login failed');
@@ -88,9 +90,10 @@ class  Member extends BaseModel{
         Db::startTrans();
         try {
             $data = request()->post();
-            $member = $this->where('email', $data['email'])->find();
+            $email = trim((string) ($data['email'] ?? ''));
+            $data['email'] = $email === '' ? null : MemberInput::normalizeEmail($email);
+            $member = self::withTrashed()->where('email', $data['email'])->find();
             if ($member) throw new \Exception('email already exists');
-            if ($member && $member->status == 0) throw new \Exception('The account is disabled, please contact the management');
             if ($data['password'] != $data['repassword']) throw new \Exception('inconsistent passwords');
             try {
                 validate(MemberValidate::class)
@@ -104,7 +107,12 @@ class  Member extends BaseModel{
             $data['avatar'] = '/static/frontend/images/avatar/' . $num . '.jpg';
             $data['password'] = password($data['password']);
             session('regData', $data);
-            self::create($data);
+            unset($data['group_id']);
+            $member = self::create($data);
+            MemberGroupRelation::create([
+                'member_id' => (int) $member->id,
+                'group_id' => 1,
+            ]);
             Db::commit();
             return true;
         }catch (\Exception $e){

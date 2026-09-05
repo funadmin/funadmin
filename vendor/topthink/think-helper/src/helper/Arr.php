@@ -476,7 +476,7 @@ class Arr
 
         if ($requested > $count) {
             throw new InvalidArgumentException(
-                "You requested {$requested} items, but there are only {$count} items available."
+                "You requested {$requested} items, but there are only {$count} items available.",
             );
         }
 
@@ -648,7 +648,7 @@ class Arr
                     if (self::isAssoc($result[$key]) && self::isAssoc($value)) {
                         $result[$key] = self::mergeDeep(
                             $result[$key],
-                            $value
+                            $value,
                         );
                     } else {
                         // 如果任一数组是索引数组，则直接覆盖
@@ -665,5 +665,32 @@ class Arr
     public static function flatMap(callable $fn, array $array): array
     {
         return array_merge(...array_map($fn, $array));
+    }
+
+    public static function toTree(array $array, $idKey = 'id', $parentKey = 'pid', $childrenKey = 'children')
+    {
+        $tree       = [];
+        $references = [];
+
+        // 第一次遍历：创建所有节点的引用
+        foreach ($array as &$node) {
+            $node[$childrenKey]        = [];  // 初始化children
+            $references[$node[$idKey]] = &$node;
+        }
+
+        // 第二次遍历：构建树
+        foreach ($array as &$node) {
+            $parentId = $node[$parentKey];
+
+            if (empty($parentId) || !isset($references[$parentId])) {
+                // 根节点或父节点不存在
+                $tree[] = &$node;
+            } else {
+                // 子节点
+                $references[$parentId][$childrenKey][] = &$node;
+            }
+        }
+
+        return $tree;
     }
 }

@@ -122,4 +122,16 @@ class Oracle extends PDOConnection
     {
         return true;
     }
+
+    /**
+     * 获取设置时区的SQL语句.
+     *
+     * @param string $timezone 时区名称，如 'Asia/Shanghai' 或 '+08:00'
+     *
+     * @return string
+     */
+    protected function getSetTimezoneSql(string $timezone): string
+    {
+        return "ALTER SESSION SET TIME_ZONE = '$timezone'";
+    }
 }

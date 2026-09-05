@@ -94,4 +94,18 @@ class Sqlite extends PDOConnection
     {
         return true;
     }
+
+    /**
+     * 获取设置时区的SQL语句.
+     *
+     * @param string $timezone 时区名称，如 'Asia/Shanghai' 或 '+08:00'
+     *
+     * @return string SQLite 不支持时区设置，返回空字符串
+     */
+    protected function getSetTimezoneSql(string $timezone): string
+    {
+        // SQLite 是嵌入式数据库，不支持时区设置
+        // 建议在应用层处理时区转换
+        return '';
+    }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import http from '@/utils/http';
-import { pluginApi } from '@/api/plugin';
+import { pluginApi, type UpdateCheck } from '@/api/plugin';
 
 vi.mock('@/utils/http', () => ({
   default: {
@@ -21,6 +21,22 @@ describe('pluginApi', () => {
 
     await pluginApi.installCloud('demo', '1.2.3');
     expect(http.post).toHaveBeenCalledWith('/system/plugin/cloud/demo/install', { version: '1.2.3' }, expect.any(Object));
+  });
+
+  it('更新检查使用 UpdateCheck 数组契约', async () => {
+    const checks: UpdateCheck[] = [{
+      name: 'demo',
+      installedVersion: '1.0.0',
+      latestVersion: '1.1.0',
+      updateAvailable: true
+    }];
+    vi.mocked(http.post).mockResolvedValueOnce(checks);
+
+    await expect(pluginApi.checkUpdates([{ name: 'demo', version: '1.0.0' }])).resolves.toEqual(checks);
+    expect(http.post).toHaveBeenCalledWith(
+      '/system/plugin/market/check-updates',
+      { installed: [{ name: 'demo', version: '1.0.0' }] }
+    );
   });
 
   it('purge 卸载发送独立二次确认字段', async () => {
