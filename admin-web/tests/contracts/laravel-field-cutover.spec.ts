@@ -24,6 +24,7 @@ const phpFiles = (directory: string): string[] => readdirSync(resolve(root, dire
 
 const forbiddenRuntimeReferences = [
   /->(?:where|whereNull|whereOr|order|field|column)\([^\n]*(?:create_time|update_time|delete_time)/,
+  /->(?:where|whereNull|whereOr|order|field|column)\(\s*['"]sort['"]/,
   /->(?:create_time|update_time|delete_time)\b/,
   /['"](?:create_time|update_time|delete_time)['"]\s*=>/,
 ];

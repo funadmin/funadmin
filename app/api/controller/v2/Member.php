@@ -12,6 +12,6 @@ class Member extends Api
 {
     public function show(Request $request): \think\Response
     {
-        return $this->ok(['user' => $request->member]);
+        return $this->ok(data: ['user' => $request->member]);
     }
 }

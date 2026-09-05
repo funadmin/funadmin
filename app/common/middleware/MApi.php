@@ -32,18 +32,18 @@ class MApi
     {
         $token = $this->bearerTokenExtractor->extract($request);
         if ($token === null) {
-            return $this->fail(__('Unauthorized'), 401);
+            return $this->fail(__('Unauthorized'), code: 401);
         }
 
         $tokenData = $this->tokenService->validateToken($token);
         $memberId = is_array($tokenData) ? (int) ($tokenData['id'] ?? 0) : 0;
         if ($memberId <= 0) {
-            return $this->fail(__('Invalid token'), 401);
+            return $this->fail(__('Invalid token'), code: 401);
         }
 
         $member = $this->memberAuthService->activeMember($memberId);
         if (!$member) {
-            return $this->fail(__('Invalid token'), 401);
+            return $this->fail(__('Invalid token'), code: 401);
         }
 
         $request->member = $member;

@@ -57,7 +57,7 @@ class SystemMember extends AdminApiController
         return $this->ok([
             'groups' => MemberGroup::where('status', 1)->order('id', 'asc')->field('id,name')->select()->toArray(),
             'levels' => MemberLevel::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
-            'tags' => MemberTag::where('status', 1)->order('sort', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
+            'tags' => MemberTag::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc')->field('id,name')->select()->toArray(),
         ]);
     }
 

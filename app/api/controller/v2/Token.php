@@ -34,19 +34,19 @@ class Token extends Api
         $account = trim((string) $request->post('username', ''));
         $password = (string) $request->post('password', '');
         if ($account === '' || mb_strlen($account) > 100 || strlen($password) < 6 || strlen($password) > 255) {
-            return $this->fail(__('Invalid parameters'), 400);
+            return $this->fail(msg: __('Invalid parameters'), code: 400);
         }
 
         $member = $this->memberAuthService->authenticate($account, $password);
         if (!$member) {
-            return $this->fail(__('Account or password is incorrect'), 401);
+            return $this->fail(msg: __('Account or password is incorrect'), code: 401);
         }
 
-        return $this->ok([
+        return $this->ok(__('Tokens generated successfully'), [
             'access_token' => $this->tokenService->build(['id' => $member['id']]),
             'refresh_token' => $this->tokenService->build(['id' => $member['id']], TokenService::TYPE_REFRESH),
             'expires_in' => (int) config('api.access_token_ttl'),
-        ], __('Tokens generated successfully'));
+        ]);
     }
 
 
@@ -59,20 +59,20 @@ class Token extends Api
     {
         $refreshToken = trim((string) $request->post('refresh_token', ''));
         if ($refreshToken === '') {
-            return $this->fail(__('Invalid parameters'), 400);
+            return $this->fail(msg: __('Invalid parameters'), code: 400);
         }
 
         $tokenData = $this->tokenService->validateToken($refreshToken, TokenService::TYPE_REFRESH);
         $memberId = is_array($tokenData) ? (int) ($tokenData['id'] ?? 0) : 0;
         $member = $memberId > 0 ? $this->memberAuthService->activeMember($memberId) : null;
         if (!$member) {
-            return $this->fail(__('Invalid refresh token'), 401);
+            return $this->fail(msg: __('Invalid refresh token'), code: 401);
         }
 
-        return $this->ok([
+        return $this->ok(__('Access token refreshed successfully'), [
             'access_token' => $this->tokenService->build(['id' => $member['id']]),
             'expires_in' => (int) config('api.access_token_ttl'),
-        ], __('Access token refreshed successfully'));
+        ]);
     }
 
 }

@@ -41,7 +41,7 @@ class SystemAdmin extends AdminApiController
             $query->where('status', (int) $status);
         }
         $result = $query->order('id', 'asc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok($this->paginationData(
+        return $this->ok(data: $this->paginationData(
             array_map(fn (Admin $admin): array => $this->adminData($admin), $result->items()),
             $result->total(),
             $page,
@@ -53,19 +53,19 @@ class SystemAdmin extends AdminApiController
     {
         $admin = $this->manageableQuery()->where('id', $id)->find();
         if (!$admin) {
-            return $this->fail('管理员不存在或无权访问', 404);
+            return $this->fail(msg: '管理员不存在或无权访问', code: 404);
         }
-        return $this->ok($this->adminData($admin));
+        return $this->ok(data: $this->adminData($admin));
     }
 
     public function create(): Response
     {
         $data = $this->payload(true);
         if ($error = $this->validatePayload($data, true)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         if (Admin::where('username', $data['username'])->find()) {
-            return $this->fail('账号已存在', 422);
+            return $this->fail(msg: '账号已存在', code: 422);
         }
         try {
             $this->assertPayloadAccess($data);
@@ -85,9 +85,9 @@ class SystemAdmin extends AdminApiController
                 return $admin;
             });
             Cache::clear();
-            return $this->ok($this->adminData($admin), '创建成功');
+            return $this->ok('创建成功', $this->adminData($admin));
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 
@@ -95,11 +95,11 @@ class SystemAdmin extends AdminApiController
     {
         $admin = Admin::find($id);
         if (!$admin) {
-            return $this->fail('管理员不存在', 404);
+            return $this->fail(msg: '管理员不存在', code: 404);
         }
         $data = $this->payload(false, $admin);
         if ($error = $this->validatePayload($data, false)) {
-            return $this->fail($error, 422);
+            return $this->fail(msg: $error, code: 422);
         }
         try {
             $guard = new RoleGuardService();
@@ -119,9 +119,9 @@ class SystemAdmin extends AdminApiController
                 CasbinService::instance()->syncAdminRoles((int) $admin->id, $data['roleIds']);
             });
             Cache::clear();
-            return $this->ok($this->adminData($admin), '保存成功');
+            return $this->ok('保存成功', $this->adminData($admin));
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 
@@ -132,7 +132,7 @@ class SystemAdmin extends AdminApiController
             $ids = [$id];
         }
         if (!$ids) {
-            return $this->fail('请选择要删除的管理员', 422);
+            return $this->fail(msg: '请选择要删除的管理员', code: 422);
         }
         try {
             $admins = Admin::whereIn('id', $ids)->select();
@@ -153,9 +153,9 @@ class SystemAdmin extends AdminApiController
                 }
             });
             Cache::clear();
-            return $this->ok(['removed' => count($admins)], '删除成功');
+            return $this->ok('删除成功', ['removed' => count($admins)]);
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 
@@ -163,11 +163,11 @@ class SystemAdmin extends AdminApiController
     {
         $admin = Admin::find($id);
         if (!$admin) {
-            return $this->fail('管理员不存在', 404);
+            return $this->fail(msg: '管理员不存在', code: 404);
         }
         $password = (string) $this->request->post('password', '');
         if (mb_strlen($password) < 8) {
-            return $this->fail('密码至少 8 位', 422);
+            return $this->fail(msg: '密码至少 8 位', code: 422);
         }
         try {
             (new RoleGuardService())->assertManageAdmin($admin);
@@ -175,9 +175,9 @@ class SystemAdmin extends AdminApiController
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
             $admin->save(['password' => SignHelper::password($password), 'token' => '']);
-            return $this->ok(null, '密码已重置');
+            return $this->ok('密码已重置');
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 
@@ -185,7 +185,7 @@ class SystemAdmin extends AdminApiController
     {
         $admin = Admin::find($id);
         if (!$admin) {
-            return $this->fail('管理员不存在', 404);
+            return $this->fail(msg: '管理员不存在', code: 404);
         }
         try {
             (new RoleGuardService())->assertManageAdmin($admin);
@@ -193,9 +193,9 @@ class SystemAdmin extends AdminApiController
                 throw new InvalidArgumentException('管理员不在当前数据范围内');
             }
             $admin->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-            return $this->ok(null, '状态已更新');
+            return $this->ok('状态已更新');
         } catch (InvalidArgumentException $e) {
-            return $this->fail($e->getMessage(), 403);
+            return $this->fail(msg: $e->getMessage(), code: 403);
         }
     }
 

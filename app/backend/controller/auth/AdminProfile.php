@@ -25,14 +25,14 @@ class AdminProfile extends AdminApiController
     public function index(): Response
     {
         $admin = $this->currentAdmin();
-        return $admin ? $this->ok($this->profileData($admin)) : $this->fail('管理员不存在', 404);
+        return $admin ? $this->ok(data: $this->profileData($admin)) : $this->fail(msg: '管理员不存在', code: 404);
     }
 
     public function update(): Response
     {
         $admin = $this->currentAdmin();
         if (!$admin) {
-            return $this->fail('管理员不存在', 404);
+            return $this->fail(msg: '管理员不存在', code: 404);
         }
 
         $input = $this->request->param();
@@ -50,16 +50,16 @@ class AdminProfile extends AdminApiController
         }
         $data['real_name'] = $data['real_name'] ?? (string) $admin->real_name;
         if ($data['real_name'] === '' || mb_strlen($data['real_name']) > 50) {
-            return $this->fail('昵称不能为空且不能超过 50 个字符', 422);
+            return $this->fail(msg: '昵称不能为空且不能超过 50 个字符', code: 422);
         }
         if (isset($data['email']) && $data['email'] !== '' && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            return $this->fail('邮箱格式不正确', 422);
+            return $this->fail(msg: '邮箱格式不正确', code: 422);
         }
         if (isset($data['mobile']) && $data['mobile'] !== '' && !preg_match('/^1[3-9]\d{9}$/', $data['mobile'])) {
-            return $this->fail('手机号格式不正确', 422);
+            return $this->fail(msg: '手机号格式不正确', code: 422);
         }
         if (isset($data['avatar']) && mb_strlen($data['avatar']) > 255) {
-            return $this->fail('头像地址过长', 422);
+            return $this->fail(msg: '头像地址过长', code: 422);
         }
 
         $admin->save($data);
@@ -69,25 +69,25 @@ class AdminProfile extends AdminApiController
         }
         Session::set('admin', $sessionAdmin);
         Cache::clear();
-        return $this->ok($this->profileData($admin), '资料已更新');
+        return $this->ok('资料已更新', $this->profileData($admin));
     }
 
     public function password(): Response
     {
         $admin = $this->currentAdmin();
         if (!$admin) {
-            return $this->fail('管理员不存在', 404);
+            return $this->fail(msg: '管理员不存在', code: 404);
         }
         $oldPassword = (string) $this->request->post('oldPassword', '');
         $newPassword = (string) $this->request->post('newPassword', '');
         if ($oldPassword === '' || mb_strlen($newPassword) < 8) {
-            return $this->fail('原密码不能为空，新密码至少 8 位', 422);
+            return $this->fail(msg: '原密码不能为空，新密码至少 8 位', code: 422);
         }
         if (!password_verify($oldPassword, (string) $admin->password)) {
-            return $this->fail('原密码错误', 422);
+            return $this->fail(msg: '原密码错误', code: 422);
         }
         if (password_verify($newPassword, (string) $admin->password)) {
-            return $this->fail('新密码不能与原密码相同', 422);
+            return $this->fail(msg: '新密码不能与原密码相同', code: 422);
         }
 
         $admin->save([
@@ -96,7 +96,7 @@ class AdminProfile extends AdminApiController
         ]);
         Cache::clear();
         AuthService::instance()->logout();
-        return $this->ok(null, '密码已更新，请重新登录');
+        return $this->ok('密码已更新，请重新登录');
     }
 
     private function currentAdmin(): ?Admin

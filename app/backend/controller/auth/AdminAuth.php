@@ -37,7 +37,7 @@ class AdminAuth extends BaseController
 
     public function csrf(): Response
     {
-        return $this->ok([
+        return $this->ok(data: [
             'csrfToken' => $this->request->buildToken(),
             'captchaEnabled' => (bool) config('captcha.check'),
         ]);
@@ -56,19 +56,19 @@ class AdminAuth extends BaseController
         $remember = (bool) $this->request->post('remember', false);
 
         if ($username === '' || $password === '') {
-            return $this->fail('请输入用户名和密码', 422);
+            return $this->fail(msg: '请输入用户名和密码', code: 422);
         }
         if (config('captcha.check') && ($captcha === '' || !Captcha::check($captcha))) {
-            return $this->fail('验证码错误或已过期', 422);
+            return $this->fail(msg: '验证码错误或已过期', code: 422);
         }
 
         try {
             AuthService::instance()->checkLogin($username, $password, $remember);
         } catch (\Throwable $e) {
-            return $this->fail($e->getMessage(), 400);
+            return $this->fail(msg: $e->getMessage(), code: 400);
         }
 
-        return $this->ok(['authenticated' => true], '登录成功');
+        return $this->ok('登录成功', ['authenticated' => true]);
     }
 
     public function me(): Response
@@ -82,7 +82,7 @@ class AdminAuth extends BaseController
             ->where('code', '<>', '')
             ->column('code');
 
-        return $this->ok([
+        return $this->ok(data: [
             'id' => (int) ($admin['id'] ?? 0),
             'username' => (string) ($admin['username'] ?? ''),
             'nickname' => (string) (($admin['real_name'] ?? '') ?: ($admin['username'] ?? '')),
@@ -110,7 +110,7 @@ class AdminAuth extends BaseController
             }
         }
         if (!$allowed) {
-            return $this->ok([]);
+            return $this->ok(data: []);
         }
 
         $allById = [];
@@ -125,13 +125,13 @@ class AdminAuth extends BaseController
             }
         }
 
-        return $this->ok($this->buildTree(array_values($allowed)));
+        return $this->ok(data: $this->buildTree(array_values($allowed)));
     }
 
     public function logout(): Response
     {
         AuthService::instance()->logout();
-        return $this->ok(null, '退出成功');
+        return $this->ok('退出成功');
     }
 
     private function frontendPermissions(array $permissionCodes, bool $isSuperAdmin): array

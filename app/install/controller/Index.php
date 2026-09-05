@@ -30,14 +30,14 @@ class Index extends BaseController
     public function step2()
     {
         if (file_exists($this->lockFile())) {
-            return $this->ok(['installed' => true], '系统已安装');
+            return $this->ok('系统已安装', ['installed' => true]);
         }
-        return $this->ok([
+        return $this->ok('环境检测完成', [
             'installed' => false,
             'siteName' => 'FunAdmin',
             'siteVersion' => config('app.version'),
             'checks' => $this->buildEnvironmentChecks(),
-        ], '环境检测完成');
+        ]);
     }
 
     /**
@@ -46,10 +46,10 @@ class Index extends BaseController
     public function step3()
     {
         if (!request()->isPost()) {
-            return $this->fail('请求方法不正确', 405);
+            return $this->fail('请求方法不正确', code: 405);
         }
         if (file_exists($this->lockFile())) {
-            return $this->fail('当前版本已经安装了，如果需要重新安装请先删除install.lock', 409);
+            return $this->fail('当前版本已经安装了，如果需要重新安装请先删除install.lock', code: 409);
         }
         set_time_limit(0);
         $input = $this->collectInstallInput();
@@ -62,10 +62,10 @@ class Index extends BaseController
                 root_path()
             );
         } catch (\Throwable $e) {
-            return $this->fail($e->getMessage() ?: '安装失败', 422);
+            return $this->fail($e->getMessage() ?: '安装失败', code: 422);
         }
         session('admin_install', $result);
-        return $this->ok($result, '安装成功');
+        return $this->ok('安装成功', $result);
     }
 
     /**
@@ -75,12 +75,12 @@ class Index extends BaseController
     {
         $admin = session('admin_install');
         if (!$admin) {
-            return $this->fail('安装信息不存在', 404);
+            return $this->fail('安装信息不存在', code: 404);
         }
         if (request()->isPost()) {
             session('admin_install', null);
         }
-        return $this->ok($admin, '安装完成');
+        return $this->ok('安装完成', $admin);
     }
 
     /**
