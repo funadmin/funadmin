@@ -122,7 +122,12 @@ class Ajax extends Backend
     public function getAttach()
     {
         if ($this->request->isAjax()) {
-            list($this->page, $this->pageSize, $sort, $where) = $this->buildParames();
+            $this->page = max(1, (int) $this->request->param('page', 1));
+            $this->pageSize = min(100, max(1, (int) $this->request->param('limit', 15)));
+            $sortField = (string) $this->request->param('sort', 'id');
+            $sortField = in_array($sortField, ['id', 'original_name', 'created_at'], true) ? $sortField : 'id';
+            $sortDirection = strtolower((string) $this->request->param('order', 'desc')) === 'asc' ? 'asc' : 'desc';
+            $sort = [$sortField => $sortDirection];
             $where = [];
             if(input('original_name')){
                 $where[] =['original_name|id','like','%'.input('original_name').'%'];

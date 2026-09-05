@@ -56,9 +56,11 @@ $plugins = $root . '/plugins';
 foreach (['demo', 'other'] as $name) {
     mkdir($plugins . '/' . $name . '/resources/public', 0755, true);
     mkdir($plugins . '/' . $name . '/resources/admin', 0755, true);
+    mkdir($plugins . '/' . $name . '/storage', 0755, true);
     file_put_contents($plugins . '/' . $name . '/Plugin.php', '<?php namespace plugins\\' . $name . '; final class Plugin {}');
     file_put_contents($plugins . '/' . $name . '/resources/admin/entry.js', $name . '-entry-v1');
     file_put_contents($plugins . '/' . $name . '/resources/public/app.css', $name . '-css-v1');
+    file_put_contents($plugins . '/' . $name . '/storage/private.txt', 'private');
     file_put_contents($plugins . '/' . $name . '/plugin.json', json_encode([
         'schema_version' => 1,
         'name' => $name,
@@ -71,6 +73,8 @@ foreach (['demo', 'other'] as $name) {
             'public' => ['source' => 'resources/public', 'target' => 'plugin-assets/' . $name . '/public'],
             'admin' => ['source' => 'resources/admin', 'target' => 'plugin-assets/' . $name],
         ],
+        'storage' => ['path' => 'storage'],
+        'storage' => ['path' => 'storage'],
     ], JSON_UNESCAPED_SLASHES));
 }
 mkdir($public, 0755, true);
@@ -83,6 +87,8 @@ $entry = $public . '/plugin-assets/demo/entry.js';
 resourceExpect(file_get_contents($entry) === 'demo-entry-v1', '必须发布真实文件');
 resourceExpect(count($repository->records) === 2 && $repository->records[0]['sha256'] !== '', '必须逐文件记录 SHA-256 registry');
 resourceExpect($repository->records[0]['plugin_name'] === 'demo' && isset($repository->records[0]['create_time']), 'registry 必须使用正式字段');
+resourceExpect(!is_file($public . '/plugin-assets/demo/private.txt'), 'storage 文件不得进入资源发布流程');
+resourceExpect(!is_file($public . '/plugin-assets/demo/private.txt'), 'storage 文件不得进入资源发布流程');
 
 file_put_contents($plugins . '/demo/resources/admin/new.js', 'new');
 unlink($plugins . '/demo/resources/public/app.css');
