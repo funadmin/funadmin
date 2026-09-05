@@ -105,7 +105,7 @@ class PluginService extends AbstractService
             $record = $this->isInstall($name);
             $installed = $record && (int) $record->delete_time === 0;
             if ($operation === 'install' && $installed) {
-                throw new RuntimeException(lang('plugins %s is already installed', [$name]));
+                throw new RuntimeException(sprintf('插件 %s 已安装', $name));
             }
             if ($operation === 'update' && !$installed) {
                 throw new RuntimeException('插件尚未安装');
@@ -165,7 +165,7 @@ class PluginService extends AbstractService
             $pluginInfo = $this->manifestInfo($manifest);
             $record = $this->isInstall($name);
             if ($record && (int) $record->delete_time === 0) {
-                throw new RuntimeException(lang('plugins %s is already installed', [$name]));
+                throw new RuntimeException(sprintf('插件 %s 已安装', $name));
             }
             if ($record && (int) $record->delete_time > 0) {
                 (new Plugin())->restore(['id' => $record->id]);
@@ -188,7 +188,7 @@ class PluginService extends AbstractService
             $this->deploymentRollbackAllowed = false;
             $plugin = $this->plugin($name);
             if ($plugin->install() === false) {
-                throw new RuntimeException('install_hook: ' . lang('plugin install fail'));
+                throw new RuntimeException('install_hook: 插件安装失败');
             }
             $migration = $this->migrate($name);
             $record->save(['db_version' => $migration['version'], 'migration_pending' => 0]);
@@ -285,7 +285,7 @@ class PluginService extends AbstractService
             $plugin = $this->plugin($name);
             $this->beginOperation($record, $token, 'uninstalling');
             if ($plugin->uninstall() === false) {
-                throw new RuntimeException(lang('plugin uninstall fail'));
+                throw new RuntimeException('插件卸载失败');
             }
             if ($purgeData) {
                 if ($plugin->purgeData() === false) {
@@ -297,7 +297,7 @@ class PluginService extends AbstractService
             Service::removeApp($name, true);
             $this->transition($record, 'discovered');
             if (!$record->delete()) {
-                throw new RuntimeException(lang('plugin uninstall fail'));
+                throw new RuntimeException('插件卸载失败');
             }
             $this->removeEmptyPluginManager();
             refreshplugins();
@@ -418,7 +418,7 @@ class PluginService extends AbstractService
     private function assertName(string $name): void
     {
         if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
-            throw new RuntimeException(lang('plugin name is not right'));
+            throw new RuntimeException('插件名称不合法');
         }
     }
 
@@ -426,7 +426,7 @@ class PluginService extends AbstractService
     {
         $plugin = get_plugins_instance($name);
         if (!$plugin) {
-            throw new RuntimeException(lang('plugins %s is not ready', [$name]));
+            throw new RuntimeException(sprintf('插件 %s 尚未就绪', $name));
         }
         return $plugin;
     }

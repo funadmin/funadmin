@@ -543,6 +543,8 @@ function backendControllerSource(cfg) {
   const search = backend.searchFields || {};
   const responseMap = backend.responseMap || {};
   const dataScope = backend.dataScope;
+  const prefix = cfg.apiPrefix.replace(/^\//, '');
+  const deleteRule = cfg.deleteMode === 'pathId' ? `${prefix}/:id` : prefix;
   const searchLines = [];
   for (const [param, rawFields] of Object.entries(search)) {
     const fields = Array.isArray(rawFields) ? rawFields : [rawFields];
@@ -580,12 +582,18 @@ function backendControllerSource(cfg) {
 
 declare(strict_types=1);
 
-namespace app\backend\controller;
+namespace app\backend\controller\system;
 
+use app\backend\controller\base\AdminApiController;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use ${modelClass};
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 
 class ${controller} extends AdminApiController
@@ -595,6 +603,7 @@ class ${controller} extends AdminApiController
     private const WRITABLE_FIELDS = ${phpExport(writable)};
     private const REQUIRED_FIELDS = ${phpExport(required)};
 
+    #[Get('${prefix}')]
     public function index(): Response
     {
         $page = $this->page();
@@ -610,12 +619,15 @@ ${scopeLine}${searchLines.join('\n')}
         ]);
     }
 
+    #[Get('${prefix}/:id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $model = $this->findScoped($id);
         return $model ? $this->ok($this->serialize($model)) : $this->fail('记录不存在或无权访问', 404);
     }
 
+    #[Post('${prefix}')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -626,6 +638,8 @@ ${scopeLine}${searchLines.join('\n')}
         return $this->ok($this->serialize($model), '创建成功');
     }
 
+    #[Put('${prefix}/:id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $model = $this->findScoped($id);
@@ -640,6 +654,7 @@ ${scopeLine}${searchLines.join('\n')}
         return $this->ok($this->serialize($model), '保存成功');
     }
 
+    #[Delete('${deleteRule}')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -705,17 +720,6 @@ ${mapLines.join('\n')}${mapLines.length ? '\n' : ''}${unsetLines.join('\n')}${un
 `;
 }
 
-function backendRouteSnippet(cfg) {
-  const controller = cfg.backend.controller;
-  const prefix = cfg.apiPrefix.replace(/^\//, '');
-  return `Route::get('${prefix}', '${controller}/index');
-Route::get('${prefix}/:id', '${controller}/detail')->pattern(['id' => '\\d+']);
-Route::post('${prefix}', '${controller}/create');
-Route::put('${prefix}/:id', '${controller}/update')->pattern(['id' => '\\d+']);
-Route::delete('${prefix}/:id', '${controller}/delete')->pattern(['id' => '\\d+']);
-Route::delete('${prefix}', '${controller}/delete');`;
-}
-
 async function main() {
   const { dry, force, configPath } = readArgs(process.argv);
   if (!configPath) {
@@ -746,7 +750,7 @@ async function main() {
   ];
   if (cfg.backend) {
     targets.push({
-      file: path.join(ROOT, '..', 'app/backend/controller', `${cfg.backend.controller}.php`),
+      file: path.join(ROOT, '..', 'app/backend/controller/system', `${cfg.backend.controller}.php`),
       content: backendControllerSource(cfg)
     });
   }
@@ -762,9 +766,6 @@ async function main() {
 
   console.log('将生成文件:');
   for (const t of targets) console.log(' ', path.relative(ROOT, t.file));
-  if (cfg.backend) {
-    console.log('\n待审阅路由片段：\n' + backendRouteSnippet(cfg));
-  }
   if (dry) {
     console.log('\n--dry 模式，未写入。');
     return;
@@ -796,7 +797,7 @@ async function main() {
     `\n完成。请在后台配置菜单：component ≈ ${resolvedViewModule}/${cfg.name}/index ，权限 ${cfg.permPrefix}:add | edit | delete`
   );
   if (cfg.backend) {
-    console.log('\n权限资源与菜单种子必须单独审阅后写入 migration，生成器不会修改数据库。');
+    console.log('\n控制器使用官方 Attribute 注册路由；权限资源与菜单种子必须单独审阅后写入 migration。');
   }
 }
 

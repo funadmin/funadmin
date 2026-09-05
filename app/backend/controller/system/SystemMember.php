@@ -74,7 +74,7 @@ class SystemMember extends AdminApiController
         try {
             $member = Db::transaction(function () use ($data, $groupIds): Member {
                 $member = Member::create($data);
-                $member->groups()->sync($groupIds);
+                $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
                 return $member;
             });
         } catch (\Throwable $exception) {
@@ -106,7 +106,7 @@ class SystemMember extends AdminApiController
         try {
             Db::transaction(function () use ($member, $data, $groupIds): void {
                 $member->save($data);
-                $member->groups()->sync($groupIds);
+                $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
             });
         } catch (\Throwable $exception) {
             if ($message = $this->duplicateError($exception)) {
@@ -204,7 +204,7 @@ class SystemMember extends AdminApiController
                 $data['password'] = '';
                 Db::transaction(function () use ($data, $groupIds): void {
                     $member = Member::create($data);
-                    $member->groups()->sync($groupIds);
+                    $member->groups()->syncWithPivotValues($groupIds, ['create_time' => time()]);
                 });
                 $created++;
             } catch (\Throwable $exception) {

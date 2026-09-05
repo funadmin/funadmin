@@ -19,7 +19,7 @@
         <el-tree-select
           v-model="form.parentId"
           :data="parentOptions"
-          :props="{ label: 'title', children: 'children' }"
+          :props="{ label: 'name', children: 'children' }"
           node-key="id"
           check-strictly
           clearable
@@ -29,8 +29,8 @@
         />
       </el-form-item>
 
-      <el-form-item label="资源名称" prop="title">
-        <el-input v-model="form.title" maxlength="100" show-word-limit placeholder="请输入资源名称" />
+      <el-form-item label="资源名称" prop="name">
+        <el-input v-model="form.name" maxlength="100" show-word-limit placeholder="请输入资源名称" />
       </el-form-item>
 
       <el-form-item label="应用标识" prop="module">
@@ -109,7 +109,7 @@ const saving = ref(false);
 const initialForm = (): Partial<PermissionModel> => ({
   parentId: 0,
   module: 'backend',
-  title: '',
+  name: '',
   object: '',
   action: '',
   resourceType: 'route',
@@ -120,7 +120,7 @@ const initialForm = (): Partial<PermissionModel> => ({
 const form = reactive<Partial<PermissionModel>>(initialForm());
 
 const rules = computed<FormRules>(() => ({
-  title: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
   module: [
     { required: true, message: '请输入应用标识', trigger: 'blur' },
     { pattern: /^[a-z][a-z0-9_]{0,49}$/, message: '仅支持小写字母、数字和下划线', trigger: 'blur' }
@@ -145,7 +145,7 @@ function withoutNode(nodes: PermissionModel[], id: number): PermissionModel[] {
 }
 
 const parentOptions = computed<PermissionModel[]>(() => [
-  { id: 0, parentId: 0, title: '无上级' } as PermissionModel,
+  { id: 0, parentId: 0, name: '无上级' } as PermissionModel,
   ...(props.row?.id ? withoutNode(props.tree, props.row.id) : props.tree)
 ]);
 

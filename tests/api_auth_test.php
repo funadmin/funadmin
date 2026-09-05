@@ -92,6 +92,9 @@ $exceptionSource = file_get_contents(dirname(__DIR__) . '/app/ExceptionHandle.ph
 apiExpect(str_contains((string) $exceptionSource, 'instanceof HttpResponseException'), 'API 主动响应不得被异常处理器改写');
 apiExpect(str_contains((string) $exceptionSource, "getName() !== 'api'"), '统一异常处理必须仅对 API 应用返回 JSON');
 
+$apiRouteConfigSource = file_get_contents(dirname(__DIR__) . '/app/api/config/route.php');
+apiExpect(str_contains((string) $apiRouteConfigSource, "'url_route_must'        => true"), 'API 必须强制使用显式路由');
+
 $apiMiddlewareSource = file_get_contents(dirname(__DIR__) . '/app/api/middleware.php');
 apiExpect(!str_contains((string) $apiMiddlewareSource, 'SessionInit'), 'API 应用不得重复初始化 Session');
 apiExpect(!str_contains((string) $apiMiddlewareSource, 'AllowCrossDomain'), 'API 应用不得重复注册全局跨域中间件');

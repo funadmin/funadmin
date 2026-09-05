@@ -7,6 +7,7 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 use app\common\storage\StorageDriverInterface;
 use app\common\storage\StorageDriverRegistry;
 use app\common\storage\StoredFile;
+use app\common\service\MigrationService;
 use think\file\UploadedFile;
 
 function storageExpect(bool $condition, string $message): void
@@ -66,5 +67,15 @@ try {
     storageExpect(false, '重复驱动名称必须被拒绝');
 } catch (RuntimeException) {
 }
+
+$migration = (string) file_get_contents(dirname(__DIR__) . '/database/migrations/014_attachment_storage_drivers.sql');
+storageExpect(str_contains($migration, '`storage_key`'), '附件迁移必须保存与公开 URL 分离的存储对象键');
+storageExpect(str_contains($migration, "`value` = 'local'"), '附件迁移必须把默认驱动设置为 local');
+storageExpect(str_contains($migration, 'backend/systemstorage:update'), '附件迁移必须注册存储配置权限');
+
+$migrationService = new MigrationService(new think\App(dirname(__DIR__)));
+$reflection = new ReflectionMethod($migrationService, 'assertForwardOnly');
+$reflection->setAccessible(true);
+$reflection->invoke($migrationService, $migration, '014_attachment_storage_drivers.sql');
 
 echo "storage driver tests: PASS\n";

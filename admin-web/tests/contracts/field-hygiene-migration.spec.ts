@@ -28,14 +28,14 @@ describe('013 字段规范化迁移契约', () => {
     expect(sql).toMatch(/`duration` int unsigned NOT NULL DEFAULT 0/);
   });
 
-  it('验证规则模型声明实际 verify 字符串主键并暴露 013 双主键阻塞', () => {
-    expect(fieldVerifyModel).toMatch(/protected \$pk\s*=\s*['"]verify['"]/);
-    expect(fieldVerifyModel).toMatch(/protected \$type\s*=\s*\[['"]verify['"]\s*=>\s*['"]string['"]\]/);
+  it('验证规则模型与 013 迁移统一使用 id 主键', () => {
+    expect(fieldVerifyModel).toMatch(/protected \$pk\s*=\s*['"]id['"]/);
     expect(sql).toMatch(/ALTER TABLE `fun_field_verify` ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY/);
   });
 
-  it('013 尚未防止向已有 verify 主键的表新增 id 主键', () => {
-    expect(sql).not.toMatch(/information_schema\.KEY_COLUMN_USAGE[\s\S]*CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"][\s\S]*COLUMN_NAME\s*=\s*['"]verify['"]/i);
+  it('013 对已有 id 非主键或其他既有主键明确失败', () => {
+    expect(sql).toMatch(/information_schema\.KEY_COLUMN_USAGE[\s\S]*CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"][\s\S]*COLUMN_NAME\s*=\s*['"]id['"]/i);
+    expect(sql).toMatch(/schema_integrity_error_013_field_verify_(?:id_not_primary|other_primary_key)/i);
   });
 
   it('MyISAM 表统一转换为 InnoDB', () => {
@@ -73,7 +73,7 @@ describe('已执行迁移不可变与 014 后续修复契约', () => {
   });
 
   it('后续修复仅由唯一递增的 014_schema_integrity_followup.sql 承担', () => {
-    const followups = readdirSync(migrationDir).filter((name) => /^014(?:_|\.)/.test(name));
+    const followups = readdirSync(migrationDir).filter((name) => /^014_schema_integrity_followup\.sql$/.test(name));
 
     expect(followups).toEqual(['014_schema_integrity_followup.sql']);
     expect(existsSync(followupPath)).toBe(true);

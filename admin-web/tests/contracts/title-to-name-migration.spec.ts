@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 const projectRoot = resolve(process.cwd(), '..');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
-const migration = readProjectFile('database/migrations/014_title_to_name.sql');
+const migration = readProjectFile('database/migrations/015_title_to_name.sql');
 
-describe('014 title→name 改名迁移契约', () => {
+describe('015 title→name 改名迁移契约', () => {
   const tables = ['fun_admin_log', 'fun_admin_menu', 'fun_attach_group', 'fun_auth_group', 'fun_permission'];
 
   it.each(tables)('%s 的 title 改名必须由 information_schema 守卫且可重跑', (table) => {

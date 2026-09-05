@@ -3,8 +3,8 @@
     <DataTableShell storage-key="system-permission" :loading="loading" @refresh="loadData">
       <template #search>
         <SearchForm :model="query" :loading="loading" @search="onSearch" @reset="onReset">
-          <el-form-item label="资源名称" prop="title">
-            <el-input v-model="query.title" placeholder="请输入资源名称" clearable />
+          <el-form-item label="资源名称" prop="name">
+            <el-input v-model="query.name" placeholder="请输入资源名称" clearable />
           </el-form-item>
           <el-form-item label="资源标识" prop="resource">
             <el-input v-model="query.resource" placeholder="控制器、动作或权限标识" clearable />
@@ -51,7 +51,7 @@
           @selection-change="selection = $event"
         >
           <el-table-column type="selection" width="48" align="center" />
-          <el-table-column prop="title" label="资源名称" min-width="210" />
+          <el-table-column prop="name" label="资源名称" min-width="210" />
           <el-table-column label="类型" width="85" align="center">
             <template #default="{ row }">
               <el-tag size="small" :type="row.resourceType === 'group' ? 'info' : 'primary'">
@@ -126,7 +126,7 @@ const expandAll = ref(true);
 const tableRenderKey = ref(0);
 
 const query = reactive({
-  title: '',
+  name: '',
   resource: '',
   status: undefined as 0 | 1 | undefined
 });
@@ -139,7 +139,7 @@ const normalizedTree = computed(() => {
 
 const displayTree = computed(() =>
   filterTree(normalizedTree.value, (node: PermissionModel) => {
-    if (query.title && !node.title.includes(query.title)) return false;
+    if (query.name && !node.name.includes(query.name)) return false;
     if (query.resource) {
       const value = `${node.code} ${node.object} ${node.action}`.toLowerCase();
       if (!value.includes(query.resource.toLowerCase())) return false;
@@ -164,7 +164,7 @@ function onSearch() {
 }
 
 function onReset() {
-  query.title = '';
+  query.name = '';
   query.resource = '';
   query.status = undefined;
 }
@@ -186,7 +186,7 @@ function onEdit(row: PermissionModel) {
 }
 
 async function onDelete(row: PermissionModel) {
-  await ElMessageBox.confirm(`确认删除权限资源“${row.title}”吗？`, '删除确认', { type: 'warning' });
+  await ElMessageBox.confirm(`确认删除权限资源“${row.name}”吗？`, '删除确认', { type: 'warning' });
   await permissionApi.remove(row.id);
   await loadData();
 }

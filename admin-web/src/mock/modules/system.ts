@@ -259,7 +259,7 @@ export const systemMockHandlers: MockRoute[] = [
       const node: API.MenuItem = {
         id,
         parentId: body.parentId || 0,
-        name: body.name || '',
+        routeName: body.routeName || '',
         path: body.path || '',
         component: body.component,
         redirect: body.redirect,

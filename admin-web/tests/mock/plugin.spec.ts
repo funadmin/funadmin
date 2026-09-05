@@ -35,7 +35,7 @@ describe('mock/plugin safeguards', () => {
   });
 
   it('在 mock 菜单中提供可访问的插件中心', () => {
-    const system = getAdminMenuTreeSeed().find((item) => item.name === 'System');
-    expect(system?.children?.some((item) => item.name === 'SystemPlugin' && item.component === 'system/plugin/index')).toBe(true);
+    const system = getAdminMenuTreeSeed().find((item) => item.routeName === 'System');
+    expect(system?.children?.some((item) => item.routeName === 'SystemPlugin' && item.component === 'system/plugin/index')).toBe(true);
   });
 });

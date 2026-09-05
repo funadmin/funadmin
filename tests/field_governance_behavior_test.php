@@ -24,11 +24,10 @@ function emailWithLength(int $length): string
 function registrationEmailAccepted(string $email): bool
 {
     try {
-        (new MemberValidate())
+        return (new MemberValidate())
             ->only(['email'])
             ->remove('email', 'unique')
             ->check(['email' => $email]);
-        return true;
     } catch (ValidateException) {
         return false;
     }
