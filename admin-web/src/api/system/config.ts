@@ -57,7 +57,7 @@ export type ConfigPayload = Pick<ConfigModel, 'code' | 'group' | 'type' | 'verif
 export type ConfigGroupPayload = Pick<ConfigGroupModel, 'name' | 'title' | 'status'>;
 
 export const configApi = {
-  list: (params: ConfigQuery) => http.get<API.PageResult<ConfigModel>>(PREFIX, { params }),
+  list: (params: ConfigQuery) => http.get<API.PageResult<ConfigModel>>(PREFIX, params),
   detail: (id: number) => http.get<ConfigModel>(`${PREFIX}/${id}`),
   options: () => http.get<ConfigOptions>(`${PREFIX}/options`),
   create: (data: ConfigPayload) =>

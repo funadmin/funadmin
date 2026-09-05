@@ -151,6 +151,9 @@ final class DefinitionValidator
 
     private function capabilities(mixed $capabilities): void
     {
+        if ($capabilities === null) {
+            return;
+        }
         if (!is_array($capabilities) || $capabilities === []) {
             throw new InvalidArgumentException('capabilities 必须为非空对象');
         }
@@ -164,6 +167,9 @@ final class DefinitionValidator
 
     private function dataScope(mixed $scope): void
     {
+        if ($scope === null) {
+            return;
+        }
         if (!is_array($scope) || !isset($scope['enabled']) || !is_bool($scope['enabled'])) {
             throw new InvalidArgumentException('dataScope 配置不完整');
         }

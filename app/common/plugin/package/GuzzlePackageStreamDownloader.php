@@ -77,8 +77,8 @@ final class GuzzlePackageStreamDownloader
     {
         $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        if (!in_array($scheme, ['http', 'https'], true)) {
-            throw new RuntimeException('插件下载仅允许 http/https');
+        if ($scheme !== 'https') {
+            throw new RuntimeException('插件下载仅允许 HTTPS');
         }
         if ($host === '' || $host === 'localhost' || str_ends_with($host, '.localhost')) {
             throw new RuntimeException('插件下载主机无效');

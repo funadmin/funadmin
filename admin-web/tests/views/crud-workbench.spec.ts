@@ -24,7 +24,7 @@ describe('CRUD Workbench', () => {
   });
 
   it('冲突必须逐文件勾选且受 overwrite 权限控制', () => {
-    const preview = { plan: { files: [{ path: 'app/Demo.php', status: 'conflict' }] } } as CrudPreview;
+    const preview = { plan: { files: [{ path: 'app/Demo.php', status: 'conflict' }] }, sensitive: { confirmToken: 'memory-only' } } as CrudPreview;
     const workbench = createCrudWorkbench();
     workbench.setPreview(preview);
     expect(workbench.canGenerate(false)).toBe(false);

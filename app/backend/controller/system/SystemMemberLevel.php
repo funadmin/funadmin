@@ -10,7 +10,7 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\Member;
 use app\backend\model\MemberLevel;
-use app\common\traits\Curd;
+use app\common\traits\Crud;
 use think\Model;
 
 /**
@@ -18,14 +18,10 @@ use think\Model;
  */
 class SystemMemberLevel extends AdminApiController
 {
-    use Curd;
+    use Crud;
 
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
-
-    protected function model(): string
-    {
-        return MemberLevel::class;
-    }
+    protected string $model = MemberLevel::class;
 
     protected function crudSearchFields(): array
     {

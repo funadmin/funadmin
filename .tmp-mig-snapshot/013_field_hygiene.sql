@@ -16,15 +16,19 @@ ALTER TABLE `fun_attach`
   MODIFY COLUMN `height` int unsigned NOT NULL DEFAULT 0 COMMENT '高度',
   MODIFY COLUMN `duration` int unsigned NOT NULL DEFAULT 0 COMMENT '音视频时长秒';
 
--- 验证规则表：以 verify 作为非空字符串单列主键；任何不兼容的既有主键状态均明确失败。
+-- 验证规则表：补充自增 id 主键；任何不兼容的既有主键状态均明确失败。
 SET @schema_name = DATABASE();
-ALTER TABLE `fun_field_verify` MODIFY COLUMN `verify` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '验证规则';
-SET @field_verify_verify_is_primary = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' GROUP BY CONSTRAINT_NAME HAVING COUNT(*) = 1 AND MAX(IF(ORDINAL_POSITION = 1 AND COLUMN_NAME = 'verify', 1, 0)) = 1);
-SET @field_verify_other_primary_exists = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY');
+SET @field_verify_id_exists = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND COLUMN_NAME = 'id');
+SET @field_verify_id_is_primary = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME = 'id');
+SET @field_verify_other_primary_exists = EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' AND COLUMN_NAME <> 'id');
 SET @sql = IF(
-  @field_verify_verify_is_primary,
+  @field_verify_id_is_primary,
   'DO 0',
-  IF(@field_verify_other_primary_exists, 'SELECT * FROM `schema_integrity_error_013_field_verify_other_primary_key`', 'ALTER TABLE `fun_field_verify` ADD PRIMARY KEY (`verify`)')
+  IF(
+    @field_verify_id_exists,
+    'SELECT * FROM `schema_integrity_error_013_field_verify_id_not_primary`',
+    IF(@field_verify_other_primary_exists, 'SELECT * FROM `schema_integrity_error_013_field_verify_other_primary_key`', 'ALTER TABLE `fun_field_verify` ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST')
+  )
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;

@@ -46,7 +46,7 @@ describe('017 历史命名与会员标签治理', () => {
       'app/backend/controller/auth/AdminAuth.php',
       'app/backend/controller/auth/AdminProfile.php',
       'app/backend/controller/system/SystemAdmin.php',
-      'app/common/traits/Curd.php'
+      'app/common/traits/Crud.php'
     ]) {
       const source = read(path);
       expect(source, path).not.toMatch(/\brealname\b|\blastloginip\b/);

@@ -7,6 +7,6 @@
  * 避免 PHP 与 Node 两套规则继续分叉。
  */
 console.error(
-  'Node CRUD 生成器已弃用。请在项目根目录使用 PHP CLI：php think curd <definition.json>；默认仅 dry-run。'
+  'Node CRUD 生成器已弃用。请在项目根目录使用 PHP CLI：php think crud <definition.json>；默认仅 dry-run。'
 );
 process.exitCode = 1;

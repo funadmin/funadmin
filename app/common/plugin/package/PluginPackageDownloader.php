@@ -20,7 +20,8 @@ final class PluginPackageDownloader
         private readonly string $directory,
         private readonly mixed $streamDownload,
         private readonly ?string $publicKey,
-        private readonly string $unsignedPolicy = 'reject_unsigned'
+        private readonly string $unsignedPolicy = 'reject_unsigned',
+        private readonly bool $allowHttpForInjectedTestStream = false
     ) {
         if (!in_array($unsignedPolicy, ['reject_unsigned', 'allow_unsigned', 'require_signature'], true)) {
             throw new InvalidArgumentException('未知的未签名包策略');
@@ -39,6 +40,9 @@ final class PluginPackageDownloader
 
     public function download(DownloadDescriptorDto $descriptor): string
     {
+        if (strtolower((string) parse_url($descriptor->url, PHP_URL_SCHEME)) !== 'https' && !$this->allowHttpForInjectedTestStream) {
+            throw new RuntimeException('生产云下载必须使用 HTTPS');
+        }
         $this->createDirectory();
         $target = $this->directory . DIRECTORY_SEPARATOR . $descriptor->name . '-' . bin2hex(random_bytes(8)) . '.zip';
         try {
@@ -47,7 +51,7 @@ final class PluginPackageDownloader
                 'connect_timeout' => 10,
                 'max_bytes' => self::MAX_BYTES,
                 'max_redirects' => 3,
-                'protocols' => ['https', 'http'],
+                'protocols' => $this->allowHttpForInjectedTestStream ? ['https', 'http'] : ['https'],
             ]);
             $this->verifyFile($target, $descriptor);
             return $target;
@@ -99,8 +103,8 @@ final class PluginPackageDownloader
             }
             return;
         }
-        if (strtolower((string) $descriptor->algorithm) !== 'sha256') {
-            throw new RuntimeException('不支持的插件包签名算法');
+        if (strtolower((string) $descriptor->algorithm) !== 'rsa-sha256') {
+            throw new RuntimeException('不支持的插件包签名算法，必须为 rsa-sha256');
         }
         if (!$hasPublicKey) {
             if ($this->unsignedPolicy === 'allow_unsigned') {
@@ -112,7 +116,8 @@ final class PluginPackageDownloader
         if ($signature === false || !function_exists('openssl_verify')) {
             throw new RuntimeException('插件包签名格式无效或 OpenSSL 不可用');
         }
-        if (openssl_verify($hash, $signature, $this->publicKey, OPENSSL_ALGO_SHA256) !== 1) {
+        $rawDigest = hex2bin($hash);
+        if ($rawDigest === false || openssl_verify($rawDigest, $signature, $this->publicKey, OPENSSL_ALGO_SHA256) !== 1) {
             throw new RuntimeException('插件包签名验证失败');
         }
     }

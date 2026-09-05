@@ -8,10 +8,10 @@ const readProject = (relativePath: string) => readFileSync(resolve(projectRoot, 
 const consoleConfig = readProject('config/console.php');
 
 const commands: Record<string, string> = {
-  curd: 'extend/fun/curd/AdminWebCrud.php',
-  menu: 'extend/fun/curd/Menu.php',
-  plugin: 'extend/fun/curd/Plugin.php',
-  install: 'extend/fun/curd/Install.php',
+  crud: 'extend/fun/crud/AdminWebCrud.php',
+  menu: 'extend/fun/crud/Menu.php',
+  plugin: 'extend/fun/crud/Plugin.php',
+  install: 'extend/fun/crud/Install.php',
   mcp: 'extend/fun/mcp/McpServer.php'
 };
 
@@ -29,13 +29,13 @@ describe('console 命令注册契约', () => {
   });
 
   it('plugin 命令生成新架构要求的 plugin.json', () => {
-    expect(readProject('extend/fun/curd/Plugin.php')).toContain("'plugin.json'");
-    expect(existsSync(resolve(projectRoot, 'extend/fun/curd/tpl/plugin/json.tpl'))).toBe(true);
+    expect(readProject('extend/fun/crud/Plugin.php')).toContain("'plugin.json'");
+    expect(existsSync(resolve(projectRoot, 'extend/fun/crud/tpl/plugin/json.tpl'))).toBe(true);
   });
 
   it('menu 与 plugin 命令失败时返回非零退出码', () => {
-    const menu = readProject('extend/fun/curd/Menu.php');
-    const plugin = readProject('extend/fun/curd/Plugin.php');
+    const menu = readProject('extend/fun/crud/Menu.php');
+    const plugin = readProject('extend/fun/crud/Plugin.php');
     expect(menu).toContain('return 1;');
     expect(plugin).toContain('return 1;');
     expect(menu).not.toContain('return false;');

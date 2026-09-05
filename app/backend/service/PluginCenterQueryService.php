@@ -92,7 +92,7 @@ final class PluginCenterQueryService extends AbstractService
     {
         $manifests = $this->manifests();
         $modules = [];
-        foreach (Plugin::where('lifecycle_state', 'enabled')->select() as $record) {
+        foreach (Plugin::where('lifecycle_state', 'enabled')->where('needs_reinstall', 0)->select() as $record) {
             $name = (string) $record->name;
             $manifest = $manifests[$name] ?? null;
             if (!$manifest) {

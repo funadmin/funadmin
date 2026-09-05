@@ -14,6 +14,7 @@
 namespace app\backend\controller;
 
 use app\backend\model\AdminMenu;
+use app\backend\service\AdminLegacyMenuService;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use think\facade\Db;
@@ -38,7 +39,7 @@ class Index extends Backend
                 ->where('status', 1)
                 ->where('source_type', '<>', 'admin_web')
                 ->order('sort asc')->cache(3600)->select()->toArray();
-            $menulist = AuthService::instance()->menuhtml($cate, false);
+            $menulist = (new AdminLegacyMenuService())->menuhtml($cate, false);
             cache('adminmenushtml' . session('admin.id'), $menulist, ['expire' => 3600]);
         }
         $languages = Db::name('language')->cache(3600)->select();

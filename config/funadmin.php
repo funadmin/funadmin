@@ -46,7 +46,7 @@ return [
 
     'sys_app'=>['backend','api','index','common','install'],
 
-    'curd_deny_app'=>['common','install'],
+    'crud_deny_app'=>['common','install'],
     //接口域名
     'api_domain'=>'https://www.funadmin.com',
 ];

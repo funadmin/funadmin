@@ -14,7 +14,7 @@ const compatibilityFiles = new Set([
   'app/common/model/BaseModel.php',
   'app/common/model/concern/LaravelSoftDelete.php',
   'app/common/service/McpService.php',
-  'app/common/traits/Curd.php',
+  'app/common/traits/Crud.php',
 ]);
 const phpFiles = (directory: string): string[] => readdirSync(resolve(root, directory)).flatMap((name) => {
   const relative = `${directory}/${name}`;

@@ -14,6 +14,7 @@
 namespace app\backend\controller;
 
 use app\backend\model\AdminMenu;
+use app\backend\service\AdminLegacyMenuService;
 use app\backend\service\AuthService;
 use app\common\controller\Backend;
 use app\common\model\Attach as AttachModel;
@@ -60,7 +61,7 @@ class Ajax extends Backend
             ->where('status', 1)
             ->order('sort asc')
             ->select()->toArray();
-        $menuList = AuthService::instance()->menuhtml($cate);
+        $menuList = (new AdminLegacyMenuService())->menuhtml($cate);
         $this->success('ok','',$menuList);
     }
     /**

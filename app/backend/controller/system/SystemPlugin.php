@@ -53,6 +53,11 @@ final class SystemPlugin extends AdminApiController
         )->toSession(), '登录成功');
     }
 
+    public function accountRefresh(): Response
+    {
+        return $this->execute(fn () => $this->marketplace->refreshToken()->toSession(), '账号令牌已刷新');
+    }
+
     public function accountLogout(): Response
     {
         return $this->execute(function (): array {
@@ -269,6 +274,13 @@ final class SystemPlugin extends AdminApiController
             'version' => $item->version,
             'changelog' => $item->changelog,
             'compatible' => $item->compatible,
+            'requires' => $item->requires,
+            'compatibleRange' => $item->compatibleRange,
+            'publishedAt' => $item->publishedAt,
+            'sha256' => $item->sha256,
+            'signature' => $item->signature,
+            'signatureAlgorithm' => $item->signatureAlgorithm,
+            'size' => $item->size,
         ];
     }
 }

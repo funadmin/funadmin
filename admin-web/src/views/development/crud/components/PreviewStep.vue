@@ -1,0 +1,2 @@
+<template><el-empty v-if="!preview" description="尚未预览" /><el-table v-else :data="preview.plan.files" border><el-table-column prop="path" label="文件" min-width="360" /><el-table-column prop="status" label="状态" width="120"><template #default="{ row }"><el-tag :type="row.status === 'conflict' ? 'danger' : row.status === 'create' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column></el-table></template>
+<script setup lang="ts">import type { CrudPreview } from '@/types/development/crud'; defineProps<{ preview: CrudPreview | null }>();</script>

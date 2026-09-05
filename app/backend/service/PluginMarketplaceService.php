@@ -31,6 +31,11 @@ final class PluginMarketplaceService extends AbstractService
         return $this->gateway->login(new LoginRequestDto($account, $password));
     }
 
+    public function refreshToken(): CloudAccountDto
+    {
+        return $this->gateway->refreshToken();
+    }
+
     public function logout(): void
     {
         $this->gateway->logout();

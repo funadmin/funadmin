@@ -22,6 +22,8 @@ interface PluginMarketplaceGateway
 {
     public function login(LoginRequestDto $request): CloudAccountDto;
 
+    public function refreshToken(): CloudAccountDto;
+
     public function logout(): void;
 
     public function currentAccount(): ?CloudAccountDto;

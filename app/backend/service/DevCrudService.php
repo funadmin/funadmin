@@ -22,6 +22,9 @@ final class DevCrudService
     /** @var callable(string): SchemaInspector */
     private $inspectorFactory;
 
+    /** @var callable(string): array */
+    private $tableReader;
+
     /** @var callable(array): int */
     private $auditWriter;
 
@@ -33,10 +36,14 @@ final class DevCrudService
         private readonly array $allowedConnections,
         ?callable $inspectorFactory = null,
         ?callable $auditWriter = null,
-        ?callable $auditReader = null
+        ?callable $auditReader = null,
+        ?callable $tableReader = null
     ) {
         $this->inspectorFactory = $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
             static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)
+        );
+        $this->tableReader = $tableReader ?? static fn (string $connection): array => Db::connect($connection)->query(
+            'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
         );
         $this->auditWriter = $auditWriter ?? static function (array $row): int {
             $model = CrudGeneration::create($row);
@@ -56,9 +63,7 @@ final class DevCrudService
     public function tables(string $connection): array
     {
         $this->assertConnection($connection);
-        $rows = Db::connect($connection)->query(
-            'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
-        );
+        $rows = ($this->tableReader)($connection);
         return array_map(static fn (array $row): array => [
             'name' => (string) $row['TABLE_NAME'],
             'comment' => (string) ($row['TABLE_COMMENT'] ?? ''),

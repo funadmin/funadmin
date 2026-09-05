@@ -16,8 +16,8 @@ function phase4Expect(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $fixture = $root . '/tests/fixtures/plugins/example';
-$generator = (string) file_get_contents($root . '/extend/fun/curd/Plugin.php');
-$templateDirectory = $root . '/extend/fun/curd/tpl/plugin';
+$generator = (string) file_get_contents($root . '/extend/fun/crud/Plugin.php');
+$templateDirectory = $root . '/extend/fun/crud/tpl/plugin';
 $migrations = glob($root . '/database/migrations/*plugin*legacy*.sql') ?: [];
 
 phase4Expect(!is_file($root . '/app/backend/controller/Plugin.php'), '旧 Plugin Controller 必须删除');

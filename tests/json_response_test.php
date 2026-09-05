@@ -187,6 +187,8 @@ foreach (['index', 'detail', 'create', 'update', 'status', 'recycle', 'restore',
 }
 responseExpect(!preg_match('/public function (add|edit|copy)\s*\(/', $curdSource), 'Curd 不得保留旧页面表单动作');
 responseExpect(!str_contains($curdSource, 'buildParames'), 'Curd 不得保留旧 Layui 搜索协议');
+responseExpect(!str_contains($curdSource, '$modelClass'), 'Curd 不得保留 modelClass 局部变量');
+responseExpect(!preg_match('/function model\s*\(/', $curdSource), 'Curd 必须直接使用 model 属性');
 responseExpect(!str_contains($curdSource, "save('php://output')"), 'Curd 不得直接输出文件并退出进程');
 
 $backendSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/controller/Backend.php');
@@ -197,7 +199,8 @@ foreach (['SystemMemberGroup.php', 'SystemMemberLevel.php'] as $controllerFile) 
     $source = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/system/' . $controllerFile);
     responseExpect(str_contains($source, 'use Curd;'), "{$controllerFile} 必须显式组合 Curd Trait");
     responseExpect(!preg_match('/public function (index|detail|create|update|status|recycle|restore|destroy|export)\s*\(/', $source), "{$controllerFile} 必须复用 Curd 公共动作");
-    foreach (['model', 'crudSearchFields', 'crudPayload', 'crudValidate', 'crudData'] as $hookName) {
+    responseExpect(preg_match('/protected string \$model = [A-Za-z]+::class;/', $source) === 1, "{$controllerFile} 必须通过 model 属性绑定模型");
+    foreach (['crudSearchFields', 'crudPayload', 'crudValidate', 'crudData'] as $hookName) {
         responseExpect(str_contains($source, "function {$hookName}("), "{$controllerFile} 必须实现 {$hookName} 扩展点");
     }
 }

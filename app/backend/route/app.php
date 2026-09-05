@@ -19,7 +19,7 @@ Route::get('development/crud/connections', 'development.DevCrud/connections');
 Route::get('development/crud/tables', 'development.DevCrud/tables');
 Route::get('development/crud/table/:table', 'development.DevCrud/tableSchema')->pattern(['table' => '[a-z_][a-z0-9_]*']);
 Route::post('development/crud/infer', 'development.DevCrud/infer');
-Route::post('development/crud/validate', 'development.DevCrud/validate');
+Route::post('development/crud/validate', 'development.DevCrud/validateDefinition');
 Route::post('development/crud/preview', 'development.DevCrud/preview');
 Route::post('development/crud/generate', 'development.DevCrud/generate');
 Route::get('development/crud/generations/:id', 'development.DevCrud/generationDetail')->pattern(['id' => '\d+']);
@@ -28,6 +28,7 @@ Route::get('system/storage', 'system.SystemStorage/index');
 Route::put('system/storage', 'system.SystemStorage/update');
 
 Route::post('system/plugin/account/login', 'system.SystemPlugin/accountLogin');
+Route::post('system/plugin/account/refresh', 'system.SystemPlugin/accountRefresh');
 Route::post('system/plugin/account/logout', 'system.SystemPlugin/accountLogout');
 Route::get('system/plugin/account/current', 'system.SystemPlugin/currentAccount');
 Route::get('system/plugin/market/categories', 'system.SystemPlugin/marketCategories');
@@ -145,8 +146,8 @@ Route::get('system/member', 'system.SystemMember/index');
 Route::post('system/member', 'system.SystemMember/create');
 Route::delete('system/member', 'system.SystemMember/recycle');
 
-Route::get('system/config', 'system.SystemConfig/index');
 Route::get('system/config/options', 'system.SystemConfig/options');
+Route::get('system/config', 'system.SystemConfig/index');
 Route::get('system/config/:id', 'system.SystemConfig/detail')->pattern(['id' => '\d+']);
 Route::post('system/config', 'system.SystemConfig/create');
 Route::put('system/config/:id', 'system.SystemConfig/update')->pattern(['id' => '\d+']);

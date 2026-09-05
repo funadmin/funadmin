@@ -44,11 +44,24 @@
           "dbType": { "type": "string", "minLength": 1 },
           "nullable": { "type": "boolean" },
           "primary": { "type": "boolean" },
-          "comment": { "type": "string" }
+          "comment": { "type": "string" },
+          "legacy": { "type": "boolean" },
+          "list": { "type": "boolean" },
+          "search": { "type": "boolean" },
+          "form": { "type": "boolean" },
+          "detail": { "type": "boolean" },
+          "rules": { "type": "array", "items": { "type": "string" } }
         }
       }
     },
     "relations": { "type": "array" },
+    "capabilities": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "boolean" } },
+    "dataScope": {
+      "type": "object",
+      "required": ["enabled", "field"],
+      "properties": { "enabled": { "type": "boolean" }, "field": { "type": "string" } },
+      "additionalProperties": false
+    },
     "metadata": { "type": "object" }
   },
   "$defs": {

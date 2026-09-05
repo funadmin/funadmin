@@ -341,7 +341,7 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleCreateView'], 'view', '生成FunAdmin视图文件')
             ->withTool([self::class, 'handleCreateJs'], 'js', '生成FunAdmin JS文件')
             ->withTool([self::class, 'handleCreateApi'], 'api', '生成FunAdmin API接口文件')
-            ->withTool([self::class, 'handleCurd'], 'curd', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面')
+            ->withTool([self::class, 'handleCrud'], 'crud', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面')
             ->withTool([self::class, 'handlePlugin'], 'plugin', '生成FunAdmin 插件模块')
             ->withTool([self::class, 'handleMenu'], 'menu', '生成FunAdmin 菜单模块')
             ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，   支持字段信息、类型、注释等')
@@ -1418,7 +1418,7 @@ class {$model} extends BaseModel
      * @param string $configPath 项目内 Definition 路径
      * @return array
      */
-    public function handleCurd(string $configPath): array
+    public function handleCrud(string $configPath): array
     {
         try {
             $result = (new AdminWebCrudGenerator())->run($configPath, true, false);
@@ -1438,7 +1438,7 @@ class {$model} extends BaseModel
     }
 
     /**
-     * 处理插件管理，基于fun/curd/Plugin.php功能
+     * 处理插件管理，基于fun/crud/Plugin.php功能
      * @param string $action 操作类型（create/install/uninstall/enable/disable）
      * @param string $pluginName 插件名称
      * @param array $options 其他选项
@@ -1544,7 +1544,7 @@ class {$model} extends BaseModel
     }
 
     /**
-     * 处理菜单管理，基于fun/curd/Menu.php功能
+     * 处理菜单管理，基于fun/crud/Menu.php功能
      * @param string $action 操作类型（create/delete）
      * @param array $menuData 菜单数据
      * @param array $options 其他选项
@@ -1722,12 +1722,12 @@ class {$model} extends BaseModel
                 }
             }
 
-            if (in_array($type, ['curd', 'all'])) {
-                if (!empty($parsedData['curd'])) {
-                    $curdResult = $this->handleCurd(
-                        (string) ($parsedData['curd']['config'] ?? '')
+            if (in_array($type, ['crud', 'all'])) {
+                if (!empty($parsedData['crud'])) {
+                    $crudResult = $this->handleCrud(
+                        (string) ($parsedData['crud']['config'] ?? '')
                     );
-                    $results['curd'] = $curdResult;
+                    $results['crud'] = $crudResult;
                 }   
             }
 
@@ -1777,7 +1777,7 @@ class {$model} extends BaseModel
             'api' => null,
             'view' => null,
             'plugin' => null,
-            'curd' => null,
+            'crud' => null,
             'menu' => null
         ];
 
@@ -1851,7 +1851,7 @@ class {$model} extends BaseModel
             ];
 
             // 构建CRUD数据
-            $parsedData['curd'] = [
+            $parsedData['crud'] = [
                 'name' => $tableName,
                 'module' => 'backend',
                 'fields' => $fields,
@@ -1929,9 +1929,9 @@ class {$model} extends BaseModel
         }
 
         // 解析CRUD相关操作
-        if (strpos($lowerPrompt, 'curd') !== false || strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
-            if (!empty($parsedData['curd'])) {
-                $parsedData['curd']['description'] = 'CRUD模块';
+        if (strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
+            if (!empty($parsedData['crud'])) {
+                $parsedData['crud']['description'] = 'CRUD模块';
             }
         }
 
@@ -3318,10 +3318,10 @@ EOF;
 
         // 处理CRUD操作
         if (strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
-            $results['curd'] = [
+            $results['crud'] = [
                 'success' => true,
                 'message' => '检测到CRUD操作',
-                'suggestion' => '请使用 curd 工具生成CRUD模块'
+                'suggestion' => '请使用 crud 工具生成 CRUD 模块'
             ];
         }
 

@@ -10,7 +10,7 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\MemberGroup;
 use app\backend\model\MemberGroupRelation;
-use app\common\traits\Curd;
+use app\common\traits\Crud;
 use think\Model;
 
 /**
@@ -18,14 +18,10 @@ use think\Model;
  */
 class SystemMemberGroup extends AdminApiController
 {
-    use Curd;
+    use Crud;
 
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
-
-    protected function model(): string
-    {
-        return MemberGroup::class;
-    }
+    protected string $model = MemberGroup::class;
 
     protected function crudSearchFields(): array
     {

@@ -34,7 +34,34 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
         }
         $member = $this->call('/api/v2.member/get', [], $token);
         $account = $this->accountDto($member);
-        $this->session->login($account, $token);
+        $this->session->login(
+            $account,
+            $token,
+            (string) ($tokenData['refresh_token'] ?? ''),
+            $this->expiresAt($tokenData)
+        );
+        return $account;
+    }
+
+    public function refreshToken(): CloudAccountDto
+    {
+        $refreshToken = $this->session->refreshToken();
+        $account = $this->session->account();
+        if ($refreshToken === '' || $account === null) {
+            $this->session->logout();
+            throw new MarketplaceException('云账号会话缺少 refresh token', 401);
+        }
+        $tokenData = $this->call('/api/v2.token/refresh', ['refresh_token' => $refreshToken], '');
+        $accessToken = (string) ($tokenData['access_token'] ?? '');
+        if ($accessToken === '') {
+            $this->session->logout();
+            throw new MarketplaceException('云刷新响应缺少 access token', 401);
+        }
+        $this->session->rotate(
+            $accessToken,
+            (string) ($tokenData['refresh_token'] ?? $refreshToken),
+            $this->expiresAt($tokenData)
+        );
         return $account;
     }
 
@@ -155,6 +182,32 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 
     private function versionDto(array $item, string $name): PluginVersionDto
     {
-        return new PluginVersionDto((int) ($item['id'] ?? $item['version_id'] ?? 0), $name, (string) ($item['version'] ?? ''), (string) ($item['changelog'] ?? $item['content'] ?? ''), (bool) ($item['compatible'] ?? true));
+        $requires = $item['requires'] ?? [];
+        if (is_string($requires)) {
+            $decoded = json_decode($requires, true);
+            $requires = is_array($decoded) ? $decoded : ['funadmin' => $requires];
+        }
+        return new PluginVersionDto(
+            (int) ($item['id'] ?? $item['version_id'] ?? 0),
+            $name,
+            (string) ($item['version'] ?? ''),
+            (string) ($item['changelog'] ?? $item['content'] ?? ''),
+            (bool) ($item['compatible'] ?? true),
+            is_array($requires) ? $requires : [],
+            (string) ($item['compatible_range'] ?? $item['funadmin_range'] ?? ''),
+            (string) ($item['published_at'] ?? $item['create_time'] ?? ''),
+            strtolower((string) ($item['sha256'] ?? $item['hash'] ?? '')),
+            isset($item['signature']) ? (string) $item['signature'] : null,
+            isset($item['signature_algorithm']) || isset($item['algorithm'])
+                ? (string) ($item['signature_algorithm'] ?? $item['algorithm'])
+                : null,
+            (int) ($item['size'] ?? 0)
+        );
+    }
+
+    private function expiresAt(array $tokenData): int
+    {
+        $expiresAt = (int) ($tokenData['expires_at'] ?? 0);
+        return $expiresAt > time() ? $expiresAt : time() + max(1, (int) ($tokenData['expires_in'] ?? 3600));
     }
 }

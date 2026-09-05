@@ -9,8 +9,8 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="配置分组" prop="group">
-            <el-select v-model="form.group" class="w-full">
-              <el-option v-for="item in options.groups" :key="item.id" :label="`${item.title} (${item.name})`" :value="item.name" />
+            <el-select v-model="form.group" class="w-full" filterable no-data-text="暂无可用配置分组">
+              <el-option v-for="item in availableGroups" :key="item.id" :label="`${item.title} (${item.name})`" :value="item.name" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -105,6 +105,10 @@ const fallbackTypes: ConfigTypeOption[] = [
 ];
 const initialForm = (): ConfigPayload => ({ code: '', group: 'site', type: 'text', verify: '', value: '', extra: '', remark: '', status: 1 });
 const form = reactive<ConfigPayload>(initialForm());
+const availableGroups = computed(() => {
+  if (props.options.groups.length || !form.group) return props.options.groups;
+  return [{ id: 0, name: form.group, title: form.group, status: 1, createdAt: '', updatedAt: '' }];
+});
 const availableTypes = computed(() => {
   const source = [...fallbackTypes, ...props.options.types];
   return Array.from(new Map(source.filter((item) => item.name).map((item) => [item.name, item])).values());

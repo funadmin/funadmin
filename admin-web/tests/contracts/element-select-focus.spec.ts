@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 const styles = readFileSync(resolve(process.cwd(), 'src/styles/index.scss'), 'utf8');
 
 describe('Element Plus 下拉框焦点样式契约', () => {
-  it('可搜索下拉框内部输入不叠加原生 focus-visible 外圈', () => {
+  it('可搜索下拉框内部输入不叠加任何 focus-visible 外圈', () => {
+    expect(styles).toMatch(/\[tabindex\]:focus-visible[^\n]*:not\(\.el-select__input\)[^\n]*:not\(\.el-range-input\)[^\n]*:not\(\.el-select__wrapper\)/);
     expect(styles).toContain('input:not(.el-input__inner):not(.el-select__input):not(.el-range-input):focus-visible');
   });
 

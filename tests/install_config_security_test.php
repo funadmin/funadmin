@@ -67,7 +67,7 @@ expect($databaseConfig['default'] === 'mysql', '共享内核必须选中 mysql �
 expect($databaseConfig['connections']['mysql']['hostname'] === $db['host'], '共享内核必须应用数据库主机');
 expect($databaseConfig['connections']['mysql']['break_reconnect'] === false, '共享内核必须保留已有连接扩展配置');
 
-$cliSource = (string) file_get_contents($root . '/extend/fun/curd/Install.php');
+$cliSource = (string) file_get_contents($root . '/extend/fun/crud/Install.php');
 $webSource = (string) file_get_contents($root . '/app/install/controller/Index.php');
 foreach (['applyDatabaseConfig', 'writeEnvConfig', 'sqlFileDir', 'envTemplate'] as $duplicateMethod) {
     expect(!str_contains($cliSource, 'function ' . $duplicateMethod), "CLI 不应重复实现 {$duplicateMethod}");
@@ -80,7 +80,7 @@ expect(str_contains($cliSource, "'app_debug', null"), 'CLI 长选项不得使用
 expect(str_contains($config, "env('DB_PASS', '')"), '数据库密码默认值必须为空');
 
 $webInstaller = (string) file_get_contents($root . '/app/install/controller/Index.php');
-$cliInstaller = (string) file_get_contents($root . '/extend/fun/curd/Install.php');
+$cliInstaller = (string) file_get_contents($root . '/extend/fun/crud/Install.php');
 foreach ([$webInstaller, $cliInstaller] as $installer) {
     expect(!str_contains($installer, 'databaseTpl'), '安装器不得保留 database.php 模板引用');
     expect(!str_contains($installer, 'file_put_contents($this->databaseConfigFile'), '安装器不得写入 config/database.php');

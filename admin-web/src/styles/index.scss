@@ -2076,7 +2076,7 @@ button:focus-visible,
  * EP 的复合组件会在内部节点写 tabindex；输入框由 wrapper 表达焦点，
  * 菜单和弹层由内部背景表达焦点，均不能再套通用外圈。
  */
-[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper):not(.el-menu):not(.el-menu-item):not(.el-sub-menu):not(.el-sub-menu__title):not(.el-menu--popup-container):not(.el-popper),
+[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__input):not(.el-range-input):not(.el-select__wrapper):not(.el-menu):not(.el-menu-item):not(.el-sub-menu):not(.el-sub-menu__title):not(.el-menu--popup-container):not(.el-popper),
 .el-button:focus-visible,
 .el-checkbox__input:focus-visible .el-checkbox__inner,
 .el-radio__input:focus-visible .el-radio__inner,

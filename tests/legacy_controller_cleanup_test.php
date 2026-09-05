@@ -29,7 +29,7 @@ foreach ($removedFiles as $file) {
 $references = [
     'config/funadmin.php',
     'database/migrations/002_rbac_schema.sql',
-    'extend/fun/curd/Menu.php',
+    'extend/fun/crud/Menu.php',
 ];
 foreach ($references as $file) {
     $content = strtolower((string) file_get_contents($root . '/' . $file));

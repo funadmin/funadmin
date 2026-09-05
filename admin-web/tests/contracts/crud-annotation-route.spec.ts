@@ -12,7 +12,7 @@ const backendTemplate = readFileSync(
 );
 const composer = JSON.parse(readFileSync(resolve(projectRoot, 'composer.json'), 'utf8'));
 const annotationConfig = readFileSync(resolve(projectRoot, 'config/annotation.php'), 'utf8');
-const curdTrait = readFileSync(resolve(projectRoot, 'app/common/traits/Curd.php'), 'utf8');
+const crudTrait = readFileSync(resolve(projectRoot, 'app/common/traits/Crud.php'), 'utf8');
 const backendBase = readFileSync(resolve(projectRoot, 'app/common/controller/Backend.php'), 'utf8');
 const adminApiBase = readFileSync(resolve(projectRoot, 'app/backend/controller/base/AdminApiController.php'), 'utf8');
 const memberGroupController = readFileSync(resolve(projectRoot, 'app/backend/controller/system/SystemMemberGroup.php'), 'utf8');
@@ -29,18 +29,18 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(backendTemplate).toContain('extends AdminApiController');
   });
 
-  it('新 API Curd 统一 REST 动作且由简单模块显式接入', () => {
+  it('新 API Crud 统一 REST 动作且由简单模块显式接入', () => {
     for (const action of ['index', 'detail', 'create', 'update', 'status', 'recycle', 'restore', 'destroy', 'import', 'export']) {
-      expect(curdTrait).toMatch(new RegExp(`public function ${action}\\s*\\([^)]*\\): Response`));
+      expect(crudTrait).toMatch(new RegExp(`public function ${action}\\s*\\([^)]*\\): Response`));
     }
-    expect(curdTrait).not.toContain('buildParames');
-    expect(curdTrait).not.toContain('$modelClass');
-    expect(curdTrait).not.toMatch(/function model\s*\(/);
-    expect(backendBase).not.toContain('use Curd;');
-    expect(adminApiBase).not.toContain('use Curd;');
-    expect(memberGroupController).toContain('use Curd;');
+    expect(crudTrait).not.toContain('buildParames');
+    expect(crudTrait).not.toContain('$modelClass');
+    expect(crudTrait).not.toMatch(/function model\s*\(/);
+    expect(backendBase).not.toContain('use Crud;');
+    expect(adminApiBase).not.toContain('use Crud;');
+    expect(memberGroupController).toContain('use Crud;');
     expect(memberGroupController).toContain('protected string $model = MemberGroup::class;');
-    expect(memberLevelController).toContain('use Curd;');
+    expect(memberLevelController).toContain('use Crud;');
     expect(memberLevelController).toContain('protected string $model = MemberLevel::class;');
   });
 
