@@ -66,6 +66,11 @@ final class PluginPackagePipeline
         return $this->run($archive, $expectedName, '', 'update', 'local', $migrate);
     }
 
+    public function redeployHistory(string $archive, string $expectedName, string $expectedVersion, bool $migrate = false): array
+    {
+        return $this->run($archive, $expectedName, $expectedVersion, 'update', 'history', $migrate);
+    }
+
     public function installCloud(
         PluginMarketplaceGateway $gateway,
         PluginPackageDownloader $downloader,

@@ -1,6 +1,7 @@
 import type { Component } from 'vue';
 import type { RouteRecordRaw, Router } from 'vue-router';
 import type { EnabledPluginModule, PluginRouteDto } from '@/api/plugin';
+import PluginModuleError from '@/views/system/plugin/PluginModuleError.vue';
 
 export type { EnabledPluginModule } from '@/api/plugin';
 
@@ -11,6 +12,8 @@ export interface PluginRegistration {
 export interface PluginEsmModule {
   register: (context: { name: string; version: string }) => PluginRegistration;
 }
+
+export type PluginModuleErrorStage = 'import' | 'register' | 'component' | 'route';
 
 interface SyncOptions {
   origin?: string;
@@ -42,7 +45,7 @@ export async function syncPluginModules(
   router: Router,
   descriptors: EnabledPluginModule[],
   options: SyncOptions = {}
-): Promise<{ loaded: string[]; errors: Array<{ name: string; message: string }> }> {
+): Promise<{ loaded: string[]; errors: Array<{ name: string; stage: PluginModuleErrorStage; message: string }> }> {
   const origin = options.origin ?? window.location.origin;
   const base = options.base ?? import.meta.env.BASE_URL;
   const importer = options.importer ?? dynamicImporter;
@@ -57,7 +60,7 @@ export async function syncPluginModules(
   });
 
   const loaded: string[] = [];
-  const errors: Array<{ name: string; message: string }> = [];
+  const errors: Array<{ name: string; stage: PluginModuleErrorStage; message: string }> = [];
   for (const descriptor of descriptors) {
     const signature = `${descriptor.version}:${descriptor.hash}`;
     const previous = mounted.get(descriptor.name);
@@ -66,9 +69,11 @@ export async function syncPluginModules(
       continue;
     }
     if (!isAllowedPluginModuleUrl(descriptor.entryUrl, origin, base)) {
-      errors.push({ name: descriptor.name, message: '插件模块 URL 不受信任' });
+      mountErrorRoute(router, descriptor, 'import', '插件模块 URL 不受信任');
+      errors.push({ name: descriptor.name, stage: 'import', message: '插件模块 URL 不受信任' });
       continue;
     }
+    let stage: PluginModuleErrorStage = 'import';
     try {
       previous?.routeNames.forEach((routeName) => {
         if (router.hasRoute(routeName)) router.removeRoute(routeName);
@@ -77,15 +82,23 @@ export async function syncPluginModules(
         ? `${base.replace(/\/$/, '')}${descriptor.entryUrl}`
         : descriptor.entryUrl;
       const module = await importer(new URL(entryUrl, origin).href);
+      stage = 'register';
       if (!module || typeof module.register !== 'function') throw new Error('插件模块缺少 register 导出');
       const registration = module.register({ name: descriptor.name, version: descriptor.version });
       if (!registration || typeof registration.components !== 'object') throw new Error('插件 register 返回契约无效');
+      stage = 'component';
+      descriptor.routes.forEach((route) => {
+        if (!registration.components[route.component]) throw new Error(`插件组件未注册：${route.component}`);
+      });
+      stage = 'route';
       const routes = descriptor.routes.map((route) => routeFromDto(route, registration.components, descriptor.name));
       routes.forEach((route) => router.addRoute(route));
       mounted.set(descriptor.name, { signature, routeNames: routes.map((route) => String(route.name)) });
       loaded.push(descriptor.name);
     } catch (error) {
-      errors.push({ name: descriptor.name, message: error instanceof Error ? error.message : String(error) });
+      const message = error instanceof Error ? error.message : String(error);
+      mountErrorRoute(router, descriptor, stage, message);
+      errors.push({ name: descriptor.name, stage, message });
     }
   }
   return { loaded, errors };
@@ -96,6 +109,24 @@ export function clearPluginModules(router: Router): void {
     if (router.hasRoute(name)) router.removeRoute(name);
   }));
   mounted.clear();
+}
+
+function mountErrorRoute(
+  router: Router,
+  descriptor: EnabledPluginModule,
+  stage: PluginModuleErrorStage,
+  message: string
+): void {
+  const name = `Plugin_${descriptor.name}_Error`;
+  if (router.hasRoute(name)) router.removeRoute(name);
+  router.addRoute({
+    path: `/plugin/${descriptor.name}/error`,
+    name,
+    component: PluginModuleError,
+    props: { plugin: descriptor.name, stage, message },
+    meta: { title: `${descriptor.name} 插件错误` }
+  });
+  mounted.set(descriptor.name, { signature: `${descriptor.version}:${descriptor.hash}:error`, routeNames: [name] });
 }
 
 function routeFromDto(dto: PluginRouteDto, components: Record<string, Component>, pluginName: string): RouteRecordRaw {

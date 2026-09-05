@@ -57,7 +57,7 @@ final class DevCrud extends AdminApiController
         ));
     }
 
-    public function validateDefinition(): Response
+    public function validate(): Response
     {
         return $this->execute(fn (): array => $this->crud->validate($this->definition()));
     }

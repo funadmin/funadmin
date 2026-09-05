@@ -14,6 +14,7 @@ use app\backend\service\PluginMarketplaceFactory;
 use app\backend\service\PluginMarketplaceService;
 use app\backend\service\PluginPackageHistoryService;
 use app\backend\service\PluginPackagePipeline;
+use app\backend\service\PluginPackageService;
 use app\backend\service\PluginService;
 use app\common\model\Plugin;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
@@ -34,6 +35,8 @@ final class SystemPlugin extends AdminApiController
     private PluginCenterQueryService $queries;
     private PluginConfigService $config;
     private PluginPackageHistoryService $history;
+    private PluginPackagePipeline $pipeline;
+    private PluginPackageService $packages;
 
     public function __construct(App $app)
     {
@@ -43,6 +46,8 @@ final class SystemPlugin extends AdminApiController
         $this->queries = app(PluginCenterQueryService::class);
         $this->config = app(PluginConfigService::class);
         $this->history = app(PluginPackageHistoryService::class);
+        $this->packages = PluginPackageService::instance();
+        $this->pipeline = PluginPackagePipeline::forPluginService($this->plugins, $this->packages);
     }
 
     public function accountLogin(): Response
@@ -149,9 +154,36 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
     }
 
+    public function installDiscovered(string $name): Response
+    {
+        return $this->execute(function () use ($name): array {
+            $archive = $this->packages->archiveDiscovered($name);
+            try {
+                return $this->pipeline->installLocal($archive);
+            } finally {
+                if (is_file($archive)) {
+                    unlink($archive);
+                }
+            }
+        }, '安装成功');
+    }
+
     public function installCloud(string $name): Response
     {
         return $this->execute(fn () => $this->marketplace->installCloud($name, $this->version()), '安装成功');
+    }
+
+    public function updateLocal(string $name): Response
+    {
+        $file = $this->validZipUpload();
+        if ($file instanceof Response) {
+            return $file;
+        }
+        return $this->execute(fn () => $this->marketplace->updateLocal(
+            $file->getPathname(),
+            $name,
+            $this->boolean('migrate', true)
+        ), '更新成功');
     }
 
     public function update(string $name): Response
@@ -220,6 +252,30 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(fn () => $this->history->operations($name));
     }
 
+    public function downloadHistory(string $name, int $id): Response
+    {
+        $package = $this->history->package($name, $id);
+        return download($package['path'], $name . '-' . $package['version'] . '.zip');
+    }
+
+    public function redeployHistory(string $name, int $id): Response
+    {
+        return $this->execute(function () use ($name, $id): array {
+            $package = $this->history->package($name, $id);
+            return $this->pipeline->redeployHistory(
+                $package['path'],
+                $name,
+                $package['version'],
+                $this->boolean('migrate', false)
+            );
+        }, '历史版本已重部署');
+    }
+
+    public function recoveryInfo(string $name): Response
+    {
+        return $this->execute(fn () => $this->history->recoveryInfo($name));
+    }
+
     public function enabledModules(): Response
     {
         return $this->execute(fn () => $this->queries->enabledModules());
@@ -238,6 +294,22 @@ final class SystemPlugin extends AdminApiController
         } catch (\Throwable $exception) {
             return $this->fail(msg: $exception->getMessage(), code: 500);
         }
+    }
+
+    private function validZipUpload(): object
+    {
+        $file = $this->request->file('file');
+        if (!$file || !$file->isValid() || strtolower($file->getOriginalExtension()) !== 'zip') {
+            return $this->fail(msg: '请选择有效的 ZIP 插件安装包', code: 422);
+        }
+        if ($file->getSize() < 1 || $file->getSize() > 100 * 1024 * 1024) {
+            return $this->fail(msg: '插件安装包大小必须在 100MB 以内', code: 422);
+        }
+        $mime = strtolower((string) $file->getMime());
+        if (!in_array($mime, ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'], true)) {
+            return $this->fail(msg: '插件安装包 MIME 类型无效', code: 422);
+        }
+        return $file;
     }
 
     private function version(): string

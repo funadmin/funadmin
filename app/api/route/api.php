@@ -10,20 +10,5 @@
  * Author: yuege
  * Date: 2019/9/30
  */
-use app\common\middleware\MApi;
-use think\facade\Route;
-use think\middleware\Throttle;
-
-Route::group('v2', function (): void {
-    Route::post('token', 'v2.token/build')->middleware(Throttle::class, [
-        'visit_method' => ['POST'],
-        'visit_rate' => '10/m',
-        'key' => '__CONTROLLER__/__ACTION__/__IP__',
-    ]);
-    Route::post('token/refresh', 'v2.token/refresh');
-    Route::get('member', 'v2.member/show')->middleware(MApi::class);
-
-    // API_ROUTE_START
-    // API_ROUTE_END
-});
+// API v2 路由由 app/api/controller/v2 中的官方 PHP 8 Attribute 注册。
 

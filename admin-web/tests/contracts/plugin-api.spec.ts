@@ -39,6 +39,21 @@ describe('pluginApi', () => {
     );
   });
 
+  it('刷新、发现安装、本地更新与历史动作使用独立契约', async () => {
+    await pluginApi.accountRefresh();
+    expect(http.post).toHaveBeenCalledWith('/system/plugin/account/refresh', undefined, expect.any(Object));
+    await pluginApi.installDiscovered('demo');
+    expect(http.post).toHaveBeenCalledWith('/system/plugin/local/demo/install', undefined, expect.any(Object));
+    const file = new File(['zip'], 'demo.zip', { type: 'application/zip' });
+    await pluginApi.updateLocal('demo', file, false);
+    expect(http.upload).toHaveBeenCalledWith('/system/plugin/local/demo/update', expect.any(FormData), expect.any(Object));
+    await pluginApi.redeployHistory('demo', 3);
+    expect(http.post).toHaveBeenCalledWith('/system/plugin/demo/history/3/redeploy', { migrate: false }, expect.any(Object));
+    expect(pluginApi.historyDownloadUrl('demo', 3)).toBe('/system/plugin/demo/history/3/download');
+    await pluginApi.recoveryInfo('demo');
+    expect(http.get).toHaveBeenCalledWith('/system/plugin/demo/recovery');
+  });
+
   it('卸载与 purge 使用独立端点和请求契约', async () => {
     await pluginApi.uninstall('demo');
     expect(http.delete).toHaveBeenCalledWith(

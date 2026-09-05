@@ -287,20 +287,6 @@ if (!function_exists('node')) {
     }
 }
 
-
-/**
- * 获取权限信息
- * @param $key
- * @param $value
- * @return bool|int
- */
-if (!function_exists('Auths')) {
-    function Auths($url)
-    {
-        return \app\backend\service\AuthService::instance();
-    }
-}
-
 /**
  * 是否登录
  * @param $key

@@ -46,6 +46,27 @@ describe('pluginModules', () => {
     expect(importer).toHaveBeenCalledWith(`https://admin.example.com/plugin-assets/example/entry.js?v=${'a'.repeat(64)}`);
   });
 
+  it.each([
+    ['import', async () => { throw new Error('load failed'); }],
+    ['register', async (): Promise<PluginEsmModule> => ({ register: () => { throw new Error('register failed'); } })],
+    ['component', async (): Promise<PluginEsmModule> => ({ register: () => ({ components: {} }) })],
+    ['route', async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) })]
+  ])('为 %s 阶段错误挂载受控错误页且不影响其他插件', async (expectedStage, brokenImporter) => {
+    const router = routerStub();
+    const broken = descriptor('broken', '/plugin-assets/broken/index.js');
+    if (expectedStage === 'route') broken.routes[0].name = 'Outside';
+    const importer = vi.fn(async (url: string): Promise<PluginEsmModule> => {
+      if (url.includes('broken')) return brokenImporter();
+      return { register: () => ({ components: { Index: {} } }) };
+    });
+    const result = await syncPluginModules(router, [broken, descriptor('healthy', '/plugin-assets/healthy/index.js')], { origin: 'https://admin.example.com', importer });
+
+    expect(result.loaded).toEqual(['healthy']);
+    expect(result.errors[0]).toMatchObject({ name: 'broken', stage: expectedStage });
+    expect(router.addRoute).toHaveBeenCalledTimes(2);
+    expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Plugin_broken_Error' }));
+  });
+
   it('隔离单个插件加载失败并挂载其余插件', async () => {
     const router = routerStub();
     const importer = vi.fn(async (url: string): Promise<PluginEsmModule> => {
@@ -59,7 +80,8 @@ describe('pluginModules', () => {
 
     expect(result.loaded).toEqual(['healthy']);
     expect(result.errors).toHaveLength(1);
-    expect(router.addRoute).toHaveBeenCalledTimes(1);
+    expect(router.addRoute).toHaveBeenCalledTimes(2);
+    expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({ name: 'Plugin_broken_Error' }));
   });
 
   it('重复同步不重复挂载并移除已禁用插件路由', async () => {

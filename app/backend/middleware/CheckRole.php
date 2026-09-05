@@ -19,15 +19,15 @@ class CheckRole
 
     public function handle($request, \Closure $next)
     {
-        if(!Session::has('admin')) {
-            if($request->baseFile()!='/index.php' && str_contains($request->baseFile(), '.php')) {
-                $this->error('Please login first',url('login/index'));
-            }else{
+        $auth = AuthService::instance();
+        if (!Session::has('admin') || !$auth->isLogin()) {
+            if ($request->baseFile() !== '/index.php' && str_contains($request->baseFile(), '.php')) {
+                $this->error('Please login first', url('login/index'));
+            } else {
                 $this->error('Please login first');
             }
         }
-        $auth = AuthService::instance();
-        $auth->roleAccess();
+        $auth->roleAccess(true);
         //中间件handle方法的返回值必须是一个Response对象。
         return $next($request);
     }

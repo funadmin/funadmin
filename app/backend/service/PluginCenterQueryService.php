@@ -145,6 +145,10 @@ final class PluginCenterQueryService extends AbstractService
             'migrationPending' => (bool) ($record?->migration_pending ?? false),
             'lastError' => (string) ($record?->last_error ?? ''),
             'source' => $source,
+            'needsReinstall' => (bool) ($record?->needs_reinstall ?? false),
+            'operation' => (string) ($record?->operation_token ?? ''),
+            'progress' => $this->operationProgress((string) ($record?->name ?? '')),
+            'disabledReason' => $this->disabledReason($record, $dependencies),
         ];
     }
 
@@ -169,17 +173,46 @@ final class PluginCenterQueryService extends AbstractService
             }
             $path = (string) ($route['path'] ?? '');
             $component = (string) ($route['component'] ?? '');
-            if (!str_starts_with($path, '/plugin/' . $name . '/') || !preg_match('/^[A-Za-z][A-Za-z0-9_-]*$/', $component)) {
+            $routeName = (string) ($route['name'] ?? 'Plugin_' . $name . '_' . count($result));
+            if (!preg_match('~^/plugin/' . preg_quote($name, '~') . '/[a-zA-Z0-9/_-]+$~', $path)
+                || !preg_match('/^Plugin_' . preg_quote($name, '/') . '(?:_[A-Za-z0-9_-]+)?$/', $routeName)
+                || !preg_match('/^[A-Za-z][A-Za-z0-9_-]*$/', $component)) {
                 continue;
             }
             $result[] = [
                 'path' => $path,
-                'name' => (string) ($route['name'] ?? 'Plugin_' . $name . '_' . count($result)),
+                'name' => $routeName,
                 'component' => $component,
                 'meta' => is_array($route['meta'] ?? null) ? $route['meta'] : [],
             ];
         }
         return $result;
+    }
+
+    private function operationProgress(string $name): int
+    {
+        if ($name === '') {
+            return 0;
+        }
+        $operation = PluginOperation::where('plugin_name', $name)->order('id', 'desc')->find();
+        return (int) ($operation?->progress ?? 0);
+    }
+
+    private function disabledReason(?Plugin $record, array $dependencies): string
+    {
+        if (!$record) {
+            return '';
+        }
+        if ((int) ($record->needs_reinstall ?? 0) === 1) {
+            return '必须使用可信插件包重新安装';
+        }
+        if ((string) ($record->operation_token ?? '') !== '') {
+            return '插件生命周期操作进行中';
+        }
+        if ((bool) ($record->migration_pending ?? false)) {
+            return '数据库迁移尚未完成';
+        }
+        return $dependencies === [] ? '' : '请确认依赖插件均已安装并启用';
     }
 
     private function assertName(string $name): void

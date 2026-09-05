@@ -11,6 +11,10 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\Admin;
 use app\backend\service\AuthService;
 use fun\helper\SignHelper;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 use think\facade\Session;
@@ -18,16 +22,19 @@ use think\facade\Session;
 /**
  * 当前登录管理员的个人资料与密码。
  */
+#[Group('profile')]
 class AdminProfile extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $admin = $this->currentAdmin();
         return $admin ? $this->ok(data: $this->profileData($admin)) : $this->fail(msg: '管理员不存在', code: 404);
     }
 
+    #[Put('')]
     public function update(): Response
     {
         $admin = $this->currentAdmin();
@@ -72,6 +79,7 @@ class AdminProfile extends AdminApiController
         return $this->ok('资料已更新', $this->profileData($admin));
     }
 
+    #[Post('password')]
     public function password(): Response
     {
         $admin = $this->currentAdmin();

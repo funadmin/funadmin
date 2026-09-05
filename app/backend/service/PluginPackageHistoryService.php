@@ -7,6 +7,7 @@ namespace app\backend\service;
 use app\common\model\PluginOperation;
 use app\common\model\PluginVersionHistory;
 use app\common\service\AbstractService;
+use RuntimeException;
 use think\facade\Db;
 
 /**
@@ -22,6 +23,31 @@ final class PluginPackageHistoryService extends AbstractService
     public function operations(string $name): array
     {
         return array_map([$this, 'serializeRecord'], PluginOperation::where('plugin_name', $name)->order('id', 'desc')->limit(100)->select()->toArray());
+    }
+
+    public function package(string $name, int $id): array
+    {
+        $record = PluginVersionHistory::where('plugin_name', $name)->where('id', $id)->find();
+        $path = (string) ($record?->package_path ?? '');
+        $runtimeRoot = realpath(runtime_path());
+        $realPath = $path === '' ? false : realpath($path);
+        if (!$record || $runtimeRoot === false || $realPath === false || !is_file($realPath)
+            || !str_starts_with($realPath, $runtimeRoot . DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException('历史插件包不存在或不可用');
+        }
+        return ['path' => $realPath, 'version' => (string) $record->version];
+    }
+
+    public function recoveryInfo(string $name): array
+    {
+        $operation = PluginOperation::where('plugin_name', $name)->where('result', '<>', 'success')->order('id', 'desc')->find();
+        return [
+            'available' => $operation !== null,
+            'stage' => (string) ($operation?->stage ?? ''),
+            'message' => $operation
+                ? '请保持插件禁用，查看错误详情；可重新上传可信 ZIP 或重部署历史版本，必要时联系管理员按服务端日志恢复。'
+                : '当前没有待处理的插件恢复记录。',
+        ];
     }
 
     public function record(array $data): void
@@ -60,7 +86,8 @@ final class PluginPackageHistoryService extends AbstractService
     {
         $record['createdAt'] = (string) ($record['created_at'] ?? '');
         $record['updatedAt'] = (string) ($record['updated_at'] ?? '');
-        unset($record['created_at'], $record['updated_at']);
+        $record['downloadable'] = trim((string) ($record['package_path'] ?? '')) !== '';
+        unset($record['created_at'], $record['updated_at'], $record['package_path'], $record['recovery_path']);
         return $record;
     }
 }

@@ -127,6 +127,18 @@ class PluginPackageService extends AbstractService
         }
     }
 
+    public function archiveDiscovered(string $name): string
+    {
+        $this->assertName($name);
+        $source = $this->pluginDirectory($name);
+        $this->validatePlugin($source, $name);
+        $directory = runtime_path('plugins' . DIRECTORY_SEPARATOR . 'discovered');
+        $this->createDirectory($directory);
+        $archive = $directory . DIRECTORY_SEPARATOR . $name . '-' . bin2hex(random_bytes(8)) . '.zip';
+        $this->zipDirectory($source, $archive);
+        return $archive;
+    }
+
     public function archiveHistoryPackage(array $staged, string $name, string $packageHash): string
     {
         $this->assertName($name);
@@ -144,24 +156,7 @@ class PluginPackageService extends AbstractService
             return $archive;
         }
         $temporary = $archive . '.tmp-' . bin2hex(random_bytes(4));
-        $zip = new ZipArchive();
-        if ($zip->open($temporary, ZipArchive::CREATE | ZipArchive::EXCL) !== true) {
-            throw new RuntimeException('无法创建私有历史插件包');
-        }
-        try {
-            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
-            foreach ($iterator as $item) {
-                if ($item->isLink() || !$item->isFile()) {
-                    continue;
-                }
-                $relative = substr($item->getPathname(), strlen($source) + 1);
-                if (!$zip->addFile($item->getPathname(), str_replace(DIRECTORY_SEPARATOR, '/', $relative))) {
-                    throw new RuntimeException('历史插件包归档文件失败：' . $relative);
-                }
-            }
-        } finally {
-            $zip->close();
-        }
+        $this->zipDirectory($source, $temporary);
         if (!rename($temporary, $archive)) {
             if (is_file($temporary) && !unlink($temporary)) {
                 throw new RuntimeException('无法提交私有历史插件包，且临时归档无法清理：' . $temporary);
@@ -192,6 +187,28 @@ class PluginPackageService extends AbstractService
     public function discard(array $staged): void
     {
         $this->removeDirectory((string) ($staged['stage_directory'] ?? ''));
+    }
+
+    private function zipDirectory(string $source, string $archive): void
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($archive, ZipArchive::CREATE | ZipArchive::EXCL) !== true) {
+            throw new RuntimeException('无法创建私有插件包');
+        }
+        try {
+            $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($source, \FilesystemIterator::SKIP_DOTS));
+            foreach ($iterator as $item) {
+                if ($item->isLink() || !$item->isFile()) {
+                    continue;
+                }
+                $relative = substr($item->getPathname(), strlen($source) + 1);
+                if (!$zip->addFile($item->getPathname(), str_replace(DIRECTORY_SEPARATOR, '/', $relative))) {
+                    throw new RuntimeException('插件包归档文件失败：' . $relative);
+                }
+            }
+        } finally {
+            $zip->close();
+        }
     }
 
     private function extractEntry(ZipArchive $zip, string $entry, string $target): void

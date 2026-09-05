@@ -21,7 +21,7 @@ final class AdminLegacyMenuService
                 $html = '';
                 foreach ($list as $item) {
                     $html .= '<li class="layui-nav-item">';
-                    $badge = strtolower((string) $item['name']) === 'plugin'
+                    $badge = strtolower((string) ($item['name'] ?? '')) === 'plugin'
                         ? '<span class="layui-badge" style="text-align: right;float: right;position: absolute;right: 10%;">new</span>'
                         : '';
                     if (!empty($item['child'])) {
@@ -44,7 +44,7 @@ final class AdminLegacyMenuService
                 $current = $key === 0 ? 'layui-this' : '';
                 $html['nav'] .= '<li class="layui-nav-item ' . $current . '" menu-id="' . $this->attr($item['id']) . '">';
                 $html['navm'] .= '<dd><a href="javascript:;" menu-id="' . $this->attr($item['id']) . '" lay-id="' . $this->attr($item['id']) . '" data-id="' . $this->attr($item['id']) . '" title="' . $this->label($item) . '" data-tips="' . $this->label($item) . '"><i class="' . $this->attr($item['icon'] ?? '') . '"></i><cite> ' . $this->label($item) . '</cite></a></dd>';
-                $badge = strtolower((string) $item['name']) === 'plugin' ? '<span class="layui-badge">new</span>' : '';
+                $badge = strtolower((string) ($item['name'] ?? '')) === 'plugin' ? '<span class="layui-badge">new</span>' : '';
                 $hide = (int) $theme === 4 || ((int) $theme === 3 && $key > 0) ? 'layui-hide' : '';
                 $html['menu'] .= '<ul style="display:block" lay-accordion class="layui-nav layui-nav-tree ' . $hide . '" menu-id="' . $this->attr($item['id']) . '" lay-filter="menulist" lay-shrink="all" id="layui-side-left-menu-ul">';
                 if (!empty($item['child'])) {
@@ -127,7 +127,7 @@ final class AdminLegacyMenuService
     private function leafLink(array $item, string $badge = '', bool $tab = false): string
     {
         $event = $tab ? ' lay-event="tab"' : '';
-        $target = (string) ($item['target'] ?: '_self');
+        $target = (string) (($item['target'] ?? '') ?: '_self');
         return '<a href="javascript:;"' . $event . ' lay-id="' . $this->attr($item['id']) . '" data-id="' . $this->attr($item['id']) . '" title="' . $this->label($item) . '" data-tips="' . $this->label($item) . '" data-url="' . $this->attr($item['href'] ?? '') . '" target="' . $this->attr($target) . '"><i class="' . $this->attr($item['icon'] ?? '') . '"></i><cite> ' . $this->label($item) . '</cite>' . $badge . '</a>';
     }
 

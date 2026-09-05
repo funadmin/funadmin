@@ -7,12 +7,17 @@ namespace app\api\controller\v2;
 use app\common\controller\Api;
 use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
+use think\annotation\route\Group;
+use think\annotation\route\Middleware;
+use think\annotation\route\Post;
+use think\middleware\Throttle;
 use think\Request;
 use think\Response;
 
 /**
  * 生成token
  */
+#[Group('v2/token')]
 class Token extends Api
 {
     public function __construct(
@@ -29,6 +34,12 @@ class Token extends Api
      * @throws \think\db\exception\DbException
      * @throws \think\db\exception\ModelNotFoundException
      */
+    #[Post('')]
+    #[Middleware(Throttle::class, [
+        'visit_method' => ['POST'],
+        'visit_rate' => '10/m',
+        'key' => '__CONTROLLER__/__ACTION__/__IP__',
+    ])]
     public function build(Request $request): Response
     {
         $account = trim((string) $request->post('username', ''));
@@ -55,6 +66,7 @@ class Token extends Api
      * @param Request $request
      * @return \think\response\Json
      */
+    #[Post('refresh')]
     public function refresh(Request $request): Response
     {
         $refreshToken = trim((string) $request->post('refresh_token', ''));

@@ -11,6 +11,9 @@ use app\backend\service\AuthService;
 use app\backend\traits\AdminDataFormat;
 use app\backend\traits\AdminJsonResponse;
 use app\backend\traits\AdminTree;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Post;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\Response;
@@ -19,6 +22,7 @@ use think\facade\Session;
 /**
  * Admin Web Session 认证适配层。
  */
+#[Group('auth')]
 class AdminAuth extends BaseController
 {
     use AdminDataFormat;
@@ -35,6 +39,7 @@ class AdminAuth extends BaseController
         parent::__construct($app);
     }
 
+    #[Get('csrf')]
     public function csrf(): Response
     {
         return $this->ok(data: [
@@ -43,11 +48,13 @@ class AdminAuth extends BaseController
         ]);
     }
 
+    #[Get('captcha')]
     public function captcha(): Response
     {
         return Captcha::create();
     }
 
+    #[Post('login')]
     public function login(): Response
     {
         $username = trim(strip_tags((string) $this->request->post('username', '')));
@@ -71,6 +78,7 @@ class AdminAuth extends BaseController
         return $this->ok('登录成功', ['authenticated' => true]);
     }
 
+    #[Get('me')]
     public function me(): Response
     {
         $admin = Session::get('admin', []);
@@ -94,6 +102,7 @@ class AdminAuth extends BaseController
         ]);
     }
 
+    #[Get('menus')]
     public function menus(): Response
     {
         $auth = AuthService::instance();
@@ -128,6 +137,7 @@ class AdminAuth extends BaseController
         return $this->ok(data: $this->buildTree(array_values($allowed)));
     }
 
+    #[Post('logout')]
     public function logout(): Response
     {
         AuthService::instance()->logout();
@@ -252,6 +262,7 @@ class AdminAuth extends BaseController
             'backend/systemplugin:localdetail' => 'system:plugin:list',
             'backend/systemplugin:enabledmodules' => 'system:plugin:list',
             'backend/systemplugin:accountlogin' => 'system:plugin:account',
+            'backend/systemplugin:accountrefresh' => 'system:plugin:account-refresh',
             'backend/systemplugin:accountlogout' => 'system:plugin:account',
             'backend/systemplugin:currentaccount' => 'system:plugin:account',
             'backend/systemplugin:marketcategories' => 'system:plugin:list',
@@ -260,7 +271,9 @@ class AdminAuth extends BaseController
             'backend/systemplugin:marketversions' => 'system:plugin:list',
             'backend/systemplugin:checkupdates' => 'system:plugin:list',
             'backend/systemplugin:installlocal' => 'system:plugin:install',
+            'backend/systemplugin:installdiscovered' => 'system:plugin:discovered-install',
             'backend/systemplugin:installcloud' => 'system:plugin:install',
+            'backend/systemplugin:updatelocal' => 'system:plugin:local-update',
             'backend/systemplugin:update' => 'system:plugin:update',
             'backend/systemplugin:migrate' => 'system:plugin:migrate',
             'backend/systemplugin:enable' => 'system:plugin:enable',
@@ -271,6 +284,9 @@ class AdminAuth extends BaseController
             'backend/systemplugin:purge' => 'system:plugin:purge',
             'backend/systemplugin:deletepackage' => 'system:plugin:package-delete',
             'backend/systemplugin:history' => 'system:plugin:history',
+            'backend/systemplugin:downloadhistory' => 'system:plugin:history-download',
+            'backend/systemplugin:redeployhistory' => 'system:plugin:history-redeploy',
+            'backend/systemplugin:recoveryinfo' => 'system:plugin:recovery',
             'backend/systemplugin:operations' => 'system:plugin:history',
         ];
         if ($isSuperAdmin) {

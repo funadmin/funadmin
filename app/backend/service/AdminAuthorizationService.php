@@ -25,7 +25,8 @@ final class AdminAuthorizationService
 
     public function roleAccess(bool $authenticated = false): bool
     {
-        if ($this->requestUrl === '/' || (!$authenticated && !(new AdminSessionService())->isLogin())) {
+        $requiresLogin = static fn (bool $authenticated = false): bool => !$authenticated;
+        if ($this->requestUrl === '/' || ($requiresLogin($authenticated) && !(new AdminSessionService())->isLogin())) {
             $this->error(lang('Please Login First'));
         }
 

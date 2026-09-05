@@ -2,24 +2,13 @@
 
 use think\facade\Route;
 
-Route::get('auth/csrf', 'auth.AdminAuth/csrf');
-Route::get('auth/captcha', 'auth.AdminAuth/captcha');
-Route::post('auth/login', 'auth.AdminAuth/login');
-Route::get('auth/me', 'auth.AdminAuth/me');
-Route::get('auth/menus', 'auth.AdminAuth/menus');
-Route::post('auth/logout', 'auth.AdminAuth/logout');
-
-Route::get('profile', 'auth.AdminProfile/index');
-Route::put('profile', 'auth.AdminProfile/update');
-Route::post('profile/password', 'auth.AdminProfile/password');
-
 Route::post('upload', 'system.AdminUpload/upload');
 
 Route::get('development/crud/connections', 'development.DevCrud/connections');
 Route::get('development/crud/tables', 'development.DevCrud/tables');
 Route::get('development/crud/table/:table', 'development.DevCrud/tableSchema')->pattern(['table' => '[a-z_][a-z0-9_]*']);
 Route::post('development/crud/infer', 'development.DevCrud/infer');
-Route::post('development/crud/validate', 'development.DevCrud/validateDefinition');
+Route::post('development/crud/validate', 'development.DevCrud/validate');
 Route::post('development/crud/preview', 'development.DevCrud/preview');
 Route::post('development/crud/generate', 'development.DevCrud/generate');
 Route::get('development/crud/generations/:id', 'development.DevCrud/generationDetail')->pattern(['id' => '\d+']);
@@ -39,6 +28,8 @@ Route::post('system/plugin/market/check-updates', 'system.SystemPlugin/checkUpda
 Route::get('system/plugin/local/discovered', 'system.SystemPlugin/discovered');
 Route::get('system/plugin/local/installed', 'system.SystemPlugin/installed');
 Route::post('system/plugin/local/install', 'system.SystemPlugin/installLocal');
+Route::post('system/plugin/local/:name/install', 'system.SystemPlugin/installDiscovered')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/local/:name/update', 'system.SystemPlugin/updateLocal')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/local/:name', 'system.SystemPlugin/localDetail')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::post('system/plugin/cloud/:name/install', 'system.SystemPlugin/installCloud')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/modules/enabled', 'system.SystemPlugin/enabledModules');
@@ -52,6 +43,9 @@ Route::delete('system/plugin/:name/uninstall', 'system.SystemPlugin/uninstall')-
 Route::delete('system/plugin/:name/purge', 'system.SystemPlugin/purge')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::delete('system/plugin/:name/package', 'system.SystemPlugin/deletePackage')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/:name/history', 'system.SystemPlugin/history')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/:name/history/:id/download', 'system.SystemPlugin/downloadHistory')->pattern(['name' => '[a-z][a-z0-9]*', 'id' => '\\d+']);
+Route::post('system/plugin/:name/history/:id/redeploy', 'system.SystemPlugin/redeployHistory')->pattern(['name' => '[a-z][a-z0-9]*', 'id' => '\\d+']);
+Route::get('system/plugin/:name/recovery', 'system.SystemPlugin/recoveryInfo')->pattern(['name' => '[a-z][a-z0-9]*']);
 Route::get('system/plugin/:name/operations', 'system.SystemPlugin/operations')->pattern(['name' => '[a-z][a-z0-9]*']);
 
 Route::get('system/role/permission-tree', 'system.SystemRole/permissionTree');

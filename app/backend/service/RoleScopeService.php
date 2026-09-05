@@ -56,11 +56,8 @@ final class RoleScopeService
             return $this->normalizeIds(AuthGroup::where('status', 1)->column('id'));
         }
         $ownIds = $this->currentRoleIds();
-        $result = $includeOwn ? $ownIds : [];
-        foreach ($ownIds as $roleId) {
-            $result = array_merge($result, $this->descendantRoleIds($roleId));
-        }
-        return $this->normalizeIds($result);
+        $descendantIds = $this->descendantRoleIdsFor($ownIds);
+        return $this->normalizeIds($includeOwn ? array_merge($ownIds, $descendantIds) : $descendantIds);
     }
 
     public function canManageRole(int $roleId): bool
@@ -118,7 +115,13 @@ final class RoleScopeService
 
     public function descendantRoleIds(int $roleId): array
     {
-        if ($roleId <= 0) {
+        return $this->descendantRoleIdsFor($roleId > 0 ? [$roleId] : []);
+    }
+
+    private function descendantRoleIdsFor(array $roleIds): array
+    {
+        $roleIds = $this->normalizeIds($roleIds);
+        if ($roleIds === []) {
             return [];
         }
         $childrenByParent = [];
@@ -130,11 +133,11 @@ final class RoleScopeService
         }
 
         $result = [];
-        $queue = [$roleId];
+        $queue = $roleIds;
         while ($queue) {
             $parentId = array_shift($queue);
             foreach ($this->normalizeIds($childrenByParent[$parentId] ?? []) as $childId) {
-                if ($childId !== $roleId && !in_array($childId, $result, true)) {
+                if (!in_array($childId, $roleIds, true) && !in_array($childId, $result, true)) {
                     $result[] = $childId;
                     $queue[] = $childId;
                 }

@@ -22,6 +22,10 @@ export interface PluginItem {
   migrationPending: boolean;
   lastError: string;
   source: 'installed' | 'local' | 'cloud';
+  needsReinstall: boolean;
+  operation: string;
+  progress: number;
+  disabledReason?: string;
 }
 
 export interface UpdateCheck {
@@ -37,6 +41,13 @@ export interface MarketplaceVersion {
   version: string;
   changelog: string;
   compatible: boolean;
+  requires: Record<string, unknown>;
+  compatibleRange: string;
+  publishedAt: string;
+  sha256: string;
+  signature: string | null;
+  signatureAlgorithm: string | null;
+  size: number;
 }
 
 export interface MarketplacePlugin {
@@ -54,6 +65,23 @@ export interface PluginConfigDefinition {
   value: unknown;
   options?: Record<string, string> | Array<{ label: string; value: string }>;
   tip?: string;
+}
+
+export interface PluginVersionHistory {
+  id: number;
+  version: string;
+  source: string;
+  package_hash: string;
+  signature_algorithm?: string;
+  signature_verified: boolean;
+  downloadable: boolean;
+  createdAt: string;
+}
+
+export interface PluginRecoveryInfo {
+  available: boolean;
+  stage: string;
+  message: string;
 }
 
 export interface PluginOperation {
@@ -89,6 +117,7 @@ const success = { requestOptions: { showSuccessMsg: true } };
 
 export const pluginApi = {
   accountLogin: (account: string, password: string) => http.post<PluginAccount>(`${PREFIX}/account/login`, { account, password }, success),
+  accountRefresh: () => http.post<PluginAccount>(`${PREFIX}/account/refresh`, undefined, success),
   accountLogout: () => http.post<{ authenticated: false }>(`${PREFIX}/account/logout`, undefined, success),
   currentAccount: () => http.get<PluginAccount | null>(`${PREFIX}/account/current`),
   categories: () => http.get<Array<{ id: number; name: string }>>(`${PREFIX}/market/categories`),
@@ -104,6 +133,13 @@ export const pluginApi = {
     form.append('file', file);
     return http.upload<unknown>(`${PREFIX}/local/install`, form, success);
   },
+  installDiscovered: (name: string) => http.post<unknown>(`${PREFIX}/local/${name}/install`, undefined, success),
+  updateLocal: (name: string, file: File, migrate = true) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('migrate', String(migrate));
+    return http.upload<unknown>(`${PREFIX}/local/${name}/update`, form, success);
+  },
   installCloud: (name: string, version: string) => http.post<unknown>(`${PREFIX}/cloud/${name}/install`, { version }, success),
   update: (name: string, version: string, migrate = true) => http.post<unknown>(`${PREFIX}/${name}/update`, { version, migrate }, success),
   migrate: (name: string) => http.post<unknown>(`${PREFIX}/${name}/migrate`, undefined, success),
@@ -114,7 +150,10 @@ export const pluginApi = {
   uninstall: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/uninstall`, undefined, success),
   purge: (name: string, purgeConfirm: string) => http.delete<unknown>(`${PREFIX}/${name}/purge`, { purgeConfirm }, success),
   deletePackage: (name: string) => http.delete<unknown>(`${PREFIX}/${name}/package`, undefined, success),
-  history: (name: string) => http.get<Array<Record<string, unknown>>>(`${PREFIX}/${name}/history`),
+  history: (name: string) => http.get<PluginVersionHistory[]>(`${PREFIX}/${name}/history`),
+  historyDownloadUrl: (name: string, id: number) => `${PREFIX}/${name}/history/${id}/download`,
+  redeployHistory: (name: string, id: number, migrate = false) => http.post<unknown>(`${PREFIX}/${name}/history/${id}/redeploy`, { migrate }, success),
+  recoveryInfo: (name: string) => http.get<PluginRecoveryInfo>(`${PREFIX}/${name}/recovery`),
   operations: (name: string) => http.get<PluginOperation[]>(`${PREFIX}/${name}/operations`),
   enabledModules: () => http.get<EnabledPluginModule[]>(`${PREFIX}/modules/enabled`)
 };
