@@ -3,6 +3,12 @@
   "description": "FunAdmin是一个基于thinkphp8,Layui,requirejs的应用框架",
   "type": "project",
   "license": "Apache-2.0",
+  "repositories": {
+    "packagist.org": {
+      "type": "composer",
+      "url": "https://repo.packagist.org"
+    }
+  },
   "keywords": [
     "FunAdmin","CMS","CMF","LowCode","Layui","TP8",
     "easywechat", "framework","TP6","ORM","低代码",

@@ -11,11 +11,14 @@
     "plugins": {}
   },
   "entry": {
-    "class": "plugins\\example\\Plugin"
+    "class": "plugins\\example\\Plugin",
+    "file": "Plugin.php"
   },
-  "services": "config/services.php",
-  "events": "config/events.php",
-  "routes": "routes/plugin.php",
+  "load": {
+    "services": "config/services.php",
+    "events": "config/events.php",
+    "routes": "routes/plugin.php"
+  },
   "permissions": [],
   "menus": [],
   "admin_web": {

@@ -74,7 +74,7 @@ try {
         '025_plugin_adoption.sql',
         '026_plugin_resource_registry.sql',
         '027_plugin_purge_permission.sql',
-        '029_plugin_legacy_hardening.sql',
+        '029_plugin_registry_hardening.sql',
     ];
 
     foreach ($files as $name) {

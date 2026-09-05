@@ -25,8 +25,8 @@ function schemaReject(string $directory, array $manifest, string $message): void
 }
 
 $root = dirname(__DIR__);
-$schemaFile = $root . '/extend/fun/plugins/schema/plugin-manifest-v1.schema.json';
-schemaExpect(is_file($schemaFile), '必须存在正式 plugin manifest JSON Schema');
+$schemaFile = $root . '/extend/fun/plugins/schema/plugin.schema.json';
+schemaExpect(is_file($schemaFile), '必须存在权威 plugin.schema.json');
 $schema = json_decode((string) file_get_contents($schemaFile), true, 512, JSON_THROW_ON_ERROR);
 schemaExpect(($schema['additionalProperties'] ?? true) === false, '根对象必须拒绝未知字段');
 
@@ -51,10 +51,12 @@ $valid = [
     'title' => '演示插件',
     'version' => '1.0.0',
     'requires' => ['php' => '>=8.1', 'funadmin' => '>=1.0.0', 'plugins' => []],
-    'entry' => ['class' => 'plugins\\demo\\Plugin'],
-    'services' => 'config/services.php',
-    'events' => 'config/events.php',
-    'routes' => 'routes/plugin.php',
+    'entry' => ['class' => 'plugins\\demo\\Plugin', 'file' => 'Plugin.php'],
+    'load' => [
+        'services' => 'config/services.php',
+        'events' => 'config/events.php',
+        'routes' => 'routes/plugin.php',
+    ],
     'permissions' => [['code' => 'demo:view', 'name' => '查看演示']],
     'menus' => [['name' => '演示', 'path' => '/plugin/demo/index', 'permission' => 'demo:view']],
     'admin_web' => ['entry' => 'entry.js', 'routes' => [['path' => '/plugin/demo/index', 'name' => 'Plugin_demo_Index', 'component' => 'Index']]],
@@ -69,6 +71,18 @@ schemaExpect(Manifest::fromDirectory($plugin)->name() === 'demo', '完整合法 
 $unknown = $valid;
 $unknown['surprise'] = true;
 schemaReject($plugin, $unknown, '未知根字段必须拒绝');
+$missingRequires = $valid;
+unset($missingRequires['requires']);
+schemaReject($plugin, $missingRequires, '缺少 requires 必须拒绝');
+$wrongType = $valid;
+$wrongType['permissions'] = 'demo:view';
+schemaReject($plugin, $wrongType, 'permissions 错误类型必须拒绝');
+$traversal = $valid;
+$traversal['entry']['file'] = '../Plugin.php';
+schemaReject($plugin, $traversal, '入口文件路径越界必须拒绝');
+$traversal = $valid;
+$traversal['load']['routes'] = '/etc/passwd';
+schemaReject($plugin, $traversal, '加载路径绝对地址必须拒绝');
 $traversal = $valid;
 $traversal['resources']['public']['target'] = '../core';
 schemaReject($plugin, $traversal, '资源目标路径越界必须拒绝');

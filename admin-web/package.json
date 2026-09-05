@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "cd .. && php think run -H 0.0.0.0 -p 8000",
     "dev:force": "vite --force",
     "gen:crud": "node scripts/crud-gen.mjs",
     "gen:icons": "node scripts/generate-ep-icons.mjs",

@@ -14,8 +14,6 @@
 
   /* 品牌主色（与 ElementPlus 同步，由 app.applyTheme 注入派生色） */
   --app-primary: var(--el-color-primary);
-  --app-primary-hover: var(--el-color-primary-light-5);
-  --app-primary-active: var(--el-color-primary-dark-2);
   /* 主题色别名：业务样式可直接 var(--theme-color) */
   --theme-color: var(--el-color-primary);
 

@@ -3,7 +3,9 @@ import { ok, fail, type MockRoute } from '../types';
 interface OperationLog {
   id: number;
   username: string;
-  module: string;
+  appName: string;
+  sourceType: 'system' | 'plugin';
+  sourceName: string;
   controller: string;
   action: string;
   name: string;
@@ -11,17 +13,23 @@ interface OperationLog {
   url: string;
   ip: string;
   status: 0 | 1;
+  responseCode: number;
+  durationMs: number;
+  requestId: string;
   createdAt: string;
   getData?: string;
   postData?: string;
   agent?: string;
+  errorMessage?: string;
 }
 
 const operationLogs: OperationLog[] = [
   {
     id: 1,
     username: 'admin',
-    module: 'backend',
+    appName: 'backend',
+    sourceType: 'system',
+    sourceName: 'core',
     controller: 'SystemRole',
     action: 'update',
     name: 'Update role',
@@ -29,6 +37,9 @@ const operationLogs: OperationLog[] = [
     url: 'system/role/2',
     ip: '127.0.0.1',
     status: 1,
+    responseCode: 200,
+    durationMs: 12,
+    requestId: 'mock-request-1',
     createdAt: '2026-01-01 10:00:00',
     getData: '{}',
     postData: '{"name":"运营角色"}',
@@ -54,10 +65,12 @@ export const logMockHandlers: MockRoute[] = [
     method: 'GET',
     url: '/system/log/operation',
     handler: ({ params }) => {
-      const { page = 1, pageSize = 10, username, module, status, startTime, endTime } = params || {};
+      const { page = 1, pageSize = 10, username, appName, sourceType, sourceName, status, startTime, endTime } = params || {};
       const rows = operationLogs.filter((row) => {
         if (username && !row.username.includes(String(username))) return false;
-        if (module && row.module !== module) return false;
+        if (appName && row.appName !== appName) return false;
+        if (sourceType && row.sourceType !== sourceType) return false;
+        if (sourceName && row.sourceName !== sourceName) return false;
         if (status !== undefined && status !== '' && row.status !== Number(status)) return false;
         if (startTime && row.createdAt < String(startTime)) return false;
         if (endTime && row.createdAt > String(endTime)) return false;

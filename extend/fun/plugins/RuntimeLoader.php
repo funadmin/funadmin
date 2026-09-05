@@ -27,7 +27,8 @@ final class RuntimeLoader
 
     public function loadEntry(Manifest $manifest): void
     {
-        $file = $manifest->directory() . DIRECTORY_SEPARATOR . 'Plugin.php';
+        $entry = $manifest->toArray()['entry'];
+        $file = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, (string) $entry['file']);
         require_once $file;
         $class = (string) ($manifest->toArray()['entry']['class'] ?? '');
         if ($class === '' || !class_exists($class, false)) {

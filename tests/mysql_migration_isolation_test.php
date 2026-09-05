@@ -88,12 +88,15 @@ try {
         }
     }
 
-    $fieldVerify = $database->query("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'fun_field_verify' AND COLUMN_KEY = 'PRI' ORDER BY ORDINAL_POSITION")->fetchAll();
+    $fieldVerify = $database->query("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'fun_field_verify' AND COLUMN_KEY = 'PRI' ORDER BY ORDINAL_POSITION")->fetchAll();
     migrationExpect($fieldVerify === [[
-        'COLUMN_NAME' => 'verify',
-        'COLUMN_TYPE' => 'varchar(50)',
+        'COLUMN_NAME' => 'id',
+        'COLUMN_TYPE' => 'bigint unsigned',
         'IS_NULLABLE' => 'NO',
-    ]], 'field_verify 必须使用 verify varchar(50) 单列主键');
+        'EXTRA' => 'auto_increment',
+    ]], 'field_verify 必须使用 id bigint unsigned 自增单列主键');
+    $verifyUnique = $database->query("SELECT INDEX_NAME FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'fun_field_verify' AND NON_UNIQUE = 0 AND COLUMN_NAME = 'verify'")->fetchAll(PDO::FETCH_COLUMN);
+    migrationExpect($verifyUnique !== [], 'field_verify.verify 必须保留唯一业务键');
 
     $menu = $database->query("SELECT create_time, update_time, sort, created_at, updated_at, sort_order FROM `fun_admin_menu` ORDER BY `id` LIMIT 1")->fetch();
     migrationExpect((int) $menu['create_time'] === 1700000000, 'legacy create_time 必须保留');
@@ -115,12 +118,15 @@ try {
         }
     }
 
-    $cutover = (string) file_get_contents($directory . '/022_laravel_field_cutover.sql');
-    foreach ($statements->invoke($service, $cutover) as $statement) {
-        $database->exec($statement);
+    foreach (['022_laravel_field_cutover.sql', '030_laravel_schema_convergence.sql'] as $rerunnableMigration) {
+        $rerunnable = (string) file_get_contents($directory . '/' . $rerunnableMigration);
+        foreach ($statements->invoke($service, $rerunnable) as $statement) {
+            $database->exec($statement);
+        }
     }
     $menuAfterRerun = $database->query("SELECT create_time, update_time, sort, created_at, updated_at, sort_order FROM `fun_admin_menu` ORDER BY `id` LIMIT 1")->fetch();
-    migrationExpect($menuAfterRerun === $menu, '022 重复执行必须保持回填结果稳定');
+    migrationExpect($menuAfterRerun === $menu, 'Laravel migration 重复执行必须保持回填结果稳定');
+    migrationExpect((int) $database->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME IN ('create_time','update_time','delete_time','sort')")->fetchColumn() > 0, '本阶段必须保留 legacy 公共字段');
 
     echo "mysql migration isolation test passed; temporary database cleaned\n";
 } finally {

@@ -388,39 +388,13 @@ html.dark .el-tag.el-tag--info {
   color: color-mix(in srgb, var(--el-color-info) 80%, #000) !important;
 }
 
-/*
- * 列表页顶部操作条布局请用 Tailwind：
- * flex flex-wrap items-center gap-2.5 px-4 py-3 bg-app-card border border-app-border rounded-app shadow-app-sm
- * 保留 .app-page-toolbar 类名仅作 EP 按钮投影覆盖选择器（可与上述工具类同元素叠加）。
- */
-
-/*
- * 列表工具条 / 查询条内的实心主按钮：去掉全局主按钮投影，避免与浅底叠色导致「发污、偏色」，
- * 颜色完全跟随 --el-color-primary（主题切换时一致）。
- */
+/* 查询条按钮去掉投影，避免浅底叠色发污。 */
 .search-form .el-button--primary:not(.is-plain),
-.app-page-toolbar .el-button--primary:not(.is-plain) {
-  box-shadow: none !important;
-}
 .search-form .el-button--primary:not(.is-plain):hover,
 .search-form .el-button--primary:not(.is-plain):focus,
-.app-page-toolbar .el-button--primary:not(.is-plain):hover,
-.app-page-toolbar .el-button--primary:not(.is-plain):focus {
-  box-shadow: none !important;
-}
-
-/*
- * 线框按钮（plain）：白/浅底 + 语义色描边与字/图标，配色来自 Element Plus 变量，
- * 换预设主题（applyTheme）后自动一致，无需写死色值。
- */
 .search-form .el-button.is-plain,
-.app-page-toolbar .el-button.is-plain {
-  box-shadow: none !important;
-}
 .search-form .el-button.is-plain:hover,
-.search-form .el-button.is-plain:focus,
-.app-page-toolbar .el-button.is-plain:hover,
-.app-page-toolbar .el-button.is-plain:focus {
+.search-form .el-button.is-plain:focus {
   box-shadow: none !important;
 }
 

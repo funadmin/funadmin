@@ -15,7 +15,6 @@ namespace app\common\controller;
 use app\BaseController;
 use app\common\model\Language;
 use app\common\traits\Jump;
-use app\common\traits\Curd;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\exception\ValidateException;
@@ -29,7 +28,7 @@ use app\backend\middleware\SystemLog;
 
 class Backend extends BaseController
 {
-    use Jump,Curd;
+    use Jump;
 
     /**
      * 无需登录

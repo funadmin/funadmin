@@ -10,6 +10,7 @@ const fieldVerifyModel = readFileSync(resolve(process.cwd(), '../app/common/mode
 const projectRoot = resolve(process.cwd(), '..');
 const migrationDir = resolve(projectRoot, 'database/migrations');
 const followupPath = resolve(migrationDir, '020_schema_integrity_finalize.sql');
+const convergencePath = resolve(migrationDir, '030_laravel_schema_convergence.sql');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 describe('013 字段规范化迁移契约', () => {
@@ -33,9 +34,10 @@ describe('013 字段规范化迁移契约', () => {
     expect(fieldVerifyModel).not.toMatch(/protected \$pk\s*=\s*['"]verify['"]/);
   });
 
-  it('013 为无主键的验证规则表补充自增 id 主键', () => {
+  it('已执行的 013 保持自增 id 主键方向，后续迁移负责 bigint 终态', () => {
     expect(sql).toContain('ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST');
     expect(sql).toContain('schema_integrity_error_013_field_verify_id_not_primary');
+    expect(existsSync(convergencePath)).toBe(true);
   });
 
   it('MyISAM 表统一转换为 InnoDB', () => {
@@ -92,12 +94,14 @@ describe('已执行迁移不可变与 020 最终修复契约', () => {
     expect(followup).toMatch(/DROP\s+(?:TRIGGER|TABLE)\s+IF\s+EXISTS\s+`?(?:fun_)?schema_integrity_guard_006`?/i);
   });
 
-  it('020 最终复核 field_verify 使用 int unsigned 自增 id 单列主键', () => {
+  it('020 与唯一后续迁移统一 field_verify 的 id 主键和 verify 唯一业务键', () => {
     const followup = readFileSync(followupPath, 'utf8').replace(/\s+/g, ' ');
+    const convergence = readFileSync(convergencePath, 'utf8').replace(/\s+/g, ' ');
 
-    expect(followup).toMatch(/information_schema\.COLUMNS[\s\S]*fun_field_verify[\s\S]*COLUMN_NAME\s*=\s*['"]id['"][\s\S]*COLUMN_TYPE\s*=\s*['"]int unsigned['"][\s\S]*auto_increment/i);
-    expect(followup).toMatch(/information_schema\.KEY_COLUMN_USAGE[\s\S]*CONSTRAINT_NAME\s*=\s*['"]PRIMARY['"][\s\S]*HAVING COUNT\(\*\)\s*=\s*1[\s\S]*COLUMN_NAME\s*=\s*['"]id['"]/i);
-    expect(followup).toContain('schema_integrity_error_020_field_verify_id_primary_required');
+    expect(followup).toMatch(/information_schema\.COLUMNS[\s\S]*fun_field_verify[\s\S]*COLUMN_NAME\s*=\s*['"]id['"][\s\S]*auto_increment/i);
+    expect(followup).not.toMatch(/PRIMARY[\s\S]{0,200}COLUMN_NAME\s*=\s*['"]verify['"]/i);
+    expect(convergence).toMatch(/fun_field_verify[\s\S]*MODIFY COLUMN `id` bigint unsigned NOT NULL AUTO_INCREMENT/i);
+    expect(convergence).toMatch(/fun_field_verify[\s\S]*UNIQUE[\s\S]*`verify`/i);
   });
 
   it('020 将空白 mobile 归一为 NULL、允许 NULL 后再治理唯一性', () => {

@@ -27,6 +27,8 @@ function routerStub() {
 describe('pluginModules', () => {
   it('只接受当前 origin 的 plugin-assets 前缀', () => {
     expect(isAllowedPluginModuleUrl('/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
+    expect(isAllowedPluginModuleUrl('/admin-web/plugin-assets/demo/index.js', 'https://admin.example.com', '/admin-web/')).toBe(true);
+    expect(isAllowedPluginModuleUrl('/other/plugin-assets/demo/index.js', 'https://admin.example.com', '/admin-web/')).toBe(false);
     expect(isAllowedPluginModuleUrl('https://admin.example.com/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
     expect(isAllowedPluginModuleUrl('https://evil.example/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(false);
     expect(isAllowedPluginModuleUrl('/static/demo/index.js', 'https://admin.example.com')).toBe(false);
@@ -69,5 +71,17 @@ describe('pluginModules', () => {
 
     await syncPluginModules(router, [], { origin: 'https://admin.example.com', importer });
     expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo');
+  });
+
+  it('Router 实例重建后不因旧 mounted 签名跳过路由恢复', async () => {
+    const firstRouter = routerStub();
+    const secondRouter = routerStub();
+    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
+    const item = descriptor('reloadable', '/plugin-assets/reloadable/index.js');
+
+    await syncPluginModules(firstRouter, [item], { origin: 'https://admin.example.com', importer });
+    await syncPluginModules(secondRouter, [item], { origin: 'https://admin.example.com', importer });
+
+    expect(secondRouter.addRoute).toHaveBeenCalledOnce();
   });
 });

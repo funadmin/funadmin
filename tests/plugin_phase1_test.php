@@ -47,10 +47,12 @@ file_put_contents($root . '/demo/plugin.json', json_encode([
         'funadmin' => '>=1.0.0',
         'plugins' => ['base' => '^2.0'],
     ],
-    'entry' => ['class' => 'plugins\\demo\\Plugin'],
-    'services' => 'config/service.php',
-    'events' => 'config/event.php',
-    'routes' => 'config/route.php',
+    'entry' => ['class' => 'plugins\\demo\\Plugin', 'file' => 'Plugin.php'],
+    'load' => [
+        'services' => 'config/service.php',
+        'events' => 'config/event.php',
+        'routes' => 'config/route.php',
+    ],
     'admin_web' => [
         'entry' => 'entry.js',
         'routes' => [],
@@ -120,7 +122,7 @@ file_put_contents($root . '/base/plugin.json', json_encode([
     'title' => '基础插件',
     'version' => '2.3.0',
     'requires' => ['plugins' => ['demo' => '^1.0']],
-    'entry' => ['class' => 'plugins\\base\\Plugin'],
+    'entry' => ['class' => 'plugins\\base\\Plugin', 'file' => 'Plugin.php'],
 ], JSON_UNESCAPED_UNICODE));
 $baseManifest = Manifest::fromDirectory($root . '/base');
 expectException(static fn () => $validator->assertAcyclic([
@@ -152,7 +154,7 @@ expectException(static function () use ($root): void {
     $data['routes'] = '../outside.php';
     file_put_contents($root . '/demo/plugin.json', json_encode($data));
     Manifest::fromDirectory($root . '/demo');
-}, '$.routes 格式无效');
+}, '$ 未知字段 routes');
 
 $serviceSource = file_get_contents(dirname(__DIR__) . '/extend/fun/plugins/Service.php');
 expect(!str_contains((string) $serviceSource, 'error_reporting('), '运行时服务不得抑制 PHP 错误');

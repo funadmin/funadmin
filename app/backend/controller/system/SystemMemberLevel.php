@@ -10,180 +10,47 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\Member;
 use app\backend\model\MemberLevel;
-use think\Response;
+use app\common\traits\Curd;
+use think\Model;
 
 /**
  * Admin Web 会员等级管理。
  */
 class SystemMemberLevel extends AdminApiController
 {
+    use Curd;
+
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    public function index(): Response
+    protected function crudModelClass(): string
     {
-        $page = $this->page();
-        $pageSize = $this->pageSize();
-        $recycled = (int) $this->request->get('recycled', 0) === 1;
-        $query = $this->filteredQuery($recycled);
-        $result = $query->order('sort_order', 'asc')->order('id', 'asc')->paginate([
-            'list_rows' => $pageSize,
-            'page' => $page,
-        ]);
-
-        return $this->ok(data: $this->paginationData(
-            array_map(fn (MemberLevel $level): array => $this->levelData($level), $result->items()),
-            $result->total(),
-            $page,
-            $pageSize
-        ));
+        return MemberLevel::class;
     }
 
-    public function detail(int $id): Response
+    protected function crudSearchFields(): array
     {
-        $level = MemberLevel::withTrashed()->find($id);
-        return $level
-            ? $this->ok(data: $this->levelData($level))
-            : $this->fail(msg: '会员等级不存在', code: 404);
+        return ['name' => 'name'];
     }
 
-    public function create(): Response
+    protected function crudOrder(): array
     {
-        $data = $this->payload();
-        if ($error = $this->validatePayload($data)) {
-            return $this->fail(msg: $error, code: 422);
-        }
-        if (MemberLevel::withTrashed()->where('name', $data['name'])->find()) {
-            return $this->fail(msg: '会员等级名称已存在', code: 422);
-        }
-
-        $level = MemberLevel::create($data);
-        return $this->ok('创建成功', $this->levelData($level));
+        return ['sort_order' => 'asc', 'id' => 'asc'];
     }
 
-    public function update(int $id): Response
-    {
-        $level = MemberLevel::find($id);
-        if (!$level) {
-            return $this->fail(msg: '会员等级不存在', code: 404);
-        }
-        $data = $this->payload($level);
-        if ($error = $this->validatePayload($data)) {
-            return $this->fail(msg: $error, code: 422);
-        }
-        if (MemberLevel::withTrashed()->where('name', $data['name'])->where('id', '<>', $id)->find()) {
-            return $this->fail(msg: '会员等级名称已存在', code: 422);
-        }
-
-        $level->save($data);
-        return $this->ok('保存成功', $this->levelData($level));
-    }
-
-    public function status(int $id): Response
-    {
-        $level = MemberLevel::find($id);
-        if (!$level) {
-            return $this->fail(msg: '会员等级不存在', code: 404);
-        }
-        $level->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        return $this->ok('状态更新成功', $this->levelData($level));
-    }
-
-    public function recycle(): Response
-    {
-        $levels = $this->levelsForDelete(false);
-        if ($levels instanceof Response) {
-            return $levels;
-        }
-        foreach ($levels as $level) {
-            $level->delete();
-        }
-        return $this->ok('已移入回收站', ['removed' => count($levels)]);
-    }
-
-    public function restore(): Response
-    {
-        $ids = $this->ids();
-        if (!$ids) {
-            return $this->fail(msg: '请选择要恢复的会员等级', code: 422);
-        }
-        $levels = MemberLevel::onlyTrashed()->whereIn('id', $ids)->select();
-        if (count($levels) !== count($ids)) {
-            return $this->fail(msg: '部分会员等级不存在或不在回收站', code: 404);
-        }
-        foreach ($levels as $level) {
-            $level->restore();
-        }
-        return $this->ok('恢复成功', ['restored' => count($levels)]);
-    }
-
-    public function destroy(): Response
-    {
-        $levels = $this->levelsForDelete(true);
-        if ($levels instanceof Response) {
-            return $levels;
-        }
-        foreach ($levels as $level) {
-            $level->force()->delete();
-        }
-        return $this->ok('永久删除成功', ['removed' => count($levels)]);
-    }
-
-    public function export(): Response
-    {
-        $recycled = (int) $this->request->get('recycled', 0) === 1;
-        $query = $this->filteredQuery($recycled);
-        if ((clone $query)->count() > 10000) {
-            return $this->fail(msg: '导出数据超过 10000 条，请缩小筛选范围', code: 422);
-        }
-        $levels = $query->order('sort_order', 'asc')->order('id', 'asc')->select();
-        return $this->ok(data: array_map(fn (MemberLevel $level): array => $this->levelData($level), $levels->all()));
-    }
-
-    private function filteredQuery(bool $recycled)
-    {
-        $query = $recycled ? MemberLevel::onlyTrashed() : MemberLevel::where('id', '>', 0);
-        $name = trim((string) $this->request->get('name', ''));
-        $status = $this->request->get('status', null);
-        if ($name !== '') {
-            $query->whereLike('name', '%' . $name . '%');
-        }
-        if ($status !== null && $status !== '') {
-            $query->where('status', (int) $status);
-        }
-        return $query;
-    }
-
-    private function levelsForDelete(bool $onlyTrashed)
-    {
-        $ids = $this->ids();
-        if (!$ids) {
-            return $this->fail(msg: '请选择要操作的会员等级', code: 422);
-        }
-        $query = $onlyTrashed ? MemberLevel::onlyTrashed() : MemberLevel::where('id', '>', 0);
-        $levels = $query->whereIn('id', $ids)->select();
-        if (count($levels) !== count($ids)) {
-            return $this->fail(msg: $onlyTrashed ? '部分会员等级不存在或不在回收站' : '部分会员等级不存在或已在回收站', code: 404);
-        }
-        if (Member::withTrashed()->whereIn('level_id', $ids)->count() > 0) {
-            return $this->fail(msg: '会员等级仍被会员引用，不能删除', code: 422);
-        }
-        return $levels;
-    }
-
-    private function payload(?MemberLevel $level = null): array
+    protected function crudPayload(?Model $model = null): array
     {
         return [
-            'name' => trim((string) $this->request->post('name', $level?->name ?? '')),
-            'amount' => trim((string) $this->request->post('amount', $level?->amount ?? '0')),
-            'discount' => (int) $this->request->post('discount', $level?->discount ?? 100),
-            'thumb' => trim((string) $this->request->post('thumb', $level?->thumb ?? '')),
-            'status' => $this->binaryStatus($this->request->post('status', $level?->status ?? 1)),
-            'sort_order' => (int) $this->request->post('sort', $level?->sort_order ?? 0),
-            'description' => trim((string) $this->request->post('description', $level?->description ?? '')),
+            'name' => trim((string) $this->request->post('name', $model?->name ?? '')),
+            'amount' => trim((string) $this->request->post('amount', $model?->amount ?? '0')),
+            'discount' => (int) $this->request->post('discount', $model?->discount ?? 100),
+            'thumb' => trim((string) $this->request->post('thumb', $model?->thumb ?? '')),
+            'status' => $this->binaryStatus($this->request->post('status', $model?->status ?? 1)),
+            'sort_order' => (int) $this->request->post('sort', $model?->sort_order ?? 0),
+            'description' => trim((string) $this->request->post('description', $model?->description ?? '')),
         ];
     }
 
-    private function validatePayload(array &$data): ?string
+    protected function crudValidate(array &$data, ?Model $model = null): ?string
     {
         $nameLength = function_exists('mb_strlen') ? mb_strlen($data['name']) : strlen($data['name']);
         $descriptionLength = function_exists('mb_strlen') ? mb_strlen($data['description']) : strlen($data['description']);
@@ -209,23 +76,43 @@ class SystemMemberLevel extends AdminApiController
         if (strlen($data['thumb']) > 255) {
             return '缩略图地址不能超过 255 个字符';
         }
-        return null;
+        $duplicate = MemberLevel::withTrashed()->where('name', $data['name']);
+        if ($model !== null) {
+            $duplicate->where('id', '<>', (int) $model->id);
+        }
+        return $duplicate->find() ? '会员等级名称已存在' : null;
     }
 
-    private function levelData(MemberLevel $level): array
+    protected function crudBeforeDelete(iterable $models, bool $force): ?\think\Response
+    {
+        $ids = [];
+        foreach ($models as $model) {
+            $ids[] = (int) $model->id;
+        }
+        return Member::withTrashed()->whereIn('level_id', $ids)->count() > 0
+            ? $this->fail(msg: '会员等级仍被会员引用，不能删除', code: 422)
+            : null;
+    }
+
+    protected function crudData(Model $model): array
     {
         return [
-            'id' => (int) $level->id,
-            'name' => (string) $level->name,
-            'amount' => number_format((float) $level->amount, 2, '.', ''),
-            'discount' => (int) $level->discount,
-            'thumb' => (string) ($level->thumb ?? ''),
-            'status' => (int) $level->status,
-            'sort' => (int) $level->sort_order,
-            'description' => (string) ($level->description ?? ''),
-            'createdAt' => $this->formatTime($level->created_at),
-            'updatedAt' => $this->formatTime($level->updated_at),
-            'deletedAt' => $this->formatTime($level->deleted_at),
+            'id' => (int) $model->id,
+            'name' => (string) $model->name,
+            'amount' => number_format((float) $model->amount, 2, '.', ''),
+            'discount' => (int) $model->discount,
+            'thumb' => (string) ($model->thumb ?? ''),
+            'status' => (int) $model->status,
+            'sort' => (int) $model->sort_order,
+            'description' => (string) ($model->description ?? ''),
+            'createdAt' => $this->formatTime($model->created_at),
+            'updatedAt' => $this->formatTime($model->updated_at),
+            'deletedAt' => $this->formatTime($model->deleted_at),
         ];
+    }
+
+    protected function crudResourceName(): string
+    {
+        return '会员等级';
     }
 }

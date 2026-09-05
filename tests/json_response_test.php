@@ -11,6 +11,7 @@ use app\backend\traits\AdminDataScope;
 use app\backend\traits\AdminPagination;
 use app\backend\traits\AdminTree;
 use app\common\service\BearerTokenExtractor;
+use app\common\traits\Curd;
 use app\common\traits\JsonResponse;
 use think\App;
 use think\Request;
@@ -178,5 +179,30 @@ responseExpect(str_contains($installerSource, 'use JsonResponse;'), '安装器 J
 responseExpect(!str_contains($installerSource, 'use Jump;'), '安装器不应再依赖页面跳转 Trait');
 responseExpect(!preg_match('/\$this->result\s*\(/', $installerSource), '安装器不得继续调用旧 result 响应');
 responseExpect(!preg_match('/\$this->error\s*\(/', $installerSource), '安装器不得继续调用异常式 error 响应');
+
+$curdSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/traits/Curd.php');
+responseExpect(str_contains($curdSource, 'declare(strict_types=1);'), 'Curd 必须仅面向 PHP 8.1+ 新 API');
+foreach (['index', 'detail', 'create', 'update', 'status', 'recycle', 'restore', 'destroy', 'export'] as $methodName) {
+    responseExpect(preg_match("/public function {$methodName}\\s*\\([^)]*\\): Response/", $curdSource) === 1, "Curd 必须统一实现 {$methodName} REST 动作");
+}
+responseExpect(!preg_match('/public function (add|edit|copy)\s*\(/', $curdSource), 'Curd 不得保留旧页面表单动作');
+responseExpect(!str_contains($curdSource, 'buildParames'), 'Curd 不得保留旧 Layui 搜索协议');
+responseExpect(!str_contains($curdSource, "save('php://output')"), 'Curd 不得直接输出文件并退出进程');
+
+$backendSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/controller/Backend.php');
+responseExpect(!str_contains($backendSource, 'use Curd;'), '旧 Backend 页面基类不得继续组合新 API Curd');
+responseExpect(!str_contains($adminApiSource, 'use Curd;'), '后台 API 基类不得让所有控制器隐式暴露通用 CRUD 动作');
+
+foreach (['SystemMemberGroup.php', 'SystemMemberLevel.php'] as $controllerFile) {
+    $source = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/system/' . $controllerFile);
+    responseExpect(str_contains($source, 'use Curd;'), "{$controllerFile} 必须显式组合 Curd Trait");
+    responseExpect(!preg_match('/public function (index|detail|create|update|status|recycle|restore|destroy|export)\s*\(/', $source), "{$controllerFile} 必须复用 Curd 公共动作");
+    foreach (['crudModelClass', 'crudSearchFields', 'crudPayload', 'crudValidate', 'crudData'] as $hookName) {
+        responseExpect(str_contains($source, "function {$hookName}("), "{$controllerFile} 必须实现 {$hookName} 扩展点");
+    }
+}
+
+$curdReflection = new ReflectionClass(Curd::class);
+responseExpect($curdReflection->hasMethod('index') && $curdReflection->hasMethod('destroy'), 'Curd Trait 必须可被 PHP 正常加载');
 
 echo "json response tests: PASS\n";

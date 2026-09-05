@@ -4,30 +4,30 @@ import { resolve } from 'node:path';
 
 const adminRoot = resolve(import.meta.dirname, '../..');
 const projectRoot = resolve(adminRoot, '..');
-const generator = readFileSync(resolve(adminRoot, 'scripts/crud-gen.mjs'), 'utf8');
+const legacyGenerator = readFileSync(resolve(adminRoot, 'scripts/crud-gen.mjs'), 'utf8');
+const phpGenerator = readFileSync(resolve(projectRoot, 'app/common/crud/CrudGenerator.php'), 'utf8');
+const backendTemplate = readFileSync(
+  resolve(projectRoot, 'app/common/crud/templates/v1/backend/controller.php.tpl'),
+  'utf8'
+);
 const composer = JSON.parse(readFileSync(resolve(projectRoot, 'composer.json'), 'utf8'));
 const annotationConfig = readFileSync(resolve(projectRoot, 'config/annotation.php'), 'utf8');
 
-describe('新生成 CRUD 使用官方 Attribute 路由', () => {
+describe('统一 PHP CRUD Core 契约', () => {
   it('安装官方 ThinkPHP 8 注解扩展', () => {
     expect(composer.require['topthink/think-annotation']).toBe('^3.0');
   });
 
-  it('生成控制器导入并使用官方路由 Attribute', () => {
-    expect(generator).toContain('use think\\annotation\\route\\Delete;');
-    expect(generator).toContain('use think\\annotation\\route\\Get;');
-    expect(generator).toContain('use think\\annotation\\route\\Post;');
-    expect(generator).toContain('use think\\annotation\\route\\Put;');
-    expect(generator).toContain("#[Get('${prefix}')]");
-    expect(generator).toContain("#[Get('${prefix}/:id')]");
-    expect(generator).toContain("#[Post('${prefix}')]");
-    expect(generator).toContain("#[Put('${prefix}/:id')]");
-    expect(generator).toContain("#[Delete('${deleteRule}')]");
+  it('PHP Core 是唯一权威实现且模板继承 AdminApiController', () => {
+    expect(phpGenerator).toContain('final class CrudGenerator');
+    expect(phpGenerator).toContain('new GenerationPlanner');
+    expect(backendTemplate).toContain('extends AdminApiController');
   });
 
-  it('不再输出显式路由片段，避免重复注册', () => {
-    expect(generator).not.toContain('function backendRouteSnippet');
-    expect(generator).not.toContain('待审阅路由片段');
+  it('Node 入口明确弃用且不再生成文件', () => {
+    expect(legacyGenerator).toContain('已弃用');
+    expect(legacyGenerator).not.toContain('writeFile');
+    expect(legacyGenerator).not.toContain('backendControllerSource');
   });
 
   it('启用路由 Attribute 扫描', () => {

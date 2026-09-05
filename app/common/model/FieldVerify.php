@@ -9,9 +9,7 @@ class FieldVerify extends BaseModel
     /**
      * @var string
      */
-    protected $pk = 'verify';
-
-    protected $keyType = 'string';
+    protected $pk = 'id';
 
     use LaravelSoftDelete;
 }

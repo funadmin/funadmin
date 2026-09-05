@@ -2,13 +2,9 @@
 
 namespace app\backend\service;
 
-use app\backend\model\AdminMenu;
 use app\common\model\Plugin;
-use app\common\model\PluginOperation;
-use app\common\model\PluginResource;
 use app\common\model\PluginVersionHistory;
 use app\common\service\AbstractService;
-use app\common\service\MigrationService;
 use app\common\traits\Jump;
 use fun\plugins\DatabaseCapabilityGuard;
 use fun\plugins\DependencyValidator;
@@ -16,12 +12,9 @@ use fun\plugins\LifecycleLock;
 use fun\plugins\LifecycleState;
 use fun\plugins\Manifest;
 use fun\plugins\PluginPurgeCoordinator;
-use fun\plugins\PluginResourcePublisher;
 use fun\plugins\Registry;
 use fun\plugins\Service;
 use RuntimeException;
-use think\Exception;
-use think\facade\Db;
 
 /**
  * 插件安装、更新、迁移、启停和卸载生命周期编排。
@@ -30,8 +23,6 @@ class PluginService extends AbstractService
 {
     use Jump;
 
-    protected string $myplugin = 'myplugin';
-    private ?array $pluginColumns = null;
     private bool $deploymentRollbackAllowed = true;
     private bool $suppressFailureRecording = false;
     private array $packageOperationTokens = [];
@@ -179,43 +170,6 @@ class PluginService extends AbstractService
         });
     }
 
-    public function addPluginMenu(array $menu, int $pid = 0, string $module = 'backend'): void
-    {
-        $parentPermissionId = $pid > 0 ? (int) (AdminMenu::find($pid)->permission_id ?? 0) : 0;
-        AdminMenu::where('source_type', 'plugin')->where('source_name', $module)->update(['status' => 1]);
-        ResourceRegistryService::instance()->registerTree($menu, $parentPermissionId, $pid, $module, 'plugin', $module);
-    }
-
-    public function delPluginMenu(array $menu, string $module = 'backend'): void
-    {
-        AdminMenu::where('source_type', 'plugin')->where('source_name', $module)->update(['status' => 0]);
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
-        if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
-            $manager->save(['status' => 0]);
-        }
-        $this->clearApplicationCache();
-    }
-
-    public function addPluginManager()
-    {
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
-        if ($manager) {
-            $manager->save(['status' => 1]);
-        } else {
-            ResourceRegistryService::instance()->registerTree([[
-                'name' => '已装插件',
-                'href' => '',
-                'visible' => 1,
-                'type' => 1,
-                'status' => 1,
-                'icon' => 'layui-icon layui-icon-app',
-                'sort' => 50,
-            ]], 0, 0, 'backend', 'system', $this->myplugin);
-            $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
-        }
-        return $manager;
-    }
-
     public function installPlugin(string $name, string $type = ''): bool
     {
         return $this->operate($name, function (string $token) use ($name): bool {
@@ -254,7 +208,7 @@ class PluginService extends AbstractService
             $migration = $this->migrate($name);
             $record->save(['db_version' => $migration['version'], 'migration_pending' => 0]);
             $this->recordStage($name, 'install', 'resources', 75);
-            $this->resourcePublisher()->publish($manifest);
+            $this->infrastructure()->publisher()->publish($manifest);
             $this->recordStage($name, 'install', 'permissions', 90);
             $this->transition($record, 'disabled');
             $this->recordStage($name, 'install', 'complete', 100);
@@ -293,7 +247,7 @@ class PluginService extends AbstractService
                 throw new RuntimeException('update_hook: 插件更新后置钩子执行失败');
             }
             $this->recordStage($name, 'update', 'resources', 75);
-            $this->resourcePublisher()->publish($manifest);
+            $this->infrastructure()->publisher()->publish($manifest);
             $this->recordStage($name, 'update', 'permissions', 90);
             $record->save([
                 'db_version' => $migrationVersion,
@@ -343,20 +297,14 @@ class PluginService extends AbstractService
                 'operation_token' => null,
             ]));
             $context = $this->packageContexts[$name] ?? [];
-            PluginOperation::create([
-                'plugin_name' => $name,
-                'operation' => (string) ($context['operation'] ?? 'lifecycle'),
-                'stage' => $stage,
-                'progress' => $this->operationProgress[$name] ?? 0,
-                'from_version' => '',
-                'to_version' => (string) ($context['code_version'] ?? ''),
-                'source' => (string) ($context['source'] ?? 'local'),
-                'package_hash' => (string) ($context['package_hash'] ?? str_repeat('0', 64)),
-                'result' => 'failed',
-                'error_message' => substr($exception->getMessage(), 0, 2000),
-                'recovery_path' => $recoveryPath,
-                'status' => 1,
-            ]);
+            $this->audit()->failure(
+                $name,
+                $stage,
+                $this->operationProgress[$name] ?? 0,
+                $exception,
+                $context,
+                $recoveryPath
+            );
         } catch (\Throwable $recordException) {
             error_log('记录插件生命周期错误失败：' . $recordException->getMessage());
         }
@@ -373,13 +321,12 @@ class PluginService extends AbstractService
             if ($plugin->uninstall() === false) {
                 throw new RuntimeException('插件卸载失败');
             }
-            ResourceRegistryService::instance()->removeSource('plugin', $name);
-            $this->resourcePublisher()->remove($name);
+            $this->infrastructure()->removeMenus($name);
+            $this->infrastructure()->publisher()->remove($name);
             $this->transition($record, 'discovered');
             if (!$record->delete()) {
                 throw new RuntimeException('插件卸载失败');
             }
-            $this->removeEmptyPluginManager();
             return true;
         });
     }
@@ -391,22 +338,7 @@ class PluginService extends AbstractService
         $this->assertDisabled($record, $name);
         $coordinator = new PluginPurgeCoordinator(
             fn (string $pluginName): object => $this->plugin($pluginName),
-            static function (array $audit): void {
-                PluginOperation::create([
-                    'plugin_name' => $audit['name'],
-                    'operation' => 'purge',
-                    'stage' => 'complete',
-                    'progress' => $audit['result'] === 'success' ? 100 : 0,
-                    'from_version' => '',
-                    'to_version' => '',
-                    'source' => 'local',
-                    'package_hash' => str_repeat('0', 64),
-                    'result' => $audit['result'],
-                    'error_message' => $audit['error'] ?? null,
-                    'recovery_path' => null,
-                    'status' => 1,
-                ]);
-            },
+            fn (array $audit): mixed => $this->audit()->purge($audit),
             new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks'))
         );
         $coordinator->purge($name, $confirmation);
@@ -427,26 +359,6 @@ class PluginService extends AbstractService
     {
         $info = $this->installedRecord($name);
         return $this->setPluginEnabled($name, (string) $info->lifecycle_state !== 'enabled');
-    }
-
-    public function getMenu(array $menuConfig = []): array
-    {
-        $isNav = $menuConfig['is_nav'] ?? 1;
-        $menuItems = $menuConfig['menu'] ?? [];
-        $items = isset($menuItems[0]) && is_array($menuItems[0]) ? $menuItems : [$menuItems];
-        $menu = [];
-        $pid = 0;
-        foreach (array_filter($items) as $item) {
-            if ($isNav == -1) {
-                $menu = array_merge($menu, $item['menulist'] ?? []);
-            } elseif ($isNav == 0) {
-                $menu[] = $item;
-                $pid = (int) $this->addPluginManager()->id;
-            } else {
-                $menu[] = $item;
-            }
-        }
-        return [$menu, $pid];
     }
 
     public function isInstall(string $name)
@@ -476,7 +388,7 @@ class PluginService extends AbstractService
             $plugin = $this->plugin($name);
             $this->beginOperation($record, $token, $enabled ? 'enabling' : 'disabling');
             if ($enabled) {
-                $this->resourcePublisher()->publish($manifest);
+                $this->infrastructure()->publisher()->publish($manifest);
                 if ($plugin->enabled() === false) {
                     throw new RuntimeException('插件启用钩子执行失败');
                 }
@@ -486,10 +398,7 @@ class PluginService extends AbstractService
                 if ($plugin->disabled() === false) {
                     throw new RuntimeException('插件禁用钩子执行失败');
                 }
-                $menus = (array) ($this->validatedManifest($name)->toArray()['menus'] ?? []);
-                if ($menus !== []) {
-                    $this->delPluginMenu($menus, $name);
-                }
+                $this->infrastructure()->disableMenus($name);
             }
             $this->transition($record, $enabled ? 'enabled' : 'disabled');
             return true;
@@ -510,15 +419,6 @@ class PluginService extends AbstractService
         if ((string) $record->lifecycle_state !== 'disabled' && (string) $record->lifecycle_state !== 'failed') {
             throw new RuntimeException(lang('Please disable plugins %s first', [$name]));
         }
-    }
-
-    private function removeEmptyPluginManager(): void
-    {
-        $manager = AdminMenu::where('source_type', 'system')->where('source_name', $this->myplugin)->find();
-        if ($manager && !AdminMenu::where('pid', $manager->id)->where('status', 1)->find()) {
-            $manager->save(['status' => 0]);
-        }
-        $this->clearApplicationCache();
     }
 
     private function assertName(string $name): void
@@ -560,20 +460,7 @@ class PluginService extends AbstractService
         $this->operationStages[$name] = $stage;
         $this->operationProgress[$name] = $progress;
         $context = $this->packageContexts[$name] ?? [];
-        PluginOperation::create([
-            'plugin_name' => $name,
-            'operation' => $operation,
-            'stage' => $stage,
-            'progress' => $progress,
-            'from_version' => '',
-            'to_version' => (string) ($context['code_version'] ?? ''),
-            'source' => (string) ($context['source'] ?? 'local'),
-            'package_hash' => (string) ($context['package_hash'] ?? str_repeat('0', 64)),
-            'result' => $stage === 'complete' ? 'success' : 'running',
-            'error_message' => null,
-            'recovery_path' => $recoveryPath,
-            'status' => 1,
-        ]);
+        $this->audit()->stage($name, $operation, $stage, $progress, $context, $recoveryPath);
     }
 
     private function recoveryPath(\Throwable $exception): ?string
@@ -633,79 +520,39 @@ class PluginService extends AbstractService
 
     private function restorePublishedResources(string $name): void
     {
-        $this->resourcePublisher()->publish($this->validatedManifest($name));
-    }
-
-    private function resourcePublisher(): PluginResourcePublisher
-    {
-        return new PluginResourcePublisher(
-            public_path(),
-            static fn (): array => PluginResource::select()->toArray(),
-            static function (string $plugin, array $records): void {
-                Db::transaction(static function () use ($plugin, $records): void {
-                    PluginResource::where('plugin', $plugin)->delete();
-                    foreach ($records as $record) {
-                        PluginResource::create($record);
-                    }
-                });
-            }
-        );
+        $this->infrastructure()->publisher()->publish($this->validatedManifest($name));
     }
 
     private function registerMenu(string $name): void
     {
         $menus = (array) ($this->validatedManifest($name)->toArray()['menus'] ?? []);
-        if ($menus !== []) {
-            $this->addPluginMenu($menus, 0, $name);
-        }
+        $this->infrastructure()->enableMenus($menus, $name);
     }
 
     private function migrate(string $name): array
     {
-        try {
-            $manifest = $this->validatedManifest($name);
-            $relative = (string) ($manifest->toArray()['migrations']['path'] ?? 'migrations');
-            $directory = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-            $versions = is_dir($directory)
-                ? MigrationService::instance()->runDirectory($directory, $this->migrationScope($name))
-                : [];
-            return [
-                'executed' => $versions,
-                'version' => MigrationService::instance()->latestAppliedVersion($this->migrationScope($name)),
-            ];
-        } catch (\Throwable $exception) {
-            throw new RuntimeException('migration: ' . $exception->getMessage(), 0, $exception);
-        }
+        return $this->infrastructure()->migrate($this->validatedManifest($name));
     }
 
-    private function migrationScope(string $name): string
+    private function infrastructure(): PluginInfrastructureService
     {
-        return 'plugin:' . strtolower($name);
+        return app(PluginInfrastructureService::class);
+    }
+
+    private function audit(): PluginOperationAuditService
+    {
+        return app(PluginOperationAuditService::class);
     }
 
     private function filterPluginColumns(array $data): array
     {
-        return array_intersect_key($data, array_flip($this->pluginColumns()));
-    }
-
-    private function pluginColumns(): array
-    {
-        if ($this->pluginColumns !== null) {
-            return $this->pluginColumns;
-        }
-        $prefix = (string) config('database.connections.mysql.prefix');
-        $table = str_replace('`', '``', $prefix . 'plugin');
-        $this->pluginColumns = array_map(
-            static fn (array $column): string => (string) $column['Field'],
-            Db::query("SHOW COLUMNS FROM `{$table}`")
-        );
-        return $this->pluginColumns;
+        return $this->infrastructure()->filterPluginColumns($data);
     }
 
     private function assertLifecycleSchema(): void
     {
         $required = ['config', 'db_version', 'migration_pending', 'last_error', 'installed_at', 'manifest', 'lifecycle_state', 'state_changed_at', 'operation_token', 'package_hash', 'code_version', 'source', 'error_stage', 'recovery_path', 'needs_reinstall'];
-        if (array_diff($required, $this->pluginColumns())) {
+        if (array_diff($required, $this->infrastructure()->pluginColumns())) {
             throw new RuntimeException('插件生命周期表结构未升级，请先执行 database/migrations/007_plugin_registry_state.sql');
         }
     }

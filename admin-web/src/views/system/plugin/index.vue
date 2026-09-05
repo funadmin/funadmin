@@ -60,6 +60,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessageBox } from 'element-plus';
 import { pluginApi, type MarketplacePlugin, type PluginItem } from '@/api/plugin';
+import router from '@/router';
+import { loadPluginModulesSafely } from '@/router/pluginStartup';
 import { buildPurgeConfirmation, confirmAction } from './pluginActions';
 import PluginAccountDrawer from './components/PluginAccountDrawer.vue';
 import PluginMarketDrawer from './components/PluginMarketDrawer.vue';
@@ -83,10 +85,11 @@ function dependencies(value: Record<string, string>) { return Object.entries(val
 async function load() { if (activeTab.value === 'market') return loadMarket(); loading.value = true; try { const loaded = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered(); if (activeTab.value !== 'installed') { items.value = loaded; return; } const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ name: item.name, version: item.version }))); const updatesByName = new Map(updates.map((item) => [item.name, item])); items.value = loaded.map((item) => { const update = updatesByName.get(item.name); return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '' }; }); } finally { loading.value = false; } }
 async function loadMarket() { loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } finally { loading.value = false; } }
 async function uploadZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file) return; try { await confirmAction(() => ElMessageBox.confirm(`确认安装本地插件包 ${file.name} 吗？`, '安装确认'), async () => { await pluginApi.installLocal(file); activeTab.value = 'installed'; await load(); }); } finally { input.value = ''; } }
-async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: '确认迁移插件', enable: '确认启用插件', disable: '确认禁用插件' } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.name} 吗？`, '操作确认'), async () => { await pluginApi[action](row.name); await load(); }); }
-async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认将 ${row.name} 更新到 ${row.latestVersion} 吗？`, '更新确认'), async () => { await pluginApi.update(row.name, row.latestVersion, true); await load(); }); }
+async function syncPluginRoutes() { await loadPluginModulesSafely(router); }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { const messages = { migrate: '确认迁移插件', enable: '确认启用插件', disable: '确认禁用插件' } as const; await confirmAction(() => ElMessageBox.confirm(`${messages[action]} ${row.name} 吗？`, '操作确认'), async () => { await pluginApi[action](row.name); await syncPluginRoutes(); await load(); }); }
+async function updatePlugin(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认将 ${row.name} 更新到 ${row.latestVersion} 吗？`, '更新确认'), async () => { await pluginApi.update(row.name, row.latestVersion, true); await syncPluginRoutes(); await load(); }); }
 async function installDiscovered(row: PluginItem) { await ElMessageBox.alert('请使用“上传本地 ZIP”执行经过校验的本地安装。', '本地安装'); selectedName.value = row.name; }
-async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认卸载插件 ${row.name} 吗？业务数据与配置将保留。`, '卸载确认'), async () => { await pluginApi.uninstall(row.name); await load(); }); }
+async function uninstall(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认卸载插件 ${row.name} 吗？业务数据与配置将保留。`, '卸载确认'), async () => { await pluginApi.uninstall(row.name); await syncPluginRoutes(); await load(); }); }
 async function purge(row: PluginItem) { let confirmation = ''; const completed = await confirmAction(() => ElMessageBox.prompt(`此操作仅清除插件业务数据，不卸载插件。请输入插件名称 ${row.name} 二次确认`, '危险操作').then(({ value }) => { confirmation = value; }), async () => { const payload = buildPurgeConfirmation(row.name, confirmation); await pluginApi.purge(row.name, payload.purgeConfirm); await load(); }); if (!completed) return; }
 async function deletePackage(row: PluginItem) { await confirmAction(() => ElMessageBox.confirm(`确认删除本地插件包 ${row.name} 吗？`, '删除确认'), async () => { await pluginApi.deletePackage(row.name); await load(); }); }
 function openConfig(row: PluginItem) { selectedName.value = row.name; configVisible.value = true; }

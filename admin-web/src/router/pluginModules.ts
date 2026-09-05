@@ -14,6 +14,7 @@ export interface PluginEsmModule {
 
 interface SyncOptions {
   origin?: string;
+  base?: string;
   importer?: (url: string) => Promise<PluginEsmModule>;
 }
 
@@ -21,11 +22,17 @@ const mounted = new Map<string, { signature: string; routeNames: string[] }>();
 
 const dynamicImporter = async (url: string): Promise<PluginEsmModule> => import(/* @vite-ignore */ url);
 
-export function isAllowedPluginModuleUrl(value: string, origin = window.location.origin): boolean {
+export function isAllowedPluginModuleUrl(value: string, origin = window.location.origin, base = '/'): boolean {
   try {
     if (value.includes('..') || value.includes('\\') || value.includes('\0')) return false;
     const url = new URL(value, origin);
-    return url.origin === origin && url.pathname.startsWith('/plugin-assets/') && /^\/plugin-assets\/[a-z][a-z0-9]*\/[A-Za-z0-9._/-]+\.m?js$/.test(url.pathname);
+    const normalizedBase = `/${base.replace(/^\/+|\/+$/g, '')}`.replace(/^\/$/, '');
+    const prefixes = ['/plugin-assets/', `${normalizedBase}/plugin-assets/`];
+    return url.origin === origin && prefixes.some((prefix) => {
+      if (!url.pathname.startsWith(prefix)) return false;
+      const relative = url.pathname.slice(prefix.length);
+      return /^[a-z][a-z0-9]*\/[A-Za-z0-9._/-]+\.m?js$/.test(relative);
+    });
   } catch {
     return false;
   }
@@ -37,6 +44,7 @@ export async function syncPluginModules(
   options: SyncOptions = {}
 ): Promise<{ loaded: string[]; errors: Array<{ name: string; message: string }> }> {
   const origin = options.origin ?? window.location.origin;
+  const base = options.base ?? import.meta.env.BASE_URL;
   const importer = options.importer ?? dynamicImporter;
   const activeNames = new Set(descriptors.map((item) => item.name));
 
@@ -53,11 +61,11 @@ export async function syncPluginModules(
   for (const descriptor of descriptors) {
     const signature = `${descriptor.version}:${descriptor.hash}`;
     const previous = mounted.get(descriptor.name);
-    if (previous?.signature === signature) {
+    if (previous?.signature === signature && previous.routeNames.every((routeName) => router.hasRoute(routeName))) {
       loaded.push(descriptor.name);
       continue;
     }
-    if (!isAllowedPluginModuleUrl(descriptor.entryUrl, origin)) {
+    if (!isAllowedPluginModuleUrl(descriptor.entryUrl, origin, base)) {
       errors.push({ name: descriptor.name, message: '插件模块 URL 不受信任' });
       continue;
     }
@@ -65,7 +73,10 @@ export async function syncPluginModules(
       previous?.routeNames.forEach((routeName) => {
         if (router.hasRoute(routeName)) router.removeRoute(routeName);
       });
-      const module = await importer(new URL(descriptor.entryUrl, origin).href);
+      const entryUrl = import.meta.env.DEV && descriptor.entryUrl.startsWith('/plugin-assets/')
+        ? `${base.replace(/\/$/, '')}${descriptor.entryUrl}`
+        : descriptor.entryUrl;
+      const module = await importer(new URL(entryUrl, origin).href);
       if (!module || typeof module.register !== 'function') throw new Error('插件模块缺少 register 导出');
       const registration = module.register({ name: descriptor.name, version: descriptor.version });
       if (!registration || typeof registration.components !== 'object') throw new Error('插件 register 返回契约无效');

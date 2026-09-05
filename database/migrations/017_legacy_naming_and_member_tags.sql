@@ -25,9 +25,12 @@ CREATE TABLE IF NOT EXISTS `fun_language` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_language_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='语言';
-INSERT INTO `fun_language` (`id`,`name`,`is_default`,`status`,`created_at`,`updated_at`,`deleted_at`)
-SELECT `id`,`name`,`is_default`,`status`,FROM_UNIXTIME(NULLIF(`create_time`,0)),FROM_UNIXTIME(NULLIF(`update_time`,0)),FROM_UNIXTIME(NULLIF(`delete_time`,0)) FROM `fun_languages`
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`),`is_default`=VALUES(`is_default`),`status`=VALUES(`status`),`updated_at`=VALUES(`updated_at`),`deleted_at`=VALUES(`deleted_at`);
+-- 语言表回填：兼容源表仍持 legacy int 列或已切换 datetime 三件套两种状态。
+SET @lang_c = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='create_time'), 'FROM_UNIXTIME(NULLIF(`create_time`,0))', IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='created_at'), '`created_at`', 'NULL'));
+SET @lang_u = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='update_time'), 'FROM_UNIXTIME(NULLIF(`update_time`,0))', IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='updated_at'), '`updated_at`', 'NULL'));
+SET @lang_d = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='delete_time'), 'FROM_UNIXTIME(NULLIF(`delete_time`,0))', IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages' AND COLUMN_NAME='deleted_at'), '`deleted_at`', 'NULL'));
+SET @sql = IF(EXISTS(SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_languages'), CONCAT('INSERT INTO `fun_language` (`id`,`name`,`is_default`,`status`,`created_at`,`updated_at`,`deleted_at`) SELECT `id`,`name`,`is_default`,`status`,', @lang_c, ',', @lang_u, ',', @lang_d, ' FROM `fun_languages` ON DUPLICATE KEY UPDATE `name`=VALUES(`name`),`is_default`=VALUES(`is_default`),`status`=VALUES(`status`),`updated_at`=VALUES(`updated_at`),`deleted_at`=VALUES(`deleted_at`)'), 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 原 provinces 实际承载省市区树，统一为 region。
 CREATE TABLE IF NOT EXISTS `fun_region` (
@@ -46,9 +49,10 @@ CREATE TABLE IF NOT EXISTS `fun_region` (
   PRIMARY KEY (`id`),
   KEY `idx_region_pid` (`pid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='省市区';
-INSERT INTO `fun_region` (`id`,`pid`,`name`,`short_name`,`area_code`,`zip_code`,`pinyin`,`longitude`,`latitude`,`level`,`sort_order`,`deleted_at`)
-SELECT `id`,`pid`,`name`,`short_name`,CAST(`areacode` AS CHAR),CAST(`zipcode` AS CHAR),`pinyin`,NULLIF(`lng`,''),NULLIF(`lat`,''),`level`,`sort`,FROM_UNIXTIME(NULLIF(`delete_time`,0)) FROM `fun_provinces`
-ON DUPLICATE KEY UPDATE `pid`=VALUES(`pid`),`name`=VALUES(`name`),`short_name`=VALUES(`short_name`),`area_code`=VALUES(`area_code`),`zip_code`=VALUES(`zip_code`),`pinyin`=VALUES(`pinyin`),`longitude`=VALUES(`longitude`),`latitude`=VALUES(`latitude`),`level`=VALUES(`level`),`sort_order`=VALUES(`sort_order`),`deleted_at`=VALUES(`deleted_at`);
+-- 省市区回填：兼容源表仍持 legacy delete_time 或已切换 deleted_at 两种状态。
+SET @prov_d = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_provinces' AND COLUMN_NAME='delete_time'), 'FROM_UNIXTIME(NULLIF(`delete_time`,0))', IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_provinces' AND COLUMN_NAME='deleted_at'), '`deleted_at`', 'NULL'));
+SET @sql = IF(EXISTS(SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=@schema_name AND TABLE_NAME='fun_provinces'), CONCAT('INSERT INTO `fun_region` (`id`,`pid`,`name`,`short_name`,`area_code`,`zip_code`,`pinyin`,`longitude`,`latitude`,`level`,`sort_order`,`deleted_at`) SELECT `id`,`pid`,`name`,`short_name`,CAST(`areacode` AS CHAR),CAST(`zipcode` AS CHAR),`pinyin`,NULLIF(`lng`,''''),NULLIF(`lat`,''''),`level`,`sort`,', @prov_d, ' FROM `fun_provinces` ON DUPLICATE KEY UPDATE `pid`=VALUES(`pid`),`name`=VALUES(`name`),`short_name`=VALUES(`short_name`),`area_code`=VALUES(`area_code`),`zip_code`=VALUES(`zip_code`),`pinyin`=VALUES(`pinyin`),`longitude`=VALUES(`longitude`),`latitude`=VALUES(`latitude`),`level`=VALUES(`level`),`sort_order`=VALUES(`sort_order`),`deleted_at`=VALUES(`deleted_at`)'), 'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 会员标签规范为实体表与多对多关联表。
 CREATE TABLE IF NOT EXISTS `fun_member_tag` (

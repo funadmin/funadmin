@@ -1,979 +1,318 @@
 <?php
-/**
- * FunAdmin
- * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: http://www.FunAdmin.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
- * ============================================================================
- * Author: yuege
- * Date: 2017/8/2
- */
+
+declare(strict_types=1);
+
 namespace app\common\traits;
-use app\backend\model\Admin;
-use app\common\annotation\NodeAnnotation;
-use app\common\model\Member;
-use app\common\service\UploadService;
-use fun\helper\TreeHelper;
-use OpenAI\Responses\Images\VariationResponse;
-use think\facade\Cache;
+
+use InvalidArgumentException;
+use LogicException;
 use think\facade\Db;
-use think\facade\Event;
-use think\helper\Str;
-use think\model\concern\SoftDelete;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use think\Model;
+use think\Response;
 
 /**
- * Trait Curd
- * @package common\traits
+ * Admin Web REST CRUD 公共流程。
+ *
+ * 控制器负责模型、查询、字段映射和业务校验；Trait 只编排稳定的 CRUD 流程。
  */
 trait Curd
 {
-
-
-    use SoftDelete;
-
-    /**
-     * 初始化方法
-     * 用于设置模型类和其他必要的属性
-     * 在控制器初始化时自动调用
-     * @return void
-     */
-    public function initialize()
+    protected function crudModelClass(): string
     {
-        parent::initialize();
-        // 设置模型类，优先使用已定义的modelClass，如果未定义则使用model属性
-        $this->modelClass = $this->modelClass ?: ($this->model??'');
-        // 确保modelClass已设置
-        if (empty($this->modelClass)) {
-            // 尝试根据控制器名称自动推断模型类
-            $className = get_class($this);
-            $classArr = explode('\\', $className);
-            $controllerName = end($classArr);
-
-            // 获取应用和模块名称
-            $appName = isset($classArr[0]) ? $classArr[0] : 'app';
-            $moduleName = isset($classArr[1]) ? $classArr[1] : 'common';
-
-            // 移除Controller后缀
-            $modelName = str_replace('Controller', '', $controllerName);
-
-            // 尝试不同的命名空间加载模型类
-            $modelPaths = [
-                "\\app\\{$moduleName}\\model\\{$modelName}",
-                "\\app\\common\\model\\{$modelName}"
-            ];
-            foreach ($modelPaths as $modelClass) {
-                if (class_exists($modelClass)) {
-                    $this->modelClass = new $modelClass();
-                    break;
-                }
-            }
-        }
-        // 如果modelClass是字符串（类名），则实例化它
-        if (is_string($this->modelClass) && class_exists($this->modelClass)) {
-            $this->modelClass = new $this->modelClass();
-        }
-    }
-    /**
-     * @NodeAnnotation(title="List")
-     * @return \think\response\Json|\think\response\View
-     */
-    public function index()
-    {
-        if (request()->isAjax()) {
-            if (request()->param('selectFields')) {
-                $this->selectList();
-            }
-            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
-            $list = $this->modelClass->where($where)->order($sort)->paginate([
-                'list_rows'=> $this->pageSize,
-                'page' => $this->page,
-            ]);
-            if(!empty($this->hiddenFields) ){
-                foreach ($this->hiddenFields as $key=>$field){
-                    $this->hiddenFields[$key] = $tableName.$field;
-                }
-                $list = $list->hidden($this->hiddenFields);
-            }
-            if(!empty($this->visibleFields) ){
-                foreach ($this->visibleFields as $key=>$field){
-                    $this->visibleFields[$key] = $tableName.$field;
-                }
-                $list = $list->visible($this->visibleFields);
-            }
-            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
-//            $count = $this->modelClass
-//                ->where($where)
-//                ->count();
-//            $list = $this->modelClass
-//                ->where($where)
-//                ->order($sort)
-//                ->page($this->page,$this->pageSize)
-//                ->select();
-//            $result = ['code' => 0, 'msg' => lang('operation success'), 'data' => $list, 'count' => $count];
-            return json($result);
-        }
-        return view();
+        throw new LogicException(static::class . ' 必须实现 crudModelClass()');
     }
 
-    /**
-     * @NodeAnnotation (title="add")
-     * @return \think\response\View
-     */
-    public function add()
+    protected function crudPayload(?Model $model = null): array
     {
-        if (request()->isPost()) {
-            $post = request()->post();
-            if ($this->dataLimit && $this->dataLimitField) {
-                $post[$this->dataLimitField] = session('admin.id');
-            }
-            foreach ($post as $k=>$v){
-                if(is_array($v)){
-                    $post[$k] = implode(',',$v);
-                }
-            }
-            $rule = [];
-            try {
-                $this->validate($post, $rule);
-            }catch (\ValidateException $e){
-                $this->error(lang($e->getMessage()));
-            }
-            try {
-                $save = $this->modelClass->save($post);
-            } catch (\Exception $e) {
-                $this->error(lang($e->getMessage()));
-            }
-            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
-        }
-        $view = [
-            'formData' => '',
-            'title' => lang('Add'),
-        ];
-        return view('',$view);
+        throw new LogicException(static::class . ' 必须实现 crudPayload()');
     }
 
-    /**
-     * @NodeAnnotation(title="edit")
-     * @return \think\response\View
-     */
-    public function edit()
+    protected function crudValidate(array &$data, ?Model $model = null): ?string
     {
-        $id = request()->param($this->modelClass->getPk());
-        $list = $this->findModel($id);
-        if(empty($list)) $this->error(lang('Data is not exist'));
-        if (request()->isPost()) {
-            $post = request()->post();
-            $rule = [];
-            try {
-                $this->validate($post, $rule);
-            }catch (\ValidateException $e){
-                $this->error(lang($e->getMessage()));
-            }
-            foreach ($post as $k=>$v){
-                if(is_array($v)){
-                    $post[$k] = implode(',',$v);
-                }
-                if ($v == "0000-00-00 00:00:00") {//避免插入数据库时出现错误，日期不能为空
-		            $post[$k] = null;
-	            }
-	            if ($v == "") {//避免插入数据库时出现错误，日期不能为空
-		            $post[$k] = null;
-	            }
-            }
-            try {
-                $save = $list->save($post);
-            } catch (\Exception $e) {
-                $this->error(lang($e->getMessage()));
-            }
-            $save ? $this->success(lang('operation success')) : $this->error(lang('operation failed'));
-        }
-        $view = ['formData'=>$list,'title' => lang('Add'),];
-        return view('add',$view);
+        return null;
     }
 
-
-    public function copy(){
-        $id = request()->param($this->modelClass->getPk());
-        $list = $this->findModel($id);
-        if(empty($list)) $this->error(lang('Data is not exist'));
-        if (request()->isPost()) {
-            $post = request()->post();
-            $rule = [];
-            try {
-                $this->validate($post, $rule);
-            }catch (\ValidateException $e){
-                $this->error(lang($e->getMessage()));
-            }
-            try {
-                $data = $list->toArray();
-                $data = array_merge($data,$post);
-                if(isset($data['created_at'])){
-                    unset($data['created_at']);
-                }
-                if(isset($data['updated_at'])){
-                    unset($data['updated_at']);
-                }
-                unset($data[$this->modelClass->getPk()]);
-                $this->modelClass->save($data);
-            } catch (\Exception $e) {
-                $this->error(lang($e->getMessage()));
-            }
-            $this->success(lang('operation success'));
-        }
-        $view = ['formData'=>$list,'title' => lang('Add'),];
-        return view('add',$view);
-    }
-    /**
-     * @NodeAnnotation(title="delete")
-     */
-    public function delete()
+    protected function crudData(Model $model): array
     {
-        if (!request()->isPost()) {
-            $this->error(lang('Invalid data'));
+        return $model->toArray();
+    }
+
+    public function index(): Response
+    {
+        $page = $this->page();
+        $pageSize = $this->pageSize();
+        $query = $this->crudOrderedQuery($this->crudRecycled());
+        $result = $query->paginate([
+            'list_rows' => $pageSize,
+            'page' => $page,
+        ]);
+
+        return $this->ok(data: $this->paginationData(
+            array_map(fn (Model $model): array => $this->crudData($model), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
+    }
+
+    public function detail(int $id): Response
+    {
+        $model = $this->crudFind($id, true);
+        return $model
+            ? $this->ok(data: $this->crudData($model))
+            : $this->fail(msg: $this->crudMessage('不存在'), code: 404);
+    }
+
+    public function create(): Response
+    {
+        $data = $this->crudPayload();
+        if ($error = $this->crudValidate($data)) {
+            return $this->fail(msg: $error, code: 422);
         }
-        $ids =  request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
-        if(empty($ids)) $this->error('id is not exist');
-        $query = $this->modelClass->withTrashed(true);
-        $this->applyDataLimit($query);
-        if ($ids == 'all') {
-            $list = $query->select();
-        } else {
-            if (is_string($ids)) {
-                $ids = strpos($ids, ',') !== false ? explode(',', $ids) : [$ids];
-            }
-            $list = $query->whereIn($this->modelClass->getPk(), $ids)->select();
+
+        $modelClass = $this->crudModelClass();
+        $model = $modelClass::create($data);
+        $this->crudAfterSave($model, true);
+
+        return $this->ok('创建成功', $this->crudData($model));
+    }
+
+    public function update(int $id): Response
+    {
+        $model = $this->crudFind($id);
+        if (!$model) {
+            return $this->fail(msg: $this->crudMessage('不存在'), code: 404);
         }
-        if(empty($list))$this->error('Data is not exist');
+
+        $data = $this->crudPayload($model);
+        if ($error = $this->crudValidate($data, $model)) {
+            return $this->fail(msg: $error, code: 422);
+        }
+
+        $model->save($data);
+        $this->crudAfterSave($model, false);
+
+        return $this->ok('保存成功', $this->crudData($model));
+    }
+
+    public function status(int $id): Response
+    {
+        $model = $this->crudFind($id);
+        if (!$model) {
+            return $this->fail(msg: $this->crudMessage('不存在'), code: 404);
+        }
+
+        $model->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
+        $this->crudAfterSave($model, false);
+
+        return $this->ok('状态更新成功', $this->crudData($model));
+    }
+
+    public function recycle(): Response
+    {
+        $models = $this->crudModelsForAction(false);
+        if ($models instanceof Response) {
+            return $models;
+        }
+        if ($denied = $this->crudBeforeDelete($models, false)) {
+            return $denied;
+        }
+
+        foreach ($models as $model) {
+            $model->delete();
+        }
+
+        return $this->ok('已移入回收站', ['removed' => count($models)]);
+    }
+
+    public function restore(): Response
+    {
+        $models = $this->crudModelsForAction(true, '恢复');
+        if ($models instanceof Response) {
+            return $models;
+        }
+
+        foreach ($models as $model) {
+            $model->restore();
+        }
+
+        return $this->ok('恢复成功', ['restored' => count($models)]);
+    }
+
+    public function destroy(): Response
+    {
+        $models = $this->crudModelsForAction(true);
+        if ($models instanceof Response) {
+            return $models;
+        }
+        if ($denied = $this->crudBeforeDelete($models, true)) {
+            return $denied;
+        }
+
+        foreach ($models as $model) {
+            $model->force()->delete();
+        }
+
+        return $this->ok('永久删除成功', ['removed' => count($models)]);
+    }
+
+    public function import(): Response
+    {
+        $rows = $this->request->post('rows', []);
+        if (!is_array($rows) || !$rows) {
+            return $this->fail(msg: '导入数据不能为空', code: 422);
+        }
+        if (count($rows) > $this->crudImportLimit()) {
+            return $this->fail(msg: sprintf('单次最多导入 %d 条数据', $this->crudImportLimit()), code: 422);
+        }
+
+        $modelClass = $this->crudModelClass();
         try {
-            foreach ($list as $k=>$v){
-                $v->force()->delete();
-            }
-        } catch (\Exception $e) {
-            $this->error(lang($e->getMessage()));
-        }
-        $this->success(lang("Delete Success"));
-    }
-    /**
-     * @NodeAnnotation(title="destroy")
-     */
-    public function destroy()
-    {
-        if (!request()->isPost()) {
-            $this->error(lang('Invalid data'));
-        }
-        $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
-        if(empty($ids)) $this->error('id is not exist');
-        $query = $this->modelClass->whereIn($this->modelClass->getPk(), $ids);
-        $this->applyDataLimit($query);
-        $list = $query->select();
-        if(empty($list)) $this->error('Data is not exist');
-        try {
-            foreach ($list as $k=>$v){
-                $v->delete();
-            }
-        } catch (\Exception $e) {
-            $this->error(lang($e->getMessage()));
-        }
-        $this->success(lang("Destroy Success"));
-    }
-
-    /**
-     * @NodeAnnotation(title="sort")
-     * @param $id
-     */
-    public function sort($id)
-    {
-        if (!request()->isPost()) {
-            $this->error(lang('Invalid data'));
-        }
-        $model = $this->findModel($id);
-        if(empty($model))$this->error('Data is not exist');
-        $sort = request()->param('sort');
-        $save = $model->sort_order = $sort;
-        $save ? $this->success(lang('operation success')) :  $this->error(lang("operation failed"));
-    }
-
-    /**
-     * @NodeAnnotation(title="modify")
-     */
-    public function modify(){
-        if (!request()->isPost()) {
-            $this->error(lang('Invalid data'));
-        }
-        $id = input($this->modelClass->getPk()) ?: input('id');
-        $field = input('field');
-        $value = input('value');
-        if($id){
-            if($this->allowModifyFields != ['*'] && !in_array($field,$this->allowModifyFields)){
-                $this->error(lang('Field Is Not Allow Modify：' . $field));
-            }
-            $model = $this->findModel($id);
-            if (!$model) {
-                $this->error(lang('Data Is Not Exist'));
-            }
-            $model->$field = $value;
-            try{
-                $save = $model->save();
-            }catch(\Exception $e){
-                $this->error(lang($e->getMessage()));
-            }
-            $save ? $this->success(lang('Modify success')) :  $this->error(lang("Modify Failed"));
-        }else{
-            $this->error(lang('Invalid data'));
-        }
-    }
-
-    /**
-     * @NodeAnnotation (title="Recycle")
-     * @return \think\response\Json|\think\response\View
-     */
-    public function recycle()
-    {
-        if (request()->isAjax()) {
-            list($this->page, $this->pageSize,$sort,$where,$tableName) = $this->buildParames();
-            $list = $this->modelClass->onlyTrashed()
-                ->where($where)->order($sort)->paginate([
-                'list_rows'=> $this->pageSize,
-                'page' => $this->page,
-            ]);
-            if(!empty($this->hiddenFields) ){
-                foreach ($this->hiddenFields as $key=>$field){
-                    $this->hiddenFields[$key] = $tableName.$field;
+            $created = Db::transaction(function () use ($rows, $modelClass): array {
+                $models = [];
+                foreach (array_values($rows) as $index => $row) {
+                    if (!is_array($row)) {
+                        throw new InvalidArgumentException(sprintf('第 %d 行数据格式错误', $index + 1));
+                    }
+                    $data = $this->crudImportPayload($row);
+                    if ($error = $this->crudValidate($data)) {
+                        throw new InvalidArgumentException(sprintf('第 %d 行：%s', $index + 1, $error));
+                    }
+                    $model = $modelClass::create($data);
+                    $this->crudAfterSave($model, true);
+                    $models[] = $model;
                 }
-                $list = $list->hidden($this->hiddenFields);
-            }
-            if(!empty($this->visibleFields) ){
-                foreach ($this->visibleFields as $key=>$field){
-                    $this->visibleFields[$key] = $tableName.$field;
-                }
-                $list = $list->visible($this->visibleFields);
-            }
+                return $models;
+            });
+        } catch (InvalidArgumentException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 422);
+        }
 
-            $result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => $list->items(), 'count' =>$list->total()];
-            return json($result);
-        }
-        return view('index');
-    }
-    /**
-     * @NodeAnnotation(title="Restore")
-     * @return bool
-     */
-    public function restore(){
-        if (!request()->isPost()) {
-            $this->error(lang('Invalid data'));
-        }
-        $ids = request()->param('ids')?request()->param('ids'):request()->param($this->modelClass->getPk());
-        if(empty($ids)) $this->error('id is not exist');
-        $query = $this->modelClass->onlyTrashed()->whereIn($this->modelClass->getPk(), $ids);
-        $this->applyDataLimit($query);
-        $list = $query->select();
-        if(empty($list)) $this->error('Data is not exist');
-        try {
-            foreach ($list as $k=>$v){
-                $v->restore();
-            }
-        } catch (\Exception $e) {
-            $this->error(lang($e->getMessage()));
-        }
-        $this->success(lang("Restore Success"));
+        return $this->ok('导入成功', ['created' => count($created)]);
     }
 
-    /**
-     * @NodeAnnotation(title="Import")
-     * @return bool
-     */
-    public function import()
+    public function export(): Response
     {
-        $file = request()->file('file');
-        $file= UploadService::instance()->uploads(session('member.id'),session('admin.id'));
-        if(!$file['url']){
-            $this->error(lang("Upload failed"));
+        $query = $this->crudOrderedQuery($this->crudRecycled());
+        if ((clone $query)->count() > $this->crudExportLimit()) {
+            return $this->fail(msg: sprintf('导出数据超过 %d 条，请缩小筛选范围', $this->crudExportLimit()), code: 422);
         }
-        $file = $file['url'];
-        $excelData = $this->getFileData($file);
-        $tableField = $this->getTableField();
-        try {
-            $excelData = array_filter($excelData);
-            $fieldTitle = array_filter($excelData[0]);
-            $data = [];
-            $tableComment =  array_map('strtolower',array_values($tableField));
-            $tableComment = array_map('trim', $tableComment);
-            foreach ($excelData as $key => $value) {
-                if($key == 0) continue;
-                $one = [];
-                foreach ($value as $k=>$val) {
-                    if($k>count($fieldTitle)-1) unset($value[$k]);
-                }
-                $newValue = array_combine($fieldTitle,$value);
-                foreach ($newValue as $k=>$v){
-                    if ($k && in_array(strtolower(trim($k)),$tableComment)) {
-                        $field = array_search($k,$tableField);
-                        if($this->importFields!=['*'] && !in_array($field,$this->importFields)) continue;
-                        if($field=='admin_id' && is_string($v)){
-                            $admin = Admin::where('username|real_name',$v)->find();
-                            if($admin){
-                                $v = $admin->id;
-                            }else{
-                                $v = session('admin.id');
-                            }
-                        }
-                        if($field=='member_id' && is_string($v)){
-                            $admin = Member::where('username',$v)->find();
-                            if($admin){
-                                $v = $admin->id;
-                            }else{
-                                $v = session('member.id');
-                            }
-                        }
-                        if($field){
-                            $one[$field] = $v;
-                        }
 
-                    }
-                }
-                if($one) $data[] = $one;
-            }
-            $data = array_filter($data);
-            $this->modelClass->saveAll($data);
-        } catch (\Exception $e) {
-            $this->error($e->getMessage());
-        }
-        $this->success(lang('Import successful'));
-
+        return $this->ok(data: array_map(
+            fn (Model $model): array => $this->crudData($model),
+            $query->select()->all()
+        ));
     }
 
-    /**
-     * @NodeAnnotation(title="Export")
-     */
-    public function export()
+    protected function crudResourceName(): string
     {
-        $this->relationSearch = false;//关联表格，如果要关联需要单独重写
-        list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-        $tableName = $this->modelClass->getName();
-        $tableName  = Str::snake($tableName);
-        $tablePrefix = $this->modelClass->get_table_prefix();
-        $fieldList =  Cache::get($tableName.'_field');
-        if(!$fieldList){
-            $fieldList = Db::query("show full columns from {$tablePrefix}{$tableName}");
-            Cache::tag($tableName)->set($tableName.'_field',$fieldList);
-        }
-        $tableInfo =  Cache::get($tableName);
-        if(!$tableInfo){
-            $tableInfo = Db::query("show table status like '{$tablePrefix}{$tableName}'");
-            Cache::tag($tableName)->set($tableName,$tableInfo);
-        }
-        $headerArr = [];
-        foreach ($fieldList as $vo) {
-            if($this->exportFields !=['*'] && !in_array($vo['Field'],$this->exportFields)) continue;
-            $comment = !empty($vo['Comment']) ? $vo['Comment'] : $vo['Field'];
-            $comment = explode('=',$comment)[0];
-            if(!in_array($vo['Field'],['updated_at','deleted_at'])) {
-                $headerArr[$vo['Field']] =$comment;
-            } ;
-        }
-        $list = $this->modelClass->where($where)->field($this->exportFields)->order($sort)->select()->toArray();
-        $tableChName =  $tableInfo[0]['Comment']? $tableInfo[0]['Comment']:$tableName;
-        $fileName = $tableChName.'-'.date('Y-m-d H:i:s').'.xlsx';
-        $param  = [
-            'headerArr'=>$headerArr,
-            'fileName'=>$fileName,
-            'list'=>$list,
-        ];
-        $res = Event::trigger('exportExcel', $param, true);
-        if($res){
-            $this->success(lang('export success'));
-        }
-        $this->excelData($list,$headerArr,$fileName);
+        return '数据';
     }
 
-    /**
-     * 返回模型
-     * @param $id
-     */
-    protected function findModel($id)
+    protected function crudSearchFields(): array
     {
-        $query = $this->modelClass->where($this->modelClass->getPk(), $id);
-        $this->applyDataLimit($query);
-        if (empty($id) || empty($model = $query->find())) {
-            return '';
-        }
-        return $model;
+        return [];
     }
 
-    /**
-     * 对列表和按主键写操作复用同一数据范围，防止通过构造 ID 绕过列表限制。
-     */
-    protected function applyDataLimit($query)
+    protected function crudExactFilters(): array
     {
-        if (!$this->dataLimit || !$this->dataLimitField) {
-            return $query;
-        }
-        if (is_bool($this->dataLimit)) {
-            return $query->where($this->dataLimitField, session('admin.id'));
-        }
-        $ids = is_array($this->dataLimit) ? $this->dataLimit : explode(',', (string) $this->dataLimit);
-        return $query->whereIn($this->dataLimitField, $ids);
+        return ['status' => 'status'];
     }
 
-    /**
-     * 获取表格文件内容
-     * @param $file
-     * @return array|void
-     * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
-     */
-    protected function getFileData($file=''){
-        if (!$file) {
-            $this->error(lang("Parameter error"));
-        }
-        $file = public_path(). trim($file,'/');
-        //此处写导入逻辑
-        $file = iconv("utf-8", "gb2312", $file);
-        if (empty($file) || !file_exists($file)) {
-            $this->error(lang('file does not exist'));
-        }
-        $ext = pathinfo($file, PATHINFO_EXTENSION);
-        if (!in_array($ext, ['csv', 'xls', 'xlsx'])) {
-            $this->error(lang('file  format not right'));
-        }
-        //实例化reader
-        if ($ext === 'csv') {
-            $reader = IOFactory::createReader('Csv')->setInputEncoding('GB2312');
-        } elseif ($ext === 'xls') {
-            $reader = IOFactory::createReader('Xls');
-        } else {
-            $reader = IOFactory::createReader('Xlsx');
-        }
-        if (!$PHPExcel = $reader->load($file)) {
-            $this->error(lang('Unknown data format'));
-        }
-        $excelData = $PHPExcel->getSheet(0)->toArray();
-        $excelData = array_filter($excelData);
-        return $excelData;
-
-    }
-
-    /**
-     * @param $modelClass
-     * @return array
-     */
-    protected function getTableField($modelClass='',$field='COLUMN_NAME,COLUMN_COMMENT'){
-        $driver = config('database.default');
-        $this->modelClass = $modelClass?:$this->modelClass;
-        $database = $this->modelClass->get_databasename();
-        $table = Str::snake($this->modelClass->getName());
-        $tablePrefix = $this->modelClass->get_table_prefix();
-        $sql = "select $field from information_schema . columns  where table_name = '" . $tablePrefix . $table . "' and table_schema = '" . $database . "'";
-        $tableField = Db::connect($driver)->query($sql);
-        $fieldArr = [];
-        foreach ($tableField as $field){
-            $fieldArr[$field['COLUMN_NAME']] = (trim($field['COLUMN_COMMENT']));
-        }
-        return $fieldArr;
-    }
-    /**
-     * @param $data
-     * @param $headerArr
-     * @param $headTitle
-     * @param $filename
-     */
-    protected function excelData($data=[],$headerArr=[],$filename=''){
-        $objPHPExcel = new Spreadsheet();
-        $objPHPExcel->getProperties();
-        $key = ord("A"); // 设置表头
-        $key2 = ord("@"); //	超过26列会报错的解决方案
-        // 居中
-        $objPHPExcel->getDefaultStyle()->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-        $objPHPExcel->getDefaultStyle()->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-        // 设置表头
-        foreach ($headerArr as $v) {
-            // 超过26列会报错的解决方案
-            if ($key > ord("Z")) {
-                $key2 += 1;
-                $key = ord("A");
-                $colum = chr($key2) . chr($key); //超过26个字母时才会启用
-            } else {
-                if ($key2 >= ord("A")) {
-                    $colum = chr($key2) . chr($key);
-                } else {
-                    $colum = chr($key);
-                }
-            }
-            // 写入表头
-            $objPHPExcel->setActiveSheetIndex(0)->setCellValue($colum . '1', $v);
-            // 自适应宽度
-                // $len = strlen(iconv('utf-8','gb2312',$v));//会报错
-            $len = strlen(iconv('utf-8', 'gbk', $v));
-            $objPHPExcel->getActiveSheet()->getColumnDimension($colum)->setWidth($len + 5);
-            $key += 1;
-        }
-        $column = 2;
-        $objActSheet = $objPHPExcel->getActiveSheet();
-        $keys = array_keys($headerArr);
-        // 写入行数据
-        foreach ($data as $key => $rows) {
-            $span = ord("A");
-            $span2 = ord("@");
-            // 按列写入
-            foreach ($rows as $keyName => $value) {
-                if(!in_array($keyName,$keys)) continue;
-                if($keyName=='admin_id'){
-                    $admin = Admin::find($value);
-                    if($admin){
-                        $value = $admin->username;
-                    }
-                }
-                if($keyName=='member_id'){
-                    $member = Member::find($value);
-                    if($member){
-                        $value = $member->username;
-                    }
-                }
-                // 超过26列会报错的解决方案
-                if ($span > ord("Z")) {
-                    $span2 += 1;
-                    $span = ord("A");
-                    $tmpSpan = chr($span2) . chr($span); //超过26个字母时才会启用
-                } else {
-                    if ($span2 >= ord("A")) {
-                        $tmpSpan = chr($span2) . chr($span);
-                    } else {
-                        $tmpSpan = chr($span);
-                    }
-                }
-                $value = is_array($value)?implode(',',$value):$value;
-                // 写入数据
-                if ($value && preg_match('/^\d{11,}$/', $value)) {
-                    //正则判断数据是数字且超过10位，则输出本型，防止科学计数
-                    $objActSheet->setCellValueExplicit($tmpSpan . $column, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                } else {
-                    $objActSheet->setCellValue($tmpSpan . $column, $value);
-                }
-                $span++;
-            }
-            $column++;
-        }
-
-        // 自动加边框
-        $styleThinBlackBorderOutline = array(
-            'borders' => array(
-                'allborders' => array( //设置全部边框
-                    'style' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN //粗的是thick
-                ),
-
-            ),
-        );
-        $objPHPExcel->getActiveSheet()->getStyle('A1:' . $colum . --$column)->applyFromArray($styleThinBlackBorderOutline);
-        // 重命名表
-        // $fileName = iconv("utf-8", "gb2312", $fileName);
-        $fileName = iconv("utf-8", "gbk", $filename);
-        // 设置活动单指数到第一个表,所以Excel打开这是第一个表
-        $objPHPExcel->setActiveSheetIndex(0);
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header("Content-Disposition: attachment;filename=$fileName");
-        header('Cache-Control: max-age=0');
-        // $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($objPHPExcel, 'Xlsx');
-        $writer = new Xlsx($objPHPExcel);
-        $writer->save('php://output'); // 文件通过浏览器下载
-        exit();
-    }
-
-    /**
-     * 下拉选择列表
-     * @throws \think\db\exception\DataNotFoundException
-     * @throws \think\db\exception\DbException
-     * @throws \think\db\exception\ModelNotFoundException
-     */
-    protected function selectList()
+    protected function crudQuery(bool $recycled)
     {
-        if(input('selectFields') && input('showField')){
-            return $this->selectpage();
+        $modelClass = $this->crudModelClass();
+        $query = $recycled ? $modelClass::onlyTrashed() : $modelClass::where('id', '>', 0);
+
+        foreach ($this->crudSearchFields() as $parameter => $field) {
+            $value = trim((string) $this->request->get($parameter, ''));
+            if ($value !== '') {
+                $query->whereLike($field, '%' . $value . '%');
+            }
         }
-        $fields = input('selectFields/a','htmlspecialchars,strip_tags');
-        $tree = input('tree');
-        $field = $fields['name'].','.$fields['value'];
-        $parentField = input('parentField/s','','htmlspecialchars,strip_tags');
-        list($this->page, $this->pageSize,$sort,$where) = $this->buildParames();
-        if($tree!='false' && $tree){
-            $parentField = $parentField?:'pid';
-            $field = $field.','.$parentField;
+        foreach ($this->crudExactFilters() as $parameter => $field) {
+            $value = $this->request->get($parameter, null);
+            if ($value !== null && $value !== '') {
+                $query->where($field, $value);
+            }
         }
-        $list = $this->modelClass
-            ->where($this->selectMap)
-            ->where($where)
-            ->field($field)
-            ->select();
-        if($tree!='false' && $tree){
-            $list = $list?$list->toArray():[];
-            $list = TreeHelper::getTree($list,$fields['name'],0,$parentField);
-            rsort($list);
-        }
-        $this->success('','',$list);
+
+        return $query;
     }
-    /**
-     *
-     * 当前方法只是一个比较通用的搜索匹配,请按需重载此方法来编写自己的搜索逻辑,$where按自己的需求写即可
-     * 这里示例了所有的参数，所以比较复杂，实现上自己实现只需简单的几行即可
-     *
-     */
-    protected function selectpage()
+
+    protected function crudOrder(): array
     {
-        //设置过滤方法
-        request()->filter(['trim', 'strip_tags', 'htmlspecialchars']);
-        //搜索关键词,客户端输入以空格分开,这里接收为数组
-        $word = (array) request()->param("q_word/a");
-        $word        = array_filter(array_unique($word));
-        $searchTable        = request()->param("searchTable/s");
-        $class = "\\app\\common\\model\\".Str::studly($searchTable);
-        if($searchTable && class_exists($class)) $this->modelClass = new $class;
-        //当前页
-        $page = request()->param("pageNumber",1);
-        //分页大小
-        $pagesize = request()->param("pageSize",10);
-        //搜索条件
-        $andor = request()->param("andOr", 'AND', "strtoupper");
-        //排序方式
-        $orderby = (array) request()->param("orderBy/a");
-        //显示的字段
-        $field = request()->request("showField");
-        //主键
-        $primarykey = request()->param("keyField");
-        //主键值
-        $primaryvalue = request()->param("keyValue");
-        //搜索字段
-        $searchfield = (array) request()->param("selectFields/a")  ;
-        //是否返回树形结构
-        $istree = request()->param("isTree/d", 0);
-        $ishtml = request()->param("isHtml/d", 0);
-        if ($istree) {
-            $word     = [];
-            $pagesize = 999999;
-        }
-        $order = [];
-        foreach ($orderby as $k => $v) {
-            if($v=='false');continue;
-            $order[$v[0]] = $v[1];
-        }
-        $where  = []; $whereOr  = [];
-        //如果有primaryvalue,说明当前是初始化传值
-        if ($primaryvalue !== null) {
-            $where[]    = [$primarykey ,'in', explode(',', $primaryvalue)];
-            $pagesize = 99999;
-        } else {
-            $logic       = $andor == 'AND' ? '&' : '|';
-            $searchfield = is_array($searchfield) ? implode($logic, $searchfield) : $searchfield;
-            $searchfield = str_replace(',', $logic, $searchfield);
-            foreach ($word as $key => $val)  {
-                array_push($whereOr,[[$searchfield,'LIKE','%'.$val.'%']]);
-            }
-        }
-        $fields = is_array($this->selectpageFields) ? $this->selectpageFields : ($this->selectpageFields && $this->selectpageFields != '*' ? explode(',', $this->selectpageFields) : []);
-        if (!empty($whereOr)){
-            $list = $this->modelClass->whereOr($whereOr)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page,]);
-        }else{
-            $list = $this->modelClass->where($where)->field($fields)->order($order)->paginate(['list_rows'=> $pagesize, 'page' => $page]);
-        }
-        $field = $field ?: 'name';
-        if ($list->count() > 0) {
-            $list = $list->toArray();
-            foreach ($list['data'] as $index => &$item) {
-                unset($item['password'], $item['token']);
-                $item[$primarykey] = isset($item[$primarykey]) ? $item[$primarykey] : '';
-                $item[$field]      = isset($item[$field]) ? $item[$field] : '';
-                $item['pid'] = isset($item['pid']) ? $item['pid'] : (isset($item['parent_id']) ? $item['parent_id'] : 0);
-            }
-            unset($item);
-            if ($istree && !$primaryvalue) {
-                $list['data'] =TreeHelper::cateTree($list['data'], $field);
-                    foreach ($list['data'] as &$item) {
-                        if (!$ishtml) {
-                            $item['l' . $field] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item['l' . $field]);
-                            $item[$field] = str_replace('|— ', '&nbsp;&nbsp;&nbsp;&nbsp;', $item[$field]);
-                        }
-                        $item[$field] = $item['l' . $field];
-                    }
-                    unset($item);
-            }
-        }
-        $result = ['data' => $list['data'], 'count' =>$list['total']];
-        //这里一定要返回有list这个字段,total是可选的,如果total<=list的数量,则会隐藏分页按钮
-        $this->success('ok','',$result);
+        return ['id' => 'asc'];
     }
 
-    protected function buildQuery($searchFields=null,$relationSearch=null){
-
-        return $this->buildParames($searchFields,$relationSearch);
-    }
-    protected function buildParams($searchFields=null,$relationSearch=null){
-
-        return $this->buildParames($searchFields,$relationSearch);
-    }
-    /**
-     * 组合参数
-     * @param null $searchfields
-     * @param null $relationSearch
-     * @param bool $withStatus
-     * @return array
-     */
-    protected function buildParames($searchFields=null,$relationSearch=null)
+    protected function crudImportPayload(array $row): array
     {
-        header("content-type:text/html;charset=utf-8"); //设置编码
-        $searchFields = is_null($searchFields) ? $this->searchFields : $searchFields;
-        $relationSearch = is_null($relationSearch) ? $this->relationSearch : $relationSearch;
-        $search = request()->get("search", '');
-        $searchName = request()->get("searchName", $searchFields);
-        $page = request()->param('page/d',1);
-        $limit = request()->param('limit/d',15) ;
-        $filters = request()->get('filter','{}') ;
-        $ops = request()->param('op','{}') ;
-        $sort = request()->get("sort", !empty($this->modelClass) && $this->modelClass->getPk() ? $this->modelClass->getPk() : 'id');
-        $order = request()->get("order", "DESC");
-//        $filters = htmlspecialchars_decode(iconv('GBK','utf-8',$filters));
-        $filters = htmlspecialchars_decode($filters);
-        $filters = json_decode($filters,true);
-        $ops = htmlspecialchars_decode(iconv('GBK','utf-8',$ops));
-        $ops = json_decode($ops,true);
-        $tableName = '';
-        $where = [];
-        if ($relationSearch) {
-            if (!empty($this->modelClass)) {
-                $class = get_class($this->modelClass);
-                $className =explode('\\',$class);
-                $modelName = parse_name(array_pop($className));
-                $tableName = $modelName.'.';
-                $sortArr = explode(',', $sort);
-                foreach ($sortArr as $index => & $item) {
-                    $item = stripos($item, ".") !== false ? $tableName . trim($item) .' '.$order : $item .' '. $order;
-                }
-                unset($item);
-                $sort= implode(',', $sortArr);
-            }
-        }else{
-            $sort = ["$sort"=>$order];
-        }
-
-        if($this->dataLimit && $this->dataLimitField){
-            if(is_bool($this->dataLimit)){
-                $where[] = [$tableName.$this->dataLimitField=>session('admin.id')];
-            }else{
-                $where[] = [$tableName.$this->dataLimitField,'in',is_array($this->dataLimit)?$this->dataLimit:explode(',',$this->dataLimit)];
-            }
-        }
-
-        if ($search) {
-            $searcharr = is_array($searchName) ? $searchName : explode(',', $searchName);
-            foreach ($searcharr as $k => &$v) {
-                $v = stripos($v, ".") === false ? $tableName . $v : $v;
-            }
-            unset($v);
-            $where[] = [implode("|", $searcharr), "LIKE", "%{$search}%"];
-        }
-        foreach ($filters as $key => $val) {
-            $val = str_replace(["\r\n","\n",'\r'],'',$val);
-            $key = $this->joinSearch[$key] ??$key;
-            $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
-            $key =stripos($key, ".") === false ? $tableName . $key :$key;
-            switch (strtoupper($op)) {
-                case '=':
-                    $where[] = [$key, '=', $val];
-                    break;
-                case '>':
-                case '>=':
-                case '<':
-                case '<=':
-                    $where[] = [$key, $op, $val];
-                    break;
-                case 'IN':
-                    $val = is_array($val)?$val:explode(',',$val);
-                    $where[] = [$key, 'IN', $val];
-                    break;
-                case '%*%':
-                    $where[] = [$key, 'LIKE', "%{$val}%"];
-                    break;
-                case '*%':
-                    $where[] = [$key, 'LIKE', "{$val}%"];
-                    break;
-                case '%*':
-                    $where[] = [$key, 'LIKE', "%{$val}"];
-                    break;
-                case 'BETWEEN':
-                    $arr = array_slice(explode(',', $val), 0, 2);
-                    if (stripos($val, ',') === false || !array_filter($arr)) {
-                        continue 2;
-                    }
-                    [$begin, $end] = [$arr[0],$arr[1]];
-                    if($begin){
-                        $where[] = [$key, '>=', ($begin)];
-                    }
-                    if($end){
-                        $where[] = [$key, '<=', ($end)];
-                    }
-                    break;
-                case 'NOT BETWEEN':
-                    $arr = array_slice(explode(',', $val), 0, 2);
-                    if (stripos($val, ',') === false || !array_filter($arr)) {
-                        continue 2;
-                    }
-                    [$begin, $end] = [$arr[0],$arr[1]];
-                    if($begin){
-                        $where[] = [$key, '<=', ($begin)];
-                    }
-                    if($end){
-                        $where[] = [$key, '>=', ($end)];
-                    }
-                    break;
-                case 'RANGE':
-                    $val = str_replace(' - ', ',', $val);
-                    $arr = array_slice(explode(',', $val), 0, 2);
-                    if (stripos($val, ',') === false || !array_filter($arr)) {
-                        continue 2;
-                    }
-                    [$begin, $end] = [$arr[0],$arr[1]];
-                    if($begin){
-                        $where[] = [$key, '>=', strtotime($begin)];
-                    }
-                    if($end){
-                        $where[] = [$key, '<=', strtotime($end)];
-                    }
-                    break;
-                case 'DATERANGE':
-                    $val = str_replace(' - ', ',', $val);
-                    $arr = array_slice(explode(',', $val), 0, 2);
-                    if (stripos($val, ',') === false || !array_filter($arr)) {
-                        continue 2;
-                    }
-                    [$begin, $end] = [$arr[0],$arr[1]];
-                    $where[] = [$key, 'BETWEEN TIME',[$begin, $end]];
-
-                    break;
-                case 'NOT RANGE':
-                    $val = str_replace(' - ', ',', $val);
-                    $arr = array_slice(explode(',', $val), 0, 2);
-                    if (stripos($val, ',') === false || !array_filter($arr)) {
-                        continue 2;
-                    }
-                    [$begin, $end] = [$arr[0],$arr[1]];
-                    //当出现一边为空时改变操作符
-                    if ($begin !== '') {
-                        $where[] = [$key, '<=', strtotime($begin)];
-                    } elseif ($end === '') {
-                        $where[] = [$key, '>=', strtotime($begin)];
-                    }
-                    break;
-                case 'NULL':
-                case 'IS NULL':
-                case 'NOT NULL':
-                case 'IS NOT NULL':
-                    $where[] = [$key, strtolower(str_replace('IS ', '', $op))];
-                    break;
-                default:
-                    $where[] = [$key, $op, "%{$val}%"];
-            }
-        }
-        return [$page, $limit,$sort,$where,$tableName];
+        return $row;
     }
 
+    protected function crudImportLimit(): int
+    {
+        return 1000;
+    }
+
+    protected function crudExportLimit(): int
+    {
+        return 10000;
+    }
+
+    protected function crudBeforeDelete(iterable $models, bool $force): ?Response
+    {
+        return null;
+    }
+
+    protected function crudAfterSave(Model $model, bool $created): void
+    {
+    }
+
+    private function crudRecycled(): bool
+    {
+        return (int) $this->request->get('recycled', 0) === 1;
+    }
+
+    private function crudOrderedQuery(bool $recycled)
+    {
+        $query = $this->crudQuery($recycled);
+        foreach ($this->crudOrder() as $field => $direction) {
+            $query->order($field, strtolower((string) $direction) === 'desc' ? 'desc' : 'asc');
+        }
+        return $query;
+    }
+
+    private function crudFind(int $id, bool $withTrashed = false): ?Model
+    {
+        $modelClass = $this->crudModelClass();
+        $query = $withTrashed ? $modelClass::withTrashed() : $modelClass::where('id', '>', 0);
+        $model = $query->where('id', $id)->find();
+        return $model instanceof Model ? $model : null;
+    }
+
+    private function crudModelsForAction(bool $onlyTrashed, string $action = '操作'): iterable|Response
+    {
+        $ids = $this->ids();
+        if (!$ids) {
+            return $this->fail(msg: sprintf('请选择要%s的%s', $action, $this->crudResourceName()), code: 422);
+        }
+
+        $modelClass = $this->crudModelClass();
+        $query = $onlyTrashed ? $modelClass::onlyTrashed() : $modelClass::where('id', '>', 0);
+        $models = $query->whereIn('id', $ids)->select();
+        if (count($models) !== count($ids)) {
+            $message = $onlyTrashed
+                ? sprintf('部分%s不存在或不在回收站', $this->crudResourceName())
+                : sprintf('部分%s不存在或已在回收站', $this->crudResourceName());
+            return $this->fail(msg: $message, code: 404);
+        }
+
+        return $models;
+    }
+
+    private function crudMessage(string $suffix): string
+    {
+        return $this->crudResourceName() . $suffix;
+    }
 }

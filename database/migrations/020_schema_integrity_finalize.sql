@@ -20,9 +20,9 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- 验证规则表最终必须使用 verify varchar(50) 非空字符串单列主键。
-SET @field_verify_schema_valid = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND COLUMN_NAME = 'verify' AND COLUMN_TYPE = 'varchar(50)' AND IS_NULLABLE = 'NO') AND EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' GROUP BY CONSTRAINT_NAME HAVING COUNT(*) = 1 AND MAX(IF(ORDINAL_POSITION = 1 AND COLUMN_NAME = 'verify', 1, 0)) = 1);
-SET @sql = IF(@field_verify_schema_valid, 'DO 0', 'SELECT * FROM `schema_integrity_error_020_field_verify_verify_primary_required`');
+-- 验证规则表最终必须使用 int unsigned 自增 id 单列主键。
+SET @field_verify_schema_valid = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND COLUMN_NAME = 'id' AND COLUMN_TYPE = 'int unsigned' AND IS_NULLABLE = 'NO' AND EXTRA LIKE '%auto_increment%') AND EXISTS(SELECT 1 FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @schema_name AND TABLE_NAME = 'fun_field_verify' AND CONSTRAINT_NAME = 'PRIMARY' GROUP BY CONSTRAINT_NAME HAVING COUNT(*) = 1 AND MAX(IF(ORDINAL_POSITION = 1 AND COLUMN_NAME = 'id', 1, 0)) = 1);
+SET @sql = IF(@field_verify_schema_valid, 'DO 0', 'SELECT * FROM `schema_integrity_error_020_field_verify_id_primary_required`');
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;

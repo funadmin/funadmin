@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b15223b565ce67d134159c3b3eb8a7cd",
+    "content-hash": "349b022e85d059cc2c9ce2d30413bc1d",
     "packages": [
         {
             "name": "brick/math",
@@ -4535,13 +4535,7 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/top-think/think-annotation/zipball/bc9e4dae39c25803fde95e189d394acd1aad8654",
                 "reference": "bc9e4dae39c25803fde95e189d394acd1aad8654",
-                "shasum": "",
-                "mirrors": [
-                    {
-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
-                        "preferred": true
-                    }
-                ]
+                "shasum": ""
             },
             "require": {
                 "topthink/framework": "^8.0",

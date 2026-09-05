@@ -64,7 +64,12 @@ lifecycleReject(static fn () => $guard->assertDeployable('demo', '1.0.0', '004_d
 lifecycleReject(static fn () => $guard->assertDeployable('demo', '0.9.0', '004_data.sql'), '版本历史');
 
 $pluginServiceSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginService.php');
-lifecycleExpect(str_contains($pluginServiceSource, "'result' => 'failed'"), '生命周期失败必须写入 operation history');
+$auditServiceSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginOperationAuditService.php');
+lifecycleExpect(str_contains($auditServiceSource, "'result' => 'failed'"), '生命周期失败必须写入 operation history');
+foreach (['PluginOperation::create', 'PluginResource::', 'MigrationService::', 'AdminMenu::', 'ResourceRegistryService::'] as $infrastructureCall) {
+    lifecycleExpect(!str_contains($pluginServiceSource, $infrastructureCall), '生命周期编排不得直接访问基础设施：' . $infrastructureCall);
+}
+lifecycleExpect(substr_count($pluginServiceSource, "\n") < 560, 'PluginService 必须拆分为聚焦的生命周期编排服务');
 lifecycleExpect(str_contains($pluginServiceSource, '$this->operationProgress[$name]'), '最外层操作必须跟踪并清理阶段进度');
 $runPackageStart = strpos($pluginServiceSource, 'public function runPackageOperation');
 $recordFailureStart = strpos($pluginServiceSource, 'public function recordFailure');

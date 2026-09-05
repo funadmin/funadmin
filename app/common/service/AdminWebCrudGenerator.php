@@ -4,70 +4,66 @@ declare(strict_types=1);
 
 namespace app\common\service;
 
+use app\common\crud\CrudDefinition;
+use app\common\crud\CrudGenerator;
 use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * 后台 CRUD 生成器统一执行入口。
+ * 旧入口兼容适配器，权威实现位于 app/common/crud。
  *
- * 仅允许读取项目目录内的 JSON 配置，并通过参数数组启动 Node，避免 shell 拼接。
+ * 全局 force 已废弃；写入必须携带 dry-run 返回的确认 token 和逐文件覆盖白名单。
  */
 class AdminWebCrudGenerator
 {
-    public function run(string $configPath, bool $dryRun = false, bool $force = false): array
+    public function __construct(private readonly ?string $projectRoot = null)
     {
-        $rootPath = rtrim(root_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $resolvedConfig = $this->resolveConfigPath($rootPath, $configPath);
-        $script = $rootPath . 'admin-web' . DIRECTORY_SEPARATOR . 'scripts' . DIRECTORY_SEPARATOR . 'crud-gen.mjs';
-        if (!is_file($script)) {
-            throw new RuntimeException('后台 CRUD 生成脚本不存在');
-        }
+    }
 
-        $command = [$this->nodeBinary(), $script];
-        if ($dryRun) {
-            $command[] = '--dry';
-        }
+    public function run(
+        string $configPath,
+        bool $dryRun = true,
+        bool $force = false,
+        string $confirmToken = '',
+        array $allowOverwrite = [],
+        string $operator = 'cli'
+    ): array {
         if ($force) {
-            $command[] = '--force';
+            throw new InvalidArgumentException('全局 force 已废弃，请使用精确 allowOverwrite');
         }
-        $command[] = $resolvedConfig;
-
-        $descriptors = [
-            0 => ['pipe', 'r'],
-            1 => ['pipe', 'w'],
-            2 => ['pipe', 'w'],
-        ];
-        $process = proc_open(
-            $command,
-            $descriptors,
-            $pipes,
-            $rootPath . 'admin-web',
-            null,
-            ['bypass_shell' => true]
-        );
-        if (!is_resource($process)) {
-            throw new RuntimeException('无法启动后台 CRUD 生成器');
+        $rootPath = $this->rootPath();
+        $resolvedConfig = $this->resolveConfigPath($rootPath, $configPath);
+        $json = file_get_contents($resolvedConfig);
+        if ($json === false) {
+            throw new RuntimeException('无法读取 CRUD Definition');
         }
-
-        fclose($pipes[0]);
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $exitCode = proc_close($process);
-
-        $result = [
-            'success' => $exitCode === 0,
-            'exitCode' => $exitCode,
+        $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        if (!is_array($data) || !isset($data['schemaVersion'])) {
+            throw new InvalidArgumentException('旧 Node CRUD 配置已弃用，请迁移为版本化 CRUD Definition');
+        }
+        $definition = CrudDefinition::fromArray($data);
+        $generator = new CrudGenerator($rootPath);
+        if ($dryRun) {
+            $plan = $generator->plan($definition);
+            $token = (string) ($plan['confirmToken'] ?? '');
+            unset($plan['confirmToken']);
+            $result = [
+                'plan' => $plan,
+                'sensitive' => ['confirmToken' => $token],
+            ];
+        } else {
+            $generated = $generator->generate($definition, $confirmToken, $allowOverwrite, $operator);
+            unset($generated['plan']['confirmToken']);
+            $result = $generated;
+        }
+        return [
+            'success' => true,
+            'exitCode' => 0,
             'config' => $this->relativePath($rootPath, $resolvedConfig),
             'dryRun' => $dryRun,
-            'output' => trim((string) $stdout),
-            'error' => trim((string) $stderr),
-        ];
-        if ($exitCode !== 0) {
-            throw new RuntimeException($result['error'] ?: $result['output'] ?: '后台 CRUD 生成失败');
-        }
-        return $result;
+            'output' => $this->summary($result['plan']),
+            'error' => '',
+        ] + $result;
     }
 
     private function resolveConfigPath(string $rootPath, string $configPath): string
@@ -88,22 +84,19 @@ class AdminWebCrudGenerator
         return $resolved;
     }
 
-    private function nodeBinary(): string
+    private function rootPath(): string
     {
-        $configured = trim((string) getenv('NODE_BINARY'));
-        if ($configured !== '') {
-            if ($this->isAbsolutePath($configured) && !is_executable($configured)) {
-                throw new RuntimeException('NODE_BINARY 指向的 Node 不可执行');
-            }
-            return $configured;
-        }
+        $root = $this->projectRoot ?? root_path();
+        return rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    }
 
-        foreach (['/opt/homebrew/bin/node', '/usr/local/bin/node', '/usr/bin/node'] as $candidate) {
-            if (is_executable($candidate)) {
-                return $candidate;
-            }
+    private function summary(array $plan): string
+    {
+        $lines = ['CRUD 生成计划（dry-run 为默认行为）：'];
+        foreach ($plan['files'] as $file) {
+            $lines[] = sprintf('  [%s] %s %s', $file['status'], $file['path'], $file['hash']);
         }
-        return 'node';
+        return implode(PHP_EOL, $lines);
     }
 
     private function isAbsolutePath(string $path): bool

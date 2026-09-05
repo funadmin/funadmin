@@ -1414,21 +1414,18 @@ class {$modelClass} extends BaseModel
     }
 
     /**
-     * 处理CRUD生成，基于fun/curd/Curd.php功能
-     * @param string $tableName 表名
-     * @param string $module 模块名（backend/frontend/api）
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @param array $options 其他选项
+     * 处理只读 CRUD 生成预览；MCP 永不暴露确认 token，也不执行写入。
+     * @param string $configPath 项目内 Definition 路径
      * @return array
      */
-    public function handleCurd(string $configPath, bool $dryRun = true, bool $force = false): array
+    public function handleCurd(string $configPath): array
     {
         try {
-            $result = (new AdminWebCrudGenerator())->run($configPath, $dryRun, $force);
+            $result = (new AdminWebCrudGenerator())->run($configPath, true, false);
+            unset($result['sensitive']);
             return [
                 'success' => true,
-                'message' => $dryRun ? 'CRUD 生成预览成功' : 'CRUD 模块生成成功',
+                'message' => 'CRUD 生成预览成功',
                 'data' => $result,
             ];
         } catch (\Throwable $e) {
@@ -1728,9 +1725,7 @@ class {$modelClass} extends BaseModel
             if (in_array($type, ['curd', 'all'])) {
                 if (!empty($parsedData['curd'])) {
                     $curdResult = $this->handleCurd(
-                        (string) ($parsedData['curd']['config'] ?? ''),
-                        (bool) ($parsedData['curd']['dryRun'] ?? true),
-                        (bool) ($parsedData['curd']['force'] ?? false)
+                        (string) ($parsedData['curd']['config'] ?? '')
                     );
                     $results['curd'] = $curdResult;
                 }   

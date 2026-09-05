@@ -62,6 +62,7 @@ $versionSequence->invoke($migrationService, $migrationFiles, 'core');
 $migrationNames = array_map(static fn (string $file): string => basename($file), $migrationFiles);
 fieldGovernanceExpect(in_array('021_time_columns_no_default.sql', $migrationNames, true), '时间列 migration 必须使用唯一版本 021');
 fieldGovernanceExpect(in_array('022_laravel_field_cutover.sql', $migrationNames, true), '必须提供 forward-only expand/backfill/index migration');
+fieldGovernanceExpect(in_array('030_laravel_schema_convergence.sql', $migrationNames, true), '必须提供唯一后续 Laravel schema 终态 migration');
 $numericVersions = array_map(static function (string $name): string {
     preg_match('/^(\d+)_/', $name, $matches);
     return $matches[1] ?? '';
@@ -132,14 +133,17 @@ foreach ($businessDirectories as $directory) {
 }
 
 $fieldVerifySource = (string) file_get_contents(dirname(__DIR__) . '/app/common/model/FieldVerify.php');
-fieldGovernanceExpect((bool) preg_match('/protected \\$pk\\s*=\\s*[\'\"]verify[\'\"]/', $fieldVerifySource), 'FieldVerify 必须使用 verify 字符串主键');
-fieldGovernanceExpect((bool) preg_match('/protected \\$keyType\\s*=\\s*[\'\"]string[\'\"]/', $fieldVerifySource), 'FieldVerify 必须声明字符串主键类型');
+fieldGovernanceExpect((bool) preg_match('/protected \\$pk\\s*=\\s*[\'\"]id[\'\"]/', $fieldVerifySource), 'FieldVerify 必须使用 id 自增主键');
+fieldGovernanceExpect(!(bool) preg_match('/protected \\$keyType\\s*=\\s*[\'\"]string[\'\"]/', $fieldVerifySource), 'FieldVerify 不得声明字符串主键类型');
 $migration013 = (string) file_get_contents($migrationDirectory . '/013_field_hygiene.sql');
-fieldGovernanceExpect(str_contains($migration013, 'ADD PRIMARY KEY (`verify`)'), '013 必须为 field_verify 补齐 verify 单列主键');
-fieldGovernanceExpect(!str_contains($migration013, 'ADD COLUMN `id`'), '013 不得引入无业务语义的 id 主键');
+fieldGovernanceExpect(str_contains($migration013, 'ADD COLUMN `id` int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST'), '已执行的 013 必须保持 id 主键方向');
+fieldGovernanceExpect(!str_contains($migration013, 'ADD PRIMARY KEY (`verify`)'), '013 不得把 verify 改为主键');
 $migration020 = (string) file_get_contents($migrationDirectory . '/020_schema_integrity_finalize.sql');
-fieldGovernanceExpect((bool) preg_match('/COLUMN_NAME\\s*=\\s*[\'\"]verify[\'\"][^;]*COLUMN_TYPE\\s*=\\s*[\'\"]varchar\\(50\\)[\'\"][^;]*IS_NULLABLE\\s*=\\s*[\'\"]NO[\'\"]/', $migration020), '020 必须复核 verify 非空字符串字段');
-fieldGovernanceExpect((bool) preg_match('/CONSTRAINT_NAME\\s*=\\s*[\'\"]PRIMARY[\'\"][^;]*HAVING COUNT\\(\\*\\) = 1[^;]*COLUMN_NAME\\s*=\\s*[\'\"]verify[\'\"]/', $migration020), '020 必须严格复核 verify 单列主键');
+fieldGovernanceExpect(str_contains($migration020, "COLUMN_NAME = 'id'"), '020 必须复核 id 自增主键');
+fieldGovernanceExpect(!str_contains($migration020, 'field_verify_verify_primary_required'), '020 不得要求 verify 主键');
+$convergence = (string) file_get_contents($migrationDirectory . '/030_laravel_schema_convergence.sql');
+fieldGovernanceExpect(str_contains($convergence, 'MODIFY COLUMN `id` bigint unsigned NOT NULL AUTO_INCREMENT'), '后续 migration 必须将 field_verify.id 升级为 bigint unsigned');
+fieldGovernanceExpect((bool) preg_match('/UNIQUE[^;]*`verify`/i', $convergence), 'verify 必须保留唯一业务键');
 $fieldCutover = (string) file_get_contents($migrationDirectory . '/022_laravel_field_cutover.sql');
 fieldGovernanceExpect(!preg_match('/\\b(?:DROP|TRUNCATE|RENAME)\\b/i', $fieldCutover), '字段 cutover migration 必须保留 legacy 列');
 fieldGovernanceExpect(str_contains($fieldCutover, 'sort_order'), '字段 cutover migration 必须 expand/backfill sort_order');

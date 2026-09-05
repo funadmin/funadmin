@@ -24,7 +24,7 @@ foreach (['broken', 'healthy'] as $name) {
         'title' => ucfirst($name),
         'version' => '1.0.0',
         'requires' => ['plugins' => []],
-        'entry' => ['class' => 'plugins\\' . $name . '\\Plugin'],
+        'entry' => ['class' => 'plugins\\' . $name . '\\Plugin', 'file' => 'Plugin.php'],
     ], JSON_UNESCAPED_SLASHES));
 }
 file_put_contents($root . '/broken/Plugin.php', '<?php namespace plugins\\broken; throw new \\RuntimeException("broken boot"); final class Plugin {}');

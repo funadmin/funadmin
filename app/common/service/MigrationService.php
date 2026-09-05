@@ -43,6 +43,7 @@ class MigrationService extends AbstractService
                 throw new RuntimeException('安装插件前必须先完成核心 migration');
             }
 
+            $this->preflightSchemaIntegrity006($scope, $version);
             $sql = file_get_contents($file);
             if ($sql === false || trim($sql) === '') {
                 throw new RuntimeException('无法读取 migration：' . $file);
@@ -119,6 +120,42 @@ class MigrationService extends AbstractService
         $prefix = config('database.connections.mysql.prefix');
         // SHOW 语句不支持占位符绑定，改用 getTables() 避免 1064。
         return in_array($prefix . 'system_migration', Db::connect()->getTables(), true);
+    }
+
+    private function preflightSchemaIntegrity006(string $scope, string $version): void
+    {
+        if ($scope !== 'core' || $version !== '006_schema_integrity') {
+            return;
+        }
+
+        // 兼容桥：已发布 migration 不可变，只在首次执行 006 前修复旧库空手机号。
+        $table = (string) config('database.connections.mysql.prefix') . 'member';
+        if (!in_array($table, Db::connect()->getTables(), true)) {
+            return;
+        }
+        $columns = Db::query(
+            'SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [$table, 'mobile']
+        );
+        if (!$columns) {
+            return;
+        }
+
+        $quotedTable = '`' . str_replace('`', '``', $table) . '`';
+        if (strtoupper((string) ($columns[0]['IS_NULLABLE'] ?? '')) !== 'YES') {
+            Db::execute("ALTER TABLE {$quotedTable} MODIFY COLUMN `mobile` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '手机号码'");
+        }
+        Db::execute(
+            "UPDATE {$quotedTable} SET `mobile` = NULL WHERE TRIM(COALESCE(`mobile`, ?)) = ?",
+            ['', '']
+        );
+        $indexes = Db::query(
+            'SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?',
+            [$table, 'uk_member_mobile']
+        );
+        if (!$indexes) {
+            Db::execute("ALTER TABLE {$quotedTable} ADD UNIQUE KEY `uk_member_mobile` (`mobile`)");
+        }
     }
 
     private function assertForwardOnly(string $sql, string $file): void

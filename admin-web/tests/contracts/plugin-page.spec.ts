@@ -67,4 +67,11 @@ describe('插件中心页面契约', () => {
     expect(page).toContain('update?.updateAvailable ? update.latestVersion :');
     expect(page).not.toContain('updates[item.name]');
   });
+
+  it('生命周期动作后立即同步动态插件路由', () => {
+    expect(page).toContain("import { loadPluginModulesSafely } from '@/router/pluginStartup'");
+    for (const operation of ['operate', 'updatePlugin', 'uninstall']) {
+      expect(page.match(new RegExp(`async function ${operation}\\([\\s\\S]*?syncPluginRoutes\\(\\)`))?.[0]).toBeTruthy();
+    }
+  });
 });

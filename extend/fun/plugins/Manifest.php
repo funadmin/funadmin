@@ -68,8 +68,8 @@ final class Manifest
 
     public function loadPath(string $type): ?string
     {
-        $path = $this->data[$type] ?? null;
-        return is_string($path) ? $this->directory . DIRECTORY_SEPARATOR . $path : null;
+        $path = $this->data['load'][$type] ?? null;
+        return is_string($path) ? $this->directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path) : null;
     }
 
     public function directory(): string
@@ -84,7 +84,7 @@ final class Manifest
 
     private static function validate(string $directory, array $data): void
     {
-        $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin-manifest-v1.schema.json';
+        $schema = __DIR__ . DIRECTORY_SEPARATOR . 'schema' . DIRECTORY_SEPARATOR . 'plugin.schema.json';
         JsonSchemaValidator::fromFile($schema)->validate($data);
         if (basename($directory) !== $data['name']) {
             throw new RuntimeException('插件目录名与 plugin.json name 不一致');
@@ -93,13 +93,14 @@ final class Manifest
         if (($data['entry']['class'] ?? '') !== $expectedClass) {
             throw new RuntimeException('plugin.json entry namespace 必须是 ' . $expectedClass);
         }
+        $entryFile = self::existingRelativeFile($directory, (string) $data['entry']['file'], 'entry.file');
         foreach (['services', 'events', 'routes'] as $type) {
-            $path = $data[$type] ?? null;
-            if (is_string($path) && !is_file($directory . DIRECTORY_SEPARATOR . $path)) {
-                throw new RuntimeException('plugin.json 加载文件不存在：' . $path);
+            $path = $data['load'][$type] ?? null;
+            if (is_string($path)) {
+                self::existingRelativeFile($directory, $path, 'load.' . $type);
             }
         }
-        $source = (string) file_get_contents($directory . DIRECTORY_SEPARATOR . 'Plugin.php');
+        $source = (string) file_get_contents($entryFile);
         if (preg_match('/namespace\s+([^;\s]+)\s*;/i', $source, $matches) !== 1 || $matches[1] !== 'plugins\\' . $data['name']) {
             throw new RuntimeException('Plugin.php namespace 必须是 plugins\\' . $data['name']);
         }
@@ -108,8 +109,8 @@ final class Manifest
         }
         self::validateAdminWeb($directory, $data['admin_web'] ?? null);
         self::validateResourceSources($directory, $data['resources'] ?? []);
-        if (isset($data['migrations']['path']) && !is_dir($directory . DIRECTORY_SEPARATOR . $data['migrations']['path'])) {
-            throw new RuntimeException('plugin.json migrations.path 目录不存在');
+        if (isset($data['migrations']['path'])) {
+            self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
         }
     }
 
@@ -127,10 +128,35 @@ final class Manifest
     private static function validateResourceSources(string $directory, array $resources): void
     {
         foreach ($resources as $resource) {
-            $source = $directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $resource['source']);
-            if (!is_dir($source)) {
-                throw new RuntimeException('plugin.json resources.source 目录不存在：' . $resource['source']);
-            }
+            self::existingRelativeDirectory($directory, (string) $resource['source'], 'resources.source');
         }
+    }
+
+    private static function existingRelativeFile(string $directory, string $path, string $field): string
+    {
+        $resolved = self::resolveExistingPath($directory, $path, $field);
+        if (!is_file($resolved)) {
+            throw new RuntimeException('plugin.json ' . $field . ' 文件不存在：' . $path);
+        }
+        return $resolved;
+    }
+
+    private static function existingRelativeDirectory(string $directory, string $path, string $field): string
+    {
+        $resolved = self::resolveExistingPath($directory, $path, $field);
+        if (!is_dir($resolved)) {
+            throw new RuntimeException('plugin.json ' . $field . ' 目录不存在：' . $path);
+        }
+        return $resolved;
+    }
+
+    private static function resolveExistingPath(string $directory, string $path, string $field): string
+    {
+        $root = realpath($directory);
+        $resolved = realpath($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path));
+        if ($root === false || $resolved === false || ($resolved !== $root && !str_starts_with($resolved, $root . DIRECTORY_SEPARATOR))) {
+            throw new RuntimeException('plugin.json ' . $field . ' 路径不存在或越界：' . $path);
+        }
+        return $resolved;
     }
 }

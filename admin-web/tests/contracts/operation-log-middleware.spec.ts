@@ -18,7 +18,7 @@ describe('操作日志中间件契约', () => {
   });
 
   it('无请求参数和无权限标题时仍记录审计日志', () => {
-    expect(service).not.toMatch(/!empty\(\$this->title\)\s*&&\s*!empty\(\$content\)/);
+    expect(service).not.toMatch(/!empty\(\$this->name\)\s*&&\s*!empty\(\$content\)/);
     expect(service).toContain("$controller . '/' . $action");
     expect(service).toContain("'status' => $succeeded");
   });
