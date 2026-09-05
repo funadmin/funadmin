@@ -17,6 +17,7 @@ const backendBase = readFileSync(resolve(projectRoot, 'app/common/controller/Bac
 const adminApiBase = readFileSync(resolve(projectRoot, 'app/backend/controller/base/AdminApiController.php'), 'utf8');
 const memberGroupController = readFileSync(resolve(projectRoot, 'app/backend/controller/system/SystemMemberGroup.php'), 'utf8');
 const memberLevelController = readFileSync(resolve(projectRoot, 'app/backend/controller/system/SystemMemberLevel.php'), 'utf8');
+const menuEncodingMigration = readFileSync(resolve(projectRoot, 'database/migrations/038_crud_menu_encoding.sql'), 'utf8');
 
 describe('统一 PHP CRUD Core 契约', () => {
   it('安装官方 ThinkPHP 8 注解扩展', () => {
@@ -48,6 +49,13 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(legacyGenerator).toContain('已弃用');
     expect(legacyGenerator).not.toContain('writeFile');
     expect(legacyGenerator).not.toContain('backendControllerSource');
+  });
+
+  it('修复 CRUD Workbench 菜单历史乱码', () => {
+    expect(menuEncodingMigration).toContain("SET `name` = '开发工具'");
+    expect(menuEncodingMigration).toContain("`source_name` = 'development_tools'");
+    expect(menuEncodingMigration).toContain("SET `name` = 'CRUD生成器'");
+    expect(menuEncodingMigration).toContain("`source_name` = 'development_crud'");
   });
 
   it('启用路由 Attribute 扫描', () => {

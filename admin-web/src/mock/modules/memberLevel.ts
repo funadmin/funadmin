@@ -89,6 +89,33 @@ export const memberLevelMockHandlers: MockRoute[] = [
     handler: ({ params }) => ok(rows.filter((row) => matches(row, params)).sort((a, b) => a.sort - b.sort || a.id - b.id).map(visible))
   },
   {
+    method: 'POST',
+    url: '/system/member-level/import',
+    handler: ({ body }) => {
+      const imported = Array.isArray(body.rows) ? body.rows : [];
+      if (!imported.length) return fail('导入数据不能为空', 422);
+      const names = new Set(rows.map((row) => row.name.toLowerCase()));
+      const pending: MockMemberLevel[] = [];
+      for (const item of imported) {
+        const result = payload(item);
+        if (result.error) return fail(result.error, 422);
+        if (names.has(result.data.name.toLowerCase())) return fail(`会员等级名称“${result.data.name}”已存在`, 422);
+        names.add(result.data.name.toLowerCase());
+        const time = now();
+        pending.push({
+          id: Math.max(0, ...rows.map((row) => row.id), ...pending.map((row) => row.id)) + 1,
+          ...result.data,
+          createdAt: time,
+          updatedAt: time,
+          deletedAt: '',
+          deleted: false
+        });
+      }
+      rows.push(...pending);
+      return ok({ created: pending.length }, '导入成功');
+    }
+  },
+  {
     method: 'GET',
     url: /^\/system\/member-level\/(\d+)$/,
     paramNames: ['id'],

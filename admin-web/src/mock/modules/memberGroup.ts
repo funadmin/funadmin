@@ -65,6 +65,35 @@ export const memberGroupMockHandlers: MockRoute[] = [
     handler: ({ params }) => ok(rows.filter((row) => matches(row, params)).sort((a, b) => a.id - b.id).map(visible))
   },
   {
+    method: 'POST',
+    url: '/system/member-group/import',
+    handler: ({ body }) => {
+      const imported = Array.isArray(body.rows) ? body.rows : [];
+      if (!imported.length) return fail('导入数据不能为空', 422);
+      const names = new Set(rows.map((row) => row.name.toLowerCase()));
+      const pending: MockMemberGroup[] = [];
+      for (const item of imported) {
+        const { name, error } = validate(item.name);
+        if (error) return fail(error, 422);
+        if (names.has(name.toLowerCase())) return fail(`会员组名称“${name}”已存在`, 422);
+        names.add(name.toLowerCase());
+        pending.push({
+          id: Math.max(0, ...rows.map((row) => row.id), ...pending.map((row) => row.id)) + 1,
+          name,
+          icon: String(item.icon ?? '').slice(0, 50),
+          status: Number(item.status) === 0 ? 0 : 1,
+          isDefault: 0,
+          createdAt: now(),
+          updatedAt: now(),
+          deletedAt: '',
+          deleted: false
+        });
+      }
+      rows.push(...pending);
+      return ok({ created: pending.length }, '导入成功');
+    }
+  },
+  {
     method: 'GET',
     url: /^\/system\/member-group\/(\d+)$/,
     paramNames: ['id'],

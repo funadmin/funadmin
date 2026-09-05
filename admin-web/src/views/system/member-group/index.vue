@@ -206,10 +206,10 @@ async function importCsv(event: Event) {
   const file = input.files?.[0];
   input.value = '';
   if (!file) return;
-  const rows = parseCsv<MemberGroupImportRow>(await readFileAsText(file), csvColumns).map((row) => ({
+  const rows: MemberGroupImportRow[] = parseCsv<MemberGroupImportRow>(await readFileAsText(file), csvColumns).map((row) => ({
     name: String(row.name ?? ''),
     icon: String(row.icon ?? ''),
-    status: Number(row.status) === 0 ? 0 : 1
+    status: Number(row.status) === 0 ? (0 as const) : (1 as const)
   }));
   if (!rows.length) {
     ElMessage.warning('CSV 中没有可导入的数据');

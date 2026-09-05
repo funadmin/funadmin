@@ -18,15 +18,15 @@ final class AdminWebCrud extends Command
 {
     protected function configure(): void
     {
-        $this->setName('crud')
-            ->setDescription('兼容转发到只读 crud:preview')
+        $this->setName('curd')
+            ->setDescription('已弃用：兼容转发到只读 crud:preview')
             ->addArgument('config', Argument::REQUIRED, '项目目录内的版本化 CRUD Definition JSON');
     }
 
     protected function execute(Input $input, Output $output): int
     {
         try {
-            $output->warning('crud 仅执行只读预览；完整流程请使用 crud:preview。');
+            $output->warning('curd 已弃用，仅执行只读预览；请改用 crud:preview。');
             $result = (new AdminWebCrudGenerator())->run((string) $input->getArgument('config'), true, false);
             if ($result['output'] !== '') {
                 $output->writeln($result['output']);

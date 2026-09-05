@@ -217,7 +217,7 @@ async function importCsv(event: Event) {
     amount: String(row.amount ?? '0'),
     discount: Number(row.discount ?? 100),
     thumb: String(row.thumb ?? ''),
-    status: Number(row.status) === 0 ? 0 : 1,
+    status: Number(row.status) === 0 ? (0 as const) : (1 as const),
     sort: Number(row.sort ?? 0),
     description: String(row.description ?? '')
   }));
