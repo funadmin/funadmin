@@ -44,12 +44,12 @@ class SystemOperationLog extends AdminApiController
             $query->where('create_time', '<=', strtotime($endTime));
         }
         $result = $query->order('id', 'desc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok([
-            'list' => array_map(fn (AdminLog $log): array => $this->logData($log), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (AdminLog $log): array => $this->logData($log), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response

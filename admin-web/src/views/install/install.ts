@@ -18,6 +18,9 @@ export interface InstallForm {
   appDebug: boolean;
 }
 
+/* 匿名访问默认去向：未安装引导到安装页，已安装引导到登录页 */
+export const anonymousTarget = (installed: boolean): '/install' | '/login' => (installed ? '/login' : '/install');
+
 export const canContinueInstallation = (checks: EnvironmentCheck[]) =>
   checks.length > 0 && checks.every((check) => !check.required || check.passed);
 

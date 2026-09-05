@@ -20,16 +20,9 @@ use app\common\plugin\marketplace\dto\UpdateCheckDto;
  */
 final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 {
-    private string $loginToken = '';
-
     /** @param callable(string, array, string): array $request */
     public function __construct(private readonly mixed $request, private readonly CloudAccountSession $session)
     {
-    }
-
-    public function setLoginToken(string $token): void
-    {
-        $this->loginToken = $token;
     }
 
     public function login(LoginRequestDto $request): CloudAccountDto
@@ -107,10 +100,14 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
     public function download(string $name, string $version): DownloadDescriptorDto
     {
         $data = $this->call('/api/v2.plugins/down', ['name' => $name, 'version' => $version], $this->token());
+        $descriptorVersion = (string) ($data['version'] ?? '');
+        if ($descriptorVersion === '' || $descriptorVersion !== $version) {
+            throw new MarketplaceException('云下载描述版本与请求版本不一致');
+        }
         return new DownloadDescriptorDto(
             (string) ($data['url'] ?? $data['file_url'] ?? ''),
             $name,
-            (string) ($data['version'] ?? $version),
+            $descriptorVersion,
             strtolower((string) ($data['sha256'] ?? $data['hash'] ?? '')),
             isset($data['signature']) ? (string) $data['signature'] : null,
             isset($data['algorithm']) ? (string) $data['algorithm'] : null,
@@ -141,7 +138,7 @@ final class LegacyCloudMarketplaceAdapter implements PluginMarketplaceGateway
 
     private function token(): string
     {
-        return $this->loginToken !== '' ? $this->loginToken : $this->session->token();
+        return $this->session->token();
     }
 
     private function accountDto(array $item): CloudAccountDto

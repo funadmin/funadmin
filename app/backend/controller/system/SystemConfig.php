@@ -46,12 +46,12 @@ class SystemConfig extends AdminApiController
             $query->where('status', (int) $status);
         }
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok([
-            'list' => array_map(fn (Config $config): array => $this->configData($config), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (Config $config): array => $this->configData($config), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response

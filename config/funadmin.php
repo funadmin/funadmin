@@ -47,21 +47,10 @@ return [
     'sys_app'=>['backend','api','frontend','common','install'],
 
     'curd_deny_app'=>['common','install'],
-    //是否独立后台
-    'standalone'=>1,
     //接口域名
     'api_domain'=>'https://www.funadmin.com',
     //接口地址
     'api_login_url'=>'/api/v2/token',
-    // 插件市场安全策略：未配置公钥时默认拒绝未签名包，可显式改为 allow_unsigned。
-    'plugin_marketplace'=>[
-        'public_key'=>'',
-        'unsigned_policy'=>'reject_unsigned',
-        'request_timeout'=>30,
-        'connect_timeout'=>10,
-        'max_redirects'=>3,
-        'max_package_bytes'=>104857600,
-    ],
 ];
 
 

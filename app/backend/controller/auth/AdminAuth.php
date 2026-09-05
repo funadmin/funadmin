@@ -8,6 +8,7 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\model\AdminMenu;
 use app\backend\model\Permission;
 use app\backend\service\AuthService;
+use app\backend\traits\AdminJsonResponse;
 use think\App;
 use think\captcha\facade\Captcha;
 use think\Response;
@@ -18,6 +19,8 @@ use think\facade\Session;
  */
 class AdminAuth extends BaseController
 {
+    use AdminJsonResponse;
+
     protected $middleware = [
         CheckAdminApiCsrf::class => ['only' => ['login', 'logout']],
         CheckAdminApiRole::class => ['only' => ['me', 'menus', 'logout']],
@@ -290,23 +293,4 @@ class AdminAuth extends BaseController
         return $result;
     }
 
-    private function ok($data = null, string $msg = '操作成功'): Response
-    {
-        return $this->apiResponse(200, $msg, $data);
-    }
-
-    private function fail(string $msg, int $code): Response
-    {
-        return $this->apiResponse($code, $msg, null, $code);
-    }
-
-    private function apiResponse(int $code, string $msg, $data, int $httpCode = 200): Response
-    {
-        return json([
-            'code' => $code,
-            'msg' => $msg,
-            'time' => time(),
-            'data' => $data,
-        ], $httpCode)->header(['X-CSRF-TOKEN' => (string) Session::get('__token__', '')]);
-    }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\api\controller\v2;
 
 use app\common\controller\Api;
+use app\common\service\BearerTokenExtractor;
 use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
 use think\App;
@@ -20,12 +21,14 @@ class Token extends Api
 
     private TokenService $tokenService;
     private MemberAuthService $memberAuthService;
+    private BearerTokenExtractor $bearerTokenExtractor;
 
     public function __construct(App $app)
     {
         parent::__construct($app);
         $this->tokenService = TokenService::instance();
         $this->memberAuthService = MemberAuthService::instance();
+        $this->bearerTokenExtractor = app(BearerTokenExtractor::class);
     }
 
     /**
@@ -66,11 +69,10 @@ class Token extends Api
     {
         $refreshToken = trim((string) $request->post('refresh_token', $request->post('access_token', '')));
         if ($refreshToken === '') {
-            $authHeader = (string) $request->header('Authorization', '');
-            if (!preg_match('/^Bearer\s+(\S+)$/i', $authHeader, $matches)) {
+            $refreshToken = $this->bearerTokenExtractor->extract($request) ?? '';
+            if ($refreshToken === '') {
                 return $this->fail(__('Unauthorized'), 401);
             }
-            $refreshToken = $matches[1];
         }
 
         $tokenData = $this->tokenService->validateToken($refreshToken, TokenService::TYPE_REFRESH);

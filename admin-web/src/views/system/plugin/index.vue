@@ -1,0 +1,96 @@
+<template>
+  <PageWrapper title="插件中心" subtitle="管理已安装插件、本地插件包和云市场版本">
+    <div class="mb-4 flex flex-wrap gap-2">
+      <el-button type="primary" plain v-perm="'system:plugin:account'" @click="accountVisible = true">市场账号</el-button>
+      <el-button type="success" plain v-perm="'system:plugin:install'" @click="uploadInput?.click()">上传本地 ZIP</el-button>
+      <input ref="uploadInput" class="hidden" type="file" accept=".zip" @change="uploadZip" />
+      <el-button plain @click="load">刷新</el-button>
+    </div>
+    <el-tabs v-model="activeTab" @tab-change="load">
+      <el-tab-pane label="已安装" name="installed" />
+      <el-tab-pane label="本地包" name="local" />
+      <el-tab-pane label="云市场" name="market" />
+    </el-tabs>
+
+    <el-table v-if="activeTab !== 'market'" v-loading="loading" :data="items" border>
+      <el-table-column prop="name" label="code" min-width="120" />
+      <el-table-column prop="title" label="名称" min-width="130" />
+      <el-table-column prop="version" label="当前版本" width="110" />
+      <el-table-column prop="latestVersion" label="latest version" width="120" />
+      <el-table-column prop="dbVersion" label="db version" width="110" />
+      <el-table-column prop="state" label="state" width="100" />
+      <el-table-column label="dependency" min-width="160"><template #default="{ row }">{{ dependencies(row.dependencies) }}</template></el-table-column>
+      <el-table-column label="pending" width="90"><template #default="{ row }"><el-tag :type="row.migrationPending ? 'warning' : 'success'">{{ row.migrationPending ? '是' : '否' }}</el-tag></template></el-table-column>
+      <el-table-column prop="source" label="source" width="90" />
+      <el-table-column prop="lastError" label="error" min-width="180" show-overflow-tooltip />
+      <el-table-column label="操作" min-width="430" fixed="right">
+        <template #default="{ row }">
+          <el-button v-if="activeTab === 'local'" type="primary" link v-perm="'system:plugin:install'" @click="installDiscovered(row)">安装</el-button>
+          <el-button v-if="row.latestVersion" type="primary" link v-perm="'system:plugin:update'" @click="updatePlugin(row)">更新</el-button>
+          <el-button v-if="row.migrationPending" type="warning" link v-perm="'system:plugin:migrate'" @click="operate(row, 'migrate')">迁移</el-button>
+          <el-button v-if="row.state === 'disabled'" type="success" link v-perm="'system:plugin:enable'" @click="operate(row, 'enable')">启用</el-button>
+          <el-button v-if="row.state === 'enabled'" type="warning" link v-perm="'system:plugin:disable'" @click="operate(row, 'disable')">禁用</el-button>
+          <el-button type="primary" link v-perm="'system:plugin:config'" @click="openConfig(row)">配置</el-button>
+          <el-button type="info" link v-perm="'system:plugin:history'" @click="openHistory(row)">历史</el-button>
+          <el-button v-if="activeTab === 'installed'" type="danger" link v-perm="'system:plugin:uninstall'" @click="uninstall(row)">卸载</el-button>
+          <el-button v-else type="danger" link v-perm="'system:plugin:package-delete'" @click="deletePackage(row)">删除包</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <template v-else>
+      <div class="mb-3 flex gap-2"><el-input v-model="marketQuery.keyword" placeholder="搜索插件" clearable class="max-w-72" @keyup.enter="loadMarket" /><el-button type="primary" @click="loadMarket">搜索</el-button></div>
+      <el-table v-loading="loading" :data="marketItems" border>
+        <el-table-column prop="name" label="code" width="130" /><el-table-column prop="title" label="名称" width="150" />
+        <el-table-column prop="description" label="描述" min-width="240" show-overflow-tooltip /><el-table-column prop="author" label="作者" width="120" />
+        <el-table-column label="latest version" width="120"><template #default="{ row }">{{ row.versions[0]?.version || '-' }}</template></el-table-column>
+        <el-table-column label="操作" width="160"><template #default="{ row }"><el-button type="primary" link @click="openMarket(row)">详情</el-button><el-button type="success" link v-perm="'system:plugin:install'" @click="installMarket(row)">安装</el-button></template></el-table-column>
+      </el-table>
+    </template>
+
+    <PluginAccountDrawer v-model="accountVisible" @changed="loadMarket" />
+    <PluginMarketDrawer v-model="marketVisible" :name="selectedName" @install="installSelectedVersion" />
+    <PluginConfigDrawer v-model="configVisible" :name="selectedName" @saved="load" />
+    <PluginHistoryDrawer v-model="historyVisible" :name="selectedName" />
+  </PageWrapper>
+</template>
+
+<script setup lang="ts">
+import { onMounted, reactive, ref } from 'vue';
+import { ElMessageBox } from 'element-plus';
+import { pluginApi, type MarketplacePlugin, type PluginItem } from '@/api/plugin';
+import { buildPurgeConfirmation } from './pluginActions';
+import PluginAccountDrawer from './components/PluginAccountDrawer.vue';
+import PluginMarketDrawer from './components/PluginMarketDrawer.vue';
+import PluginConfigDrawer from './components/PluginConfigDrawer.vue';
+import PluginHistoryDrawer from './components/PluginHistoryDrawer.vue';
+
+defineOptions({ name: 'SystemPlugin' });
+const activeTab = ref<'installed' | 'local' | 'market'>('installed');
+const loading = ref(false);
+const items = ref<PluginItem[]>([]);
+const marketItems = ref<MarketplacePlugin[]>([]);
+const marketQuery = reactive({ page: 1, pageSize: 20, keyword: '' });
+const uploadInput = ref<HTMLInputElement>();
+const selectedName = ref('');
+const accountVisible = ref(false);
+const marketVisible = ref(false);
+const configVisible = ref(false);
+const historyVisible = ref(false);
+
+function dependencies(value: Record<string, string>) { return Object.entries(value || {}).map(([name, version]) => `${name} ${version}`).join(', ') || '-'; }
+async function load() { if (activeTab.value === 'market') return loadMarket(); loading.value = true; try { items.value = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered(); } finally { loading.value = false; } }
+async function loadMarket() { loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } finally { loading.value = false; } }
+async function uploadZip(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file) return; try { await pluginApi.installLocal(file); activeTab.value = 'installed'; await load(); } finally { input.value = ''; } }
+async function operate(row: PluginItem, action: 'migrate' | 'enable' | 'disable') { await pluginApi[action](row.name); await load(); }
+async function updatePlugin(row: PluginItem) { await ElMessageBox.confirm(`确认将 ${row.name} 更新到 ${row.latestVersion} 吗？`, '更新确认'); await pluginApi.update(row.name, row.latestVersion, true); await load(); }
+async function installDiscovered(row: PluginItem) { await ElMessageBox.alert('请使用“上传本地 ZIP”执行经过校验的本地安装。', '本地安装'); selectedName.value = row.name; }
+async function uninstall(row: PluginItem) { const purge = await ElMessageBox.confirm('是否同时彻底清理插件业务数据？取消表示仅卸载并保留数据。', '卸载确认', { distinguishCancelAndClose: true, confirmButtonText: '彻底清理', cancelButtonText: '保留数据' }).then(() => true).catch((action) => action === 'cancel' ? false : Promise.reject(action)); let confirmation = ''; if (purge) confirmation = await ElMessageBox.prompt(`请输入插件名称 ${row.name} 二次确认`, '危险操作').then(({ value }) => value); const payload = buildPurgeConfirmation(row.name, purge, confirmation); await pluginApi.uninstall(row.name, payload.purge, payload.purgeConfirm); await load(); }
+async function deletePackage(row: PluginItem) { await ElMessageBox.confirm(`确认删除本地插件包 ${row.name} 吗？`, '删除确认'); await pluginApi.deletePackage(row.name); await load(); }
+function openConfig(row: PluginItem) { selectedName.value = row.name; configVisible.value = true; }
+function openHistory(row: PluginItem) { selectedName.value = row.name; historyVisible.value = true; }
+function openMarket(row: MarketplacePlugin) { selectedName.value = row.name; marketVisible.value = true; }
+async function installMarket(row: MarketplacePlugin) { const version = row.versions[0]?.version; if (!version) return; await pluginApi.installCloud(row.name, version); activeTab.value = 'installed'; await load(); }
+async function installSelectedVersion(version: string) { await pluginApi.installCloud(selectedName.value, version); marketVisible.value = false; activeTab.value = 'installed'; await load(); }
+onMounted(load);
+</script>

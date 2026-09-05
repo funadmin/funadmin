@@ -1,0 +1,154 @@
+<?php
+
+namespace app\common\service;
+
+use app\backend\model\Admin;
+use RuntimeException;
+use think\facade\Db;
+
+/**
+ * 安装器共享内核：Web 安装向导与 CLI install 命令共用，
+ * 保证校验规则、配置渲染与迁移行为单一来源，避免两处实现漂移。
+ */
+final class InstallSupport
+{
+    /**
+     * 校验数据库与管理员表单，返回第一条错误信息；空字符串表示通过。
+     */
+    public static function validate(array $db, array $admin): string
+    {
+        if ($admin['password'] != $admin['repassword']) {
+            return '两次输入密码不一致！';
+        }
+        if (!preg_match('/^[0-9a-z_$]{6,16}$/i', $admin['password'])) {
+            return '密码必须6-16位,不能有中文和空格';
+        }
+        if (!preg_match('/[a-z]/i', $admin['password']) || !preg_match('/\d/', $admin['password'])) {
+            return '管理员密码必须同时包含字母和数字';
+        }
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $db['database'])) {
+            return '数据库名只能包含字母、数字和下划线';
+        }
+        if ($db['prefix'] !== '' && !preg_match('/^[a-zA-Z][a-zA-Z0-9_]*_$/', $db['prefix'])) {
+            return '数据表前缀必须以字母开头、下划线结尾';
+        }
+        if (strlen($admin['email']) > 60) {
+            return '管理员邮箱不能超过60个字符';
+        }
+        if (!filter_var($admin['email'], FILTER_VALIDATE_EMAIL)) {
+            return '管理员邮箱格式不正确';
+        }
+        if (!preg_match("/^\w+$/", $admin['username'])) {
+            return '用户名只能输入字母、数字、下划线！';
+        }
+        if (strlen($admin['username']) < 3 || strlen($admin['username']) > 12) {
+            return '用户名请输入3~12位字符！';
+        }
+        return '';
+    }
+
+    /**
+     * 连接 MySQL、校验版本并创建/选中目标数据库；失败抛出 RuntimeException。
+     */
+    public static function prepareDatabase(array $db, string $minMysqlVersion): void
+    {
+        try {
+            $link = new \mysqli($db['host'], $db['username'], $db['password'], '', (int) $db['port']);
+        } catch (\mysqli_sql_exception $exception) {
+            throw new RuntimeException('数据库连接失败：' . $exception->getMessage());
+        }
+        $link->query("SET NAMES 'utf8mb4'");
+        if (version_compare($link->server_info, $minMysqlVersion, '<')) {
+            throw new RuntimeException("MySQL数据库版本不能低于{$minMysqlVersion},请将您的MySQL升级到{$minMysqlVersion}及以上");
+        }
+        try {
+            $createSql = 'CREATE DATABASE IF NOT EXISTS `' . $db['database'] . '` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;';
+            if (!$link->query($createSql)) {
+                throw new RuntimeException('创建数据库失败');
+            }
+        } catch (\mysqli_sql_exception $exception) {
+            throw new RuntimeException($exception->getMessage());
+        }
+        $link->select_db($db['database']);
+    }
+
+    /**
+     * 按模板渲染 config/database.php 内容。
+     */
+    public static function renderDatabaseConfig(string $templatePath, array $db): string
+    {
+        return str_replace(
+            ['%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+            [$db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+            (string) file_get_contents($templatePath));
+    }
+
+    /**
+     * 渲染 .env 内容：已有文件时合并更新保留 JWT 等自定义键，全新安装才按模板写入。
+     */
+    public static function renderEnv(string $templatePath, ?string $existing, array $db, bool $debug): string
+    {
+        $updates = self::buildEnvUpdates($db, $debug);
+        if ($existing !== null) {
+            return self::mergeEnv($existing, $updates);
+        }
+        return str_replace(
+            ['%debug%', '%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+            [$updates['APP_DEBUG'], $db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+            (string) file_get_contents($templatePath));
+    }
+
+    /**
+     * 执行核心迁移并写入初始管理员账号；失败抛出异常由调用方转译。
+     */
+    public static function installSchemaAndAdmin(string $sqlFileDir, array $admin): void
+    {
+        Db::connect()->execute('SELECT 1');
+        MigrationService::instance()->runDirectory($sqlFileDir, 'core');
+        Admin::where('id', 1)->update([
+            'email' => $admin['email'],
+            'username' => $admin['username'],
+            'password' => password($admin['password']),
+        ]);
+    }
+
+    /**
+     * 构建 .env 中由安装器负责的键值集合。
+     */
+    public static function buildEnvUpdates(array $db, bool $debug): array
+    {
+        return [
+            'APP_DEBUG' => $debug ? 'true' : 'false',
+            'DB_DRIVER' => 'mysql',
+            'DB_TYPE' => 'mysql',
+            'DB_HOST' => $db['host'],
+            'DB_NAME' => $db['database'],
+            'DB_USER' => $db['username'],
+            'DB_PASS' => $db['password'],
+            'DB_PORT' => $db['port'],
+            'DB_CHARSET' => 'utf8mb4',
+            'DB_PREFIX' => $db['prefix'],
+        ];
+    }
+
+    /**
+     * 合并更新 .env：仅替换已有键的值，缺失键追加，其余行原样保留。
+     */
+    private static function mergeEnv(string $content, array $updates): string
+    {
+        $lines = preg_split('/\R/', $content) ?: [];
+        $found = [];
+        foreach ($lines as $i => $line) {
+            if (preg_match('/^\s*([A-Z][A-Z0-9_]*)\s*=/', $line, $m) && array_key_exists($m[1], $updates)) {
+                $lines[$i] = $m[1] . ' = ' . $updates[$m[1]];
+                $found[$m[1]] = true;
+            }
+        }
+        foreach ($updates as $key => $value) {
+            if (!isset($found[$key])) {
+                $lines[] = $key . ' = ' . $value;
+            }
+        }
+        return implode("\n", $lines);
+    }
+}

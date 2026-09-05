@@ -30,12 +30,12 @@ class SystemMemberLevel extends AdminApiController
             'page' => $page,
         ]);
 
-        return $this->ok([
-            'list' => array_map(fn (MemberLevel $level): array => $this->levelData($level), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (MemberLevel $level): array => $this->levelData($level), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response

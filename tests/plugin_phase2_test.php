@@ -6,8 +6,10 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use app\common\plugin\marketplace\CloudAccountSession;
 use app\common\plugin\marketplace\LegacyCloudMarketplaceAdapter;
+use app\common\plugin\package\GuzzlePackageStreamDownloader;
 use app\common\plugin\package\PluginPackageDownloader;
 use app\backend\service\PluginMarketplaceService;
+use GuzzleHttp\Psr7\Response;
 use app\backend\service\PluginPackagePipeline;
 use app\common\plugin\marketplace\PluginMarketplaceGateway;
 use app\common\plugin\marketplace\SessionStore;
@@ -72,6 +74,7 @@ $descriptor = new DownloadDescriptorDto(
 phase2Expect($descriptor->size === 1024 && $descriptor->algorithm === 'sha256', '下载描述 DTO 字段错误');
 phase2Exception(static fn () => new DownloadDescriptorDto('file:///tmp/demo.zip', 'demo', '1.2.0', str_repeat('a', 64), null, null, 1), 'http/https');
 phase2Exception(static fn () => new DownloadDescriptorDto('https://example.com/demo.zip', 'demo', '1.2.0', 'bad', null, null, 1), 'SHA-256');
+phase2Exception(static fn () => new DownloadDescriptorDto('http://127.0.0.1/demo.zip', 'demo', '1.2.0', str_repeat('a', 64), null, null, 1), '禁止');
 
 $dtoReflection = new ReflectionClass(DownloadDescriptorDto::class);
 foreach ($dtoReflection->getProperties() as $property) {
@@ -120,7 +123,7 @@ $adapter = new LegacyCloudMarketplaceAdapter(
         return match ($endpoint) {
             '/api/v2.plugins/cateList' => ['code' => 200, 'data' => [['id' => 3, 'name' => '工具']]],
             '/api/v2.plugins/getList' => ['code' => 200, 'data' => ['list' => [['id' => 9, 'name' => 'demo', 'title' => '演示']], 'total' => 1]],
-            '/api/v2.plugins/down' => ['code' => 200, 'data' => ['file_url' => 'https://example.com/demo.zip', 'sha256' => str_repeat('a', 64), 'size' => 10]],
+            '/api/v2.plugins/down' => ['code' => 200, 'data' => ['file_url' => 'https://example.com/demo.zip', 'version' => '1.2.0', 'sha256' => str_repeat('a', 64), 'size' => 10]],
             default => ['code' => 200, 'data' => ['id' => 7, 'username' => 'demo', 'nickname' => '演示']],
         };
     },
@@ -131,6 +134,11 @@ phase2Expect($adapter->categories()[0]->name === '工具', '旧云 category 字�
 phase2Expect($adapter->search(new MarketplaceSearchRequestDto('demo'))->items[0]->name === 'demo', '旧云列表字段必须适配为 DTO');
 phase2Expect($adapter->download('demo', '1.2.0')->sha256 === str_repeat('a', 64), '旧云下载字段必须适配为 DTO');
 phase2Expect($requests[0][2] === 'token', '适配器请求必须显式传递 session token');
+$mismatchAdapter = new LegacyCloudMarketplaceAdapter(
+    static fn (): array => ['code' => 200, 'data' => ['file_url' => 'https://example.com/demo.zip', 'version' => '9.9.9', 'sha256' => str_repeat('a', 64), 'size' => 10]],
+    $cloudSession
+);
+phase2Exception(static fn () => $mismatchAdapter->download('demo', '1.2.0'), '版本');
 
 $adapterSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php');
 phase2Expect(!str_contains($adapterSource, 'setApiUrl'), '适配器不得复用可变链式云客户端');
@@ -156,13 +164,29 @@ phase2Exception(static fn () => (new PluginPackageDownloader($downloadRoot, stat
     file_put_contents($target, 'bad-content');
 }, null, 'allow_unsigned'))->download($downloadDescriptor), 'SHA-256');
 phase2Exception(static fn () => new PluginPackageDownloader($downloadRoot, static function (): void {}, null, 'require_signature'), '公钥');
+$missingKeyDownloader = new PluginPackageDownloader($downloadRoot, static function (): void {}, null, 'reject_unsigned');
+phase2Exception(static fn () => $missingKeyDownloader->assertCloudInstallationAllowed(), '未配置市场公钥');
+putenv('PLUGIN_MARKETPLACE_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\\nline-data\\n-----END PUBLIC KEY-----');
+$pluginConfig = require dirname(__DIR__) . '/config/plugins.php';
+phase2Expect(
+    ($pluginConfig['marketplace']['public_key'] ?? '') === "-----BEGIN PUBLIC KEY-----\nline-data\n-----END PUBLIC KEY-----",
+    'PLUGIN_MARKETPLACE_PUBLIC_KEY 必须显式读取并还原 PEM 换行'
+);
+putenv('PLUGIN_MARKETPLACE_PUBLIC_KEY');
 
 $downloadSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/package/PluginPackageDownloader.php');
 phase2Expect(!str_contains($downloadSource, 'public_path'), '云下载临时包不得进入 public 中转');
+$pipelineSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginPackagePipeline.php');
+phase2Expect(
+    strpos($pipelineSource, 'assertCloudInstallationAllowed') < strpos($pipelineSource, '$gateway->authorize'),
+    'reject_unsigned 公钥校验必须发生在云市场请求前'
+);
 
 final class FakePackageOperations
 {
     public array $calls = [];
+    public bool $failFinish = false;
+    public bool $failDiscard = false;
 
     public function stage(string $archive, string $expectedName = '', string $expectedVersion = ''): array
     {
@@ -179,6 +203,9 @@ final class FakePackageOperations
     public function finish(array $staged, ?string $backup): void
     {
         $this->calls[] = ['finish', $backup];
+        if ($this->failFinish) {
+            throw new RuntimeException('cleanup failed: /stage, /backup');
+        }
     }
 
     public function rollback(string $name, ?string $backup): void
@@ -189,6 +216,9 @@ final class FakePackageOperations
     public function discard(array $staged): void
     {
         $this->calls[] = ['discard'];
+        if ($this->failDiscard) {
+            throw new RuntimeException('discard failed: /stage');
+        }
     }
 }
 
@@ -233,12 +263,49 @@ $historyFailurePipeline = new PluginPackagePipeline(
 $historyResult = $historyFailurePipeline->installLocal($localArchive);
 phase2Expect($historyResult['name'] === 'demo', '部署成功后历史失败不得覆盖主结果');
 phase2Expect(array_column($historyFailureOperations->calls, 0) === ['stage', 'deploy', 'finish'], '历史失败不得触发已完成部署回滚或删除插件');
+$cleanupFailureOperations = new FakePackageOperations();
+$cleanupFailureOperations->failFinish = true;
+$cleanupHistory = [];
+$cleanupPipeline = new PluginPackagePipeline(
+    $cleanupFailureOperations,
+    static fn (): bool => true,
+    static fn (): bool => false,
+    static function (array $data) use (&$cleanupHistory): void { $cleanupHistory[] = $data; },
+    static function (): void {}
+);
+$cleanupResult = $cleanupPipeline->installLocal($localArchive);
+phase2Expect(
+    ($cleanupResult['warnings'][0] ?? '') === 'cleanup failed: /stage, /backup',
+    '主安装成功但 finish 失败时必须返回含可定位路径的 warnings'
+);
+phase2Expect(
+    ($cleanupHistory[0]['status'] ?? '') === 'warning'
+    && ($cleanupHistory[0]['error'] ?? '') === 'cleanup failed: /stage, /backup',
+    '清理失败必须写入 operation warning/error，不能记录为完全成功'
+);
+$originalFailureOperations = new FakePackageOperations();
+$originalFailureOperations->failFinish = true;
+$originalFailureLogs = [];
+$originalFailurePipeline = new PluginPackagePipeline(
+    $originalFailureOperations,
+    static function (): bool { throw new RuntimeException('original migration failed'); },
+    static fn (): bool => false,
+    null,
+    static function (string $message) use (&$originalFailureLogs): void { $originalFailureLogs[] = $message; }
+);
+phase2Exception(static fn () => $originalFailurePipeline->updateLocal($localArchive, 'demo'), 'original migration failed');
+phase2Expect(
+    str_contains(implode('\n', $originalFailureLogs), '/stage')
+    && str_contains(implode('\n', $originalFailureLogs), 'original migration failed'),
+    '失败清理异常必须保留定位路径且不得覆盖原异常'
+);
 unlink($localArchive);
 
 $packageSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginPackageService.php');
 phase2Expect(!str_contains($packageSource, "'plugin.ini'") && str_contains($packageSource, "'plugin.json'"), 'PluginPackageService 必须只认 plugin.json');
 phase2Expect(str_contains($packageSource, "'version' => \$manifest->version()"), 'stage 结果必须携带已校验的 manifest version');
 phase2Expect(str_contains($packageSource, 'expectedVersion') && str_contains($packageSource, '版本与请求版本不一致'), 'stage 必须严格校验 expectedVersion');
+phase2Expect(!str_contains($packageSource, '@rmdir') && !str_contains($packageSource, '@unlink'), 'stage/backup 清理不得忽略删除结果');
 
 $marketplaceMethods = array_map(static fn (ReflectionMethod $method): string => $method->getName(), (new ReflectionClass(PluginMarketplaceService::class))->getMethods(ReflectionMethod::IS_PUBLIC));
 foreach (['login', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'installCloud', 'updateCloud', 'installLocal', 'updateLocal'] as $method) {
@@ -264,6 +331,52 @@ $streamSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugi
 foreach (['FILTER_FLAG_NO_PRIV_RANGE', 'FILTER_FLAG_NO_RES_RANGE', 'Location'] as $ssrfBoundary) {
     phase2Expect(str_contains($streamSource, $ssrfBoundary), '下载器缺少 SSRF/重定向边界：' . $ssrfBoundary);
 }
+$resolvedHosts = [];
+$secureRequests = [];
+$secureDownloader = new GuzzlePackageStreamDownloader(
+    null,
+    static function (string $host) use (&$resolvedHosts): array {
+        $resolvedHosts[] = $host;
+        return match ($host) {
+            'downloads.example.com' => ['93.184.216.34', '2606:2800:220:1:248:1893:25c8:1946'],
+            'cdn.example.com' => ['93.184.216.35'],
+            default => [],
+        };
+    },
+    static function (string $url, array $requestOptions) use (&$secureRequests): Response {
+        $secureRequests[] = [$url, $requestOptions];
+        return count($secureRequests) === 1
+            ? new Response(302, ['Location' => 'https://cdn.example.com/demo.zip'])
+            : new Response(200, ['Content-Length' => '10']);
+    }
+);
+$secureDownloader('https://downloads.example.com/demo.zip', $downloadRoot . '/secure.zip', [
+    'timeout' => 120,
+    'connect_timeout' => 10,
+    'max_bytes' => 104857600,
+    'max_redirects' => 3,
+]);
+phase2Expect($resolvedHosts === ['downloads.example.com', 'cdn.example.com'], '每次重定向必须重新解析 A 与 AAAA');
+phase2Expect(
+    ($secureRequests[0][1]['curl'][CURLOPT_RESOLVE][0] ?? '') === 'downloads.example.com:443:93.184.216.34'
+    && ($secureRequests[1][1]['curl'][CURLOPT_RESOLVE][0] ?? '') === 'cdn.example.com:443:93.184.216.35',
+    '实际连接必须逐跳固定到已验证地址并保留原 URL 主机'
+);
+phase2Exception(static fn () => (new GuzzlePackageStreamDownloader(
+    null,
+    static fn (): array => ['93.184.216.34', 'fc00::1'],
+    static fn (): Response => new Response(200)
+))('https://downloads.example.com/demo.zip', $downloadRoot . '/blocked.zip', [
+    'timeout' => 120,
+    'connect_timeout' => 10,
+    'max_bytes' => 104857600,
+    'max_redirects' => 3,
+]), '禁止');
+phase2Exception(static fn () => (new GuzzlePackageStreamDownloader(null, static fn (): array => ['93.184.216.34']))(
+    'https://downloads.example.com/demo.zip',
+    $downloadRoot . '/unsupported.zip',
+    ['timeout' => 120, 'connect_timeout' => 10, 'max_bytes' => 104857600, 'max_redirects' => 3]
+), '不支持安全地址绑定');
 phase2Expect(str_contains($migration, 'package_hash') && str_contains($migration, 'source'), '历史必须记录包 hash 与来源');
 phase2Expect(!preg_match('/\bDROP\b|\bTRUNCATE\b/i', $migration), '阶段二 migration 必须只向前且不可破坏历史');
 

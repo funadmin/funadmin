@@ -30,6 +30,13 @@ final class PluginPackageDownloader
         }
     }
 
+    public function assertCloudInstallationAllowed(): void
+    {
+        if ($this->unsignedPolicy === 'reject_unsigned' && trim((string) $this->publicKey) === '') {
+            throw new RuntimeException('未配置市场公钥，请设置 PLUGIN_MARKETPLACE_PUBLIC_KEY');
+        }
+    }
+
     public function download(DownloadDescriptorDto $descriptor): string
     {
         $this->createDirectory();
@@ -62,6 +69,14 @@ final class PluginPackageDownloader
         }
     }
 
+    public function verificationMetadata(DownloadDescriptorDto $descriptor): array
+    {
+        return [
+            'signature_algorithm' => $descriptor->algorithm,
+            'signature_verified' => $descriptor->signature !== null && trim((string) $this->publicKey) !== '',
+        ];
+    }
+
     private function verifyFile(string $file, DownloadDescriptorDto $descriptor): void
     {
         $size = is_file($file) ? filesize($file) : false;
@@ -77,20 +92,21 @@ final class PluginPackageDownloader
 
     private function verifySignature(string $hash, DownloadDescriptorDto $descriptor): void
     {
+        $hasPublicKey = trim((string) $this->publicKey) !== '';
         if ($descriptor->signature === null) {
-            if ($this->unsignedPolicy !== 'allow_unsigned') {
-                throw new RuntimeException('当前策略拒绝未签名插件包');
+            if ($hasPublicKey || $this->unsignedPolicy !== 'allow_unsigned') {
+                throw new RuntimeException('当前签名策略拒绝未签名插件包');
             }
             return;
         }
-        if ($this->publicKey === null || trim($this->publicKey) === '') {
+        if (strtolower((string) $descriptor->algorithm) !== 'sha256') {
+            throw new RuntimeException('不支持的插件包签名算法');
+        }
+        if (!$hasPublicKey) {
             if ($this->unsignedPolicy === 'allow_unsigned') {
                 return;
             }
             throw new RuntimeException('插件包包含签名但未配置验证公钥');
-        }
-        if (strtolower((string) $descriptor->algorithm) !== 'sha256') {
-            throw new RuntimeException('不支持的插件包签名算法');
         }
         $signature = base64_decode($descriptor->signature, true);
         if ($signature === false || !function_exists('openssl_verify')) {

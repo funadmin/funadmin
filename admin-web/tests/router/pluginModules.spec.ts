@@ -1,0 +1,62 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { Router } from 'vue-router';
+import {
+  isAllowedPluginModuleUrl,
+  syncPluginModules,
+  type EnabledPluginModule,
+  type PluginEsmModule
+} from '@/router/pluginModules';
+
+const descriptor = (name: string, entryUrl: string): EnabledPluginModule => ({
+  name,
+  version: '1.0.0',
+  hash: 'a'.repeat(64),
+  entryUrl,
+  routes: [{ path: `/plugin/${name}/index`, name: `Plugin_${name}`, component: 'Index', meta: { title: name } }]
+});
+
+function routerStub() {
+  const names = new Set<string>();
+  return {
+    addRoute: vi.fn((route: { name?: string }) => names.add(String(route.name))),
+    removeRoute: vi.fn((name: string) => names.delete(name)),
+    hasRoute: vi.fn((name: string) => names.has(name))
+  } as unknown as Router;
+}
+
+describe('pluginModules', () => {
+  it('只接受当前 origin 的 plugin-assets 前缀', () => {
+    expect(isAllowedPluginModuleUrl('/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
+    expect(isAllowedPluginModuleUrl('https://admin.example.com/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
+    expect(isAllowedPluginModuleUrl('https://evil.example/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(false);
+    expect(isAllowedPluginModuleUrl('/static/demo/index.js', 'https://admin.example.com')).toBe(false);
+    expect(isAllowedPluginModuleUrl('/plugin-assets/../admin/index.js', 'https://admin.example.com')).toBe(false);
+  });
+
+  it('隔离单个插件加载失败并挂载其余插件', async () => {
+    const router = routerStub();
+    const importer = vi.fn(async (url: string): Promise<PluginEsmModule> => {
+      if (url.includes('broken')) throw new Error('load failed');
+      return { register: () => ({ components: { Index: {} } }) };
+    });
+    const result = await syncPluginModules(router, [
+      descriptor('broken', '/plugin-assets/broken/index.js'),
+      descriptor('healthy', '/plugin-assets/healthy/index.js')
+    ], { origin: 'https://admin.example.com', importer });
+
+    expect(result.loaded).toEqual(['healthy']);
+    expect(result.errors).toHaveLength(1);
+    expect(router.addRoute).toHaveBeenCalledTimes(1);
+  });
+
+  it('重复同步不重复挂载并移除已禁用插件路由', async () => {
+    const router = routerStub();
+    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
+    await syncPluginModules(router, [descriptor('demo', '/plugin-assets/demo/index.js')], { origin: 'https://admin.example.com', importer });
+    await syncPluginModules(router, [descriptor('demo', '/plugin-assets/demo/index.js')], { origin: 'https://admin.example.com', importer });
+    expect(router.addRoute).toHaveBeenCalledTimes(1);
+
+    await syncPluginModules(router, [], { origin: 'https://admin.example.com', importer });
+    expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo');
+  });
+});

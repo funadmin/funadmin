@@ -6,15 +6,14 @@ namespace app\backend\controller\base;
 
 use app\BaseController;
 use app\backend\service\DataScopeService;
-use app\common\traits\JsonResponse;
-use think\facade\Session;
+use app\backend\traits\AdminJsonResponse;
 
 /**
  * Admin Web CRUD API 基类：只提供协议与查询边界，不承载业务规则。
  */
 abstract class AdminApiController extends BaseController
 {
-    use JsonResponse;
+    use AdminJsonResponse;
     protected function page(): int
     {
         return max(1, (int) $this->request->get('page', 1));
@@ -27,11 +26,25 @@ abstract class AdminApiController extends BaseController
 
     protected function ids(string $name = 'ids'): array
     {
-        $ids = $this->request->param($name, []);
+        return $this->normalizeIds($this->request->param($name, []));
+    }
+
+    protected function normalizeIds(mixed $ids): array
+    {
         if (!is_array($ids)) {
             $ids = explode(',', (string) $ids);
         }
         return array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+    }
+
+    protected function paginationData(array $list, int $total, int $page, int $pageSize): array
+    {
+        return [
+            'list' => $list,
+            'total' => $total,
+            'page' => $page,
+            'pageSize' => $pageSize,
+        ];
     }
 
     protected function applyDataScope($query, string $adminField = 'admin_id', string $departmentField = 'dept_id')
@@ -70,8 +83,4 @@ abstract class AdminApiController extends BaseController
         return is_numeric($value) ? date('Y-m-d H:i:s', (int) $value) : (string) $value;
     }
 
-    protected function responseHeaders(): array
-    {
-        return ['X-CSRF-TOKEN' => (string) Session::get('__token__', '')];
-    }
 }

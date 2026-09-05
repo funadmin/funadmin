@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+function phase3Expect(bool $condition, string $message): void
+{
+    if (!$condition) {
+        throw new RuntimeException($message);
+    }
+}
+
+$root = dirname(__DIR__);
+$controller = $root . '/app/backend/controller/system/SystemPlugin.php';
+$route = (string) file_get_contents($root . '/app/backend/route/app.php');
+$migrations = glob($root . '/database/migrations/*plugin*admin_web*.sql') ?: [];
+
+phase3Expect(is_file($controller), '缺少 SystemPlugin Admin Web API 控制器');
+$source = is_file($controller) ? (string) file_get_contents($controller) : '';
+phase3Expect(str_contains($source, 'extends AdminApiController'), 'SystemPlugin 必须继承 AdminApiController');
+foreach (['CheckAdminApiRole::class', 'CheckAdminApiCsrf::class', 'SystemLog::class'] as $middleware) {
+    phase3Expect(str_contains($source, $middleware), 'SystemPlugin 缺少中间件：' . $middleware);
+}
+phase3Expect(!str_contains($source, 'extends Backend'), 'SystemPlugin 不得复用旧 Layui Controller');
+foreach (['PluginMarketplaceService', 'PluginPackagePipeline', 'PluginService', 'PluginConfigService', 'PluginPackageHistoryService'] as $service) {
+    phase3Expect(str_contains($source, $service), 'SystemPlugin 必须调用服务：' . $service);
+}
+
+$requiredRoutes = [
+    "Route::post('system/plugin/account/login'",
+    "Route::post('system/plugin/account/logout'",
+    "Route::get('system/plugin/account/current'",
+    "Route::get('system/plugin/market/categories'",
+    "Route::get('system/plugin/market/search'",
+    "Route::get('system/plugin/market/:name/versions'",
+    "Route::get('system/plugin/market/:name'",
+    "Route::post('system/plugin/market/check-updates'",
+    "Route::get('system/plugin/local/discovered'",
+    "Route::get('system/plugin/local/installed'",
+    "Route::get('system/plugin/local/:name'",
+    "Route::post('system/plugin/local/install'",
+    "Route::post('system/plugin/cloud/:name/install'",
+    "Route::post('system/plugin/:name/update'",
+    "Route::post('system/plugin/:name/migrate'",
+    "Route::post('system/plugin/:name/enable'",
+    "Route::post('system/plugin/:name/disable'",
+    "Route::get('system/plugin/:name/config'",
+    "Route::put('system/plugin/:name/config'",
+    "Route::delete('system/plugin/:name/uninstall'",
+    "Route::delete('system/plugin/:name/package'",
+    "Route::get('system/plugin/:name/history'",
+    "Route::get('system/plugin/:name/operations'",
+    "Route::get('system/plugin/modules/enabled'",
+];
+foreach ($requiredRoutes as $expected) {
+    phase3Expect(str_contains($route, $expected), '缺少插件 REST 路由：' . $expected);
+}
+
+phase3Expect(count($migrations) === 1, '必须新增唯一且不冲突的插件 Admin Web 权限 migration');
+$migration = $migrations ? (string) file_get_contents($migrations[0]) : '';
+foreach (['system:plugin:list', 'system:plugin:install', 'system:plugin:update', 'system:plugin:migrate', 'system:plugin:enable', 'system:plugin:disable', 'system:plugin:config', 'system:plugin:uninstall', 'system:plugin:package-delete', 'system:plugin:history'] as $permission) {
+    phase3Expect(str_contains($migration, $permission), '权限 migration 缺少：' . $permission);
+}
+phase3Expect(str_contains($migration, 'system/plugin/index'), '权限 migration 必须注册插件中心菜单');
+phase3Expect(str_contains($source, "file('file')"), '本地安装必须接收 multipart ZIP');
+phase3Expect(str_contains($source, 'purgeConfirm'), 'purge 必须要求二次确认字段');
+$querySource = (string) file_get_contents($root . '/app/backend/service/PluginCenterQueryService.php');
+phase3Expect(str_contains($querySource, 'plugin-assets'), 'enabled modules 必须输出受控 plugin-assets URL');
+
+echo "plugin phase3 tests passed\n";

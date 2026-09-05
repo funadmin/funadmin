@@ -26,6 +26,7 @@ import { memberLevelMockHandlers } from './modules/memberLevel';
 import { memberMockHandlers } from './modules/member';
 import { attachmentMockHandlers } from './modules/attachment';
 import { configMockHandlers } from './modules/config';
+import { pluginMockHandlers } from './modules/plugin';
 import type { MockHandler, MockRoute, MockMethod } from './types';
 
 const routes: MockRoute[] = [
@@ -43,7 +44,8 @@ const routes: MockRoute[] = [
   ...memberLevelMockHandlers,
   ...memberMockHandlers,
   ...attachmentMockHandlers,
-  ...configMockHandlers
+  ...configMockHandlers,
+  ...pluginMockHandlers
 ];
 
 function stripBase(url: string): string {

@@ -2,22 +2,20 @@
 
 namespace app\backend\controller\system;
 
-use app\BaseController;
+use app\backend\controller\base\AdminApiController;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\common\model\DictItem;
 use app\common\model\DictType;
-use think\App;
 use think\Response;
-use think\facade\Session;
 
 /**
  * Admin Web 字典 REST API。
  *
  * 字典类型通过 code 对外暴露，字典项在数据库中只保存 type_id，避免重复数据。
  */
-class SystemDict extends BaseController
+class SystemDict extends AdminApiController
 {
     protected $middleware = [
         CheckAdminApiRole::class,
@@ -25,14 +23,9 @@ class SystemDict extends BaseController
         SystemLog::class,
     ];
 
-    public function __construct(App $app)
-    {
-        parent::__construct($app);
-    }
-
     public function types(): Response
     {
-        $page = max(1, (int) $this->request->get('page', 1));
+        $page = $this->page();
         $pageSize = $this->pageSize();
         $query = DictType::order('sort', 'asc')->order('id', 'asc');
 
@@ -52,12 +45,7 @@ class SystemDict extends BaseController
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
         $list = array_map(fn (DictType $type) => $this->typeData($type), $result->items());
 
-        return $this->ok([
-            'list' => $list,
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
     public function createType(): Response
@@ -124,7 +112,7 @@ class SystemDict extends BaseController
 
     public function items(): Response
     {
-        $page = max(1, (int) $this->request->get('page', 1));
+        $page = $this->page();
         $pageSize = $this->pageSize();
         $typeCode = trim((string) $this->request->get('typeCode', ''));
         $query = DictItem::order('sort', 'asc')->order('id', 'asc');
@@ -132,7 +120,7 @@ class SystemDict extends BaseController
         if ($typeCode !== '') {
             $type = DictType::where('code', $typeCode)->find();
             if (!$type) {
-                return $this->ok(['list' => [], 'total' => 0, 'page' => $page, 'pageSize' => $pageSize]);
+                return $this->ok($this->paginationData([], 0, $page, $pageSize));
             }
             $query->where('type_id', (int) $type->id);
         }
@@ -158,12 +146,7 @@ class SystemDict extends BaseController
             return $this->itemData($item, (string) ($typeCodes[(int) $item->type_id] ?? ''));
         }, $items);
 
-        return $this->ok([
-            'list' => $list,
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
     public function createItem(): Response
@@ -381,20 +364,6 @@ class SystemDict extends BaseController
         return null;
     }
 
-    private function ids(): array
-    {
-        $ids = $this->request->param('ids', []);
-        if (!is_array($ids)) {
-            return [];
-        }
-        return array_values(array_unique(array_filter(array_map('intval', $ids), static fn ($id) => $id > 0)));
-    }
-
-    private function pageSize(): int
-    {
-        return min(100, max(1, (int) $this->request->get('pageSize', 10)));
-    }
-
     private function typeData(DictType $type): array
     {
         return [
@@ -432,37 +401,4 @@ class SystemDict extends BaseController
         ];
     }
 
-    private function formatTime($value): string
-    {
-        if (!$value) {
-            return '';
-        }
-        if ($value instanceof \DateTimeInterface) {
-            return $value->format('Y-m-d H:i:s');
-        }
-        if (is_numeric($value)) {
-            return date('Y-m-d H:i:s', (int) $value);
-        }
-        return (string) $value;
-    }
-
-    private function ok($data = null, string $msg = '操作成功'): Response
-    {
-        return $this->apiResponse(200, $msg, $data);
-    }
-
-    private function fail(string $msg, int $code = 400): Response
-    {
-        return $this->apiResponse($code, $msg, null, $code);
-    }
-
-    private function apiResponse(int $code, string $msg, $data, int $httpCode = 200): Response
-    {
-        return json([
-            'code' => $code,
-            'msg' => $msg,
-            'time' => time(),
-            'data' => $data,
-        ], $httpCode)->header(['X-CSRF-TOKEN' => (string) Session::get('__token__', '')]);
-    }
 }

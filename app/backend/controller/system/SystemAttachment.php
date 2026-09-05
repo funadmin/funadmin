@@ -39,12 +39,12 @@ class SystemAttachment extends AdminApiController
             $this->applyMimeFilter($query, $mimeType);
         }
         $result = $query->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok([
-            'list' => array_map(fn (Attach $attach): array => $this->attachmentData($attach), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (Attach $attach): array => $this->attachmentData($attach), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response

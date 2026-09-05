@@ -13,10 +13,13 @@ class PluginPackageService extends AbstractService
 {
     private const MAX_ARCHIVE_BYTES = 104857600;
     private const MAX_UNPACKED_BYTES = 524288000;
-    public function stage(string $archive, string $expectedName = ''): array
+    public function stage(string $archive, string $expectedName = '', string $expectedVersion = ''): array
     {
         if ($expectedName !== '') {
             $this->assertName($expectedName);
+        }
+        if ($expectedVersion !== '' && !preg_match('/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/', $expectedVersion)) {
+            throw new RuntimeException('插件请求版本格式错误');
         }
         if (!is_file($archive)) {
             throw new RuntimeException('插件安装包不存在');
@@ -33,7 +36,15 @@ class PluginPackageService extends AbstractService
 
         $zip = new ZipArchive();
         if ($zip->open($archive) !== true) {
-            $this->removeDirectory($stageDirectory);
+            try {
+                $this->removeDirectory($stageDirectory);
+            } catch (\Throwable $cleanupException) {
+                throw new RuntimeException(
+                    '无法打开插件安装包；暂存目录清理失败：' . $cleanupException->getMessage(),
+                    0,
+                    $cleanupException
+                );
+            }
             throw new RuntimeException('无法打开插件安装包');
         }
 
@@ -54,8 +65,15 @@ class PluginPackageService extends AbstractService
             $pluginDirectory = $this->locatePluginDirectory($stageDirectory, $expectedName);
             $manifest = $this->validatePlugin($pluginDirectory, $expectedName);
             $pluginName = $manifest->name();
+            if ($expectedVersion !== '' && $manifest->version() !== $expectedVersion) {
+                throw new RuntimeException('插件包版本与请求版本不一致');
+            }
         } catch (\Throwable $exception) {
-            $this->removeDirectory($stageDirectory);
+            try {
+                $this->removeDirectory($stageDirectory);
+            } catch (\Throwable $cleanupException) {
+                error_log('插件包暂存清理失败：' . $cleanupException->getMessage() . '；原异常：' . $exception->getMessage());
+            }
             throw $exception;
         } finally {
             $zip->close();
@@ -111,9 +129,19 @@ class PluginPackageService extends AbstractService
 
     public function finish(array $staged, ?string $backup): void
     {
-        $this->removeDirectory((string) ($staged['stage_directory'] ?? ''));
-        if ($backup !== null) {
-            $this->removeDirectory($backup);
+        $failures = [];
+        foreach ([(string) ($staged['stage_directory'] ?? ''), $backup] as $directory) {
+            if ($directory === null || $directory === '') {
+                continue;
+            }
+            try {
+                $this->removeDirectory($directory);
+            } catch (\Throwable $exception) {
+                $failures[] = $exception->getMessage();
+            }
+        }
+        if ($failures !== []) {
+            throw new RuntimeException(implode('；', $failures));
         }
     }
 
@@ -244,13 +272,23 @@ class PluginPackageService extends AbstractService
         if ($directory === '' || !is_dir($directory)) {
             return;
         }
+        $failures = [];
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($iterator as $item) {
-            $item->isDir() && !$item->isLink() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+            $path = $item->getPathname();
+            $deleted = $item->isDir() && !$item->isLink() ? rmdir($path) : unlink($path);
+            if (!$deleted) {
+                $failures[] = $path;
+            }
         }
-        @rmdir($directory);
+        if (!rmdir($directory)) {
+            $failures[] = $directory;
+        }
+        if ($failures !== []) {
+            throw new RuntimeException('无法清理插件目录：' . implode(', ', $failures));
+        }
     }
 }

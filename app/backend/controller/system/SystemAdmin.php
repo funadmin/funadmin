@@ -41,12 +41,12 @@ class SystemAdmin extends AdminApiController
             $query->where('status', (int) $status);
         }
         $result = $query->order('id', 'asc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
-        return $this->ok([
-            'list' => array_map(fn (Admin $admin): array => $this->adminData($admin), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (Admin $admin): array => $this->adminData($admin), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response
@@ -233,7 +233,7 @@ class SystemAdmin extends AdminApiController
             'password' => $create ? (string) $this->request->post('password', '') : '',
             'status' => (int) $this->request->post('status', $admin ? $admin->status : 1) === 1 ? 1 : 0,
             'deptId' => max(0, (int) $this->request->post('deptId', $admin ? $admin->dept_id : 0)),
-            'roleIds' => $this->arrayIds($this->request->post('roleIds', $admin ? AuthService::instance()->adminRoleIds((int) $admin->id) : [])),
+            'roleIds' => $this->normalizeIds($this->request->post('roleIds', $admin ? AuthService::instance()->adminRoleIds((int) $admin->id) : [])),
         ];
     }
 
@@ -291,11 +291,4 @@ class SystemAdmin extends AdminApiController
         ];
     }
 
-    private function arrayIds($ids): array
-    {
-        if (!is_array($ids)) {
-            $ids = explode(',', (string) $ids);
-        }
-        return array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
-    }
 }

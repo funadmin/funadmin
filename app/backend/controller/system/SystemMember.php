@@ -31,12 +31,12 @@ class SystemMember extends AdminApiController
         $items = $result->items();
         [$memberGroups, $groups, $levels] = $this->relationMaps($items);
 
-        return $this->ok([
-            'list' => array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels), $items),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (Member $member): array => $this->memberData($member, $memberGroups, $groups, $levels), $items),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response
@@ -274,10 +274,7 @@ class SystemMember extends AdminApiController
     private function normalizePayload(array $row): array
     {
         $groupIds = $row['groupIds'] ?? $row['group_ids'] ?? $row['groupId'] ?? $row['group_id'] ?? [];
-        if (!is_array($groupIds)) {
-            $groupIds = explode(',', (string) $groupIds);
-        }
-        $groupIds = array_values(array_unique(array_filter(array_map('intval', $groupIds), static fn (int $id): bool => $id > 0)));
+        $groupIds = $this->normalizeIds($groupIds);
 
         return [
             'username' => trim((string) ($row['username'] ?? '')),

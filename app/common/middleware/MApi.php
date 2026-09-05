@@ -2,17 +2,22 @@
 
 namespace app\common\middleware;
 
+use app\common\service\BearerTokenExtractor;
 use app\common\service\MemberAuthService;
 use app\common\service\TokenService;
+use app\common\traits\JsonResponse;
 use Closure;
 use think\Request;
 use think\Response;
 
 class MApi
 {
+    use JsonResponse;
+
     public function __construct(
         private readonly TokenService $tokenService,
-        private readonly MemberAuthService $memberAuthService
+        private readonly MemberAuthService $memberAuthService,
+        private readonly BearerTokenExtractor $bearerTokenExtractor
     ) {
     }
 
@@ -27,12 +32,12 @@ class MApi
     {
         $request->member = [];
         $request->member_id = $request->mid = null;
-        $authHeader = (string) $request->header('Authorization', '');
-        if (!preg_match('/^Bearer\s+(\S+)$/i', $authHeader, $matches)) {
+        $token = $this->bearerTokenExtractor->extract($request);
+        if ($token === null) {
             return $this->fail(__('Unauthorized'), 401);
         }
 
-        $tokenData = $this->tokenService->validateToken($matches[1]);
+        $tokenData = $this->tokenService->validateToken($token);
         $memberId = is_array($tokenData) ? (int) ($tokenData['id'] ?? 0) : 0;
         if ($memberId <= 0) {
             return $this->fail(__('Invalid token'), 401);
@@ -47,16 +52,6 @@ class MApi
         $request->member_id = $request->mid = $memberId;
 
         return $next($request);
-    }
-
-    private function fail(string $message, int $code): Response
-    {
-        return json([
-            'code' => $code,
-            'msg' => $message,
-            'time' => time(),
-            'data' => null,
-        ], $code);
     }
 
 }

@@ -15,6 +15,31 @@ Route::post('profile/password', 'auth.AdminProfile/password');
 
 Route::post('upload', 'system.AdminUpload/upload');
 
+Route::post('system/plugin/account/login', 'system.SystemPlugin/accountLogin');
+Route::post('system/plugin/account/logout', 'system.SystemPlugin/accountLogout');
+Route::get('system/plugin/account/current', 'system.SystemPlugin/currentAccount');
+Route::get('system/plugin/market/categories', 'system.SystemPlugin/marketCategories');
+Route::get('system/plugin/market/search', 'system.SystemPlugin/marketSearch');
+Route::get('system/plugin/market/:name/versions', 'system.SystemPlugin/marketVersions')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/market/:name', 'system.SystemPlugin/marketDetail')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/market/check-updates', 'system.SystemPlugin/checkUpdates');
+Route::get('system/plugin/local/discovered', 'system.SystemPlugin/discovered');
+Route::get('system/plugin/local/installed', 'system.SystemPlugin/installed');
+Route::post('system/plugin/local/install', 'system.SystemPlugin/installLocal');
+Route::get('system/plugin/local/:name', 'system.SystemPlugin/localDetail')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/cloud/:name/install', 'system.SystemPlugin/installCloud')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/modules/enabled', 'system.SystemPlugin/enabledModules');
+Route::post('system/plugin/:name/update', 'system.SystemPlugin/update')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/:name/migrate', 'system.SystemPlugin/migrate')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/:name/enable', 'system.SystemPlugin/enable')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::post('system/plugin/:name/disable', 'system.SystemPlugin/disable')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/:name/config', 'system.SystemPlugin/getConfig')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::put('system/plugin/:name/config', 'system.SystemPlugin/saveConfig')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::delete('system/plugin/:name/uninstall', 'system.SystemPlugin/uninstall')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::delete('system/plugin/:name/package', 'system.SystemPlugin/deletePackage')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/:name/history', 'system.SystemPlugin/history')->pattern(['name' => '[a-z][a-z0-9]*']);
+Route::get('system/plugin/:name/operations', 'system.SystemPlugin/operations')->pattern(['name' => '[a-z][a-z0-9]*']);
+
 Route::get('system/role/permission-tree', 'system.SystemRole/permissionTree');
 Route::get('system/role/all', 'system.SystemRole/all');
 Route::get('system/role/parent-options', 'system.SystemRole/parentOptions');

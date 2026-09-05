@@ -31,6 +31,19 @@ export interface InstallResult {
   backend: string;
 }
 
+let installedCache: Promise<boolean> | null = null;
+
+/** 缓存读取安装状态；取不到（无后端/Mock 环境）时默认已安装，避免误入安装页 */
+export const isSystemInstalled = (): Promise<boolean> => {
+  if (!installedCache) {
+    installedCache = installHttp
+      .get<never, { installed?: boolean }>('/step2')
+      .then((data) => Boolean(data?.installed))
+      .catch(() => true);
+  }
+  return installedCache;
+};
+
 export const installApi = {
   environment: () => installHttp.get<never, InstallEnvironment>('/step2'),
   install: (form: InstallForm) => installHttp.post<never, InstallResult>('/step3', {

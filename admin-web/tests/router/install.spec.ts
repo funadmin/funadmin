@@ -1,9 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { canContinueInstallation, validateInstallForm } from '@/views/install/install';
+import { anonymousTarget, canContinueInstallation, validateInstallForm } from '@/views/install/install';
 
 describe('安装向导', () => {
+  it('未安装时匿名访问默认引导到安装页', () => {
+    expect(anonymousTarget(false)).toBe('/install');
+    expect(anonymousTarget(true)).toBe('/login');
+  });
+
   it('使用视口固定容器将内容稳定居中', () => {
     const source = readFileSync(resolve(process.cwd(), 'src/views/install/index.vue'), 'utf8');
 

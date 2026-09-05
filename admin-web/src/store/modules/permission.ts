@@ -4,6 +4,7 @@ import { authApi } from '@/api/auth';
 import { generateRoutes } from '@/router/dynamic';
 import { staticRoutes } from '@/router/routes';
 import router from '@/router';
+import { clearPluginModules } from '@/router/pluginModules';
 
 interface PermissionState {
   /** 后端原始菜单 */
@@ -47,6 +48,7 @@ export const usePermissionStore = defineStore('permission', {
           router.removeRoute(name);
         }
       });
+      clearPluginModules(router);
       // 同时卸载 NotFound 通配，下次登录会重新注册到动态路由之后
       if (router.hasRoute('NotFound')) {
         router.removeRoute('NotFound');

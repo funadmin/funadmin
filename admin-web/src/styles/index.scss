@@ -2088,10 +2088,10 @@ a:focus-visible,
 button:focus-visible,
 [role='button']:focus-visible,
 /*
- * EP 的 input / textarea / select 会给内层或 wrapper 写 tabindex，
- * 若仍套 [tabindex]:focus-visible，会与 .el-input__wrapper 的 focus 描边叠成「双层大框」
+ * EP 的复合组件会在内部节点写 tabindex；输入框由 wrapper 表达焦点，
+ * 菜单和弹层由内部背景表达焦点，均不能再套通用外圈。
  */
-[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper),
+[tabindex]:focus-visible:not(.el-input__inner):not(.el-textarea__inner):not(.el-select__wrapper):not(.el-menu):not(.el-menu-item):not(.el-sub-menu__title):not(.el-popper),
 .el-button:focus-visible,
 .el-checkbox__input:focus-visible .el-checkbox__inner,
 .el-radio__input:focus-visible .el-radio__inner,
@@ -2102,6 +2102,14 @@ button:focus-visible,
   outline: 2px solid color-mix(in srgb, var(--el-color-primary) 60%, transparent);
   outline-offset: 2px;
   border-radius: var(--app-radius-sm);
+}
+
+/* 菜单项保留键盘焦点反馈，但使用内嵌浅色背景，避免顶栏和弹层出现蓝色套框。 */
+.el-menu-item:focus-visible,
+.el-sub-menu__title:focus-visible {
+  outline: none;
+  background-color: var(--el-menu-hover-bg-color, var(--el-color-primary-light-9)) !important;
+  color: var(--el-menu-hover-text-color, var(--el-color-primary)) !important;
 }
 
 /*

@@ -45,12 +45,12 @@ class SystemRole extends AdminApiController
             'list_rows' => $pageSize,
             'page' => $page,
         ]);
-        return $this->ok([
-            'list' => array_map(fn (AuthGroup $role): array => $this->roleData($role), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (AuthGroup $role): array => $this->roleData($role), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function all(): Response
@@ -275,8 +275,8 @@ class SystemRole extends AdminApiController
             'dataScope' => trim((string) $this->request->post('dataScope', $defaults['dataScope'])),
             'remark' => trim(strip_tags((string) $this->request->post('remark', $defaults['remark']))),
             'status' => (int) $this->request->post('status', $defaults['status']) === 1 ? 1 : 0,
-            'parentRoleIds' => $this->arrayIds($this->request->post('parentRoleIds', $defaults['parentRoleIds'])),
-            'departmentIds' => $this->arrayIds($this->request->post('departmentIds', $defaults['departmentIds'])),
+            'parentRoleIds' => $this->normalizeIds($this->request->post('parentRoleIds', $defaults['parentRoleIds'])),
+            'departmentIds' => $this->normalizeIds($this->request->post('departmentIds', $defaults['departmentIds'])),
         ];
     }
 
@@ -345,11 +345,4 @@ class SystemRole extends AdminApiController
         ];
     }
 
-    private function arrayIds($ids): array
-    {
-        if (!is_array($ids)) {
-            $ids = explode(',', (string) $ids);
-        }
-        return array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
-    }
 }

@@ -35,12 +35,12 @@ class SystemMemberGroup extends AdminApiController
         }
         $result = $query->order('id', 'asc')->paginate(['list_rows' => $pageSize, 'page' => $page]);
 
-        return $this->ok([
-            'list' => array_map(fn (MemberGroup $group): array => $this->groupData($group), $result->items()),
-            'total' => $result->total(),
-            'page' => $page,
-            'pageSize' => $pageSize,
-        ]);
+        return $this->ok($this->paginationData(
+            array_map(fn (MemberGroup $group): array => $this->groupData($group), $result->items()),
+            $result->total(),
+            $page,
+            $pageSize
+        ));
     }
 
     public function detail(int $id): Response
@@ -175,6 +175,7 @@ class SystemMemberGroup extends AdminApiController
     {
         return [
             'name' => trim((string) $this->request->post('name', $group?->name ?? '')),
+            'icon' => trim((string) $this->request->post('icon', $group?->icon ?? '')),
             'status' => (int) $this->request->post('status', $group?->status ?? 1) === 1 ? 1 : 0,
         ];
     }
@@ -188,6 +189,10 @@ class SystemMemberGroup extends AdminApiController
         if ($length > 50) {
             return '会员组名称不能超过 50 个字符';
         }
+        $iconLength = function_exists('mb_strlen') ? mb_strlen($data['icon']) : strlen($data['icon']);
+        if ($iconLength > 50) {
+            return '会员组图标不能超过 50 个字符';
+        }
         return null;
     }
 
@@ -196,6 +201,7 @@ class SystemMemberGroup extends AdminApiController
         return [
             'id' => (int) $group->id,
             'name' => (string) $group->name,
+            'icon' => (string) ($group->icon ?? ''),
             'status' => (int) $group->status,
             'isDefault' => (int) $group->id === 1 ? 1 : 0,
             'createdAt' => $this->formatTime($group->create_time),

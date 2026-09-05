@@ -29,6 +29,7 @@ class PluginService extends AbstractService
     protected string $myplugin = 'myplugin';
     private ?array $pluginColumns = null;
     private bool $deploymentRollbackAllowed = true;
+    private array $packageOperationTokens = [];
 
     private function transition(Plugin $record, string $to): void
     {
@@ -46,6 +47,9 @@ class PluginService extends AbstractService
 
     private function operate(string $name, callable $operation): mixed
     {
+        if (isset($this->packageOperationTokens[$name])) {
+            return $operation($this->packageOperationTokens[$name]);
+        }
         $lock = null;
         $token = bin2hex(random_bytes(16));
         try {
@@ -91,6 +95,30 @@ class PluginService extends AbstractService
     public function canRollbackDeployment(): bool
     {
         return $this->deploymentRollbackAllowed;
+    }
+
+    /**
+     * 在同一生命周期锁内完成安装状态预检、目录部署和生命周期操作。
+     */
+    public function runPackageOperation(string $operation, string $name, callable $callback): mixed
+    {
+        return $this->operate($name, function (string $token) use ($operation, $name, $callback): mixed {
+            $record = $this->isInstall($name);
+            $installed = $record && (int) $record->delete_time === 0;
+            if ($operation === 'install' && $installed) {
+                throw new RuntimeException(lang('plugins %s is already installed', [$name]));
+            }
+            if ($operation === 'update' && !$installed) {
+                throw new RuntimeException('插件尚未安装');
+            }
+            $fromVersion = $installed ? (string) $record->version : '';
+            $this->packageOperationTokens[$name] = $token;
+            try {
+                return $callback($fromVersion);
+            } finally {
+                unset($this->packageOperationTokens[$name]);
+            }
+        });
     }
 
     public function addPluginMenu(array $menu, int $pid = 0, string $module = 'backend'): void
@@ -142,6 +170,9 @@ class PluginService extends AbstractService
             $manifest = $this->validatedManifest($name);
             $pluginInfo = $this->manifestInfo($manifest);
             $record = $this->isInstall($name);
+            if ($record && (int) $record->delete_time === 0) {
+                throw new RuntimeException(lang('plugins %s is already installed', [$name]));
+            }
             if ($record && (int) $record->delete_time > 0) {
                 (new Plugin())->restore(['id' => $record->id]);
                 $record = Plugin::find($record->id);
