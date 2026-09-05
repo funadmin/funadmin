@@ -15,8 +15,8 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button :type="recycled ? 'default' : 'primary'" :plain="!recycled" @click="switchMode(false)">正常列表</el-button>
-        <el-button :type="recycled ? 'primary' : 'default'" :plain="recycled" @click="switchMode(true)">回收站</el-button>
+        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)">正常列表</el-button>
+        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)">回收站</el-button>
         <template v-if="!recycled">
           <el-button type="primary" plain v-perm="'system:member-level:add'" @click="openAdd">
             <i class="i-ep-plus" /> 新增
@@ -33,7 +33,7 @@
             <i class="i-ep-delete-filled" /> 永久删除{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
-        <el-button v-perm="'system:member-level:export'" @click="exportRows">
+        <el-button type="info" plain v-perm="'system:member-level:export'" @click="exportRows">
           <i class="i-ep-download" /> CSV 导出
         </el-button>
       </template>

@@ -37,6 +37,26 @@ describe('Element Plus 按钮主题契约', () => {
     expect(invalidButtons).toEqual([]);
   });
 
+  it('工具栏辅助操作统一使用 info plain', () => {
+    const files = [
+      'src/views/system/member/index.vue',
+      'src/views/system/blacklist/index.vue',
+      'src/views/system/member-group/index.vue',
+      'src/views/system/member-level/index.vue',
+      'src/views/system/config/index.vue',
+      'src/views/system/attachment/index.vue'
+    ];
+    const toolbarSources = files.map((file) => readFileSync(resolve(process.cwd(), file), 'utf8')).join('\n');
+    ['CSV 导入', 'CSV 导出', '配置分组', '移动'].forEach((label) => {
+      expect(toolbarSources).toMatch(new RegExp(`<el-button[^>]*type="info"[^>]*plain[^>]*>[\\s\\S]{0,100}${label}`));
+    });
+  });
+
+  it('回收站入口使用 warning plain', () => {
+    const member = readFileSync(resolve(process.cwd(), 'src/views/system/member/index.vue'), 'utf8');
+    expect(member).toContain(`:type="recycled ? 'warning' : 'info'" plain`);
+  });
+
   it('保留按钮布局和图标对齐规则', () => {
     expect(styles).toMatch(/\.el-button\s*\{/);
     expect(styles).toContain(".el-button [class*='i-ep-']");

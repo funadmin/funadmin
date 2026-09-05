@@ -85,14 +85,19 @@ class Service extends \think\Service
     {
         return new Registry($this->plugins_path, function (): array {
             $records = [];
-            $query = \app\common\model\Plugin::where(function ($query): void {
-                $query->whereNull('delete_time')->whereOr('delete_time', 0);
-            });
-            foreach ($query->select() as $record) {
-                $records[(string) $record->name] = [
-                    'version' => (string) $record->version,
-                    'lifecycle_state' => (string) $record->lifecycle_state,
-                ];
+            try {
+                $query = \app\common\model\Plugin::where(function ($query): void {
+                    $query->whereNull('delete_time')->whereOr('delete_time', 0);
+                });
+                foreach ($query->select() as $record) {
+                    $records[(string) $record->name] = [
+                        'version' => (string) $record->version,
+                        'lifecycle_state' => (string) $record->lifecycle_state,
+                    ];
+                }
+            } catch (\Throwable) {
+                // 安装期或数据库不可用时插件表可能尚未创建：降级为空记录，保证引导与安装流程可用。
+                return [];
             }
             return $records;
         });

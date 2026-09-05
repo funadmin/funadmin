@@ -153,7 +153,10 @@ const parentOptions = computed<API.MenuItem[]>(() => {
     list
       .filter((it) => it.type === 'M')
       .map((it) => ({ ...it, children: it.children ? onlyDir(it.children) : undefined }));
-  return onlyDir(props.tree || []);
+  return [
+    { id: 0, parentId: 0, title: '无上级', type: 'M', path: '', name: 'RootMenu' } as API.MenuItem,
+    ...onlyDir(props.tree || [])
+  ];
 });
 
 watch(

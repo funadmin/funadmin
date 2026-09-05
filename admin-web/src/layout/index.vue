@@ -99,9 +99,10 @@
       <div
         v-if="!appStore.contentFull && !appStore.isMobile"
         class="app-layout__columns-aside"
+        :class="{ 'is-rail-only': !currentRootChildren.length }"
       >
         <div v-if="appStore.showLogo" class="app-layout__columns-logo">
-          <Logo :collapsed="false" />
+          <Logo :collapsed="!currentRootChildren.length" />
         </div>
         <div class="app-layout__columns-menus">
           <ColumnsRail :show-logo="false" />
@@ -430,6 +431,12 @@ html:not(.dark) .app-layout.menu-theme--fresh .app-layout__sidebar :deep(.el-sub
   width: 100%;
   box-sizing: border-box;
   border-bottom: 1px solid var(--app-sidebar-separator);
+}
+.app-layout__columns-aside.is-rail-only .app-layout__columns-logo {
+  width: 72px;
+}
+.app-layout__columns-aside.is-rail-only .app-layout__columns-logo :deep(.app-logo) {
+  padding: 0;
 }
 .app-layout__columns-menus {
   flex: 1;

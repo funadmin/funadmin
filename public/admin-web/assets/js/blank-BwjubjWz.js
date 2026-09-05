@@ -1,1 +1,0 @@
-import{Ht as e,Kt as t,wt as n}from"./element-DXyuEosb.js";import{o as r}from"./index-B7Pe_dtf.js";var i={};function a(r,i){let a=t(`router-view`);return e(),n(a)}var o=r(i,[[`render`,a]]);export{o as default};

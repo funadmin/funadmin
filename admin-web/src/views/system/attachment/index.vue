@@ -59,7 +59,7 @@
           <el-button type="primary" plain v-perm="'system:attachment:upload'" @click="uploadInput?.click()">
             <i class="i-ep-upload" /> 上传到{{ selectedGroupTitle }}
           </el-button>
-          <el-button :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
+          <el-button type="info" plain :disabled="!selection.length" v-perm="'system:attachment:move'" @click="moveSelected">
             <i class="i-ep-folder-opened" /> 移动{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:attachment:delete'" @click="removeSelected">

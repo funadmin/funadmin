@@ -25,8 +25,8 @@
         </SearchForm>
       </template>
       <template #toolbar-left>
-        <el-button :type="recycled ? 'default' : 'primary'" :plain="!recycled" @click="switchMode(false)">正常列表</el-button>
-        <el-button :type="recycled ? 'primary' : 'default'" :plain="recycled" @click="switchMode(true)">回收站</el-button>
+        <el-button :type="recycled ? 'info' : 'primary'" plain @click="switchMode(false)">正常列表</el-button>
+        <el-button :type="recycled ? 'warning' : 'info'" plain @click="switchMode(true)">回收站</el-button>
         <template v-if="!recycled">
           <el-button type="primary" plain v-perm="'system:member:add'" @click="openAdd">
             <i class="i-ep-plus" /> 新增
@@ -34,7 +34,7 @@
           <el-button type="danger" plain :disabled="!selection.length" v-perm="'system:member:delete'" @click="recycleSelected">
             <i class="i-ep-delete" /> 移入回收站{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
-          <el-button v-perm="'system:member:import'" @click="fileInput?.click()">
+          <el-button type="info" plain v-perm="'system:member:import'" @click="fileInput?.click()">
             <i class="i-ep-upload" /> CSV 导入
           </el-button>
         </template>
@@ -46,7 +46,7 @@
             <i class="i-ep-delete-filled" /> 永久删除{{ selection.length ? `(${selection.length})` : '' }}
           </el-button>
         </template>
-        <el-button v-perm="'system:member:export'" @click="exportRows">
+        <el-button type="info" plain v-perm="'system:member:export'" @click="exportRows">
           <i class="i-ep-download" /> CSV 导出
         </el-button>
         <input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />

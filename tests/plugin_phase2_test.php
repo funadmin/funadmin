@@ -126,7 +126,7 @@ $adapter = new LegacyCloudMarketplaceAdapter(
     },
     $cloudSession
 );
-$adapter->setLoginToken('token');
+$cloudSession->login($account, 'token');
 phase2Expect($adapter->categories()[0]->name === '工具', '旧云 category 字段必须适配为 DTO');
 phase2Expect($adapter->search(new MarketplaceSearchRequestDto('demo'))->items[0]->name === 'demo', '旧云列表字段必须适配为 DTO');
 phase2Expect($adapter->download('demo', '1.2.0')->sha256 === str_repeat('a', 64), '旧云下载字段必须适配为 DTO');
@@ -134,6 +134,7 @@ phase2Expect($requests[0][2] === 'token', '适配器请求必须显式传递 ses
 
 $adapterSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/marketplace/LegacyCloudMarketplaceAdapter.php');
 phase2Expect(!str_contains($adapterSource, 'setApiUrl'), '适配器不得复用可变链式云客户端');
+phase2Expect(!str_contains($adapterSource, 'loginToken') && !str_contains($adapterSource, 'setLoginToken'), '适配器不得保存实例级可变 token');
 
 $downloadRoot = sys_get_temp_dir() . '/funadmin-plugin-download-' . bin2hex(random_bytes(4));
 $payload = 'zip-content';
@@ -163,9 +164,9 @@ final class FakePackageOperations
 {
     public array $calls = [];
 
-    public function stage(string $archive, string $expectedName = ''): array
+    public function stage(string $archive, string $expectedName = '', string $expectedVersion = ''): array
     {
-        $this->calls[] = ['stage', $archive, $expectedName];
+        $this->calls[] = ['stage', $archive, $expectedName, $expectedVersion];
         return ['stage_directory' => '/stage', 'plugin_directory' => '/stage/demo', 'name' => 'demo', 'version' => '1.2.0'];
     }
 
@@ -209,18 +210,35 @@ phase2Expect($lifecycleCalls[0] === ['install', 'demo', true], 'pipeline 必须�
 phase2Expect(array_column($operations->calls, 0) === ['stage', 'deploy', 'finish'], '成功 pipeline 顺序必须为 stage/deploy/lifecycle/finish');
 
 $failedOperations = new FakePackageOperations();
+$failedHistoryErrors = [];
 $failedPipeline = new PluginPackagePipeline(
     $failedOperations,
     static function (): bool { throw new RuntimeException('migration failed'); },
-    static fn (): bool => false
+    static fn (): bool => false,
+    static function (): void { throw new RuntimeException('history failed'); },
+    static function (string $message) use (&$failedHistoryErrors): void { $failedHistoryErrors[] = $message; }
 );
 phase2Exception(static fn () => $failedPipeline->updateLocal($localArchive, 'demo'), 'migration failed');
-phase2Expect(array_column($failedOperations->calls, 0) === ['stage', 'deploy', 'discard'], 'migration 后不可回滚时只能清理 stage，不得回滚部署');
+phase2Expect(array_column($failedOperations->calls, 0) === ['stage', 'deploy', 'finish'], 'migration 后不可回滚时必须清理 stage 与 backup，不得泄漏备份');
+phase2Expect($failedHistoryErrors !== [], '历史写入失败必须独立记录日志');
+
+$historyFailureOperations = new FakePackageOperations();
+$historyFailurePipeline = new PluginPackagePipeline(
+    $historyFailureOperations,
+    static fn (): bool => true,
+    static fn (): bool => true,
+    static function (): void { throw new RuntimeException('history failed'); },
+    static function (string $message) use (&$failedHistoryErrors): void { $failedHistoryErrors[] = $message; }
+);
+$historyResult = $historyFailurePipeline->installLocal($localArchive);
+phase2Expect($historyResult['name'] === 'demo', '部署成功后历史失败不得覆盖主结果');
+phase2Expect(array_column($historyFailureOperations->calls, 0) === ['stage', 'deploy', 'finish'], '历史失败不得触发已完成部署回滚或删除插件');
 unlink($localArchive);
 
 $packageSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginPackageService.php');
 phase2Expect(!str_contains($packageSource, "'plugin.ini'") && str_contains($packageSource, "'plugin.json'"), 'PluginPackageService 必须只认 plugin.json');
 phase2Expect(str_contains($packageSource, "'version' => \$manifest->version()"), 'stage 结果必须携带已校验的 manifest version');
+phase2Expect(str_contains($packageSource, 'expectedVersion') && str_contains($packageSource, '版本与请求版本不一致'), 'stage 必须严格校验 expectedVersion');
 
 $marketplaceMethods = array_map(static fn (ReflectionMethod $method): string => $method->getName(), (new ReflectionClass(PluginMarketplaceService::class))->getMethods(ReflectionMethod::IS_PUBLIC));
 foreach (['login', 'logout', 'currentAccount', 'categories', 'search', 'detail', 'versions', 'checkUpdates', 'authorize', 'installCloud', 'updateCloud', 'installLocal', 'updateLocal'] as $method) {
@@ -231,6 +249,21 @@ $migrationFile = dirname(__DIR__) . '/database/migrations/009_plugin_package_his
 phase2Expect(is_file($migrationFile), '阶段二必须使用新的 009 migration，不得覆盖现有 008');
 $migration = (string) file_get_contents($migrationFile);
 phase2Expect(str_contains($migration, 'plugin_version_history') && str_contains($migration, 'plugin_operation'), '必须建立版本与操作历史表');
+$historySource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/service/PluginPackageHistoryService.php');
+phase2Expect(str_contains($historySource, 'Db::transaction'), '历史两表必须在同一事务内保存');
+foreach (['from_version', 'signature_algorithm', 'signature_verified', 'source', 'package_hash'] as $historyField) {
+    phase2Expect(str_contains($historySource, $historyField), '历史缺少字段：' . $historyField);
+}
+$controllerSource = (string) file_get_contents(dirname(__DIR__) . '/app/backend/controller/Plugin.php');
+foreach (['AuthCloudService', 'setApiUrl', 'downloadCloudArchive', 'doInstall', 'getCloudData', 'public_path'] as $forbidden) {
+    phase2Expect(!str_contains($controllerSource, $forbidden), 'Plugin Controller 仍存在旁路：' . $forbidden);
+}
+phase2Expect(str_contains($controllerSource, 'PluginMarketplaceService'), 'Plugin Controller 必须统一调用市场应用服务');
+phase2Expect(str_contains($controllerSource, "file('file')"), 'localinstall 必须直接接收 multipart file');
+$streamSource = (string) file_get_contents(dirname(__DIR__) . '/app/common/plugin/package/GuzzlePackageStreamDownloader.php');
+foreach (['FILTER_FLAG_NO_PRIV_RANGE', 'FILTER_FLAG_NO_RES_RANGE', 'Location'] as $ssrfBoundary) {
+    phase2Expect(str_contains($streamSource, $ssrfBoundary), '下载器缺少 SSRF/重定向边界：' . $ssrfBoundary);
+}
 phase2Expect(str_contains($migration, 'package_hash') && str_contains($migration, 'source'), '历史必须记录包 hash 与来源');
 phase2Expect(!preg_match('/\bDROP\b|\bTRUNCATE\b/i', $migration), '阶段二 migration 必须只向前且不可破坏历史');
 

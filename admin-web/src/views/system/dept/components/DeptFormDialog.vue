@@ -113,7 +113,8 @@ const rules = computed<FormRules>(() => ({
 
 /** 编辑时禁止把自己 / 自己的子孙挂为父，避免环 */
 const parentOptions = computed<DeptModel[]>(() => {
-  if (!isEdit.value || !props.row) return props.tree;
+  const root = { id: 0, parentId: 0, name: '无上级' } as DeptModel;
+  if (!isEdit.value || !props.row) return [root, ...props.tree];
   const banned = new Set<number>();
   const walk = (nodes: DeptModel[]) => {
     nodes.forEach((n) => {
@@ -126,7 +127,7 @@ const parentOptions = computed<DeptModel[]>(() => {
     nodes
       .filter((n) => !banned.has(n.id))
       .map((n) => ({ ...n, children: n.children ? filter(n.children) : undefined }));
-  return filter(props.tree);
+  return [root, ...filter(props.tree)];
 });
 
 watch(visible, (v) => {

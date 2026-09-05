@@ -144,9 +144,10 @@ function withoutNode(nodes: PermissionModel[], id: number): PermissionModel[] {
     }));
 }
 
-const parentOptions = computed(() =>
-  props.row?.id ? withoutNode(props.tree, props.row.id) : props.tree
-);
+const parentOptions = computed<PermissionModel[]>(() => [
+  { id: 0, parentId: 0, title: '无上级' } as PermissionModel,
+  ...(props.row?.id ? withoutNode(props.tree, props.row.id) : props.tree)
+]);
 
 watch(
   () => [props.modelValue, props.row, props.defaultParentId] as const,

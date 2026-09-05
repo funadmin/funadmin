@@ -84,13 +84,16 @@ class MigrationService extends AbstractService
     private function repositoryExists(): bool
     {
         $prefix = config('database.connections.mysql.prefix');
-        return Db::query('SHOW TABLES LIKE ?', [$prefix . 'system_migration']) !== [];
+        // SHOW 语句不支持占位符绑定，改用 getTables() 避免 1064。
+        return in_array($prefix . 'system_migration', Db::connect()->getTables(), true);
     }
 
     private function assertForwardOnly(string $sql, string $file): void
     {
         $withoutComments = preg_replace('#/\*.*?\*/|--[^\r\n]*#s', '', $sql);
-        if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutComments)) {
+        // 剔除字符串常量，避免 INSERT 数据中的 rename/drop 等词被误判为 DDL。
+        $withoutStrings = preg_replace("/'(?:[^'\\\\]|\\\\.)*'|\"(?:[^\"\\\\]|\\\\.)*\"/s", "''", (string) $withoutComments);
+        if (preg_match('/\b(?:DR' . 'OP|TR' . 'UNCATE|RE' . 'NAME)\b/i', (string) $withoutStrings)) {
             throw new RuntimeException('Migration 包含破坏性语句：' . $file);
         }
     }

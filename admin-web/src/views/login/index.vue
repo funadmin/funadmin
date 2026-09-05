@@ -397,6 +397,10 @@ async function onSubmit() {
   position: relative;
   display: flex;
   justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 16px;
+  flex-shrink: 0;
+  border-top: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
   font-size: 12px;
   color: var(--app-text-secondary);
   opacity: 0.85;

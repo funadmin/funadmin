@@ -6,7 +6,7 @@ namespace app\backend\controller\base;
 
 use app\BaseController;
 use app\backend\service\DataScopeService;
-use think\Response;
+use app\common\traits\JsonResponse;
 use think\facade\Session;
 
 /**
@@ -14,6 +14,7 @@ use think\facade\Session;
  */
 abstract class AdminApiController extends BaseController
 {
+    use JsonResponse;
     protected function page(): int
     {
         return max(1, (int) $this->request->get('page', 1));
@@ -69,23 +70,8 @@ abstract class AdminApiController extends BaseController
         return is_numeric($value) ? date('Y-m-d H:i:s', (int) $value) : (string) $value;
     }
 
-    protected function ok($data = null, string $msg = '操作成功'): Response
+    protected function responseHeaders(): array
     {
-        return $this->apiResponse(200, $msg, $data);
-    }
-
-    protected function fail(string $msg, int $code = 400): Response
-    {
-        return $this->apiResponse($code, $msg, null, $code);
-    }
-
-    private function apiResponse(int $code, string $msg, $data, int $httpCode = 200): Response
-    {
-        return json([
-            'code' => $code,
-            'msg' => $msg,
-            'time' => time(),
-            'data' => $data,
-        ], $httpCode)->header(['X-CSRF-TOKEN' => (string) Session::get('__token__', '')]);
+        return ['X-CSRF-TOKEN' => (string) Session::get('__token__', '')];
     }
 }

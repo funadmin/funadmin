@@ -221,10 +221,27 @@ class Index extends BaseController
             if (!$putConfig) {
                 $this->error('安装失败、请确定database.php是否有写入权限');
             }
-            $putEnv = str_replace(
-                ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
-                [$this->app_debug ? 'true' : 'false', $db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
-                file_get_contents($this->envTpl));
+            $envUpdates = [
+                'APP_DEBUG' => $this->app_debug ? 'true' : 'false',
+                'DB_DRIVER' => 'mysql',
+                'DB_TYPE' => 'mysql',
+                'DB_HOST' => $db['host'],
+                'DB_NAME' => $db['database'],
+                'DB_USER' => $db['username'],
+                'DB_PASS' => $db['password'],
+                'DB_PORT' => $db['port'],
+                'DB_CHARSET' => 'utf8mb4',
+                'DB_PREFIX' => $db['prefix'],
+            ];
+            // 已存在 .env 时合并更新，保留 JWT 等自定义键；全新安装才按模板写入
+            if (is_file($this->envFile)) {
+                $putEnv = $this->mergeEnv((string) file_get_contents($this->envFile), $envUpdates);
+            } else {
+                $putEnv = str_replace(
+                    ['%debug%','%hostname%', '%database%', '%username%', '%password%', '%port%', '%prefix%'],
+                    [$envUpdates['APP_DEBUG'], $db['host'], $db['database'], $db['username'], $db['password'], $db['port'], $db['prefix']],
+                    file_get_contents($this->envTpl));
+            }
             $putConfig = @file_put_contents($this->envFile, $putEnv);
             if (!$putConfig) {
                 $this->error('安装失败、请确定 .env 是否有写入权限');
@@ -278,6 +295,27 @@ class Index extends BaseController
     private function writableLabel(string $file): string
     {
         return $this->isWritable($file) ? '可写' : '不可写';
+    }
+
+    /**
+     * 合并更新 .env：仅替换已有键的值，缺失键追加，其余行原样保留。
+     */
+    private function mergeEnv(string $content, array $updates): string
+    {
+        $lines = preg_split('/\R/', $content) ?: [];
+        $found = [];
+        foreach ($lines as $i => $line) {
+            if (preg_match('/^\s*([A-Z][A-Z0-9_]*)\s*=/', $line, $m) && array_key_exists($m[1], $updates)) {
+                $lines[$i] = $m[1] . ' = ' . $updates[$m[1]];
+                $found[$m[1]] = true;
+            }
+        }
+        foreach ($updates as $key => $value) {
+            if (!isset($found[$key])) {
+                $lines[] = $key . ' = ' . $value;
+            }
+        }
+        return implode("\n", $lines);
     }
 
     private function supportLabel(bool $supported): string

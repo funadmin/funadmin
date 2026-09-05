@@ -2,7 +2,7 @@
   <el-dialog v-model="visible" :title="row?.id ? '编辑附件分组' : '新增附件分组'" width="500px" destroy-on-close @closed="resetForm">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="92px">
       <el-form-item label="上级分组" prop="parentId">
-        <el-tree-select v-model="form.parentId" :data="parents" :props="{ label: 'title', children: 'children' }" node-key="id" check-strictly clearable class="w-full" placeholder="根分组" />
+        <el-tree-select v-model="form.parentId" :data="parentOptions" :props="{ label: 'title', children: 'children' }" node-key="id" check-strictly clearable class="w-full" placeholder="无上级" />
       </el-form-item>
       <el-form-item label="分组名称" prop="title">
         <el-input v-model="form.title" maxlength="100" show-word-limit />
@@ -40,6 +40,10 @@ const formRef = ref<FormInstance>();
 const saving = ref(false);
 const initialForm = (): AttachmentGroupPayload => ({ parentId: 0, title: '', thumb: '', status: 1, sort: 999 });
 const form = reactive(initialForm());
+const parentOptions = computed<AttachmentGroupModel[]>(() => [
+  { id: 0, parentId: 0, title: '无上级' } as AttachmentGroupModel,
+  ...props.parents
+]);
 const rules: FormRules = {
   title: [{ required: true, message: '请输入分组名称', trigger: 'blur' }, { max: 100, message: '最多 100 个字符', trigger: 'blur' }]
 };

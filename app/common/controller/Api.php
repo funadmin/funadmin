@@ -15,14 +15,16 @@ namespace app\common\controller;
 
 use app\BaseController;
 use app\common\middleware\MApi;
+use app\common\traits\JsonResponse;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\Lang;
 use think\helper\Str;
-use think\Response;
 
 class Api extends BaseController
 {
+    use JsonResponse;
+
     protected $middleware =[];
 
     protected array $noNeedLogin = [];
@@ -126,26 +128,6 @@ class Api extends BaseController
             unset($middleware[0]);
         }
         $this->middleware = $middleware + $this->middleware;
-    }
-
-    protected function ok($data = null, string $msg = '操作成功'): Response
-    {
-        return $this->apiResponse(200, $msg, $data);
-    }
-
-    protected function fail(string $msg, int $code = 400, $data = null): Response
-    {
-        return $this->apiResponse($code, $msg, $data, $code);
-    }
-
-    private function apiResponse(int $code, string $msg, $data, int $httpCode = 200): Response
-    {
-        return json([
-            'code' => $code,
-            'msg' => $msg,
-            'time' => time(),
-            'data' => $data,
-        ], $httpCode);
     }
 
     //自动加载语言
