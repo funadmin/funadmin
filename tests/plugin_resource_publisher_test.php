@@ -74,7 +74,6 @@ foreach (['demo', 'other'] as $name) {
             'admin' => ['source' => 'resources/admin', 'target' => 'plugin-assets/' . $name],
         ],
         'storage' => ['path' => 'storage'],
-        'storage' => ['path' => 'storage'],
     ], JSON_UNESCAPED_SLASHES));
 }
 mkdir($public, 0755, true);
@@ -87,7 +86,6 @@ $entry = $public . '/plugin-assets/demo/entry.js';
 resourceExpect(file_get_contents($entry) === 'demo-entry-v1', '必须发布真实文件');
 resourceExpect(count($repository->records) === 2 && $repository->records[0]['sha256'] !== '', '必须逐文件记录 SHA-256 registry');
 resourceExpect($repository->records[0]['plugin_name'] === 'demo' && isset($repository->records[0]['create_time']), 'registry 必须使用正式字段');
-resourceExpect(!is_file($public . '/plugin-assets/demo/private.txt'), 'storage 文件不得进入资源发布流程');
 resourceExpect(!is_file($public . '/plugin-assets/demo/private.txt'), 'storage 文件不得进入资源发布流程');
 
 file_put_contents($plugins . '/demo/resources/admin/new.js', 'new');

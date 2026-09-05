@@ -1,9 +1,3 @@
-/app/mocms
-/app/cms
-/app/curd
-/app/test
-/app/demo
-/app/wechat
 /.idea
 /.vscode
 .DS_Store
