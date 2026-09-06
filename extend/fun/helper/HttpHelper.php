@@ -12,7 +12,6 @@
  */
 
 namespace fun\helper;
-use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
