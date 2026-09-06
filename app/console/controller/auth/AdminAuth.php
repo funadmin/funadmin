@@ -7,7 +7,6 @@ use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\model\AdminMenu;
 use app\console\model\Permission;
-use app\console\service\AdminAuthorizationService;
 use app\console\service\AdminSessionService;
 use app\console\service\RoleScopeService;
 use app\console\traits\AdminTree;
