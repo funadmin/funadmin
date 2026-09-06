@@ -465,24 +465,16 @@ onMounted(reloadTypes);
   }
 }
 
-/* 左侧窄栏：单行检索（无 label，占位符区分字段），避免按钮折行导致与右侧搜索区高低不齐 */
+/* 左侧窄栏复用 SearchForm 栅格，仅缩小单列最小宽度。 */
 .dict-type-search {
-  :deep(.el-form) {
-    flex-wrap: nowrap;
-    align-items: center;
-    column-gap: 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
+  :deep(.search-form__grid) {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
   }
 
   :deep(.dict-type-search__field) {
     margin-bottom: 0;
     margin-right: 0;
-  }
-
-  :deep(.dict-type-search__field .el-input) {
-    width: 128px;
   }
 }
 

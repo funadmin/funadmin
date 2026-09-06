@@ -3,13 +3,12 @@
     <el-form
       ref="formRef"
       :model="model"
-      :inline="true"
       :label-width="labelWidth"
-      class="flex flex-wrap items-center gap-2"
+      class="search-form__grid"
       @submit.prevent="onSearch"
     >
       <slot :model="model" />
-      <el-form-item class="!mb-0 ml-auto">
+      <el-form-item class="search-form__actions !mb-0">
         <div class="inline-flex flex-nowrap items-center gap-2">
           <el-button type="primary" plain :loading="loading" @click="onSearch">
             <i class="i-ep-search" /> {{ t('table.search') }}
@@ -72,3 +71,52 @@ function onReset() {
   emit('reset');
 }
 </script>
+
+<style scoped>
+.search-form__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 20px;
+  align-items: center;
+  width: 100%;
+}
+
+.search-form__grid :deep(.el-form-item) {
+  min-width: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+}
+
+.search-form__grid :deep(.el-form-item__content) {
+  min-width: 0;
+}
+
+.search-form__grid :deep(.el-input),
+.search-form__grid :deep(.el-select),
+.search-form__grid :deep(.el-date-editor) {
+  width: 100% !important;
+}
+
+.search-form__actions {
+  justify-self: end;
+}
+
+.search-form__actions :deep(.el-form-item__content) {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 767px) {
+  .search-form__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .search-form__actions {
+    justify-self: stretch;
+  }
+
+  .search-form__actions :deep(.el-form-item__content) {
+    justify-content: flex-start;
+  }
+}
+</style>
