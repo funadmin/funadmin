@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace app\backend\middleware;
+namespace app\console\middleware;
 
-use app\backend\service\AdminSessionService;
-use app\backend\service\PluginPermissionAuthorizationService;
+use app\console\service\AdminSessionService;
+use app\console\service\PluginPermissionAuthorizationService;
 use Closure;
 
 /**

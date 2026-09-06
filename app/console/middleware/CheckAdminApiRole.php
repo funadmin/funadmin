@@ -1,9 +1,9 @@
 <?php
 
-namespace app\backend\middleware;
+namespace app\console\middleware;
 
-use app\backend\service\AdminAuthorizationService;
-use app\backend\service\AdminSessionService;
+use app\console\service\AdminAuthorizationService;
+use app\console\service\AdminSessionService;
 use think\exception\HttpResponseException;
 
 /**

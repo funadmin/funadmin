@@ -1,6 +1,6 @@
 <?php
 
-namespace app\backend\middleware;
+namespace app\console\middleware;
 
 use think\facade\Session;
 
