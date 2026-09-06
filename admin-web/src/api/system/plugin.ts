@@ -155,5 +155,3 @@ export const pluginApi = {
   operations: (name: string) => http.get<PluginOperation[]>(`${PREFIX}/${name}/operations`),
   enabledModules: () => http.get<EnabledPluginModule[]>(`${PREFIX}/modules/enabled`)
 };
-
-export type { EnabledPluginModule as PluginModuleDescriptor };
