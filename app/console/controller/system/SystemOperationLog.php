@@ -21,7 +21,7 @@ use think\Response;
 #[Group('system/log/operation')]
 class SystemOperationLog extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class];
 
     #[Get('')]
     public function index(): Response

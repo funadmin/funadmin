@@ -27,7 +27,7 @@ use think\facade\Cache;
 #[Group('system', ['complete_match' => true])]
 class SystemConfig extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('config')]
     public function index(): Response

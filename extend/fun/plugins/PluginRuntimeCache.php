@@ -9,7 +9,7 @@ use RuntimeException;
 /** 将已严格验证的启用插件编译为可被 OPcache 缓存的应用级 PHP 清单。 */
 final class PluginRuntimeCache
 {
-    private const APPLICATIONS = ['api', 'index', 'console'];
+    private const APPLICATIONS = ['api', 'frontend', 'console'];
 
     public function __construct(
         private readonly string $pluginsPath,
@@ -33,14 +33,14 @@ final class PluginRuntimeCache
             foreach ($ordered as $name => $manifest) {
                 $data = $manifest->toArray();
                 $payloads['console'][$name] = $data;
-                foreach (['api', 'index'] as $application) {
+                foreach (['api', 'frontend'] as $application) {
                     if (isset($data['load']['routes']) || isset($data['channels'][$application]['routes'])
                         || isset($data['load']['services']) || isset($data['load']['events'])) {
                         $payloads[$application][$name] = $data;
                     }
                 }
             }
-            foreach (['api', 'index'] as $application) {
+            foreach (['api', 'frontend'] as $application) {
                 $payloads[$application] = $this->dependencyClosure($payloads[$application], $ordered);
             }
             foreach ($payloads as $application => $payload) {

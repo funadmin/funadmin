@@ -26,7 +26,7 @@ use think\Response;
 #[Group('system/attachment')]
 class SystemAttachment extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     public function __construct(App $app, private readonly StorageDriverRegistry $storageDrivers)
     {

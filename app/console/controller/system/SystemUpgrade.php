@@ -21,7 +21,7 @@ use think\Response;
 #[Group('system/upgrade', ['complete_match' => true])]
 final class SystemUpgrade extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('status')]
     public function status(): Response

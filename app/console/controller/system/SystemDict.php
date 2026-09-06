@@ -24,7 +24,7 @@ use think\Response;
 #[Group('system/dict')]
 class SystemDict extends AdminApiController
 {
-    protected $middleware = [
+    protected array $middleware = [
         CheckAdminApiRole::class,
         CheckAdminApiCsrf::class,
         SystemLog::class,

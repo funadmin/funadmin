@@ -24,7 +24,7 @@ use think\Response;
 #[Group('system/dept')]
 class SystemDepartment extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('tree')]
     public function tree(): Response

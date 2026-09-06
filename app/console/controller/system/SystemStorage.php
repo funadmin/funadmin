@@ -23,7 +23,7 @@ use think\Response;
 #[Group('system/storage')]
 final class SystemStorage extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     public function __construct(App $app, private readonly StorageDriverRegistry $drivers)
     {

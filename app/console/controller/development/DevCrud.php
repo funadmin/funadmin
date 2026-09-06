@@ -25,7 +25,7 @@ use Throwable;
 #[Group('development/crud')]
 final class DevCrud extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     private DevCrudService $crud;
 

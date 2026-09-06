@@ -49,7 +49,6 @@ abstract class Plugins  {
         $this->app = $app;
         $this->request = $app->request;
         $this->name = $this->getName();
-        $this->layout = false;
         $this->plugin_path = $app->plugins->getPluginsPath() . $this->name . DS;
         $this->plugin_config = "plugin_{$this->name}_config";
         $this->plugin_info = "plugin_{$this->name}_info";
@@ -64,7 +63,7 @@ abstract class Plugins  {
     }
 
     // 初始化
-    protected function initialize()
+    protected function initialize(): void
     {}
 
     /**
@@ -168,7 +167,6 @@ abstract class Plugins  {
             foreach ($temp_arr as $key => $value) {
                 $config[$key] = $value['value'];
             }
-            unset($temp_arr);
         }
         config($config, $this->plugin_config);
         return $config;

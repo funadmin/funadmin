@@ -36,7 +36,7 @@ use think\Response;
 #[Pattern('name', '[a-z][a-z0-9]*')]
 final class SystemPlugin extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     private PluginService $plugins;
     private PluginMarketplaceService $marketplace;

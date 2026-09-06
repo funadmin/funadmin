@@ -29,7 +29,7 @@ class AdminAuth extends BaseController
     use AdminJsonResponse;
     use AdminTree;
 
-    protected $middleware = [
+    protected array $middleware = [
         CheckAdminApiCsrf::class => ['only' => ['login', 'logout']],
         CheckAdminApiRole::class => ['only' => ['me', 'menus', 'logout']],
     ];

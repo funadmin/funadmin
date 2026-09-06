@@ -22,7 +22,7 @@ use think\facade\Session;
 #[Group('')]
 class AdminUpload extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Post('upload')]
     public function upload(): Response

@@ -29,7 +29,7 @@ use think\facade\Db;
 #[Group('system/role')]
 class SystemRole extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('')]
     public function index(): Response

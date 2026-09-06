@@ -39,7 +39,7 @@ class SystemMemberLevel extends AdminApiController
         export as private crudExport;
     }
 
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
     protected string $model = MemberLevel::class;
 
     #[Get('export')]

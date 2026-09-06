@@ -21,7 +21,7 @@ use think\Response;
 #[Group('system/menu')]
 class SystemMenu extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('tree')]
     public function tree(): Response

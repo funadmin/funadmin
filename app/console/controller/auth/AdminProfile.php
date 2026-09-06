@@ -25,7 +25,7 @@ use think\facade\Session;
 #[Group('profile')]
 class AdminProfile extends AdminApiController
 {
-    protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
+    protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
     #[Get('')]
     public function index(): Response

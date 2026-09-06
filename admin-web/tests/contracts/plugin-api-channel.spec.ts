@@ -10,9 +10,9 @@ const service = read('extend/fun/plugins/Service.php');
 const fixtureManifest = read('tests/fixtures/plugins/example/plugin.json');
 
 describe('插件前端 API 一等通道契约', () => {
-  it('manifest schema 支持 channels 段且仅允许 api/frontend 两个通道', () => {
+  it('manifest schema 支持 channels 段且仅允许 api/index 两个通道', () => {
     expect(schema.properties.channels).toBeTruthy();
-    expect(Object.keys(schema.properties.channels.properties)).toEqual(['api', 'frontend']);
+    expect(Object.keys(schema.properties.channels.properties)).toEqual(['api', 'index']);
     expect(schema.$defs.channel.required).toEqual(['routes']);
   });
 
