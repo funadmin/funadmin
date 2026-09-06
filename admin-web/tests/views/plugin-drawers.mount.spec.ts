@@ -28,6 +28,11 @@ const ElForm = defineComponent({
   emits: ['submit'],
   setup(_, { attrs, slots, emit }) { return () => h('form', { ...attrs, onSubmit: (event: Event) => { event.preventDefault(); emit('submit', event); } }, slots.default?.()); }
 });
+const ElFormItem = defineComponent({
+  inheritAttrs: false,
+  props: { label: String, error: String },
+  setup(props, { attrs, slots }) { return () => h('div', attrs, [props.label, slots.default?.(), props.error && h('span', props.error)]); }
+});
 const ElInput = defineComponent({
   inheritAttrs: false,
   props: { modelValue: String, type: String, placeholder: String, autocomplete: String },
@@ -52,7 +57,7 @@ const ElTable = defineComponent({ setup(_, { slots }) { return () => h('div', sl
 const ElTableColumn = defineComponent({ setup(_, { slots }) { return () => h('div', slots.default?.({ row: { id: 7, version: '1.0.0', downloadable: true } })); } });
 const globals = {
   stubs: {
-    ElDrawer, ElAlert, ElForm, ElFormItem: passthrough, ElInput, ElButton,
+    ElDrawer, ElAlert, ElForm, ElFormItem, ElInput, ElButton,
     ElCard: passthrough, ElAvatar: passthrough, ElTag: passthrough, ElSkeleton: passthrough,
     ElIcon: passthrough, ElDivider: passthrough, ElTable, ElTableColumn
   },

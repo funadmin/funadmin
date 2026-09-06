@@ -142,12 +142,12 @@ async function onCreate() {
     const saved = await formDesignerApi.save({ ...createForm, fields: [] });
     createVisible.value = false;
     ElMessage.success('表单已创建');
-    router.push({ path: '/form/designer', query: { id: String(saved.form.id) } });
+    router.push({ path: '/development/form/designer', query: { id: String(saved.form.id) } });
   } finally {
     saving.value = false;
   }
 }
-const goDesigner = (row: FormDefinition) => router.push({ path: '/form/designer', query: { id: String(row.id) } });
+const goDesigner = (row: FormDefinition) => router.push({ path: '/development/form/designer', query: { id: String(row.id) } });
 const goData = (row: FormDefinition) => router.push({ path: `/form/data/${row.form_key}` });
 async function toggleStatus(row: FormDefinition) {
   await formDesignerApi.status(row.id as number, row.status === 1 ? 0 : 1);
