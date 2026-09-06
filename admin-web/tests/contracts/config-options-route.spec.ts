@@ -3,15 +3,16 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const routeSource = readFileSync(resolve(process.cwd(), '../app/backend/route/app.php'), 'utf8');
+const controllerSource = readFileSync(resolve(process.cwd(), '../app/backend/controller/system/SystemConfig.php'), 'utf8');
 const apiSource = readFileSync(resolve(process.cwd(), 'src/api/system/config.ts'), 'utf8');
 const dialogSource = readFileSync(resolve(process.cwd(), 'src/views/system/config/components/ConfigFormDialog.vue'), 'utf8');
 
 describe('配置选项加载契约', () => {
-  it('options 静态路由优先于配置列表路由', () => {
-    expect(routeSource.indexOf("Route::get('system/config/options'")).toBeGreaterThan(-1);
-    expect(routeSource.indexOf("Route::get('system/config/options'")).toBeLessThan(
-      routeSource.indexOf("Route::get('system/config',")
-    );
+  it('options 使用明确 Attribute 路由且不再重复注册显式路由', () => {
+    expect(controllerSource).toContain("#[Group('system', ['complete_match' => true])]");
+    expect(controllerSource).toContain("#[Get('config/options')]");
+    expect(controllerSource).toContain("#[Get('config')]");
+    expect(routeSource).not.toContain("Route::get('system/config/options'");
   });
 
   it('配置 API 按 http.get 的直接参数约定发送查询', () => {

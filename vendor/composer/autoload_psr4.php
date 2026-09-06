@@ -13,6 +13,7 @@ return array(
     'think\\app\\' => array($vendorDir . '/topthink/think-multi-app/src'),
     'think\\annotation\\' => array($vendorDir . '/topthink/think-annotation/src'),
     'think\\' => array($vendorDir . '/topthink/think-queue/src', $vendorDir . '/topthink/think-image/src', $vendorDir . '/topthink/think-filesystem/src', $vendorDir . '/topthink/think-template/src', $vendorDir . '/topthink/framework/src/think', $vendorDir . '/topthink/think-orm/src', $vendorDir . '/topthink/think-validate/src', $vendorDir . '/topthink/think-container/src', $vendorDir . '/topthink/think-helper/src'),
+    'plugins\\' => array($baseDir . '/plugins'),
     'phpDocumentor\\Reflection\\' => array($vendorDir . '/phpdocumentor/reflection-docblock/src', $vendorDir . '/phpdocumentor/type-resolver/src', $vendorDir . '/phpdocumentor/reflection-common/src'),
     'app\\' => array($baseDir . '/app'),
     'ZipStream\\' => array($vendorDir . '/maennchen/zipstream-php/src'),

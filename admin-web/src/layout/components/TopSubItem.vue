@@ -1,14 +1,14 @@
 <template>
   <template v-if="!visibleChildren.length">
     <el-menu-item :index="resolvedPath">
-      <i v-if="route.meta?.icon" :class="route.meta.icon as string" class="app-top-icon" />
+      <i :class="route.meta?.icon || (visibleChildren.length ? 'i-ep-folder' : 'i-ep-document')" class="app-top-icon" />
       <span>{{ menuTitle(route) }}</span>
     </el-menu-item>
   </template>
 
   <el-sub-menu v-else :index="resolvedPath" :teleported="true">
     <template #title>
-      <i v-if="route.meta?.icon" :class="route.meta.icon as string" class="app-top-icon" />
+      <i :class="route.meta?.icon || (visibleChildren.length ? 'i-ep-folder' : 'i-ep-document')" class="app-top-icon" />
       <span>{{ menuTitle(route) }}</span>
     </template>
     <TopSubItem

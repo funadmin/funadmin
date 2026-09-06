@@ -11,9 +11,15 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\AdminMenu;
 use app\backend\model\CasbinRule;
 use app\backend\model\Permission;
-use app\backend\service\AuthService;
+use app\backend\service\RoleScopeService;
 use app\backend\service\CasbinService;
 use app\backend\service\PermissionResource;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 use think\facade\Db;
@@ -22,10 +28,12 @@ use InvalidArgumentException;
 /**
  * Admin Web 权限资源管理。
  */
+#[Group('system/permission')]
 class SystemPermission extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('tree')]
     public function tree(): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -47,6 +55,8 @@ class SystemPermission extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -58,6 +68,7 @@ class SystemPermission extends AdminApiController
             : $this->fail(msg: '权限资源不存在', code: 404);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -83,6 +94,8 @@ class SystemPermission extends AdminApiController
         return $this->ok('创建成功', $this->permissionData($permission));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -133,6 +146,14 @@ class SystemPermission extends AdminApiController
         return $this->ok('保存成功', $this->permissionData($permission));
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         if ($denied = $this->requireSuperAdmin()) {
@@ -179,7 +200,7 @@ class SystemPermission extends AdminApiController
 
     private function requireSuperAdmin(): ?Response
     {
-        return AuthService::instance()->isSuperAdmin()
+        return (new RoleScopeService())->isSuperAdmin()
             ? null
             : $this->fail(msg: '仅超级管理员可维护权限资源', code: 403);
     }

@@ -13,9 +13,12 @@
 
 namespace app\common\service;
 
+use app\common\crud\CrudDefinition;
+use app\common\crud\CrudGenerator;
 use PhpMcp\Server\Server;
 use PhpMcp\Server\Transports\StdioServerTransport;
 use PhpMcp\Server\Defaults\BasicContainer;
+use InvalidArgumentException;
 use think\facade\Db;
 use think\facade\Log;
 use think\facade\App;
@@ -338,13 +341,9 @@ class McpService extends AbstractService
             ->withTool([self::class, 'handleSystemInfo'], 'system-info', '获取系统运行信息')
             ->withTool([self::class, 'handleCreateController'], 'controller', '生成FunAdmin控制器文件')
             ->withTool([self::class, 'handleCreateModel'], 'model', '生成FunAdmin模型文件')
-            ->withTool([self::class, 'handleCreateView'], 'view', '生成FunAdmin视图文件')
-            ->withTool([self::class, 'handleCreateJs'], 'js', '生成FunAdmin JS文件')
             ->withTool([self::class, 'handleCreateApi'], 'api', '生成FunAdmin API接口文件')
             ->withTool([self::class, 'handleCrud'], 'crud', '根据项目内 JSON 配置生成后台 API 与 Vue CRUD 页面')
-            ->withTool([self::class, 'handlePlugin'], 'plugin', '生成FunAdmin 插件模块')
-            ->withTool([self::class, 'handleMenu'], 'menu', '生成FunAdmin 菜单模块')
-            ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，   支持字段信息、类型、注释等')
+            ->withTool([self::class, 'handleCreateTable'], 'table', '创建数据库表格，支持字段信息、类型、注释等')
             ->withTool([self::class, 'handleThinkCommand'], 'think-command', '执行ThinkPHP内置命令')
             ->withPrompt([self::class, 'handleWithPrompt'], 'with-prompt', '通过自然语言描述生成数据库表、控制器、模型等')
             ->withResource([self::class, 'handleConfigResource'], 'config://system', 'config-system', '系统配置信息资源', 'application/json')
@@ -864,51 +863,12 @@ class McpService extends AbstractService
      */
     public function handleCreateController(string $module, string $controller, array $fields = [], string $description = ''): array
     {
-        try {
-            if (strtolower($module) === 'api') {
-                throw new Exception('API 控制器必须使用专用 API 生成器');
-            }
-            // 生成控制器类名
-            $controllerClass = ucfirst($controller);
-            $controllerPath = "app/{$module}/controller/{$controllerClass}.php";
-            
-            // 检查文件是否已存在
-            if (file_exists($controllerPath)) {
-                return [
-                    'success' => false,
-                    'error' => "控制器文件 {$controllerPath} 已存在"
-                ];
-            }
-
-            // 生成控制器内容
-            $controllerContent = $this->CreateControllerContent($module, $controllerClass, $fields, $description);
-            
-            // 确保目录存在
-            $dir = dirname($controllerPath);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-
-            // 写入文件
-            if (file_put_contents($controllerPath, $controllerContent)) {
-                Log::info("FunAdmin控制器生成成功: {$controllerPath}");
-                return [
-                    'success' => true,
-                    'message' => '控制器生成成功',
-                    'file_path' => $controllerPath,
-                    'content' => $controllerContent
-                ];
-            } else {
-                throw new Exception('文件写入失败');
-            }
-
-        } catch (Exception $e) {
-            Log::error('FunAdmin控制器生成错误: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
+        return [
+            'success' => false,
+            'error' => strtolower($module) === 'api'
+                ? 'API 控制器必须使用专用 API 生成器'
+                : '通用控制器生成器已停用，请使用 CRUD Workbench 生成带官方 Attribute 路由的后台控制器',
+        ];
     }
 
     /**
@@ -968,168 +928,6 @@ class McpService extends AbstractService
                 'error' => $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * 生成控制器内容
-     * @param string $module 模块名称
-     * @param string $controllerClass 控制器类名
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @return string
-     */
-    private function CreateControllerContent(string $module, string $controllerClass, array $fields = [], string $description = ''): string
-    {
-        $namespace = "app\\{$module}\\controller";
-        $baseController = 'Backend';
-        $useStatement = 'use app\\common\\controller\\Backend;';
-        
-        $description = $description ?: $controllerClass;
-        
-        $content = "<?php
-/**
- * FunAdmin
- * ============================================================================
- * 版权所有 2017-2028 FunAdmin，并保留所有权利。
- * 网站地址: http://www.FunAdmin.com
- * ----------------------------------------------------------------------------
- * 采用最新Thinkphp8实现
- * ============================================================================
- * Author: AI Assistant
- * Date: " . date('Y/m/d') . "
- */
-namespace {$namespace};
-
-{$useStatement}
-use think\\App;
-use think\\Request;
-use app\\common\\annotation\\ControllerAnnotation;
-use app\\common\\annotation\\NodeAnnotation;
-use think\\exception\\ValidateException;
-/**
- * @ControllerAnnotation('{$description}')
- * Class {$controllerClass}
- * @package {$namespace}
- */
-class {$controllerClass} extends {$baseController}
-{
-    protected array \$noNeedLogin = [];
-    protected array \$noNeedRight = [];
-    
-    public function __construct(App \$app)
-    {
-        parent::__construct(\$app);
-    }
-
-    /**
-     * @NodeAnnotation(title='列表')
-     * @param Request \$request
-     * @return \\think\\response\\View
-     */
-    public function index()
-    {
-        if (request()->isAjax()) {
-            if (request()->param('selectFields')) {
-                \$this->selectList();
-            }
-            list(\$this->page, \$this->pageSize,\$sort,\$where,\$tableName) = \$this->buildParames();
-            \$list = \$this->model->where(\$where)->order(\$sort)->paginate([
-                'list_rows'=> \$this->pageSize,
-                'page' => \$this->page,
-            ]);
-            if(!empty(\$this->hiddenFields) ){
-                foreach (\$this->hiddenFields as \$key=>\$field){
-                    \$this->hiddenFields[\$key] = \$tableName.\$field;
-                }
-                \$list = \$list->hidden(\$this->hiddenFields);
-            }
-            if(!empty(\$this->visibleFields) ){
-                foreach (\$this->visibleFields as \$key=>\$field){
-                    \$this->visibleFields[\$key] = \$tableName.\$field;
-                }
-                \$list = \$list->visible(\$this->visibleFields);
-            }
-            \$result = ['code' => 0, 'msg' => lang('Get Data Success'), 'data' => \$list->items(), 'count' =>\$list->total()];
-            return json(\$result);
-        }
-        return view();
-    }
-
-    /**
-     * @NodeAnnotation(title='添加')
-     * @param Request \$request
-     * @return \\think\\response\\View
-     */
-    public function add()
-    {
-       if (request()->isPost()) {
-            \$post = request()->post();
-            foreach (\$post as \$k=>\$v){
-                if(is_array(\$v)){
-                    \$post[\$k] = implode(',',\$v);
-                }
-            }
-            \$rule = [];
-            try {
-                \$this->validateData(\$post, \$rule);
-            }catch (ValidateException \$e){
-                \$this->error(lang(\$e->getMessage()));
-            }
-            try {
-                \$save = \$this->model->save(\$post);
-            } catch (\Exception \$e) {
-                \$this->error(lang(\$e->getMessage()));
-            }
-            \$save ? \$this->success(lang('operation success')) : \$this->error(lang('operation failed'));
-        }
-        \$view = [
-            'formData' => '',
-            'title' => lang('Add'),
-        ];
-        return view('add',\$view);
-    }
-
-    /**
-     * @NodeAnnotation(title='编辑')
-     * @return \\think\\response\\View
-     */
-    public function edit()
-    {
-        \$id = request()->param(\$this->model->getPk());
-        \$list = \$this->findModel(\$id);
-        if(empty(\$list)) \$this->error(lang('Data is not exist'));
-        if (request()->isPost()) {
-            \$post = request()->post();
-            \$rule = [];
-            try {
-                \$this->validateData(\$post, \$rule);
-            }catch (ValidateException \$e){
-                \$this->error(lang(\$e->getMessage()));
-            }
-            foreach (\$post as \$k=>\$v){
-                if(is_array(\$v)){
-                    \$post[\$k] = implode(',',\$v);
-                }
-                if (\$v == '0000-00-00 00:00:00') {//避免插入数据库时出现错误，日期不能为空
-		            \$post[\$k] = null;
-	            }
-	            if (\$v == '') {//避免插入数据库时出现错误，日期不能为空
-		            \$post[\$k] = null;
-	            }
-            }
-            try {
-                \$save = \$list->save(\$post);
-            } catch (\Exception \$e) {
-                \$this->error(lang(\$e->getMessage()));
-            }
-            \$save ? \$this->success(lang('operation success')) : \$this->error(lang('operation failed'));
-        }
-        \$view = ['formData'=>\$list,'title' => lang('Edit'),];
-        return view('add',\$view);
-    }
-}";
-
-        return $content;
     }
 
     /**
@@ -1421,12 +1219,40 @@ class {$model} extends BaseModel
     public function handleCrud(string $configPath): array
     {
         try {
-            $result = (new AdminWebCrudGenerator())->run($configPath, true, false);
-            unset($result['sensitive']);
+            $root = rtrim(root_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $path = trim($configPath);
+            if ($path === '' || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'json') {
+                throw new InvalidArgumentException('必须指定项目目录内的 JSON 配置文件');
+            }
+            $candidate = str_starts_with($path, '/') || preg_match('/^[A-Za-z]:[\\\\\/]/', $path) === 1
+                ? $path
+                : $root . ltrim($path, '/\\');
+            $resolved = realpath($candidate);
+            $resolvedRoot = realpath($root);
+            if ($resolved === false || !is_file($resolved)) {
+                throw new InvalidArgumentException('CRUD 配置文件不存在');
+            }
+            if ($resolvedRoot === false || !str_starts_with($resolved . DIRECTORY_SEPARATOR, $resolvedRoot . DIRECTORY_SEPARATOR)) {
+                throw new InvalidArgumentException('CRUD 配置文件必须位于项目目录内');
+            }
+            $json = file_get_contents($resolved);
+            if ($json === false) {
+                throw new \RuntimeException('无法读取 CRUD Definition');
+            }
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+            if (!is_array($data) || !isset($data['schemaVersion'])) {
+                throw new InvalidArgumentException('必须使用版本化 CRUD Definition');
+            }
+            $plan = (new CrudGenerator($root))->plan(CrudDefinition::fromArray($data));
+            unset($plan['confirmToken']);
             return [
                 'success' => true,
                 'message' => 'CRUD 生成预览成功',
-                'data' => $result,
+                'data' => [
+                    'config' => str_replace(DIRECTORY_SEPARATOR, '/', substr($resolved, strlen($root))),
+                    'dryRun' => true,
+                    'plan' => $plan,
+                ],
             ];
         } catch (\Throwable $e) {
             Log::error('CRUD 生成错误: ' . $e->getMessage());
@@ -1438,191 +1264,9 @@ class {$model} extends BaseModel
     }
 
     /**
-     * 处理插件管理，基于fun/crud/Plugin.php功能
-     * @param string $action 操作类型（create/install/uninstall/enable/disable）
-     * @param string $pluginName 插件名称
-     * @param array $options 其他选项
-     * @return array
-     */
-    public function handlePlugin(string $action, string $pluginName = '', array $options = []): array
-    {
-        try {
-            // 构建命令行参数
-            $parameters = [];
-
-            switch ($action) {
-                case 'create':
-                    if (empty($pluginName)) {
-                        throw new \Exception('插件名称不能为空');
-                    }
-                    $parameters = [
-                        '--name=' . $pluginName,
-                        '--title=' . ($options['title'] ?? $pluginName),
-                        '--description=' . ($options['description'] ?? $pluginName),
-                        '--author=' . ($options['author'] ?? 'FunAdmin'),
-                        '--version=' . ($options['version'] ?? '1.0.0'),
-                        '--funadmin-version=' . ($options['requires'] ?? '>=1.0.0'),
-                    ];
-                    if (!empty($options['force'])) {
-                        $parameters[] = '--force';
-                    }
-                    break;
-
-                case 'install':
-                    if (empty($pluginName)) {
-                        throw new \Exception('插件名称不能为空');
-                    }
-                    $parameters = [
-                        '--install',
-                        '--name=' . $pluginName
-                    ];
-                    break;
-
-                case 'uninstall':
-                    if (empty($pluginName)) {
-                        throw new \Exception('插件名称不能为空');
-                    }
-                    $parameters = [
-                        '--uninstall',
-                        '--name=' . $pluginName,
-                    ];
-                    break;
-
-                case 'enable':
-                    if (empty($pluginName)) {
-                        throw new \Exception('插件名称不能为空');
-                    }
-                    $parameters = [
-                        '--enable',
-                        '--name=' . $pluginName,
-                    ];
-                    break;
-
-                case 'disable':
-                    if (empty($pluginName)) {
-                        throw new \Exception('插件名称不能为空');
-                    }
-                    $parameters = [
-                        '--disable',
-                        '--name=' . $pluginName,
-                    ];
-                    break;
-                default:
-                    throw new \Exception('不支持的操作类型: ' . $action);
-            }
-
-            // 调用plugin命令
-            $output = \think\facade\Console::call('plugin', $parameters);
-            $content = $output->fetch();
-
-            // 检查执行结果
-            if (strpos($content, 'success') !== false || strpos($content, 'make success') !== false || strpos($content, '成功') !== false) {
-                return [
-                    'success' => true,
-                    'message' => "插件{$action}操作成功",
-                    'data' => [
-                        'action' => $action,
-                        'plugin_name' => $pluginName,
-                        'output' => $content
-                    ]
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'error' => "插件{$action}操作失败",
-                    'output' => $content
-                ];
-            }
-
-        } catch (\Exception $e) {
-            Log::error('插件管理错误: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * 处理菜单管理，基于fun/crud/Menu.php功能
-     * @param string $action 操作类型（create/delete）
-     * @param array $menuData 菜单数据
-     * @param array $options 其他选项
-     * @return array
-     */
-    public function handleMenu(string $action, array $menuData = [], array $options = []): array
-    {
-        try {
-            // 构建命令行参数
-            $parameters = [];
-
-            switch ($action) {
-                case 'create':
-                    if (empty($menuData['controller'])) {
-                        throw new \Exception('控制器名称不能为空');
-                    }
-                    $parameters = [
-                        '--controller=' . $menuData['controller'],
-                        '--app=' . ($menuData['app'] ?? 'backend'),
-                    ];
-                    if (!empty($menuData['menuname'])) {
-                        $parameters[] = '--menuname=' . $menuData['menuname'];
-                    }
-                    if (!empty($options['force'])) {
-                        $parameters[] = '--force=1';
-                    }
-                    break;
-                case 'delete':
-                    if (empty($menuData['controller'])) {
-                        throw new \Exception('控制器名称不能为空');
-                    }
-                    $parameters = [
-                        '--controller=' . $menuData['controller'],
-                        '--app=' . ($menuData['app'] ?? 'backend'),
-                        '--delete=1',
-                        '--force=1'
-                    ];
-                    break;
-                default:
-                    throw new \Exception('不支持的操作类型: ' . $action);
-            }
-
-            // 调用menu命令
-            $output = \think\facade\Console::call('menu', $parameters);
-            $content = $output->fetch();
-
-            // 检查执行结果
-            if (strpos($content, 'success') !== false || strpos($content, 'make success') !== false) {
-                return [
-                    'success' => true,
-                    'message' => "菜单{$action}操作成功",
-                    'data' => [
-                        'action' => $action,
-                        'menu_data' => $menuData,
-                        'output' => $content
-                    ]
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'error' => "菜单{$action}操作失败",
-                    'output' => $content
-                ];
-            }
-
-        } catch (\Exception $e) {
-            Log::error('菜单管理错误: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
      * 通过自然语言描述生成数据库表、控制器、模型等
      * @param string $prompt 自然语言描述
-     * @param string $type 生成类型 (table/controller/model/js/api/view/all)
+     * @param string $type 生成类型 (table/controller/model/api/crud/all)
      * @return array
      */
     public function handleWithPrompt(string $prompt, string $type = 'all'): array
@@ -1675,18 +1319,6 @@ class {$model} extends BaseModel
                 }
             }
 
-            if (in_array($type, ['js', 'all'])) {
-                if (!empty($parsedData['js'])) {
-                    $jsResult = $this->handleCreateJs(
-                        $parsedData['js']['module'] ?? 'backend',
-                        $parsedData['js']['name'],
-                        $parsedData['js']['fields'] ?? [],
-                        $parsedData['js']['description'] ?? ''
-                    );
-                    $results['js'] = $jsResult;
-                }
-            }
-
             if (in_array($type, ['api', 'all'])) {
                 if (!empty($parsedData['api'])) {
                     $apiResult = $this->handleCreateApi(
@@ -1699,29 +1331,6 @@ class {$model} extends BaseModel
                 }
             }
 
-            if (in_array($type, ['view', 'all'])) {
-                if (!empty($parsedData['view'])) {
-                    $viewResult = $this->handleCreateView(
-                        $parsedData['view']['module'] ?? 'backend',
-                        $parsedData['view']['name'],
-                        $parsedData['view']['fields'] ?? [],
-                        $parsedData['view']['description'] ?? ''
-                    );
-                    $results['view'] = $viewResult;
-                }
-            }
-
-            if (in_array($type, ['plugin', 'all'])) {
-                if (!empty($parsedData['plugin'])) {
-                    $pluginResult = $this->handlePlugin(
-                        'create',
-                        $parsedData['plugin']['name'],
-                        $parsedData['plugin']['options'] ?? []
-                    );
-                    $results['plugin'] = $pluginResult;
-                }
-            }
-
             if (in_array($type, ['crud', 'all'])) {
                 if (!empty($parsedData['crud'])) {
                     $crudResult = $this->handleCrud(
@@ -1731,16 +1340,6 @@ class {$model} extends BaseModel
                 }   
             }
 
-            if (in_array($type, ['menu', 'all'])) {
-                if (!empty($parsedData['menu'])) {
-                    $menuResult = $this->handleMenu(
-                        'create',
-                        $parsedData['menu']['data'] ?? [],
-                        $parsedData['menu']['options'] ?? []
-                    );
-                    $results['menu'] = $menuResult;
-                }   
-            }
             //如果这里面都没有 那么执行其他操作
             if (empty($results)) {
                 $results = $this->handleOtherOperation($prompt);
@@ -1773,12 +1372,8 @@ class {$model} extends BaseModel
             'table' => null,
             'controller' => null,
             'model' => null,
-            'js' => null,
             'api' => null,
-            'view' => null,
-            'plugin' => null,
             'crud' => null,
-            'menu' => null
         ];
 
         // 转换为小写便于匹配
@@ -1826,14 +1421,6 @@ class {$model} extends BaseModel
                 'description' => $tableComment ?: $modelName
             ];
 
-            // 构建JS数据
-            $parsedData['js'] = [
-                'module' => 'backend',
-                'name' => $controllerName,
-                'fields' => $fields,
-                'description' => $tableComment ?: $controllerName
-            ];
-
             // 构建API数据
             $parsedData['api'] = [
                 'module' => 'api',
@@ -1842,32 +1429,8 @@ class {$model} extends BaseModel
                 'description' => $tableComment ?: $controllerName
             ];
 
-            // 构建视图数据
-            $parsedData['view'] = [
-                'module' => 'backend',
-                'name' => $controllerName,
-                'fields' => $fields,
-                'description' => $tableComment ?: $controllerName
-            ];
-
             // 构建CRUD数据
-            $parsedData['crud'] = [
-                'name' => $tableName,
-                'module' => 'backend',
-                'fields' => $fields,
-                'description' => $tableComment ?: $tableName,
-                'options' => []
-            ];
-
-            // 构建菜单数据
-            $parsedData['menu'] = [
-                'data' => [
-                    'controller' => $controllerName,
-                    'app' => 'backend',
-                    'menuname' => $tableComment ?: $tableName
-                ],
-                'options' => []
-            ];
+            $parsedData['crud'] = null;
         }
 
         // 解析特殊操作
@@ -1883,48 +1446,10 @@ class {$model} extends BaseModel
      */
     private function parseSpecialOperations(string $lowerPrompt, array &$parsedData): void
     {
-        // 解析JS相关操作
-        if (strpos($lowerPrompt, 'js') !== false || strpos($lowerPrompt, 'javascript') !== false || strpos($lowerPrompt, '前端') !== false) {
-            if (!empty($parsedData['js'])) {
-                $parsedData['js']['description'] = '前端JS文件';
-            }
-        }
-
         // 解析API相关操作
         if (strpos($lowerPrompt, 'api') !== false || strpos($lowerPrompt, '接口') !== false || strpos($lowerPrompt, '接口文件') !== false) {
             if (!empty($parsedData['api'])) {
                 $parsedData['api']['description'] = 'API接口文件';
-            }
-        }
-
-        // 解析视图相关操作
-        if (strpos($lowerPrompt, 'view') !== false || strpos($lowerPrompt, '视图') !== false || strpos($lowerPrompt, '页面') !== false) {
-            if (!empty($parsedData['view'])) {
-                $parsedData['view']['description'] = '视图文件';
-            }
-        }
-
-        // 解析插件相关操作
-        if (strpos($lowerPrompt, 'plugin') !== false || strpos($lowerPrompt, '插件') !== false) {
-            if (preg_match('/(?:创建|生成|建立).*?(?:插件|plugin).*?[名为|叫|是]\s*([a-zA-Z_][a-zA-Z0-9_]*)/', $lowerPrompt, $matches)) {
-                $pluginName = $matches[1];
-                $parsedData['plugin'] = [
-                    'name' => $pluginName,
-                    'options' => [
-                        'title' => $pluginName,
-                        'description' => $pluginName . '插件',
-                        'author' => 'FunAdmin',
-                        'version' => '1.0.0',
-                        'requires' => '1.0.0'
-                    ]
-                ];
-            }
-        }
-
-        // 解析菜单相关操作
-        if (strpos($lowerPrompt, 'menu') !== false || strpos($lowerPrompt, '菜单') !== false) {
-            if (!empty($parsedData['menu'])) {
-                $parsedData['menu']['description'] = '菜单权限';
             }
         }
 
@@ -1940,35 +1465,17 @@ class {$model} extends BaseModel
             if (!empty($parsedData['controller'])) {
                 $parsedData['controller']['module'] = 'backend';
             }
-            if (!empty($parsedData['js'])) {
-                $parsedData['js']['module'] = 'backend';
-            }
-            if (!empty($parsedData['view'])) {
-                $parsedData['view']['module'] = 'backend';
-            }
         }
 
         if (strpos($lowerPrompt, 'frontend') !== false || strpos($lowerPrompt, '前台') !== false) {
             if (!empty($parsedData['controller'])) {
                 $parsedData['controller']['module'] = 'frontend';
             }
-            if (!empty($parsedData['js'])) {
-                $parsedData['js']['module'] = 'frontend';
-            }
-            if (!empty($parsedData['view'])) {
-                $parsedData['view']['module'] = 'frontend';
-            }
         }
 
         if (strpos($lowerPrompt, 'api') !== false) {
             if (!empty($parsedData['controller'])) {
                 $parsedData['controller']['module'] = 'api';
-            }
-            if (!empty($parsedData['js'])) {
-                $parsedData['js']['module'] = 'api';
-            }
-            if (!empty($parsedData['view'])) {
-                $parsedData['view']['module'] = 'api';
             }
         }
     }
@@ -2223,117 +1730,31 @@ class {$model} extends BaseModel
     }
 
     /**
-     * 生成FunAdmin JS文件
-     * @param string $module 模块名称 (backend/api/frontend等)
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息 (可选)
-     * @param string $description 描述 (可选)
-     * @return array
-     */
-    public function handleCreateJs(string $module, string $controller, array $fields = [], string $description = ''): array
-    {
-        try {
-            // 生成JS文件名
-            $jsFileName = strtolower($controller);
-            $jsPath = "public/static/{$module}/js/{$jsFileName}.js";
-            
-            // 检查文件是否已存在
-            if (file_exists($jsPath)) {
-                return [
-                    'success' => false,
-                    'error' => "JS文件 {$jsPath} 已存在"
-                ];
-            }
-
-            // 生成JS内容
-            $jsContent = $this->generateJsContent($module, $controller, $fields, $description);
-            
-            // 确保目录存在
-            $dir = dirname($jsPath);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-
-            // 写入文件
-            if (file_put_contents($jsPath, $jsContent)) {
-                Log::info("FunAdmin JS文件生成成功: {$jsPath}");
-                return [
-                    'success' => true,
-                    'message' => 'JS文件生成成功',
-                    'file_path' => $jsPath,
-                    'content' => $jsContent
-                ];
-            } else {
-                throw new Exception('文件写入失败');
-            }
-
-        } catch (Exception $e) {
-            Log::error('FunAdmin JS文件生成错误: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
      * 生成FunAdmin API接口文件
+     * @param string $module 模块名称（仅允许 api）
      * @param string $controller 控制器名称
-     * @param string $module 模块名称 (api等)
      * @param array $fields 字段信息 (可选)
      * @param string $description 描述 (可选)
      * @return array
      */
-    public function handleCreateApi(string $controller, string $module = 'api', array $fields = [], string $description = ''): array
+    public function handleCreateApi(string $module, string $controller, array $fields = [], string $description = ''): array
     {
         try {
-            // 生成API控制器类名
-            $controllerClass = ucfirst($controller);
-            $apiPath = "app/{$module}/controller/v2/{$controllerClass}.php";
-            
+            $this->validateApiDefinition($module, $controller, $fields);
+            $apiPath = "app/{$module}/controller/v2/{$controller}.php";
+
             // 生成API内容
-            $apiContent = $this->generateApiContent($module, $controllerClass, $fields, $description);
-            $routePath = "app/{$module}/route/api.php";
-            $routeName = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controllerClass));
-            $routeDefinition = $this->generateApiRouteDefinition($routeName, $controllerClass);
-            
+            $apiContent = $this->generateApiContent($module, $controller, $fields, $description);
+
             // 确保目录存在
             $dir = dirname($apiPath);
             if (!is_dir($dir)) {
                 mkdir($dir, 0755, true);
             }
-
-            $lock = fopen($routePath . '.lock', 'c');
-            if ($lock === false || !flock($lock, LOCK_EX)) {
-                throw new Exception('无法锁定 API 路由文件');
+            if (is_file($apiPath)) {
+                throw new Exception("API 文件 {$apiPath} 已存在");
             }
-            try {
-                if (is_file($apiPath)) {
-                    throw new Exception("API 文件 {$apiPath} 已存在");
-                }
-                $routeContent = is_file($routePath) ? (string) file_get_contents($routePath) : '';
-                if ($routeContent === '' || !str_contains($routeContent, '    // API_ROUTE_END')) {
-                    throw new Exception('API 路由文件缺少 API_ROUTE_END 标记');
-                }
-                if (str_contains($routeContent, "Route::group('{$routeName}'")) {
-                    throw new Exception("API 路由 {$routeName} 已存在");
-                }
-                $newRouteContent = str_replace(
-                    '    // API_ROUTE_END',
-                    $routeDefinition . "\n    // API_ROUTE_END",
-                    $routeContent
-                );
-                $this->atomicWrite($apiPath, $apiContent);
-                try {
-                    $this->atomicWrite($routePath, $newRouteContent);
-                } catch (Exception $exception) {
-                    @unlink($apiPath);
-                    throw $exception;
-                }
-            } finally {
-                flock($lock, LOCK_UN);
-                fclose($lock);
-            }
+            $this->atomicWrite($apiPath, $apiContent);
 
             Log::info("FunAdmin API文件生成成功: {$apiPath}");
             return [
@@ -2343,108 +1764,16 @@ class {$model} extends BaseModel
                 'content' => $apiContent
             ];
 
-        } catch (Exception $e) {
-            Log::error('FunAdmin API文件生成错误: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            try {
+                Log::error('FunAdmin API文件生成错误: ' . $e->getMessage());
+            } catch (\Throwable) {
+            }
             return [
                 'success' => false,
                 'error' => $e->getMessage()
             ];
         }
-    }
-
-    /**
-     * 生成JS文件内容
-     * @param string $module 模块名称
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @return string
-     */
-    private function generateJsContent(string $module, string $controller, array $fields = [], string $description = ''): string
-    {
-        $controllerLower = strtolower($controller);
-        $description = $description ?: $controller;
-        
-        // 生成表格列配置
-        $jsCols = $this->generateJsCols($fields);
-        
-        $content = "define(['table', 'form'], function (Table, Form) {
-    let Controller = {
-        index: function () {
-            Table.init = {
-                table_elem: 'list',
-                tableId: 'list',
-                requests: {
-                    index: '{$controllerLower}/index',
-                    add: '{$controllerLower}/add',
-                    edit: '{$controllerLower}/edit',
-                    delete: '{$controllerLower}/delete',
-                    export: '{$controllerLower}/export',
-                }
-            }
-            Table.render({
-                elem: '#' + Table.init.table_elem,
-                id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.index),
-                init: Table.init,
-                toolbar: ['refresh', 'add', 'destroy', 'import', 'export'],
-                cols: [[
-                    {type: 'checkbox'},
-                    {field: 'id', title: 'ID', width: 80, sort: true},
-{$jsCols}
-                    {field: 'created_at', title: '创建时间', width: 180, sort: true},
-                    {field: 'updated_at', title: '更新时间', width: 180, sort: true},
-                    {title: '操作', width: 250, align: 'center', operat: ['index','copy', 'destroy']}
-                ]],
-                limits: [10, 15, 20, 25, 50, 100],
-                limit: 15,
-                page: true,
-                done: function (res, curr, count) {
-                    // 表格渲染完成后的回调
-                }
-            });
-            Table.api.bindEvent(Table.init.tableId);
-        },
-        add: function () {
-            Controller.api.bindevent()
-        },
-        edit: function () {
-            Controller.api.bindevent()
-        },
-        copy:function () {
-            Controller.api.bindevent();
-        },
-        recycle: function () {
-            Table.render({
-                elem: '#' + Table.init.table_elem,
-                id: Table.init.tableId,
-                url: Fun.url(Table.init.requests.recycle),
-                init: Table.init,
-                toolbar: ['refresh','delete','restore'],
-                cols: [[
-                    {type: 'checkbox'},
-                    {field: 'id', title: 'ID', width: 80, sort: true},
-{$jsCols}
-                    {field: 'created_at', title: '创建时间', width: 180, sort: true},
-                    {field: 'updated_at', title: '更新时间', width: 180, sort: true},
-                    {title: '操作', width: 250, align: 'center', operat: ['restore', 'delete']}
-                ]],
-                limits: [10, 15, 20, 25, 50, 100,500,1000,5000],
-                limit: 15,
-                page: true
-            });
-            Table.api.bindEvent(Table.init.tableId);
-        },
-        api: {
-            bindevent: function () {
-                Form.api.bindEvent($('form'))
-            }
-        }
-    };
-    return Controller;
-});";
-        
-        return $content;
     }
 
     /**
@@ -2457,18 +1786,23 @@ class {$model} extends BaseModel
      */
     private function generateApiContent(string $module, string $controllerClass, array $fields = [], string $description = ''): string
     {
+        $this->validateApiDefinition($module, $controllerClass, $fields);
         $version = 'v2';
         $namespace = "app\\{$module}\\controller\\{$version}";
-        $description = $description ?: $controllerClass;
+        $description = $this->sanitizeApiDescription($description !== '' ? $description : $controllerClass);
         $model = "\\app\\common\\model\\{$controllerClass}";
+        $routeName = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $controllerClass));
         $validationRules = $this->generateApiValidationRules($fields);
         $allowedFields = array_values(array_filter(array_map(
             static fn (array $field): string => (string) ($field['name'] ?? ''),
             $fields
         ), static fn (string $field): bool => $field !== '' && !in_array($field, ['id', 'created_at', 'updated_at', 'deleted_at'], true)));
         $allowedFieldsCode = var_export($allowedFields, true);
-        
+
         $content = "<?php
+
+declare(strict_types=1);
+
 /**
  * FunAdmin
  * ============================================================================
@@ -2483,6 +1817,14 @@ class {$model} extends BaseModel
 namespace {$namespace};
 
 use app\\common\\controller\\Api;
+use app\\common\\middleware\\MApi;
+use think\\annotation\\route\\Delete;
+use think\\annotation\\route\\Get;
+use think\\annotation\\route\\Group;
+use think\\annotation\\route\\Middleware;
+use think\\annotation\\route\\Pattern;
+use think\\annotation\\route\\Post;
+use think\\annotation\\route\\Put;
 use think\\exception\\ValidateException;
 use think\\Request;
 use think\\Response;
@@ -2490,6 +1832,8 @@ use think\\Response;
 /**
  * {$description}
  */
+#[Group('v2/{$routeName}')]
+#[Middleware(MApi::class)]
 class {$controllerClass} extends Api
 {
     private const ALLOWED_FIELDS = {$allowedFieldsCode};
@@ -2501,6 +1845,7 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='列表')
      */
+    #[Get('')]
     public function index(Request \$request): Response
     {
         \$page = max(1, (int) \$request->get('page', 1));
@@ -2520,6 +1865,8 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='详情')
      */
+    #[Get(':id')]
+    #[Pattern('id', '\\\\d+')]
     public function show(int \$id): Response
     {
         \$row = \$this->model->find(\$id);
@@ -2532,6 +1879,7 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='新增')
      */
+    #[Post('')]
     public function create(Request \$request): Response
     {
         \$params = \$request->only(self::ALLOWED_FIELDS, 'post');
@@ -2555,6 +1903,8 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='编辑')
      */
+    #[Put(':id')]
+    #[Pattern('id', '\\\\d+')]
     public function update(Request \$request, int \$id): Response
     {
         \$row = \$this->model->find(\$id);
@@ -2583,6 +1933,8 @@ class {$controllerClass} extends Api
     /**
      * @NodeAnnotation(title='删除')
      */
+    #[Delete(':id')]
+    #[Pattern('id', '\\\\d+')]
     public function delete(int \$id): Response
     {
         \$row = \$this->model->find(\$id);
@@ -2599,50 +1951,6 @@ class {$controllerClass} extends Api
 }";
         
         return $content;
-    }
-
-    /**
-     * 生成JS表格列配置
-     * @param array $fields 字段信息
-     * @return string
-     */
-    private function generateJsCols(array $fields): string
-    {
-        if (empty($fields)) {
-            return "                    {field: 'title', title: '标题', width: 200},";
-        }
-        
-        $cols = [];
-        foreach ($fields as $field) {
-            $fieldName = $field['name'] ?? '';
-            $fieldComment = $field['comment'] ?? $fieldName;
-            $fieldType = $field['type'] ?? 'varchar';
-            
-            // 跳过系统字段
-            if (in_array($fieldName, ['id', 'created_at', 'updated_at', 'deleted_at'])) {
-                continue;
-            }
-            
-            // 根据字段类型设置不同的显示方式
-            $width = 200;
-            $templet = '';
-            
-            if (strpos($fieldType, 'text') !== false) {
-                $width = 300;
-            } elseif (strpos($fieldType, 'int') !== false) {
-                $width = 100;
-            } elseif (strpos($fieldType, 'datetime') !== false || strpos($fieldType, 'timestamp') !== false) {
-                $width = 180;
-                $templet = ", templet: function(d) { return d.{$fieldName} ? layui.util.toDateString(d.{$fieldName} * 1000) : ''; }";
-            } elseif (strpos($fieldType, 'tinyint') !== false) {
-                $width = 100;
-                $templet = ", templet: function(d) { return d.{$fieldName} == 1 ? '<span class=\"layui-badge layui-bg-green\">启用</span>' : '<span class=\"layui-badge layui-bg-gray\">禁用</span>'; }";
-            }
-            
-            $cols[] = "                    {field: '{$fieldName}', title: '{$fieldComment}', width: {$width}{$templet},";
-        }
-        
-        return implode("\n", $cols);
     }
 
     private function atomicWrite(string $file, string $content): void
@@ -2663,16 +1971,34 @@ class {$controllerClass} extends Api
         }
     }
 
-    private function generateApiRouteDefinition(string $routeName, string $controllerClass): string
+    private function validateApiDefinition(string $module, string $controller, array $fields): void
     {
-        $controller = strtolower($controllerClass);
-        return "    Route::group('{$routeName}', function (): void {\n"
-            . "        Route::get('', 'v2.{$controller}/index');\n"
-            . "        Route::get('<id>', 'v2.{$controller}/show');\n"
-            . "        Route::post('', 'v2.{$controller}/create');\n"
-            . "        Route::put('<id>', 'v2.{$controller}/update');\n"
-            . "        Route::delete('<id>', 'v2.{$controller}/delete');\n"
-            . "    })->middleware(MApi::class);";
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $module) || $module !== 'api') {
+            throw new InvalidArgumentException('API 模块仅允许 api');
+        }
+        if (!preg_match('/^[A-Z][A-Za-z0-9]*$/', $controller)) {
+            throw new InvalidArgumentException('API 控制器必须为 Studly PHP 类名');
+        }
+        $typePattern = '/^(?:varchar(?:\([1-9][0-9]{0,3}\))?|char(?:\([1-9][0-9]{0,3}\))?|(?:tiny|medium|long)?text|(?:tiny|small|medium|big)?int(?: unsigned)?|integer(?: unsigned)?|decimal\([1-9][0-9]?,[0-9]{1,2}\)|float(?:\([1-9][0-9]?,[0-9]{1,2}\))?|double(?:\([1-9][0-9]?,[0-9]{1,2}\))?|bool|boolean|date|datetime|timestamp|time|year|json)$/i';
+        foreach ($fields as $field) {
+            if (!is_array($field)) {
+                throw new InvalidArgumentException('API 字段必须为对象数组');
+            }
+            $name = $field['name'] ?? null;
+            $type = $field['type'] ?? 'varchar';
+            if (!is_string($name) || !preg_match('/^[a-z_][a-z0-9_]*$/', $name)) {
+                throw new InvalidArgumentException('API 字段名格式非法');
+            }
+            if (!is_string($type) || !preg_match($typePattern, $type)) {
+                throw new InvalidArgumentException('API 字段类型格式非法');
+            }
+        }
+    }
+
+    private function sanitizeApiDescription(string $description): string
+    {
+        $description = str_replace('*/', '', $description);
+        return trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $description));
     }
 
     /**
@@ -2720,491 +2046,6 @@ class {$controllerClass} extends Api
         }
         
         return implode(",\n                ", $rules);
-    }
-
-    /**
-     * 生成FunAdmin视图文件
-     * @param string $module 模块名称 (backend/api/frontend等)
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息 (可选)
-     * @param string $description 描述 (可选)
-     * @return array
-     */
-    public function handleCreateView(string $module, string $controller, array $fields = [], string $description = ''): array
-    {
-        try {
-            // 生成视图文件名
-            $viewFileName = strtolower($controller);
-            $viewPath = "app/{$module}/view/{$viewFileName}";
-            
-            // 检查目录是否已存在
-            if (is_dir($viewPath)) {
-                return [
-                    'success' => false,
-                    'error' => "视图目录 {$viewPath} 已存在"
-                ];
-            }
-
-            // 生成视图内容
-            $viewFiles = $this->generateViewFiles($module, $controller, $fields, $description);
-            
-            // 确保目录存在
-            if (!is_dir($viewPath)) {
-                mkdir($viewPath, 0755, true);
-            }
-
-            $generatedFiles = [];
-            foreach ($viewFiles as $viewFile) {
-                $filePath = $viewPath . '/' . $viewFile['name'];
-                if (file_put_contents($filePath, $viewFile['content'])) {
-                    $generatedFiles[] = $filePath;
-                    Log::info("FunAdmin 视图文件生成成功: {$filePath}");
-                }
-            }
-
-            if (!empty($generatedFiles)) {
-                return [
-                    'success' => true,
-                    'message' => '视图文件生成成功',
-                    'file_paths' => $generatedFiles,
-                    'files_count' => count($generatedFiles)
-                ];
-            } else {
-                throw new Exception('视图文件写入失败');
-            }
-
-        } catch (Exception $e) {
-            Log::error('FunAdmin 视图文件生成错误: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * 生成视图文件
-     * @param string $module 模块名称
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @return array
-     */
-    private function generateViewFiles(string $module, string $controller, array $fields = [], string $description = ''): array
-    {
-        $controllerLower = strtolower($controller);
-        $description = $description ?: $controller;
-        
-        $viewFiles = [];
-        
-        // 生成 index.html
-        $indexContent = $this->generateIndexView($module, $controllerLower, $fields, $description);
-        $viewFiles[] = [
-            'name' => 'index.html',
-            'content' => $indexContent
-        ];
-        
-        // 生成 add.html
-        $addContent = $this->generateAddView($module, $controllerLower, $fields, $description);
-        $viewFiles[] = [
-            'name' => 'add.html',
-            'content' => $addContent
-        ];
-        
-        // 生成 edit.html
-       /*  $viewFiles[] = [
-            'name' => 'edit.html',
-            'content' => $addContent
-        ]; */
-        
-        return $viewFiles;
-    }
-
-    /**
-     * 生成index视图
-     * @param string $module 模块名称
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @return string
-     */
-    private function generateIndexView(string $module, string $controller, array $fields = [], string $description = ''): string
-    {
-        $content = <<<EOF
-        <table class="layui-table" id="list" lay-filter="list" data-primaryKey="id"
-        data-node-add="{:auth(__u('add'))}"
-        data-node-edit="{:auth(__u('edit'))}"
-        data-node-delete="{:auth(__u('delete'))}"
-        data-node-destroy="{:auth(__u('destroy'))}"
-        data-node-modify="{:auth(__u('modify'))}"
-        data-node-recycle="{:auth(__u('recycle'))}"
-        data-node-restore="{:auth(__u('restore'))}"
-        data-node-import="{:auth(__u('import'))}"
-        data-node-export="{:auth(__u('export'))}"
-        data-node-copy="{:auth(__u('copy'))}"
-</table>
-EOF;
-        
-        return $content;
-    }
-
-    /**
-     * 生成add视图
-     * @param string $module 模块名称
-     * @param string $controller 控制器名称
-     * @param array $fields 字段信息
-     * @param string $description 描述
-     * @return string
-     */
-    private function generateAddView(string $module, string $controller, array $fields = [], string $description = ''): string
-    {
-        $content = "<form class=\"layui-form\" lay-filter=\"form\">\n";
-        
-        foreach ($fields as $field) {
-            if (in_array($field['name'], ['id', 'created_at', 'updated_at', 'deleted_at'])) {
-                continue;
-            }
-            $fieldName = $field['name'];
-            $fieldComment = $field['comment'] ?? $fieldName;
-            $fieldType = $field['type'] ?? 'varchar';
-            
-            // 根据字段类型生成不同的表单控件
-            if (strpos($fieldType, 'text') !== false || strpos($fieldType, 'longtext') !== false) {
-                // 文本域
-                $content .= "    {:Form::textarea('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif (strpos($fieldType, 'tinyint') !== false && in_array($fieldName, ['status', 'is_show', 'is_enable'])) {
-                // 开关控件 - 状态类字段
-                $content .= "    {:Form::switchs('{$fieldName}', ['1'=>'启用', '0'=>'禁用'], ['label'=>'{$fieldComment}', 'tips'=>'请选择{$fieldComment}'], \$row.{$fieldName}??'1')}\n";
-            } elseif ($this->shouldUseSelect($fieldName, $fieldComment, $fieldType)) {
-                // 下拉选择框 - 根据字段名称、注释、类型判断
-                $selectOptions = $this->generateSelectOptions($fieldName, $fieldComment);
-                $isMultiple = $this->isMultipleSelect($fieldComment);
-            
-                if ($isMultiple) {
-                    // 多选下拉框
-                    $content .= "    {:Form::selects('{$fieldName}', {$selectOptions}, ['label'=>'{$fieldComment}', 'verify'=>'required', 'tips'=>'请选择{$fieldComment}（可多选）'], \$row.{$fieldName}??'')}\n";
-            } else {
-                    // 单选下拉框
-                    $content .= "    {:Form::select('{$fieldName}', {$selectOptions}, ['label'=>'{$fieldComment}', 'verify'=>'required', 'tips'=>'请选择{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-                }
-            } elseif (strpos($fieldType, 'decimal') !== false || strpos($fieldType, 'float') !== false) {
-                // 数字输入框
-                $content .= "    {:Form::number('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required|number', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif ($fieldName === 'password') {
-                // 密码框
-                $content .= "    {:Form::password('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required', 'tips'=>'请输入{$fieldComment}'], '')}\n";
-            } elseif ($fieldName === 'email') {
-                // 邮箱输入框
-                $content .= "    {:Form::email('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required|email', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif ($fieldName === 'tel' || $fieldName === 'phone' || $fieldName === 'mobile') {
-                // 电话号码输入框
-                $content .= "    {:Form::tel('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required|phone', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif (strpos($fieldName, 'time') !== false || strpos($fieldName, 'date') !== false) {
-                // 日期时间选择器
-                $content .= "    {:Form::date('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required', 'type'=>'datetime', 'tips'=>'请选择{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif (strpos($fieldName, 'image') !== false || strpos($fieldName, 'avatar') !== false || strpos($fieldName, 'photo') !== false) {
-                // 图片上传
-                $content .= "    {:Form::upload('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required', 'type'=>'image', 'tips'=>'请上传{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif (strpos($fieldName, 'file') !== false) {
-                // 文件上传
-                $content .= "    {:Form::upload('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required', 'type'=>'file', 'tips'=>'请上传{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif ($fieldName === 'color') {
-                // 颜色选择器
-                $content .= "    {:Form::color('{$fieldName}', ['label'=>'{$fieldComment}', 'tips'=>'请选择{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif ($fieldName === 'icon') {
-                // 图标选择器
-                $content .= "    {:Form::icon('{$fieldName}', ['label'=>'{$fieldComment}', 'tips'=>'请选择{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } elseif ($fieldName === 'url' || $fieldName === 'website') {
-                // URL输入框
-                $content .= "    {:Form::url('{$fieldName}', ['label'=>'{$fieldComment}', 'verify'=>'required|url', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            } else {
-                // 默认文本输入框
-                $content .= "    {:Form::input('{$fieldName}', 'text', ['label'=>'{$fieldComment}', 'verify'=>'required', 'tips'=>'请输入{$fieldComment}'], \$row.{$fieldName}??'')}\n";
-            }
-        }
-
-        // 添加提交按钮
-        $content .= "    {:Form::submit()}\n";
-        $content .= "</form>\n";
-        
-        return $content;
-    }
-
-    /**
-     * 判断是否应该使用下拉选择框
-     * @param string $fieldName 字段名称
-     * @param string $fieldComment 字段注释
-     * @param string $fieldType 字段类型
-     * @return bool
-     */
-    private function shouldUseSelect(string $fieldName, string $fieldComment, string $fieldType): bool
-    {
-        // 1. 根据字段注释判断
-        $commentKeywords = [
-            '选择', '类型', '分类', '等级', '级别', '状态', '方式', '模式', '种类',
-            '下拉', '列表', '枚举', '选项', '菜单', '角色', '权限', '部门',
-            '省份', '城市', '地区', '国家', '行业', '职业', '学历', '婚姻',
-            '1:', '2:', '3:', '|', '，', ',', '/', '\\', // 包含选项分隔符的注释
-        ];
-        
-        foreach ($commentKeywords as $keyword) {
-            if (strpos($fieldComment, $keyword) !== false) {
-                return true;
-            }
-        }
-        
-        // 2. 根据字段名称判断
-        $nameKeywords = [
-            '_id', 'type', 'category', 'level', 'grade', 'status', 'state',
-            'kind', 'class', 'group', 'dept', 'role', 'auth', 'mode',
-            'method', 'way', 'style', 'format', 'gender', 'sex',
-            'province', 'city', 'area', 'region', 'country', 'nation'
-        ];
-        
-        foreach ($nameKeywords as $keyword) {
-            if (strpos($fieldName, $keyword) !== false) {
-                return true;
-            }
-        }
-        
-        // 3. 根据字段类型判断
-        if (strpos($fieldType, 'enum') !== false) {
-            return true;
-        }
-        
-        // 4. 小范围的整数字段可能是选择字段
-        if (strpos($fieldType, 'tinyint') !== false || strpos($fieldType, 'smallint') !== false) {
-            // 排除明确的布尔字段（is_开头的字段）
-            if (strpos($fieldName, 'is_') !== 0 && !in_array($fieldName, ['status', 'sort', 'weigh', 'createtime', 'updatetime'])) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * 判断是否为多选字段
-     * @param string $fieldComment 字段注释
-     * @return bool
-     */
-    private function isMultipleSelect(string $fieldComment): bool
-    {
-        $multipleKeywords = [
-            '多选', '复选', '多个', '批量', '多种', '可选多个', '可多选',
-            '标签', '爱好', '技能', '特长', '兴趣', '权限', '角色组'
-        ];
-        
-        foreach ($multipleKeywords as $keyword) {
-            if (strpos($fieldComment, $keyword) !== false) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * 生成下拉选择框的选项
-     * @param string $fieldName 字段名称
-     * @param string $fieldComment 字段注释
-     * @return string 选项数组的字符串表示
-     */
-    private function generateSelectOptions(string $fieldName, string $fieldComment): string
-    {
-        // 1. 首先尝试从字段注释中解析选项
-        $parsedOptions = $this->parseOptionsFromComment($fieldComment);
-        if (!empty($parsedOptions)) {
-            return $parsedOptions;
-        }
-        
-        // 2. 根据字段名称智能生成选项
-        if (strpos($fieldName, 'status') !== false) {
-            // 状态字段
-            return "['0'=>'禁用', '1'=>'启用']";
-        } elseif (strpos($fieldName, 'is_') === 0) {
-            // 布尔类型字段 (is_show, is_enable等)
-            return "['0'=>'否', '1'=>'是']";
-        } elseif (strpos($fieldName, 'gender') !== false || strpos($fieldName, 'sex') !== false) {
-            // 性别字段
-            return "['0'=>'保密', '1'=>'男', '2'=>'女']";
-        } elseif (strpos($fieldName, 'type') !== false) {
-            // 类型字段 - 根据具体用途生成
-            if (strpos($fieldName, 'user') !== false) {
-                return "['1'=>'普通用户', '2'=>'VIP用户', '3'=>'超级用户']";
-            } elseif (strpos($fieldName, 'content') !== false || strpos($fieldName, 'article') !== false) {
-                return "['1'=>'文章', '2'=>'图片', '3'=>'视频']";
-            } elseif (strpos($fieldName, 'pay') !== false) {
-                return "['1'=>'微信支付', '2'=>'支付宝', '3'=>'银行卡']";
-            } else {
-                return "['1'=>'类型一', '2'=>'类型二', '3'=>'类型三']";
-            }
-        } elseif (strpos($fieldName, 'level') !== false) {
-            // 等级字段
-            return "['1'=>'初级', '2'=>'中级', '3'=>'高级', '4'=>'专家级']";
-        } elseif (strpos($fieldName, 'grade') !== false) {
-            // 等级字段
-            return "['A'=>'A级', 'B'=>'B级', 'C'=>'C级', 'D'=>'D级']";
-        } elseif (strpos($fieldName, 'priority') !== false) {
-            // 优先级字段
-            return "['1'=>'低', '2'=>'中', '3'=>'高', '4'=>'紧急']";
-        } elseif (strpos($fieldName, 'category') !== false) {
-            // 分类字段 - 提供更通用的选项
-            return "[''=>'请选择分类', '1'=>'默认分类', '2'=>'热门分类', '3'=>'推荐分类']";
-        } elseif (strpos($fieldName, 'admin_id') !== false) {
-            // 管理员字段 - FunAdmin系统表
-            return "\\think\\facade\\Db::name('admin')->column('username', 'id') ?: [''=>'请选择管理员']";
-        } elseif (strpos($fieldName, 'member_id') !== false) {
-            // 会员字段 - FunAdmin系统表
-            return "\\think\\facade\\Db::name('member')->column('username', 'id') ?: [''=>'请选择会员']";
-        } elseif (strpos($fieldName, 'user_id') !== false) {
-            // 用户字段 - 通用处理
-            return "\\think\\facade\\Db::name('user')->column('username', 'id') ?: [''=>'请选择用户']";
-        } elseif (strpos($fieldName, 'role_id') !== false) {
-            // 角色字段 - FunAdmin权限表
-            return "\\think\\facade\\Db::name('auth_role')->column('name', 'id') ?: [''=>'请选择角色']";
-        } elseif (strpos($fieldName, 'dept_id') !== false || strpos($fieldName, 'department_id') !== false) {
-            // 部门字段
-            return "\\think\\facade\\Db::name('dept')->column('name', 'id') ?: [''=>'请选择部门']";
-        } elseif (strpos($fieldName, 'parent_id') !== false || strpos($fieldName, 'pid') !== false) {
-            // 父级字段 - 提供静态选项避免表不存在的问题
-            return "['0'=>'顶级分类', ''=>'请选择上级分类']";
-        } elseif (strpos($fieldName, 'province') !== false || strpos($fieldName, 'city') !== false || strpos($fieldName, 'area') !== false) {
-            // 地区字段 - 提供静态选项
-            if (strpos($fieldName, 'province') !== false) {
-                return "['11'=>'北京市', '12'=>'天津市', '13'=>'河北省', '21'=>'辽宁省', '31'=>'上海市', '32'=>'江苏省', '44'=>'广东省']";
-            } elseif (strpos($fieldName, 'city') !== false) {
-                return "['1101'=>'东城区', '1102'=>'西城区', '1103'=>'朝阳区', '1104'=>'丰台区', '1105'=>'石景山区']";
-            } else {
-                return "['110101'=>'东华门街道', '110102'=>'景山街道', '110103'=>'交道口街道']";
-            }
-        } elseif (strpos($fieldName, 'sort') !== false || strpos($fieldName, 'order') !== false) {
-            // 排序字段
-            return "['1'=>'1', '10'=>'10', '50'=>'50', '100'=>'100', '999'=>'999']";
-        } elseif (strpos($fieldName, 'state') !== false) {
-            // 状态字段
-            return "['0'=>'待处理', '1'=>'处理中', '2'=>'已完成', '3'=>'已取消']";
-        } else {
-            // 默认选项
-            return "[''=>'请选择{$fieldComment}', '1'=>'选项一', '2'=>'选项二', '3'=>'选项三']";
-        }
-    }
-
-    /**
-     * 从字段注释中解析选项
-     * @param string $comment 字段注释
-     * @return string 解析出的选项数组字符串，如果解析失败返回空字符串
-     */
-    private function parseOptionsFromComment(string $comment): string
-    {
-        if (empty($comment)) {
-            return '';
-        }
-        
-        // 解析模式1: "sex=1:男,2:女,3:未知" 或 "sex=1:男|2:女|3:未知" 或 "status=[1:可用,0:不可用]" 或 "status=(1:可用,0:不可用)"
-        // 先提取等号后面的部分，如果没有等号则使用整个注释
-        $commentPart = $comment;
-        if (preg_match('/^[^=]*=(.+)$/', $comment, $eqMatch)) {
-            $commentPart = $eqMatch[1];
-        }
-        
-        // 匹配 数字:值 的格式
-        if (preg_match_all('/(\d+)\s*[:：]\s*([^,|)\]（）\s]+)/', $commentPart, $matches, PREG_SET_ORDER)) {
-            $options = [];
-            foreach ($matches as $match) {
-                $key = trim($match[1]);
-                $value = trim($match[2]);
-                // 清理值中的特殊字符
-                $value = preg_replace('/[()（）\[\]【】]/', '', $value);
-                $options[] = "'{$key}'=>'{$value}'";
-            }
-            if (!empty($options)) {
-                return '[' . implode(', ', $options) . ']';
-            }
-        }
-        
-        // 解析模式2: "性别=男,女,未知" 或 "类型=[选项1,选项2]" 或 "选项:(男|女|未知)"
-        if (preg_match('/[,|，]/', $comment)) {
-            // 先提取选项部分（支持等号、冒号、括号等分隔符）
-            $optionsPart = $comment;
-            
-            // 处理等号分隔的格式: "性别=男,女"
-            if (preg_match('/^[^=]*=\s*[(\[（【]?([^)\]）】]+)[)\]）】]?$/', $comment, $eqMatch)) {
-                $optionsPart = $eqMatch[1];
-            }
-            // 处理冒号分隔的格式: "选项:[男,女]" 或 "选项:(男,女)"
-            elseif (preg_match('/[:：]\s*[(\[（【]?([^)\]）】]+)[)\]）】]?$/', $comment, $colonMatch)) {
-                $optionsPart = $colonMatch[1];
-            }
-            
-            // 分割选项
-            $items = preg_split('/[,|，、]/', $optionsPart);
-            $options = [];
-            foreach ($items as $index => $item) {
-                $item = trim($item);
-                // 清理特殊字符
-                $item = preg_replace('/[()（）\[\]【】]/', '', $item);
-                
-                if (!empty($item) && !preg_match('/^\d+$/', $item)) { // 排除纯数字和空值
-                    $key = $index + 1;
-                    $options[] = "'{$key}'=>'{$item}'";
-                }
-            }
-            if (count($options) > 1) {
-                return '[' . implode(', ', $options) . ']';
-            }
-        }
-        
-        // 解析模式3: "选择类型：1-普通 2-VIP 3-超级" 或 "状态=1-启用 0-禁用"
-        if (preg_match_all('/(\d+)\s*[-—=]\s*([^\s,|]+)/', $comment, $matches, PREG_SET_ORDER)) {
-            $options = [];
-            foreach ($matches as $match) {
-                $key = trim($match[1]);
-                $value = trim($match[2]);
-                // 清理值中的特殊字符
-                $value = preg_replace('/[()（）\[\]【】]/', '', $value);
-                $options[] = "'{$key}'=>'{$value}'";
-            }
-            if (!empty($options)) {
-                return '[' . implode(', ', $options) . ']';
-            }
-        }
-        
-        // 解析模式4: 包含"或"的表达式 "男或女" "是或否" "启用或禁用"
-        if (preg_match('/(.+?)或(.+)/', $comment, $matches)) {
-            $option1 = trim($matches[1]);
-            $option2 = trim($matches[2]);
-            // 清理特殊字符
-            $option1 = preg_replace('/[()（）\[\]【】=:]/', '', $option1);
-            $option2 = preg_replace('/[()（）\[\]【】]/', '', $option2);
-            
-            // 如果是状态类的，使用0/1作为键值
-            if (preg_match('/(启用|开启|打开|显示|是)/', $option1) || preg_match('/(禁用|关闭|隐藏|否)/', $option2)) {
-                return "['1'=>'{$option1}', '0'=>'{$option2}']";
-            } else {
-                return "['1'=>'{$option1}', '2'=>'{$option2}']";
-            }
-        }
-        
-        // 解析模式5: 枚举值格式 "enum('male','female','unknown')" 或 "ENUM(1,2,3)"
-        if (preg_match('/enum\s*\(\s*([^)]+)\s*\)/i', $comment, $matches)) {
-            $enumValues = $matches[1];
-            // 移除引号并分割
-            $items = preg_split('/[,，]/', $enumValues);
-            $options = [];
-            foreach ($items as $index => $item) {
-                $item = trim($item, " '\"");
-                if (!empty($item)) {
-                    $key = is_numeric($item) ? $item : ($index + 1);
-                    $options[] = "'{$key}'=>'{$item}'";
-                }
-            }
-            if (!empty($options)) {
-                return '[' . implode(', ', $options) . ']';
-            }
-        }
-        
-        return '';
     }
 
     /**
@@ -3298,24 +2139,6 @@ EOF;
             ];
         }
 
-        // 处理插件操作
-        if (strpos($lowerPrompt, '插件') !== false || strpos($lowerPrompt, 'plugin') !== false) {
-            $results['plugin'] = [
-                'success' => true,
-                'message' => '检测到插件操作',
-                'suggestion' => '请使用 plugin 工具进行插件管理'
-            ];
-        }
-
-        // 处理菜单操作
-        if (strpos($lowerPrompt, '菜单') !== false || strpos($lowerPrompt, 'menu') !== false) {
-            $results['menu'] = [
-                'success' => true,
-                'message' => '检测到菜单操作',
-                'suggestion' => '请使用 menu 工具进行菜单管理'
-            ];
-        }
-
         // 处理CRUD操作
         if (strpos($lowerPrompt, 'crud') !== false || strpos($lowerPrompt, '增删改查') !== false) {
             $results['crud'] = [
@@ -3325,30 +2148,12 @@ EOF;
             ];
         }
 
-        // 处理JS文件生成操作
-        if (strpos($lowerPrompt, 'js') !== false || strpos($lowerPrompt, 'javascript') !== false || strpos($lowerPrompt, '前端') !== false) {
-            $results['js'] = [
-                'success' => true,
-                'message' => '检测到JS文件生成操作',
-                'suggestion' => '请使用 js 工具生成前端JS文件'
-            ];
-        }
-
         // 处理API接口生成操作
         if (strpos($lowerPrompt, 'api') !== false || strpos($lowerPrompt, '接口') !== false) {
             $results['api'] = [
                 'success' => true,
                 'message' => '检测到API接口生成操作',
                 'suggestion' => '请使用 api 工具生成API接口文件'
-            ];
-        }
-
-        // 处理视图文件生成操作
-        if (strpos($lowerPrompt, '视图') !== false || strpos($lowerPrompt, 'view') !== false || strpos($lowerPrompt, '页面') !== false) {
-            $results['view'] = [
-                'success' => true,
-                'message' => '检测到视图文件生成操作',
-                'suggestion' => '请使用 view 工具生成视图文件'
             ];
         }
 
@@ -3373,12 +2178,8 @@ EOF;
                     '- 创建数据库表：包含表名和字段信息' . "\n" .
                     '- 生成控制器：指定模块和控制器名称' . "\n" .
                     '- 生成模型：指定模型名称和字段信息' . "\n" .
-                    '- 生成JS文件：指定模块和控制器名称' . "\n" .
                     '- 生成API接口：指定模块和控制器名称' . "\n" .
-                    '- 生成视图文件：指定模块和控制器名称' . "\n" .
-                    '- 创建插件：指定插件名称' . "\n" .
-                    '- 创建菜单：指定菜单信息' . "\n" .
-                    '- 生成CRUD模块：指定表名和字段信息' . "\n" .
+                    '- 生成CRUD模块：指定版本化 CRUD Definition JSON' . "\n" .
                     '- 数据库查询：使用SELECT语句' . "\n" .
                     '- 系统配置：获取系统配置信息' . "\n" .
                     '- 文件操作：进行文件读写操作' . "\n" .
@@ -3418,14 +2219,10 @@ EOF;
                 'vendor:publish',
                 // queue 命令组（只允许查看相关的）
                 'queue:failed', 'queue:failed-table', 'queue:table',
-                // plugins 命令组
-                'plugins:config',
                 // auth 命令组
                 'auth:config',
-                // builder 命令组
-                'builder:config',
                 // FunAdmin 特有命令
-                'plugin', 'menu', 'install', 'mcp'
+                'crud:inspect', 'crud:validate', 'crud:preview', 'crud:generate', 'mcp'
             ];
 
             if (!in_array($command, $allowedCommands)) {

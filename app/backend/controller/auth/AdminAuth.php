@@ -7,10 +7,11 @@ use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\model\AdminMenu;
 use app\backend\model\Permission;
-use app\backend\service\AuthService;
-use app\backend\traits\AdminDataFormat;
-use app\backend\traits\AdminJsonResponse;
+use app\backend\service\AdminAuthorizationService;
+use app\backend\service\AdminSessionService;
+use app\backend\service\RoleScopeService;
 use app\backend\traits\AdminTree;
+use app\backend\traits\AdminJsonResponse;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
 use think\annotation\route\Post;
@@ -25,7 +26,6 @@ use think\facade\Session;
 #[Group('auth')]
 class AdminAuth extends BaseController
 {
-    use AdminDataFormat;
     use AdminJsonResponse;
     use AdminTree;
 
@@ -70,7 +70,7 @@ class AdminAuth extends BaseController
         }
 
         try {
-            AuthService::instance()->checkLogin($username, $password, $remember);
+            (new AdminSessionService())->checkLogin($username, $password, $remember);
         } catch (\Throwable $e) {
             return $this->fail(msg: $e->getMessage(), code: 400);
         }
@@ -82,9 +82,9 @@ class AdminAuth extends BaseController
     public function me(): Response
     {
         $admin = Session::get('admin', []);
-        $auth = AuthService::instance();
-        $roleIds = $auth->currentRoleIds();
-        $permissionIds = $auth->permissionIdsForRoles($roleIds);
+        $roleScope = new RoleScopeService();
+        $roleIds = $roleScope->currentRoleIds();
+        $permissionIds = $roleScope->permissionIdsForRoles($roleIds);
         $permissionCodes = Permission::whereIn('id', $permissionIds)
             ->where('status', 1)
             ->where('code', '<>', '')
@@ -98,33 +98,27 @@ class AdminAuth extends BaseController
             'email' => (string) ($admin['email'] ?? ''),
             'mobile' => (string) ($admin['mobile'] ?? ''),
             'roles' => array_map(static fn ($id) => 'role:' . (int) $id, $roleIds),
-            'permissions' => $this->frontendPermissions($permissionCodes, $auth->isSuperAdmin()),
+            'permissions' => $this->frontendPermissions($permissionCodes, $roleScope->isSuperAdmin()),
         ]);
     }
 
     #[Get('menus')]
     public function menus(): Response
     {
-        $auth = AuthService::instance();
-        $permissionIds = $auth->permissionIdsForRoles($auth->currentRoleIds());
+        $roleScope = new RoleScopeService();
+        $permissionIds = $roleScope->permissionIdsForRoles($roleScope->currentRoleIds());
         $menus = AdminMenu::where('source_type', 'admin_web')
             ->where('status', 1)
             ->order('sort_order', 'asc')
             ->order('id', 'asc')
             ->select();
         $allowed = [];
-        foreach ($menus as $menu) {
-            if ($auth->isSuperAdmin() || (int) $menu->permission_id === 0 || in_array((int) $menu->permission_id, $permissionIds, true)) {
-                $allowed[(int) $menu->id] = $this->menuData($menu);
-            }
-        }
-        if (!$allowed) {
-            return $this->ok(data: []);
-        }
-
         $allById = [];
         foreach ($menus as $menu) {
             $allById[(int) $menu->id] = $menu;
+            if ($roleScope->isSuperAdmin() || (int) $menu->permission_id === 0 || in_array((int) $menu->permission_id, $permissionIds, true)) {
+                $allowed[(int) $menu->id] = $this->menuData($menu);
+            }
         }
         foreach (array_keys($allowed) as $id) {
             $parentId = (int) ($allById[$id]->pid ?? 0);
@@ -133,15 +127,36 @@ class AdminAuth extends BaseController
                 $parentId = (int) $allById[$parentId]->pid;
             }
         }
-
         return $this->ok(data: $this->buildTree(array_values($allowed)));
     }
 
     #[Post('logout')]
     public function logout(): Response
     {
-        AuthService::instance()->logout();
+        (new AdminSessionService())->logout();
         return $this->ok('退出成功');
+    }
+
+    private function menuData(AdminMenu $menu): array
+    {
+        parse_str((string) $menu->query, $meta);
+        $permission = $menu->permission_id > 0 ? Permission::find((int) $menu->permission_id) : null;
+        return [
+            'id' => (int) $menu->id,
+            'parentId' => (int) $menu->pid,
+            'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
+            'path' => '/' . ltrim((string) $menu->href, '/'),
+            'component' => (string) ($meta['component'] ?? ''),
+            'redirect' => (string) ($meta['redirect'] ?? ''),
+            'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
+            'icon' => (string) $menu->icon,
+            'name' => (string) $menu->name,
+            'sort' => (int) $menu->sort_order,
+            'hidden' => filter_var($meta['hidden'] ?? false, FILTER_VALIDATE_BOOL),
+            'keepAlive' => filter_var($meta['keepAlive'] ?? false, FILTER_VALIDATE_BOOL),
+            'affix' => filter_var($meta['affix'] ?? false, FILTER_VALIDATE_BOOL),
+            'permission' => (string) ($permission->code ?? ''),
+        ];
     }
 
     private function frontendPermissions(array $permissionCodes, bool $isSuperAdmin): array
@@ -290,6 +305,12 @@ class AdminAuth extends BaseController
             'backend/systemplugin:redeployhistory' => 'system:plugin:history-redeploy',
             'backend/systemplugin:recoveryinfo' => 'system:plugin:recovery',
             'backend/systemplugin:operations' => 'system:plugin:history',
+            'backend/systemupgrade:status' => 'system:upgrade:list',
+            'backend/systemupgrade:check' => 'system:upgrade:check',
+            'backend/systemupgrade:executeupgrade' => 'system:upgrade:execute',
+            'backend/systemupgrade:upload' => 'system:upgrade:upload',
+            'backend/systemupgrade:restore' => 'system:upgrade:restore',
+            'backend/systemupgrade:recoverstale' => 'system:upgrade:restore',
         ];
         if ($isSuperAdmin) {
             return ['*'];
@@ -304,26 +325,5 @@ class AdminAuth extends BaseController
         return array_keys($result);
     }
 
-    private function menuData(AdminMenu $menu): array
-    {
-        parse_str((string) $menu->query, $meta);
-        $permission = $menu->permission_id > 0 ? Permission::find((int) $menu->permission_id) : null;
-        return [
-            'id' => (int) $menu->id,
-            'parentId' => (int) $menu->pid,
-            'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id)),
-            'path' => '/' . ltrim((string) $menu->href, '/'),
-            'component' => (string) ($meta['component'] ?? ''),
-            'redirect' => (string) ($meta['redirect'] ?? ''),
-            'type' => in_array(($meta['type'] ?? ''), ['M', 'C'], true) ? (string) $meta['type'] : 'C',
-            'icon' => (string) $menu->icon,
-            'name' => (string) $menu->name,
-            'sort' => (int) $menu->sort_order,
-            'hidden' => $this->booleanValue($meta['hidden'] ?? false),
-            'keepAlive' => $this->booleanValue($meta['keepAlive'] ?? false),
-            'affix' => $this->booleanValue($meta['affix'] ?? false),
-            'permission' => (string) ($permission->code ?? ''),
-        ];
-    }
 
 }

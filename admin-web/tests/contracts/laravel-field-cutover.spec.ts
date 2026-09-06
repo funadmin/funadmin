@@ -79,7 +79,7 @@ describe('Laravel 公共字段 cutover 契约', () => {
   });
 
   it('前端插件历史契约使用 camelCase 时间字段', () => {
-    const api = readFileSync(resolve(root, 'admin-web/src/api/plugin/index.ts'), 'utf8');
+    const api = readFileSync(resolve(root, 'admin-web/src/api/system/plugin.ts'), 'utf8');
     const drawer = readFileSync(resolve(root, 'admin-web/src/views/system/plugin/components/PluginHistoryDrawer.vue'), 'utf8');
     expect(api).toContain('createdAt: string');
     expect(api).not.toContain('create_time:');

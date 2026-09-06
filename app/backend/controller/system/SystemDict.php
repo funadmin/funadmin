@@ -8,6 +8,12 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\common\model\DictItem;
 use app\common\model\DictType;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 
 /**
@@ -15,6 +21,7 @@ use think\Response;
  *
  * 字典类型通过 code 对外暴露，字典项在数据库中只保存 type_id，避免重复数据。
  */
+#[Group('system/dict')]
 class SystemDict extends AdminApiController
 {
     protected $middleware = [
@@ -23,6 +30,7 @@ class SystemDict extends AdminApiController
         SystemLog::class,
     ];
 
+    #[Get('types')]
     public function types(): Response
     {
         $page = $this->page();
@@ -48,6 +56,7 @@ class SystemDict extends AdminApiController
         return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
+    #[Post('types')]
     public function createType(): Response
     {
         $data = $this->typePayload();
@@ -62,6 +71,8 @@ class SystemDict extends AdminApiController
         return $this->ok('创建成功', $this->typeData($type));
     }
 
+    #[Put('types/:id')]
+    #[Pattern('id', '\\d+')]
     public function updateType(int $id): Response
     {
         $type = DictType::find($id);
@@ -79,6 +90,8 @@ class SystemDict extends AdminApiController
         return $this->ok('保存成功', $this->typeData($type));
     }
 
+    #[Delete('types/:id')]
+    #[Pattern('id', '\\d+')]
     public function deleteType(int $id): Response
     {
         $type = DictType::find($id);
@@ -93,6 +106,7 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功');
     }
 
+    #[Delete('types')]
     public function deleteTypes(): Response
     {
         $ids = $this->ids();
@@ -110,6 +124,7 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($types)]);
     }
 
+    #[Get('items')]
     public function items(): Response
     {
         $page = $this->page();
@@ -149,6 +164,7 @@ class SystemDict extends AdminApiController
         return $this->ok(data: $this->paginationData($list, $result->total(), $page, $pageSize));
     }
 
+    #[Post('items')]
     public function createItem(): Response
     {
         $data = $this->itemPayload();
@@ -170,6 +186,8 @@ class SystemDict extends AdminApiController
         return $this->ok('创建成功', $this->itemData($item, (string) $type->code));
     }
 
+    #[Put('items/:id')]
+    #[Pattern('id', '\\d+')]
     public function updateItem(int $id): Response
     {
         $item = DictItem::find($id);
@@ -194,6 +212,8 @@ class SystemDict extends AdminApiController
         return $this->ok('保存成功', $this->itemData($item, $type ? (string) $type->code : ''));
     }
 
+    #[Delete('items/:id')]
+    #[Pattern('id', '\\d+')]
     public function deleteItem(int $id): Response
     {
         $item = DictItem::find($id);
@@ -205,6 +225,7 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功');
     }
 
+    #[Delete('items')]
     public function deleteItems(): Response
     {
         $ids = $this->ids();
@@ -219,6 +240,8 @@ class SystemDict extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($items)]);
     }
 
+    #[Get(':code/options')]
+    #[Pattern('code', '[A-Za-z][A-Za-z0-9_]{0,59}')]
     public function options(string $code): Response
     {
         $type = DictType::where('code', $code)->where('status', 1)->find();
@@ -235,6 +258,7 @@ class SystemDict extends AdminApiController
         return $this->ok(data: array_map(fn (DictItem $item) => $this->optionData($item), $items->all()));
     }
 
+    #[Post('batch')]
     public function batch(): Response
     {
         $codes = $this->request->param('codes', []);

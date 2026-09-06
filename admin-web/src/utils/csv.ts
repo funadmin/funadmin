@@ -22,10 +22,11 @@ export interface CsvColumn<T = any> {
 function escapeCell(value: unknown): string {
   if (value === null || value === undefined) return '';
   const text = String(value);
-  if (/[",\r\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
+  const safeText = /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
+  if (/[",\r\n]/.test(safeText)) {
+    return `"${safeText.replace(/"/g, '""')}"`;
   }
-  return text;
+  return safeText;
 }
 
 /**

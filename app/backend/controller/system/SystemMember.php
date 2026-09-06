@@ -14,16 +14,24 @@ use app\backend\model\MemberGroupRelation;
 use app\backend\model\MemberLevel;
 use app\backend\model\MemberTag;
 use app\backend\model\MemberTagRelation;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\facade\Db;
 use think\Response;
 
 /**
  * Admin Web 会员管理。
  */
+#[Group('system/member')]
 class SystemMember extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -42,6 +50,8 @@ class SystemMember extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $member = Member::withTrashed()->find($id);
@@ -52,6 +62,7 @@ class SystemMember extends AdminApiController
         return $this->ok(data: $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
+    #[Get('options')]
     public function options(): Response
     {
         return $this->ok(data: [
@@ -61,6 +72,7 @@ class SystemMember extends AdminApiController
         ]);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -92,6 +104,8 @@ class SystemMember extends AdminApiController
         return $this->ok('创建成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $member = Member::find($id);
@@ -125,6 +139,8 @@ class SystemMember extends AdminApiController
         return $this->ok('保存成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
+    #[Post(':id/status')]
+    #[Pattern('id', '\\d+')]
     public function status(int $id): Response
     {
         $member = Member::find($id);
@@ -136,6 +152,7 @@ class SystemMember extends AdminApiController
         return $this->ok('状态更新成功', $this->memberData($member, $memberGroups, $groups, $levels, $memberTags, $tags));
     }
 
+    #[Delete('')]
     public function recycle(): Response
     {
         $members = $this->membersForAction(false);
@@ -148,6 +165,7 @@ class SystemMember extends AdminApiController
         return $this->ok('已移入回收站', ['removed' => count($members)]);
     }
 
+    #[Post('restore')]
     public function restore(): Response
     {
         $ids = $this->ids();
@@ -164,6 +182,7 @@ class SystemMember extends AdminApiController
         return $this->ok('恢复成功', ['restored' => count($members)]);
     }
 
+    #[Delete('destroy')]
     public function destroy(): Response
     {
         $members = $this->membersForAction(true);
@@ -180,6 +199,7 @@ class SystemMember extends AdminApiController
         return $this->ok('永久删除成功', ['removed' => count($members)]);
     }
 
+    #[Post('import')]
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
@@ -229,6 +249,7 @@ class SystemMember extends AdminApiController
         ]);
     }
 
+    #[Get('export')]
     public function export(): Response
     {
         $recycled = (int) $this->request->get('recycled', 0) === 1;

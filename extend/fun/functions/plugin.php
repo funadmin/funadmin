@@ -14,9 +14,7 @@ define('PLUGIN_NAMESPACE', PLUGIN_DIR);
 
 \think\Console::starting(function (\think\Console $console): void {
     $console->addCommands([
-        'plugins:config' => '\\fun\\plugins\\command\\Config',
         'auth:config' => '\\fun\\auth\\command\\Config',
-        'builder:config' => '\\fun\\builder\\command\\Config',
     ]);
 });
 

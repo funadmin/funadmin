@@ -12,18 +12,26 @@ use app\backend\model\AuthGroup;
 use app\backend\model\AuthGroupDepartment;
 use app\backend\model\AuthGroupInherit;
 use app\backend\model\Permission;
-use app\backend\service\AuthService;
+use app\backend\service\RoleScopeService;
 use app\backend\service\CasbinService;
 use app\backend\service\RoleGuardService;
 use InvalidArgumentException;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 use think\facade\Db;
 
+#[Group('system/role')]
 class SystemRole extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -53,21 +61,23 @@ class SystemRole extends AdminApiController
         ));
     }
 
+    #[Get('all')]
     public function all(): Response
     {
         $roles = $this->manageableQuery()->where('status', 1)->order('level', 'asc')->order('id', 'asc')->select();
         return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
     }
 
+    #[Get('parent-options')]
     public function parentOptions(): Response
     {
-        $auth = AuthService::instance();
-        if ($auth->isSuperAdmin()) {
+        $roleScope = new RoleScopeService();
+        if ($roleScope->isSuperAdmin()) {
             $roleIds = array_map('intval', AuthGroup::where('status', 1)->column('id'));
         } else {
             $roleIds = array_values(array_unique(array_merge(
-                $auth->currentRoleIds(),
-                $auth->manageableRoleIds()
+                $roleScope->currentRoleIds(),
+                $roleScope->manageableRoleIds()
             )));
         }
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])->where('status', 1)
@@ -75,6 +85,8 @@ class SystemRole extends AdminApiController
         return $this->ok(data: array_map(fn (AuthGroup $role): array => $this->roleData($role), $roles->all()));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -89,12 +101,13 @@ class SystemRole extends AdminApiController
         return $this->ok(data: $this->roleData($role));
     }
 
+    #[Get('permission-tree')]
     public function permissionTree(): Response
     {
-        $auth = AuthService::instance();
+        $roleScope = new RoleScopeService();
         $query = Permission::where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
-        if (!$auth->isSuperAdmin()) {
-            $query->whereIn('id', $auth->permissionIdsForRoles($auth->currentRoleIds()) ?: [0]);
+        if (!$roleScope->isSuperAdmin()) {
+            $query->whereIn('id', $roleScope->permissionIdsForRoles($roleScope->currentRoleIds()) ?: [0]);
         }
         $rows = [];
         foreach ($query->select() as $permission) {
@@ -114,6 +127,7 @@ class SystemRole extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -152,6 +166,8 @@ class SystemRole extends AdminApiController
         }
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -197,6 +213,14 @@ class SystemRole extends AdminApiController
         }
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -238,6 +262,8 @@ class SystemRole extends AdminApiController
         }
     }
 
+    #[Post(':id/permissions')]
+    #[Pattern('id', '\\d+')]
     public function permissions(int $id): Response
     {
         $role = AuthGroup::find($id);
@@ -247,7 +273,7 @@ class SystemRole extends AdminApiController
         try {
             (new RoleGuardService())->assertManageRole($role);
             $permissionIds = $this->ids('permissionIds');
-            if (!AuthService::instance()->canAssignPermissions($permissionIds)) {
+            if (!(new RoleScopeService())->canAssignPermissions($permissionIds)) {
                 throw new InvalidArgumentException('不能分配超出当前账号拥有范围的权限');
             }
             CasbinService::instance()->syncRolePermissions($id, $permissionIds);
@@ -261,9 +287,9 @@ class SystemRole extends AdminApiController
     private function manageableQuery()
     {
         $query = AuthGroup::where('id', '<>', (int) config('funadmin.superRoleId'));
-        $auth = AuthService::instance();
-        if (!$auth->isSuperAdmin()) {
-            $query->whereIn('id', $auth->manageableRoleIds() ?: [0])
+        $roleScope = new RoleScopeService();
+        if (!$roleScope->isSuperAdmin()) {
+            $query->whereIn('id', $roleScope->manageableRoleIds() ?: [0])
                 ->where('level', '>', (new RoleGuardService())->currentLevel());
         }
         return $query;
@@ -343,6 +369,7 @@ class SystemRole extends AdminApiController
     private function roleData(AuthGroup $role): array
     {
         $roleId = (int) $role->id;
+        $roleScope = new RoleScopeService();
         return [
             'id' => $roleId,
             'name' => (string) $role->name,
@@ -353,7 +380,7 @@ class SystemRole extends AdminApiController
             'status' => (int) $role->status,
             'parentRoleIds' => array_map('intval', AuthGroupInherit::where('role_id', $roleId)->column('parent_role_id')),
             'departmentIds' => array_map('intval', AuthGroupDepartment::where('role_id', $roleId)->column('dept_id')),
-            'permissionIds' => AuthService::instance()->rolePermissionIds($roleId),
+            'permissionIds' => $roleScope->rolePermissionIds($roleId),
             'createdAt' => $this->formatTime($role->created_at),
         ];
     }

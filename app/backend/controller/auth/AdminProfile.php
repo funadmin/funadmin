@@ -9,7 +9,7 @@ use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\Admin;
-use app\backend\service\AuthService;
+use app\backend\service\AdminSessionService;
 use fun\helper\SignHelper;
 use think\annotation\route\Get;
 use think\annotation\route\Group;
@@ -103,7 +103,7 @@ class AdminProfile extends AdminApiController
             'token' => SignHelper::salt(20),
         ]);
         Cache::clear();
-        AuthService::instance()->logout();
+        (new AdminSessionService())->logout();
         return $this->ok('密码已更新，请重新登录');
     }
 

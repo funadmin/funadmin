@@ -18,10 +18,11 @@ class RoleGuardService
 
     public function currentLevel(): int
     {
-        if ((new RoleScopeService())->isSuperAdmin()) {
+        $roleScope = new RoleScopeService();
+        if ($roleScope->isSuperAdmin()) {
             return 0;
         }
-        $levels = AuthGroup::whereIn('id', (new RoleScopeService())->currentRoleIds() ?: [0])
+        $levels = AuthGroup::whereIn('id', $roleScope->currentRoleIds() ?: [0])
             ->where('status', 1)
             ->column('level');
         return $levels ? min(array_map('intval', $levels)) : PHP_INT_MAX;
@@ -51,6 +52,7 @@ class RoleGuardService
 
     public function assertManageAdmin(\app\backend\model\Admin $admin, bool $allowSelf = false): void
     {
+        $roleScope = new RoleScopeService();
         $adminId = (int) $admin->id;
         if ($adminId === (int) config('funadmin.superAdminId')) {
             throw new InvalidArgumentException('系统超级管理员不可操作');
@@ -58,21 +60,21 @@ class RoleGuardService
         if ($allowSelf && $adminId === (int) session('admin.id')) {
             return;
         }
-        $roleIds = (new RoleScopeService())->adminRoleIds($adminId);
+        $roleIds = $roleScope->adminRoleIds($adminId);
         if (!$roleIds) {
             throw new InvalidArgumentException('目标管理员未绑定有效角色');
         }
         $targetLevel = AuthGroup::whereIn('id', $roleIds)->where('status', 1)->min('level');
-        $auth = new RoleScopeService();
-        if (!$auth->isSuperAdmin() && (!$targetLevel
+        if (!$roleScope->isSuperAdmin() && (!$targetLevel
             || (int) $targetLevel <= $this->currentLevel()
-            || !$auth->canManageAdmin($admin))) {
+            || !$roleScope->canManageAdmin($admin))) {
             throw new InvalidArgumentException('只能管理当前角色分支内的下级管理员');
         }
     }
 
     public function assertAssignableRoles(array $roleIds): void
     {
+        $roleScope = new RoleScopeService();
         $roleIds = $this->normalizeIds($roleIds);
         if (!$roleIds) {
             throw new InvalidArgumentException('至少选择一个角色');
@@ -81,11 +83,11 @@ class RoleGuardService
         if (count($roles) !== count($roleIds)) {
             throw new InvalidArgumentException('包含无效或停用角色');
         }
-        if (!(new RoleScopeService())->canAssignRoles($roleIds)) {
+        if (!$roleScope->canAssignRoles($roleIds)) {
             throw new InvalidArgumentException('只能分配当前角色分支内的下级角色');
         }
         foreach ($roles as $role) {
-            if ((int) $role->level <= $this->currentLevel() && !(new RoleScopeService())->isSuperAdmin()) {
+            if ((int) $role->level <= $this->currentLevel() && !$roleScope->isSuperAdmin()) {
                 throw new InvalidArgumentException('不能分配同级或更高级角色');
             }
         }
@@ -93,12 +95,13 @@ class RoleGuardService
 
     public function assertInheritance(int $roleId, int $roleLevel, array $parentRoleIds): void
     {
+        $roleScope = new RoleScopeService();
         $parentRoleIds = $this->normalizeIds($parentRoleIds);
         if (in_array($roleId, $parentRoleIds, true)) {
             throw new InvalidArgumentException('角色不能继承自身');
         }
         if (!$parentRoleIds) {
-            if (!(new RoleScopeService())->isSuperAdmin()) {
+            if (!$roleScope->isSuperAdmin()) {
                 throw new InvalidArgumentException('非超级管理员创建或修改角色必须选择继承角色');
             }
             return;
@@ -108,9 +111,9 @@ class RoleGuardService
         if (count($parents) !== count($parentRoleIds)) {
             throw new InvalidArgumentException('包含无效或停用的继承角色');
         }
-        if (!(new RoleScopeService())->isSuperAdmin()) {
+        if (!$roleScope->isSuperAdmin()) {
             foreach ($parentRoleIds as $parentRoleId) {
-                if (!(new RoleScopeService())->canUseParentRole($parentRoleId)) {
+                if (!$roleScope->canUseParentRole($parentRoleId)) {
                     throw new InvalidArgumentException('包含无权继承的角色');
                 }
             }
@@ -148,7 +151,8 @@ class RoleGuardService
 
     private function assertWithinCurrentDataScope(string $scope, array $departmentIds): void
     {
-        if ((new RoleScopeService())->isSuperAdmin()) {
+        $roleScope = new RoleScopeService();
+        if ($roleScope->isSuperAdmin()) {
             return;
         }
         $currentScope = (new DataScopeService())->resolve();
@@ -165,7 +169,7 @@ class RoleGuardService
             throw new InvalidArgumentException('当前账号无权授予部门数据范围');
         }
         if ($scope === 'dept_and_children') {
-            $roleIds = (new RoleScopeService())->currentRoleIds();
+            $roleIds = $roleScope->currentRoleIds();
             $hasTreeScope = AuthGroup::whereIn('id', $roleIds ?: [0])
                 ->where('status', 1)
                 ->where('data_scope', 'dept_and_children')

@@ -55,7 +55,7 @@ describe('插件抽屉 mount 行为', () => {
   });
 
   it('历史抽屉加载版本与恢复指引并提供鉴权下载和重部署', async () => {
-    const wrapper = mount(PluginHistoryDrawer, { props: { modelValue: true, name: 'demo' }, global: globals });
+    const wrapper = mount(PluginHistoryDrawer, { props: { modelValue: true, name: 'demo', redeployDisabledReason: '' }, global: globals });
     await flushPromises();
 
     expect(api.history).toHaveBeenCalledWith('demo');
@@ -69,5 +69,19 @@ describe('插件抽屉 mount 行为', () => {
     await redeploy?.trigger('click');
     await flushPromises();
     expect(api.redeployHistory).toHaveBeenCalledWith('demo', 7, false);
+  });
+
+  it('历史重部署按生命周期门禁禁用并展示原因', async () => {
+    const wrapper = mount(PluginHistoryDrawer, {
+      props: { modelValue: true, name: 'demo', redeployDisabledReason: '插件正在执行 update（35%）' },
+      global: globals
+    });
+    await flushPromises();
+
+    const redeploy = wrapper.findAll('button').find((button) => button.text() === '重部署');
+    expect(redeploy?.attributes('disabled')).toBeDefined();
+    expect(redeploy?.attributes('title')).toBe('插件正在执行 update（35%）');
+    await redeploy?.trigger('click');
+    expect(api.redeployHistory).not.toHaveBeenCalled();
   });
 });

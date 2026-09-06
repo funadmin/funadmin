@@ -4,8 +4,8 @@ import epIconPack from '@iconify-json/ep/icons.json' with { type: 'json' };
 
 const output = resolve('src/styles/ep-icons.css');
 const icons = epIconPack.icons ?? {};
-const sourceRoots = [resolve('src'), resolve('../plugins')];
-const sourceExts = new Set(['.vue', '.ts', '.tsx']);
+const sourceRoots = [resolve('src'), resolve('../plugins'), resolve('../database/migrations')];
+const sourceExts = new Set(['.vue', '.ts', '.tsx', '.sql']);
 
 function encodeSvg(svg) {
   return svg

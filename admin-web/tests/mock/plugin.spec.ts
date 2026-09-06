@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { pluginMockHandlers, resetPluginMockState } from '@/mock/modules/plugin';
 import type { MockContext, MockMethod, MockRoute } from '@/mock/types';
@@ -71,7 +69,8 @@ describe('mock/plugin safeguards', () => {
       expect.objectContaining({
         name: 'marketdemo',
         version: '1.0.0',
-        entryUrl: expect.stringMatching(/^\/plugin-assets\/marketdemo\/.+\.js\?v=[a-f0-9]{64}$/),
+        hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        entryUrl: expect.stringMatching(/^\/plugin-assets\/marketdemo\/entry\.js\?v=[a-f0-9]{64}$/),
         routes: [expect.objectContaining({ path: '/plugin/marketdemo/index', name: 'Plugin_marketdemo' })]
       })
     ]);
@@ -90,13 +89,16 @@ describe('mock/plugin safeguards', () => {
     expect((await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}))).data).toEqual([]);
   });
 
-  it('提供 enabled module 指向的可加载同源 ESM fixture', async () => {
-    const source = await readFile(
-      resolve(process.cwd(), 'public/plugin-assets/marketdemo/entry.js'),
-      'utf8'
+  it('enabled module 仅返回动态 ESM 入口、哈希与路由描述', async () => {
+    await route('POST', '/^\\/system\\/plugin\\/([a-z][a-z0-9]*)\\/(update|migrate|enable|disable)$/').handler(
+      context('POST', {}, { name: 'demo', action: 'enable' })
     );
-    expect(source).toContain('export function register');
-    expect(source).toContain('市场示例插件页面');
+    const modules = await route('GET', '/system/plugin/modules/enabled').handler(context('GET', {}, {}));
+    expect(modules.data[0]).toMatchObject({
+      entryUrl: `/plugin-assets/demo/entry.js?v=${'a'.repeat(64)}`,
+      hash: 'a'.repeat(64),
+      routes: [expect.objectContaining({ path: '/plugin/demo/index', component: 'Index' })]
+    });
   });
 
   it('在 mock 菜单中提供可访问的插件中心', () => {

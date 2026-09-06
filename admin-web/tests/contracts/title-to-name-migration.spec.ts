@@ -44,9 +44,9 @@ describe('015 title→name 改名迁移契约', () => {
   });
 
   it('后端菜单 API 以 name 暴露名称并以 routeName 暴露路由名', () => {
-    const adminAuth = readProjectFile('app/backend/controller/auth/AdminAuth.php');
+    const authService = readProjectFile('app/backend/service/AuthService.php');
     const systemMenu = readProjectFile('app/backend/controller/system/SystemMenu.php');
-    for (const source of [adminAuth, systemMenu]) {
+    for (const source of [authService, systemMenu]) {
       expect(source).toContain("'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id))");
       expect(source).toContain("'name' => (string) $menu->name,");
       expect(source).not.toContain('$menu->title');

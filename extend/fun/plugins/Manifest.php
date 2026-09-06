@@ -12,6 +12,10 @@ use RuntimeException;
  */
 final class Manifest
 {
+    private const CORE_READ_ONLY_PERMISSIONS = [
+        'system:plugin:list',
+    ];
+
     private function __construct(
         private readonly string $directory,
         private readonly array $data
@@ -97,7 +101,10 @@ final class Manifest
         foreach (['services', 'events', 'routes'] as $type) {
             $path = $data['load'][$type] ?? null;
             if (is_string($path)) {
-                self::existingRelativeFile($directory, $path, 'load.' . $type);
+                $loadFile = self::existingRelativeFile($directory, $path, 'load.' . $type);
+                if ($type === 'routes') {
+                    self::validateClosureRouteFile($loadFile, 'load.routes');
+                }
             }
         }
         $source = (string) file_get_contents($entryFile);
@@ -107,22 +114,165 @@ final class Manifest
         if (preg_match('/\bclass\s+Plugin\b/', $source) !== 1) {
             throw new RuntimeException('Plugin.php 必须声明 Plugin 类');
         }
-        self::validateAdminWeb($directory, $data['admin_web'] ?? null);
+        self::validatePermissions($data);
+        self::validateAdminWeb($directory, $data['admin_web'] ?? null, $data);
         self::validateResourceSources($directory, $data['resources'] ?? []);
+        self::validateChannels($directory, $data['channels'] ?? []);
         if (isset($data['migrations']['path'])) {
             self::existingRelativeDirectory($directory, (string) $data['migrations']['path'], 'migrations.path');
         }
+        if (isset($data['storage']['path'])) {
+            self::existingRelativeDirectory($directory, (string) $data['storage']['path'], 'storage.path');
+        }
+        self::validatePurgeContract($entryFile, $data);
     }
 
-    private static function validateAdminWeb(string $directory, mixed $adminWeb): void
+    private static function validatePermissions(array $data): void
+    {
+        $name = (string) $data['name'];
+        $declared = [];
+        foreach ((array) ($data['permissions'] ?? []) as $permission) {
+            $code = (string) ($permission['code'] ?? '');
+            if (preg_match('/^' . preg_quote($name, '/') . ':[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$/', $code) !== 1) {
+                throw new RuntimeException('plugin.json permissions.code 必须属于插件命名空间并使用 name:resource:action 格式：' . $code);
+            }
+            $declared[$code] = true;
+        }
+        foreach ((array) ($data['menus'] ?? []) as $menu) {
+            self::validatePermissionReference((string) ($menu['permission'] ?? ''), $declared, 'menus.permission');
+        }
+    }
+
+    private static function validateAdminWeb(string $directory, mixed $adminWeb, array $data): void
     {
         if ($adminWeb === null) {
             return;
         }
-        $sourceEntry = $directory . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $adminWeb['entry']);
-        if (!is_file($sourceEntry)) {
-            throw new RuntimeException('plugin.json admin_web.entry 发布源文件不存在：' . $adminWeb['entry']);
+        $adminResource = $data['resources']['admin'] ?? null;
+        if (!is_array($adminResource)) {
+            throw new RuntimeException('plugin.json admin_web 必须声明 resources.admin');
         }
+        $expectedTarget = 'plugin-assets/' . $data['name'];
+        if (($adminResource['target'] ?? '') !== $expectedTarget) {
+            throw new RuntimeException('plugin.json resources.admin.target 必须是 ' . $expectedTarget);
+        }
+        $sourceRoot = self::existingRelativeDirectory(
+            $directory,
+            (string) ($adminResource['source'] ?? ''),
+            'resources.admin.source'
+        );
+        $entry = self::existingRelativeFile($sourceRoot, (string) ($adminWeb['entry'] ?? ''), 'admin_web.entry');
+        if (is_link($entry)) {
+            throw new RuntimeException('plugin.json admin_web.entry 禁止符号链接');
+        }
+        $declared = [];
+        foreach ((array) ($data['permissions'] ?? []) as $permission) {
+            $declared[(string) ($permission['code'] ?? '')] = true;
+        }
+        foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
+            self::validatePermissionReference((string) ($route['meta']['permission'] ?? ''), $declared, 'admin_web.routes.meta.permission');
+        }
+    }
+
+    private static function validatePermissionReference(string $code, array $declared, string $field): void
+    {
+        if ($code === '' || isset($declared[$code]) || in_array($code, self::CORE_READ_ONLY_PERMISSIONS, true)) {
+            return;
+        }
+        throw new RuntimeException('plugin.json ' . $field . ' 只能引用本插件权限或明确的核心只读权限：' . $code);
+    }
+
+    private static function validateChannels(string $directory, array $channels): void
+    {
+        foreach (['api', 'frontend'] as $channel) {
+            $path = $channels[$channel]['routes'] ?? null;
+            if (is_string($path)) {
+                $file = self::existingRelativeFile($directory, $path, 'channels.' . $channel . '.routes');
+                self::validateClosureRouteFile($file, 'channels.' . $channel . '.routes');
+            }
+        }
+    }
+
+    private static function validateClosureRouteFile(string $file, string $field): void
+    {
+        $tokens = token_get_all((string) file_get_contents($file));
+        $returnFound = false;
+        foreach ($tokens as $index => $token) {
+            if (!is_array($token) || $token[0] !== T_RETURN) {
+                continue;
+            }
+            for ($cursor = $index + 1, $count = count($tokens); $cursor < $count; $cursor++) {
+                $candidate = $tokens[$cursor];
+                if (is_array($candidate) && in_array($candidate[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_STATIC], true)) {
+                    continue;
+                }
+                $returnFound = is_array($candidate) && in_array($candidate[0], [T_FUNCTION, T_FN], true);
+                break 2;
+            }
+        }
+        if (!$returnFound) {
+            throw new RuntimeException('plugin.json ' . $field . ' 必须直接返回 Closure（return function、static function 或 fn）');
+        }
+    }
+
+    private static function validatePurgeContract(string $entryFile, array $data): void
+    {
+        if (($data['purge']['supported'] ?? false) !== true) {
+            return;
+        }
+        $tokens = token_get_all((string) file_get_contents($entryFile));
+        if (self::classDeclaresMethod($tokens, 'Plugin', 'purgeData')) {
+            return;
+        }
+        throw new RuntimeException('plugin.json purge.supported=true 时 Plugin 必须 override purgeData');
+    }
+
+    private static function classDeclaresMethod(array $tokens, string $className, string $methodName): bool
+    {
+        $inTargetClass = false;
+        $classDepth = 0;
+        $awaitingClassName = false;
+        $awaitingMethodName = false;
+        foreach ($tokens as $token) {
+            if (is_array($token) && $token[0] === T_CLASS) {
+                $awaitingClassName = true;
+                continue;
+            }
+            if ($awaitingClassName && is_array($token) && $token[0] === T_STRING) {
+                $inTargetClass = strcasecmp($token[1], $className) === 0;
+                $awaitingClassName = false;
+                continue;
+            }
+            if (!$inTargetClass) {
+                continue;
+            }
+            if ($token === '{') {
+                $classDepth++;
+                continue;
+            }
+            if ($token === '}') {
+                $classDepth--;
+                if ($classDepth === 0) {
+                    $inTargetClass = false;
+                }
+                continue;
+            }
+            if (is_array($token) && $token[0] === T_FUNCTION && $classDepth === 1) {
+                $awaitingMethodName = true;
+                continue;
+            }
+            if ($awaitingMethodName && is_array($token) && $token[0] === T_STRING) {
+                if (strcasecmp($token[1], $methodName) === 0) {
+                    return true;
+                }
+                $awaitingMethodName = false;
+                continue;
+            }
+            if ($awaitingMethodName && $token === '(') {
+                $awaitingMethodName = false;
+            }
+        }
+        return false;
     }
 
     private static function validateResourceSources(string $directory, array $resources): void

@@ -15,7 +15,7 @@ use think\Request;
 #[Group('v2/member')]
 class Member extends Api
 {
-    #[Get('')]
+    #[Get('', ['complete_match' => true])]
     #[Middleware(MApi::class)]
     public function show(Request $request): \think\Response
     {

@@ -9,15 +9,23 @@ use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\common\model\Blacklist;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 
 /**
  * Admin Web 黑名单管理。
  */
+#[Group('system/blacklist')]
 class SystemBlacklist extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -34,6 +42,8 @@ class SystemBlacklist extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $item = Blacklist::withTrashed()->find($id);
@@ -42,6 +52,7 @@ class SystemBlacklist extends AdminApiController
             : $this->fail(msg: '黑名单记录不存在', code: 404);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -53,6 +64,8 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('创建成功', $this->itemData($item));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $item = Blacklist::find($id);
@@ -68,6 +81,8 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('保存成功', $this->itemData($item));
     }
 
+    #[Post(':id/status')]
+    #[Pattern('id', '\\d+')]
     public function status(int $id): Response
     {
         $item = Blacklist::find($id);
@@ -78,6 +93,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('状态更新成功', $this->itemData($item));
     }
 
+    #[Delete('')]
     public function delete(): Response
     {
         $ids = $this->ids();
@@ -94,6 +110,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('已移入回收站', ['removed' => count($items)]);
     }
 
+    #[Post('restore')]
     public function restore(): Response
     {
         $ids = $this->ids();
@@ -110,6 +127,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('恢复成功', ['restored' => count($items)]);
     }
 
+    #[Delete('destroy')]
     public function destroy(): Response
     {
         $ids = $this->ids();
@@ -126,6 +144,7 @@ class SystemBlacklist extends AdminApiController
         return $this->ok('永久删除成功', ['removed' => count($items)]);
     }
 
+    #[Post('import')]
     public function import(): Response
     {
         $rows = $this->request->post('rows', []);
@@ -167,6 +186,7 @@ class SystemBlacklist extends AdminApiController
         ]);
     }
 
+    #[Get('export')]
     public function export(): Response
     {
         $recycled = (int) $this->request->get('recycled', 0) === 1;

@@ -11,7 +11,7 @@ use InvalidArgumentException;
  */
 final class CrudGenerator
 {
-    public const TEMPLATE_VERSION = 'm3-fixture-v1';
+    public const TEMPLATE_VERSION = 'm5-production-v1';
 
     private readonly DefinitionValidator $validator;
     private readonly TemplateRenderer $renderer;
@@ -71,16 +71,6 @@ final class CrudGenerator
 
     private function context(CrudDefinition $definition): array
     {
-        $name = (string) $definition->get('name');
-        $class = implode('', array_map('ucfirst', preg_split('/[-_]/', $name) ?: []));
-        return [
-            'name' => $name,
-            'phpClass' => $class,
-            'title' => (string) $definition->get('title'),
-            'table' => (string) $definition->get('table'),
-            'apiPrefix' => (string) $definition->get('apiPrefix'),
-            'permissionPrefix' => (string) $definition->get('permissionPrefix'),
-            'fieldsJson' => json_encode($definition->fields(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-        ];
+        return ProductionTemplateContext::build($definition);
     }
 }

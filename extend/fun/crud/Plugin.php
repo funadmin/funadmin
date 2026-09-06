@@ -150,6 +150,7 @@ final class Plugin extends Command
             $this->writeFile($relativePath, $this->render($template));
         }
         $this->writeFile('resources/public/.gitkeep', '');
+        $this->writeFile('storage/' . $this->options['name'] . '/.gitkeep', '');
     }
 
     private function render(string $template): string

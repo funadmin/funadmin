@@ -44,9 +44,21 @@ final class DependencyValidator
 
     public function assertAcyclic(array $manifests): void
     {
+        $this->topologicalSort($manifests);
+    }
+
+    /**
+     * 依赖优先的稳定拓扑排序；同层插件按名称排序，确保启动顺序可预测。
+     *
+     * @return array<string, Manifest>
+     */
+    public function topologicalSort(array $manifests): array
+    {
+        ksort($manifests);
         $visiting = [];
         $visited = [];
-        $visit = function (string $name) use (&$visit, &$visiting, &$visited, $manifests): void {
+        $sorted = [];
+        $visit = function (string $name) use (&$visit, &$visiting, &$visited, &$sorted, $manifests): void {
             if (isset($visiting[$name])) {
                 throw new RuntimeException('检测到插件循环依赖：' . $name);
             }
@@ -54,15 +66,19 @@ final class DependencyValidator
                 return;
             }
             $visiting[$name] = true;
-            foreach ($manifests[$name]->dependencies() as $dependency => $_constraint) {
+            $dependencies = array_keys($manifests[$name]->dependencies());
+            sort($dependencies);
+            foreach ($dependencies as $dependency) {
                 $visit((string) $dependency);
             }
             unset($visiting[$name]);
             $visited[$name] = true;
+            $sorted[$name] = $manifests[$name];
         };
         foreach (array_keys($manifests) as $name) {
             $visit((string) $name);
         }
+        return $sorted;
     }
 
     public function assertNoEnabledDependents(string $name, array $manifests, array $installed): void

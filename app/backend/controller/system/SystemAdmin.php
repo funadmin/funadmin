@@ -11,20 +11,28 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\Admin;
 use app\backend\model\AuthGroup;
 use app\backend\model\Department;
-use app\backend\service\AuthService;
+use app\backend\service\RoleScopeService;
 use app\backend\service\CasbinService;
 use app\backend\service\DataScopeService;
 use app\backend\service\RoleGuardService;
 use fun\helper\SignHelper;
 use InvalidArgumentException;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 use think\facade\Db;
 
+#[Group('system/user')]
 class SystemAdmin extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -49,6 +57,8 @@ class SystemAdmin extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $admin = $this->manageableQuery()->where('id', $id)->find();
@@ -58,6 +68,7 @@ class SystemAdmin extends AdminApiController
         return $this->ok(data: $this->adminData($admin));
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload(true);
@@ -91,6 +102,8 @@ class SystemAdmin extends AdminApiController
         }
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $admin = Admin::find($id);
@@ -125,6 +138,14 @@ class SystemAdmin extends AdminApiController
         }
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -159,6 +180,8 @@ class SystemAdmin extends AdminApiController
         }
     }
 
+    #[Post(':id/reset-password')]
+    #[Pattern('id', '\\d+')]
     public function resetPassword(int $id): Response
     {
         $admin = Admin::find($id);
@@ -181,6 +204,8 @@ class SystemAdmin extends AdminApiController
         }
     }
 
+    #[Post(':id/status')]
+    #[Pattern('id', '\\d+')]
     public function status(int $id): Response
     {
         $admin = Admin::find($id);
@@ -202,11 +227,12 @@ class SystemAdmin extends AdminApiController
     private function manageableQuery()
     {
         $query = $this->applyDataScope(Admin::where('id', '<>', (int) config('funadmin.superAdminId')), 'id', 'dept_id');
-        if (AuthService::instance()->isSuperAdmin()) {
+        $roleScope = new RoleScopeService();
+        if ($roleScope->isSuperAdmin()) {
             return $query;
         }
         $currentLevel = (new RoleGuardService())->currentLevel();
-        $branchRoleIds = AuthService::instance()->manageableRoleIds();
+        $branchRoleIds = $roleScope->manageableRoleIds();
         $allowedRoleIds = array_map('intval', AuthGroup::whereIn('id', $branchRoleIds ?: [0])
             ->where('status', 1)->where('level', '>', $currentLevel)->column('id'));
         $forbiddenRoleIds = array_map('intval', AuthGroup::where('status', 1)
@@ -228,6 +254,7 @@ class SystemAdmin extends AdminApiController
 
     private function payload(bool $create, ?Admin $admin = null): array
     {
+        $roleScope = new RoleScopeService();
         return [
             'username' => trim(strip_tags((string) $this->request->post('username', $admin ? $admin->username : ''))),
             'nickname' => trim(strip_tags((string) $this->request->post('nickname', $admin ? $admin->real_name : ''))),
@@ -236,7 +263,7 @@ class SystemAdmin extends AdminApiController
             'password' => $create ? (string) $this->request->post('password', '') : '',
             'status' => $this->binaryStatus($this->request->post('status', $admin ? $admin->status : 1)),
             'deptId' => max(0, (int) $this->request->post('deptId', $admin ? $admin->dept_id : 0)),
-            'roleIds' => $this->normalizeIds($this->request->post('roleIds', $admin ? AuthService::instance()->adminRoleIds((int) $admin->id) : [])),
+            'roleIds' => $this->normalizeIds($this->request->post('roleIds', $admin ? $roleScope->adminRoleIds((int) $admin->id) : [])),
         ];
     }
 
@@ -280,6 +307,7 @@ class SystemAdmin extends AdminApiController
 
     private function adminData(Admin $admin): array
     {
+        $roleScope = new RoleScopeService();
         return [
             'id' => (int) $admin->id,
             'username' => (string) $admin->username,
@@ -288,7 +316,7 @@ class SystemAdmin extends AdminApiController
             'mobile' => (string) $admin->mobile,
             'status' => (int) $admin->status,
             'deptId' => (int) $admin->dept_id,
-            'roleIds' => AuthService::instance()->adminRoleIds((int) $admin->id),
+            'roleIds' => $roleScope->adminRoleIds((int) $admin->id),
             'createdAt' => $this->formatTime($admin->created_at),
             'updatedAt' => $this->formatTime($admin->updated_at),
         ];

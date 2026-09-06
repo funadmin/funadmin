@@ -10,6 +10,9 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\common\model\Config;
 use app\common\storage\StorageDriverRegistry;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Put;
 use think\App;
 use think\facade\Cache;
 use think\Response;
@@ -17,6 +20,7 @@ use think\Response;
 /**
  * 附件存储驱动配置。
  */
+#[Group('system/storage')]
 final class SystemStorage extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -26,6 +30,7 @@ final class SystemStorage extends AdminApiController
         parent::__construct($app);
     }
 
+    #[Get('')]
     public function index(): Response
     {
         $configured = strtolower(trim((string) syscfg('upload', 'upload_driver')));
@@ -37,6 +42,7 @@ final class SystemStorage extends AdminApiController
         ]);
     }
 
+    #[Put('')]
     public function update(): Response
     {
         $driver = strtolower(trim((string) $this->request->post('driver', '')));

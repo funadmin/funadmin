@@ -398,7 +398,7 @@ interface MenuItem {
 2. **权限 `/auth/me` → `permissions`**：由后端把「当前用户拥有的规则」解析成**字符串数组**（或超管 `*:*:*`）。若库内只有规则数字 id，需要 **id → permission 字符串** 的映射表（可与菜单表同库维护）。
 3. **REST API**：接口路径按本文档即可；与旧系统「控制器 URL」可能不同，以**本文档 + 前端 `VITE_APP_BASE_API`** 为准做反向代理或网关统一前缀。
 
-**小结**：Layui 的 `href` 与 Vue 的 `path`/`component` **一一手工或表驱动映射**；权限从「规则 id 集合」映射到「`module:resource:action` 风格字符串」后，即可与 `v-perm` 和本文档一致。
+**小结**：历史后台的 `href` 已统一收敛为 Admin Web 的 `path`/`component`；权限统一使用 `module:resource:action` 风格字符串，并与 `v-perm` 和本文档保持一致。
 
 ---
 

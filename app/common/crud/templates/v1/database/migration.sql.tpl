@@ -1,3 +1,1 @@
--- M3 fixture only; review before use.
--- table: {{table}}
--- fields: {{fieldsJson}}
+{{migrationContent}}

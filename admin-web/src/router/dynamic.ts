@@ -1,11 +1,8 @@
 import type { RouteRecordRaw, RouteComponent } from 'vue-router';
 import Layout from '@/layout/index.vue';
 
-/** 异步加载所有业务页面：约定页面位于 src/views 和 src/modules/<module>/views 下 */
-const modules = {
-  ...import.meta.glob('@/views/**/*.vue'),
-  ...import.meta.glob('@/modules/**/views/**/*.vue')
-};
+/** 异步加载核心业务页面；插件页面由 pluginModules 动态 ESM 注册器独立挂载。 */
+const modules = import.meta.glob('@/views/**/*.vue');
 
 /** 占位空白布局（用于多级嵌套菜单） */
 const Blank: RouteComponent = () => import('@/layout/blank.vue');
@@ -15,7 +12,6 @@ const Blank: RouteComponent = () => import('@/layout/blank.vue');
  * - "Layout"           => 主布局
  * - "Blank"            => 空白布局（用于多级菜单）
  * - "system/user/index" => src/views/system/user/index.vue
- * - "modules/example/views/index" => src/modules/example/views/index.vue
  * - 完整路径 "/views/system/user/index.vue" 也兼容
  */
 function resolveComponent(component?: string): RouteComponent {
@@ -26,9 +22,7 @@ function resolveComponent(component?: string): RouteComponent {
     .replace(/^\/+/, '')
     .replace(/^views\//, '');
   const suffix = normalized.endsWith('.vue') ? '' : '.vue';
-  const candidates = normalized.startsWith('modules/')
-    ? [`/src/${normalized}${suffix}`]
-    : [`/src/views/${normalized}${suffix}`];
+  const candidates = [`/src/views/${normalized}${suffix}`];
   const target = candidates.find((key) => key in modules);
   const loader = target ? modules[target as keyof typeof modules] : undefined;
   if (!loader) {

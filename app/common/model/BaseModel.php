@@ -13,6 +13,8 @@ class BaseModel extends Model
     protected function getBaseOptions(): array
     {
         return [
+            'pk' => 'id',
+            'keyType' => 'int',
             'autoWriteTimestamp' => 'datetime',
             'dateFormat' => 'Y-m-d H:i:s',
             'createTime' => 'created_at',

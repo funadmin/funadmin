@@ -40,6 +40,7 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
         ),
         'p' => 
         array (
+            'plugins\\' => 8,
             'phpDocumentor\\Reflection\\' => 25,
         ),
         'a' => 
@@ -185,6 +186,10 @@ class ComposerStaticInitdce7718a77ece80cd103d961d3a0025f
             6 => __DIR__ . '/..' . '/topthink/think-validate/src',
             7 => __DIR__ . '/..' . '/topthink/think-container/src',
             8 => __DIR__ . '/..' . '/topthink/think-helper/src',
+        ),
+        'plugins\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/plugins',
         ),
         'phpDocumentor\\Reflection\\' => 
         array (

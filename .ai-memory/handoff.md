@@ -48,3 +48,9 @@
 - 双态兼容改造（跨 015 改名/034 删除的迁移必须同时兼容新旧列）：014_user_management_menu、033_crud_workbench（未跟踪 WIP，含 title→name 与 legacy 列补全）；017 此前已改造。
 - 未登记保留：032/033（未跟踪 WIP，重跑幂等，由插件会话自行登记）。
 - 验证：隔离 MySQL 全链 001→034 通过、034 重跑幂等；契约 23/23 通过；live 旧列计数 0（fun_plugin_resource.create_time 为 031 新建 datetime 列，属设计保留）。
+
+# 2026-09-05 收尾：迁移仓库 checksum 一致性修复
+- 审计发现 010/011_admin_web_menu_icons/025 磁盘内容偏离登记 checksum（21:45/21:53 提交修改了已执行迁移，违反不可变约束），已从 git 历史 blob 回滚至登记内容（740a2984/444c395f/1ca38544）。
+- 009_user_management_menu、011_member_group_icon 登记在库但文件已删：MigrationService 仅遍历磁盘文件，属无害残留；其效果分别由已登记的 014/019 承接。
+- 复核：全登记 checksum 一致；隔离全链 001→034（含 038/039 前全部文件）通过、034 重跑幂等、legacy 计数 0；PHP lint 全过、PHP 测试全过、Vitest 57 文件 264 用例全过、vue-tsc 退出 0。
+- 提醒：后续任何对已登记迁移文件的修改都会阻断升级（"已执行的 migration 内容发生变化"），新需求一律走新编号迁移。

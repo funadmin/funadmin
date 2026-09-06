@@ -9,16 +9,24 @@ use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\common\model\Language;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 
 /**
  * Admin Web 多语言注册管理。
  */
+#[Group('system/language')]
 class SystemLanguage extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -38,6 +46,8 @@ class SystemLanguage extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $language = Language::find($id);
@@ -46,6 +56,7 @@ class SystemLanguage extends AdminApiController
             : $this->fail(msg: '语言不存在', code: 404);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $name = $this->name();
@@ -65,6 +76,8 @@ class SystemLanguage extends AdminApiController
         return $this->ok('创建成功', $this->languageData($language));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $language = Language::find($id);
@@ -88,6 +101,14 @@ class SystemLanguage extends AdminApiController
         return $this->ok('保存成功', $this->languageData($language));
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();

@@ -12,16 +12,24 @@ use app\common\model\Config;
 use app\common\model\ConfigGroup;
 use app\common\model\FieldType;
 use app\common\model\FieldVerify;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Cache;
 
 /**
  * Admin Web 运行时配置定义、分组和值管理。
  */
+#[Group('system', ['complete_match' => true])]
 class SystemConfig extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('config')]
     public function index(): Response
     {
         $page = $this->page();
@@ -54,12 +62,15 @@ class SystemConfig extends AdminApiController
         ));
     }
 
+    #[Get('config/:id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $config = Config::find($id);
         return $config ? $this->ok(data: $this->configData($config)) : $this->fail(msg: '配置项不存在', code: 404);
     }
 
+    #[Get('config/options')]
     public function options(): Response
     {
         $groups = ConfigGroup::order('id', 'asc')->select();
@@ -93,6 +104,7 @@ class SystemConfig extends AdminApiController
         ]);
     }
 
+    #[Post('config')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -107,6 +119,8 @@ class SystemConfig extends AdminApiController
         return $this->ok('创建成功', $this->configData($config));
     }
 
+    #[Put('config/:id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $config = Config::find($id);
@@ -128,6 +142,8 @@ class SystemConfig extends AdminApiController
         return $this->ok('保存成功', $this->configData($config));
     }
 
+    #[Put('config/:id/value')]
+    #[Pattern('id', '\\d+')]
     public function value(int $id): Response
     {
         $config = Config::find($id);
@@ -143,6 +159,8 @@ class SystemConfig extends AdminApiController
         return $this->ok('配置值已更新', $this->configData($config));
     }
 
+    #[Post('config/:id/status')]
+    #[Pattern('id', '\\d+')]
     public function status(int $id): Response
     {
         $config = Config::find($id);
@@ -154,6 +172,7 @@ class SystemConfig extends AdminApiController
         return $this->ok('状态更新成功', $this->configData($config));
     }
 
+    #[Delete('config')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -179,12 +198,14 @@ class SystemConfig extends AdminApiController
         return $this->ok('删除成功', ['removed' => count($configs)]);
     }
 
+    #[Get('config-group')]
     public function groups(): Response
     {
         $groups = ConfigGroup::order('id', 'asc')->select();
         return $this->ok(data: array_map(fn (ConfigGroup $group): array => $this->groupData($group), $groups->all()));
     }
 
+    #[Post('config-group')]
     public function createGroup(): Response
     {
         $data = $this->groupPayload();
@@ -207,6 +228,8 @@ class SystemConfig extends AdminApiController
         }
     }
 
+    #[Put('config-group/:id')]
+    #[Pattern('id', '\\d+')]
     public function updateGroup(int $id): Response
     {
         $group = ConfigGroup::find($id);
@@ -236,6 +259,8 @@ class SystemConfig extends AdminApiController
         }
     }
 
+    #[Delete('config-group/:id')]
+    #[Pattern('id', '\\d+')]
     public function deleteGroup(int $id): Response
     {
         $group = ConfigGroup::find($id);

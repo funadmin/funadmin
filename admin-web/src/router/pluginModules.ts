@@ -1,8 +1,8 @@
 import type { Component } from 'vue';
 import type { RouteRecordRaw, Router } from 'vue-router';
-import type { EnabledPluginModule, PluginRouteDto } from '@/api/plugin';
+import type { EnabledPluginModule, PluginRouteDto } from '@/api/system/plugin';
 
-export type { EnabledPluginModule } from '@/api/plugin';
+export type { EnabledPluginModule } from '@/api/system/plugin';
 
 export interface PluginRegistration {
   components: Record<string, Component>;
@@ -21,7 +21,6 @@ interface SyncOptions {
 }
 
 const mounted = new Map<string, { signature: string; routeNames: string[] }>();
-
 const dynamicImporter = async (url: string): Promise<PluginEsmModule> => import(/* @vite-ignore */ url);
 const PluginModuleError = () => import('@/views/system/plugin/PluginModuleError.vue');
 
@@ -111,12 +110,7 @@ export function clearPluginModules(router: Router): void {
   mounted.clear();
 }
 
-function mountErrorRoute(
-  router: Router,
-  descriptor: EnabledPluginModule,
-  stage: PluginModuleErrorStage,
-  message: string
-): void {
+function mountErrorRoute(router: Router, descriptor: EnabledPluginModule, stage: PluginModuleErrorStage, message: string): void {
   const name = `Plugin_${descriptor.name}_Error`;
   if (router.hasRoute(name)) router.removeRoute(name);
   router.addRoute({

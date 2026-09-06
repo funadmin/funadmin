@@ -11,39 +11,121 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\Member;
 use app\backend\model\MemberLevel;
 use app\common\traits\Crud;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Model;
+use think\Response;
 
 /**
  * Admin Web 会员等级管理。
  */
+#[Group('system/member-level')]
 class SystemMemberLevel extends AdminApiController
 {
-    use Crud;
+    use Crud {
+        index as private crudIndex;
+        detail as private crudDetail;
+        create as private crudCreate;
+        update as private crudUpdate;
+        status as private crudStatus;
+        recycle as private crudRecycle;
+        restore as private crudRestore;
+        destroy as private crudDestroy;
+        import as private crudImport;
+        export as private crudExport;
+    }
 
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
     protected string $model = MemberLevel::class;
 
-    protected function crudSearchFields(): array
+    #[Get('export')]
+    public function export(): Response
+    {
+        return $this->crudExport();
+    }
+
+    #[Post('import')]
+    public function import(): Response
+    {
+        return $this->crudImport();
+    }
+
+    #[Get('')]
+    public function index(): Response
+    {
+        return $this->crudIndex();
+    }
+
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
+    public function detail(int $id): Response
+    {
+        return $this->crudDetail($id);
+    }
+
+    #[Post('')]
+    public function create(): Response
+    {
+        return $this->crudCreate();
+    }
+
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
+    public function update(int $id): Response
+    {
+        return $this->crudUpdate($id);
+    }
+
+    #[Post(':id/status')]
+    #[Pattern('id', '\\d+')]
+    public function status(int $id): Response
+    {
+        return $this->crudStatus($id);
+    }
+
+    #[Delete('')]
+    public function recycle(): Response
+    {
+        return $this->crudRecycle();
+    }
+
+    #[Post('restore')]
+    public function restore(): Response
+    {
+        return $this->crudRestore();
+    }
+
+    #[Delete('destroy')]
+    public function destroy(): Response
+    {
+        return $this->crudDestroy();
+    }
+
+    protected function searchFields(): array
     {
         return ['name' => 'name'];
     }
 
-    protected function crudOrder(): array
+    protected function order(): array
     {
         return ['sort_order' => 'asc', 'id' => 'asc'];
     }
 
-    protected function crudSortFields(): array
+    protected function sortFields(): array
     {
         return ['id' => 'id', 'name' => 'name', 'amount' => 'amount', 'discount' => 'discount', 'sort' => 'sort_order', 'status' => 'status', 'createdAt' => 'created_at'];
     }
 
-    protected function crudRangeFilters(): array
+    protected function rangeFilters(): array
     {
         return ['amountRange' => 'amount', 'discountRange' => 'discount', 'createdAtRange' => 'created_at'];
     }
 
-    protected function crudImportFields(): array
+    protected function importFields(): array
     {
         return [
             'name' => 'name',
@@ -56,14 +138,14 @@ class SystemMemberLevel extends AdminApiController
         ];
     }
 
-    protected function crudExportFields(): array
+    protected function exportFields(): array
     {
         return ['id', 'name', 'amount', 'discount', 'thumb', 'status', 'sort', 'description', 'createdAt', 'deletedAt'];
     }
 
-    protected function crudImportPayload(array $row): array
+    protected function importPayload(array $row): array
     {
-        $data = $this->crudMapImportRow($row);
+        $data = $this->mapImportRow($row);
         $data['name'] = trim((string) ($data['name'] ?? ''));
         $data['amount'] = trim((string) ($data['amount'] ?? '0'));
         $data['discount'] = (int) ($data['discount'] ?? 100);
@@ -74,7 +156,7 @@ class SystemMemberLevel extends AdminApiController
         return $data;
     }
 
-    protected function crudPayload(?Model $model = null): array
+    protected function payload(?Model $model = null): array
     {
         return [
             'name' => trim((string) $this->request->post('name', $model?->name ?? '')),
@@ -87,7 +169,7 @@ class SystemMemberLevel extends AdminApiController
         ];
     }
 
-    protected function crudValidate(array &$data, ?Model $model = null): ?string
+    protected function validatePayload(array &$data, ?Model $model = null): ?string
     {
         $nameLength = function_exists('mb_strlen') ? mb_strlen($data['name']) : strlen($data['name']);
         $descriptionLength = function_exists('mb_strlen') ? mb_strlen($data['description']) : strlen($data['description']);
@@ -120,7 +202,7 @@ class SystemMemberLevel extends AdminApiController
         return $duplicate->find() ? '会员等级名称已存在' : null;
     }
 
-    protected function crudBeforeDelete(iterable $models, bool $force): ?\think\Response
+    protected function beforeDelete(iterable $models, bool $force): ?\think\Response
     {
         $ids = [];
         foreach ($models as $model) {
@@ -131,7 +213,7 @@ class SystemMemberLevel extends AdminApiController
             : null;
     }
 
-    protected function crudData(Model $model): array
+    protected function transformData(Model $model): array
     {
         return [
             'id' => (int) $model->id,
@@ -148,7 +230,7 @@ class SystemMemberLevel extends AdminApiController
         ];
     }
 
-    protected function crudResourceName(): string
+    protected function resourceName(): string
     {
         return '会员等级';
     }

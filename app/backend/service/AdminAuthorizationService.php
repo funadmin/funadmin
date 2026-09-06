@@ -8,7 +8,7 @@ use app\backend\model\Permission;
 use app\common\traits\Jump;
 use think\Request;
 
-final class AdminAuthorizationService
+class AdminAuthorizationService
 {
     use Jump;
 
@@ -41,13 +41,14 @@ final class AdminAuthorizationService
         if (in_array($requestUrl, config('funadmin.auth_login_only_routes', []), true)) {
             return true;
         }
+        $roleScope = new RoleScopeService();
         if (in_array($requestUrl, config('funadmin.auth_super_only_routes', []), true)) {
-            if (!(new RoleScopeService())->isSuperAdmin()) {
+            if (!$roleScope->isSuperAdmin()) {
                 $this->error(lang('Permission Denied'));
             }
             return true;
         }
-        if ((new RoleScopeService())->isSuperAdmin()) {
+        if ($roleScope->isSuperAdmin()) {
             return true;
         }
 
@@ -72,7 +73,7 @@ final class AdminAuthorizationService
             return true;
         }
 
-        $resource = PermissionResource::fromRoute($this->app, $url);
+        $resource = $this->nodeResource($url);
         if (!$resource) {
             return false;
         }
@@ -84,6 +85,24 @@ final class AdminAuthorizationService
             $resource['obj'],
             $resource['act']
         );
+    }
+
+    private function nodeResource(string $url): ?array
+    {
+        $path = trim((string) (parse_url($url, PHP_URL_PATH) ?: ''), '/');
+        $segments = array_values(array_filter(explode('/', $path), static fn (string $segment): bool => $segment !== ''));
+        if (count($segments) !== 3) {
+            return PermissionResource::fromRoute($this->app, $url);
+        }
+
+        [$scope, $object, $action] = array_map('strtolower', $segments);
+        if (!preg_match('/^[a-z][a-z0-9_-]*$/', $scope)
+            || !preg_match('/^[a-z][a-z0-9_-]*$/', $object)
+            || !preg_match('/^[a-z][a-z0-9_-]*$/', $action)) {
+            return null;
+        }
+        $obj = $scope . '/' . $object;
+        return ['obj' => $obj, 'act' => $action, 'code' => $obj . ':' . $action];
     }
 
     private function normalizeRequestUrl(string $requestUrl): string
@@ -114,10 +133,32 @@ final class AdminAuthorizationService
     private function aliasResource(string $requestUrl, array $resource): array
     {
         $aliases = array_change_key_case(config('funadmin.auth_route_aliases', []), CASE_LOWER);
-        $target = $aliases[$requestUrl] ?? $aliases[strtolower((string) ($resource['code'] ?? ''))] ?? null;
+        $target = $this->routeAliasTarget($requestUrl, $aliases, strtolower((string) ($resource['act'] ?? '')))
+            ?? $aliases[strtolower((string) ($resource['code'] ?? ''))]
+            ?? null;
         if ($target === null) {
             return $resource;
         }
         return PermissionResource::fromRoute($this->app, (string) $target) ?: $resource;
+    }
+
+    private function routeAliasTarget(string $requestUrl, array $aliases, string $action): ?string
+    {
+        if (isset($aliases[$requestUrl])) {
+            return (string) $aliases[$requestUrl];
+        }
+        if ($action !== 'deletebyid') {
+            return null;
+        }
+        foreach ($aliases as $pattern => $target) {
+            if (!str_contains($pattern, ':')) {
+                continue;
+            }
+            $regex = preg_replace('/\\\\:([A-Za-z_][A-Za-z0-9_]*)/', '[^/]+', preg_quote($pattern, '#'));
+            if ($regex !== null && preg_match('#^' . $regex . '$#', $requestUrl) === 1) {
+                return (string) $target;
+            }
+        }
+        return null;
     }
 }

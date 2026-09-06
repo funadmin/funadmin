@@ -19,7 +19,7 @@ final class PluginPackagePipeline
      * @param callable(): bool $rollbackAllowed
      * @param null|callable(array): mixed $history
      * @param null|callable(string): void $logger
-     * @param null|callable(string, string, callable): mixed $coordinator
+     * @param null|callable(string, string, callable, array): mixed $coordinator
      * @param null|callable(string): array $captureState
      * @param null|callable(string, array): void $restoreState
      * @param null|callable(string, string, string): void $deployGuard
@@ -50,7 +50,7 @@ final class PluginPackagePipeline
             static fn (array $data): mixed => PluginPackageHistoryService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
             static fn (string $operation, string $name, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $name, $callback, $context),
-            static fn (string $name): array => $plugins->captureDeploymentState($name),
+            null,
             static function (string $name, array $state) use ($plugins): void {
                 $plugins->restoreDeploymentState($name, $state);
             },
@@ -142,43 +142,51 @@ final class PluginPackagePipeline
             throw new RuntimeException('无法计算插件包 SHA-256');
         }
 
-        $staged = $this->packages->stage($archive, $expectedName, $expectedVersion);
-        $name = (string) ($staged['name'] ?? '');
-        $targetVersion = (string) ($staged['version'] ?? '');
-        $maxDbVersion = $this->maxDatabaseVersion($staged);
-        if (is_callable($this->deployGuard)) {
-            ($this->deployGuard)($name, $targetVersion, $maxDbVersion);
-        }
+        $basic = method_exists($this->packages, 'inspect')
+            ? $this->packages->inspect($archive, $expectedName, $expectedVersion)
+            : ['name' => $expectedName ?: 'demo', 'version' => $expectedVersion];
+        $name = (string) ($basic['name'] ?? '');
+        $targetVersion = (string) ($basic['version'] ?? '');
         $context = [
             'source' => $source,
             'package_hash' => $packageHash,
             'code_version' => $targetVersion,
+            'manifest_data' => (array) ($basic['manifest'] ?? []),
         ];
-        $executionStarted = false;
-        $execute = function (string $fromVersion = '') use (
-            &$executionStarted,
-            $staged,
+        $execute = function (string $fromVersion = '', ?callable $phase = null, array $operationContext = []) use (
+            $archive,
+            $expectedName,
+            $expectedVersion,
             $name,
             $operation,
             $source,
             $migrate,
             $packageHash,
-            $maxDbVersion,
             $verification
         ): array {
-            $executionStarted = true;
+            $staged = [];
+            $targetVersion = '';
+            $maxDbVersion = '';
             $backup = null;
             $deployed = false;
-            $deploymentState = is_callable($this->captureState) ? ($this->captureState)($name) : [];
+            $deploymentState = (array) ($operationContext['pre_operation_state'] ?? []);
             try {
+                $staged = $this->packages->stage($archive, $expectedName, $expectedVersion);
+                $phase && $phase('validate');
+                $targetVersion = (string) ($staged['version'] ?? '');
+                $maxDbVersion = $this->maxDatabaseVersion($staged);
+                if (is_callable($this->deployGuard)) {
+                    ($this->deployGuard)($name, $targetVersion, $maxDbVersion);
+                }
                 $backup = $this->packages->deploy($staged, $name);
                 $deployed = true;
+                $phase && $phase('deploy');
                 ($this->lifecycle)($operation, $name, $migrate);
             } catch (\Throwable $exception) {
-                $this->cleanupFailure($staged, $name, $backup, $deployed, $deploymentState, $exception);
+                $recoveryPath = $this->cleanupFailure($staged, $name, $backup, $deployed, $deploymentState, $exception);
                 $this->recordHistory([
                     'name' => $name,
-                    'version' => (string) ($staged['version'] ?? ''),
+                    'version' => $targetVersion,
                     'from_version' => $fromVersion,
                     'operation' => $operation,
                     'source' => $source,
@@ -187,7 +195,15 @@ final class PluginPackagePipeline
                     'package_path' => null,
                     'status' => 'failed',
                     'error' => $exception->getMessage(),
+                    'recovery_path' => $recoveryPath,
                 ] + $verification);
+                if ($recoveryPath !== null) {
+                    throw new RuntimeException(
+                        $exception->getMessage() . '；人工恢复路径：' . $recoveryPath,
+                        (int) $exception->getCode(),
+                        $exception
+                    );
+                }
                 throw $exception;
             }
 
@@ -200,7 +216,7 @@ final class PluginPackagePipeline
             $cleanupWarning = $this->finishSafely($staged, $backup);
             $result = [
                 'name' => $name,
-                'version' => (string) ($staged['version'] ?? ''),
+                'version' => $targetVersion,
                 'from_version' => $fromVersion,
                 'operation' => $operation,
                 'source' => $source,
@@ -217,16 +233,9 @@ final class PluginPackagePipeline
             return $result;
         };
 
-        try {
-            return is_callable($this->coordinator)
-                ? ($this->coordinator)($operation, $name, $execute, $context)
-                : $execute('');
-        } catch (\Throwable $exception) {
-            if (!$executionStarted) {
-                $this->discardSafely($staged);
-            }
-            throw $exception;
-        }
+        return is_callable($this->coordinator)
+            ? ($this->coordinator)($operation, $name, $execute, $context)
+            : $execute('');
     }
 
     private function assertPrivatePackagePath(string $path): void
@@ -253,23 +262,28 @@ final class PluginPackagePipeline
         return (string) ($versions === [] ? '' : end($versions));
     }
 
-    private function cleanupFailure(array $staged, string $name, ?string $backup, bool $deployed, array $deploymentState, \Throwable $original): void
+    private function cleanupFailure(array $staged, string $name, ?string $backup, bool $deployed, array $deploymentState, \Throwable $original): ?string
     {
+        $recoveryPath = $backup ?: (string) ($staged['stage_directory'] ?? '');
         try {
-            if ($deployed && ($this->rollbackAllowed)()) {
+            $rollbackAllowed = !$deployed || ($this->rollbackAllowed)();
+            if ($deployed && $rollbackAllowed) {
                 $this->packages->rollback($name, $backup);
-                if (is_callable($this->restoreState)) {
-                    ($this->restoreState)($name, $deploymentState);
-                }
-                $this->packages->discard($staged);
-                return;
             }
-            $this->packages->discard($staged);
-            $recoveryPath = $backup ?: (string) ($staged['stage_directory'] ?? '');
+            if ($rollbackAllowed && $deploymentState !== [] && is_callable($this->restoreState)) {
+                ($this->restoreState)($name, $deploymentState);
+            }
+            if ($staged !== []) {
+                $this->packages->discard($staged);
+            }
+            if ($rollbackAllowed) {
+                return null;
+            }
             $this->log('插件包发生不可回滚失败，已保留人工恢复路径：' . $recoveryPath . '；原异常：' . $original->getMessage());
         } catch (\Throwable $cleanupException) {
             $this->log('插件包失败清理异常：' . $cleanupException->getMessage() . '；原异常：' . $original->getMessage());
         }
+        return $recoveryPath === '' ? null : $recoveryPath;
     }
 
     private function finishSafely(array $staged, ?string $backup): ?string

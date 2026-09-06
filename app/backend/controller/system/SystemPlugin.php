@@ -20,12 +20,20 @@ use app\common\model\Plugin;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
 use InvalidArgumentException;
 use RuntimeException;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\App;
 use think\Response;
 
 /**
  * Admin Web 插件中心 REST API。
  */
+#[Group('system/plugin', ['complete_match' => true])]
+#[Pattern('name', '[a-z][a-z0-9]*')]
 final class SystemPlugin extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -50,6 +58,7 @@ final class SystemPlugin extends AdminApiController
         $this->pipeline = PluginPackagePipeline::forPluginService($this->plugins, $this->packages);
     }
 
+    #[Post('account/login')]
     public function accountLogin(): Response
     {
         return $this->execute(fn () => $this->marketplace->login(
@@ -58,11 +67,13 @@ final class SystemPlugin extends AdminApiController
         )->toSession(), '登录成功');
     }
 
+    #[Post('account/refresh')]
     public function accountRefresh(): Response
     {
         return $this->execute(fn () => $this->marketplace->refreshToken()->toSession(), '账号令牌已刷新');
     }
 
+    #[Post('account/logout')]
     public function accountLogout(): Response
     {
         return $this->execute(function (): array {
@@ -71,12 +82,14 @@ final class SystemPlugin extends AdminApiController
         }, '退出成功');
     }
 
+    #[Get('account/current')]
     public function currentAccount(): Response
     {
         $account = $this->marketplace->currentAccount();
         return $this->ok(data: $account?->toSession());
     }
 
+    #[Get('market/categories')]
     public function marketCategories(): Response
     {
         return $this->execute(fn () => array_map(
@@ -85,6 +98,7 @@ final class SystemPlugin extends AdminApiController
         ));
     }
 
+    #[Get('market/search')]
     public function marketSearch(): Response
     {
         return $this->execute(function (): array {
@@ -104,16 +118,21 @@ final class SystemPlugin extends AdminApiController
         });
     }
 
+    #[Get('market/:name')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function marketDetail(string $name): Response
     {
         return $this->execute(fn () => $this->marketItem($this->marketplace->detail($name)));
     }
 
+    #[Get('market/:name/versions')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function marketVersions(string $name): Response
     {
         return $this->execute(fn () => array_map(fn ($item): array => $this->versionItem($item), $this->marketplace->versions($name)));
     }
 
+    #[Post('market/check-updates')]
     public function checkUpdates(): Response
     {
         $installed = $this->request->post('installed', []);
@@ -122,21 +141,26 @@ final class SystemPlugin extends AdminApiController
             : $this->fail(msg: 'installed 必须是数组', code: 422);
     }
 
+    #[Get('local/discovered')]
     public function discovered(): Response
     {
         return $this->execute(fn () => $this->queries->discovered());
     }
 
+    #[Get('local/installed')]
     public function installed(): Response
     {
         return $this->execute(fn () => $this->queries->installed());
     }
 
+    #[Get('local/:name')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function localDetail(string $name): Response
     {
         return $this->execute(fn () => $this->queries->detail($name));
     }
 
+    #[Post('local/install')]
     public function installLocal(): Response
     {
         $file = $this->request->file('file');
@@ -154,6 +178,8 @@ final class SystemPlugin extends AdminApiController
         return $this->execute(fn () => $this->marketplace->installLocal($file->getPathname()), '安装成功');
     }
 
+    #[Post('local/:name/install')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function installDiscovered(string $name): Response
     {
         return $this->execute(function () use ($name): array {
@@ -168,11 +194,15 @@ final class SystemPlugin extends AdminApiController
         }, '安装成功');
     }
 
+    #[Post('cloud/:name/install')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function installCloud(string $name): Response
     {
         return $this->execute(fn () => $this->marketplace->installCloud($name, $this->version()), '安装成功');
     }
 
+    #[Post('local/:name/update')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function updateLocal(string $name): Response
     {
         $file = $this->validZipUpload();
@@ -186,6 +216,8 @@ final class SystemPlugin extends AdminApiController
         ), '更新成功');
     }
 
+    #[Post(':name/update')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function update(string $name): Response
     {
         return $this->execute(fn () => $this->marketplace->updateCloud(
@@ -195,26 +227,36 @@ final class SystemPlugin extends AdminApiController
         ), '更新成功');
     }
 
+    #[Post(':name/migrate')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function migrate(string $name): Response
     {
         return $this->execute(fn () => $this->plugins->migratePlugin($name), '迁移成功');
     }
 
+    #[Post(':name/enable')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function enable(string $name): Response
     {
         return $this->execute(fn () => $this->plugins->enablePlugin($name), '启用成功');
     }
 
+    #[Post(':name/disable')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function disable(string $name): Response
     {
         return $this->execute(fn () => $this->plugins->disablePlugin($name), '禁用成功');
     }
 
+    #[Get(':name/config')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function getConfig(string $name): Response
     {
         return $this->execute(fn () => $this->config->get($name));
     }
 
+    #[Put(':name/config')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function saveConfig(string $name): Response
     {
         $values = $this->request->post('values', []);
@@ -223,17 +265,26 @@ final class SystemPlugin extends AdminApiController
             : $this->fail(msg: 'values 必须是对象', code: 422);
     }
 
+    #[Delete(':name/uninstall')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function uninstall(string $name): Response
     {
-        return $this->execute(fn () => $this->plugins->uninstallPlugin($name), '卸载成功，业务数据与迁移历史已保留');
+        return $this->execute(function () use ($name): array {
+            $this->plugins->uninstallPlugin($name);
+            return ['uninstalled' => true];
+        }, '卸载成功，业务数据与迁移历史已保留');
     }
 
+    #[Delete(':name/purge')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function purge(string $name): Response
     {
         $confirmation = trim((string) $this->request->param('purgeConfirm', ''));
         return $this->execute(fn () => $this->plugins->purgePluginData($name, $confirmation), '插件业务数据已清除');
     }
 
+    #[Delete(':name/package')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function deletePackage(string $name): Response
     {
         return $this->execute(function () use ($name): array {
@@ -242,22 +293,32 @@ final class SystemPlugin extends AdminApiController
         }, '本地包已删除');
     }
 
+    #[Get(':name/history')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function history(string $name): Response
     {
         return $this->execute(fn () => $this->history->versions($name));
     }
 
+    #[Get(':name/operations')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function operations(string $name): Response
     {
         return $this->execute(fn () => $this->history->operations($name));
     }
 
+    #[Get(':name/history/:id/download')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
+    #[Pattern('id', '\\d+')]
     public function downloadHistory(string $name, int $id): Response
     {
         $package = $this->history->package($name, $id);
         return download($package['path'], $name . '-' . $package['version'] . '.zip');
     }
 
+    #[Post(':name/history/:id/redeploy')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
+    #[Pattern('id', '\\d+')]
     public function redeployHistory(string $name, int $id): Response
     {
         return $this->execute(function () use ($name, $id): array {
@@ -271,11 +332,14 @@ final class SystemPlugin extends AdminApiController
         }, '历史版本已重部署');
     }
 
+    #[Get(':name/recovery')]
+    #[Pattern('name', '[a-z][a-z0-9]*')]
     public function recoveryInfo(string $name): Response
     {
         return $this->execute(fn () => $this->history->recoveryInfo($name));
     }
 
+    #[Get('modules/enabled')]
     public function enabledModules(): Response
     {
         return $this->execute(fn () => $this->queries->enabledModules());
@@ -292,7 +356,8 @@ final class SystemPlugin extends AdminApiController
             $conflict = str_contains($message, '已安装') || str_contains($message, '请先禁用') || str_contains($message, '操作中');
             return $this->fail(msg: $message, code: $conflict ? 409 : 422);
         } catch (\Throwable $exception) {
-            return $this->fail(msg: $exception->getMessage(), code: 500);
+            trace('插件操作失败：' . $exception->getMessage(), 'error');
+            return $this->fail(msg: '插件操作失败', code: 500);
         }
     }
 

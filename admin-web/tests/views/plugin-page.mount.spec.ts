@@ -61,7 +61,8 @@ const mountPage = (permissions: string[] = []) => mount(PluginPage, {
     stubs: {
       PageWrapper, ElTable, ElTableColumn, ElButton, ElTabs,
       ElTabPane: passthrough, ElTag: passthrough, ElInput: passthrough, ElAlert,
-      PluginAccountDrawer: true, PluginMarketDrawer: true, PluginConfigDrawer: true, PluginHistoryDrawer: true
+      Account: true, Market: true, ConfigDialog: true, LifecycleDrawer: true, InstallDialog: true,
+      ElUpload: passthrough, ElDialog: passthrough
     },
     directives: {
       perm: (element, binding) => { if (!permissions.includes(binding.value)) element.style.display = 'none'; },

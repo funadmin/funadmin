@@ -299,6 +299,21 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
           permission: 'system:plugin:list'
         },
         {
+          id: 119,
+          parentId: 100,
+          routeName: 'SystemUpgrade',
+          path: 'upgrade',
+          component: 'system/upgrade/index',
+          type: 'C',
+          icon: 'i-ep-upload-filled',
+          name: '系统升级',
+          sort: 15,
+          hidden: false,
+          keepAlive: true,
+          affix: false,
+          permission: 'system:upgrade:list'
+        },
+        {
           id: 114,
           parentId: 100,
           routeName: 'SystemMemberGroup',

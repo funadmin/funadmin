@@ -27,6 +27,8 @@
             type="primary"
             link
             :loading="redeploying === row.id"
+            :disabled="Boolean(redeployDisabledReason)"
+            :title="redeployDisabledReason"
             v-perm="'system:plugin:history-redeploy'"
             @click="redeploy(row as PluginVersionHistory)"
           >重部署</el-button>
@@ -54,7 +56,7 @@ import { ElMessageBox } from 'element-plus';
 import { pluginApi, type PluginOperation, type PluginRecoveryInfo, type PluginVersionHistory } from '@/api/plugin';
 
 const visible = defineModel<boolean>({ default: false });
-const props = defineProps<{ name: string }>();
+const props = defineProps<{ name: string; redeployDisabledReason?: string }>();
 const operations = ref<PluginOperation[]>([]);
 const versions = ref<PluginVersionHistory[]>([]);
 const recovery = ref<PluginRecoveryInfo | null>(null);
@@ -76,6 +78,7 @@ async function load() {
 }
 
 async function redeploy(row: PluginVersionHistory) {
+  if (props.redeployDisabledReason) return;
   try {
     await ElMessageBox.confirm(`确认将插件 ${props.name} 重部署为历史版本 ${row.version} 吗？数据库不会自动降级。`, '历史版本重部署');
   } catch (reason) {

@@ -13,6 +13,23 @@ use think\Route;
  */
 final class RuntimeLoader
 {
+    /** 已挂载的插件 vendor autoload，防同一请求内重复注册 */
+    private static array $loadedAutoloads = [];
+
+    /**
+     * 挂载插件自带 composer vendor（约定检测 vendor/autoload.php），
+     * 必须在 entry 之前调用：入口类的父类/接口可能来自插件 vendor。
+     */
+    public function loadComposerAutoload(Manifest $manifest): void
+    {
+        $file = $manifest->directory() . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+        if (!is_file($file) || isset(self::$loadedAutoloads[$file])) {
+            return;
+        }
+        require_once $file;
+        self::$loadedAutoloads[$file] = true;
+    }
+
     public function boundaries(Manifest $manifest): array
     {
         $boundaries = [];
@@ -27,13 +44,23 @@ final class RuntimeLoader
 
     public function loadEntry(Manifest $manifest): void
     {
+        $this->loadComposerAutoload($manifest);
         $entry = $manifest->toArray()['entry'];
         $file = $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, (string) $entry['file']);
         require_once $file;
-        $class = (string) ($manifest->toArray()['entry']['class'] ?? '');
+        $class = (string) ($entry['class'] ?? '');
         if ($class === '' || !class_exists($class, false)) {
             throw new RuntimeException('插件入口类加载失败：' . $class);
         }
+    }
+
+    /** 按 vendor autoload、entry、容器实例化的固定顺序创建生命周期对象。 */
+    public function instantiateEntry(Manifest $manifest, callable $make): object
+    {
+        $this->loadComposerAutoload($manifest);
+        $this->loadEntry($manifest);
+        $class = (string) ($manifest->toArray()['entry']['class'] ?? '');
+        return $make($class);
     }
 
     public function loadServices(App $app, Manifest $manifest): void
@@ -74,8 +101,40 @@ final class RuntimeLoader
             return;
         }
         $registrar = require $file;
-        if (!is_callable($registrar)) {
-            throw new RuntimeException('插件 routes 加载文件必须返回 callable');
+        if (!$registrar instanceof \Closure) {
+            throw new RuntimeException('插件 routes 加载文件必须返回 Closure');
+        }
+        $registrar($route);
+    }
+
+    /**
+     * 通道（channels.api / channels.frontend）路由文件路径，未声明返回 null。
+     */
+    public function channelRoutesPath(Manifest $manifest, string $channel): ?string
+    {
+        if (!in_array($channel, ['api', 'frontend'], true)) {
+            throw new RuntimeException('不支持的插件 channel：' . $channel);
+        }
+        $channels = (array) ($manifest->toArray()['channels'] ?? []);
+        $relative = (string) ($channels[$channel]['routes'] ?? '');
+        if ($relative === '') {
+            return null;
+        }
+        return $manifest->directory() . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+    }
+
+    /**
+     * 加载通道路由：仅由 Service 在匹配的应用请求内调用，实现应用级隔离。
+     */
+    public function loadChannelRoutes(Route $route, Manifest $manifest, string $channel): void
+    {
+        $file = $this->channelRoutesPath($manifest, $channel);
+        if ($file === null) {
+            return;
+        }
+        $registrar = require $file;
+        if (!$registrar instanceof \Closure) {
+            throw new RuntimeException('插件 channel ' . $channel . ' 路由加载文件必须返回 Closure');
         }
         $registrar($route);
     }

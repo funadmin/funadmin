@@ -29,6 +29,22 @@ describe('utils/csv', () => {
     expect(csv).toContain('"a,b""c\nd"');
   });
 
+  it.each(['=1+1', '+cmd', '-2+3', '@SUM(A1:A2)', '\t=cmd', '\r=cmd', '\n=cmd'])(
+    'toCsv 中和公式注入前缀 %j',
+    (name) => {
+      const csv = toCsv<Row>([{ id: 3, name, status: 1 }], cols);
+      expect(csv.split('\r\n')[1]).toContain(`'${name}`);
+    }
+  );
+
+  it('toCsv 同样中和危险表头与 formatter 输出', () => {
+    const dangerous: CsvColumn<Row>[] = [
+      { key: 'name', label: '=恶意表头', formatter: () => '@恶意公式' }
+    ];
+    expect(toCsv<Row>([{ id: 1, name: 'safe', status: 1 }], dangerous))
+      .toBe("'=恶意表头\r\n'@恶意公式");
+  });
+
   it('parseCsv 还原对象，BOM 自动忽略，parser 生效', () => {
     const text = '\uFEFFID,名称,状态\r\n1,admin,启用\r\n2,"a,b",禁用';
     const rows = parseCsv<Row>(text, cols);

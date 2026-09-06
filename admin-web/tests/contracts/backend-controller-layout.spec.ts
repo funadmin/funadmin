@@ -28,6 +28,11 @@ const systemControllers = [
 const movedControllers = ['AdminApiController', ...authControllers, ...systemControllers];
 
 const routeSource = readProjectFile('app/backend/route/app.php');
+const authSource = readProjectFile('app/backend/controller/auth/AdminAuth.php');
+const profileSource = readProjectFile('app/backend/controller/auth/AdminProfile.php');
+const uploadSource = readProjectFile('app/backend/controller/system/AdminUpload.php');
+const roleSource = readProjectFile('app/backend/controller/system/SystemRole.php');
+const dictSource = readProjectFile('app/backend/controller/system/SystemDict.php');
 const permissionSource = readProjectFile('app/backend/service/PermissionResource.php');
 
 describe('后台控制器目录重组源码契约', () => {
@@ -45,13 +50,18 @@ describe('后台控制器目录重组源码契约', () => {
     }
   });
 
-  it('显式路由全部使用多级控制器目标', () => {
+  it('显式特例使用多级控制器目标，已迁移系统控制器使用 Attribute 路由', () => {
     expect(routeSource).not.toMatch(/['"](?:AdminAuth|AdminProfile|AdminUpload|System[A-Z][A-Za-z]*)\//);
-    expect(routeSource).toContain("'auth.AdminAuth/login'");
-    expect(routeSource).toContain("'auth.AdminProfile/index'");
-    expect(routeSource).toContain("'system.AdminUpload/upload'");
-    expect(routeSource).toContain("'system.SystemRole/index'");
-    expect(routeSource).toContain("'system.SystemDict/options'");
+    expect(routeSource).not.toContain("'auth.AdminAuth/login'");
+    expect(routeSource).not.toContain("'auth.AdminProfile/index'");
+    expect(authSource).toContain("#[Post('login')]");
+    expect(profileSource).toContain("#[Get('')]");
+    expect(routeSource).not.toContain("'system.AdminUpload/upload'");
+    expect(routeSource).not.toContain("'system.SystemRole/index'");
+    expect(routeSource).not.toContain("'system.SystemDict/options'");
+    expect(uploadSource).toContain("#[Post('upload')]");
+    expect(roleSource).toContain("#[Group('system/role')]");
+    expect(dictSource).toContain("#[Get(':code/options')]");
   });
 
   it('权限资源将新目录控制器稳定映射为既有控制器名', () => {

@@ -8,9 +8,13 @@ use app\backend\controller\base\AdminApiController;
 use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
-use app\backend\service\AuthService;
+use app\backend\service\AdminAuthorizationService;
 use app\backend\service\DevCrudService;
 use InvalidArgumentException;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
 use think\App;
 use think\Response;
 use Throwable;
@@ -18,6 +22,7 @@ use Throwable;
 /**
  * 开发工具 CRUD Workbench Admin API。
  */
+#[Group('development/crud')]
 final class DevCrud extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -34,21 +39,26 @@ final class DevCrud extends AdminApiController
         );
     }
 
+    #[Get('connections')]
     public function connections(): Response
     {
         return $this->execute(fn (): array => $this->crud->connections());
     }
 
+    #[Get('tables')]
     public function tables(): Response
     {
         return $this->execute(fn (): array => $this->crud->tables($this->connection()));
     }
 
+    #[Get('table/:table')]
+    #[Pattern('table', '[a-z_][a-z0-9_]*')]
     public function tableSchema(string $table): Response
     {
         return $this->execute(fn (): array => $this->crud->inspect($this->connection(), $table));
     }
 
+    #[Post('infer')]
     public function infer(): Response
     {
         return $this->execute(fn (): array => $this->crud->infer(
@@ -57,15 +67,17 @@ final class DevCrud extends AdminApiController
         ));
     }
 
-    public function validate(): Response
+    #[Post('validate')]
+    public function validateDefinition(): Response
     {
         return $this->execute(fn (): array => $this->crud->validate($this->definition()));
     }
 
+    #[Post('preview')]
     public function preview(): Response
     {
-        $auth = AuthService::instance();
-        $canGenerate = (bool) $auth->nodeAccess('backend/devcrud/generate');
+        $authorization = new AdminAuthorizationService();
+        $canGenerate = $authorization->nodeAccess('backend/devcrud/generate');
         return $this->execute(fn (): array => $this->crud->preview(
             $this->definition(),
             $canGenerate,
@@ -73,21 +85,25 @@ final class DevCrud extends AdminApiController
         ));
     }
 
+    #[Post('generate')]
     public function generate(): Response
     {
         $allowOverwrite = $this->request->post('allowOverwrite', []);
         if (!is_array($allowOverwrite)) {
             return $this->fail(msg: 'allowOverwrite 必须为路径数组', code: 422);
         }
+        $authorization = new AdminAuthorizationService();
         return $this->execute(fn (): array => $this->crud->generate(
             $this->definition(),
             trim((string) $this->request->post('confirmToken', '')),
             array_values(array_filter($allowOverwrite, 'is_string')),
-            (bool) AuthService::instance()->nodeAccess('backend/devcrud/overwrite'),
+            $authorization->nodeAccess('development/crud/overwrite'),
             (string) (session('admin.username') ?: session('admin.id') ?: 'admin-web')
         ), 'CRUD 生成完成');
     }
 
+    #[Get('generations/:id')]
+    #[Pattern('id', '\\d+')]
     public function generationDetail(int $id): Response
     {
         $record = $this->crud->generation($id);

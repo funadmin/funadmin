@@ -4,68 +4,61 @@
   "title": "FunAdmin CRUD Definition v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "name", "table", "title", "paths", "apiPrefix", "permissionPrefix", "fields", "relations", "templates"],
+  "required": ["schemaVersion", "name", "table", "title", "paths", "apiPrefix", "permissionPrefix", "fields", "relations", "optionsSource", "templates", "capabilities", "features", "dataScope"],
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-    "table": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
+    "table": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" },
     "title": { "type": "string", "minLength": 1 },
     "description": { "type": "string" },
     "apiPrefix": { "type": "string", "pattern": "^/[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*)*$" },
     "permissionPrefix": { "type": "string", "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$" },
-    "paths": {
-      "type": "object",
-      "additionalProperties": false,
-      "minProperties": 1,
+    "paths": { "$ref": "#/$defs/artifacts" },
+    "templates": { "$ref": "#/$defs/templates" },
+    "fields": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
+    "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" } },
+    "optionsSource": { "type": "array", "items": { "$ref": "#/$defs/optionsSource" } },
+    "capabilities": { "type": "object", "minProperties": 1, "additionalProperties": false, "properties": {
+      "list": { "type": "boolean" }, "search": { "type": "boolean" }, "form": { "type": "boolean" }, "detail": { "type": "boolean" },
+      "create": { "type": "boolean" }, "update": { "type": "boolean" }, "delete": { "type": "boolean" }, "import": { "type": "boolean" }, "export": { "type": "boolean" }
+    }},
+    "features": { "type": "object", "additionalProperties": false,
+      "required": ["softDelete", "batchDelete", "status", "detail", "import", "export", "upload", "dictionary", "referenceProtection", "formMode", "importLimit", "exportLimit"],
       "properties": {
-        "backend": { "$ref": "#/$defs/relativePath" },
-        "frontend": { "$ref": "#/$defs/relativePath" },
-        "database": { "$ref": "#/$defs/relativePath" }
+        "softDelete": { "type": "boolean" }, "batchDelete": { "type": "boolean" }, "status": { "type": "boolean" }, "detail": { "type": "boolean" },
+        "import": { "type": "boolean" }, "export": { "type": "boolean" }, "upload": { "type": "boolean" }, "dictionary": { "type": "boolean" },
+        "referenceProtection": { "type": "boolean" }, "formMode": { "enum": ["dialog", "drawer"] },
+        "importLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }, "exportLimit": { "type": "integer", "minimum": 1, "maximum": 10000 }
       }
     },
-    "templates": {
-      "type": "object",
-      "additionalProperties": false,
-      "minProperties": 1,
-      "properties": {
-        "backend": { "$ref": "#/$defs/templatePath" },
-        "frontend": { "$ref": "#/$defs/templatePath" },
-        "database": { "$ref": "#/$defs/templatePath" }
-      }
-    },
-    "fields": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": ["name", "dbType", "nullable"],
-        "properties": {
-          "name": { "type": "string", "pattern": "^[a-z_][a-z0-9_]*$" },
-          "dbType": { "type": "string", "minLength": 1 },
-          "nullable": { "type": "boolean" },
-          "primary": { "type": "boolean" },
-          "comment": { "type": "string" },
-          "legacy": { "type": "boolean" },
-          "list": { "type": "boolean" },
-          "search": { "type": "boolean" },
-          "form": { "type": "boolean" },
-          "detail": { "type": "boolean" },
-          "rules": { "type": "array", "items": { "type": "string" } }
-        }
-      }
-    },
-    "relations": { "type": "array" },
-    "capabilities": { "type": "object", "minProperties": 1, "additionalProperties": { "type": "boolean" } },
-    "dataScope": {
-      "type": "object",
-      "required": ["enabled", "field"],
-      "properties": { "enabled": { "type": "boolean" }, "field": { "type": "string" } },
-      "additionalProperties": false
-    },
+    "dataScope": { "type": "object", "required": ["enabled", "field"], "additionalProperties": false, "properties": {
+      "enabled": { "type": "boolean" }, "field": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$|^$" }, "resolver": { "const": "adminDepartmentIds" }
+    }},
     "metadata": { "type": "object" }
   },
   "$defs": {
+    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "phpTest", "api", "view", "form", "detail", "vueTest"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
-    "templatePath": { "type": "string", "pattern": "^(backend|frontend|database)/[A-Za-z0-9._/-]+\\.tpl$" }
+    "templatePath": { "type": "string", "pattern": "^(backend|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
+    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "phpTest", "api", "view", "form", "vueTest"] },
+    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "minProperties": 11 },
+    "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {
+      "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "label": { "type": "string" }, "dbType": { "type": "string", "minLength": 1 },
+      "nullable": { "type": "boolean" }, "primary": { "type": "boolean" }, "comment": { "type": "string" }, "default": {}, "extra": { "type": "string" },
+      "component": { "type": "string" }, "valueType": { "type": "string" }, "cast": { "type": "string" }, "managed": { "type": "boolean" }, "writable": { "type": "boolean" },
+      "options": { "type": "array" }, "optionsSource": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "relation": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "references": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*\\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "inferredBy": { "type": "string" },
+      "legacy": { "type": "boolean" }, "list": { "type": "boolean" }, "search": { "type": "boolean" }, "searchOperator": { "enum": ["like", "eq", "in", "range", "gte", "lte"] },
+      "sortable": { "type": "boolean" }, "form": { "type": "boolean" }, "detail": { "type": "boolean" }, "rules": { "type": "array", "items": { "type": "string" } },
+      "required": { "type": "boolean" }, "minLength": { "type": "integer", "minimum": 0 }, "maxLength": { "type": "integer", "minimum": 0 }, "min": { "type": "number" }, "max": { "type": "number" },
+      "enum": { "type": "array", "minItems": 1 }, "format": { "enum": ["email", "url", "date", "datetime", "uuid", "ip"] }, "unique": { "type": "boolean" },
+      "dictionary": { "type": "boolean" }, "upload": { "type": "boolean" }, "precision": { "type": "integer", "minimum": 0 }, "scale": { "type": "integer", "minimum": 0 }
+    }},
+    "relation": { "type": "object", "additionalProperties": false, "required": ["name", "type", "field", "target", "targetField"], "properties": {
+      "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "type": { "enum": ["belongsTo", "hasOne", "hasMany", "belongsToMany"] }, "field": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "target": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*(?:\\\\[A-Z][A-Za-z0-9]*)*$" },
+      "targetField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTable": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotLocalKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "pivotTargetKey": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "optionsSource": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "with": { "type": "boolean" }
+    }, "allOf": [{ "if": { "properties": { "type": { "const": "belongsToMany" } }, "required": ["type"] }, "then": { "required": ["pivotTable", "pivotLocalKey", "pivotTargetKey"] } }]},
+    "optionsSource": { "type": "object", "additionalProperties": false, "required": ["name", "type", "labelField", "valueField"], "properties": {
+      "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "type": { "enum": ["relation", "dictionary", "endpoint"] }, "endpoint": { "type": "string" }, "dictionary": { "type": "string" }, "labelField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "valueField": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }
+    }}
   }
 }

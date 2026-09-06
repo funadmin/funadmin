@@ -42,10 +42,11 @@ final class TemplateRenderer
     {
         return match (true) {
             in_array($key, ['phpClass', 'model'], true) => $this->assert($value, '/^[A-Z][A-Za-z0-9]*$/', $key),
-            in_array($key, ['apiPrefix'], true) => $this->assert($value, '#^/[a-z][a-z0-9/-]*$#', $key),
+            $key === 'apiPrefix' => $this->assert($value, '#^/[a-z][a-z0-9/-]*$#', $key),
+            $key === 'routePrefix' => $this->assert($value, '#^[a-z][a-z0-9/-]*$#', $key),
             in_array($key, ['permissionPrefix'], true) => $this->assert($value, '/^[a-z][a-z0-9:-]*$/', $key),
             in_array($key, ['table', 'field', 'name'], true) => $this->assert($value, '/^[a-z_][a-z0-9_-]*$/', $key),
-            str_ends_with($key, 'Json') => $value,
+            str_ends_with($key, 'Json') || str_ends_with($key, 'Content') => $value,
             default => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
         };
     }

@@ -17,17 +17,17 @@ use think\Response;
  */
 trait Crud
 {
-    protected function crudPayload(?Model $model = null): array
+    protected function payload(?Model $model = null): array
     {
-        throw new LogicException(static::class . ' 必须实现 crudPayload()');
+        throw new LogicException(static::class . ' 必须实现 payload()');
     }
 
-    protected function crudValidate(array &$data, ?Model $model = null): ?string
+    protected function validatePayload(array &$data, ?Model $model = null): ?string
     {
         return null;
     }
 
-    protected function crudData(Model $model): array
+    protected function transformData(Model $model): array
     {
         return $model->toArray();
     }
@@ -43,53 +43,58 @@ trait Crud
         ]);
 
         return $this->ok(data: $this->paginationData(
-            array_map(fn (Model $model): array => $this->crudData($model), $result->items()),
+            array_map(fn (Model $model): array => $this->transformData($model), $result->items()),
             $result->total(),
             $page,
             $pageSize
         ));
     }
 
-    public function detail(int $id): Response
+    public function detail(int|string $id): Response
     {
         $model = $this->crudFind($id, true);
         return $model
-            ? $this->ok(data: $this->crudData($model))
+            ? $this->ok(data: $this->transformData($model))
             : $this->fail(msg: $this->crudMessage('不存在'), code: 404);
     }
 
     public function create(): Response
     {
-        $data = $this->crudPayload();
-        if ($error = $this->crudValidate($data)) {
+        $data = $this->payload();
+        if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
 
-        $model = ($this->model)::create($data);
-        $this->crudAfterSave($model, true);
+        $model = Db::transaction(function () use ($data): Model {
+            $model = ($this->model)::create($data);
+            $this->afterSave($model, true);
+            return $model;
+        });
 
-        return $this->ok('创建成功', $this->crudData($model));
+        return $this->ok('创建成功', $this->transformData($model));
     }
 
-    public function update(int $id): Response
+    public function update(int|string $id): Response
     {
         $model = $this->crudFind($id);
         if (!$model) {
             return $this->fail(msg: $this->crudMessage('不存在'), code: 404);
         }
 
-        $data = $this->crudPayload($model);
-        if ($error = $this->crudValidate($data, $model)) {
+        $data = $this->payload($model);
+        if ($error = $this->validatePayload($data, $model)) {
             return $this->fail(msg: $error, code: 422);
         }
 
-        $model->save($data);
-        $this->crudAfterSave($model, false);
+        Db::transaction(function () use ($model, $data): void {
+            $model->save($data);
+            $this->afterSave($model, false);
+        });
 
-        return $this->ok('保存成功', $this->crudData($model));
+        return $this->ok('保存成功', $this->transformData($model));
     }
 
-    public function status(int $id): Response
+    public function status(int|string $id): Response
     {
         $model = $this->crudFind($id);
         if (!$model) {
@@ -97,9 +102,24 @@ trait Crud
         }
 
         $model->save(['status' => $this->binaryStatus($this->request->post('status', 0))]);
-        $this->crudAfterSave($model, false);
+        $this->afterSave($model, false);
 
-        return $this->ok('状态更新成功', $this->crudData($model));
+        return $this->ok('状态更新成功', $this->transformData($model));
+    }
+
+    public function remove(int|string $id): Response
+    {
+        return $this->crudDeleteOne($id, false, false);
+    }
+
+    public function restoreOne(int|string $id): Response
+    {
+        return $this->crudDeleteOne($id, true, false);
+    }
+
+    public function destroyOne(int|string $id): Response
+    {
+        return $this->crudDeleteOne($id, true, true);
     }
 
     public function recycle(): Response
@@ -108,7 +128,7 @@ trait Crud
         if ($models instanceof Response) {
             return $models;
         }
-        if ($denied = $this->crudBeforeDelete($models, false)) {
+        if ($denied = $this->beforeDelete($models, false)) {
             return $denied;
         }
 
@@ -139,7 +159,7 @@ trait Crud
         if ($models instanceof Response) {
             return $models;
         }
-        if ($denied = $this->crudBeforeDelete($models, true)) {
+        if ($denied = $this->beforeDelete($models, true)) {
             return $denied;
         }
 
@@ -156,8 +176,8 @@ trait Crud
         if (!is_array($rows) || !$rows) {
             return $this->fail(msg: '导入数据不能为空', code: 422);
         }
-        if (count($rows) > $this->crudImportLimit()) {
-            return $this->fail(msg: sprintf('单次最多导入 %d 条数据', $this->crudImportLimit()), code: 422);
+        if (count($rows) > $this->importLimit()) {
+            return $this->fail(msg: sprintf('单次最多导入 %d 条数据', $this->importLimit()), code: 422);
         }
 
         try {
@@ -167,12 +187,12 @@ trait Crud
                     if (!is_array($row)) {
                         throw new InvalidArgumentException(sprintf('第 %d 行数据格式错误', $index + 1));
                     }
-                    $data = $this->crudImportPayload($row);
-                    if ($error = $this->crudValidate($data)) {
+                    $data = $this->importPayload($row);
+                    if ($error = $this->validatePayload($data)) {
                         throw new InvalidArgumentException(sprintf('第 %d 行：%s', $index + 1, $error));
                     }
                     $model = ($this->model)::create($data);
-                    $this->crudAfterSave($model, true);
+                    $this->afterSave($model, true);
                     $models[] = $model;
                 }
                 return $models;
@@ -187,8 +207,8 @@ trait Crud
     public function export(): Response
     {
         $query = $this->crudOrderedQuery($this->crudRecycled());
-        if ((clone $query)->count() > $this->crudExportLimit()) {
-            return $this->fail(msg: sprintf('导出数据超过 %d 条，请缩小筛选范围', $this->crudExportLimit()), code: 422);
+        if ((clone $query)->count() > $this->exportLimit()) {
+            return $this->fail(msg: sprintf('导出数据超过 %d 条，请缩小筛选范围', $this->exportLimit()), code: 422);
         }
 
         return $this->ok(data: array_map(
@@ -197,73 +217,97 @@ trait Crud
         ));
     }
 
-    protected function crudResourceName(): string
+    protected function resourceName(): string
     {
         return '数据';
     }
 
-    protected function crudSearchFields(): array
+    protected function searchFields(): array
     {
         return [];
     }
 
-    protected function crudExactFilters(): array
+    protected function exactFilters(): array
     {
         return ['status' => 'status'];
     }
 
-    protected function crudRangeFilters(): array
+    protected function rangeFilters(): array
     {
         return [];
     }
 
-    protected function crudSortFields(): array
+    protected function sortFields(): array
     {
         return [];
     }
 
-    protected function crudQuery(bool $recycled)
+    protected function primaryKey(): string
     {
-        $query = $recycled ? ($this->model)::onlyTrashed() : ($this->model)::where('id', '>', 0);
-        return $this->crudApplyFilters($query);
+        return 'id';
     }
 
-    protected function crudOrder(): array
+    protected function primaryKeyType(): string
     {
-        return ['id' => 'asc'];
+        return 'integer';
     }
 
-    protected function crudImportFields(): array
-    {
-        return [];
-    }
-
-    protected function crudExportFields(): array
-    {
-        return [];
-    }
-
-    protected function crudImportPayload(array $row): array
-    {
-        return $this->crudMapImportRow($row);
-    }
-
-    protected function crudImportLimit(): int
-    {
-        return 1000;
-    }
-
-    protected function crudExportLimit(): int
-    {
-        return 10000;
-    }
-
-    protected function crudBeforeDelete(iterable $models, bool $force): ?Response
+    protected function primaryKeyPattern(): ?string
     {
         return null;
     }
 
-    protected function crudAfterSave(Model $model, bool $created): void
+    protected function query(bool $recycled)
+    {
+        return $this->applyFilters($this->baseQuery($recycled, false));
+    }
+
+    protected function baseQuery(bool $onlyTrashed, bool $withTrashed)
+    {
+        $primaryKey = $this->primaryKey();
+        return match (true) {
+            $onlyTrashed => ($this->model)::onlyTrashed(),
+            $withTrashed => ($this->model)::withTrashed(),
+            default => ($this->model)::where($primaryKey, '<>', ''),
+        };
+    }
+
+    protected function order(): array
+    {
+        return [$this->primaryKey() => 'asc'];
+    }
+
+    protected function importFields(): array
+    {
+        return [];
+    }
+
+    protected function exportFields(): array
+    {
+        return [];
+    }
+
+    protected function importPayload(array $row): array
+    {
+        return $this->mapImportRow($row);
+    }
+
+    protected function importLimit(): int
+    {
+        return 1000;
+    }
+
+    protected function exportLimit(): int
+    {
+        return 10000;
+    }
+
+    protected function beforeDelete(iterable $models, bool $force): ?Response
+    {
+        return null;
+    }
+
+    protected function afterSave(Model $model, bool $created): void
     {
     }
 
@@ -274,24 +318,24 @@ trait Crud
 
     private function crudOrderedQuery(bool $recycled)
     {
-        return $this->crudApplyOrder($this->crudQuery($recycled));
+        return $this->crudApplyOrder($this->query($recycled));
     }
 
-    private function crudApplyFilters($query)
+    protected function applyFilters($query)
     {
-        foreach ($this->crudSearchFields() as $parameter => $field) {
+        foreach ($this->searchFields() as $parameter => $field) {
             $value = trim((string) $this->request->get($parameter, ''));
             if ($value !== '') {
                 $query->whereLike($field, '%' . $value . '%');
             }
         }
-        foreach ($this->crudExactFilters() as $parameter => $field) {
+        foreach ($this->exactFilters() as $parameter => $field) {
             $value = $this->request->get($parameter, null);
             if ($value !== null && $value !== '') {
                 $query->where($field, $value);
             }
         }
-        foreach ($this->crudRangeFilters() as $parameter => $field) {
+        foreach ($this->rangeFilters() as $parameter => $field) {
             $range = $this->crudRangeValue($this->request->get($parameter, null));
             if ($range[0] !== null) {
                 $query->where($field, '>=', $range[0]);
@@ -305,9 +349,9 @@ trait Crud
 
     private function crudApplyOrder($query)
     {
-        $orders = $this->crudOrder();
+        $orders = $this->order();
         $sort = trim((string) $this->request->get('sort', ''));
-        $sortFields = $this->crudSortFields();
+        $sortFields = $this->sortFields();
         if ($sort !== '' && isset($sortFields[$sort])) {
             $orders = [$sortFields[$sort] => $this->request->get('order', 'asc')];
         }
@@ -329,9 +373,9 @@ trait Crud
         return [$begin, $end];
     }
 
-    protected function crudMapImportRow(array $row): array
+    protected function mapImportRow(array $row): array
     {
-        $fields = $this->crudImportFields();
+        $fields = $this->importFields();
         if (!$fields) {
             throw new InvalidArgumentException(static::class . ' 未配置导入字段映射');
         }
@@ -346,31 +390,63 @@ trait Crud
 
     private function crudExportData(Model $model): array
     {
-        $data = $this->crudData($model);
-        $fields = $this->crudExportFields();
+        $data = $this->transformData($model);
+        $fields = $this->exportFields();
         return $fields ? array_intersect_key($data, array_flip($fields)) : $data;
     }
 
-    private function crudFind(int $id, bool $withTrashed = false): ?Model
+    private function crudFind(int|string $id, bool $withTrashed = false): ?Model
     {
-        $query = $withTrashed ? ($this->model)::withTrashed() : ($this->model)::where('id', '>', 0);
-        $model = $query->where('id', $id)->find();
+        $primaryKey = $this->primaryKey();
+        $model = $this->baseQuery(false, $withTrashed)->where($primaryKey, $id)->find();
         return $model instanceof Model ? $model : null;
+    }
+
+    private function crudDeleteOne(int|string $id, bool $onlyTrashed, bool $force): Response
+    {
+        $model = $this->baseQuery($onlyTrashed, false)->where($this->primaryKey(), $id)->find();
+        if (!$model instanceof Model) {
+            $suffix = $onlyTrashed ? '不存在或不在回收站' : '不存在或已在回收站';
+            return $this->fail(msg: $this->crudMessage($suffix), code: 404);
+        }
+        if ($denied = $this->beforeDelete([$model], $force)) {
+            return $denied;
+        }
+        if ($force) {
+            $model->force()->delete();
+            return $this->ok('永久删除成功');
+        }
+        if ($onlyTrashed) {
+            $model->restore();
+            return $this->ok('恢复成功', $this->transformData($model));
+        }
+        $model->delete();
+        return $this->ok('已移入回收站');
     }
 
     private function crudModelsForAction(bool $onlyTrashed, string $action = '操作'): iterable|Response
     {
-        $ids = $this->ids();
+        try {
+            $idsInput = $this->request->get('ids', null);
+            $ids = $this->normalizeIds(
+                $idsInput ?? $this->request->post('ids', []),
+                $this->primaryKeyType(),
+                $this->primaryKeyPattern(),
+                true
+            );
+        } catch (InvalidArgumentException $exception) {
+            return $this->fail(msg: $exception->getMessage(), code: 422);
+        }
         if (!$ids) {
-            return $this->fail(msg: sprintf('请选择要%s的%s', $action, $this->crudResourceName()), code: 422);
+            return $this->fail(msg: sprintf('请选择要%s的%s', $action, $this->resourceName()), code: 422);
         }
 
-        $query = $onlyTrashed ? ($this->model)::onlyTrashed() : ($this->model)::where('id', '>', 0);
-        $models = $query->whereIn('id', $ids)->select();
+        $primaryKey = $this->primaryKey();
+        $models = $this->baseQuery($onlyTrashed, false)->whereIn($primaryKey, $ids)->select();
         if (count($models) !== count($ids)) {
             $message = $onlyTrashed
-                ? sprintf('部分%s不存在或不在回收站', $this->crudResourceName())
-                : sprintf('部分%s不存在或已在回收站', $this->crudResourceName());
+                ? sprintf('部分%s不存在或不在回收站', $this->resourceName())
+                : sprintf('部分%s不存在或已在回收站', $this->resourceName());
             return $this->fail(msg: $message, code: 404);
         }
 
@@ -379,6 +455,6 @@ trait Crud
 
     private function crudMessage(string $suffix): string
     {
-        return $this->crudResourceName() . $suffix;
+        return $this->resourceName() . $suffix;
     }
 }

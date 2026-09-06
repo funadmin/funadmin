@@ -11,6 +11,7 @@ use RecursiveIteratorIterator;
 use RuntimeException;
 use Throwable;
 
+/** 将插件公开资源与 Admin ESM 资源统一发布到 public/plugin-assets 并登记所有权。 */
 final class PluginResourcePublisher
 {
     public function __construct(
@@ -33,7 +34,7 @@ final class PluginResourcePublisher
         $touchedTargets = [];
 
         try {
-            foreach (($manifest->toArray()['resources'] ?? []) as $resource) {
+            foreach ((array) ($manifest->toArray()['resources'] ?? []) as $resource) {
                 $sourceRoot = $this->canonicalSourceDirectory(
                     $manifest->directory(),
                     (string) $resource['source']
@@ -44,7 +45,7 @@ final class PluginResourcePublisher
                     (string) $resource['target']
                 );
                 foreach ($this->files($sourceRoot) as $source) {
-                    $relative = substr($source, strlen($sourceRoot) + 1);
+                    $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($source, strlen($sourceRoot) + 1));
                     $target = $targetRoot . DIRECTORY_SEPARATOR . $relative;
                     $targetPath = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($public) + 1));
                     $this->assertAvailable($target, $targetPath, $manifest->name(), $existing);
@@ -96,9 +97,9 @@ final class PluginResourcePublisher
 
     public function remove(string $pluginName): array
     {
-        $registry = $this->repository->all();
+        $this->assertPluginName($pluginName);
         $owned = array_values(array_filter(
-            $registry,
+            $this->repository->all(),
             static fn (array $row): bool => ($row['plugin_name'] ?? '') === $pluginName
         ));
         $snapshot = $this->snapshot($pluginName, $owned);
@@ -131,11 +132,12 @@ final class PluginResourcePublisher
     private function restoreSnapshot(array $snapshot, array $touchedTargets): void
     {
         $pluginName = (string) ($snapshot['plugin_name'] ?? '');
+        $this->assertPluginName($pluginName);
         $public = $this->canonicalDirectory($this->publicRoot);
         foreach (array_unique($touchedTargets) as $targetPath) {
             $this->deleteOwnedFile($public, (string) $targetPath);
         }
-        foreach ($snapshot['files'] ?? [] as $targetPath => $contents) {
+        foreach ((array) ($snapshot['files'] ?? []) as $targetPath => $contents) {
             $this->write($this->safeTarget($public, (string) $targetPath), (string) $contents);
         }
         $this->repository->replaceForPlugin($pluginName, (array) ($snapshot['records'] ?? []));
@@ -154,12 +156,11 @@ final class PluginResourcePublisher
         return ['plugin_name' => $pluginName, 'records' => $records, 'files' => $files];
     }
 
-    private function assertAvailable(
-        string $target,
-        string $targetPath,
-        string $pluginName,
-        array $registry
-    ): void {
+    private function assertAvailable(string $target, string $targetPath, string $pluginName, array $registry): void
+    {
+        if (is_link($target)) {
+            throw new RuntimeException('资源目标路径禁止符号链接：' . $targetPath);
+        }
         foreach ($registry as $record) {
             if (($record['target_path'] ?? '') !== $targetPath) {
                 continue;
@@ -220,13 +221,8 @@ final class PluginResourcePublisher
 
     private function safeTarget(string $public, string $relative): string
     {
-        if (
-            $relative === ''
-            || str_contains($relative, "\0")
-            || str_contains($relative, '..')
-            || str_starts_with($relative, '/')
-            || str_contains($relative, '\\')
-        ) {
+        if ($relative === '' || str_contains($relative, "\0") || preg_match('~(^|/)\.\.?(/|$)~', $relative)
+            || str_starts_with($relative, '/') || str_contains($relative, '\\')) {
             throw new RuntimeException('资源目标路径越界');
         }
         $target = $public . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
@@ -263,10 +259,7 @@ final class PluginResourcePublisher
 
     private function copy(string $source, string $target): void
     {
-        $directory = dirname($target);
-        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new RuntimeException('无法创建发布目录');
-        }
+        $this->createParent($target);
         if (!copy($source, $target)) {
             throw new RuntimeException('资源发布失败：' . $target);
         }
@@ -274,12 +267,17 @@ final class PluginResourcePublisher
 
     private function write(string $target, string $contents): void
     {
-        $directory = dirname($target);
-        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new RuntimeException('无法创建回滚目录');
-        }
+        $this->createParent($target);
         if (file_put_contents($target, $contents) === false) {
             throw new RuntimeException('资源回滚失败：' . $target);
+        }
+    }
+
+    private function createParent(string $target): void
+    {
+        $directory = dirname($target);
+        if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+            throw new RuntimeException('无法创建发布目录');
         }
     }
 
@@ -291,8 +289,17 @@ final class PluginResourcePublisher
         }
         $directory = dirname($target);
         while ($directory !== $public && is_dir($directory) && (scandir($directory) ?: []) === ['.', '..']) {
-            rmdir($directory);
+            if (!rmdir($directory)) {
+                throw new RuntimeException('无法清理插件资源目录：' . $targetPath);
+            }
             $directory = dirname($directory);
+        }
+    }
+
+    private function assertPluginName(string $name): void
+    {
+        if (preg_match('/^[a-z][a-z0-9]*$/', $name) !== 1) {
+            throw new RuntimeException('插件名称不合法');
         }
     }
 }

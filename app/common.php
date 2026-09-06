@@ -13,386 +13,322 @@
 
 use think\App;
 use think\facade\Cache;
-use think\facade\Route;
 use think\facade\Cookie;
+use think\facade\Lang;
+use think\facade\Route;
 use think\facade\Session;
-use think\facade\Db;
-
 
 if (!function_exists('getKeyVal')) {
     /**
-     * 获取Form::arrays()键值对
+     * 将平行的 key/value 输入转换为键值对。
      */
-    function getKeyVal($kv){
+    function getKeyVal(array $kv): array
+    {
+        $keys = $kv['key'] ?? null;
+        $values = $kv['value'] ?? null;
+        if (!is_array($keys) || !is_array($values)) {
+            return [];
+        }
+
         $data = [];
-        if (!empty($kv)) {
-            foreach ($kv['key'] as $i => $item) {
-                $data[$i][$item] = $kv['value'][$i];
+        foreach ($keys as $index => $key) {
+            if ((!is_string($key) && !is_int($key)) || $key === '' || !array_key_exists($index, $values)) {
+                continue;
             }
+            $data[$index][$key] = $values[$index];
         }
         return $data;
     }
 }
+
 if (!function_exists('syscfg')) {
     /**
-     * @param $group
-     * @param null $code
-     * @return array|mixed|object|App
+     * 获取系统配置，包含空值的缓存结果也视为命中。
      */
-    function syscfg($group, $code = null)
+    function syscfg(string $group, ?string $code = null): mixed
     {
-        $where = ['group' => $group];
-        $value = empty($code) ? cache("syscfg_{$group}") : cache("syscfg_{$group}_{$code}");
-        if (!empty($value)) {
-            return $value;
+        $hasCode = $code !== null && $code !== '';
+        $cacheKey = 'syscfg:' . hash('sha256', serialize([$group, $hasCode ? $code : null]));
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && ($cached['cached'] ?? false) === true && array_key_exists('value', $cached)) {
+            return $cached['value'];
         }
-        if (!empty($code)) {
-            $where['code'] = $code;
-            $value = \app\common\model\Config::where($where)->value('value');
-            cache("syscfg_{$group}_{$code}", $value, 3600);
-        } else {
-            $value = \app\common\model\Config::where($where)->column('value', 'code');
-            cache("syscfg_{$group}", $value, 3600);
-        }
-        return $value;
 
+        $query = \app\common\model\Config::where(['group' => $group]);
+        $value = $hasCode
+            ? $query->where('code', $code)->value('value')
+            : $query->column('value', 'code');
+        Cache::set($cacheKey, ['cached' => true, 'value' => $value], 3600);
+        return $value;
     }
 }
-
-
 
 if (!function_exists('Mycfg')) {
-    /**
-     * @param $group
-     * @param null $code
-     * @return array|mixed|object|App
-     */
-    function Mycfg($group, $code = null)
+    function Mycfg(string $group, ?string $code = null): mixed
     {
         return syscfg($group, $code);
-
     }
 }
 
-
-//重写url 助手函数
+// 重写 URL 助手函数。
 if (!function_exists('__u')) {
-
-    function __u($url = '', array $vars = [], $suffix = true, $domain = false)
+    function __u($url = '', array $vars = [], $suffix = true, $domain = false): string
     {
-        $url =(string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
-        return $url;
+        return (string) Route::buildUrl($url, $vars)->suffix($suffix)->domain($domain);
     }
 }
 
-/**多语言函数*/
+if (!function_exists('funadmin_common_translate_value')) {
+    /**
+     * 多语言函数的共享实现，并保留旧式可变参数调用。
+     */
+    function funadmin_common_translate_value(mixed $str, mixed $vars, mixed $lang, array $arguments): mixed
+    {
+        if (is_numeric($str) || empty($str)) {
+            return $str;
+        }
+        if (!is_array($vars)) {
+            array_shift($arguments);
+            $vars = $arguments;
+            $lang = '';
+        }
+        return Lang::get((string) $str, $vars, (string) $lang);
+    }
+}
+
 if (!function_exists('__')) {
-    function __($str, $vars = [], $lang = '')
+    function __(mixed $str, mixed $vars = [], mixed $lang = ''): mixed
     {
-        if (is_numeric($str) || empty($str)) {
-            return $str;
-        }
-        if (!is_array($vars)) {
-            $vars = func_get_args();
-            array_shift($vars);
-            $lang = '';
-        }
-        return \think\facade\Lang::get($str, $vars, $lang);
+        return funadmin_common_translate_value($str, $vars, $lang, func_get_args());
     }
 }
+
 if (!function_exists('lang')) {
-    function lang($str, $vars = [], $lang = '')
+    function lang(mixed $str, mixed $vars = [], mixed $lang = ''): mixed
     {
-        if (is_numeric($str) || empty($str)) {
-            return $str;
-        }
-        if (!is_array($vars)) {
-            $vars = func_get_args();
-            array_shift($vars);
-            $lang = '';
-        }
-        return \think\facade\Lang::get($str, $vars, $lang);
+        return funadmin_common_translate_value($str, $vars, $lang, func_get_args());
     }
 }
 
-if (!function_exists("getProvicesByPid")) {
-    function getProvicesByPid($pid = 0)
+if (!function_exists('getProvicesByPid')) {
+    function getProvicesByPid(int|string $pid = 0): mixed
     {
-        return  \app\common\model\Region::cache(true)->find($pid);
+        return \app\common\model\Region::cache(true)->find($pid);
     }
 }
 
-if (!function_exists("getMember")) {
-    function getMember($id)
+if (!function_exists('getMember')) {
+    function getMember(int|string $id): mixed
     {
-        $member = \app\common\model\Member::cache(true)->find($id);
-        if ($member) {
-            return $member;
-        }
-        return [];
+        return \app\common\model\Member::cache(true)->find($id) ?: [];
     }
 }
-/**
- * 打印
- */
+
 if (!function_exists('p')) {
-    function p($var, $die = 0)
+    /**
+     * 打印变量，按需终止执行。
+     */
+    function p(mixed $var, bool|int $die = false): void
     {
+        if (!(bool) config('app.app_debug', false)) {
+            throw new LogicException('p 仅允许在调试模式下使用');
+        }
         print_r($var);
-        $die && die();
+        if ($die) {
+            die();
+        }
     }
 }
-/**
- * 手机
- */
+
 if (!function_exists('isMobile')) {
-    function isMobile()
+    function isMobile(): bool
     {
-        if (isset ($_SERVER['HTTP_X_WAP_PROFILE'])) {
+        if (isset($_SERVER['HTTP_X_WAP_PROFILE'])) {
             return true;
         }
-        if (isset ($_SERVER['HTTP_VIA'])) {
-            return stristr($_SERVER['HTTP_VIA'], "wap") ? true : false;
+        if (isset($_SERVER['HTTP_VIA']) && stripos((string) $_SERVER['HTTP_VIA'], 'wap') !== false) {
+            return true;
         }
-        if (isset ($_SERVER['HTTP_USER_AGENT'])) {
-            $clientkeywords = array('nokia',
-                'sony', 'ericsson', 'mot', 'samsung', 'htc', 'sgh', 'lg', 'sharp', 'sie-', 'philips', 'panasonic', 'alcatel',
-                'lenovo', 'iphone', 'ipod', 'blackberry', 'meizu', 'android', 'netfront', 'symbian', 'ucweb', 'windowsce',
-                'palm', 'operamini', 'operamobi', 'openwave', 'nexusone', 'cldc', 'midp', 'wap', 'mobile'
-            );
-            if (preg_match("/(" . implode('|', $clientkeywords) . ")/i", strtolower($_SERVER['HTTP_USER_AGENT']))) {
-                return true;
-            }
+
+        $clientKeywords = [
+            'nokia', 'sony', 'ericsson', 'mot', 'samsung', 'htc', 'sgh', 'lg', 'sharp', 'sie-',
+            'philips', 'panasonic', 'alcatel', 'lenovo', 'iphone', 'ipod', 'blackberry', 'meizu',
+            'android', 'netfront', 'symbian', 'ucweb', 'windowsce', 'palm', 'operamini',
+            'operamobi', 'openwave', 'nexusone', 'cldc', 'midp', 'wap', 'mobile',
+        ];
+        $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        if ($userAgent !== '' && preg_match('/(' . implode('|', $clientKeywords) . ')/i', $userAgent) === 1) {
+            return true;
         }
-        if (isset ($_SERVER['HTTP_ACCEPT'])) {
-            if ((strpos($_SERVER['HTTP_ACCEPT'], 'vnd.wap.wml') !== false) && (strpos($_SERVER['HTTP_ACCEPT'], 'text/html') === false || (strpos($_SERVER['HTTP_ACCEPT'], 'vnd.wap.wml') < strpos($_SERVER['HTTP_ACCEPT'], 'text/html')))) {
-                return true;
-            }
-        }
-        return false;
+
+        $accept = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
+        $wapPosition = strpos($accept, 'vnd.wap.wml');
+        $htmlPosition = strpos($accept, 'text/html');
+        return $wapPosition !== false && ($htmlPosition === false || $wapPosition < $htmlPosition);
     }
 }
-
-//是否https;
 
 if (!function_exists('isHttps')) {
-    function isHttps()
+    function isHttps(): bool
     {
-        if (!empty($_SERVER['HTTPS']) && strtolower($_SERVER['HTTPS']) !== 'off') {
-            return true;
-        } elseif (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-            return true;
-        } elseif (!empty($_SERVER['HTTP_FRONT_END_HTTPS']) && strtolower($_SERVER['HTTP_FRONT_END_HTTPS']) !== 'off') {
+        $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
+        if ($https !== '' && $https !== 'off' && $https !== '0') {
             return true;
         }
-        return false;
+        if (strtolower((string) ($_SERVER['REQUEST_SCHEME'] ?? '')) === 'https') {
+            return true;
+        }
+        return (string) ($_SERVER['SERVER_PORT'] ?? '') === '443';
     }
 }
 
-/**
- * 获取http类型
- */
 if (!function_exists('httpType')) {
-    /**
-     * http 类型
-     * @return string
-     */
-    function httpType()
+    function httpType(): string
     {
-        return $http_type = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https')) ? 'https://' : 'http://';
-
+        return isHttps() ? 'https://' : 'http://';
     }
 }
 
 if (!function_exists('timeAgo')) {
     /**
-     * 从前
-     * @param $posttime
-     * @return string
+     * 将过去时间转换为中文相对时间。
      */
-    function timeAgo($posttime)
+    function timeAgo(string|int $posttime): string
     {
-        //当前时间的时间戳
-        $nowtimes = strtotime(date('Y-m-d H:i:s'), time());
-        //之前时间参数的时间戳
-        $posttimes = strtotime($posttime);
-        //相差时间戳
-        $counttime = $nowtimes - $posttimes;
-        //进行时间转换
-        if ($counttime <= 10) {
-            return '刚刚';
-        } else if ($counttime > 10 && $counttime <= 30) {
-            return '刚才';
-        } else if ($counttime > 30 && $counttime <= 60) {
-            return '刚一会';
-        } else if ($counttime > 60 && $counttime <= 120) {
-            return '1分钟前';
-        } else if ($counttime > 120 && $counttime <= 180) {
-            return '2分钟前';
-        } else if ($counttime > 180 && $counttime < 3600) {
-            return intval(($counttime / 60)) . '分钟前';
-        } else if ($counttime >= 3600 && $counttime < 3600 * 24) {
-            return intval(($counttime / 3600)) . '小时前';
-        } else if ($counttime >= 3600 * 24 && $counttime < 3600 * 24 * 2) {
-            return '昨天';
-        } else if ($counttime >= 3600 * 24 * 2 && $counttime < 3600 * 24 * 3) {
-            return '前天';
-        } else if ($counttime >= 3600 * 24 * 3 && $counttime <= 3600 * 24 * 20) {
-            return intval(($counttime / (3600 * 24))) . '天前';
-        } else {
-            return $posttime;
+        $original = (string) $posttime;
+        $timestamp = is_int($posttime) ? $posttime : strtotime($posttime);
+        if ($timestamp === false) {
+            return $original;
         }
-    }
-    /**
-     * 动态永久修改 config 文件内容
-     * @param $key
-     * @param $value
-     * @return bool|int
-     */
-    if (!function_exists('setConfig')) {
-        function setConfig($configFile,$key, $value)
-        {
-            $config = file_get_contents($configFile); //加载配置文件
-            $config = preg_replace("/'{$key}'.*?=>.*?'.*?'/", "'{$key}' => '{$value}'", $config);
-            return file_put_contents($configFile, $config); // 写入配置文件
-        }
-    }
 
+        $seconds = time() - $timestamp;
+        if ($seconds < 0) {
+            return $original;
+        }
+        if ($seconds <= 10) {
+            return '刚刚';
+        }
+        if ($seconds <= 30) {
+            return '刚才';
+        }
+        if ($seconds <= 60) {
+            return '刚一会';
+        }
+        if ($seconds <= 120) {
+            return '1分钟前';
+        }
+        if ($seconds <= 180) {
+            return '2分钟前';
+        }
+        if ($seconds < 3600) {
+            return intdiv($seconds, 60) . '分钟前';
+        }
+        if ($seconds < 86400) {
+            return intdiv($seconds, 3600) . '小时前';
+        }
+        if ($seconds < 172800) {
+            return '昨天';
+        }
+        if ($seconds < 259200) {
+            return '前天';
+        }
+        if ($seconds <= 1728000) {
+            return intdiv($seconds, 86400) . '天前';
+        }
+        return $original;
+    }
 }
 
-/**
- * 权限 文件内容
- * @param $key
- * @param $value
- * @return bool|int
- */
+if (!function_exists('setConfig')) {
+    /**
+     * 任意配置文件写入已停用。
+     */
+    function setConfig(string $configFile, string $key, mixed $value): never
+    {
+        throw new LogicException('setConfig 已停用：禁止通过公共助手写入任意配置文件');
+    }
+}
+
 if (!function_exists('auth')) {
-    function auth($url)
+    function auth(string $url): bool
     {
         return node($url);
     }
 }
 
-
-/**
- * 权限 文件内容
- * @param $key
- * @param $value
- * @return bool|int
- */
 if (!function_exists('node')) {
-    function node($url)
+    function node(string $url): bool
     {
-        return \app\backend\service\AuthService::instance()->nodeAccess($url);
+        return (new \app\backend\service\AdminAuthorizationService())->nodeAccess($url);
     }
 }
 
-/**
- * 是否登录
- * @param $key
- * @param $value
- * @return bool|int
- */
 if (!function_exists('isLogin')) {
-    function isLogin()
+    function isLogin(): mixed
     {
-        if (session('member')) {
-            \think\facade\Cookie::set('mid', session('member.id'));//跨域
-            return session('member');
-        } else if(!empty(\think\facade\Cookie::get('mid'))) {
-            $mid = \think\facade\Cookie::get('mid');
-            $member = db_cache('member-user',function()use($mid){
-                return \app\common\model\Member::withoutField('password')->find(Cookie::get('mid'));
-            });
-            session('member',$member);
-            return $member;
-        }else{
+        $member = Session::get('member');
+        if (!$member) {
             return false;
         }
+
+        $memberId = Session::get('member.id');
+        if ($memberId !== null) {
+            Cookie::set('mid', $memberId);
+        }
+        return $member;
     }
 }
 
 if (!function_exists('logout')) {
-    function logout()
+    function logout(): bool
     {
         Session::delete('member');
         Cookie::delete('mid');
-        if(!empty($_COOKIE['mid'])) $_COOKIE['mid'] = '';
+        if (array_key_exists('mid', $_COOKIE)) {
+            $_COOKIE['mid'] = '';
+        }
         return true;
-
     }
 }
-/**
- * 获取版本号
- * @param $key
- * @param $value
- * @return bool|int
- */
+
 if (!function_exists('getTpVersion')) {
-    function getTpVersion()
+    function getTpVersion(): string
     {
-        return App::VERSION;
+        return (string) App::VERSION;
     }
 }
 
-/**
- * PHP格式化字节大小
- * @param number $size      字节数
- * @param string $delimiter 数字和单位分隔符
- * @return string            格式化后的带单位的大小
- */
 if (!function_exists('format_bytes')) {
-    function format_bytes($size, $delimiter = '')
+    /**
+     * 格式化字节大小，最大单位固定为 PB。
+     */
+    function format_bytes(int|float $size, string $delimiter = ''): string
     {
-        $units = array('B', 'KB', 'MB', 'GB', 'TB', 'PB');
-        for ($i = 0; $size >= 1024 && $i < 5; $i++) $size /= 1024;
-        return round($size, 2) . $delimiter . $units[$i];
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        $size = max(0, $size);
+        $unitIndex = 0;
+        while ($size >= 1024 && $unitIndex < count($units) - 1) {
+            $size /= 1024;
+            $unitIndex++;
+        }
+        return round($size, 2) . $delimiter . $units[$unitIndex];
     }
 }
 
-
-if(!function_exists('password')){
-    /**
-     * 密码
-     * @param $password
-     * @return string
-     */
-    function password($password,$type=PASSWORD_DEFAULT)
+if (!function_exists('password')) {
+    function password(string $password, int|string $type = PASSWORD_DEFAULT): string
     {
         return password_hash($password, $type);
     }
-
 }
-
-// Form别名
-if (!class_exists('BuilderTable')) {
-    if(class_exists('app\builder\facade\BuilderTable')){
-        class_alias('app\\builder\\facade\\BuilderTable', 'BuilderTable');
-    }
-}
-if (!class_exists('BuilderForm')) {
-    if(class_exists('app\builder\facade\BuilderForm')) {
-        class_alias('app\\builder\\facade\\BuilderForm', 'BuilderForm');
-    }
-}
-if (!class_exists('BuilderMaker')) {
-    if(class_exists('app\builder\facade\BuilderMaker')) {
-        class_alias('app\\builder\\facade\\BuilderMaker', 'BuilderMaker');
-    }
-}
-
-
 
 if (!function_exists('getSystemTable')) {
     /**
-     * @param $table
-     * @param $shift
-     * @return array|string[]
-     * 获取系统表格
+     * 获取系统表清单。
      */
-    function getSystemTable($table=[],$shift= [])
+    function getSystemTable(array $table = [], array $shift = []): array
     {
-        $tableList =  [
+        $tableList = [
             'plugin',
             'admin',
             'admin_log',
@@ -418,13 +354,9 @@ if (!function_exists('getSystemTable')) {
             'member_group',
             'member_level',
             'provinces',
+            'region',
         ];
-        if(!empty($table)){
-            $tableList =  array_merge($tableList,$table);
-        }
-        if(!empty($shift)){
-            $tableList = array_diff($tableList, $shift);
-        }
-        return $tableList;
+
+        return array_values(array_unique(array_diff(array_merge($tableList, $table), $shift)));
     }
 }

@@ -9,15 +9,21 @@ use app\backend\middleware\CheckAdminApiCsrf;
 use app\backend\middleware\CheckAdminApiRole;
 use app\backend\model\AdminLog;
 use app\backend\service\DataScopeService;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
 use think\Response;
 
 /**
  * 后台操作日志，只暴露已落库的真实审计字段。
  */
+#[Group('system/log/operation')]
 class SystemOperationLog extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class];
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -60,12 +66,22 @@ class SystemOperationLog extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $log = $this->scopedQuery()->where('id', $id)->find();
         return $log ? $this->ok(data: $this->logData($log, true)) : $this->fail(msg: '日志不存在或无权访问', code: 404);
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();

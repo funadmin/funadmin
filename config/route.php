@@ -26,7 +26,7 @@ return [
     'route_check_cache_key' => '',
     // 访问控制器层名称
     'controller_layer'      => 'controller',
-    // 空控制器名
+    // 后台默认入口仅保留 M7 Admin Web 兼容跳转控制器
     'empty_controller'      => 'Error',
     // 是否使用控制器后缀
     'controller_suffix'     => false,

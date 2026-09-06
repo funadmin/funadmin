@@ -1,6 +1,6 @@
 {
   "name": "funadmin/funadmin",
-  "description": "FunAdmin是一个基于thinkphp8,Layui,requirejs的应用框架",
+  "description": "FunAdmin 是基于 ThinkPHP 8 与 Vue 3 的前后端分离管理框架",
   "type": "project",
   "license": "Apache-2.0",
   "repositories": {
@@ -10,8 +10,8 @@
     }
   },
   "keywords": [
-    "FunAdmin","CMS","CMF","LowCode","Layui","TP8",
-    "easywechat", "framework","TP6","ORM","低代码",
+    "FunAdmin","CMS","CMF","LowCode","Vue","TP8",
+    "easywechat", "framework","Element Plus","ORM","低代码",
     "thinkphp", "thinkphp6","thinkphp8"
   ],
   "homepage": "https://www.funadmin.com",
@@ -57,7 +57,8 @@
   },
   "autoload": {
     "psr-4": {
-      "app\\": "app"
+      "app\\": "app",
+      "plugins\\": "plugins"
     },
     "psr-0": {
       "": "extend/"
@@ -84,8 +85,6 @@
     "post-autoload-dump": [
       "@php think service:discover",
       "@php think vendor:publish",
-      "@php think plugins:config",
-      "@php think builder:config",
       "@php think auth:config"
     ]
   }

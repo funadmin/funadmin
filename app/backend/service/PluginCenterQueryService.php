@@ -98,28 +98,30 @@ final class PluginCenterQueryService extends AbstractService
             if (!$manifest) {
                 continue;
             }
-            $admin = $manifest->toArray()['admin_web'] ?? null;
-            if (!is_array($admin) || !is_string($admin['entry'] ?? null)) {
+            $adminWeb = $manifest->toArray()['admin_web'] ?? null;
+            if (!is_array($adminWeb) || !is_string($adminWeb['entry'] ?? null)) {
                 continue;
             }
-            $entry = (string) $admin['entry'];
+            $entry = (string) $adminWeb['entry'];
             $publishRoot = root_path() . 'public' . DIRECTORY_SEPARATOR . 'plugin-assets' . DIRECTORY_SEPARATOR . $name;
             $realPublishRoot = realpath($publishRoot);
             $realFile = realpath($publishRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $entry));
             if ($realPublishRoot === false || $realFile === false || !is_file($realFile)) {
                 continue;
             }
-            $prefix = rtrim($realPublishRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            if (!str_starts_with($realFile, $prefix)) {
+            if (!str_starts_with($realFile, rtrim($realPublishRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
                 continue;
             }
             $hash = hash_file('sha256', $realFile);
+            if (!is_string($hash)) {
+                continue;
+            }
             $modules[] = [
                 'name' => $name,
                 'version' => (string) $record->version,
                 'hash' => $hash,
                 'entryUrl' => '/plugin-assets/' . $name . '/' . $entry . '?v=' . $hash,
-                'routes' => $this->routeDtos($admin['routes'] ?? [], $name),
+                'routes' => $this->routeDtos($adminWeb['routes'] ?? [], $name),
             ];
         }
         return $modules;
@@ -150,6 +152,7 @@ final class PluginCenterQueryService extends AbstractService
             'operation' => (string) ($record?->operation_token ?? '') !== '' ? (string) ($operation?->operation ?? 'unknown') : '',
             'progress' => (int) ($operation?->progress ?? 0),
             'disabledReason' => $this->disabledReason($record, $dependencies),
+            'admin_web' => is_array($data['admin_web'] ?? null) ? $data['admin_web'] : null,
         ];
     }
 

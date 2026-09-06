@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -8,7 +8,6 @@ const readProject = (relativePath: string) => readFileSync(resolve(projectRoot, 
 const consoleConfig = readProject('config/console.php');
 
 const commands: Record<string, string> = {
-  curd: 'extend/fun/crud/AdminWebCrud.php',
   'crud:inspect': 'extend/fun/command/CrudInspect.php',
   'crud:validate': 'extend/fun/command/CrudValidate.php',
   'crud:preview': 'extend/fun/command/CrudPreview.php',
@@ -29,17 +28,9 @@ describe('console 命令注册契约', () => {
     expect(readProject('extend/fun/mcp/McpServer.php')).not.toContain('mcp:server');
   });
 
-  it('旧 curd 命令明确弃用且仅提供只读预览入口', () => {
-    const command = readProject('extend/fun/crud/AdminWebCrud.php');
-    expect(command).toContain("setName('curd')");
-    expect(command).toContain('已弃用');
-    expect(command).toContain('只读');
-    expect(command).not.toContain("getOption('write')");
-    expect(existsSync(resolve(projectRoot, 'app/common/traits/Curd.php'))).toBe(false);
-  });
-
-  it('已删除旧工具链命令不再注册', () => {
-    expect(consoleConfig).not.toMatch(/'(?:menu|plugin|install)'\s*=>\s*'fun\\crud\\/);
+  it('旧工具链命令不再注册', () => {
+    expect(consoleConfig).not.toMatch(/'(?:curd|menu|plugin|install)'\s*=>/);
+    expect(consoleConfig).not.toContain('fun\\crud\\');
   });
 
   it('MCP plugin 工具识别中文成功输出', () => {

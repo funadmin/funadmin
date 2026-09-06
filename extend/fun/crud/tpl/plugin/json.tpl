@@ -19,24 +19,30 @@
         "events": "config/events.php",
         "routes": "routes/plugin.php"
     },
-    "permissions": [],
-    "menus": [],
-    "admin_web": {
-        "entry": "entry.js",
+    "adminWeb": {
+        "component": "entry.js",
+        "files": ["entry.js"],
+        "minFrontendVersion": "1.0.0",
+        "permissions": [
+            { "code": "{%plugin%}:dashboard:view", "name": "查看{%title%}" }
+        ],
+        "menu": [
+            { "name": "{%title%}", "path": "/plugin/{%plugin%}/index", "permission": "{%plugin%}:dashboard:view" }
+        ],
         "routes": [
             {
                 "path": "/plugin/{%plugin%}/index",
                 "name": "Plugin_{%plugin%}_Index",
                 "component": "Index",
                 "meta": {
-                    "title": "{%title%}"
+                    "title": "{%title%}",
+                    "permission": "{%plugin%}:dashboard:view"
                 }
             }
         ]
     },
     "resources": {
-        "public": { "source": "resources/public", "target": "plugin-assets/{%plugin%}/public" },
-        "admin": { "source": "resources/admin", "target": "plugin-assets/{%plugin%}" }
+        "public": { "source": "resources/public", "target": "plugin-assets/{%plugin%}/public" }
     },
     "migrations": { "path": "migrations" },
     "storage": { "path": "storage/{%plugin%}" },

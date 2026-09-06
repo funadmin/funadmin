@@ -11,13 +11,13 @@
   >
     <template v-for="item in menus" :key="item.path">
       <el-menu-item v-if="!hasChildren(item) || mode === 'mix'" :index="resolvePath(item)">
-        <i v-if="item.meta?.icon" :class="item.meta.icon as string" class="app-top-icon" />
+        <i :class="item.meta?.icon || (hasChildren(item) ? 'i-ep-folder' : 'i-ep-document')" class="app-top-icon" />
         <span>{{ menuTitle(item) }}</span>
       </el-menu-item>
 
       <el-sub-menu v-else :index="resolvePath(item)" :teleported="true">
         <template #title>
-          <i v-if="item.meta?.icon" :class="item.meta.icon as string" class="app-top-icon" />
+          <i :class="item.meta?.icon || (hasChildren(item) ? 'i-ep-folder' : 'i-ep-document')" class="app-top-icon" />
           <span>{{ menuTitle(item) }}</span>
         </template>
         <TopSubItem

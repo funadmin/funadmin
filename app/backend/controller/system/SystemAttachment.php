@@ -11,12 +11,19 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\storage\StorageDriverRegistry;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\App;
 use think\Response;
 
 /**
  * Admin Web 附件库管理。
  */
+#[Group('system/attachment')]
 class SystemAttachment extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
@@ -26,6 +33,7 @@ class SystemAttachment extends AdminApiController
         parent::__construct($app);
     }
 
+    #[Get('')]
     public function index(): Response
     {
         $page = $this->page();
@@ -54,12 +62,16 @@ class SystemAttachment extends AdminApiController
         ));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $attach = Attach::find($id);
         return $attach ? $this->ok(data: $this->attachmentData($attach)) : $this->fail(msg: '附件不存在', code: 404);
     }
 
+    #[Put(':id/name')]
+    #[Pattern('id', '\\d+')]
     public function rename(int $id): Response
     {
         $attach = Attach::find($id);
@@ -75,6 +87,7 @@ class SystemAttachment extends AdminApiController
         return $this->ok('重命名成功', $this->attachmentData($attach));
     }
 
+    #[Post('move')]
     public function move(): Response
     {
         $ids = $this->ids();
@@ -95,6 +108,7 @@ class SystemAttachment extends AdminApiController
         return $this->ok('移动成功', ['moved' => count($attachments)]);
     }
 
+    #[Delete('')]
     public function delete(): Response
     {
         $ids = $this->ids();

@@ -85,6 +85,7 @@ class PermissionResource
         return match ($normalized) {
             'auth.adminauth' => 'adminauth',
             'auth.adminprofile' => 'adminprofile',
+            'development.devcrud' => 'devcrud',
             'system.adminupload' => 'adminupload',
             default => preg_replace('/^system\.(system[a-z0-9_]+)$/', '$1', $normalized) ?? $normalized,
         };

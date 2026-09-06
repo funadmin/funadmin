@@ -10,16 +10,24 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\AttachGroup;
 use app\common\model\Attach;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 use think\facade\Db;
 
 /**
  * Admin Web 附件分组管理；保留模型供旧文件选择器兼容使用。
  */
+#[Group('system/attachment-group')]
 class SystemAttachmentGroup extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('tree')]
     public function tree(): Response
     {
         $groups = AttachGroup::order('sort_order', 'asc')->order('id', 'asc')->select();
@@ -27,12 +35,15 @@ class SystemAttachmentGroup extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $group = AttachGroup::find($id);
         return $group ? $this->ok(data: $this->groupData($group)) : $this->fail(msg: '附件分组不存在', code: 404);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -43,6 +54,8 @@ class SystemAttachmentGroup extends AdminApiController
         return $this->ok('创建成功', $this->groupData($group));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $group = AttachGroup::find($id);
@@ -57,6 +70,8 @@ class SystemAttachmentGroup extends AdminApiController
         return $this->ok('保存成功', $this->groupData($group));
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
     public function delete(int $id): Response
     {
         if ($id === 1) {

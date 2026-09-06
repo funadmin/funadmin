@@ -19,11 +19,11 @@ class CheckAdminApiCsrf
         $requestToken = (string) ($request->header('X-CSRF-TOKEN', '') ?: $request->param('__token__', ''));
         if ($sessionToken === '' || $requestToken === '' || !hash_equals($sessionToken, $requestToken)) {
             return json([
-                'code' => 419,
+                'code' => 403,
                 'msg' => 'CSRF Token 无效或已过期',
                 'time' => time(),
                 'data' => null,
-            ], 419);
+            ], 403);
         }
 
         return $next($request);

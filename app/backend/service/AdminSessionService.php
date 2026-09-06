@@ -13,7 +13,7 @@ use think\facade\Cookie;
 use think\facade\Session;
 use Throwable;
 
-final class AdminSessionService
+class AdminSessionService
 {
     public function isLogin(): bool
     {

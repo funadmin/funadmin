@@ -2,7 +2,8 @@
 
 namespace app\backend\middleware;
 
-use app\backend\service\AuthService;
+use app\backend\service\AdminAuthorizationService;
+use app\backend\service\AdminSessionService;
 use think\exception\HttpResponseException;
 
 /**
@@ -10,10 +11,15 @@ use think\exception\HttpResponseException;
  */
 class CheckAdminApiRole
 {
+    public function __construct(
+        private readonly AdminSessionService $session = new AdminSessionService,
+        private readonly AdminAuthorizationService $authorization = new AdminAuthorizationService
+    ) {
+    }
+
     public function handle($request, \Closure $next)
     {
-        $auth = AuthService::instance();
-        if (!$auth->isLogin()) {
+        if (!$this->session->isLogin()) {
             return json([
                 'code' => 401,
                 'msg' => '登录已失效，请重新登录',
@@ -23,7 +29,7 @@ class CheckAdminApiRole
         }
 
         try {
-            $auth->roleAccess(true);
+            $this->authorization->roleAccess(true);
         } catch (HttpResponseException $e) {
             return json([
                 'code' => 403,

@@ -10,13 +10,20 @@ use app\backend\middleware\CheckAdminApiRole;
 use app\backend\middleware\SystemLog;
 use app\backend\model\AdminMenu;
 use app\backend\model\Permission;
-use app\backend\service\AuthService;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 
+#[Group('system/menu')]
 class SystemMenu extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('tree')]
     public function tree(): Response
     {
         $query = AdminMenu::where('source_type', 'admin_web')->where('status', 1)->order('sort_order', 'asc')->order('id', 'asc');
@@ -32,12 +39,15 @@ class SystemMenu extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $menu = $this->findMenu($id);
         return $menu ? $this->ok(data: $this->menuData($menu)) : $this->fail(msg: '菜单不存在', code: 404);
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
@@ -51,6 +61,8 @@ class SystemMenu extends AdminApiController
         return $this->ok('创建成功', $this->menuData($menu));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $menu = $this->findMenu($id);
@@ -68,6 +80,14 @@ class SystemMenu extends AdminApiController
         return $this->ok('保存成功', $this->menuData($menu));
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();

@@ -11,16 +11,20 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\AttachGroup;
 use app\common\model\Attach;
 use app\common\service\UploadService;
+use think\annotation\route\Group;
+use think\annotation\route\Post;
 use think\Response;
 use think\facade\Session;
 
 /**
  * Admin Web 通用上传适配器，复用现有上传服务并统一响应结构。
  */
+#[Group('')]
 class AdminUpload extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Post('upload')]
     public function upload(): Response
     {
         $file = $this->request->file('file');

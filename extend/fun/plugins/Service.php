@@ -29,11 +29,15 @@ class Service extends \think\Service
     {
         $this->registerRoutes(function (Route $route): void {
             $loader = new RuntimeLoader();
-            $this->booter()->each(
-                $this->registry()->enabled(),
-                'routes',
-                static fn (Manifest $manifest) => $loader->loadRoutes($route, $manifest)
-            );
+            $boundaries = [
+                'routes' => static fn (Manifest $manifest) => $loader->loadRoutes($route, $manifest),
+            ];
+            // 普通路由与当前应用通道路由必须在同一插件边界链中执行，保留依赖失败传播与插件内短路。
+            $appName = (string) $this->app->http->getName();
+            if (in_array($appName, ['api', 'frontend'], true)) {
+                $boundaries['channels.' . $appName] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $appName);
+            }
+            $this->booter()->boot($this->registry()->enabled(), $boundaries);
         });
 
     }
@@ -47,10 +51,13 @@ class Service extends \think\Service
     private function loadRuntimeBoundaries(): void
     {
         $loader = new RuntimeLoader();
-        $enabled = $this->registry()->enabled();
-        $this->booter()->each($enabled, 'entry', static fn (Manifest $manifest) => $loader->loadEntry($manifest));
-        $this->booter()->each($enabled, 'services', fn (Manifest $manifest) => $loader->loadServices($this->app, $manifest));
-        $this->booter()->each($enabled, 'events', fn (Manifest $manifest) => $loader->loadEvents($this->app, $manifest));
+        $this->booter()->boot($this->registry()->enabled(), [
+            // vendor 必须先于 entry：入口类的父类/接口可能来自插件自带依赖
+            'composer' => static fn (Manifest $manifest) => $loader->loadComposerAutoload($manifest),
+            'entry' => static fn (Manifest $manifest) => $loader->loadEntry($manifest),
+            'services' => fn (Manifest $manifest) => $loader->loadServices($this->app, $manifest),
+            'events' => fn (Manifest $manifest) => $loader->loadEvents($this->app, $manifest),
+        ]);
     }
 
     private function booter(): PluginRuntimeBooter

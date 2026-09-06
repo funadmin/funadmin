@@ -28,7 +28,7 @@ class DataScopeService
         if (!$admin) {
             return ['all' => false, 'adminId' => $adminId, 'departmentIds' => []];
         }
-        $roleIds = AuthService::instance()->adminRoleIds($adminId);
+        $roleIds = (new RoleScopeService())->adminRoleIds($adminId);
         $roles = AuthGroup::whereIn('id', $roleIds ?: [0])
             ->where('status', 1)
             ->field('id,data_scope')

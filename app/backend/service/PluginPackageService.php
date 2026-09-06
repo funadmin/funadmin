@@ -13,6 +13,56 @@ class PluginPackageService extends AbstractService
 {
     private const MAX_ARCHIVE_BYTES = 104857600;
     private const MAX_UNPACKED_BYTES = 524288000;
+
+    public function inspect(string $archive, string $expectedName = '', string $expectedVersion = ''): array
+    {
+        if (!is_file($archive)) {
+            throw new RuntimeException('插件安装包不存在');
+        }
+        if (filesize($archive) > self::MAX_ARCHIVE_BYTES) {
+            throw new RuntimeException('插件安装包超过 100MB 限制');
+        }
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('服务器未安装 ZipArchive 扩展');
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($archive) !== true) {
+            throw new RuntimeException('无法打开插件安装包');
+        }
+        try {
+            $manifestEntry = null;
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $entry = str_replace('\\', '/', (string) $zip->getNameIndex($index));
+                if ($entry === 'plugin.json' || preg_match('~^[^/]+/plugin\.json$~', $entry) === 1) {
+                    if ($manifestEntry !== null) {
+                        throw new RuntimeException('插件包包含多个 plugin.json');
+                    }
+                    $manifestEntry = $entry;
+                }
+            }
+            if ($manifestEntry === null) {
+                throw new RuntimeException('插件包缺少 plugin.json');
+            }
+            $json = $zip->getFromName($manifestEntry);
+            $manifest = is_string($json) ? json_decode($json, true) : null;
+            if (!is_array($manifest)) {
+                throw new RuntimeException('plugin.json 格式错误');
+            }
+            $name = (string) ($manifest['name'] ?? '');
+            $version = (string) ($manifest['version'] ?? '');
+            $this->assertName($name);
+            if ($expectedName !== '' && strcasecmp($name, $expectedName) !== 0) {
+                throw new RuntimeException('插件包名称与请求名称不一致');
+            }
+            if ($expectedVersion !== '' && $version !== $expectedVersion) {
+                throw new RuntimeException('插件包版本与请求版本不一致');
+            }
+            return ['name' => $name, 'version' => $version, 'manifest' => $manifest];
+        } finally {
+            $zip->close();
+        }
+    }
+
     public function stage(string $archive, string $expectedName = '', string $expectedVersion = ''): array
     {
         if ($expectedName !== '') {

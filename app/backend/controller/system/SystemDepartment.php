@@ -11,14 +11,22 @@ use app\backend\middleware\SystemLog;
 use app\backend\model\Admin;
 use app\backend\model\AuthGroupDepartment;
 use app\backend\model\Department;
-use app\backend\service\AuthService;
+use app\backend\service\RoleScopeService;
 use app\backend\service\DataScopeService;
+use think\annotation\route\Delete;
+use think\annotation\route\Get;
+use think\annotation\route\Group;
+use think\annotation\route\Pattern;
+use think\annotation\route\Post;
+use think\annotation\route\Put;
 use think\Response;
 
+#[Group('system/dept')]
 class SystemDepartment extends AdminApiController
 {
     protected $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
+    #[Get('tree')]
     public function tree(): Response
     {
         $query = Department::order('sort_order', 'asc')->order('id', 'asc');
@@ -48,6 +56,8 @@ class SystemDepartment extends AdminApiController
         return $this->ok(data: $this->buildTree($rows));
     }
 
+    #[Get(':id')]
+    #[Pattern('id', '\\d+')]
     public function detail(int $id): Response
     {
         $department = Department::find($id);
@@ -57,13 +67,14 @@ class SystemDepartment extends AdminApiController
         return $this->ok(data: $this->departmentData($department));
     }
 
+    #[Post('')]
     public function create(): Response
     {
         $data = $this->payload();
         if ($error = $this->validatePayload($data)) {
             return $this->fail(msg: $error, code: 422);
         }
-        if ($data['pid'] <= 0 && !AuthService::instance()->isSuperAdmin()) {
+        if ($data['pid'] <= 0 && !(new RoleScopeService())->isSuperAdmin()) {
             return $this->fail(msg: '只有超级管理员可以创建顶级部门', code: 403);
         }
         if ($data['pid'] > 0 && (!Department::where('id', $data['pid'])->where('status', 1)->find() || !$this->canAccessDepartment($data['pid']))) {
@@ -72,6 +83,8 @@ class SystemDepartment extends AdminApiController
         return $this->ok('创建成功', $this->departmentData(Department::create($data)));
     }
 
+    #[Put(':id')]
+    #[Pattern('id', '\\d+')]
     public function update(int $id): Response
     {
         $department = Department::find($id);
@@ -83,7 +96,7 @@ class SystemDepartment extends AdminApiController
             return $this->fail(msg: $error, code: 422);
         }
         if (isset($data['pid'])) {
-            if ($data['pid'] <= 0 && !AuthService::instance()->isSuperAdmin()) {
+            if ($data['pid'] <= 0 && !(new RoleScopeService())->isSuperAdmin()) {
                 return $this->fail(msg: '只有超级管理员可以移动为顶级部门', code: 403);
             }
             if ($data['pid'] > 0) {
@@ -104,6 +117,14 @@ class SystemDepartment extends AdminApiController
         return $this->ok('保存成功', $this->departmentData($department));
     }
 
+    #[Delete(':id')]
+    #[Pattern('id', '\\d+')]
+    public function deleteById(int $id): Response
+    {
+        return $this->delete($id);
+    }
+
+    #[Delete('')]
     public function delete(int $id = 0): Response
     {
         $ids = $this->ids();
@@ -140,7 +161,7 @@ class SystemDepartment extends AdminApiController
 
     private function allowedDepartmentIds(): ?array
     {
-        if (AuthService::instance()->isSuperAdmin()) {
+        if ((new RoleScopeService())->isSuperAdmin()) {
             return null;
         }
         $scope = (new DataScopeService())->resolve();

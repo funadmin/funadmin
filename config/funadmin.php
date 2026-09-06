@@ -18,21 +18,13 @@ return [
 
     'version_data' => date('Y-m-d'),
 
-    'layui_version' => '2.11.4',
-
     'ip_check'=>false,
-
-    'public_ajax_url'=>['ajax/uploads', 'ajax/getAttach', 'ajax/export','ajax/import'],
 
     // 所有后台请求默认按权限节点校验；以下仅为登录后所有管理员共享的基础入口。
     'auth_login_only_routes'=>[
-        'index/index', 'index/console', 'index/logout', 'index/enlang',
-        'ajax/refreshmenu', 'ajax/lang', 'ajax/getattach',
         'plugin/logout',
         'auth/me', 'auth/menus', 'auth/logout',
     ],
-    // 全局配置和缓存只允许超级管理员操作。
-    'auth_super_only_routes'=>['ajax/clearcache', 'ajax/setconfig', 'ajax/getlist'],
     // 复用已有权限节点，避免同一能力出现多个授权口径。
     'auth_route_aliases'=>[
         'plugin/localinstall' => 'plugin/install',
@@ -42,6 +34,14 @@ return [
         'system/role/permission-tree' => 'systemrole/permissions',
         'backend/systemoperationlog:detail' => 'systemoperationlog/index',
         'backend/systempermission:detail' => 'systempermission/tree',
+        'development/crud/validate' => 'devcrud/validate',
+        'system/role/:id' => 'systemrole/delete',
+        'system/dept/:id' => 'systemdepartment/delete',
+        'system/user/:id' => 'systemadmin/delete',
+        'system/menu/:id' => 'systemmenu/delete',
+        'system/permission/:id' => 'systempermission/delete',
+        'system/language/:id' => 'systemlanguage/delete',
+        'system/log/operation/:id' => 'systemoperationlog/delete',
     ],
 
     'sys_app'=>['backend','api','index','common','install'],
@@ -49,6 +49,12 @@ return [
     'crud_deny_app'=>['common','install'],
     //接口域名
     'api_domain'=>'https://www.funadmin.com',
+    // 系统升级仅信任该 Ed25519 发布者公钥；为空时生产流程 fail closed。
+    'upgrade_public_key'=>(string) env('FUNADMIN_UPGRADE_PUBLIC_KEY', ''),
+    'upgrade_signature_algorithm'=>'ed25519',
+    'upgrade_hosts'=>[],
+    'upgrade_manifest_ttl'=>300,
+    'upgrade_lease_seconds'=>1800,
 ];
 
 

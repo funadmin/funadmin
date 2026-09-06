@@ -42,7 +42,8 @@ describe('017 历史命名与会员标签治理', () => {
 
   it('应用代码切换到规范管理员字段', () => {
     for (const path of [
-      'app/backend/service/AuthService.php',
+      'app/backend/service/AdminSessionService.php',
+      'app/backend/service/AdminAuthorizationService.php',
       'app/backend/controller/auth/AdminAuth.php',
       'app/backend/controller/auth/AdminProfile.php',
       'app/backend/controller/system/SystemAdmin.php',

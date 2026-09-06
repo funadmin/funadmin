@@ -1,135 +1,160 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { extname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const projectRoot = resolve(process.cwd(), '..');
-const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
-const servicePath = (name: string) => resolve(projectRoot, `app/backend/service/${name}.php`);
+const projectPath = (relativePath: string) => resolve(projectRoot, relativePath);
+const readProjectFile = (relativePath: string) => readFileSync(projectPath(relativePath), 'utf8');
 
-const authService = readProjectFile('app/backend/service/AuthService.php');
-const roleGuardService = readProjectFile('app/backend/service/RoleGuardService.php');
-const indexController = readProjectFile('app/backend/controller/Index.php');
-const ajaxController = readProjectFile('app/backend/controller/Ajax.php');
+const phpFilesUnder = (relativePath: string): string[] => {
+  const directory = projectPath(relativePath);
+  if (!existsSync(directory)) return [];
+
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const child = `${relativePath}/${entry.name}`;
+    if (entry.isDirectory()) return phpFilesUnder(child);
+    return extname(entry.name) === '.php' ? [child] : [];
+  });
+};
+
+const productionPhpFiles = ['app', 'extend', 'config'].flatMap(phpFilesUnder);
+const productionPhp = productionPhpFiles.map((file) => `${file}\n${readProjectFile(file)}`).join('\n');
+const backendRoute = readProjectFile('app/backend/route/app.php');
+const adminAuthController = readProjectFile('app/backend/controller/auth/AdminAuth.php');
+const uploadController = readProjectFile('app/backend/controller/system/AdminUpload.php');
+const roleController = readProjectFile('app/backend/controller/system/SystemRole.php');
+const adminController = readProjectFile('app/backend/controller/system/SystemAdmin.php');
+const menuControllerRoutes = readProjectFile('app/backend/controller/system/SystemMenu.php');
+const funadminConfig = readProjectFile('config/funadmin.php');
+const crudConfig = readProjectFile('config/crud.php');
+const menuController = readProjectFile('app/backend/controller/system/SystemMenu.php');
 const apiRoleMiddleware = readProjectFile('app/backend/middleware/CheckAdminApiRole.php');
 
-const methodBody = (source: string, method: string) => {
-  const signatureAt = source.search(new RegExp(`(?:public|protected|private)\\s+function\\s+${method}\\s*\\(`));
-  expect(signatureAt, `缺少 ${method} 方法`).toBeGreaterThan(-1);
-
-  const bodyStart = source.indexOf('{', signatureAt);
-  let depth = 0;
-  for (let index = bodyStart; index < source.length; index += 1) {
-    if (source[index] === '{') depth += 1;
-    if (source[index] === '}') depth -= 1;
-    if (depth === 0) return source.slice(bodyStart + 1, index);
-  }
-  throw new Error(`${method} 方法体未闭合`);
+const expectFileMissing = (relativePath: string) => {
+  expect(existsSync(projectPath(relativePath)), `${relativePath} 应已删除`).toBe(false);
 };
 
-const expectFacadeDelegation = (method: string, service: string) => {
-  const body = methodBody(authService, method);
-  expect(body).toContain(service);
-  expect(body).toMatch(/return\s+.*->\w+\s*\(/s);
+const readRequiredFile = (relativePath: string) => {
+  expect(existsSync(projectPath(relativePath)), `缺少 ${relativePath}`).toBe(true);
+  return readProjectFile(relativePath);
 };
 
-describe('AuthService 职责拆分源码契约', () => {
-  it('删除零引用方法、无用请求属性和遗留注释代码', () => {
-    for (const method of ['treemenu', 'buildPermissionTree', 'flattenPermissionTree', 'getAdmin', 'descendantRoleIds']) {
-      expect(authService).not.toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-    }
-    expect(authService).not.toMatch(/protected\s+\$(controller|action)\b/);
-    expect(authService).not.toMatch(/\$this->(controller|action)\s*=/);
-    expect(authService).not.toMatch(/^\s*\/\/\s*\$list\[\]/m);
-  });
+const countMatches = (source: string, pattern: RegExp) => source.match(pattern)?.length ?? 0;
 
-  it('旧菜单 HTML 只由 AdminLegacyMenuService 生成且控制器直接使用新服务', () => {
-    expect(existsSync(servicePath('AdminLegacyMenuService'))).toBe(true);
-    const legacyMenuService = readProjectFile('app/backend/service/AdminLegacyMenuService.php');
-    for (const method of ['menuhtml', 'childmenuhtml', 'filterAuthorizedMenus']) {
-      expect(legacyMenuService).toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-      expect(authService).not.toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-    }
-    expect(authService).not.toContain('layui-nav');
-    expect(indexController).toContain('AdminLegacyMenuService');
-    expect(indexController).not.toMatch(/AuthService::instance\(\)->menuhtml/);
-    expect(ajaxController).toContain('AdminLegacyMenuService');
-    expect(ajaxController).not.toMatch(/AuthService::instance\(\)->menuhtml/);
-  });
-
-  it('登录和会话实现下沉且 AuthService 保留兼容门面', () => {
-    expect(existsSync(servicePath('AdminSessionService'))).toBe(true);
-    const sessionService = readProjectFile('app/backend/service/AdminSessionService.php');
-    for (const method of ['checkLogin', 'isLogin', 'logout']) {
-      expect(sessionService).toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-      expectFacadeDelegation(method, 'AdminSessionService');
-    }
-    expect(methodBody(authService, 'checkLogin')).not.toContain('password_verify');
-    expect(sessionService).not.toMatch(/throw\s+new\s+\\?Exception\s*\(\s*\$e->getMessage\(\)\s*\)/);
-    expect(sessionService).toMatch(/catch\s*\(\s*\\?Throwable\s+\$e\s*\)[\s\S]*throw\s+\$e\s*;/);
-  });
-
-  it('请求授权实现下沉且已认证请求不会重复验证登录', () => {
-    expect(existsSync(servicePath('AdminAuthorizationService'))).toBe(true);
-    const authorizationService = readProjectFile('app/backend/service/AdminAuthorizationService.php');
-    for (const method of ['roleAccess', 'nodeAccess']) {
-      expect(authorizationService).toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-      expectFacadeDelegation(method, 'AdminAuthorizationService');
-    }
-    expect(methodBody(authService, 'roleAccess')).not.toContain('enforceAdmin');
-    expect(apiRoleMiddleware).toMatch(/roleAccess\s*\(\s*true\s*\)/);
-    expect(authorizationService).toMatch(/function\s+roleAccess\s*\(\s*bool\s+\$authenticated\s*=\s*false\s*\)/);
-  });
-
-  it('角色范围实现有单一归属且 RoleGuardService 不再依赖 AuthService', () => {
-    const hasRoleScopeService = existsSync(servicePath('RoleScopeService'));
-    const scopeServiceName = hasRoleScopeService ? 'RoleScopeService' : 'RoleGuardService';
-    const scopeService = hasRoleScopeService
-      ? readProjectFile('app/backend/service/RoleScopeService.php')
-      : roleGuardService;
-    for (const method of [
-      'isSuperAdmin',
-      'currentRoleIds',
-      'manageableRoleIds',
-      'canManageRole',
-      'canUseParentRole',
-      'canAssignRoles',
-      'canManageAdmin',
-      'canAssignPermissions',
+describe('管理员认证最终架构契约', () => {
+  it('M8 删除旧菜单、控制器、中间件和认证兼容入口', () => {
+    for (const file of [
+      'app/backend/service/AdminLegacyMenuService.php',
+      'app/backend/service/AuthService.php',
+      'app/backend/controller/Index.php',
+      'app/backend/controller/Login.php',
+      'app/backend/controller/Ajax.php',
+      'app/backend/controller/Error.php',
+      'app/backend/middleware/CheckRole.php',
+      'app/backend/middleware/ViewNode.php',
+      'app/common/controller/Backend.php',
     ]) {
-      expect(scopeService).toMatch(new RegExp(`function\\s+${method}\\s*\\(`));
-      expectFacadeDelegation(method, scopeServiceName);
+      expectFileMissing(file);
     }
-    expect(roleGuardService).not.toContain('AuthService');
+
+    const csrfPath = 'app/backend/middleware/CheckCsrf.php';
+    const csrfReferences = productionPhpFiles
+      .filter((file) => file !== csrfPath)
+      .filter((file) => /\bCheckCsrf\b/.test(readProjectFile(file)));
+    expect(csrfReferences, '旧 CheckCsrf 不应再被生产代码引用').toEqual([]);
+    if (csrfReferences.length === 0) expectFileMissing(csrfPath);
   });
 
-  it('请求后缀精确移除且角色权限缓存键按排序后的角色 ID 构造', () => {
-    const authorizationSource = existsSync(servicePath('AdminAuthorizationService'))
-      ? readProjectFile('app/backend/service/AdminAuthorizationService.php')
-      : authService;
-    expect(authorizationSource).not.toMatch(/rtrim\s*\(\s*\$this->requesturl\s*,/);
-    expect(authorizationSource).toMatch(/preg_replace|substr|str_ends_with/);
-
-    const scopeSource = existsSync(servicePath('RoleScopeService'))
-      ? readProjectFile('app/backend/service/RoleScopeService.php')
-      : authService;
-    const permissionBody = methodBody(scopeSource, 'permissionIdsForRoles');
-    const sortAt = permissionBody.search(/\b(?:sort|asort)\s*\(\s*\$roleIds\s*\)/);
-    const keyAt = permissionBody.indexOf("'role-permissions-'", sortAt);
-    expect(sortAt).toBeGreaterThan(-1);
-    expect(keyAt).toBeGreaterThan(sortAt);
+  it('生产代码不再引用 AuthService', () => {
+    const callers = productionPhpFiles.filter((file) => /\bAuthService\b/.test(readProjectFile(file)));
+    expect(callers).toEqual([]);
   });
 
-  it('拆分后的服务启用严格类型且兼容门面声明返回类型', () => {
-    for (const service of ['AdminLegacyMenuService', 'AdminSessionService', 'AdminAuthorizationService']) {
-      const path = servicePath(service);
-      expect(existsSync(path), `缺少 ${service}`).toBe(true);
-      if (existsSync(path)) {
-        expect(readFileSync(path, 'utf8')).toContain('declare(strict_types=1);');
-      }
+  it('调用方直接使用会话、授权和角色范围服务', () => {
+    const adminAuth = readRequiredFile('app/backend/controller/auth/AdminAuth.php');
+    const profile = readRequiredFile('app/backend/controller/auth/AdminProfile.php');
+    const devCrud = readRequiredFile('app/backend/controller/development/DevCrud.php');
+    const roleGuard = readRequiredFile('app/backend/service/RoleGuardService.php');
+    const systemCallers = [
+      'app/backend/controller/system/SystemAdmin.php',
+      'app/backend/controller/system/SystemDepartment.php',
+      'app/backend/controller/system/SystemMenu.php',
+      'app/backend/controller/system/SystemPermission.php',
+      'app/backend/controller/system/SystemRole.php',
+    ].map(readRequiredFile).join('\n');
+
+    expect(adminAuth).toContain('AdminSessionService');
+    expect(adminAuth).toContain('RoleScopeService');
+    expect(adminAuth).toContain('AdminAuthorizationService');
+    expect(profile).toContain('AdminSessionService');
+    expect(devCrud).toContain('AdminAuthorizationService');
+    expect(roleGuard).toContain('RoleScopeService');
+    expect(systemCallers).toContain('RoleScopeService');
+    for (const source of [adminAuth, profile, devCrud, roleGuard, systemCallers]) {
+      expect(source).not.toMatch(/\bAuthService\b/);
     }
-    for (const method of ['isLogin', 'checkLogin', 'logout', 'roleAccess', 'nodeAccess']) {
-      const signature = authService.match(new RegExp(`public\\s+function\\s+${method}\\s*\\([^)]*\\)\\s*:\\s*[^\\s{]+`));
-      expect(signature, `${method} 兼容门面缺少返回类型`).not.toBeNull();
+  });
+
+  it('CheckAdminApiRole 注入并直接调用两个服务且不重复登录', () => {
+    expect(apiRoleMiddleware).toContain('AdminSessionService');
+    expect(apiRoleMiddleware).toContain('AdminAuthorizationService');
+    expect(apiRoleMiddleware).toMatch(/function\s+__construct\s*\([^)]*AdminSessionService[^)]*AdminAuthorizationService[^)]*\)/s);
+    expect(countMatches(apiRoleMiddleware, /->isLogin\s*\(/g)).toBe(1);
+    expect(countMatches(apiRoleMiddleware, /->roleAccess\s*\(/g)).toBe(1);
+    expect(apiRoleMiddleware).toMatch(/->roleAccess\s*\(\s*true\s*\)/);
+    expect(apiRoleMiddleware).not.toMatch(/\bAuthService\b|AdminSessionService\s*\(|AdminAuthorizationService\s*\(/);
+  });
+
+  it('旧白名单和 CRUD/Menu 源码不再保留旧入口名称', () => {
+    expect(funadminConfig).not.toMatch(/['"](?:index|ajax)\//i);
+    expect(funadminConfig).not.toMatch(/public_ajax_url|auth_super_only_routes[^;]*(?:index|ajax)\//is);
+    for (const source of [crudConfig, menuController]) {
+      expect(source).not.toMatch(/\b(?:Index|Login|Ajax)(?:::|\.php|\/)/);
+      expect(source).not.toMatch(/app\\backend\\controller\\(?:Index|Login|Ajax)\b/);
     }
+  });
+
+  it('app/common node helper 若保留则直连 AdminAuthorizationService', () => {
+    const common = readProjectFile('app/common.php');
+    if (/function\s+node\s*\(/.test(common)) {
+      expect(common).toContain('AdminAuthorizationService');
+      expect(common).not.toMatch(/\bAuthService\b/);
+    }
+  });
+
+  it('新 auth、upload、system API 文件与 Attribute 路由继续存在', () => {
+    for (const file of [
+      'app/backend/controller/auth/AdminAuth.php',
+      'app/backend/controller/auth/AdminProfile.php',
+      'app/backend/controller/system/AdminUpload.php',
+      'app/backend/controller/system/SystemMenu.php',
+      'app/backend/controller/system/SystemRole.php',
+      'app/backend/controller/system/SystemAdmin.php',
+    ]) {
+      readRequiredFile(file);
+    }
+
+    expect(backendRoute).not.toContain('auth.AdminAuth/');
+    expect(backendRoute).not.toContain('system.AdminUpload/');
+    for (const [source, route] of [
+      [adminAuthController, "#[Post('login')]"],
+      [adminAuthController, "#[Get('me')]"],
+      [adminAuthController, "#[Get('menus')]"],
+      [adminAuthController, "#[Post('logout')]"],
+      [uploadController, "#[Post('upload')]"],
+      [roleController, "#[Group('system/role')]"],
+      [adminController, "#[Group('system/user')]"],
+      [menuControllerRoutes, "#[Get('tree')]"],
+    ]) {
+      expect(source).toContain(route);
+    }
+  });
+
+  it('backend 根入口只跳转 admin-web 或返回 404，旧入口统一显式 404', () => {
+    const hasRootRedirect = /Route::(?:get|redirect)\s*\(\s*['"]\/?['"][\s\S]{0,160}admin-web/.test(backendRoute);
+    const hasRoot404 = /Route::get\s*\(\s*['"]\/?['"][\s\S]{0,160}\b404\b/.test(backendRoute);
+    expect(hasRootRedirect || hasRoot404, 'backend 根入口必须跳转 /admin-web 或返回 404').toBe(true);
+    expect(backendRoute).toMatch(/Route::miss\s*\([\s\S]*\b404\b/);
+    expect(backendRoute).not.toMatch(/['"](?:index|login|ajax)(?:\/[^'"]*)?['"]\s*,\s*['"][^'"]*(?:Index|Login|Ajax)/i);
   });
 });
