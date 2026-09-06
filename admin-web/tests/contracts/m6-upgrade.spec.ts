@@ -53,7 +53,7 @@ describe('M6 系统升级契约', () => {
   it('通过 forward migration 注册规范权限和菜单字段', () => {
     const migration = readFileSync(resolve(projectRoot, 'database/migrations/043_system_upgrade.sql'), 'utf8');
     for (const action of ['status', 'check', 'executeupgrade', 'upload', 'restore']) {
-      expect(migration).toContain(`backend/systemupgrade:${action}`);
+      expect(migration).toContain(`console/systemupgrade:${action}`);
     }
     for (const field of ['`name`', '`sort_order`', '`created_at`', '`updated_at`']) {
       expect(migration).toContain(field);
@@ -72,7 +72,7 @@ describe('M6 系统升级契约', () => {
       restore: 'system:upgrade:restore'
     };
     for (const [action, permission] of Object.entries(mappings)) {
-      expect(auth).toContain(`'backend/systemupgrade:${action}' => '${permission}'`);
+      expect(auth).toContain(`'console/systemupgrade:${action}' => '${permission}'`);
     }
   });
 

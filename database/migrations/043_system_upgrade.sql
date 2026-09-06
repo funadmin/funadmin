@@ -41,26 +41,26 @@ SET @system_permission_id = (SELECT `id` FROM `fun_permission` WHERE `source_typ
 SET @system_menu_id = (SELECT `id` FROM `fun_admin_menu` WHERE `source_type`='admin_web' AND `source_name`='system_management' ORDER BY `id` LIMIT 1);
 
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT COALESCE(@system_permission_id,0),'backend','system:upgrade:list','system:upgrade','list','系统升级','group',1,0,350,'admin_web','system_upgrade',NOW(),NOW()
+SELECT COALESCE(@system_permission_id,0),'console','system:upgrade:list','system:upgrade','list','系统升级','group',1,0,350,'admin_web','system_upgrade',NOW(),NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='system:upgrade:list');
 SET @upgrade_permission_id = (SELECT `id` FROM `fun_permission` WHERE `code`='system:upgrade:list' ORDER BY `id` LIMIT 1);
 
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:status','backend/systemupgrade','status','查看升级任务','route',1,0,10,'admin_web','system_upgrade',NOW(),NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:status');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:status','console/systemupgrade','status','查看升级任务','route',1,0,10,'admin_web','system_upgrade',NOW(),NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:status');
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:check','backend/systemupgrade','check','检查系统更新','route',1,0,20,'admin_web','system_upgrade',NOW(),NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:check');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:check','console/systemupgrade','check','检查系统更新','route',1,0,20,'admin_web','system_upgrade',NOW(),NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:check');
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:executeupgrade','backend/systemupgrade','executeupgrade','执行系统升级','route',1,0,30,'admin_web','system_upgrade',NOW(),NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:executeupgrade');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:executeupgrade','console/systemupgrade','executeupgrade','执行系统升级','route',1,0,30,'admin_web','system_upgrade',NOW(),NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:executeupgrade');
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:upload','backend/systemupgrade','upload','上传升级包','route',1,0,40,'admin_web','system_upgrade',NOW(),NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:upload');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:upload','console/systemupgrade','upload','上传升级包','route',1,0,40,'admin_web','system_upgrade',NOW(),NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:upload');
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:restore','backend/systemupgrade','restore','恢复系统版本','route',1,0,50,'admin_web','system_upgrade',NOW(),NOW()
-WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:restore');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:restore','console/systemupgrade','restore','恢复系统版本','route',1,0,50,'admin_web','system_upgrade',NOW(),NOW()
+WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:restore');
 
 INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`module`,`name`,`href`,`query`,`target`,`icon`,`status`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT COALESCE(@system_menu_id,0),@upgrade_permission_id,'backend','系统升级','upgrade','component=system/upgrade/index&name=SystemUpgrade&type=C&permission=system:upgrade:list','_self','i-ep-upload-filled',1,350,'admin_web','system_upgrade',NOW(),NOW()
+SELECT COALESCE(@system_menu_id,0),@upgrade_permission_id,'console','系统升级','upgrade','component=system/upgrade/index&name=SystemUpgrade&type=C&permission=system:upgrade:list','_self','i-ep-upload-filled',1,350,'admin_web','system_upgrade',NOW(),NOW()
 WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type`='admin_web' AND `source_name`='system_upgrade');

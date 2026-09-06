@@ -855,7 +855,7 @@ class McpService extends AbstractService
 
     /**
      * 生成FunAdmin控制器文件
-     * @param string $module 模块名称 (console/api/frontend等)
+     * @param string $module 模块名称 (console/api/index等)
      * @param string $controller 控制器名称
      * @param array $fields 字段信息 (可选)
      * @param string $description 控制器描述 (可选)
@@ -1467,9 +1467,9 @@ class {$model} extends BaseModel
             }
         }
 
-        if (strpos($lowerPrompt, 'frontend') !== false || strpos($lowerPrompt, '前台') !== false) {
+        if (strpos($lowerPrompt, 'index') !== false || strpos($lowerPrompt, '前台') !== false) {
             if (!empty($parsedData['controller'])) {
-                $parsedData['controller']['module'] = 'frontend';
+                $parsedData['controller']['module'] = 'index';
             }
         }
 

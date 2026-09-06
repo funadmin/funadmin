@@ -83,7 +83,7 @@ class Service extends \think\Service
                 'error_stage' => $errorStage,
             ]);
             // 失败插件立即从后续请求的编译清单移除，避免高并发下反复启动和写库。
-            $this->runtimeCache()->rebuild($this->registry()->enabled());
+            $this->runtimeCache()->rebuildOrInvalidate($this->registry()->enabled());
         });
         return new PluginRuntimeBooter([$recorder, 'record']);
     }

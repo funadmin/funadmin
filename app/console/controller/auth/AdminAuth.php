@@ -98,7 +98,7 @@ class AdminAuth extends BaseController
             'email' => (string) ($admin['email'] ?? ''),
             'mobile' => (string) ($admin['mobile'] ?? ''),
             'roles' => array_map(static fn ($id) => 'role:' . (int) $id, $roleIds),
-            'permissions' => $this->frontendPermissions($permissionCodes, $roleScope->isSuperAdmin()),
+            'permissions' => $this->webPermissions($permissionCodes, $roleScope->isSuperAdmin()),
         ]);
     }
 
@@ -159,7 +159,7 @@ class AdminAuth extends BaseController
         ];
     }
 
-    private function frontendPermissions(array $permissionCodes, bool $isSuperAdmin): array
+    private function webPermissions(array $permissionCodes, bool $isSuperAdmin): array
     {
         $mapping = [
             'console/systemdict:types' => 'system:dict:list',
@@ -317,9 +317,9 @@ class AdminAuth extends BaseController
         }
         $result = [];
         foreach ($permissionCodes as $code) {
-            $frontendCode = $mapping[strtolower((string) $code)] ?? null;
-            if ($frontendCode) {
-                $result[$frontendCode] = true;
+            $webCode = $mapping[strtolower((string) $code)] ?? null;
+            if ($webCode) {
+                $result[$webCode] = true;
             }
         }
         return array_keys($result);

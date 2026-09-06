@@ -31,8 +31,8 @@
   "require": {
     "php": ">=8.1.0",
     "ext-json": "*",
-    "topthink/framework": "^8.1.2",
-    "topthink/think-orm": "^3.0|^4.0",
+    "topthink/framework": "^8.1.4",
+    "topthink/think-orm": "^4.0",
     "topthink/think-view": "^2.0",
     "topthink/think-image": "^1.0",
     "topthink/think-captcha": "^3.0.11",
@@ -42,18 +42,18 @@
     "topthink/think-queue": "^3.0",
     "topthink/think-throttle": "^2.0",
     "doctrine/annotations": "^2.0.1",
-    "ramsey/uuid": "^4.7",
-    "phpoffice/phpspreadsheet": "^3.4",
-    "guzzlehttp/guzzle": "^7.9",
+    "ramsey/uuid": "^4.9.3",
+    "phpoffice/phpspreadsheet": "^3.10.7",
+    "guzzlehttp/guzzle": "^7.15.5",
     "firebase/php-jwt": "^7.1",
     "overtrue/pinyin": "^5.3",
     "php-mcp/server": "^3.3",
-    "casbin/casbin": "^4.0",
+    "casbin/casbin": "^4.4",
     "topthink/think-annotation": "^3.0"
   },
   "require-dev": {
         "symfony/var-dumper": ">=6.4",
-        "topthink/think-trace": "^1.0"
+        "topthink/think-trace": "^1.6"
   },
   "autoload": {
     "psr-4": {

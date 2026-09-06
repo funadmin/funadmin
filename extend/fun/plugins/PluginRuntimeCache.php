@@ -40,6 +40,9 @@ final class PluginRuntimeCache
                     }
                 }
             }
+            foreach (['api', 'index'] as $application) {
+                $payloads[$application] = $this->dependencyClosure($payloads[$application], $ordered);
+            }
             foreach ($payloads as $application => $payload) {
                 $this->write($application, $payload);
             }
@@ -78,9 +81,23 @@ final class PluginRuntimeCache
         return is_file($this->file($application));
     }
 
+    /** 重建失败时统一失效旧清单，确保运行时不会继续加载数据库已禁用的插件。 */
+    public function rebuildOrInvalidate(array $manifests): void
+    {
+        try {
+            $this->rebuild($manifests);
+        } catch (\Throwable $exception) {
+            $this->invalidate();
+            throw $exception;
+        }
+    }
+
     /** 删除可能与数据库状态不一致的旧清单，下一请求按 Registry 安全降级。 */
     public function invalidate(): void
     {
+        if (!is_dir($this->runtimePath)) {
+            return;
+        }
         foreach (self::APPLICATIONS as $application) {
             $file = $this->file($application);
             if (is_file($file) && !unlink($file)) {
@@ -90,6 +107,33 @@ final class PluginRuntimeCache
                 @opcache_invalidate($file, true);
             }
         }
+    }
+
+    private function dependencyClosure(array $selected, array $ordered): array
+    {
+        $include = array_fill_keys(array_keys($selected), true);
+        $visit = function (string $name) use (&$visit, &$include, $ordered): void {
+            $manifest = $ordered[$name] ?? null;
+            if (!$manifest instanceof Manifest) {
+                return;
+            }
+            foreach (array_keys($manifest->dependencies()) as $dependency) {
+                if (!isset($include[$dependency])) {
+                    $include[$dependency] = true;
+                    $visit((string) $dependency);
+                }
+            }
+        };
+        foreach (array_keys($selected) as $name) {
+            $visit((string) $name);
+        }
+        $payload = [];
+        foreach ($ordered as $name => $manifest) {
+            if (isset($include[$name])) {
+                $payload[$name] = $manifest->toArray();
+            }
+        }
+        return $payload;
     }
 
     private function write(string $application, array $payload): void

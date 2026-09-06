@@ -44,8 +44,8 @@ describe('015 title→name 改名迁移契约', () => {
   });
 
   it('后端菜单 API 以 name 暴露名称并以 routeName 暴露路由名', () => {
-    const authService = readProjectFile('app/backend/service/AuthService.php');
-    const systemMenu = readProjectFile('app/backend/controller/system/SystemMenu.php');
+    const authService = readProjectFile('app/console/controller/auth/AdminAuth.php');
+    const systemMenu = readProjectFile('app/console/controller/system/SystemMenu.php');
     for (const source of [authService, systemMenu]) {
       expect(source).toContain("'routeName' => (string) ($meta['name'] ?? ('Menu_' . (int) $menu->id))");
       expect(source).toContain("'name' => (string) $menu->name,");
@@ -54,8 +54,8 @@ describe('015 title→name 改名迁移契约', () => {
   });
 
   it('角色与权限 API 统一使用 name 字段', () => {
-    const role = readProjectFile('app/backend/controller/system/SystemRole.php');
-    const permission = readProjectFile('app/backend/controller/system/SystemPermission.php');
+    const role = readProjectFile('app/console/controller/system/SystemRole.php');
+    const permission = readProjectFile('app/console/controller/system/SystemPermission.php');
     expect(role).toContain("'name' => (string) $role->name,");
     expect(role).not.toContain('$role->title');
     expect(permission).toContain("'name' => (string) $permission->name,");

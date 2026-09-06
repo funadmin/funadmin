@@ -13,5 +13,5 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @upgrade_permission_id = (SELECT `id` FROM `fun_permission` WHERE `code`='system:upgrade:list' ORDER BY `id` LIMIT 1);
 INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`)
-SELECT @upgrade_permission_id,'backend','backend/systemupgrade:recoverstale','backend/systemupgrade','recoverstale','恢复陈旧升级任务','route',1,0,60,'admin_web','system_upgrade',NOW(),NOW()
-WHERE @upgrade_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='backend/systemupgrade:recoverstale');
+SELECT @upgrade_permission_id,'console','console/systemupgrade:recoverstale','console/systemupgrade','recoverstale','恢复陈旧升级任务','route',1,0,60,'admin_web','system_upgrade',NOW(),NOW()
+WHERE @upgrade_permission_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `code`='console/systemupgrade:recoverstale');

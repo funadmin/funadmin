@@ -110,7 +110,7 @@ describe('管理员认证最终架构契约', () => {
     expect(funadminConfig).not.toMatch(/public_ajax_url|auth_super_only_routes[^;]*(?:index|ajax)\//is);
     for (const source of [crudConfig, menuController]) {
       expect(source).not.toMatch(/\b(?:Index|Login|Ajax)(?:::|\.php|\/)/);
-      expect(source).not.toMatch(/app\\backend\\controller\\(?:Index|Login|Ajax)\b/);
+      expect(source).not.toMatch(/app\\console\\controller\\(?:Index|Login|Ajax)\b/);
     }
   });
 

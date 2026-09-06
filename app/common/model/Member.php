@@ -92,7 +92,7 @@ class  Member extends BaseModel{
             }
             if (!captcha_check($data['vercode'])) throw new \Exception('验证码错误');
             $num = rand(0, 13);
-            $data['avatar'] = '/static/frontend/images/avatar/' . $num . '.jpg';
+            $data['avatar'] = '/static/index/images/avatar/' . $num . '.jpg';
             $data['password'] = password($data['password']);
             session('regData', $data);
             unset($data['group_id']);

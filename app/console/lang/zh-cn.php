@@ -213,7 +213,7 @@ return [
     'Languages'                                 =>  '语言',
     'Sysset'                                    =>  '设置',
     'clear all'                                 =>  "清除全部缓存",
-    'clear frontend'                            =>  "清除前台缓存",
+    'clear web'                            =>  "清除前台缓存",
     'clear backend'                             =>  "清除后台缓存",
     'Please Login First'                        =>  '请先登录',
     'Login successful'                          =>  '登录成功',

@@ -84,7 +84,6 @@ class PluginService extends AbstractService
                     try {
                         $this->rebuildRuntimeCache();
                     } catch (\Throwable $cacheException) {
-                        $this->runtimeCache()->invalidate();
                         if ($operationFailure !== null) {
                             error_log('插件运行时清单重建失败：' . $cacheException->getMessage());
                         } else {
@@ -657,7 +656,7 @@ class PluginService extends AbstractService
                 $enabled[$name] = $manifest;
             }
         }
-        $this->runtimeCache()->rebuild($enabled);
+        $this->runtimeCache()->rebuildOrInvalidate($enabled);
     }
 
     private function infrastructure(): PluginInfrastructureService { return app(PluginInfrastructureService::class); }
