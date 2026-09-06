@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 import type { CrudCapabilities, CrudDefinition, CrudField, CrudGeneration, CrudPreview } from '@/types/development/crud';
 
-export const CRUD_STEPS = ['数据源', '模块', '字段', '能力', '预览', '确认', '结果'].map((title, index) => ({ index, title }));
+export const CRUD_STEPS = ['数据与模块', '字段设计', '功能与预览', '确认与结果'].map((title, index) => ({ index, title }));
 
 export interface WorkbenchValidationContext {
   fields?: CrudField[];
@@ -10,12 +10,12 @@ export interface WorkbenchValidationContext {
 }
 
 export function validateWorkbenchStep(step: number, context: WorkbenchValidationContext): string {
-  if (step === 2) {
+  if (step === 1) {
     if (context.fields?.some((field) => field.legacy)) return '发现 legacy 字段，迁移完成前禁止生成';
     const incompleteRelation = context.fields?.find((field) => Boolean(field.relation?.trim()) !== Boolean(field.references?.trim()));
     if (incompleteRelation) return `字段 ${incompleteRelation.name} 的 relation 与 references 必须同时配置`;
   }
-  if (step === 3 && context.dataScope?.enabled) {
+  if (step === 2 && context.dataScope?.enabled) {
     if (!context.dataScope.field.trim()) return '启用 dataScope 时必须选择范围字段';
     if (context.dataScope.resolver !== 'adminDepartmentIds') return '启用 dataScope 时必须选择范围解析器';
   }
@@ -50,10 +50,12 @@ export function createCrudWorkbench() {
     confirmToken: '',
     allowOverwrite: [] as string[],
     error: '',
+    previewInvalidated: false,
     setPreview(value: CrudPreview) {
       this.preview = value;
       this.confirmToken = value.sensitive?.confirmToken || '';
       this.allowOverwrite.splice(0);
+      this.previewInvalidated = false;
     },
     conflicts(): string[] {
       return this.preview?.plan.files.filter((file) => file.status === 'conflict').map((file) => file.path) || [];
@@ -62,8 +64,17 @@ export function createCrudWorkbench() {
       const conflicts = this.conflicts();
       return Boolean(this.confirmToken) && (conflicts.length === 0 || (canOverwrite && conflicts.every((path) => this.allowOverwrite.includes(path))));
     },
-    clearSensitive() { this.confirmToken = ''; },
-    persistable() { return { step: this.step, definition: this.definition }; },
+    clearSensitive() {
+      this.confirmToken = '';
+      this.allowOverwrite.splice(0);
+    },
+    invalidatePreview() {
+      const hadPreview = this.preview !== null || this.confirmToken !== '';
+      this.preview = null;
+      this.clearSensitive();
+      if (hadPreview) this.previewInvalidated = true;
+    },
+    persistable() { return { step: Math.min(this.step, 2), definition: this.definition }; },
     fail(message: string) { this.error = message; this.clearSensitive(); }
   });
 }

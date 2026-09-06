@@ -55,6 +55,12 @@ export const staticRoutes: RouteRecordRaw[] = [
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '个人中心', icon: 'i-ep-user', hidden: true }
+      },
+      {
+        path: 'form/data/:key',
+        name: 'FormData',
+        component: () => import('@/views/form/data.vue'),
+        meta: { title: '表单数据', hidden: true }
       }
     ]
   },

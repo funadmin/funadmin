@@ -59,6 +59,32 @@ export interface CrudDefinition {
   capabilities: CrudCapabilities; features: CrudFeatures;
   dataScope: { enabled: boolean; field: string; resolver?: 'adminDepartmentIds' };
 }
-export interface CrudPlanFile { path: string; status: 'create' | 'unchanged' | 'conflict'; hash?: string; previousHash?: string | null }
-export interface CrudPreview { generationId?: number; plan: { files: CrudPlanFile[]; [key: string]: unknown }; sensitive?: { confirmToken: string } }
-export interface CrudGeneration { generationId: number; write?: { status: string }; manifest?: Record<string, unknown>; plan?: CrudPreview['plan'] }
+export type CrudPlanStatus = 'create' | 'unchanged' | 'conflict' | 'blocked';
+export interface CrudPlanFile {
+  path: string;
+  status: CrudPlanStatus;
+  hash?: string;
+  previousHash?: string | null;
+  content?: string;
+  diff?: string;
+}
+export interface CrudPreview {
+  generationId?: number;
+  plan: { files: CrudPlanFile[]; definitionHash?: string; planDigest?: string; [key: string]: unknown };
+  sensitive?: { confirmToken: string };
+}
+export interface CrudGenerationManifest {
+  createdFiles?: string[];
+  overwrittenFiles?: string[];
+  files?: CrudPlanFile[];
+  validationResult?: { valid?: boolean; [key: string]: unknown };
+  status?: string;
+  error?: { message?: string; [key: string]: unknown } | null;
+  [key: string]: unknown;
+}
+export interface CrudGeneration {
+  generationId: number;
+  write?: { status: string; written?: number; rollback?: string[] };
+  manifest?: CrudGenerationManifest;
+  plan?: CrudPreview['plan'];
+}

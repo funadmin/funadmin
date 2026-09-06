@@ -36,6 +36,7 @@
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="goDesigner(row as FormDefinition)">设计</el-button>
+            <el-button link type="success" @click="goData(row as FormDefinition)">数据</el-button>
             <el-button link type="warning" @click="toggleStatus(row as FormDefinition)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
             <el-button link type="danger" @click="onDelete(row as FormDefinition)">删除</el-button>
           </template>
@@ -147,6 +148,7 @@ async function onCreate() {
   }
 }
 const goDesigner = (row: FormDefinition) => router.push({ path: '/form/designer', query: { id: String(row.id) } });
+const goData = (row: FormDefinition) => router.push({ path: `/form/data/${row.form_key}` });
 async function toggleStatus(row: FormDefinition) {
   await formDesignerApi.status(row.id as number, row.status === 1 ? 0 : 1);
   ElMessage.success('状态已更新');

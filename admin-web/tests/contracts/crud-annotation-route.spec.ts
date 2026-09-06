@@ -122,8 +122,9 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(memberLevelController).toContain('protected string $model = MemberLevel::class;');
   });
 
-  it('Node CRUD 生成入口已删除', () => {
-    expect(existsSync(legacyGeneratorPath)).toBe(false);
+  it('Node CRUD 生成入口保留为明确废弃提示', () => {
+    expect(existsSync(legacyGeneratorPath)).toBe(true);
+    expect(readFileSync(legacyGeneratorPath, 'utf8')).toContain('已弃用');
   });
 
   it('使用固定 UTF-8 字节修复 CRUD Workbench 菜单历史乱码', () => {

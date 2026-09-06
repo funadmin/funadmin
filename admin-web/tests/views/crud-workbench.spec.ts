@@ -1,20 +1,27 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createCrudDefinition, createCrudWorkbench, validateWorkbenchStep } from '@/views/development/crud/workbench';
 import type { CrudField, CrudPreview } from '@/types/development/crud';
 
+const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8');
+
 describe('CRUD Workbench', () => {
-  it('严格执行七步流程且 token 仅保存在非持久状态', () => {
+  it('严格执行四步流程且 token 与覆盖授权不进入持久状态', () => {
     const workbench = createCrudWorkbench();
-    expect(workbench.steps.map((step) => step.title)).toEqual(['数据源', '模块', '字段', '能力', '预览', '确认', '结果']);
+    expect(workbench.steps.map((step) => step.title)).toEqual(['数据与模块', '字段设计', '功能与预览', '确认与结果']);
     workbench.confirmToken = 'secret';
+    workbench.allowOverwrite.push('app/Demo.php');
     expect(JSON.stringify(workbench.persistable())).not.toContain('secret');
+    expect(JSON.stringify(workbench.persistable())).not.toContain('app/Demo.php');
     workbench.clearSensitive();
     expect(workbench.confirmToken).toBe('');
+    expect(workbench.allowOverwrite).toEqual([]);
   });
 
   it('legacy 字段阻止进入生成确认', () => {
     const fields = [{ name: 'create_time', legacy: true }] as CrudField[];
-    expect(validateWorkbenchStep(2, { fields })).toContain('legacy');
+    expect(validateWorkbenchStep(1, { fields })).toContain('legacy');
   });
 
   it('输出标准顶层字段及 PHP/Vitest 测试制品', () => {
@@ -55,12 +62,12 @@ describe('CRUD Workbench', () => {
 
   it('M5 支持关系与数据范围并严格校验必填配置', () => {
     const validRelation = [{ name: 'user_id', relation: 'user', references: 'User.id' }] as CrudField[];
-    expect(validateWorkbenchStep(2, { fields: validRelation })).toBe('');
-    expect(validateWorkbenchStep(2, { fields: [{ name: 'user_id', relation: 'user' }] as CrudField[] }))
+    expect(validateWorkbenchStep(1, { fields: validRelation })).toBe('');
+    expect(validateWorkbenchStep(1, { fields: [{ name: 'user_id', relation: 'user' }] as CrudField[] }))
       .toContain('relation 与 references 必须同时配置');
-    expect(validateWorkbenchStep(3, { capabilities: { list: true }, dataScope: { enabled: true, field: '', resolver: 'adminDepartmentIds' } }))
+    expect(validateWorkbenchStep(2, { capabilities: { list: true }, dataScope: { enabled: true, field: '', resolver: 'adminDepartmentIds' } }))
       .toBe('启用 dataScope 时必须选择范围字段');
-    expect(validateWorkbenchStep(3, { capabilities: { list: true }, dataScope: { enabled: true, field: 'department_id', resolver: 'adminDepartmentIds' } }))
+    expect(validateWorkbenchStep(2, { capabilities: { list: true }, dataScope: { enabled: true, field: 'department_id', resolver: 'adminDepartmentIds' } }))
       .toBe('');
   });
 
@@ -74,13 +81,43 @@ describe('CRUD Workbench', () => {
     expect(workbench.canGenerate(true)).toBe(true);
   });
 
-  it('错误会保留当前步骤并清除敏感 token', () => {
+  it('定义变化会使预览失效并清除 token 与覆盖授权', () => {
     const workbench = createCrudWorkbench();
-    workbench.step = 5;
+    workbench.setPreview({
+      plan: { files: [{ path: 'app/Demo.php', status: 'conflict' }] },
+      sensitive: { confirmToken: 'secret' }
+    } as CrudPreview);
+    workbench.allowOverwrite.push('app/Demo.php');
+
+    workbench.invalidatePreview();
+
+    expect(workbench.preview).toBeNull();
+    expect(workbench.confirmToken).toBe('');
+    expect(workbench.allowOverwrite).toEqual([]);
+    expect(workbench.previewInvalidated).toBe(true);
+  });
+
+  it('合并页面固定四步、深度监听定义变化且结果留在第四步', () => {
+    const page = read('src/views/development/crud/index.vue');
+    expect(page).toContain('<BasicsStep v-if="workbench.step === 0"');
+    expect(page).toContain('<CapabilitiesPreviewStep v-else-if="workbench.step === 2');
+    expect(page).toContain('<ConfirmResultStep v-else-if="workbench.step === 3');
+    expect(page).toContain("{ deep: true, flush: 'sync' }");
+    expect(page).toContain('workbench.invalidatePreview()');
+    expect(page).toContain('workbench.step = 3');
+    expect(page).toContain('返回修改');
+    expect(page).toContain('重新开始');
+  });
+
+  it('错误会保留确认与结果步骤并清除敏感状态', () => {
+    const workbench = createCrudWorkbench();
+    workbench.step = 3;
     workbench.confirmToken = 'secret';
+    workbench.allowOverwrite.push('app/Demo.php');
     workbench.fail('生成失败');
-    expect(workbench.step).toBe(5);
+    expect(workbench.step).toBe(3);
     expect(workbench.error).toBe('生成失败');
     expect(workbench.confirmToken).toBe('');
+    expect(workbench.allowOverwrite).toEqual([]);
   });
 });
