@@ -45,15 +45,15 @@ php mcp-server.php
 }
 ```
 
-<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V7.X最低支持PHP8.1</h3>
+<h3 align="center">为梦想而创作：FunAdmin开发框架系统 V8.X最低支持PHP8.1</h3>
 
 <h4 align="center">用爱发电，开源不易，您先点右上角 "Star" 支持一下 谢谢！</h4>
 <p align="center">
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/license-Apache2.0-success.svg" />
     </a>
-    <a href="https://layui.dev/">
-        <img src="https://img.shields.io/badge/layui-2.11.*-green.svg" alt="layui">
+    <a href="https://vuejs.org/">
+        <img src="https://img.shields.io/badge/Vue-3.5-42b883.svg" alt="Vue 3">
     </a>
     <a href="http://www.funadmin.com/">
         <img src="https://img.shields.io/badge/php-%3E%3D8.1-8892BF.svg" alt="PHP Version">
@@ -92,7 +92,7 @@ php mcp-server.php
 
 ## 项目介绍
 
-FunAdmin 基于thinkphp8.X +Layui2.11.*+requirejs开发权限(RBAC)管理框架，框架中集成了权限管理、模块管理、插件管理、后台支持多主题切换、配置管理、会员管理等常用功能模块，以方便开发者快速构建自己的应用。框架专注于为中小企业提供最佳的行业基础后台框架解决方案，执行效率、扩展性、稳定性值得信赖，操作体验流畅，使用非常优化，欢迎大家使用及进行二次开发。
+FunAdmin 是基于 ThinkPHP 8、Vue 3、TypeScript、Vite 与 Element Plus 的前后端分离权限（RBAC）管理框架，集成权限管理、模块管理、插件管理、配置管理、会员管理和 CRUD Workbench 等常用功能，帮助开发者快速构建可维护的管理应用。
 
 + 支持ThinkPHP 持续升级框架底层;跟随官网脚步
 + 这是一个有趣的后台管理系统，这是可以让你节约时间的系统
@@ -101,13 +101,11 @@ FunAdmin 基于thinkphp8.X +Layui2.11.*+requirejs开发权限(RBAC)管理框架�
 + 密码动态加密,相同密码入库具有唯一性，用户信息安全牢固,告别简单md5加密
 + 自适应前端，桌面和移动端访问界面友好简洁，模块清晰
 + 兼容ie11 + firefox + Chrome +360 等浏览器
-+ UI组件化，只需要写函数就可以成就后台表单
-+ 内置 `CRUD` 命令行模式，帮助助您快速开发系统
-+ 模块化：全新的架构和模块化的开发机制，便于灵活扩展和二次开发。
-+ 强大的表单管理，只需要使用函数即可成就表单
-+ layui采用最新layui2.11.X 框架
++ Vue 3 与 Element Plus 组件化界面，统一使用 TypeScript 开发
++ 内置 `CRUD` 命令行与 CRUD Workbench，帮助您快速开发系统
++ 模块化：后端服务与 Admin Web 源码插件边界清晰，便于灵活扩展和二次开发
++ Vite 提供开发、类型检查和生产构建能力
 + 适用范围：可以开发OA、ERP、BPM、CRM、WMS、TMS、MIS、BI、电商平台后台、物流管理系统、快递管理系统、教务管理系统等各类管理软件。
-+ require.js 模块化开发 一个命令即可打包js,css ; node r.js -o min-backend.js
 + restful api 接口,接口使用jwt接口验证等
 + ...更多功能尽请关注
 
@@ -154,10 +152,10 @@ FunAdmin 基于thinkphp8.X +Layui2.11.*+requirejs开发权限(RBAC)管理框架�
 
 ## 鸣谢以下开源项目以及项目中用到的其他开源项目 （排名不分先后，）
 
-- [Thinkphp](http://thinkphp.cn)
-- [JQuery](http://jquery.com)
-- [Layui](https://layui.dev/)
-- [Requirejs](https://requirejs.org)
+- [ThinkPHP](https://www.thinkphp.cn/)
+- [Vue](https://vuejs.org/)
+- [Element Plus](https://element-plus.org/)
+- [Vite](https://vite.dev/)
 
 ## 版权信息
 
