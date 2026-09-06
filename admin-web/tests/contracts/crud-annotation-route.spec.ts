@@ -11,9 +11,9 @@ const workbenchView = readFileSync(resolve(adminRoot, 'src/views/development/cru
 const crudTypes = readFileSync(resolve(adminRoot, 'src/types/development/crud.ts'), 'utf8');
 const definitionValidator = readFileSync(resolve(projectRoot, 'app/common/crud/DefinitionValidator.php'), 'utf8');
 const definitionSchema = JSON.parse(readFileSync(resolve(projectRoot, 'app/common/crud/schema/crud-definition-v1.schema.json'), 'utf8'));
-const routeRegistryTemplate = resolve(projectRoot, 'app/common/crud/templates/v1/backend/route-registry.php.tpl');
+const routeRegistryTemplate = resolve(projectRoot, 'app/common/crud/templates/v1/console/route-registry.php.tpl');
 const backendTemplate = readFileSync(
-  resolve(projectRoot, 'app/common/crud/templates/v1/backend/controller.php.tpl'),
+  resolve(projectRoot, 'app/common/crud/templates/v1/console/controller.php.tpl'),
   'utf8'
 );
 const composer = JSON.parse(readFileSync(resolve(projectRoot, 'composer.json'), 'utf8'));
@@ -90,8 +90,8 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(definitionSchema.$defs.templates.minProperties).toBe(9);
     expect(productionTemplateContext).not.toContain("'routeContent'");
     expect(productionTemplateContext).not.toContain('function routeRegistry(');
-    expect(workbenchView).not.toMatch(/\broute:\s*`app\/backend\/route/);
-    expect(workbenchView).not.toContain("route: 'backend/route-registry.php.tpl'");
+    expect(workbenchView).not.toMatch(/\broute:\s*`app\/console\/route/);
+    expect(workbenchView).not.toContain("route: 'console/route-registry.php.tpl'");
     expect(crudTypes).toContain('CrudArtifactMap');
     expect(crudTypes).not.toMatch(/CrudArtifactMap[\s\S]*?\broute\??:/);
     expect(existsSync(routeRegistryTemplate)).toBe(false);
