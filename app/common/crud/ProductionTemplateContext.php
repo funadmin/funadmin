@@ -385,7 +385,7 @@ final class ProductionTemplateContext
             : "(async () => {\n  switch (source) {\n" . implode("\n", $endpointOptions)
                 . "\n    default:\n      return request.get<Array<{ label: string; value: string | number }>>(`{$base}/options/\${source}`);\n  }\n})()";
         $methods = [];
-        if ($enabled['list']) $methods[] = "  list: (params: {$type}Query) => request.get<{ list: {$type}[]; total: number }>('{$base}', params)";
+        if ($enabled['list']) $methods[] = "  list: (params: {$type}Query) => request.get<API.PageResult<{$type}>>('{$base}', params)";
         if ($enabled['detail']) $methods[] = "  detail: (id: {$type}Id) => request.get<{$type}>(`{$base}/\${id}`)";
         if ($enabled['create']) $methods[] = "  create: (data: {$type}Payload) => request.post<{$type}>('{$base}', data)";
         if ($enabled['update']) $methods[] = "  update: (id: {$type}Id, data: {$type}Payload) => request.put<{$type}>(`{$base}/\${id}`, data)";

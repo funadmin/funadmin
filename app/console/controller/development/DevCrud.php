@@ -27,7 +27,7 @@ final class DevCrud extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    private DevCrudService $crud;
+    private readonly DevCrudService $crud;
 
     public function __construct(App $app)
     {

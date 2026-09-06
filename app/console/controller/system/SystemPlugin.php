@@ -38,13 +38,13 @@ final class SystemPlugin extends AdminApiController
 {
     protected array $middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];
 
-    private PluginService $plugins;
-    private PluginMarketplaceService $marketplace;
-    private PluginCenterQueryService $queries;
-    private PluginConfigService $config;
-    private PluginPackageHistoryService $history;
-    private PluginPackagePipeline $pipeline;
-    private PluginPackageService $packages;
+    private readonly PluginService $plugins;
+    private readonly PluginMarketplaceService $marketplace;
+    private readonly PluginCenterQueryService $queries;
+    private readonly PluginConfigService $config;
+    private readonly PluginPackageHistoryService $history;
+    private readonly PluginPackagePipeline $pipeline;
+    private readonly PluginPackageService $packages;
 
     public function __construct(App $app)
     {

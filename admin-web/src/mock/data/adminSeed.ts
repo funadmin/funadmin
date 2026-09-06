@@ -389,6 +389,38 @@ export function getAdminMenuTreeSeed(): API.MenuItem[] {
 ]
         }
       ]
+    },
+    {
+      id: 200,
+      parentId: 0,
+      routeName: 'Development',
+      path: '/development',
+      component: 'Layout',
+      redirect: '/development/crud',
+      type: 'M',
+      icon: 'i-ep-tools',
+      name: '开发工具',
+      sort: 20,
+      hidden: false,
+      keepAlive: false,
+      affix: false,
+      children: [
+        {
+          id: 201,
+          parentId: 200,
+          routeName: 'DevelopmentCrud',
+          path: 'crud',
+          component: 'development/crud/index',
+          type: 'C',
+          icon: 'i-ep-magic-stick',
+          name: 'CRUD 生成器',
+          sort: 1,
+          hidden: false,
+          keepAlive: true,
+          affix: false,
+          permission: 'development:crud:list'
+        }
+      ]
     }
   ];
 }

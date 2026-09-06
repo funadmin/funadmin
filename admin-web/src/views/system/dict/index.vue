@@ -468,7 +468,7 @@ onMounted(reloadTypes);
 /* 左侧窄栏复用 SearchForm 栅格，仅缩小单列最小宽度。 */
 .dict-type-search {
   :deep(.search-form__grid) {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
     gap: 8px;
   }
 
@@ -501,6 +501,12 @@ onMounted(reloadTypes);
     border: 1px solid color-mix(in srgb, var(--el-color-primary) 20%, transparent);
     border-radius: 4px;
     line-height: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .dict-type-search :deep(.search-form__grid) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

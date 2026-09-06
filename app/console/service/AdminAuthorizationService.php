@@ -12,9 +12,9 @@ class AdminAuthorizationService
 {
     use Jump;
 
-    private Request $request;
-    private string $app;
-    private string $requestUrl;
+    private readonly Request $request;
+    private readonly string $app;
+    private readonly string $requestUrl;
 
     public function __construct(?Request $request = null)
     {

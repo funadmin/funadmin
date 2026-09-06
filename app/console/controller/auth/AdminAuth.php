@@ -107,7 +107,7 @@ class AdminAuth extends BaseController
     {
         $roleScope = new RoleScopeService();
         $permissionIds = $roleScope->permissionIdsForRoles($roleScope->currentRoleIds());
-        $menus = AdminMenu::where('source_type', 'admin_web')
+        $menus = AdminMenu::whereIn('source_type', ['admin_web', 'generated'])
             ->where('status', 1)
             ->order('sort_order', 'asc')
             ->order('id', 'asc')

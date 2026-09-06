@@ -16,4 +16,6 @@
 /.qoder
 /tests/*
 !/tests/crud_hook_naming_test.php
+!/tests/php_property_modernization_test.php
 /admin-web/tests/*
+!/admin-web/tests/contracts/php-property-modernization.spec.ts

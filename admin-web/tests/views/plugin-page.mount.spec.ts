@@ -131,6 +131,16 @@ describe('插件中心页面 mount 行为', () => {
     expect(visibleButton(wrapper, '卸载')).toBeUndefined();
   });
 
+  it('云市场未登录时保留已安装列表并展示可读错误', async () => {
+    api.checkUpdates.mockRejectedValueOnce({ code: 422, msg: 'Unauthorized', data: null });
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Demo');
+    expect(wrapper.text()).toContain('Unauthorized');
+    expect(wrapper.text()).not.toContain('[object Object]');
+  });
+
   it('刷新按钮重新加载列表并展示后端错误', async () => {
     const wrapper = mountPage();
     await flushPromises();

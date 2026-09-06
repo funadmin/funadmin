@@ -20,7 +20,6 @@ final class PluginPackagePipeline
      * @param null|callable(array): mixed $history
      * @param null|callable(string): void $logger
      * @param null|callable(string, string, callable, array): mixed $coordinator
-     * @param null|callable(string): array $captureState
      * @param null|callable(string, array): void $restoreState
      * @param null|callable(string, string, string): void $deployGuard
      */
@@ -31,7 +30,6 @@ final class PluginPackagePipeline
         private readonly mixed $history = null,
         private readonly mixed $logger = null,
         private readonly mixed $coordinator = null,
-        private readonly mixed $captureState = null,
         private readonly mixed $restoreState = null,
         private readonly mixed $deployGuard = null
     ) {
@@ -50,7 +48,6 @@ final class PluginPackagePipeline
             static fn (array $data): mixed => PluginPackageHistoryService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
             static fn (string $operation, string $name, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $name, $callback, $context),
-            null,
             static function (string $name, array $state) use ($plugins): void {
                 $plugins->restoreDeploymentState($name, $state);
             },

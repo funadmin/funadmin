@@ -83,12 +83,12 @@ abstract class Plugins  {
      * 加载模板输出
      * @param string $template
      * @param array $vars           模板文件名
-     * @return false|mixed|string   模板输出变量
+     * @return void
      * @throws \think\Exception
      */
-    protected function fetch(string $template = '', array $vars = []): string
+    protected function fetch(string $template = '', array $vars = []): void
     {
-        return $this->view->fetch($template, $vars);
+        $this->view->fetch($template, $vars);
     }
 
     /**
@@ -96,11 +96,11 @@ abstract class Plugins  {
      * @access protected
      * @param  string $content 模板内容
      * @param  array  $vars    模板输出变量
-     * @return mixed
+     * @return void
      */
-    protected function display(string $content = '', array $vars = []): string
+    protected function display(string $content = '', array $vars = []): void
     {
-        return $this->view->display($content, $vars);
+        $this->view->display($content, $vars);
     }
 
     /**

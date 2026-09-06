@@ -21,9 +21,7 @@ class PredisService extends AbstractService
 {
     protected App $app;
 
-    public $redisObj = null;//redis实例化时静态变量
-
-    static protected $instance;
+    protected mixed $redisObj = null; // Redis 驱动实例由缓存配置决定
 
     public function __construct(App $app)
     {

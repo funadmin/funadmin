@@ -89,7 +89,11 @@ const configVisible = ref(false);
 const historyVisible = ref(false);
 
 function dependencies(value: Record<string, string>) { return Object.entries(value || {}).map(([name, version]) => `${name} ${version}`).join(', ') || '-'; }
-function errorMessage(error: unknown) { return error instanceof Error ? error.message : String(error); }
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'msg' in error && typeof error.msg === 'string') return error.msg;
+  return String(error);
+}
 function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' | 'enable' | 'disable' | 'uninstall' | 'purge') {
   if (row.operation) return row.disabledReason || `插件正在执行 ${row.operation}（${row.progress}%）`;
   if (row.needsReinstall && action !== 'purge') return '插件需要重新安装后才能执行此操作';
@@ -100,7 +104,30 @@ function actionReason(row: PluginItem, action: 'install' | 'update' | 'migrate' 
   if (action === 'install' && row.state !== 'discovered') return `当前状态 ${row.state} 不允许安装`;
   return '';
 }
-async function load() { pageError.value = ''; if (activeTab.value === 'market') return loadMarket(); loading.value = true; try { const loaded = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered(); if (activeTab.value !== 'installed') { items.value = loaded; return; } const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ name: item.name, version: item.version }))); const updatesByName = new Map(updates.map((item) => [item.name, item])); items.value = loaded.map((item) => { const update = updatesByName.get(item.name); return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '' }; }); } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
+async function load() {
+  pageError.value = '';
+  if (activeTab.value === 'market') return loadMarket();
+  loading.value = true;
+  try {
+    const loaded = activeTab.value === 'installed' ? await pluginApi.installed() : await pluginApi.discovered();
+    items.value = loaded;
+    if (activeTab.value !== 'installed' || loaded.length === 0) return;
+    try {
+      const updates = await pluginApi.checkUpdates(loaded.map((item) => ({ name: item.name, version: item.version })));
+      const updatesByName = new Map(updates.map((item) => [item.name, item]));
+      items.value = loaded.map((item) => {
+        const update = updatesByName.get(item.name);
+        return { ...item, latestVersion: update?.updateAvailable ? update.latestVersion : '' };
+      });
+    } catch (error) {
+      pageError.value = errorMessage(error);
+    }
+  } catch (error) {
+    pageError.value = errorMessage(error);
+  } finally {
+    loading.value = false;
+  }
+}
 async function loadMarket() { pageError.value = ''; loading.value = true; try { marketItems.value = (await pluginApi.marketSearch(marketQuery)).list; } catch (error) { pageError.value = errorMessage(error); } finally { loading.value = false; } }
 async function installedFromZip() { activeTab.value = 'installed'; await load(); }
 function selectLocalUpdate(row: PluginItem) { selectedName.value = row.name; updateInput.value?.click(); }

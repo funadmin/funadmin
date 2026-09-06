@@ -18,7 +18,7 @@ const accounts: MockAccount[] = [
       email: ADMIN_DEMO_USER.email,
       mobile: ADMIN_DEMO_USER.mobile,
       roles: ['role:1'],
-      permissions: ['*', 'system:dict:list', 'system:dict:add', 'system:dict:edit', 'system:dict:delete']
+      permissions: ['*', 'system:dict:list', 'system:dict:add', 'system:dict:edit', 'system:dict:delete', 'development:crud:list', 'development:crud:generate', 'development:crud:overwrite']
     }
   },
   {

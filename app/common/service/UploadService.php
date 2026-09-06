@@ -476,7 +476,11 @@ class UploadService extends AbstractService
                     break;
                 case 2:
                     // 添加文字水印
-                    $image->text($water_text_thumb,'./static/common/fonts/text/simhei.ttf',$water_text_size,$water_text_color)->save($path);  //添加文字水印
+                    $fontPath = root_path() . 'public/assets/fonts/simhei.ttf';
+                    if (!is_file($fontPath)) {
+                        throw new Exception('文字水印字体文件不存在：public/assets/fonts/simhei.ttf');
+                    }
+                    $image->text($water_text_thumb, $fontPath, $water_text_size, $water_text_color)->save($path);
                     break;
                 default:
                     break;
