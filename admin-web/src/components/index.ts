@@ -12,3 +12,5 @@ export function setupComponents(app: App) {
   app.component('DataTableShell', DataTableShell);
   app.component('DataTableToolbar', DataTableToolbar);
 }
+
+export { SvgIcon, PageWrapper, SearchForm, DataTableShell, DataTableToolbar };

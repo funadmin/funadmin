@@ -1,2 +1,4 @@
 export { default as DataTableShell } from './DataTableShell.vue';
-export type { DataTableColumnOption } from './types';
+export { default as DataTableToolbar } from './DataTableToolbar.vue';
+export * from './types';
+export * from './tableDisplayStorage';
