@@ -40,3 +40,4 @@ pnpm-debug.log*
 .playwright-mcp/
 /messagebox-*.png
 /msgbox-*.png
+/tests/*
