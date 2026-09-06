@@ -35,9 +35,9 @@
         <el-table-column prop="updated_at" label="更新时间" width="170" />
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="goDesigner(row)">设计</el-button>
-            <el-button link type="warning" @click="toggleStatus(row)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
-            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button link type="primary" @click="goDesigner(row as FormDefinition)">设计</el-button>
+            <el-button link type="warning" @click="toggleStatus(row as FormDefinition)">{{ row.status === 1 ? '禁用' : '启用' }}</el-button>
+            <el-button link type="danger" @click="onDelete(row as FormDefinition)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
