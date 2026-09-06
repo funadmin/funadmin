@@ -14,6 +14,7 @@
 namespace app\common\service;
 
 use think\App;
+use think\facade\Log;
 use think\facade\Cache;
 
 class PredisService extends AbstractService

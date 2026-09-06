@@ -10,3 +10,8 @@ export function setupStore(app: App) {
 }
 
 export default pinia;
+
+export * from './modules/app';
+export * from './modules/user';
+export * from './modules/permission';
+export * from './modules/tabs';

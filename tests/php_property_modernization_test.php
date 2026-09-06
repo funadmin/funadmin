@@ -657,6 +657,8 @@ $ormPropertyExemptions = [
     \app\console\model\MemberTag::class => ['name'],
     \app\console\model\MemberTagRelation::class => ['name', 'pk', 'autoWriteTimestamp'],
     \app\console\model\Permission::class => ['name'],
+    \app\console\model\Form::class => ['name', 'json', 'jsonAssoc'],
+    \app\console\model\FormField::class => ['name', 'json', 'jsonAssoc'],
 ];
 $propertyExemptions = [
     ExceptionHandle::class . '::$ignoreReport' => '父类 think\\exception\\Handle::isIgnoreReport() 直接读取该无类型扩展点',
