@@ -59,7 +59,7 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
       'app/console/middleware/CheckRole.php',
       'app/console/service/AuthService.php',
     ]) expect(existsSync(resolve(root, file)), file).toBe(false);
-    expect(read('app/console/controller/auth/AdminAuth.php')).toContain('AdminAuthorizationService');
+    expect(read('app/console/controller/auth/AdminAuth.php')).not.toContain('AdminAuthorizationService');
   });
 
   it('插件菜单与权限仅从 adminWeb 契约注册', () => {

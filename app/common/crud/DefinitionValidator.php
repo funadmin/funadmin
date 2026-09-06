@@ -20,6 +20,10 @@ final class DefinitionValidator
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
         'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest',
     ];
+    private const COMPONENTS = [
+        'input', 'password', 'textarea', 'inputNumber', 'select', 'radio', 'checkbox', 'switch',
+        'datetime', 'date', 'time', 'image', 'images', 'file', 'files', 'dictionary', 'json',
+    ];
     private const FIELD_KEYS = [
         'name', 'label', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
         'valueType', 'cast', 'managed', 'writable', 'options', 'optionsSource', 'relation', 'references',
@@ -164,6 +168,12 @@ final class DefinitionValidator
             }
             if (isset($field['searchOperator']) && !in_array($field['searchOperator'], ['like', 'eq', 'in', 'range', 'gte', 'lte'], true)) {
                 throw new InvalidArgumentException('字段 searchOperator 不合法');
+            }
+            if (isset($field['component']) && !in_array($field['component'], self::COMPONENTS, true)) {
+                throw new InvalidArgumentException('字段 component 不合法');
+            }
+            if (isset($field['rules']) && (!is_array($field['rules']) || array_filter($field['rules'], static fn ($rule): bool => !is_string($rule) || trim($rule) === '') !== [])) {
+                throw new InvalidArgumentException('字段 rules 必须是非空字符串数组');
             }
             if (isset($field['relation'])) {
                 $this->identifier((string) $field['relation'], '字段 relation', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');

@@ -65,14 +65,6 @@ final class PluginInfrastructureService
         });
     }
 
-    public function registerPermissions(array $permissions, string $name): void
-    {
-        Db::transaction(function () use ($permissions, $name): void {
-            $this->enablePermissions($permissions, $name);
-            $this->disableUndeclaredPermissions($permissions, $name);
-        });
-    }
-
     public function enableMenus(array $menus, string $name): void
     {
         if ($menus === []) {

@@ -31,21 +31,22 @@ describe('M6 插件标准 Admin Web 契约', () => {
 
   it('Admin Web 源码与公开资源分别发布并要求重新构建', () => {
     const publisher = readFileSync(resolve(root, 'app/console/service/PluginResourcePublisher.php'), 'utf8');
-    const query = readFileSync(resolve(root, 'app/console/service/PluginCenterQueryService.php'), 'utf8');
+    const center = readFileSync(resolve(root, 'app/console/service/PluginCenterService.php'), 'utf8');
     const pipeline = readFileSync(resolve(root, 'app/console/service/PluginPackagePipeline.php'), 'utf8');
-    const pluginService = readFileSync(resolve(root, 'app/console/service/PluginService.php'), 'utf8');
+    const pluginService = readFileSync(resolve(root, 'app/console/service/PluginService.php'), 'utf8')
+      + readFileSync(resolve(root, 'app/console/service/concern/PluginServiceSupport.php'), 'utf8');
 
     expect(publisher).toContain("['resources']");
     expect(publisher).toContain('plugin-assets');
     expect(publisher).toContain('adminWebRoot');
     expect(publisher).toContain('src/modules/');
     expect(publisher + pipeline).toContain('rebuildRequired');
-    expect(query).toContain("['adminWeb']");
-    expect(query).toContain("['components']");
-    expect(query).toContain("'components'");
-    expect(query).toContain("'routes'");
-    expect(query).not.toContain("'entryUrl'");
-    expect(query).not.toContain("'hash'");
+    expect(center).toContain("['adminWeb']");
+    expect(center).toContain("['components']");
+    expect(center).toContain("'components'");
+    expect(center).toContain("'routes'");
+    expect(center).not.toContain("'entryUrl'");
+    expect(center).not.toContain("'hash'");
     expect(pluginService).toContain("$manifestData['adminWeb']['permissions']");
     expect(pluginService).toContain("$manifestData['adminWeb']['menu']");
   });

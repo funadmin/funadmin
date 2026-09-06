@@ -258,8 +258,10 @@ final class ProductionTemplateContext
             }
             $methods[] = "    #[Get('options/:source')]\n    #[Pattern('source', '[a-z][a-z0-9_]*')]\n    public function options(string \$source): Response\n    {\n{$optionsScope}        return \$this->ok(data: (new {$class}Service())->options({$optionsArguments}));\n    }";
         }
-        if ($enabled['softDelete']) {
+        if ($enabled['delete']) {
             $methods[] = "    #[Delete(':id')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function remove(int|string \$id): Response { return \$this->crudRemove(\$id); }";
+        }
+        if ($enabled['softDelete']) {
             $methods[] = "    #[Post(':id/restore')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function restore(int|string \$id): Response { return \$this->crudRestoreOne(\$id); }";
             $methods[] = "    #[Delete(':id/destroy')]\n    #[Pattern('id', '[A-Za-z0-9_-]+')]\n    public function destroy(int|string \$id): Response { return \$this->crudDestroyOne(\$id); }";
         }
@@ -330,7 +332,8 @@ final class ProductionTemplateContext
             static fn (string $action): bool => match ($action) {
                 'index' => $enabled['list'],
                 'options' => $enabled['options'],
-                'remove', 'restore', 'destroy' => $enabled['softDelete'],
+                'remove' => $enabled['delete'],
+                'restore', 'destroy' => $enabled['softDelete'],
                 'recycle', 'restoreMany', 'destroyMany' => $enabled['batchDelete'],
                 default => $enabled[$action] ?? false,
             }
@@ -391,8 +394,10 @@ final class ProductionTemplateContext
         if ($enabled['detail']) $methods[] = "  detail: (id: {$type}Id) => request.get<{$type}>(`{$base}/\${id}`)";
         if ($enabled['create']) $methods[] = "  create: (data: {$type}Payload) => request.post<{$type}>('{$base}', data)";
         if ($enabled['update']) $methods[] = "  update: (id: {$type}Id, data: {$type}Payload) => request.put<{$type}>(`{$base}/\${id}`, data)";
-        if ($enabled['softDelete']) {
+        if ($enabled['delete']) {
             $methods[] = "  remove: (id: {$type}Id) => request.delete(`{$base}/\${id}`)";
+        }
+        if ($enabled['softDelete']) {
             $methods[] = "  restore: (id: {$type}Id) => request.post(`{$base}/\${id}/restore`)";
             $methods[] = "  forceDelete: (id: {$type}Id) => request.delete(`{$base}/\${id}/destroy`)";
         }
@@ -447,8 +452,10 @@ final class ProductionTemplateContext
         if ($enabled['export']) $toolbar[] = '<el-button @click="exportRows">导出</el-button>';
         $editButton = $enabled['update'] && ($data['capabilities']['form'] ?? true) ? "<el-button v-if=\"!recycled\" link @click=\"onEdit(scope.row as {$type})\">编辑</el-button>" : '';
         $detailButton = $enabled['detail'] ? "<el-button v-if=\"!recycled\" link @click=\"onOpenDrawer(scope.row as {$type})\">详情</el-button>" : '';
-        $deleteButtons = $enabled['softDelete']
-            ? "<el-button v-if=\"!recycled\" link type=\"danger\" @click=\"removeRow(scope.row as {$type})\">删除</el-button><el-button v-else link type=\"success\" @click=\"restoreRow(scope.row as {$type})\">恢复</el-button><el-button v-if=\"recycled\" link type=\"danger\" @click=\"forceDeleteRow(scope.row as {$type})\">永久删除</el-button>"
+        $deleteButtons = $enabled['delete']
+            ? ($enabled['softDelete']
+                ? "<el-button v-if=\"!recycled\" link type=\"danger\" @click=\"removeRow(scope.row as {$type})\">删除</el-button><el-button v-else link type=\"success\" @click=\"restoreRow(scope.row as {$type})\">恢复</el-button><el-button v-if=\"recycled\" link type=\"danger\" @click=\"forceDeleteRow(scope.row as {$type})\">永久删除</el-button>"
+                : "<el-button link type=\"danger\" @click=\"removeRow(scope.row as {$type})\">删除</el-button>")
             : '';
         $operationColumn = $editButton . $detailButton . $deleteButtons === '' ? '' : "          <el-table-column label=\"操作\"><template #default=\"scope\">{$editButton}{$detailButton}{$deleteButtons}</template></el-table-column>\n";
         $formEnabled = ($enabled['create'] || $enabled['update']) && ($data['capabilities']['form'] ?? true);
@@ -481,7 +488,7 @@ final class ProductionTemplateContext
             . "        </el-table><el-pagination v-model:current-page=\"query.page\" v-model:page-size=\"query.pageSize\" :total=\"total\" @change=\"loadData\" /></template>\n"
             . "    </DataTableShell>{$formComponent}{$detailComponent}\n"
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
-            . ($enabled['softDelete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
+            . ($enabled['delete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport
             . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '@/api/generated/{$data['entity']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
@@ -493,7 +500,9 @@ final class ProductionTemplateContext
             . ($enabled['batchDelete'] ? "const selectedIds = () => selection.value.map(row => row.{$primaryName});\nconst handleSelectionChange = (rows: unknown[]) => onSelectionChange(rows as {$type}[]);\n" : '')
             . ($enabled['import'] ? "const fileInput = ref<HTMLInputElement>();\n" : '')
             . (($enabled['import'] || $enabled['export']) ? "const csvColumns = " . self::json($csvColumns) . " as CsvColumn<{$type}Payload>[];\n" : '')
-            . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\nasync function removeRow(row: {$type}) { await ElMessageBox.confirm('确认删除该记录？', '删除确认', { type: 'warning' }); await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\nasync function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await ElMessageBox.confirm('确认永久删除该记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
+            . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
+            . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await ElMessageBox.confirm('" . ($enabled['softDelete'] ? '确认删除该记录？' : '确认永久删除该记录？此操作不可恢复。') . "', '" . ($enabled['softDelete'] ? '删除确认' : '永久删除确认') . "', { type: '" . ($enabled['softDelete'] ? 'warning' : 'error') . "' }); await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\n" : '')
+            . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await ElMessageBox.confirm('确认永久删除该记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
             . ($enabled['batchDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await ElMessageBox.confirm('确认永久删除选中记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
             . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); }\n" : '')
             . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file) return; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); await {$camel}Api.importRows(rows); await loadData(); }\n" : '')
@@ -510,6 +519,7 @@ final class ProductionTemplateContext
         $fields = [];
         $optionNames = [];
         $usesUpload = false;
+        $optionSources = array_column($data['optionsSource'], null, 'name');
         $enabledOptionSources = array_column(self::enabledOptionSources($data, $enabled), null, 'name');
         foreach ($data['fields'] as $field) {
             if (!($field['form'] ?? false) || ($field['primary'] ?? false) || !($field['writable'] ?? true)) {
@@ -517,31 +527,19 @@ final class ProductionTemplateContext
             }
             $key = self::camel($field['name']);
             $label = htmlspecialchars($field['label'] ?? $field['comment'] ?? $field['name'], ENT_QUOTES);
-            if (($field['upload'] ?? false) === true && $enabled['upload']) {
-                $usesUpload = true;
-                $fieldName = strtolower((string) $field['name']);
-                $component = strtolower((string) ($field['component'] ?? ''));
-                $multiple = in_array($component, ['images', 'files'], true)
-                    || preg_match('/(?:^|_)(?:images|files)$/', $fieldName) === 1;
-                $image = in_array($component, ['image', 'images'], true)
-                    || preg_match('/(?:^|_)(?:image|images|avatar|thumb)(?:_|$)/', $fieldName) === 1;
-                $uploadType = $image ? ($multiple ? 'images' : 'image') : 'file';
-                $bizType = $image ? 'image' : 'file';
-                $control = "<Upload v-model=\"form.{$key}\" type=\"{$uploadType}\" biz-type=\"{$bizType}\" />";
-            } elseif (($field['optionsSource'] ?? '') !== '' && isset($enabledOptionSources[$field['optionsSource']])) {
-                $source = (string) $field['optionsSource'];
-                $optionNames[$source] = true;
-                $control = "<el-select v-model=\"form.{$key}\" filterable clearable class=\"w-full\"><el-option v-for=\"item in optionLists.{$source}\" :key=\"item.value\" :label=\"item.label\" :value=\"item.value\" /></el-select>";
-            } elseif (isset($field['enum'])) {
-                $control = "<el-select v-model=\"form.{$key}\" class=\"w-full\">";
-                foreach ($field['enum'] as $value) {
-                    $literal = htmlspecialchars((string) $value, ENT_QUOTES);
-                    $control .= "<el-option label=\"{$literal}\" :value=\"" . self::json($value) . "\" />";
-                }
-                $control .= '</el-select>';
-            } else {
-                $control = "<el-input v-model=\"form.{$key}\" />";
+            $component = (string) ($field['component'] ?? 'input');
+            $dynamicSource = '';
+            if (($field['optionsSource'] ?? '') !== '' && isset($enabledOptionSources[$field['optionsSource']])) {
+                $dynamicSource = (string) $field['optionsSource'];
+                $optionNames[$dynamicSource] = true;
+            } elseif (($optionSources[$field['optionsSource'] ?? '']['type'] ?? '') === 'dictionary') {
+                $field['component'] = 'input';
+                $component = 'input';
             }
+            if ($enabled['upload'] && (in_array($component, ['image', 'images', 'file', 'files'], true) || ($field['upload'] ?? false) === true)) {
+                $usesUpload = true;
+            }
+            $control = self::formControl($field, $key, $dynamicSource, $enabled['upload']);
             $fields[] = "<el-form-item label=\"{$label}\" prop=\"{$key}\">{$control}</el-form-item>";
         }
         $optionNames = array_keys($optionNames);
@@ -568,6 +566,60 @@ final class ProductionTemplateContext
             . ($enabled['update'] ? "if (props.row) await {$camel}Api.update(props.row." . self::camel(self::primary($data)['name']) . ", form); " : '')
             . ($enabled['create'] ? ($enabled['update'] ? "else " : '') . "await {$camel}Api.create(form); " : '')
             . "visible.value = false; emit('success'); }\n</script>\n";
+    }
+
+    private static function formControl(array $field, string $key, string $dynamicSource, bool $uploadEnabled): string
+    {
+        $component = (string) ($field['component'] ?? 'input');
+        if ($dynamicSource !== '' && $component === 'input') {
+            $component = 'select';
+        }
+        if ($uploadEnabled && (in_array($component, ['image', 'images', 'file', 'files'], true) || ($field['upload'] ?? false) === true)) {
+            $fieldName = strtolower((string) $field['name']);
+            $multiple = in_array($component, ['images', 'files'], true)
+                || preg_match('/(?:^|_)(?:images|files)$/', $fieldName) === 1;
+            $image = in_array($component, ['image', 'images'], true)
+                || preg_match('/(?:^|_)(?:image|images|avatar|thumb)(?:_|$)/', $fieldName) === 1;
+            $uploadType = $image ? ($multiple ? 'images' : 'image') : 'file';
+            $bizType = $image ? 'image' : 'file';
+            return "<Upload v-model=\"form.{$key}\" type=\"{$uploadType}\" biz-type=\"{$bizType}\" />";
+        }
+
+        $options = (array) ($field['options'] ?? $field['enum'] ?? []);
+        if ($dynamicSource !== '') {
+            $children = match ($component) {
+                'radio' => "<el-radio v-for=\"item in optionLists.{$dynamicSource}\" :key=\"item.value\" :value=\"item.value\">{{ item.label }}</el-radio>",
+                'checkbox' => "<el-checkbox v-for=\"item in optionLists.{$dynamicSource}\" :key=\"item.value\" :value=\"item.value\">{{ item.label }}</el-checkbox>",
+                default => "<el-option v-for=\"item in optionLists.{$dynamicSource}\" :key=\"item.value\" :label=\"item.label\" :value=\"item.value\" />",
+            };
+        } else {
+            $children = '';
+            foreach ($options as $option) {
+                $label = is_array($option) ? ($option['label'] ?? $option['value'] ?? '') : $option;
+                $value = is_array($option) ? ($option['value'] ?? '') : $option;
+                $labelText = htmlspecialchars((string) $label, ENT_QUOTES);
+                $valueText = self::json($value);
+                $children .= match ($component) {
+                    'radio' => "<el-radio :value='{$valueText}'>{$labelText}</el-radio>",
+                    'checkbox' => "<el-checkbox :value='{$valueText}'>{$labelText}</el-checkbox>",
+                    default => "<el-option label=\"{$labelText}\" :value='{$valueText}' />",
+                };
+            }
+        }
+
+        return match ($component) {
+            'password' => "<el-input v-model=\"form.{$key}\" type=\"password\" show-password />",
+            'textarea', 'json' => "<el-input v-model=\"form.{$key}\" type=\"textarea\" :rows=\"4\" />",
+            'inputNumber' => "<el-input-number v-model=\"form.{$key}\" class=\"w-full\" />",
+            'select', 'dictionary' => "<el-select v-model=\"form.{$key}\" filterable clearable class=\"w-full\">{$children}</el-select>",
+            'radio' => "<el-radio-group v-model=\"form.{$key}\">{$children}</el-radio-group>",
+            'checkbox' => "<el-checkbox-group v-model=\"form.{$key}\">{$children}</el-checkbox-group>",
+            'switch' => "<el-switch v-model=\"form.{$key}\" />",
+            'date' => "<el-date-picker v-model=\"form.{$key}\" type=\"date\" class=\"w-full\" />",
+            'time' => "<el-time-picker v-model=\"form.{$key}\" class=\"w-full\" />",
+            'datetime' => "<el-date-picker v-model=\"form.{$key}\" type=\"datetime\" class=\"w-full\" />",
+            default => "<el-input v-model=\"form.{$key}\" />",
+        };
     }
 
     private static function detail(array $data, string $class): string
@@ -600,7 +652,8 @@ final class ProductionTemplateContext
         $capabilities = $data['capabilities'] ?? [];
         $features = $data['features'];
         $enabled = static fn (string $name): bool => ($capabilities[$name] ?? true) === true;
-        $softDelete = $enabled('delete') && ($features['softDelete'] ?? false);
+        $delete = $enabled('delete');
+        $softDelete = $delete && ($features['softDelete'] ?? false);
         $dictionary = $enabled('form') && ($features['dictionary'] ?? false);
         $optionSources = self::enabledOptionSources($data, ['dictionary' => $dictionary]);
         return [
@@ -609,6 +662,7 @@ final class ProductionTemplateContext
             'detail' => $enabled('detail') && ($features['detail'] ?? true),
             'create' => $enabled('create'),
             'update' => $enabled('update'),
+            'delete' => $delete,
             'softDelete' => $softDelete,
             'batchDelete' => $softDelete && ($features['batchDelete'] ?? false),
             'status' => $enabled('update') && ($features['status'] ?? false),
