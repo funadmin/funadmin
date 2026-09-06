@@ -32,89 +32,74 @@ use Psr\Log\NullLogger;
  */
 class McpService extends AbstractService
 {
+    protected const NAME = 'mcp';
+    protected const VERSION = '1.0.0';
+
     /**
      * MCP服务器实例
      * @var Server|null
      */
-    protected $server = null;
+    protected ?Server $server = null;
 
     /**
      * 日志记录器
      * @var LoggerInterface
      */
-    protected $logger;
+    protected LoggerInterface $logger;
 
     /**
      * 超时配置（毫秒）
      * @var int
      */
-    protected $timeout = 600000;
+    protected int $timeout = 600000;
 
     /**
      * 连接超时配置（毫秒）
      * @var int
      */
-    protected $connectTimeout = 30000;
+    protected int $connectTimeout = 30000;
 
     /**
      * 读取超时配置（毫秒）
      * @var int
      */
-    protected $readTimeout = 30000;
+    protected int $readTimeout = 30000;
 
     /**
      * 重试次数
      * @var int
      */
-    protected $retryAttempts = 3;
+    protected int $retryAttempts = 3;
 
     /**
      * 重试延迟（毫秒）
      * @var int
      */
-    protected $retryDelay = 1000;
+    protected int $retryDelay = 1000;
 
     /**
      * 调试模式
      * @var bool
      */
-    protected $debug = false;
-
-    /**
-     * 服务名称
-     * @var string
-     */
-    protected $name = 'mcp';
-
-    /**
-     * 服务版本
-     * @var string
-     */
-    protected $version = '1.0.0';
-
-    /**
-     * 内存限制
-     * @var string
-     */
-    protected $memoryLimit;
+    protected bool $debug = false;
 
     /**
      * 缓冲区大小
      * @var int
      */
-    protected $bufferSize;
+    protected int $bufferSize = 8192;
 
     /**
      * 心跳机制启用
      * @var bool
      */
-    protected $heartbeatEnabled;
+    protected bool $heartbeatEnabled = false;
 
     /**
      * 心跳间隔（秒）
      * @var int
      */
-    protected $heartbeatInterval;
+    protected int $heartbeatInterval = 30;
 
     /**
      * 初始化MCP服务
@@ -330,7 +315,7 @@ class McpService extends AbstractService
         $container->set(self::class, $this);
 
         $this->server = Server::make()
-            ->withServerInfo($this->name, $this->version)
+            ->withServerInfo(self::NAME, self::VERSION)
             ->withLogger($this->logger)
             ->withContainer($container)
             ->withTool([self::class, 'handleDbQuery'], 'db-query', '执行数据库查询操作（仅支持SELECT语句）')
@@ -843,8 +828,8 @@ class McpService extends AbstractService
     public function getServiceInfo(): array
     {
         return [
-            'name' => $this->name,
-            'version' => $this->version,
+            'name' => self::NAME,
+            'version' => self::VERSION,
             'tools' => 16, // 16个工具（新增ThinkPHP命令工具）
             'resources' => 3, // 3个资源
             'prompt' => 1, // 1个提示词

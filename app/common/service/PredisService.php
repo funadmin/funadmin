@@ -19,6 +19,8 @@ use think\facade\Cache;
 
 class PredisService extends AbstractService
 {
+    protected App $app;
+
     public $redisObj = null;//redis实例化时静态变量
 
     static protected $instance;

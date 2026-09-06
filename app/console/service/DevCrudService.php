@@ -10,6 +10,7 @@ use app\common\crud\CrudGenerator;
 use app\common\crud\DefinitionValidator;
 use app\common\crud\FieldInference;
 use app\common\crud\SchemaInspector;
+use Closure;
 use InvalidArgumentException;
 use think\facade\Db;
 use Throwable;
@@ -19,17 +20,17 @@ use Throwable;
  */
 final class DevCrudService
 {
-    /** @var callable(string): SchemaInspector */
-    private $inspectorFactory;
+    /** @var Closure(string): SchemaInspector */
+    private readonly Closure $inspectorFactory;
 
-    /** @var callable(string): array */
-    private $tableReader;
+    /** @var Closure(string): array */
+    private readonly Closure $tableReader;
 
-    /** @var callable(array): int */
-    private $auditWriter;
+    /** @var Closure(array): int */
+    private readonly Closure $auditWriter;
 
-    /** @var callable(int): ?array */
-    private $auditReader;
+    /** @var Closure(int): ?array */
+    private readonly Closure $auditReader;
 
     public function __construct(
         private readonly string $projectRoot,
@@ -39,20 +40,24 @@ final class DevCrudService
         ?callable $auditReader = null,
         ?callable $tableReader = null
     ) {
-        $this->inspectorFactory = $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
-            static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)
+        $this->inspectorFactory = Closure::fromCallable(
+            $inspectorFactory ?? static fn (string $connection): SchemaInspector => new SchemaInspector(
+                static fn (string $sql, array $bindings): array => Db::connect($connection)->query($sql, $bindings)
+            )
         );
-        $this->tableReader = $tableReader ?? static fn (string $connection): array => Db::connect($connection)->query(
-            'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
+        $this->tableReader = Closure::fromCallable(
+            $tableReader ?? static fn (string $connection): array => Db::connect($connection)->query(
+                'SELECT TABLE_NAME, TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME'
+            )
         );
-        $this->auditWriter = $auditWriter ?? static function (array $row): int {
+        $this->auditWriter = Closure::fromCallable($auditWriter ?? static function (array $row): int {
             $model = CrudGeneration::create($row);
             return (int) $model->id;
-        };
-        $this->auditReader = $auditReader ?? static function (int $id): ?array {
+        });
+        $this->auditReader = Closure::fromCallable($auditReader ?? static function (int $id): ?array {
             $record = CrudGeneration::find($id);
             return $record ? $record->toArray() : null;
-        };
+        });
     }
 
     public function connections(): array

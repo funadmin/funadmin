@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
+use Closure;
 use InvalidArgumentException;
 use think\facade\Db;
 
@@ -12,12 +13,14 @@ use think\facade\Db;
  */
 final class SchemaInspector
 {
-    /** @var callable(string, array): array */
-    private $query;
+    /** @var Closure(string, array): array */
+    private readonly Closure $query;
 
     public function __construct(?callable $query = null)
     {
-        $this->query = $query ?? static fn (string $sql, array $bindings): array => Db::query($sql, $bindings);
+        $this->query = Closure::fromCallable(
+            $query ?? static fn (string $sql, array $bindings): array => Db::query($sql, $bindings)
+        );
     }
 
     public function inspect(string $table): array

@@ -33,8 +33,6 @@ abstract class Plugins  {
     // 插件配置
     protected $plugin_config;
 
-    protected $config;
-
     protected $info;
     // 插件信息
     protected $plugin_info;

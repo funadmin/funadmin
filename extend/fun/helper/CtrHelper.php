@@ -8,7 +8,7 @@ use ReflectionClass;
 class CtrHelper
 {
 
-    public static $controllerList= [];
+    private static array $controllerList = [];
     /**
      * Undocumented function
      * @param [type] $name

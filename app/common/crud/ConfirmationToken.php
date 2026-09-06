@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
+use Closure;
 use RuntimeException;
 
 /**
@@ -11,8 +12,8 @@ use RuntimeException;
  */
 final class ConfirmationToken
 {
-    /** @var callable(): int */
-    private $clock;
+    /** @var Closure(): int */
+    private readonly Closure $clock;
 
     private readonly string $secret;
     private readonly string $nonceDirectory;
@@ -27,7 +28,7 @@ final class ConfirmationToken
             throw new RuntimeException('确认 token 有效期必须为正数');
         }
         $this->secret = $this->resolveSecret($secret);
-        $this->clock = $clock ?? static fn (): int => time();
+        $this->clock = Closure::fromCallable($clock ?? static fn (): int => time());
         $this->nonceDirectory = rtrim($projectRoot, DIRECTORY_SEPARATOR)
             . DIRECTORY_SEPARATOR . 'runtime' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'crud-confirm-nonces';
     }

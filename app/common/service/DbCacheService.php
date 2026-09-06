@@ -27,13 +27,13 @@ class DbCacheService extends AbstractService
      * 缓存存储数组
      * @var array
      */
-    private static $cache = [];
+    private static array $cache = [];
 
     /**
      * 缓存统计信息
      * @var array
      */
-    private static $stats = [
+    private static array $stats = [
         'hits' => 0,      // 缓存命中次数
         'misses' => 0,    // 缓存未命中次数
         'queries' => 0,   // 总查询次数

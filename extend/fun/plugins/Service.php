@@ -14,7 +14,7 @@ use think\Route;
  */
 class Service extends \think\Service
 {
-    protected $plugins_path;
+    protected string $plugins_path;
     private ?array $commonManifests = null;
     private array $applicationManifests = [];
 
@@ -37,8 +37,9 @@ class Service extends \think\Service
             ];
             // 普通路由与当前应用通道路由必须在同一插件边界链中执行，保留依赖失败传播与插件内短路。
             $appName = (string) $this->app->http->getName();
-            if (in_array($appName, ['api', 'index'], true)) {
-                $boundaries['channels.' . $appName] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $appName);
+            $channel = $appName === 'index' ? 'frontend' : $appName;
+            if (in_array($channel, ['api', 'frontend'], true)) {
+                $boundaries['channels.' . $channel] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $channel);
             }
             $this->booter()->boot($this->applicationManifests($appName), $boundaries);
         });
@@ -115,7 +116,8 @@ class Service extends \think\Service
 
     private function applicationManifests(string $application): array
     {
-        $application = in_array($application, ['api', 'index'], true) ? $application : 'console';
+        $application = $application === 'index' ? 'frontend' : $application;
+        $application = in_array($application, ['api', 'frontend'], true) ? $application : 'console';
         if (isset($this->applicationManifests[$application])) {
             return $this->applicationManifests[$application];
         }
@@ -154,7 +156,7 @@ class Service extends \think\Service
      * 获取 plugins 路径
      * @return string
      */
-    public function getPluginsPath()
+    public function getPluginsPath(): string
     {
         // 初始化插件目录
         $plugins_path = $this->app->getRootPath() . PLUGIN_DIR . DS;
@@ -166,7 +168,7 @@ class Service extends \think\Service
     }
 
     //获取插件目录
-    public static function getPluginsNamePath($name)
+    public static function getPluginsNamePath(string $name): string
     {
         return app()->getRootPath() . PLUGIN_DIR . DS . $name . DS;
     }
@@ -175,7 +177,7 @@ class Service extends \think\Service
      * 获取检测的全局文件夹目录
      * @return  array
      */
-    public static function getCheckDirs()
+    public static function getCheckDirs(): array
     {
         return [
             'global'

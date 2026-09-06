@@ -19,22 +19,23 @@ class UploadService extends AbstractService
      * 应用实例
      * @var App
      */
-    protected $app;
+    protected App $app;
+    protected \think\Request $request;
     /**
      * 驱动
      * @var string
      */
-    protected $driver = 'local';
+    protected string $driver = 'local';
     /**
      * 文件后缀
      * @var
      */
-    protected $fileExt;
+    protected string $fileExt;
     /**
      * 文件大小
      * @var
      */
-    protected $fileMaxsize;
+    protected int $fileMaxsize;
 
     /**
      * 文件对象
@@ -42,7 +43,7 @@ class UploadService extends AbstractService
      */
     protected $file;
 
-    protected $saveFilePath = 'uploads';
+    protected string $saveFilePath = 'uploads';
 
     /**
      * 当前应用共享的存储驱动注册表。
@@ -51,17 +52,17 @@ class UploadService extends AbstractService
     /**
      * @var int
      */
-    protected $duration = 0;
+    protected int $duration = 0;
     /**
      * @var int
      */
-    protected $width = 0;
+    protected int $width = 0;
     /**
      * @var int
      */
-    protected $height = 0;
+    protected int $height = 0;
 
-    protected $rule  = '';
+    protected string $rule = '';
     /**
      * Service constructor.
      * @param App $app

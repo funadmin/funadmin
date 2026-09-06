@@ -15,6 +15,7 @@ namespace app;
 use think\App;
 use think\exception\ValidateException;
 use think\facade\View;
+use think\Request;
 use think\Validate;
 
 
@@ -23,33 +24,29 @@ use think\Validate;
  */
 abstract class BaseController
 {
-
-    protected array $noNeedLogin = [];
-
-    protected array $onlyNeedLogin = [];
     /**
      * Request实例
      * @var \think\Request
      */
-    protected $request;
+    protected Request $request;
 
     /**
      * 应用实例
      * @var \think\App
      */
-    protected $app;
+    protected App $app;
 
     /**
      * 是否批量验证
      * @var bool
      */
-    protected $batchValidate = false;
+    protected bool $batchValidate = false;
 
     /**
      * 控制器中间件
      * @var array
      */
-    protected $middleware = [];
+    protected array $middleware = [];
 
     /**
      * 构造方法

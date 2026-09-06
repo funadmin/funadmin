@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\common\crud;
 
+use Closure;
 use RuntimeException;
 use Throwable;
 
@@ -12,11 +13,11 @@ use Throwable;
  */
 final class AtomicWriter
 {
-    /** @var null|callable(array): void */
-    private $afterWrite;
+    /** @var null|Closure(array): void */
+    private readonly ?Closure $afterWrite;
 
-    /** @var null|callable(array): void */
-    private $beforeReplace;
+    /** @var null|Closure(array): void */
+    private readonly ?Closure $beforeReplace;
 
     private readonly ConfirmationToken $tokens;
 
@@ -26,9 +27,9 @@ final class AtomicWriter
         ?ConfirmationToken $tokens = null,
         ?callable $beforeReplace = null
     ) {
-        $this->afterWrite = $afterWrite;
+        $this->afterWrite = $afterWrite === null ? null : Closure::fromCallable($afterWrite);
         $this->tokens = $tokens ?? new ConfirmationToken($projectRoot);
-        $this->beforeReplace = $beforeReplace;
+        $this->beforeReplace = $beforeReplace === null ? null : Closure::fromCallable($beforeReplace);
     }
 
     public function write(array $plan, string $confirmToken, array $allowOverwrite = []): array
