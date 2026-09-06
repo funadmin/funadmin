@@ -9,7 +9,7 @@ const cutoverName = migrations.find((name) => name.endsWith('_laravel_field_cuto
 const cutover = cutoverName ? readFileSync(resolve(migrationDir, cutoverName), 'utf8') : '';
 const migrationService = readFileSync(resolve(root, 'app/common/service/MigrationService.php'), 'utf8');
 
-const runtimeDirectories = ['app/backend', 'app/common', 'app/api', 'extend/fun'];
+const runtimeDirectories = ['app/console', 'app/common', 'app/api', 'extend/fun'];
 const compatibilityFiles = new Set([
   'app/common/model/BaseModel.php',
   'app/common/model/concern/LaravelSoftDelete.php',

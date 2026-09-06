@@ -156,7 +156,7 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
   });
 
   it('SystemRole 对 name/code 使用 withTrashed 判重并捕获数据库唯一冲突', () => {
-    const source = readProjectFile('app/backend/controller/system/SystemRole.php');
+    const source = readProjectFile('app/console/controller/system/SystemRole.php');
     const writes = source.match(/public function create\(\): Response[\s\S]*?(?=\n    public function delete)/)?.[0] ?? '';
 
     expect(writes).toMatch(/AuthGroup::withTrashed\(\)[\s\S]*['"]name['"]/);
@@ -166,7 +166,7 @@ describe('字段类型、会员与唯一冲突源码契约', () => {
   });
 
   it('SystemConfig 配置分组写入捕获数据库唯一冲突', () => {
-    const source = readProjectFile('app/backend/controller/system/SystemConfig.php');
+    const source = readProjectFile('app/console/controller/system/SystemConfig.php');
     const groupWrites = source.match(/public function createGroup\(\): Response[\s\S]*?(?=\n    public function deleteGroup)/)?.[0] ?? '';
 
     expect(groupWrites).toMatch(/catch\s*\(\\Throwable\s+\$\w+\)/);

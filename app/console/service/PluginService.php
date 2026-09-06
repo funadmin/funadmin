@@ -48,6 +48,7 @@ class PluginService extends AbstractService
             return $operation($this->packageOperationTokens[$name]);
         }
         $lock = null;
+        $operationFailure = null;
         $token = bin2hex(random_bytes(16));
         $this->activeOperationTokens[$name] = $token;
         try {
@@ -56,6 +57,7 @@ class PluginService extends AbstractService
             $lock = (new LifecycleLock(runtime_path('plugins' . DIRECTORY_SEPARATOR . 'locks')))->acquire($name);
             return $operation($token);
         } catch (\Throwable $exception) {
+            $operationFailure = $exception;
             if ($lock && !$this->suppressFailureRecording) {
                 $this->recordFailure($name, $exception);
             }
@@ -79,7 +81,16 @@ class PluginService extends AbstractService
             }
             try {
                 if ($lock) {
-                    $this->rebuildRuntimeCache();
+                    try {
+                        $this->rebuildRuntimeCache();
+                    } catch (\Throwable $cacheException) {
+                        $this->runtimeCache()->invalidate();
+                        if ($operationFailure !== null) {
+                            error_log('插件运行时清单重建失败：' . $cacheException->getMessage());
+                        } else {
+                            throw $cacheException;
+                        }
+                    }
                 }
                 $this->clearApplicationCache();
             } finally {
@@ -629,6 +640,11 @@ class PluginService extends AbstractService
         $this->rebuildRuntimeCache();
     }
 
+    private function runtimeCache(): PluginRuntimeCache
+    {
+        return new PluginRuntimeCache(root_path() . PLUGIN_DIR, root_path('runtime/plugins/compiled'));
+    }
+
     /** 生命周期状态提交后，以数据库 enabled 集合重新生成可信运行时清单。 */
     private function rebuildRuntimeCache(): void
     {
@@ -641,10 +657,7 @@ class PluginService extends AbstractService
                 $enabled[$name] = $manifest;
             }
         }
-        (new PluginRuntimeCache(
-            root_path() . PLUGIN_DIR,
-            runtime_path('plugins' . DIRECTORY_SEPARATOR . 'compiled')
-        ))->rebuild($enabled);
+        $this->runtimeCache()->rebuild($enabled);
     }
 
     private function infrastructure(): PluginInfrastructureService { return app(PluginInfrastructureService::class); }

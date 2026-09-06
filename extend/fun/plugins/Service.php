@@ -15,7 +15,8 @@ use think\Route;
 class Service extends \think\Service
 {
     protected $plugins_path;
-    private ?array $enabledManifests = null;
+    private ?array $commonManifests = null;
+    private array $applicationManifests = [];
 
     public function register()
     {
@@ -39,7 +40,7 @@ class Service extends \think\Service
             if (in_array($appName, ['api', 'frontend'], true)) {
                 $boundaries['channels.' . $appName] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $appName);
             }
-            $this->booter()->boot($this->enabledManifests(), $boundaries);
+            $this->booter()->boot($this->applicationManifests($appName), $boundaries);
         });
 
     }
@@ -53,7 +54,7 @@ class Service extends \think\Service
     private function loadRuntimeBoundaries(): void
     {
         $loader = new RuntimeLoader();
-        $this->booter()->boot($this->enabledManifests(), [
+        $this->booter()->boot($this->commonManifests(), [
             // vendor 必须先于 entry：入口类的父类/接口可能来自插件自带依赖
             'composer' => static fn (Manifest $manifest) => $loader->loadComposerAutoload($manifest),
             'entry' => static fn (Manifest $manifest) => $loader->loadEntry($manifest),
@@ -99,24 +100,34 @@ class Service extends \think\Service
             );
     }
 
-    private function enabledManifests(): array
+    private function commonManifests(): array
     {
-        if ($this->enabledManifests !== null) {
-            return $this->enabledManifests;
+        if ($this->commonManifests !== null) {
+            return $this->commonManifests;
         }
-        $application = (string) $this->app->http->getName();
-        $application = in_array($application, ['api', 'frontend'], true) ? $application : 'console';
         $cache = $this->runtimeCache();
-        if (!$cache->exists($application)) {
-            // 安装期兼容：首次部署尚无编译清单时仅发现一次，随后由生命周期或命令生成。
-            return $this->enabledManifests = $this->registry()->enabled();
+        if (!$cache->exists('console')) {
+            // 首次部署尚无编译清单时仅发现一次，后续生命周期或命令会生成清单。
+            return $this->commonManifests = $this->registry()->enabled();
         }
-        return $this->enabledManifests = $cache->load($application);
+        return $this->commonManifests = $cache->load('console');
+    }
+
+    private function applicationManifests(string $application): array
+    {
+        $application = in_array($application, ['api', 'frontend'], true) ? $application : 'console';
+        if (isset($this->applicationManifests[$application])) {
+            return $this->applicationManifests[$application];
+        }
+        $cache = $this->runtimeCache();
+        return $this->applicationManifests[$application] = $cache->exists($application)
+            ? $cache->load($application)
+            : $this->commonManifests();
     }
 
     private function runtimeCache(): PluginRuntimeCache
     {
-        return new PluginRuntimeCache($this->plugins_path, runtime_path('plugins' . DIRECTORY_SEPARATOR . 'compiled'));
+        return new PluginRuntimeCache($this->plugins_path, root_path('runtime/plugins/compiled'));
     }
 
     private function registry(): Registry

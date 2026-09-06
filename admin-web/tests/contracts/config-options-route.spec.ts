@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const routeSource = readFileSync(resolve(process.cwd(), '../app/backend/route/app.php'), 'utf8');
-const controllerSource = readFileSync(resolve(process.cwd(), '../app/backend/controller/system/SystemConfig.php'), 'utf8');
+const routeSource = readFileSync(resolve(process.cwd(), '../app/console/route/app.php'), 'utf8');
+const controllerSource = readFileSync(resolve(process.cwd(), '../app/console/controller/system/SystemConfig.php'), 'utf8');
 const apiSource = readFileSync(resolve(process.cwd(), 'src/api/system/config.ts'), 'utf8');
 const dialogSource = readFileSync(resolve(process.cwd(), 'src/views/system/config/components/ConfigFormDialog.vue'), 'utf8');
 

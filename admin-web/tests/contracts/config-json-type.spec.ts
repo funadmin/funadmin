@@ -22,7 +22,7 @@ describe('配置 JSON 字段类型契约', () => {
   });
 
   it('后端提供内置 JSON 类型并校验格式', () => {
-    const controller = source('../app/backend/controller/system/SystemConfig.php');
+    const controller = source('../app/console/controller/system/SystemConfig.php');
     expect(controller).toContain("'json' => ['title' => 'JSON', 'requiresOptions' => false]");
     expect(controller).toContain("if ($type === 'json' && $value !== '')");
     expect(controller).toContain("json_decode($value, true)");

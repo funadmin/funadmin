@@ -9,7 +9,7 @@ const readProjectFile = (relativePath: string) => readFileSync(
 
 describe('会员分组关联后端契约', () => {
   it('SystemMember 通过关联表过滤并保存分组', () => {
-    const source = readProjectFile('../app/backend/controller/system/SystemMember.php');
+    const source = readProjectFile('../app/console/controller/system/SystemMember.php');
 
     expect(source).not.toContain('FIND_IN_SET');
     expect(source).not.toMatch(/'group_id'\s*=>\s*implode\(',',\s*\$groupIds\)/);
@@ -24,7 +24,7 @@ describe('会员分组关联后端契约', () => {
   });
 
   it('SystemMemberGroup 通过关联表检查会员组引用', () => {
-    const source = readProjectFile('../app/backend/controller/system/SystemMemberGroup.php');
+    const source = readProjectFile('../app/console/controller/system/SystemMemberGroup.php');
 
     expect(source).not.toContain('FIND_IN_SET');
     expect(source).toContain('MemberGroupRelation');
@@ -41,7 +41,7 @@ describe('管理员邮箱最大长度契约', () => {
   });
 
   it('后端拒绝超过 60 个字符的管理员邮箱', () => {
-    const source = readProjectFile('../app/backend/controller/system/SystemAdmin.php');
+    const source = readProjectFile('../app/console/controller/system/SystemAdmin.php');
 
     expect(source).toMatch(/\$data\['email'\][\s\S]*?(?:mb_)?strlen\(\$data\['email'\]\)\s*>\s*60/);
   });

@@ -25,7 +25,7 @@ SET @menu_legacy = EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_S
 SET @sql = CONCAT(
   'INSERT INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`',
   IF(@perm_legacy, ',`create_time`,`update_time`', ''),
-  ') SELECT 0,''backend'',NULL,'''','''',''CRUD 开发工具'',''group'',1,0,360,''admin_web'',''development_crud'',NOW(),NOW()',
+  ') SELECT 0,''console'',NULL,'''','''',''CRUD 开发工具'',''group'',1,0,360,''admin_web'',''development_crud'',NOW(),NOW()',
   IF(@perm_legacy, ',UNIX_TIMESTAMP(),UNIX_TIMESTAMP()', ''),
   ' WHERE NOT EXISTS (SELECT 1 FROM `fun_permission` WHERE `source_type`=''admin_web'' AND `source_name`=''development_crud'' AND `resource_type`=''group'')'
 );
@@ -36,17 +36,17 @@ DEALLOCATE PREPARE stmt;
 SET @crud_permission_id=(SELECT `id` FROM `fun_permission` WHERE `source_type`='admin_web' AND `source_name`='development_crud' AND `resource_type`='group' ORDER BY `id` LIMIT 1);
 SET @sql = REPLACE(REPLACE(
   'INSERT IGNORE INTO `fun_permission` (`pid`,`module`,`code`,`obj`,`act`,`name`,`resource_type`,`status`,`is_public`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`@@C@@) VALUES
-(@crud_permission_id,''backend'',''backend/devcrud:connections'',''backend/devcrud'',''connections'',''查看数据源'',''route'',1,0,10,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:tables'',''backend/devcrud'',''tables'',''查看数据表'',''route'',1,0,11,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:tableschema'',''backend/devcrud'',''tableschema'',''查看表结构'',''route'',1,0,12,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:infer'',''backend/devcrud'',''infer'',''推断 CRUD 字段'',''route'',1,0,20,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:validate'',''backend/devcrud'',''validate'',''验证 CRUD 定义'',''route'',1,0,30,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:preview'',''backend/devcrud'',''preview'',''预览 CRUD 生成'',''route'',1,0,40,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:generate'',''backend/devcrud'',''generate'',''生成 CRUD 文件'',''route'',1,0,50,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''backend/devcrud:generationdetail'',''backend/devcrud'',''generationdetail'',''查看生成审计'',''route'',1,0,60,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''development:crud:list'',''development/crud'',''list'',''使用 CRUD Workbench'',''route'',1,0,70,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''development:crud:generate'',''development/crud'',''generate'',''获取确认并生成'',''route'',1,0,80,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
-(@crud_permission_id,''backend'',''development:crud:overwrite'',''development/crud'',''overwrite'',''覆盖冲突文件'',''route'',1,0,90,''admin_web'',''development_crud'',NOW(),NOW()@@V@@);',
+(@crud_permission_id,''console'',''console/devcrud:connections'',''console/devcrud'',''connections'',''查看数据源'',''route'',1,0,10,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:tables'',''console/devcrud'',''tables'',''查看数据表'',''route'',1,0,11,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:tableschema'',''console/devcrud'',''tableschema'',''查看表结构'',''route'',1,0,12,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:infer'',''console/devcrud'',''infer'',''推断 CRUD 字段'',''route'',1,0,20,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:validate'',''console/devcrud'',''validate'',''验证 CRUD 定义'',''route'',1,0,30,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:preview'',''console/devcrud'',''preview'',''预览 CRUD 生成'',''route'',1,0,40,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:generate'',''console/devcrud'',''generate'',''生成 CRUD 文件'',''route'',1,0,50,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''console/devcrud:generationdetail'',''console/devcrud'',''generationdetail'',''查看生成审计'',''route'',1,0,60,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''development:crud:list'',''development/crud'',''list'',''使用 CRUD Workbench'',''route'',1,0,70,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''development:crud:generate'',''development/crud'',''generate'',''获取确认并生成'',''route'',1,0,80,''admin_web'',''development_crud'',NOW(),NOW()@@V@@),
+(@crud_permission_id,''console'',''development:crud:overwrite'',''development/crud'',''overwrite'',''覆盖冲突文件'',''route'',1,0,90,''admin_web'',''development_crud'',NOW(),NOW()@@V@@);',
   '@@C@@', IF(@perm_legacy, ',`create_time`,`update_time`', '')),
   '@@V@@', IF(@perm_legacy, ',UNIX_TIMESTAMP(),UNIX_TIMESTAMP()', ''));
 PREPARE stmt FROM @sql;
@@ -56,7 +56,7 @@ DEALLOCATE PREPARE stmt;
 SET @sql = CONCAT(
   'INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`module`,`name`,`href`,`query`,`target`,`icon`,`status`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`',
   IF(@menu_legacy, ',`create_time`,`update_time`', ''),
-  ') SELECT 0,0,''backend'',''开发工具'',''/development'',''component=Layout&name=Development&type=M&redirect=/development/crud'',''_self'',''i-ep-tools'',1,30,''admin_web'',''development_tools'',NOW(),NOW()',
+  ') SELECT 0,0,''console'',''开发工具'',''/development'',''component=Layout&name=Development&type=M&redirect=/development/crud'',''_self'',''i-ep-tools'',1,30,''admin_web'',''development_tools'',NOW(),NOW()',
   IF(@menu_legacy, ',UNIX_TIMESTAMP(),UNIX_TIMESTAMP()', ''),
   ' WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type`=''admin_web'' AND `source_name`=''development_tools'')'
 );
@@ -68,7 +68,7 @@ SET @development_menu_id=(SELECT `id` FROM `fun_admin_menu` WHERE `source_type`=
 SET @sql = CONCAT(
   'INSERT INTO `fun_admin_menu` (`pid`,`permission_id`,`module`,`name`,`href`,`query`,`target`,`icon`,`status`,`sort_order`,`source_type`,`source_name`,`created_at`,`updated_at`',
   IF(@menu_legacy, ',`create_time`,`update_time`', ''),
-  ') SELECT @development_menu_id,@crud_permission_id,''backend'',''CRUD生成器'',''crud'',''component=development/crud/index&name=DevelopmentCrud&type=C&permission=development:crud:list'',''_self'',''i-ep-magic-stick'',1,10,''admin_web'',''development_crud'',NOW(),NOW()',
+  ') SELECT @development_menu_id,@crud_permission_id,''console'',''CRUD生成器'',''crud'',''component=development/crud/index&name=DevelopmentCrud&type=C&permission=development:crud:list'',''_self'',''i-ep-magic-stick'',1,10,''admin_web'',''development_crud'',NOW(),NOW()',
   IF(@menu_legacy, ',UNIX_TIMESTAMP(),UNIX_TIMESTAMP()', ''),
   ' WHERE NOT EXISTS (SELECT 1 FROM `fun_admin_menu` WHERE `source_type`=''admin_web'' AND `source_name`=''development_crud'')'
 );

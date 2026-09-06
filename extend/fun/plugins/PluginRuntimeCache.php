@@ -78,6 +78,20 @@ final class PluginRuntimeCache
         return is_file($this->file($application));
     }
 
+    /** 删除可能与数据库状态不一致的旧清单，下一请求按 Registry 安全降级。 */
+    public function invalidate(): void
+    {
+        foreach (self::APPLICATIONS as $application) {
+            $file = $this->file($application);
+            if (is_file($file) && !unlink($file)) {
+                throw new RuntimeException('无法失效插件运行时清单：' . $application);
+            }
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($file, true);
+            }
+        }
+    }
+
     private function write(string $application, array $payload): void
     {
         $file = $this->file($application);

@@ -17,8 +17,7 @@ namespace fun;
 use think\App;
 use think\facade\View;
 
-abstract class Plugins
-{
+abstract class Plugins  {
     // app 容器
     protected $app;
     // 请求对象

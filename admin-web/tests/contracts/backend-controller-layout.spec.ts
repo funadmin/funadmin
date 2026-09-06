@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const projectRoot = resolve(process.cwd(), '..');
-const controllerRoot = resolve(projectRoot, 'app/backend/controller');
+const controllerRoot = resolve(projectRoot, 'app/console/controller');
 const readProjectFile = (relativePath: string) => readFileSync(resolve(projectRoot, relativePath), 'utf8');
 
 const authControllers = ['AdminAuth', 'AdminProfile'];
@@ -27,13 +27,13 @@ const systemControllers = [
 ];
 const movedControllers = ['AdminApiController', ...authControllers, ...systemControllers];
 
-const routeSource = readProjectFile('app/backend/route/app.php');
-const authSource = readProjectFile('app/backend/controller/auth/AdminAuth.php');
-const profileSource = readProjectFile('app/backend/controller/auth/AdminProfile.php');
-const uploadSource = readProjectFile('app/backend/controller/system/AdminUpload.php');
-const roleSource = readProjectFile('app/backend/controller/system/SystemRole.php');
-const dictSource = readProjectFile('app/backend/controller/system/SystemDict.php');
-const permissionSource = readProjectFile('app/backend/service/PermissionResource.php');
+const routeSource = readProjectFile('app/console/route/app.php');
+const authSource = readProjectFile('app/console/controller/auth/AdminAuth.php');
+const profileSource = readProjectFile('app/console/controller/auth/AdminProfile.php');
+const uploadSource = readProjectFile('app/console/controller/system/AdminUpload.php');
+const roleSource = readProjectFile('app/console/controller/system/SystemRole.php');
+const dictSource = readProjectFile('app/console/controller/system/SystemDict.php');
+const permissionSource = readProjectFile('app/console/service/PermissionResource.php');
 
 describe('后台控制器目录重组源码契约', () => {
   it('已移动控制器仅存在于对应子目录', () => {

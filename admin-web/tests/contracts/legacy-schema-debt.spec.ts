@@ -42,11 +42,11 @@ describe('017 历史命名与会员标签治理', () => {
 
   it('应用代码切换到规范管理员字段', () => {
     for (const path of [
-      'app/backend/service/AdminSessionService.php',
-      'app/backend/service/AdminAuthorizationService.php',
-      'app/backend/controller/auth/AdminAuth.php',
-      'app/backend/controller/auth/AdminProfile.php',
-      'app/backend/controller/system/SystemAdmin.php',
+      'app/console/service/AdminSessionService.php',
+      'app/console/service/AdminAuthorizationService.php',
+      'app/console/controller/auth/AdminAuth.php',
+      'app/console/controller/auth/AdminProfile.php',
+      'app/console/controller/system/SystemAdmin.php',
       'app/common/traits/Crud.php'
     ]) {
       const source = read(path);
@@ -62,7 +62,7 @@ describe('017 历史命名与会员标签治理', () => {
   });
 
   it('会员 API 与前端通过 tagIds 管理标签关系', () => {
-    const controller = read('app/backend/controller/system/SystemMember.php');
+    const controller = read('app/console/controller/system/SystemMember.php');
     const api = read('admin-web/src/api/system/member.ts');
     const form = read('admin-web/src/views/system/member/components/MemberFormDialog.vue');
     expect(controller).toContain('tagIds');
