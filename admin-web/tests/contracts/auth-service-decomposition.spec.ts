@@ -85,7 +85,7 @@ describe('管理员认证最终架构契约', () => {
 
     expect(adminAuth).toContain('AdminSessionService');
     expect(adminAuth).toContain('RoleScopeService');
-    expect(adminAuth).toContain('AdminAuthorizationService');
+    expect(adminAuth).not.toContain('AdminAuthorizationService');
     expect(profile).toContain('AdminSessionService');
     expect(devCrud).toContain('AdminAuthorizationService');
     expect(roleGuard).toContain('RoleScopeService');

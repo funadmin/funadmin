@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 const adminRoot = resolve(import.meta.dirname, '../..');
 const projectRoot = resolve(adminRoot, '..');
-const legacyGenerator = readFileSync(resolve(adminRoot, 'scripts/crud-gen.mjs'), 'utf8');
+const legacyGeneratorPath = resolve(adminRoot, 'scripts/crud-gen.mjs');
 const phpGenerator = readFileSync(resolve(projectRoot, 'app/common/crud/CrudGenerator.php'), 'utf8');
 const productionTemplateContext = readFileSync(resolve(projectRoot, 'app/common/crud/ProductionTemplateContext.php'), 'utf8');
 const workbenchView = readFileSync(resolve(adminRoot, 'src/views/development/crud/index.vue'), 'utf8');
@@ -122,10 +122,8 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(memberLevelController).toContain('protected string $model = MemberLevel::class;');
   });
 
-  it('Node 入口明确弃用且不再生成文件', () => {
-    expect(legacyGenerator).toContain('已弃用');
-    expect(legacyGenerator).not.toContain('writeFile');
-    expect(legacyGenerator).not.toContain('backendControllerSource');
+  it('Node CRUD 生成入口已删除', () => {
+    expect(existsSync(legacyGeneratorPath)).toBe(false);
   });
 
   it('使用固定 UTF-8 字节修复 CRUD Workbench 菜单历史乱码', () => {

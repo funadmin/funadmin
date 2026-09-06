@@ -272,7 +272,7 @@ final class ProductionTemplateContext
         if ($enabled['batchDelete']) {
             $methods[] = "    #[Delete('')]\n    public function recycle(): Response { return \$this->crudRecycle(); }";
         }
-        if ($enabled['batchDelete']) {
+        if ($enabled['batchSoftDelete']) {
             $methods[] = "    #[Post('restore')]\n    public function restoreMany(): Response { return \$this->crudRestoreMany(); }";
             $methods[] = "    #[Delete('destroy')]\n    public function destroyMany(): Response { return \$this->crudDestroyMany(); }";
         }
@@ -339,7 +339,8 @@ final class ProductionTemplateContext
                 'options' => $enabled['options'],
                 'remove' => $enabled['delete'],
                 'restore', 'destroy' => $enabled['softDelete'],
-                'recycle', 'restoreMany', 'destroyMany' => $enabled['batchDelete'],
+                'recycle' => $enabled['batchDelete'],
+                'restoreMany', 'destroyMany' => $enabled['batchSoftDelete'],
                 default => $enabled[$action] ?? false,
             }
         ));
@@ -408,6 +409,8 @@ final class ProductionTemplateContext
         }
         if ($enabled['batchDelete']) {
             $methods[] = "  removeMany: (ids: {$type}Id[]) => request.delete('{$base}', { ids })";
+        }
+        if ($enabled['batchSoftDelete']) {
             $methods[] = "  restoreMany: (ids: {$type}Id[]) => request.post('{$base}/restore', { ids })";
             $methods[] = "  forceDeleteMany: (ids: {$type}Id[]) => request.delete('{$base}/destroy', { ids })";
         }
@@ -452,7 +455,11 @@ final class ProductionTemplateContext
             $toolbar[] = '<el-button @click="switchMode(false)">正常列表</el-button><el-button @click="switchMode(true)">回收站</el-button>';
         }
         if ($enabled['create'] && ($data['capabilities']['form'] ?? true)) $toolbar[] = '<el-button v-if="!recycled" type="primary" @click="onAdd">新增</el-button>';
-        if ($enabled['batchDelete']) $toolbar[] = '<el-button v-if="!recycled" type="danger" :disabled="!selection.length" @click="onBatchDelete">批量删除</el-button><el-button v-if="recycled" type="success" :disabled="!selection.length" @click="restoreSelected">批量恢复</el-button><el-button v-if="recycled" type="danger" :disabled="!selection.length" @click="forceDeleteSelected">批量永久删除</el-button>';
+        if ($enabled['batchDelete']) {
+            $toolbar[] = $enabled['batchSoftDelete']
+                ? '<el-button v-if="!recycled" type="danger" :disabled="!selection.length" @click="onBatchDelete">批量删除</el-button><el-button v-if="recycled" type="success" :disabled="!selection.length" @click="restoreSelected">批量恢复</el-button><el-button v-if="recycled" type="danger" :disabled="!selection.length" @click="forceDeleteSelected">批量永久删除</el-button>'
+                : '<el-button type="danger" :disabled="!selection.length" @click="onBatchDelete">批量删除</el-button>';
+        }
         if ($enabled['import']) $toolbar[] = '<el-button @click="fileInput?.click()">导入</el-button><input ref="fileInput" class="hidden" type="file" accept=".csv,text/csv" @change="importCsv" />';
         if ($enabled['export']) $toolbar[] = '<el-button @click="exportRows">导出</el-button>';
         $editButton = $enabled['update'] && ($data['capabilities']['form'] ?? true) ? "<el-button v-if=\"!recycled\" link @click=\"onEdit(scope.row as {$type})\">编辑</el-button>" : '';
@@ -508,7 +515,7 @@ final class ProductionTemplateContext
             . ($enabled['softDelete'] ? "function switchMode(value: boolean) { query.recycled = value ? 1 : 0; query.page = 1; void loadData(); }\n" : '')
             . ($enabled['delete'] ? "async function removeRow(row: {$type}) { await ElMessageBox.confirm('" . ($enabled['softDelete'] ? '确认删除该记录？' : '确认永久删除该记录？此操作不可恢复。') . "', '" . ($enabled['softDelete'] ? '删除确认' : '永久删除确认') . "', { type: '" . ($enabled['softDelete'] ? 'warning' : 'error') . "' }); await {$camel}Api.remove(row.{$primaryName}); await loadData(); }\n" : '')
             . ($enabled['softDelete'] ? "async function restoreRow(row: {$type}) { await {$camel}Api.restore(row.{$primaryName}); await loadData(); }\nasync function forceDeleteRow(row: {$type}) { await ElMessageBox.confirm('确认永久删除该记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDelete(row.{$primaryName}); await loadData(); }\n" : '')
-            . ($enabled['batchDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await ElMessageBox.confirm('确认永久删除选中记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
+            . ($enabled['batchSoftDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await ElMessageBox.confirm('确认永久删除选中记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
             . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); }\n" : '')
             . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file) return; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); await {$camel}Api.importRows(rows); await loadData(); }\n" : '')
             . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
@@ -669,7 +676,8 @@ final class ProductionTemplateContext
             'update' => $enabled('update'),
             'delete' => $delete,
             'softDelete' => $softDelete,
-            'batchDelete' => $softDelete && ($features['batchDelete'] ?? false),
+            'batchDelete' => $delete && ($features['batchDelete'] ?? false),
+            'batchSoftDelete' => $softDelete && ($features['batchDelete'] ?? false),
             'status' => $enabled('update') && ($features['status'] ?? false),
             'import' => $enabled('import') && ($features['import'] ?? false),
             'export' => $enabled('export') && ($features['export'] ?? false),
