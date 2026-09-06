@@ -34,7 +34,7 @@
       </el-form-item>
 
       <el-form-item label="应用标识" prop="module">
-        <el-input v-model="form.module" maxlength="50" placeholder="如 backend" />
+        <el-input v-model="form.module" maxlength="50" placeholder="如 console" />
       </el-form-item>
 
       <template v-if="form.resourceType === 'route'">
@@ -108,7 +108,7 @@ const saving = ref(false);
 
 const initialForm = (): Partial<PermissionModel> => ({
   parentId: 0,
-  module: 'backend',
+  module: 'console',
   name: '',
   object: '',
   action: '',

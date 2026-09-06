@@ -44,6 +44,16 @@ final class Manifest
         return new self($directory, $data);
     }
 
+    /** 从安装或启停阶段生成的可信运行时快照恢复，不重复执行磁盘和 Schema 校验。 */
+    public static function fromCompiled(string $directory, array $data): self
+    {
+        $directory = rtrim($directory, DIRECTORY_SEPARATOR);
+        if (($data['name'] ?? '') === '' || basename($directory) !== $data['name']) {
+            throw new RuntimeException('插件运行时快照与目录不一致');
+        }
+        return new self($directory, $data);
+    }
+
     public function name(): string
     {
         return $this->data['name'];

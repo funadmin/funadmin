@@ -7,7 +7,7 @@
             <el-input v-model="query.username" placeholder="操作账号" clearable />
           </el-form-item>
           <el-form-item label="应用" prop="appName">
-            <el-input v-model="query.appName" placeholder="如 backend" clearable class="!w-36" />
+            <el-input v-model="query.appName" placeholder="如 console" clearable class="!w-36" />
           </el-form-item>
           <el-form-item label="来源" prop="sourceType">
             <el-select v-model="query.sourceType" placeholder="全部" clearable class="!w-32">

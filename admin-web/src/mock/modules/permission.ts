@@ -8,7 +8,7 @@ const permissionList: PermissionModel[] = [
   {
     id: 192,
     parentId: 0,
-    module: 'backend',
+    module: 'console',
     code: '',
     object: '',
     action: '',
@@ -23,7 +23,7 @@ const permissionList: PermissionModel[] = [
   {
     id: 227,
     parentId: 192,
-    module: 'backend',
+    module: 'console',
     code: '',
     object: '',
     action: '',
@@ -44,8 +44,8 @@ const permissionList: PermissionModel[] = [
   ].map(([id, action, name, sort]) => ({
     id: Number(id),
     parentId: 227,
-    module: 'backend',
-    code: `backend/systempermission:${action}`,
+    module: 'console',
+    code: `console/systempermission:${action}`,
     object: 'systempermission',
     action: String(action),
     name: String(name),
@@ -59,7 +59,7 @@ const permissionList: PermissionModel[] = [
 ];
 
 function normalize(body: Record<string, any>, current?: PermissionModel): PermissionModel {
-  const module = String(body.module ?? current?.module ?? 'backend').trim().toLowerCase();
+  const module = String(body.module ?? current?.module ?? 'console').trim().toLowerCase();
   const resourceType = body.resourceType === 'group' ? 'group' : 'route';
   const object = resourceType === 'route'
     ? String(body.object ?? current?.object ?? '').trim().toLowerCase().replace(new RegExp(`^${module}[\\/.]`, 'i'), '')

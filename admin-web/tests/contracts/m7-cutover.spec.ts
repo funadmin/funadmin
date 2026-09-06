@@ -22,6 +22,12 @@ describe('M7 Laravel 字段与旧入口收缩契约', () => {
     for (const file of productionPhp) {
       expect(read(file), file).not.toContain('app\\\\backend\\\\');
     }
+    const cutover = read('database/migrations/050_backend_to_console_cutover.sql');
+    expect(cutover).toContain("SET `module` = 'console'");
+    expect(cutover).toContain("REPLACE(`code`, 'backend/', 'console/')");
+    expect(cutover).toContain("REPLACE(`obj`, 'backend/', 'console/')");
+    expect(cutover).toContain("REPLACE(`v2`, 'backend/', 'console/')");
+    expect(cutover).toContain('`rule_hash` = SHA2(');
   });
 
   it('业务 PHP 不读写 legacy 公共字段', () => {

@@ -855,7 +855,7 @@ class McpService extends AbstractService
 
     /**
      * 生成FunAdmin控制器文件
-     * @param string $module 模块名称 (backend/api/frontend等)
+     * @param string $module 模块名称 (console/api/frontend等)
      * @param string $controller 控制器名称
      * @param array $fields 字段信息 (可选)
      * @param string $description 控制器描述 (可选)
@@ -1298,7 +1298,7 @@ class {$model} extends BaseModel
             if (in_array($type, ['controller', 'all'])) {
                 if (!empty($parsedData['controller'])) {
                     $controllerResult = $this->handleCreateController(
-                        $parsedData['controller']['module'] ?? 'backend',
+                        $parsedData['controller']['module'] ?? 'console',
                         $parsedData['controller']['name'],
                         $parsedData['controller']['fields'] ?? [],
                         $parsedData['controller']['description'] ?? ''
@@ -1406,7 +1406,7 @@ class {$model} extends BaseModel
             // 构建控制器数据
             $controllerName = ucfirst($tableName) . 'Controller';
             $parsedData['controller'] = [
-                'module' => 'backend',
+                'module' => 'console',
                 'name' => $controllerName,
                 'fields' => $fields,
                 'description' => $tableComment ?: $controllerName
@@ -1461,9 +1461,9 @@ class {$model} extends BaseModel
         }
 
         // 解析模块类型
-        if (strpos($lowerPrompt, 'backend') !== false || strpos($lowerPrompt, '后台') !== false) {
+        if (strpos($lowerPrompt, 'console') !== false || strpos($lowerPrompt, '后台') !== false) {
             if (!empty($parsedData['controller'])) {
-                $parsedData['controller']['module'] = 'backend';
+                $parsedData['controller']['module'] = 'console';
             }
         }
 

@@ -11,6 +11,7 @@ use fun\plugins\LifecycleLock;
 use fun\plugins\LifecycleState;
 use fun\plugins\Manifest;
 use fun\plugins\PluginPurgeCoordinator;
+use fun\plugins\PluginRuntimeCache;
 use fun\plugins\PluginStorage;
 use fun\plugins\Registry;
 use fun\plugins\Service;
@@ -77,6 +78,9 @@ class PluginService extends AbstractService
                 error_log('清理插件操作令牌失败：' . $cleanupException->getMessage());
             }
             try {
+                if ($lock) {
+                    $this->rebuildRuntimeCache();
+                }
                 $this->clearApplicationCache();
             } finally {
                 if ($lock) {
@@ -618,6 +622,29 @@ class PluginService extends AbstractService
     private function migrate(string $name): array
     {
         return $this->infrastructure()->migrate($this->validatedManifest($name));
+    }
+
+    public function refreshRuntimeCache(): void
+    {
+        $this->rebuildRuntimeCache();
+    }
+
+    /** 生命周期状态提交后，以数据库 enabled 集合重新生成可信运行时清单。 */
+    private function rebuildRuntimeCache(): void
+    {
+        $records = $this->installedRecords();
+        $enabled = [];
+        foreach ($this->allManifests() as $name => $manifest) {
+            $record = $records[$name] ?? null;
+            if (is_array($record) && ($record['lifecycle_state'] ?? '') === 'enabled'
+                && (int) ($record['needs_reinstall'] ?? 0) === 0) {
+                $enabled[$name] = $manifest;
+            }
+        }
+        (new PluginRuntimeCache(
+            root_path() . PLUGIN_DIR,
+            runtime_path('plugins' . DIRECTORY_SEPARATOR . 'compiled')
+        ))->rebuild($enabled);
     }
 
     private function infrastructure(): PluginInfrastructureService { return app(PluginInfrastructureService::class); }

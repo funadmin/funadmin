@@ -69,8 +69,8 @@ describe('CRUD 模型类公共解析契约', () => {
     expect(levelApi).toContain('list: (params: MemberLevelQuery) => http.get<API.PageResult<MemberLevelModel>>(PREFIX, params)');
     expect(groupApi).toContain('importRows: (rows:');
     expect(levelApi).toContain('importRows: (rows:');
-    expect(authController).toContain("'backend/systemmembergroup:import' => 'system:member-group:import'");
-    expect(authController).toContain("'backend/systemmemberlevel:import' => 'system:member-level:import'");
+    expect(authController).toContain("'console/systemmembergroup:import' => 'system:member-group:import'");
+    expect(authController).toContain("'console/systemmemberlevel:import' => 'system:member-level:import'");
     expect(permissionMigration).toContain('backend/systemmembergroup:import');
     expect(permissionMigration).toContain('backend/systemmemberlevel:import');
     expect(groupPage).toContain("v-perm=\"'system:member-group:import'\"");

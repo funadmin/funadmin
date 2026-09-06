@@ -15,6 +15,8 @@ use think\Route;
 class Service extends \think\Service
 {
     protected $plugins_path;
+    private ?array $enabledManifests = null;
+
     public function register()
     {
         $this->app->bind('plugins', Service::class);
@@ -37,7 +39,7 @@ class Service extends \think\Service
             if (in_array($appName, ['api', 'frontend'], true)) {
                 $boundaries['channels.' . $appName] = static fn (Manifest $manifest) => $loader->loadChannelRoutes($route, $manifest, $appName);
             }
-            $this->booter()->boot($this->registry()->enabled(), $boundaries);
+            $this->booter()->boot($this->enabledManifests(), $boundaries);
         });
 
     }
@@ -51,7 +53,7 @@ class Service extends \think\Service
     private function loadRuntimeBoundaries(): void
     {
         $loader = new RuntimeLoader();
-        $this->booter()->boot($this->registry()->enabled(), [
+        $this->booter()->boot($this->enabledManifests(), [
             // vendor 必须先于 entry：入口类的父类/接口可能来自插件自带依赖
             'composer' => static fn (Manifest $manifest) => $loader->loadComposerAutoload($manifest),
             'entry' => static fn (Manifest $manifest) => $loader->loadEntry($manifest),
@@ -62,9 +64,12 @@ class Service extends \think\Service
 
     private function booter(): PluginRuntimeBooter
     {
-        $recorder = new RuntimeLoadFailureRecorder(static function (array $failure): void {
+        $recorder = new RuntimeLoadFailureRecorder(function (array $failure): void {
             $errorStage = (string) ($failure['error_stage'] ?? 'runtime');
             unset($failure['error_stage']);
+            if (self::sameRuntimeFailure($failure, $errorStage)) {
+                return;
+            }
             PluginOperation::create($failure + [
                 'from_version' => '',
                 'to_version' => '',
@@ -76,8 +81,42 @@ class Service extends \think\Service
                 'last_error' => $failure['error_message'],
                 'error_stage' => $errorStage,
             ]);
+            // 失败插件立即从后续请求的编译清单移除，避免高并发下反复启动和写库。
+            $this->runtimeCache()->rebuild($this->registry()->enabled());
         });
         return new PluginRuntimeBooter([$recorder, 'record']);
+    }
+
+    private static function sameRuntimeFailure(array $failure, string $stage): bool
+    {
+        $plugin = Plugin::where('name', (string) ($failure['plugin_name'] ?? ''))->find();
+        return $plugin
+            && (string) $plugin->lifecycle_state === 'failed'
+            && (string) $plugin->error_stage === $stage
+            && hash_equals(
+                hash('sha256', (string) $plugin->last_error),
+                hash('sha256', (string) ($failure['error_message'] ?? ''))
+            );
+    }
+
+    private function enabledManifests(): array
+    {
+        if ($this->enabledManifests !== null) {
+            return $this->enabledManifests;
+        }
+        $application = (string) $this->app->http->getName();
+        $application = in_array($application, ['api', 'frontend'], true) ? $application : 'console';
+        $cache = $this->runtimeCache();
+        if (!$cache->exists($application)) {
+            // 安装期兼容：首次部署尚无编译清单时仅发现一次，随后由生命周期或命令生成。
+            return $this->enabledManifests = $this->registry()->enabled();
+        }
+        return $this->enabledManifests = $cache->load($application);
+    }
+
+    private function runtimeCache(): PluginRuntimeCache
+    {
+        return new PluginRuntimeCache($this->plugins_path, runtime_path('plugins' . DIRECTORY_SEPARATOR . 'compiled'));
     }
 
     private function registry(): Registry
