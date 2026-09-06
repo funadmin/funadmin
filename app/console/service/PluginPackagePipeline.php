@@ -40,12 +40,12 @@ final class PluginPackagePipeline
         return new self(
             $packages ?? PluginPackageService::instance(),
             static fn (string $operation, string $name, bool $migrate): bool => match ($operation) {
-                'install' => $plugins->installPlugin($name, 'package'),
+                'install' => $plugins->installPlugin($name),
                 'redeploy' => $plugins->redeployPlugin($name, $migrate),
                 default => $plugins->updatePlugin($name, $migrate),
             },
             static fn (): bool => $plugins->canRollbackDeployment(),
-            static fn (array $data): mixed => PluginPackageHistoryService::instance()->record($data),
+            static fn (array $data): mixed => PluginPackageService::instance()->record($data),
             static fn (string $message): bool => error_log($message),
             static fn (string $operation, string $name, callable $callback, array $context): mixed => $plugins->runPackageOperation($operation, $name, $callback, $context),
             static function (string $name, array $state) use ($plugins): void {
@@ -292,15 +292,6 @@ final class PluginPackagePipeline
         } catch (\Throwable $exception) {
             $this->log('插件包部署已提交，但清理临时目录失败：' . $exception->getMessage());
             return $exception->getMessage();
-        }
-    }
-
-    private function discardSafely(array $staged): void
-    {
-        try {
-            $this->packages->discard($staged);
-        } catch (\Throwable $exception) {
-            $this->log('插件包暂存目录清理失败：' . $exception->getMessage());
         }
     }
 

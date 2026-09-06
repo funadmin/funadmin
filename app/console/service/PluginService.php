@@ -197,7 +197,7 @@ class PluginService extends AbstractService
         });
     }
 
-    public function installPlugin(string $name, string $type = ''): bool
+    public function installPlugin(string $name): bool
     {
         return $this->operate($name, function (string $token) use ($name): bool {
             $this->deploymentRollbackAllowed = true;
@@ -427,11 +427,6 @@ class PluginService extends AbstractService
 
     public function enablePlugin(string $name): bool { return $this->setPluginEnabled($name, true); }
     public function disablePlugin(string $name): bool { return $this->setPluginEnabled($name, false); }
-    public function modifyPlugin(string $name): bool
-    {
-        $info = $this->installedRecord($name);
-        return $this->setPluginEnabled($name, (string) $info->lifecycle_state !== 'enabled');
-    }
 
     public function isInstall(string $name)
     {
@@ -509,7 +504,7 @@ class PluginService extends AbstractService
 
     private function assertName(string $name): void
     {
-        if (!preg_match('/^[a-zA-Z0-9]+$/', $name)) {
+        if (!preg_match('/^[a-z][a-z0-9]*$/', $name)) {
             throw new RuntimeException('插件名称不合法');
         }
     }

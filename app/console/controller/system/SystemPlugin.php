@@ -8,15 +8,11 @@ use app\console\controller\base\AdminApiController;
 use app\console\middleware\CheckAdminApiCsrf;
 use app\console\middleware\CheckAdminApiRole;
 use app\console\middleware\SystemLog;
-use app\console\service\PluginCenterQueryService;
-use app\console\service\PluginConfigService;
-use app\console\service\PluginMarketplaceFactory;
+use app\console\service\PluginCenterService;
 use app\console\service\PluginMarketplaceService;
-use app\console\service\PluginPackageHistoryService;
 use app\console\service\PluginPackagePipeline;
 use app\console\service\PluginPackageService;
 use app\console\service\PluginService;
-use app\common\model\Plugin;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
 use InvalidArgumentException;
 use RuntimeException;
@@ -40,9 +36,7 @@ final class SystemPlugin extends AdminApiController
 
     private readonly PluginService $plugins;
     private readonly PluginMarketplaceService $marketplace;
-    private readonly PluginCenterQueryService $queries;
-    private readonly PluginConfigService $config;
-    private readonly PluginPackageHistoryService $history;
+    private readonly PluginCenterService $center;
     private readonly PluginPackagePipeline $pipeline;
     private readonly PluginPackageService $packages;
 
@@ -50,10 +44,8 @@ final class SystemPlugin extends AdminApiController
     {
         parent::__construct($app);
         $this->plugins = app(PluginService::class);
-        $this->marketplace = PluginMarketplaceFactory::create($this->plugins);
-        $this->queries = app(PluginCenterQueryService::class);
-        $this->config = app(PluginConfigService::class);
-        $this->history = app(PluginPackageHistoryService::class);
+        $this->marketplace = PluginMarketplaceService::create($this->plugins);
+        $this->center = app(PluginCenterService::class);
         $this->packages = PluginPackageService::instance();
         $this->pipeline = PluginPackagePipeline::forPluginService($this->plugins, $this->packages);
     }
@@ -144,20 +136,20 @@ final class SystemPlugin extends AdminApiController
     #[Get('local/discovered')]
     public function discovered(): Response
     {
-        return $this->execute(fn () => $this->queries->discovered());
+        return $this->execute(fn () => $this->center->discovered());
     }
 
     #[Get('local/installed')]
     public function installed(): Response
     {
-        return $this->execute(fn () => $this->queries->installed());
+        return $this->execute(fn () => $this->center->installed());
     }
 
     #[Get('local/:name')]
     #[Pattern('name', '[a-z][a-z0-9]*')]
     public function localDetail(string $name): Response
     {
-        return $this->execute(fn () => $this->queries->detail($name));
+        return $this->execute(fn () => $this->center->detail($name));
     }
 
     #[Post('local/install')]
@@ -252,7 +244,7 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('name', '[a-z][a-z0-9]*')]
     public function getConfig(string $name): Response
     {
-        return $this->execute(fn () => $this->config->get($name));
+        return $this->execute(fn () => $this->center->get($name));
     }
 
     #[Put(':name/config')]
@@ -261,7 +253,7 @@ final class SystemPlugin extends AdminApiController
     {
         $values = $this->request->post('values', []);
         return is_array($values)
-            ? $this->execute(fn () => $this->config->save($name, $values), '配置已保存')
+            ? $this->execute(fn () => $this->center->save($name, $values), '配置已保存')
             : $this->fail(msg: 'values 必须是对象', code: 422);
     }
 
@@ -288,7 +280,7 @@ final class SystemPlugin extends AdminApiController
     public function deletePackage(string $name): Response
     {
         return $this->execute(function () use ($name): array {
-            $this->queries->deletePackage($name);
+            $this->center->deletePackage($name);
             return ['removed' => true];
         }, '本地包已删除');
     }
@@ -297,14 +289,14 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('name', '[a-z][a-z0-9]*')]
     public function history(string $name): Response
     {
-        return $this->execute(fn () => $this->history->versions($name));
+        return $this->execute(fn () => $this->packages->versions($name));
     }
 
     #[Get(':name/operations')]
     #[Pattern('name', '[a-z][a-z0-9]*')]
     public function operations(string $name): Response
     {
-        return $this->execute(fn () => $this->history->operations($name));
+        return $this->execute(fn () => $this->packages->operations($name));
     }
 
     #[Get(':name/history/:id/download')]
@@ -312,7 +304,7 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('id', '\\d+')]
     public function downloadHistory(string $name, int $id): Response
     {
-        $package = $this->history->package($name, $id);
+        $package = $this->packages->historyPackage($name, $id);
         return download($package['path'], $name . '-' . $package['version'] . '.zip');
     }
 
@@ -322,7 +314,7 @@ final class SystemPlugin extends AdminApiController
     public function redeployHistory(string $name, int $id): Response
     {
         return $this->execute(function () use ($name, $id): array {
-            $package = $this->history->package($name, $id);
+            $package = $this->packages->historyPackage($name, $id);
             return $this->pipeline->redeployHistory(
                 $package['path'],
                 $name,
@@ -336,13 +328,13 @@ final class SystemPlugin extends AdminApiController
     #[Pattern('name', '[a-z][a-z0-9]*')]
     public function recoveryInfo(string $name): Response
     {
-        return $this->execute(fn () => $this->history->recoveryInfo($name));
+        return $this->execute(fn () => $this->packages->recoveryInfo($name));
     }
 
     #[Get('modules/enabled')]
     public function enabledModules(): Response
     {
-        return $this->execute(fn () => $this->queries->enabledModules());
+        return $this->execute(fn () => $this->center->enabledModules());
     }
 
     private function execute(callable $operation, string $message = '操作成功'): Response
