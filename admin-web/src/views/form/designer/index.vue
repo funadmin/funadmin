@@ -52,7 +52,7 @@
             <div class="flex items-center gap-2">
               <span class="w-[110px] shrink-0 text-right text-sm">{{ field.label }}</span>
               <div class="min-w-0 flex-1" @click.stop>
-                <el-switch v-if="field.type === 'switch'" disabled model-value={false} />
+                <el-switch v-if="field.type === 'switch'" disabled :model-value="false" />
                 <el-input-number v-else-if="field.type === 'number'" disabled class="w-full" />
                 <el-select v-else-if="field.type === 'select'" disabled placeholder="请选择" class="w-full" />
                 <el-date-picker v-else-if="field.type === 'date'" disabled placeholder="选择日期" class="w-full" />
