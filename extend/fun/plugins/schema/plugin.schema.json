@@ -32,6 +32,6 @@
     "migrations": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "$ref": "#/$defs/path" } } },
     "storage": { "type": "object", "additionalProperties": false, "required": ["path"], "properties": { "path": { "$ref": "#/$defs/path" } } },
     "purge": { "type": "object", "additionalProperties": false, "required": ["supported"], "properties": { "supported": { "type": "boolean" } } },
-    "channels": { "type": "object", "additionalProperties": false, "properties": { "api": { "$ref": "#/$defs/channel" }, "index": { "$ref": "#/$defs/channel" } } }
+    "channels": { "type": "object", "additionalProperties": false, "properties": { "api": { "$ref": "#/$defs/channel" }, "frontend": { "$ref": "#/$defs/channel" } } }
   }
 }
