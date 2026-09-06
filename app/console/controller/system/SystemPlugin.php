@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\system;
+namespace app\console\controller\system;
 
-use app\backend\controller\base\AdminApiController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\middleware\SystemLog;
-use app\backend\service\PluginCenterQueryService;
-use app\backend\service\PluginConfigService;
-use app\backend\service\PluginMarketplaceFactory;
-use app\backend\service\PluginMarketplaceService;
-use app\backend\service\PluginPackageHistoryService;
-use app\backend\service\PluginPackagePipeline;
-use app\backend\service\PluginPackageService;
-use app\backend\service\PluginService;
+use app\console\controller\base\AdminApiController;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\middleware\SystemLog;
+use app\console\service\PluginCenterQueryService;
+use app\console\service\PluginConfigService;
+use app\console\service\PluginMarketplaceFactory;
+use app\console\service\PluginMarketplaceService;
+use app\console\service\PluginPackageHistoryService;
+use app\console\service\PluginPackagePipeline;
+use app\console\service\PluginPackageService;
+use app\console\service\PluginService;
 use app\common\model\Plugin;
 use app\common\plugin\marketplace\dto\MarketplaceSearchRequestDto;
 use InvalidArgumentException;

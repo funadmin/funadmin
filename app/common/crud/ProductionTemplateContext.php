@@ -33,12 +33,10 @@ final class ProductionTemplateContext
             'serviceContent' => self::service($data, $class, $primary),
             'controllerContent' => self::controller($data, $class, $primary),
             'permissionMigrationContent' => self::permissionMigration($data),
-            'phpTestContent' => self::phpTest($data, $class, $primary),
             'apiContent' => self::api($data, $class, $primary),
             'viewContent' => self::view($data, $class, $primary),
             'formContent' => self::form($data, $class),
             'detailContent' => self::detail($data, $class),
-            'vueTestContent' => self::vueTest($data, $class),
         ];
     }
 
@@ -358,30 +356,6 @@ final class ProductionTemplateContext
                 . implode(",\n", $values) . ";\n");
     }
 
-    private static function phpTest(array $data, string $class, array $primary): string
-    {
-        $testDirectory = dirname((string) $data['paths']['phpTest']);
-        $autoload = self::relativePath($testDirectory, 'vendor/autoload.php');
-        $validator = self::relativePath($testDirectory, (string) $data['paths']['validate']);
-        $required = array_values(array_filter(
-            $data['fields'],
-            static fn (array $field): bool => !($field['primary'] ?? false)
-                && ($field['writable'] ?? true)
-                && ($field['required'] ?? !$field['nullable']) === true
-        ));
-        $requiredName = $required[0]['name'] ?? null;
-        $requiredAssertion = $requiredName === null
-            ? ''
-            : "if (\$validate->check([])) throw new RuntimeException('required 校验未执行');\n";
-        return "<?php\n\ndeclare(strict_types=1);\n\n"
-            . "require __DIR__ . '/{$autoload}';\nrequire __DIR__ . '/{$validator}';\n\n"
-            . "\$class = 'app\\\\backend\\\\validate\\\\{$class}Validate';\n"
-            . "\$validate = new \$class();\n"
-            . $requiredAssertion
-            . "if (\$validate->forUpdate('fixture-id') !== \$validate) throw new RuntimeException('forUpdate 必须返回当前验证器');\n"
-            . "echo \"{$class} generated API tests: PASS\\n\";\n";
-    }
-
     private static function api(array $data, string $class, array $primary): string
     {
         $type = self::tsTypeName($class);
@@ -599,33 +573,6 @@ final class ProductionTemplateContext
         $type = self::tsTypeName($class);
         return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\"><el-descriptions-item v-for=\"(value, key) in row\" :key=\"key\" :label=\"String(key)\"><span v-text=\"String(value ?? '')\" /></el-descriptions-item></el-descriptions></el-drawer></template>\n"
             . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '@/api/generated/{$data['name']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
-    }
-
-    private static function vueTest(array $data, string $class): string
-    {
-        $camel = self::camel($class);
-        $enabled = self::enabledCapabilities($data);
-        $apiKeys = array_filter([
-            'list' => $enabled['list'], 'detail' => $enabled['detail'], 'create' => $enabled['create'],
-            'update' => $enabled['update'], 'remove' => $enabled['softDelete'], 'restore' => $enabled['softDelete'],
-            'forceDelete' => $enabled['softDelete'], 'removeMany' => $enabled['batchDelete'],
-            'restoreMany' => $enabled['batchDelete'], 'forceDeleteMany' => $enabled['batchDelete'],
-            'status' => $enabled['status'], 'options' => $enabled['options'],
-            'importRows' => $enabled['import'], 'exportRows' => $enabled['export'],
-        ]);
-        $endpoint = array_values(array_filter(
-            self::enabledOptionSources($data, $enabled),
-            static fn (array $source): bool => $source['type'] === 'endpoint'
-        ))[0] ?? null;
-        $endpointTest = $endpoint === null || !$enabled['options'] ? '' : "\n  it('loads and maps endpoint options', async () => {\n"
-            . "    vi.mocked(request.get).mockResolvedValueOnce([{ {$endpoint['labelField']}: '可选项', {$endpoint['valueField']}: 7 }]);\n"
-            . "    await expect({$camel}Api.options('{$endpoint['name']}')).resolves.toEqual([{ label: '可选项', value: 7 }]);\n"
-            . "    expect(request.get).toHaveBeenCalledWith(" . self::json($endpoint['endpoint']) . ");\n  });";
-        return "import { describe, expect, it, vi } from 'vitest';\n"
-            . "vi.mock('@/utils/http', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }));\n"
-            . "import request from '@/utils/http';\nimport { {$camel}Api } from '@/api/generated/{$data['name']}';\n"
-            . "describe('{$class} generated client', () => {\n  it('exposes configured capabilities', () => { expect(Object.keys({$camel}Api)).toEqual(['" . implode("','", array_keys($apiKeys)) . "']); });"
-            . $endpointTest . "\n});\n";
     }
 
     private static function enabledCapabilities(array $data): array

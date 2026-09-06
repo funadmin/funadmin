@@ -1,6 +1,6 @@
 <?php
 
-namespace app\backend\model;
+namespace app\console\model;
 
 class CasbinRule extends BackendModel
 {

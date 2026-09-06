@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\system;
+namespace app\console\controller\system;
 
-use app\backend\controller\base\AdminApiController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\model\AdminLog;
-use app\backend\service\DataScopeService;
+use app\console\controller\base\AdminApiController;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\model\AdminLog;
+use app\console\service\DataScopeService;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;
 use think\annotation\route\Group;

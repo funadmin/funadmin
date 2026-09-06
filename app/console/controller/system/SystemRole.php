@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\system;
+namespace app\console\controller\system;
 
-use app\backend\controller\base\AdminApiController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\middleware\SystemLog;
-use app\backend\model\AuthGroup;
-use app\backend\model\AuthGroupDepartment;
-use app\backend\model\AuthGroupInherit;
-use app\backend\model\Permission;
-use app\backend\service\RoleScopeService;
-use app\backend\service\CasbinService;
-use app\backend\service\RoleGuardService;
+use app\console\controller\base\AdminApiController;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\middleware\SystemLog;
+use app\console\model\AuthGroup;
+use app\console\model\AuthGroupDepartment;
+use app\console\model\AuthGroupInherit;
+use app\console\model\Permission;
+use app\console\service\RoleScopeService;
+use app\console\service\CasbinService;
+use app\console\service\RoleGuardService;
 use InvalidArgumentException;
 use think\annotation\route\Delete;
 use think\annotation\route\Get;

@@ -12,7 +12,7 @@
  */
 
 
-namespace app\backend\model;
+namespace app\console\model;
 
 
 use app\common\model\concern\LaravelSoftDelete;

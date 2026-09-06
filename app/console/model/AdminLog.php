@@ -10,7 +10,7 @@
  * Author: yuege
  * Date: 2017/8/2
  */
-namespace app\backend\model;
+namespace app\console\model;
 use app\common\model\concern\LaravelSoftDelete;
 
 class AdminLog extends BackendModel

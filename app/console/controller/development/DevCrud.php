@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace app\backend\controller\development;
+namespace app\console\controller\development;
 
-use app\backend\controller\base\AdminApiController;
-use app\backend\middleware\CheckAdminApiCsrf;
-use app\backend\middleware\CheckAdminApiRole;
-use app\backend\middleware\SystemLog;
-use app\backend\service\AdminAuthorizationService;
-use app\backend\service\DevCrudService;
+use app\console\controller\base\AdminApiController;
+use app\console\middleware\CheckAdminApiCsrf;
+use app\console\middleware\CheckAdminApiRole;
+use app\console\middleware\SystemLog;
+use app\console\service\AdminAuthorizationService;
+use app\console\service\DevCrudService;
 use InvalidArgumentException;
 use think\annotation\route\Get;
 use think\annotation\route\Group;

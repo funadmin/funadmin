@@ -18,7 +18,7 @@ final class DefinitionValidator
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
-        'phpTest', 'api', 'view', 'form', 'detail', 'vueTest',
+        'api', 'view', 'form', 'detail',
     ];
     private const FIELD_KEYS = [
         'name', 'label', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
@@ -80,7 +80,7 @@ final class DefinitionValidator
             }
             PathGuard::resolve($projectRoot, $path, '项目目录');
         }
-        foreach (['migration', 'model', 'validate', 'service', 'controller', 'permissionMigration', 'phpTest', 'api', 'view', 'form', 'vueTest'] as $required) {
+        foreach (self::ARTIFACT_KEYS as $required) {
             if (!isset($paths[$required])) {
                 throw new InvalidArgumentException('paths 缺少生产制品：' . $required);
             }

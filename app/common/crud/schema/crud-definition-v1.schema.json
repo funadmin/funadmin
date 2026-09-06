@@ -37,11 +37,11 @@
     "metadata": { "type": "object" }
   },
   "$defs": {
-    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "phpTest", "api", "view", "form", "detail", "vueTest"] },
+    "artifactNames": { "enum": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form", "detail"] },
     "relativePath": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
     "templatePath": { "type": "string", "pattern": "^(backend|frontend|database|tests)/[A-Za-z0-9._/-]+\\.tpl$" },
-    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "phpTest", "api", "view", "form", "vueTest"] },
-    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "minProperties": 11 },
+    "artifacts": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/relativePath" }, "required": ["migration", "model", "validate", "service", "controller", "permissionMigration", "api", "view", "form"] },
+    "templates": { "type": "object", "propertyNames": { "$ref": "#/$defs/artifactNames" }, "additionalProperties": { "$ref": "#/$defs/templatePath" }, "minProperties": 9 },
     "field": { "type": "object", "additionalProperties": false, "required": ["name", "dbType", "nullable"], "properties": {
       "name": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$" }, "label": { "type": "string" }, "dbType": { "type": "string", "minLength": 1 },
       "nullable": { "type": "boolean" }, "primary": { "type": "boolean" }, "comment": { "type": "string" }, "default": {}, "extra": { "type": "string" },

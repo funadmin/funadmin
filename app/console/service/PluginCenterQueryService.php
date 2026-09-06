@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\service;
+namespace app\console\service;
 
 use app\common\model\Plugin;
 use app\common\model\PluginOperation;
@@ -98,11 +98,11 @@ final class PluginCenterQueryService extends AbstractService
             if (!$manifest) {
                 continue;
             }
-            $adminWeb = $manifest->toArray()['admin_web'] ?? null;
-            if (!is_array($adminWeb) || !is_string($adminWeb['entry'] ?? null)) {
+            $adminWeb = $manifest->toArray()['adminWeb'] ?? null;
+            if (!is_array($adminWeb) || !is_string($adminWeb['component'] ?? null)) {
                 continue;
             }
-            $entry = (string) $adminWeb['entry'];
+            $entry = (string) $adminWeb['component'];
             $publishRoot = root_path() . 'public' . DIRECTORY_SEPARATOR . 'plugin-assets' . DIRECTORY_SEPARATOR . $name;
             $realPublishRoot = realpath($publishRoot);
             $realFile = realpath($publishRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $entry));
@@ -152,7 +152,7 @@ final class PluginCenterQueryService extends AbstractService
             'operation' => (string) ($record?->operation_token ?? '') !== '' ? (string) ($operation?->operation ?? 'unknown') : '',
             'progress' => (int) ($operation?->progress ?? 0),
             'disabledReason' => $this->disabledReason($record, $dependencies),
-            'admin_web' => is_array($data['admin_web'] ?? null) ? $data['admin_web'] : null,
+            'adminWeb' => is_array($data['adminWeb'] ?? null) ? $data['adminWeb'] : null,
         ];
     }
 

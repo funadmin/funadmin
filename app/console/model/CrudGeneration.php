@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\model;
+namespace app\console\model;
 
 /**
  * CRUD 生成审计记录，不包含确认 token 或数据库凭据。

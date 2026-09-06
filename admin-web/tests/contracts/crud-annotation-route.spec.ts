@@ -71,11 +71,23 @@ describe('统一 PHP CRUD Core 契约', () => {
     expect(productionTemplateContext).not.toContain('Route::');
   });
 
+  it('CRUD Definition 与模板上下文不生成测试文件制品', () => {
+    for (const artifact of ['phpTest', 'vueTest']) {
+      expect(definitionSchema.$defs.artifactNames.enum).not.toContain(artifact);
+      expect(definitionSchema.$defs.artifacts.required).not.toContain(artifact);
+      expect(crudTypes).not.toMatch(new RegExp(`CrudArtifactMap[\\s\\S]*?\\b${artifact}\\??:`));
+    }
+    expect(definitionSchema.$defs.templates.minProperties).toBe(9);
+    expect(definitionValidator).not.toMatch(/ARTIFACT_KEYS[\s\S]*?'phpTest'|'vueTest'/);
+    expect(productionTemplateContext).not.toContain("'phpTestContent'");
+    expect(productionTemplateContext).not.toContain("'vueTestContent'");
+  });
+
   it('CRUD Definition 与模板上下文彻底移除独立 route 制品', () => {
     expect(definitionValidator).not.toMatch(/ARTIFACT_KEYS[\s\S]*?'route'/);
     expect(definitionSchema.$defs.artifactNames.enum).not.toContain('route');
     expect(definitionSchema.$defs.artifacts.required).not.toContain('route');
-    expect(definitionSchema.$defs.templates.minProperties).toBe(11);
+    expect(definitionSchema.$defs.templates.minProperties).toBe(9);
     expect(productionTemplateContext).not.toContain("'routeContent'");
     expect(productionTemplateContext).not.toContain('function routeRegistry(');
     expect(workbenchView).not.toMatch(/\broute:\s*`app\/backend\/route/);

@@ -1,6 +1,6 @@
 <?php
 
-namespace app\backend\model;
+namespace app\console\model;
 
 /**
  * 后台菜单只负责导航展示，授权资源由 Permission 独立维护。

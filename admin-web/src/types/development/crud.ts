@@ -46,7 +46,7 @@ export interface CrudOptionsSource { name: string; type: 'relation' | 'dictionar
 export interface CrudFeatures { softDelete: boolean; batchDelete: boolean; status: boolean; detail: boolean; import: boolean; export: boolean; upload: boolean; dictionary: boolean; referenceProtection: boolean; formMode: 'dialog' | 'drawer'; importLimit: number; exportLimit: number }
 export interface CrudArtifactMap {
   migration: string; model: string; validate: string; service: string; controller: string;
-  permissionMigration: string; phpTest: string; api: string; view: string; form: string; detail: string; vueTest: string;
+  permissionMigration: string; api: string; view: string; form: string; detail: string;
 }
 export interface CrudDefinition {
   schemaVersion: '1.0'; name: string; table: string; title: string; description?: string;

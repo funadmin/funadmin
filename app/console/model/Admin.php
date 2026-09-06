@@ -11,7 +11,7 @@
  * Author: yuege
  * Date: 2020/8/2
  */
-namespace app\backend\model;
+namespace app\console\model;
 
 use app\common\model\concern\LaravelSoftDelete;
 

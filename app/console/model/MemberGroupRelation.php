@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace app\backend\model;
+namespace app\console\model;
 
 /**
  * 会员与会员组关联模型。

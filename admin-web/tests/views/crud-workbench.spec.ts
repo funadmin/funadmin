@@ -17,6 +17,16 @@ describe('CRUD Workbench', () => {
     expect(validateWorkbenchStep(2, { fields })).toContain('legacy');
   });
 
+  it('模块定义不包含测试文件制品', () => {
+    const definition = createCrudDefinition('mysql', 'fun_admin_log', [
+      { name: 'id', dbType: 'bigint unsigned', nullable: false, primary: true }
+    ] as CrudField[]);
+    expect(definition.paths).not.toHaveProperty('phpTest');
+    expect(definition.paths).not.toHaveProperty('vueTest');
+    expect(definition.templates).not.toHaveProperty('phpTest');
+    expect(definition.templates).not.toHaveProperty('vueTest');
+  });
+
   it('仅在 schema 存在可写 status 时默认启用状态能力', () => {
     const baseFields = [
       { name: 'id', dbType: 'bigint unsigned', nullable: false, primary: true },
