@@ -14,11 +14,4 @@ class Plugin extends BaseModel {
     use LaravelSoftDelete;
 
 
-
-    public function __construct(array $data = [])
-    {
-        parent::__construct($data);
-    }
-
-
 }

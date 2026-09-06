@@ -11,17 +11,6 @@ final class PluginRuntimeBooter
     {
     }
 
-    public function each(iterable $manifests, string $boundary, callable $load): void
-    {
-        foreach ($manifests as $manifest) {
-            try {
-                $load($manifest);
-            } catch (\Throwable $exception) {
-                $this->reportSafely($manifest->name(), $boundary, $exception);
-            }
-        }
-    }
-
     /** 按插件逐个执行全部边界，失败插件及其 dependent 不再继续。 */
     public function boot(array $manifests, array $boundaries): void
     {

@@ -66,12 +66,6 @@ final class CloudAccountSession
         return (string) ($this->state()['refresh_token'] ?? '');
     }
 
-    public function expiresAt(): ?int
-    {
-        $expiresAt = $this->state()['expires_at'] ?? null;
-        return is_int($expiresAt) ? $expiresAt : (is_numeric($expiresAt) ? (int) $expiresAt : null);
-    }
-
     public function logout(): void
     {
         $this->store->delete(self::KEY);

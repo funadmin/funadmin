@@ -173,15 +173,4 @@ class Service extends \think\Service
         return app()->getRootPath() . PLUGIN_DIR . DS . $name . DS;
     }
 
-    /**
-     * 获取检测的全局文件夹目录
-     * @return  array
-     */
-    public static function getCheckDirs(): array
-    {
-        return [
-            'global'
-        ];
-    }
-
 }

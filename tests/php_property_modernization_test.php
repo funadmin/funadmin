@@ -19,10 +19,8 @@ use app\console\controller\development\DevCrud;
 use app\console\controller\system\SystemPlugin;
 use app\console\service\AdminAuthorizationService;
 use app\console\service\DevCrudService;
-use app\console\service\PluginCenterQueryService;
-use app\console\service\PluginConfigService;
+use app\console\service\PluginCenterService;
 use app\console\service\PluginMarketplaceService;
-use app\console\service\PluginPackageHistoryService;
 use app\console\service\PluginPackagePipeline;
 use app\console\service\PluginPackageService;
 use app\console\service\PluginService;
@@ -517,7 +515,7 @@ modernizationCheck(!$baseController->hasProperty('onlyNeedLogin'), 'BaseControll
 modernizationTypedProperty(fun\plugins\Service::class, 'plugins_path', 'string', 'protected', false, false);
 modernizationMethod(fun\plugins\Service::class, 'getPluginsPath', [], 'string');
 modernizationMethod(fun\plugins\Service::class, 'getPluginsNamePath', [['name', 'string', false]], 'string');
-modernizationMethod(fun\plugins\Service::class, 'getCheckDirs', [], 'array');
+modernizationCheck(!(new ReflectionClass(fun\plugins\Service::class))->hasMethod('getCheckDirs'), 'Service 必须删除零调用 getCheckDirs');
 
 // 第三批：插件基类的扩展面保持 protected，并以准确类型和生命周期签名约束子类。
 $pipelineReflection = new ReflectionClass(PluginPackagePipeline::class);
@@ -579,9 +577,7 @@ foreach (['name', 'json', 'jsonAssoc'] as $property) {
 foreach ([
     ['plugins', PluginService::class],
     ['marketplace', PluginMarketplaceService::class],
-    ['queries', PluginCenterQueryService::class],
-    ['config', PluginConfigService::class],
-    ['history', PluginPackageHistoryService::class],
+    ['center', PluginCenterService::class],
     ['pipeline', PluginPackagePipeline::class],
     ['packages', PluginPackageService::class],
 ] as [$property, $type]) {
