@@ -23,9 +23,9 @@ describe('legacy 时间列 maintenance contract 契约', () => {
 
   it('运行时代码不再引用 legacy 时间列', () => {
     const files = [
-      'app/backend/controller/system/SystemOperationLog.php',
-      'app/backend/controller/system/SystemAdmin.php',
-      'app/backend/controller/system/SystemMember.php',
+      'app/console/controller/system/SystemOperationLog.php',
+      'app/console/controller/system/SystemAdmin.php',
+      'app/console/controller/system/SystemMember.php',
       'app/common/model/BaseModel.php'
     ];
     for (const file of files) {

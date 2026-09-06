@@ -8,7 +8,7 @@ const memberSource = readProjectFile('app/common/model/Member.php');
 const memberReg = memberSource.match(
   /public function reg\(\)[\s\S]*?(?=\n    public function )/
 )?.[0] ?? '';
-const systemAdminSource = readProjectFile('app/backend/controller/system/SystemAdmin.php');
+const systemAdminSource = readProjectFile('app/console/controller/system/SystemAdmin.php');
 const systemAdminUpdate = systemAdminSource.match(
   /public function update\(int \$id\): Response[\s\S]*?(?=\n    public function )/
 )?.[0] ?? '';

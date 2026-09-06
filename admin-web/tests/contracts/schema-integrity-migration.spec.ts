@@ -11,7 +11,7 @@ const migration = readProjectFile('../database/migrations/006_schema_integrity.s
 const integrityFollowup = readProjectFile('../database/migrations/018_schema_integrity_followup.sql');
 const followup = readProjectFile('../database/migrations/020_schema_integrity_finalize.sql');
 const migrationService = readProjectFile('../app/common/service/MigrationService.php');
-const systemMember = readProjectFile('../app/backend/controller/system/SystemMember.php');
+const systemMember = readProjectFile('../app/console/controller/system/SystemMember.php');
 
 const normalizedSql = migration.replace(/\s+/g, ' ');
 const normalizedIntegrityFollowup = integrityFollowup.replace(/\s+/g, ' ');

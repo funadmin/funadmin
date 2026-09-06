@@ -12,7 +12,7 @@ describe('会员组图标字段', () => {
   });
 
   it('后端接收、校验并返回 icon', () => {
-    const controller = read('../app/backend/controller/system/SystemMemberGroup.php');
+    const controller = read('../app/console/controller/system/SystemMemberGroup.php');
 
     expect(controller).toMatch(/post\('icon'/);
     expect(controller).toContain("'icon' =>");

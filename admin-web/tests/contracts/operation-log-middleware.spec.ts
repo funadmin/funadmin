@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const readProjectFile = (path: string) => readFileSync(resolve(process.cwd(), '..', path), 'utf8');
-const middleware = readProjectFile('app/backend/middleware/SystemLog.php');
+const middleware = readProjectFile('app/console/middleware/SystemLog.php');
 const service = readProjectFile('app/common/service/AdminLogService.php');
-const controller = readProjectFile('app/backend/controller/system/SystemOperationLog.php');
+const controller = readProjectFile('app/console/controller/system/SystemOperationLog.php');
 const api = readProjectFile('admin-web/src/api/system/log.ts');
 const view = readProjectFile('admin-web/src/views/system/log/operation.vue');
 const migration = readProjectFile('database/migrations/012_admin_log_audit.sql');

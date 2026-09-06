@@ -63,7 +63,7 @@ describe('M6 系统升级契约', () => {
   });
 
   it('将后端升级 action 映射为前端业务权限', () => {
-    const auth = readFileSync(resolve(projectRoot, 'app/backend/controller/auth/AdminAuth.php'), 'utf8');
+    const auth = readFileSync(resolve(projectRoot, 'app/console/controller/auth/AdminAuth.php'), 'utf8');
     const mappings = {
       status: 'system:upgrade:list',
       check: 'system:upgrade:check',
@@ -78,7 +78,7 @@ describe('M6 系统升级契约', () => {
 
   it('保留旧升级入口文件，不在 M6 删除', () => {
     const cleanup = readFileSync(resolve(projectRoot, 'tests/legacy_controller_cleanup_test.php'), 'utf8');
-    expect(cleanup).not.toContain("'app/backend/controller/sys/Upgrade.php'");
-    expect(cleanup).not.toContain("'app/backend/view/sys/upgrade/index.html'");
+    expect(cleanup).not.toContain("'app/console/controller/sys/Upgrade.php'");
+    expect(cleanup).not.toContain("'app/console/view/sys/upgrade/index.html'");
   });
 });
