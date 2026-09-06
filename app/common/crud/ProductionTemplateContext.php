@@ -296,6 +296,7 @@ final class ProductionTemplateContext
             . "    protected function primaryKey(): string { return '{$primary['name']}'; }\n"
             . "    protected function primaryKeyType(): string { return '" . self::primaryKeyType($primary) . "'; }\n"
             . "    protected function primaryKeyPattern(): ?string { return " . var_export(self::primaryKeyPattern($primary), true) . "; }\n"
+            . "    protected function usesSoftDeletes(): bool { return " . ($data['softDeletes'] ? 'true' : 'false') . "; }\n"
             . ($data['dataScope']['enabled']
                 ? "    protected function baseQuery(bool \$onlyTrashed, bool \$withTrashed)\n    {\n        \$query = \$this->crudUnscopedBaseQuery(\$onlyTrashed, \$withTrashed);\n        \$scope = (new DataScopeService())->resolve();\n        return \$scope['all'] ? \$query : \$query->whereIn('{$data['dataScope']['field']}', \$scope['departmentIds'] ?: [0]);\n    }\n"
                 : '')

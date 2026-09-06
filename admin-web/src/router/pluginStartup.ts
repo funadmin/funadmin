@@ -1,5 +1,5 @@
 import type { Router } from 'vue-router';
-import { pluginApi, type EnabledPluginModule } from '@/api/plugin';
+import { pluginApi, type EnabledPluginModule } from '@/api/system/plugin';
 import { syncPluginModules } from '@/router/pluginModules';
 
 export interface PluginModuleSyncResult {

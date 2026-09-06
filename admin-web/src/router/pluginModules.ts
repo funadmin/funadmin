@@ -2,8 +2,6 @@ import type { Component } from 'vue';
 import type { RouteRecordRaw, Router } from 'vue-router';
 import type { EnabledPluginModule, PluginRouteDto } from '@/api/system/plugin';
 
-export type { EnabledPluginModule } from '@/api/system/plugin';
-
 export type PluginModuleErrorStage = 'component' | 'route';
 
 interface SyncOptions {

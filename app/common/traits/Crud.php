@@ -109,7 +109,7 @@ trait Crud
 
     public function remove(int|string $id): Response
     {
-        return $this->crudDeleteOne($id, false, false);
+        return $this->crudDeleteOne($id, false, !$this->usesSoftDeletes());
     }
 
     public function restoreOne(int|string $id): Response
@@ -128,15 +128,20 @@ trait Crud
         if ($models instanceof Response) {
             return $models;
         }
-        if ($denied = $this->beforeDelete($models, false)) {
+        $force = !$this->usesSoftDeletes();
+        if ($denied = $this->beforeDelete($models, $force)) {
             return $denied;
         }
 
         foreach ($models as $model) {
+            if ($force) {
+                $model->force()->delete();
+                continue;
+            }
             $model->delete();
         }
 
-        return $this->ok('已移入回收站', ['removed' => count($models)]);
+        return $this->ok($force ? '永久删除成功' : '已移入回收站', ['removed' => count($models)]);
     }
 
     public function restore(): Response
@@ -309,6 +314,11 @@ trait Crud
 
     protected function afterSave(Model $model, bool $created): void
     {
+    }
+
+    protected function usesSoftDeletes(): bool
+    {
+        return true;
     }
 
     private function crudRecycled(): bool
