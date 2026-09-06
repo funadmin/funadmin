@@ -107,8 +107,7 @@ export interface PluginRouteDto {
 export interface EnabledPluginModule {
   name: string;
   version: string;
-  hash: string;
-  entryUrl: string;
+  components: Record<string, string>;
   routes: PluginRouteDto[];
 }
 

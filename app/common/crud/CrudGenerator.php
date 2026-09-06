@@ -39,24 +39,40 @@ final class CrudGenerator
         array $allowOverwrite = [],
         string $operator = 'unknown'
     ): array {
+        $startedAt = gmdate(DATE_ATOM);
         $plan = $this->plan($definition);
-        $write = (new AtomicWriter($this->projectRoot, null, $this->tokens))->write($plan, $confirmToken, $allowOverwrite);
-        return [
-            'plan' => $plan,
-            'write' => $write,
-            'manifest' => GenerationManifest::create(
+        try {
+            $write = (new AtomicWriter($this->projectRoot, null, $this->tokens))->write($plan, $confirmToken, $allowOverwrite);
+            $manifest = GenerationManifest::create(
                 $definition,
                 self::TEMPLATE_VERSION,
                 $plan,
                 $operator,
-                $write['status']
-            )->toArray(),
-        ];
+                $write['status'],
+                ['validationResult' => ['valid' => true]],
+                $startedAt,
+                gmdate(DATE_ATOM)
+            )->toArray();
+            return ['plan' => $plan, 'write' => $write, 'manifest' => $manifest];
+        } catch (\Throwable $exception) {
+            $manifest = GenerationManifest::create(
+                $definition,
+                self::TEMPLATE_VERSION,
+                $plan,
+                $operator,
+                'failed',
+                ['validationResult' => ['valid' => true]],
+                $startedAt,
+                gmdate(DATE_ATOM),
+                ['message' => $exception->getMessage()]
+            )->toArray();
+            throw new GenerationFailedException($exception->getMessage(), $manifest, $exception);
+        }
     }
 
     private function renderFiles(CrudDefinition $definition): array
     {
-        $paths = $definition->get('paths', []);
+        $paths = $definition->get('generationTargets', []);
         $templates = $definition->get('templates', []);
         $context = $this->context($definition);
         $files = [];

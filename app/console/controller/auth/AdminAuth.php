@@ -162,6 +162,8 @@ class AdminAuth extends BaseController
     private function webPermissions(array $permissionCodes, bool $isSuperAdmin): array
     {
         $mapping = [
+            'console/devcrud:tableschema' => 'development:crud:schema',
+            'console/devcrud:preview' => 'development:crud:preview',
             'console/systemdict:types' => 'system:dict:list',
             'console/systemdict:items' => 'system:dict:list',
             'console/systemdict:options' => 'system:dict:list',

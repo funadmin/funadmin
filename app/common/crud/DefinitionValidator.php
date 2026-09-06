@@ -12,20 +12,20 @@ use InvalidArgumentException;
 final class DefinitionValidator
 {
     private const ROOT_KEYS = [
-        'schemaVersion', 'name', 'table', 'title', 'description', 'paths', 'apiPrefix',
-        'permissionPrefix', 'fields', 'relations', 'optionsSource', 'templates', 'metadata',
-        'capabilities', 'features', 'dataScope',
+        'schemaVersion', 'connection', 'module', 'entity', 'table', 'title', 'description', 'routePath',
+        'primaryKey', 'timestamps', 'softDeletes', 'generationTargets', 'permissionPrefix', 'fields',
+        'relations', 'optionsSource', 'templates', 'capabilities', 'features', 'dataScope',
     ];
     private const ARTIFACT_KEYS = [
         'migration', 'model', 'validate', 'service', 'controller', 'permissionMigration',
-        'api', 'view', 'form', 'detail',
+        'api', 'view', 'form', 'detail', 'phpTest', 'vitestTest',
     ];
     private const FIELD_KEYS = [
         'name', 'label', 'dbType', 'nullable', 'primary', 'comment', 'default', 'extra', 'component',
         'valueType', 'cast', 'managed', 'writable', 'options', 'optionsSource', 'relation', 'references',
         'inferredBy', 'legacy', 'list', 'search', 'searchOperator', 'sortable', 'form', 'detail', 'rules',
         'required', 'minLength', 'maxLength', 'min', 'max', 'enum', 'format', 'unique', 'dictionary',
-        'upload', 'precision', 'scale',
+        'upload', 'precision', 'scale', 'indexMissing',
     ];
     private const RELATION_KEYS = [
         'name', 'type', 'field', 'target', 'targetField', 'pivotTable', 'pivotLocalKey',
@@ -47,21 +47,32 @@ final class DefinitionValidator
         if ($definition->schemaVersion() !== '1.0') {
             throw new InvalidArgumentException('不支持的 schemaVersion');
         }
-        $this->identifier((string) ($data['name'] ?? ''), 'name', '/^[a-z][a-z0-9-]*$/');
+        $this->identifier((string) ($data['connection'] ?? ''), 'connection', '/^[a-z][a-z0-9_]*$/');
+        $this->identifier((string) ($data['module'] ?? ''), 'module', '/^[a-z][a-z0-9-]*$/');
+        $this->identifier((string) ($data['entity'] ?? ''), 'entity', '/^[a-z][a-z0-9-]*$/');
         $this->identifier((string) ($data['table'] ?? ''), 'table', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
+        $this->identifier((string) ($data['primaryKey'] ?? ''), 'primaryKey', '/^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/');
         $this->text((string) ($data['title'] ?? ''), 'title');
         if (isset($data['description'])) {
             $this->text((string) $data['description'], 'description');
         }
-        if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', (string) ($data['apiPrefix'] ?? ''))) {
-            throw new InvalidArgumentException('API 前缀不合法');
+        if (!preg_match('#^/[a-z][a-z0-9-]*(?:/[a-z][a-z0-9-]*)*$#', (string) ($data['routePath'] ?? ''))) {
+            throw new InvalidArgumentException('routePath 不合法');
+        }
+        foreach (['timestamps', 'softDeletes'] as $flag) {
+            if (!isset($data[$flag]) || !is_bool($data[$flag])) {
+                throw new InvalidArgumentException($flag . ' 必须是布尔值');
+            }
         }
         if (!preg_match('/^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)+$/', (string) ($data['permissionPrefix'] ?? ''))) {
             throw new InvalidArgumentException('权限前缀不合法');
         }
-        $this->paths($data['paths'] ?? null, $projectRoot);
+        $this->paths($data['generationTargets'] ?? null, $projectRoot);
         $this->templates($data['templates'] ?? null);
         $fieldNames = $this->fields($data['fields'] ?? null);
+        if (!isset($fieldNames[$data['primaryKey']]) || ($fieldNames[$data['primaryKey']]['primary'] ?? false) !== true) {
+            throw new InvalidArgumentException('primaryKey 必须引用唯一主键字段');
+        }
         $optionSources = $this->optionsSources($data['optionsSource'] ?? []);
         $this->relations($data['relations'] ?? null, $fieldNames, $optionSources);
         $this->capabilities($data['capabilities'] ?? null);
@@ -72,17 +83,17 @@ final class DefinitionValidator
     private function paths(mixed $paths, string $projectRoot): void
     {
         if (!is_array($paths) || $paths === []) {
-            throw new InvalidArgumentException('paths 必须为非空对象');
+            throw new InvalidArgumentException('generationTargets 必须为非空对象');
         }
         foreach ($paths as $type => $path) {
             if (!in_array($type, self::ARTIFACT_KEYS, true) || !is_string($path)) {
-                throw new InvalidArgumentException('paths 包含非法目标');
+                throw new InvalidArgumentException('generationTargets 包含非法目标');
             }
             PathGuard::resolve($projectRoot, $path, '项目目录');
         }
         foreach (self::ARTIFACT_KEYS as $required) {
             if (!isset($paths[$required])) {
-                throw new InvalidArgumentException('paths 缺少生产制品：' . $required);
+                throw new InvalidArgumentException('generationTargets 缺少制品：' . $required);
             }
         }
     }
@@ -130,7 +141,7 @@ final class DefinitionValidator
             if (!is_bool($field['nullable'])) {
                 throw new InvalidArgumentException('字段 nullable 必须是布尔值');
             }
-            foreach (['primary', 'managed', 'writable', 'list', 'search', 'sortable', 'form', 'detail', 'required', 'unique', 'dictionary', 'upload'] as $flag) {
+            foreach (['primary', 'managed', 'writable', 'list', 'search', 'sortable', 'form', 'detail', 'required', 'unique', 'dictionary', 'upload', 'indexMissing'] as $flag) {
                 if (isset($field[$flag]) && !is_bool($field[$flag])) {
                     throw new InvalidArgumentException('字段 ' . $flag . ' 必须是布尔值');
                 }

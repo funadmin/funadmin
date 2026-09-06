@@ -11,46 +11,45 @@ use RecursiveIteratorIterator;
 use RuntimeException;
 use Throwable;
 
-/** 将插件公开资源与 Admin ESM 资源统一发布到 public/plugin-assets 并登记所有权。 */
+/** 将插件公开资源与 Admin Web 源码发布到各自受控目录并登记所有权。 */
 final class PluginResourcePublisher
 {
+    private const ADMIN_WEB_PREFIX = 'admin-web:';
+
     public function __construct(
         private readonly string $publicRoot,
+        private readonly string $adminWebRoot,
         private readonly PluginResourceRepository $repository
     ) {
     }
 
     public function publish(Manifest $manifest): array
     {
-        $public = $this->canonicalDirectory($this->publicRoot);
+        $roots = $this->roots();
         $existing = $this->repository->all();
         $owned = array_values(array_filter(
             $existing,
             static fn (array $row): bool => ($row['plugin_name'] ?? '') === $manifest->name()
         ));
-        $snapshot = $this->snapshot($manifest->name(), $owned);
+        $snapshot = $this->snapshot($manifest->name(), $owned, $roots);
         $next = [];
         $publishPlan = [];
         $touchedTargets = [];
 
         try {
-            foreach ($this->publicationSources($manifest) as $resource) {
-                $sourceRoot = $this->canonicalSourceDirectory(
-                    $manifest->directory(),
-                    (string) $resource['source']
-                );
-                $targetRoot = $this->pluginTargetDirectory(
-                    $public,
+            foreach ($this->publicationSources($manifest, $roots) as $resource) {
+                $sourceRoot = $this->canonicalSourceDirectory($manifest->directory(), $resource['source']);
+                $targetRoot = $this->targetDirectory(
+                    $resource['root'],
                     $manifest->name(),
-                    (string) $resource['target']
+                    $resource['target'],
+                    $resource['type']
                 );
-                $sources = isset($resource['files'])
-                    ? $this->declaredFiles($sourceRoot, (array) $resource['files'])
-                    : $this->files($sourceRoot);
-                foreach ($sources as $source) {
+                foreach ($this->files($sourceRoot) as $source) {
                     $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($source, strlen($sourceRoot) + 1));
-                    $target = $targetRoot . DIRECTORY_SEPARATOR . $relative;
-                    $targetPath = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($public) + 1));
+                    $target = $targetRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+                    $rootRelative = str_replace(DIRECTORY_SEPARATOR, '/', substr($target, strlen($resource['root']) + 1));
+                    $targetPath = $this->registryPath($resource['type'], $rootRelative);
                     $this->assertAvailable($target, $targetPath, $manifest->name(), $existing);
                     $sha256 = hash_file('sha256', $source);
                     if ($sha256 === false) {
@@ -80,7 +79,7 @@ final class PluginResourcePublisher
             $nextTargets = array_column($next, 'target_path');
             foreach ($owned as $old) {
                 if (!in_array($old['target_path'], $nextTargets, true)) {
-                    $this->deleteOwnedFile($public, (string) $old['target_path']);
+                    $this->deleteOwnedFile($roots, (string) $old['target_path']);
                 }
             }
             $this->repository->replaceForPlugin($manifest->name(), $next);
@@ -106,12 +105,12 @@ final class PluginResourcePublisher
             $this->repository->all(),
             static fn (array $row): bool => ($row['plugin_name'] ?? '') === $pluginName
         ));
-        $snapshot = $this->snapshot($pluginName, $owned);
-        $public = $this->canonicalDirectory($this->publicRoot);
+        $roots = $this->roots();
+        $snapshot = $this->snapshot($pluginName, $owned, $roots);
 
         try {
             foreach ($owned as $record) {
-                $this->deleteOwnedFile($public, (string) $record['target_path']);
+                $this->deleteOwnedFile($roots, (string) $record['target_path']);
             }
             $this->repository->replaceForPlugin($pluginName, []);
             return $snapshot;
@@ -137,27 +136,34 @@ final class PluginResourcePublisher
     {
         $pluginName = (string) ($snapshot['plugin_name'] ?? '');
         $this->assertPluginName($pluginName);
-        $public = $this->canonicalDirectory($this->publicRoot);
+        $roots = $this->roots();
         foreach (array_unique($touchedTargets) as $targetPath) {
-            $this->deleteOwnedFile($public, (string) $targetPath);
+            $this->deleteOwnedFile($roots, (string) $targetPath);
         }
         foreach ((array) ($snapshot['files'] ?? []) as $targetPath => $contents) {
-            $this->write($this->safeTarget($public, (string) $targetPath), (string) $contents);
+            [$root, $relative] = $this->resolveRegistryPath($roots, (string) $targetPath);
+            $this->write($this->safeTarget($root, $relative), (string) $contents);
         }
         $this->repository->replaceForPlugin($pluginName, (array) ($snapshot['records'] ?? []));
     }
 
-    private function snapshot(string $pluginName, array $records): array
+    private function snapshot(string $pluginName, array $records, array $roots): array
     {
         $files = [];
-        $public = $this->canonicalDirectory($this->publicRoot);
         foreach ($records as $record) {
-            $target = $this->safeTarget($public, (string) $record['target_path']);
+            $targetPath = (string) $record['target_path'];
+            [$root, $relative] = $this->resolveRegistryPath($roots, $targetPath);
+            $target = $this->safeTarget($root, $relative);
             if (is_file($target)) {
-                $files[$record['target_path']] = (string) file_get_contents($target);
+                $files[$targetPath] = (string) file_get_contents($target);
             }
         }
-        return ['plugin_name' => $pluginName, 'records' => $records, 'files' => $files];
+        return [
+            'plugin_name' => $pluginName,
+            'records' => $records,
+            'files' => $files,
+            'rebuildRequired' => true,
+        ];
     }
 
     private function assertAvailable(string $target, string $targetPath, string $pluginName, array $registry): void
@@ -179,36 +185,22 @@ final class PluginResourcePublisher
         }
     }
 
-    private function publicationSources(Manifest $manifest): array
+    private function publicationSources(Manifest $manifest, array $roots): array
     {
         $data = $manifest->toArray();
-        $publications = array_values((array) ($data['resources'] ?? []));
+        $publications = [];
+        foreach (array_values((array) ($data['resources'] ?? [])) as $resource) {
+            $publications[] = $resource + ['root' => $roots['public'], 'type' => 'public'];
+        }
         if (is_array($data['adminWeb'] ?? null)) {
             $publications[] = [
-                'source' => 'resources/admin',
-                'target' => 'plugin-assets/' . $manifest->name(),
-                'files' => (array) ($data['adminWeb']['files'] ?? []),
+                'source' => (string) ($data['adminWeb']['source'] ?? 'admin-web'),
+                'target' => 'src/modules/' . $manifest->name(),
+                'root' => $roots['admin-web'],
+                'type' => 'admin-web',
             ];
         }
         return $publications;
-    }
-
-    private function declaredFiles(string $directory, array $files): array
-    {
-        $sources = [];
-        foreach ($files as $file) {
-            $relative = (string) $file;
-            $source = realpath($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative));
-            if ($source === false || !is_file($source) || !str_starts_with($source, $directory . DIRECTORY_SEPARATOR)) {
-                throw new RuntimeException('Admin Web 资源不存在或越界：' . $relative);
-            }
-            if (is_link($directory . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative))) {
-                throw new RuntimeException('Admin Web 资源禁止符号链接：' . $relative);
-            }
-            $sources[] = $source;
-        }
-        sort($sources, SORT_STRING);
-        return $sources;
     }
 
     private function files(string $directory): array
@@ -221,13 +213,14 @@ final class PluginResourcePublisher
             if ($item->isLink()) {
                 throw new RuntimeException('资源目录禁止符号链接：' . $item->getPathname());
             }
-            if ($item->isFile()) {
-                $realPath = $item->getRealPath();
-                if ($realPath === false || !str_starts_with($realPath, $directory . DIRECTORY_SEPARATOR)) {
-                    throw new RuntimeException('资源源路径越界：' . $item->getPathname());
-                }
-                $files[] = $realPath;
+            if (!$item->isFile()) {
+                continue;
             }
+            $realPath = $item->getRealPath();
+            if ($realPath === false || !str_starts_with($realPath, $directory . DIRECTORY_SEPARATOR)) {
+                throw new RuntimeException('资源源路径越界：' . $item->getPathname());
+            }
+            $files[] = $realPath;
         }
         sort($files, SORT_STRING);
         return $files;
@@ -246,39 +239,60 @@ final class PluginResourcePublisher
         return rtrim($source, DIRECTORY_SEPARATOR);
     }
 
-    private function pluginTargetDirectory(string $public, string $pluginName, string $relative): string
+    private function targetDirectory(string $root, string $pluginName, string $relative, string $type): string
     {
-        $prefix = 'plugin-assets/' . $pluginName;
+        $prefix = $type === 'admin-web' ? 'src/modules/' . $pluginName : 'plugin-assets/' . $pluginName;
         if ($relative !== $prefix && !str_starts_with($relative, $prefix . '/')) {
             throw new RuntimeException('资源目标必须位于 ' . $prefix . '/');
         }
-        return $this->safeTarget($public, $relative);
+        return $this->safeTarget($root, $relative);
     }
 
-    private function safeTarget(string $public, string $relative): string
+    private function registryPath(string $type, string $relative): string
+    {
+        return $type === 'admin-web' ? self::ADMIN_WEB_PREFIX . $relative : $relative;
+    }
+
+    private function resolveRegistryPath(array $roots, string $targetPath): array
+    {
+        if (str_starts_with($targetPath, self::ADMIN_WEB_PREFIX)) {
+            return [$roots['admin-web'], substr($targetPath, strlen(self::ADMIN_WEB_PREFIX))];
+        }
+        return [$roots['public'], $targetPath];
+    }
+
+    private function safeTarget(string $root, string $relative): string
     {
         if ($relative === '' || str_contains($relative, "\0") || preg_match('~(^|/)\.\.?(/|$)~', $relative)
             || str_starts_with($relative, '/') || str_contains($relative, '\\')) {
             throw new RuntimeException('资源目标路径越界');
         }
-        $target = $public . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
-        if (!str_starts_with($target, $public . DIRECTORY_SEPARATOR)) {
+        $target = $root . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        if (!str_starts_with($target, $root . DIRECTORY_SEPARATOR)) {
             throw new RuntimeException('资源目标路径越界');
         }
-        $this->assertNoTargetSymlink($public, $target);
+        $this->assertNoTargetSymlink($root, $target);
         return $target;
     }
 
-    private function assertNoTargetSymlink(string $public, string $target): void
+    private function assertNoTargetSymlink(string $root, string $target): void
     {
-        $relative = substr($target, strlen($public) + 1);
-        $current = $public;
+        $relative = substr($target, strlen($root) + 1);
+        $current = $root;
         foreach (explode(DIRECTORY_SEPARATOR, $relative) as $segment) {
             $current .= DIRECTORY_SEPARATOR . $segment;
             if (is_link($current)) {
                 throw new RuntimeException('资源目标路径禁止符号链接：' . $relative);
             }
         }
+    }
+
+    private function roots(): array
+    {
+        return [
+            'public' => $this->canonicalDirectory($this->publicRoot),
+            'admin-web' => $this->canonicalDirectory($this->adminWebRoot),
+        ];
     }
 
     private function canonicalDirectory(string $directory): string
@@ -317,14 +331,15 @@ final class PluginResourcePublisher
         }
     }
 
-    private function deleteOwnedFile(string $public, string $targetPath): void
+    private function deleteOwnedFile(array $roots, string $targetPath): void
     {
-        $target = $this->safeTarget($public, $targetPath);
+        [$root, $relative] = $this->resolveRegistryPath($roots, $targetPath);
+        $target = $this->safeTarget($root, $relative);
         if (is_file($target) && !unlink($target)) {
             throw new RuntimeException('无法删除插件资源：' . $targetPath);
         }
         $directory = dirname($target);
-        while ($directory !== $public && is_dir($directory) && (scandir($directory) ?: []) === ['.', '..']) {
+        while ($directory !== $root && is_dir($directory) && (scandir($directory) ?: []) === ['.', '..']) {
             if (!rmdir($directory)) {
                 throw new RuntimeException('无法清理插件资源目录：' . $targetPath);
             }

@@ -1,20 +1,22 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { Component } from 'vue';
 import type { Router } from 'vue-router';
 import {
   clearPluginModules,
-  isAllowedPluginModuleUrl,
   syncPluginModules,
-  type EnabledPluginModule,
-  type PluginEsmModule
+  type EnabledPluginModule
 } from '@/router/pluginModules';
 
-const descriptor = (name: string, entryUrl: string): EnabledPluginModule => ({
+const descriptor = (name: string): EnabledPluginModule => ({
   name,
   version: '1.0.0',
-  hash: 'a'.repeat(64),
-  entryUrl,
+  components: { Index: 'Index.vue' },
   routes: [{ path: `/plugin/${name}/index`, name: `Plugin_${name}`, component: 'Index', meta: { title: name } }]
 });
+
+const modules = (names: string[]): Record<string, Component> => Object.fromEntries(
+  names.map((name) => [`../modules/${name}/Index.vue`, {} as Component])
+);
 
 function routerStub() {
   const names = new Set<string>();
@@ -26,68 +28,63 @@ function routerStub() {
 }
 
 describe('pluginModules', () => {
-  it('只接受当前 origin 的 plugin-assets 前缀', () => {
-    expect(isAllowedPluginModuleUrl('/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
-    expect(isAllowedPluginModuleUrl('/admin-web/plugin-assets/demo/index.js', 'https://admin.example.com', '/admin-web/')).toBe(true);
-    expect(isAllowedPluginModuleUrl('/other/plugin-assets/demo/index.js', 'https://admin.example.com', '/admin-web/')).toBe(false);
-    expect(isAllowedPluginModuleUrl('https://admin.example.com/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(true);
-    expect(isAllowedPluginModuleUrl('https://evil.example/plugin-assets/demo/index.js', 'https://admin.example.com')).toBe(false);
-    expect(isAllowedPluginModuleUrl('/static/demo/index.js', 'https://admin.example.com')).toBe(false);
-    expect(isAllowedPluginModuleUrl('/plugin-assets/../admin/index.js', 'https://admin.example.com')).toBe(false);
-  });
-
-  it('加载标准 fixture 发布根下的 entry.js', async () => {
+  it('通过构建时组件映射挂载插件路由', async () => {
     const router = routerStub();
-    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
-    const result = await syncPluginModules(router, [
-      descriptor('example', '/plugin-assets/example/entry.js?v=' + 'a'.repeat(64))
-    ], { origin: 'https://admin.example.com', importer });
+    const result = await syncPluginModules(router, [descriptor('example')], {
+      modules: modules(['example'])
+    });
 
     expect(result.loaded).toEqual(['example']);
-    expect(importer).toHaveBeenCalledWith(`https://admin.example.com/plugin-assets/example/entry.js?v=${'a'.repeat(64)}`);
+    expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Plugin_example',
+      component: expect.any(Object)
+    }));
   });
 
-  it.each([
-    ['import', async () => { throw new Error('load failed'); }],
-    ['register', async (): Promise<PluginEsmModule> => ({ register: () => { throw new Error('register failed'); } })],
-    ['component', async (): Promise<PluginEsmModule> => ({ register: () => ({ components: {} }) })],
-    ['route', async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) })]
-  ])('为 %s 阶段错误挂载受控错误页且不影响其他插件', async (expectedStage, brokenImporter) => {
+  it('组件未被当前构建发现时挂载受控错误页且不影响其他插件', async () => {
     const router = routerStub();
-    const broken = descriptor('broken', '/plugin-assets/broken/index.js');
-    if (expectedStage === 'route') broken.routes[0].name = 'Outside';
-    const importer = vi.fn(async (url: string): Promise<PluginEsmModule> => {
-      if (url.includes('broken')) return brokenImporter();
-      return { register: () => ({ components: { Index: {} } }) };
+    const result = await syncPluginModules(router, [descriptor('missing'), descriptor('healthy')], {
+      modules: modules(['healthy'])
     });
-    const result = await syncPluginModules(router, [broken, descriptor('healthy', '/plugin-assets/healthy/index.js')], { origin: 'https://admin.example.com', importer });
 
     expect(result.loaded).toEqual(['healthy']);
-    expect(result.errors[0]).toMatchObject({ name: 'broken', stage: expectedStage });
+    expect(result.errors[0]).toMatchObject({ name: 'missing', stage: 'component' });
     expect(router.addRoute).toHaveBeenCalledTimes(2);
     expect(router.addRoute).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'Plugin_broken_Error',
+      name: 'Plugin_missing_Error',
       component: expect.any(Function)
     }));
   });
 
+  it('拒绝越界路由并继续加载其他插件', async () => {
+    const router = routerStub();
+    const broken = descriptor('broken');
+    broken.routes[0].name = 'Outside';
+    const result = await syncPluginModules(router, [broken, descriptor('healthy')], {
+      modules: modules(['broken', 'healthy'])
+    });
+
+    expect(result.loaded).toEqual(['healthy']);
+    expect(result.errors[0]).toMatchObject({ name: 'broken', stage: 'route' });
+  });
+
   it('重复同步不重复挂载并移除已禁用插件路由', async () => {
     const router = routerStub();
-    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
-    await syncPluginModules(router, [descriptor('demo', '/plugin-assets/demo/index.js')], { origin: 'https://admin.example.com', importer });
-    await syncPluginModules(router, [descriptor('demo', '/plugin-assets/demo/index.js')], { origin: 'https://admin.example.com', importer });
+    const options = { modules: modules(['demo']) };
+    await syncPluginModules(router, [descriptor('demo')], options);
+    await syncPluginModules(router, [descriptor('demo')], options);
     expect(router.addRoute).toHaveBeenCalledTimes(1);
-    await syncPluginModules(router, [], { origin: 'https://admin.example.com', importer });
+    await syncPluginModules(router, [], options);
     expect(router.removeRoute).toHaveBeenCalledWith('Plugin_demo');
   });
 
   it('Router 实例重建后恢复路由', async () => {
     const firstRouter = routerStub();
     const secondRouter = routerStub();
-    const importer = vi.fn(async (): Promise<PluginEsmModule> => ({ register: () => ({ components: { Index: {} } }) }));
-    const item = descriptor('reloadable', '/plugin-assets/reloadable/index.js');
-    await syncPluginModules(firstRouter, [item], { origin: 'https://admin.example.com', importer });
-    await syncPluginModules(secondRouter, [item], { origin: 'https://admin.example.com', importer });
+    const item = descriptor('reloadable');
+    const options = { modules: modules(['reloadable']) };
+    await syncPluginModules(firstRouter, [item], options);
+    await syncPluginModules(secondRouter, [item], options);
     expect(secondRouter.addRoute).toHaveBeenCalledOnce();
     clearPluginModules(secondRouter);
   });

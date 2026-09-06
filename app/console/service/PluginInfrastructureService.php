@@ -36,6 +36,7 @@ final class PluginInfrastructureService
     {
         return new PluginResourcePublisher(
             public_path(),
+            root_path() . 'admin-web',
             new DatabasePluginResourceRepository()
         );
     }

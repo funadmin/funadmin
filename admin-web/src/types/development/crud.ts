@@ -36,6 +36,7 @@ export interface CrudField {
   unique?: boolean;
   dictionary?: boolean;
   upload?: boolean;
+  indexMissing?: boolean;
 }
 export interface CrudCapabilities {
   list: boolean; search: boolean; form: boolean; detail: boolean;
@@ -47,12 +48,15 @@ export interface CrudFeatures { softDelete: boolean; batchDelete: boolean; statu
 export interface CrudArtifactMap {
   migration: string; model: string; validate: string; service: string; controller: string;
   permissionMigration: string; api: string; view: string; form: string; detail: string;
+  phpTest: string; vitestTest: string;
 }
 export interface CrudDefinition {
-  schemaVersion: '1.0'; name: string; table: string; title: string; description?: string;
-  paths: CrudArtifactMap; apiPrefix: string; permissionPrefix: string;
-  fields: CrudField[]; relations: CrudRelation[]; optionsSource: CrudOptionsSource[]; templates: CrudArtifactMap;
-  metadata: { connection: string }; capabilities: CrudCapabilities; features: CrudFeatures;
+  schemaVersion: '1.0'; connection: string; module: string; entity: string; table: string;
+  title: string; description?: string; routePath: string; primaryKey: string;
+  timestamps: boolean; softDeletes: boolean; generationTargets: CrudArtifactMap;
+  permissionPrefix: string; fields: CrudField[]; relations: CrudRelation[];
+  optionsSource: CrudOptionsSource[]; templates: CrudArtifactMap;
+  capabilities: CrudCapabilities; features: CrudFeatures;
   dataScope: { enabled: boolean; field: string; resolver?: 'adminDepartmentIds' };
 }
 export interface CrudPlanFile { path: string; status: 'create' | 'unchanged' | 'conflict'; hash?: string; previousHash?: string | null }

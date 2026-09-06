@@ -27,11 +27,14 @@ export function createCrudDefinition(connection: string, table: string, fields: 
   const className = name.split('-').map((part) => part[0]?.toUpperCase() + part.slice(1)).join('');
   const hasWritableStatus = fields.some((field) => field.name === 'status' && field.writable !== false);
   return {
-    schemaVersion: '1.0', name, table, title: table,
-    paths: { migration: `database/generated/${name}.sql`, model: `app/console/model/${className}.php`, validate: `app/console/validate/${className}Validate.php`, service: `app/console/service/${className}Service.php`, controller: `app/console/controller/generated/${className}Controller.php`, permissionMigration: `database/generated/${name}_permissions.sql`, api: `admin-web/src/api/generated/${name}.ts`, view: `admin-web/src/views/generated/${name}/index.vue`, form: `admin-web/src/views/generated/${name}/components/${className}Form.vue`, detail: `admin-web/src/views/generated/${name}/components/${className}Detail.vue` },
-    apiPrefix: `/generated/${name}`, permissionPrefix: `generated:${name}`, fields, relations: [], optionsSource: [],
-    templates: { migration: 'database/migration.sql.tpl', model: 'console/model.php.tpl', validate: 'console/validate.php.tpl', service: 'console/service.php.tpl', controller: 'console/controller.php.tpl', permissionMigration: 'database/permissions.sql.tpl', api: 'frontend/api.ts.tpl', view: 'frontend/index.vue.tpl', form: 'frontend/form.vue.tpl', detail: 'frontend/detail.vue.tpl' },
-    metadata: { connection }, capabilities: { list: true, search: true, form: true, detail: true, create: true, update: true, delete: true, import: true, export: true },
+    schemaVersion: '1.0', connection, module: 'generated', entity: name, table, title: table,
+    routePath: `/generated/${name}`, primaryKey: fields.find((field) => field.primary)?.name || 'id',
+    timestamps: fields.some((field) => field.name === 'created_at') && fields.some((field) => field.name === 'updated_at'),
+    softDeletes: fields.some((field) => field.name === 'deleted_at'),
+    generationTargets: { migration: `database/generated/${name}.sql`, model: `app/console/model/${className}.php`, validate: `app/console/validate/${className}Validate.php`, service: `app/console/service/${className}Service.php`, controller: `app/console/controller/generated/${className}Controller.php`, permissionMigration: `database/generated/${name}_permissions.sql`, api: `admin-web/src/api/generated/${name}.ts`, view: `admin-web/src/views/generated/${name}/index.vue`, form: `admin-web/src/views/generated/${name}/components/${className}Form.vue`, detail: `admin-web/src/views/generated/${name}/components/${className}Detail.vue`, phpTest: `tests/generated/${className}GeneratedTest.php`, vitestTest: `admin-web/tests/generated/${name}.spec.ts` },
+    permissionPrefix: `generated:${name}`, fields, relations: [], optionsSource: [],
+    templates: { migration: 'database/migration.sql.tpl', model: 'console/model.php.tpl', validate: 'console/validate.php.tpl', service: 'console/service.php.tpl', controller: 'console/controller.php.tpl', permissionMigration: 'database/permissions.sql.tpl', api: 'frontend/api.ts.tpl', view: 'frontend/index.vue.tpl', form: 'frontend/form.vue.tpl', detail: 'frontend/detail.vue.tpl', phpTest: 'tests/php-test.php.tpl', vitestTest: 'tests/vitest-test.ts.tpl' },
+    capabilities: { list: true, search: true, form: true, detail: true, create: true, update: true, delete: true, import: true, export: true },
     features: { softDelete: true, batchDelete: true, status: hasWritableStatus, detail: true, import: true, export: true, upload: true, dictionary: true, referenceProtection: true, formMode: 'dialog', importLimit: 10000, exportLimit: 10000 },
     dataScope: { enabled: false, field: '' }
   };

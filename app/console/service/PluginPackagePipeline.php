@@ -220,6 +220,7 @@ final class PluginPackagePipeline
                 'package_hash' => $packageHash,
                 'max_db_version' => $maxDbVersion,
                 'package_path' => $packagePath,
+                'rebuildRequired' => true,
             ] + $verification;
             if ($cleanupWarning !== null) {
                 $result['warnings'] = [$cleanupWarning];

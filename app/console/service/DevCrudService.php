@@ -89,8 +89,9 @@ final class DevCrudService
 
     public function validate(array $definition): array
     {
-        (new DefinitionValidator())->validate(CrudDefinition::fromArray($definition), $this->projectRoot);
-        return ['valid' => true, 'definitionHash' => CrudDefinition::fromArray($definition)->hash()];
+        $normalized = CrudDefinition::fromArray($definition);
+        (new DefinitionValidator())->validate($normalized, $this->projectRoot);
+        return ['valid' => true, 'definitionHash' => $normalized->hash(), 'definition' => $normalized->toArray()];
     }
 
     public function preview(array $definition, bool $includeSensitive, bool $canGenerate): array
@@ -160,7 +161,7 @@ final class DevCrudService
         return ($this->auditWriter)([
             'operation' => $operation,
             'status' => $status,
-            'connection_name' => (string) ($definition->get('metadata', [])['connection'] ?? ''),
+            'connection_name' => (string) $definition->get('connection', ''),
             'table_name' => (string) $definition->get('table', ''),
             'definition_hash' => $definition->hash(),
             'definition' => $this->sanitize($definition->toArray()),
@@ -174,7 +175,7 @@ final class DevCrudService
         ($this->auditWriter)([
             'operation' => $operation,
             'status' => 'failed',
-            'connection_name' => (string) (($definition['metadata']['connection'] ?? '')),
+            'connection_name' => (string) ($definition['connection'] ?? $definition['metadata']['connection'] ?? ''),
             'table_name' => (string) ($definition['table'] ?? ''),
             'definition_hash' => hash('sha256', CrudDefinition::canonicalJson($this->sanitize($definition))),
             'definition' => $this->sanitize($definition),

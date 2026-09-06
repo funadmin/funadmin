@@ -15,7 +15,7 @@ function preview(definition: CrudDefinition): CrudPreview {
     generationId: 1,
     plan: {
       definitionHash: 'mock-definition-hash',
-      files: Object.values(definition.paths).map((path) => ({ path, status: 'create' as const }))
+      files: Object.values(definition.generationTargets).map((path) => ({ path, status: 'create' as const }))
     },
     sensitive: { confirmToken: 'mock-preview-token' }
   };

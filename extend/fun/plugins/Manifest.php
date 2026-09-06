@@ -141,18 +141,21 @@ final class Manifest
         if ($adminWeb === null) {
             return;
         }
-        $sourceRoot = self::existingRelativeDirectory($directory, 'resources/admin', 'adminWeb');
-        $declaredFiles = [];
-        foreach ((array) ($adminWeb['files'] ?? []) as $file) {
-            $resolved = self::existingRelativeFile($sourceRoot, (string) $file, 'adminWeb.files');
+        $source = (string) ($adminWeb['source'] ?? '');
+        $sourceRoot = self::existingRelativeDirectory($directory, $source, 'adminWeb.source');
+        $declaredComponents = [];
+        foreach ((array) ($adminWeb['components'] ?? []) as $component => $file) {
+            $resolved = self::existingRelativeFile($sourceRoot, (string) $file, 'adminWeb.components.' . $component);
             if (is_link($resolved)) {
-                throw new RuntimeException('plugin.json adminWeb.files 禁止符号链接');
+                throw new RuntimeException('plugin.json adminWeb.components 禁止符号链接');
             }
-            $declaredFiles[(string) $file] = true;
+            $declaredComponents[(string) $component] = true;
         }
-        $component = (string) ($adminWeb['component'] ?? '');
-        if (!isset($declaredFiles[$component])) {
-            throw new RuntimeException('plugin.json adminWeb.component 必须包含在 adminWeb.files 中');
+        foreach ((array) ($adminWeb['routes'] ?? []) as $route) {
+            $component = (string) ($route['component'] ?? '');
+            if (!isset($declaredComponents[$component])) {
+                throw new RuntimeException('plugin.json adminWeb.routes.component 必须在 adminWeb.components 中声明：' . $component);
+            }
         }
         $name = (string) $data['name'];
         $declared = [];

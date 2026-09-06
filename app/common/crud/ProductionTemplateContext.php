@@ -12,19 +12,19 @@ final class ProductionTemplateContext
     public static function build(CrudDefinition $definition): array
     {
         $data = $definition->toArray();
-        $class = self::studly((string) $data['name']);
+        $class = self::studly((string) $data['entity']);
         $primary = array_values(array_filter(
             $data['fields'],
             static fn (array $field): bool => ($field['primary'] ?? false) === true
         ))[0];
 
         return [
-            'name' => (string) $data['name'],
+            'name' => (string) $data['entity'],
             'phpClass' => $class,
             'title' => (string) $data['title'],
             'table' => (string) $data['table'],
-            'apiPrefix' => (string) $data['apiPrefix'],
-            'routePrefix' => ltrim((string) $data['apiPrefix'], '/'),
+            'apiPrefix' => (string) $data['routePath'],
+            'routePrefix' => ltrim((string) $data['routePath'], '/'),
             'permissionPrefix' => (string) $data['permissionPrefix'],
             'fieldsJson' => self::json($data['fields']),
             'migrationContent' => self::migration($data, $primary),
@@ -37,6 +37,8 @@ final class ProductionTemplateContext
             'viewContent' => self::view($data, $class, $primary),
             'formContent' => self::form($data, $class),
             'detailContent' => self::detail($data, $class),
+            'phpTestContent' => self::phpTest($data, $class),
+            'vitestTestContent' => self::vitestTest($data, $class),
         ];
     }
 
@@ -277,7 +279,7 @@ final class ProductionTemplateContext
             . "use app\\console\\validate\\{$class}Validate;\nuse app\\common\\traits\\Crud;\n"
             . "use think\\annotation\\route\\Delete;\nuse think\\annotation\\route\\Get;\nuse think\\annotation\\route\\Group;\n"
             . "use think\\annotation\\route\\Pattern;\nuse think\\annotation\\route\\Post;\nuse think\\annotation\\route\\Put;\n"
-            . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['apiPrefix'], '/') . "')]\n"
+            . "use think\\Model;\nuse think\\Response;\n\n#[Group('" . ltrim($data['routePath'], '/') . "')]\n"
             . "final class {$class}Controller extends AdminApiController\n{\n    use Crud {\n        index as private crudIndex; index as private;\n        detail as private crudDetail; detail as private;\n        create as private crudCreate; create as private;\n        update as private crudUpdate; update as private;\n{$statusTraitAlias}        remove as private crudRemove; remove as private;\n        restoreOne as private crudRestoreOne; restoreOne as private;\n        destroyOne as private crudDestroyOne; destroyOne as private;\n        recycle as private crudRecycle; recycle as private;\n        restore as private crudRestoreMany; restore as private;\n        destroy as private crudDestroyMany; destroy as private;\n        import as private crudImport; import as private;\n        export as private crudExport; export as private;\n        baseQuery as private crudUnscopedBaseQuery;\n    }\n"
             . "    protected array \$middleware = [CheckAdminApiRole::class, CheckAdminApiCsrf::class, SystemLog::class];\n"
             . "    protected string \$model = {$class}::class;\n\n" . implode("\n\n", $methods) . "\n\n"
@@ -333,17 +335,17 @@ final class ProductionTemplateContext
                 default => $enabled[$action] ?? false,
             }
         ));
-        $sourceName = self::sqlLiteral($data['name']);
+        $sourceName = self::sqlLiteral($data['entity']);
         $title = self::sqlLiteral($data['title']);
-        $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['name'])) . 'controller');
+        $controller = self::sqlLiteral('console/generated.' . strtolower(self::studly((string) $data['entity'])) . 'controller');
         $values = [];
         foreach ($actions as $index => $action) {
             $values[] = "(@permission_group_id, 'console', " . self::sqlLiteral($data['permissionPrefix'] . ':' . $actionCodes[$action])
                 . ", {$controller}, " . self::sqlLiteral($action) . ', ' . self::sqlLiteral($data['title'] . ' ' . $action)
                 . ", 'route', 1, 0, " . (($index + 1) * 10) . ", 'generated', {$sourceName}, NOW(), NOW())";
         }
-        $menuPath = self::sqlLiteral('/' . ltrim($data['apiPrefix'], '/'));
-        $menuQuery = self::sqlLiteral("component=generated/{$data['name']}/index&type=C&permission={$data['permissionPrefix']}:list");
+        $menuPath = self::sqlLiteral('/' . ltrim($data['routePath'], '/'));
+        $menuQuery = self::sqlLiteral("component=generated/{$data['entity']}/index&type=C&permission={$data['permissionPrefix']}:list");
         return "-- Generated forward permission/menu migration; review before applying.\n"
             . "INSERT INTO fun_permission (pid, module, code, obj, act, name, resource_type, status, is_public, sort_order, source_type, source_name, created_at, updated_at) "
             . "SELECT 0, 'console', NULL, '', '', {$title}, 'group', 1, 0, 0, 'generated', {$sourceName}, NOW(), NOW() "
@@ -368,7 +370,7 @@ final class ProductionTemplateContext
         }
         $idType = self::tsType($primary) === 'number' ? 'number' : 'string';
         $primaryName = self::camel($primary['name']);
-        $base = rtrim($data['apiPrefix'], '/');
+        $base = rtrim($data['routePath'], '/');
         $endpointOptions = [];
         foreach (self::enabledOptionSources($data, $enabled) as $source) {
             if ($source['type'] !== 'endpoint') {
@@ -470,7 +472,7 @@ final class ProductionTemplateContext
             ? "import { downloadCsv, parseCsv, readFileAsText, toCsv, type CsvColumn } from '@/utils/csv';\n"
             : '';
         return "<template>\n  <PageWrapper title=\"" . htmlspecialchars($data['title'], ENT_QUOTES) . "\">\n"
-            . "    <DataTableShell storage-key=\"generated-{$data['name']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
+            . "    <DataTableShell storage-key=\"generated-{$data['entity']}\" :loading=\"loading\" @refresh=\"loadData\">\n"
             . $searchSlot
             . "      <template #toolbar-left>" . implode('', $toolbar) . "</template>\n"
             . "      <template #default=\"{ size, stripe, border, headerCellStyle }\"><el-table :data=\"list\" :size=\"size\" :stripe=\"stripe\" :border=\"border\" :header-cell-style=\"headerCellStyle\"{$selectionChange}>\n"
@@ -481,7 +483,7 @@ final class ProductionTemplateContext
             . "  </PageWrapper>\n</template>\n<script setup lang=\"ts\">\n" . $vueImport
             . ($enabled['softDelete'] ? "import { ElMessageBox } from 'element-plus';\n" : '')
             . "import { useCrud } from '@/composables/useCrud';\n" . $csvImport
-            . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '@/api/generated/{$data['name']}';\n"
+            . "import { {$camel}Api, type {$type}, type {$type}Payload, type {$type}Query } from '@/api/generated/{$data['entity']}';\n"
             . ($formEnabled ? "import {$class}Form from './components/{$class}Form.vue';\n" : '')
             . ($enabled['detail'] ? "import {$class}Detail from './components/{$class}Detail.vue';\n" : '')
             . 'const { ' . implode(', ', $crudBindings) . " } = useCrud<{$type}, {$type}Query, {$type}['{$primaryName}']>({ api: { list: {$camel}Api.list"
@@ -495,7 +497,7 @@ final class ProductionTemplateContext
             . ($enabled['batchDelete'] ? "async function restoreSelected() { await {$camel}Api.restoreMany(selectedIds()); await loadData(); }\nasync function forceDeleteSelected() { await ElMessageBox.confirm('确认永久删除选中记录？此操作不可恢复。', '永久删除确认', { type: 'error' }); await {$camel}Api.forceDeleteMany(selectedIds()); await loadData(); }\n" : '')
             . ($enabled['status'] ? "async function changeStatus(row: {$type}, enabled: boolean) { await {$camel}Api.status(row.{$primaryName}, enabled ? 1 : 0); await loadData(); }\n" : '')
             . ($enabled['import'] ? "async function importCsv(event: Event) { const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ''; if (!file) return; const rows = parseCsv<{$type}Payload>(await readFileAsText(file), csvColumns); await {$camel}Api.importRows(rows); await loadData(); }\n" : '')
-            . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['name']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
+            . ($enabled['export'] ? "async function exportRows() { const rows = await {$camel}Api.exportRows(query); downloadCsv('{$data['entity']}-export', toCsv(rows, csvColumns as CsvColumn<{$type}>[])); }\n" : '')
             . "</script>\n";
     }
 
@@ -556,7 +558,7 @@ final class ProductionTemplateContext
             . implode('', $fields)
             . "</el-form><template #footer><el-button @click=\"visible=false\">取消</el-button><el-button type=\"primary\" @click=\"submit\">保存</el-button></template></{$tag}></template>\n"
             . "<script setup lang=\"ts\">\nimport { computed, reactive, watch } from 'vue';\n{$uploadImport}"
-            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['name']}';\n"
+            . "import { {$camel}Api, type {$type}, type {$type}Payload } from '@/api/generated/{$data['entity']}';\n"
             . "const props = defineProps<{ modelValue: boolean; row: {$type} | null }>();\nconst emit = defineEmits<{ 'update:modelValue': [boolean]; success: [] }>();\n"
             . "const visible = computed({ get: () => props.modelValue, set: value => emit('update:modelValue', value) });\nconst form = reactive<{$type}Payload>({});\n"
             . "const optionLists = reactive<Record<string, Array<{ label: string; value: string | number }>>>({ " . implode(', ', $optionState) . " });\n"
@@ -572,7 +574,25 @@ final class ProductionTemplateContext
     {
         $type = self::tsTypeName($class);
         return "<template><el-drawer v-model=\"visible\" title=\"详情\"><el-descriptions v-if=\"row\" :column=\"1\"><el-descriptions-item v-for=\"(value, key) in row\" :key=\"key\" :label=\"String(key)\"><span v-text=\"String(value ?? '')\" /></el-descriptions-item></el-descriptions></el-drawer></template>\n"
-            . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '@/api/generated/{$data['name']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
+            . "<script setup lang=\"ts\">import { computed } from 'vue'; import type { {$type} } from '@/api/generated/{$data['entity']}'; const props=defineProps<{modelValue:boolean;row:{$type}|null}>(); const emit=defineEmits<{ 'update:modelValue':[boolean] }>(); const visible=computed({get:()=>props.modelValue,set:value=>emit('update:modelValue',value)});</script>\n";
+    }
+
+    private static function phpTest(array $data, string $class): string
+    {
+        return "<?php\n\ndeclare(strict_types=1);\n\nuse app\\console\\model\\{$class};\n\n"
+            . "if (!is_subclass_of({$class}::class, \\think\\Model::class)) {\n"
+            . "    throw new RuntimeException('生成模型必须继承 ThinkPHP Model');\n}\n"
+            . "echo 'generated {$data['entity']} PHP contract: PASS' . PHP_EOL;\n";
+    }
+
+    private static function vitestTest(array $data, string $class): string
+    {
+        $camel = self::camel($class);
+        return "import { describe, expect, it } from 'vitest';\n"
+            . "import { {$camel}Api } from '@/api/generated/{$data['entity']}';\n\n"
+            . "describe('generated {$data['entity']} API contract', () => {\n"
+            . "  it('exposes list API', () => { expect({$camel}Api.list).toBeTypeOf('function'); });\n"
+            . "});\n";
     }
 
     private static function enabledCapabilities(array $data): array

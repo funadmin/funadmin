@@ -13,7 +13,7 @@ use fun\plugins\Registry;
 use RuntimeException;
 
 /**
- * 插件中心只读查询与 Admin Web ESM 模块契约。
+ * 插件中心只读查询与 Admin Web 构建时源码组件契约。
  */
 final class PluginCenterQueryService extends AbstractService
 {
@@ -99,28 +99,13 @@ final class PluginCenterQueryService extends AbstractService
                 continue;
             }
             $adminWeb = $manifest->toArray()['adminWeb'] ?? null;
-            if (!is_array($adminWeb) || !is_string($adminWeb['component'] ?? null)) {
-                continue;
-            }
-            $entry = (string) $adminWeb['component'];
-            $publishRoot = root_path() . 'public' . DIRECTORY_SEPARATOR . 'plugin-assets' . DIRECTORY_SEPARATOR . $name;
-            $realPublishRoot = realpath($publishRoot);
-            $realFile = realpath($publishRoot . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $entry));
-            if ($realPublishRoot === false || $realFile === false || !is_file($realFile)) {
-                continue;
-            }
-            if (!str_starts_with($realFile, rtrim($realPublishRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR)) {
-                continue;
-            }
-            $hash = hash_file('sha256', $realFile);
-            if (!is_string($hash)) {
+            if (!is_array($adminWeb) || !is_array($adminWeb['components'] ?? null)) {
                 continue;
             }
             $modules[] = [
                 'name' => $name,
                 'version' => (string) $record->version,
-                'hash' => $hash,
-                'entryUrl' => '/plugin-assets/' . $name . '/' . $entry . '?v=' . $hash,
+                'components' => $adminWeb['components'],
                 'routes' => $this->routeDtos($adminWeb['routes'] ?? [], $name),
             ];
         }

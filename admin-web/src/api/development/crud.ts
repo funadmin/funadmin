@@ -6,9 +6,9 @@ const PREFIX = '/development/crud';
 export const crudDevelopmentApi = {
   connections: () => http.get<CrudConnection[]>(`${PREFIX}/connections`),
   tables: (connection: string) => http.get<CrudTable[]>(`${PREFIX}/tables`, { connection }),
-  tableSchema: (connection: string, table: string) => http.get<Record<string, unknown>>(`${PREFIX}/table/${table}`, { connection }),
+  tableSchema: (connection: string, table: string) => http.get<Record<string, unknown>>(`${PREFIX}/tables/${table}/schema`, { connection }),
   infer: (connection: string, table: string) => http.post<{ schema: Record<string, unknown>; fields: CrudDefinition['fields'] }>(`${PREFIX}/infer`, { connection, table }),
-  validate: (definition: CrudDefinition) => http.post<{ valid: boolean; definitionHash: string }>(`${PREFIX}/validate`, { definition }),
+  validate: (definition: CrudDefinition) => http.post<{ valid: boolean; definitionHash: string }>(`${PREFIX}/definitions/validate`, { definition }),
   preview: (definition: CrudDefinition) => http.post<CrudPreview>(`${PREFIX}/preview`, { definition }),
   generate: (definition: CrudDefinition, confirmToken: string, allowOverwrite: string[]) =>
     http.post<CrudGeneration>(`${PREFIX}/generate`, { definition, confirmToken, allowOverwrite }),

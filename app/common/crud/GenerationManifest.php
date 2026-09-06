@@ -11,7 +11,7 @@ use JsonSerializable;
  */
 final class GenerationManifest implements JsonSerializable
 {
-    private const SECRET_PATTERN = '/(?:password|passwd|secret|token|credential|private[_-]?key|api[_-]?key)/i';
+    private const SECRET_PATTERN = '/(?:password|passwd|secret|token|credential|private[_-]?key|api[_-]?key|dsn)/i';
 
     private function __construct(private readonly array $data)
     {
@@ -23,7 +23,10 @@ final class GenerationManifest implements JsonSerializable
         array $plan,
         string $operator,
         string $status,
-        array $metadata = []
+        array $metadata = [],
+        ?string $startedAt = null,
+        ?string $finishedAt = null,
+        ?array $error = null
     ): self {
         $files = array_map(static fn (array $file): array => [
             'path' => $file['path'],
@@ -31,14 +34,23 @@ final class GenerationManifest implements JsonSerializable
             'hash' => $file['hash'],
             'previousHash' => $file['previousHash'],
         ], $plan['files'] ?? []);
+        $createdFiles = array_column(array_filter($files, static fn (array $file): bool => $file['status'] === 'create'), 'path');
+        $overwrittenFiles = array_column(array_filter($files, static fn (array $file): bool => $file['status'] === 'conflict'), 'path');
+        $safeMetadata = self::withoutSecrets($metadata);
         return new self([
             'schemaVersion' => '1.0',
             'definitionHash' => $definition->hash(),
             'templateVersion' => $templateVersion,
             'files' => $files,
+            'createdFiles' => $createdFiles,
+            'overwrittenFiles' => $overwrittenFiles,
+            'validationResult' => self::withoutSecrets((array) ($safeMetadata['validationResult'] ?? [])),
+            'startedAt' => $startedAt ?? gmdate(DATE_ATOM),
+            'finishedAt' => $finishedAt,
+            'error' => $error === null ? null : self::withoutSecrets($error),
             'operator' => $operator,
             'status' => $status,
-            'metadata' => self::withoutSecrets($metadata),
+            'metadata' => $safeMetadata,
         ]);
     }
 

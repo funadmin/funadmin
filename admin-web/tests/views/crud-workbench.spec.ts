@@ -17,14 +17,25 @@ describe('CRUD Workbench', () => {
     expect(validateWorkbenchStep(2, { fields })).toContain('legacy');
   });
 
-  it('模块定义不包含测试文件制品', () => {
+  it('输出标准顶层字段及 PHP/Vitest 测试制品', () => {
     const definition = createCrudDefinition('mysql', 'fun_admin_log', [
-      { name: 'id', dbType: 'bigint unsigned', nullable: false, primary: true }
+      { name: 'id', dbType: 'bigint unsigned', nullable: false, primary: true },
+      { name: 'created_at', dbType: 'datetime', nullable: false },
+      { name: 'updated_at', dbType: 'datetime', nullable: false },
+      { name: 'deleted_at', dbType: 'datetime', nullable: true }
     ] as CrudField[]);
-    expect(definition.paths).not.toHaveProperty('phpTest');
-    expect(definition.paths).not.toHaveProperty('vueTest');
-    expect(definition.templates).not.toHaveProperty('phpTest');
-    expect(definition.templates).not.toHaveProperty('vueTest');
+    expect(definition).toMatchObject({
+      connection: 'mysql', module: 'generated', entity: 'admin-log', routePath: '/generated/admin-log',
+      primaryKey: 'id', timestamps: true, softDeletes: true
+    });
+    expect(definition.generationTargets).toHaveProperty('phpTest');
+    expect(definition.generationTargets).toHaveProperty('vitestTest');
+    expect(definition.templates).toHaveProperty('phpTest');
+    expect(definition.templates).toHaveProperty('vitestTest');
+    expect(definition).not.toHaveProperty('name');
+    expect(definition).not.toHaveProperty('paths');
+    expect(definition).not.toHaveProperty('apiPrefix');
+    expect(definition).not.toHaveProperty('metadata');
   });
 
   it('仅在 schema 存在可写 status 时默认启用状态能力', () => {

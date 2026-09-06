@@ -10,8 +10,6 @@ export function resetPluginMockState(): void {
   account = null;
   installed.splice(0, installed.length, ...initialInstalled());
 }
-const moduleHash = 'a'.repeat(64);
-
 function installedPlugin(name: string): PluginItem | undefined {
   return installed.find((item) => item.name === name);
 }
@@ -20,8 +18,7 @@ function enabledModules(): EnabledPluginModule[] {
   return installed.filter((item) => item.state === 'enabled').map((item) => ({
     name: item.name,
     version: item.version,
-    hash: moduleHash,
-    entryUrl: `/plugin-assets/${item.name}/entry.js?v=${moduleHash}`,
+    components: { Index: 'Index.vue' },
     routes: [{ path: `/plugin/${item.name}/index`, name: `Plugin_${item.name}`, component: 'Index', meta: { title: item.title } }]
   }));
 }
